@@ -279,7 +279,7 @@ plotinteraction(g, findSources(Matrix(adjacency_matrix(g))));
 
 
 CairoMakie.activate!()
-system_data = readdlm("16 NodeNetwork Adjacency matrix.csv",  ',', header= false, Int);
+system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv",  ',', header= false, Int);
 original_system_matrix = Matrix(DataFrame(system_data, :auto));
 original_system_graph = DiGraph(original_system_matrix);
 plotinteraction(original_system_graph, findSources(original_system_matrix));

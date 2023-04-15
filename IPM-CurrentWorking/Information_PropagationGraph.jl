@@ -40,23 +40,35 @@ Random.seed!(2409);
 
     function update_graph(new_system_graph,edgepairs)
         for edge in edgepairs 
+            caused, causedDiamond = causes_diamond(adjacency_matrix(new_system_graph), edge)
+            if caused && !(isempty(causedDiamond)) && !has_edge(new_system_graph,edge)
+               println("Diamond subgraph detected Edge: $edge forms the diamond: $causedDiamond")
+            end
             add_edge!(new_system_graph,edge)
         end
+        empty!(edgepairs) # Clear the edgepairs list after updating the graph
     end
 
     function reliability_propagation(system_matrix,sources,link_reliability,node_Priors)
+
+        
         original_system_graph= DiGraph(system_matrix)
         new_system_graph = DiGraph(zero(system_matrix));
         belief_dict=Dict(); edgepairs=[]; terminating_nodes=[]; #f = Figure(); structure_count=0;
 
         while new_system_graph != original_system_graph
             belief_dict,edgepairs = update_belief(new_system_graph,original_system_graph,link_reliability,node_Priors,sources,belief_dict,edgepairs)
-            update_graph(new_system_graph,edgepairs)
+            update_graph(new_system_graph,edgepairs);
+            #=
+            plotinteraction(new_system_graph, sources);
+            has_diamond_subgraph(adjacency_matrix(new_system_graph))
+            =#
+            
             #structure_count = structure_count + 1;
             #intermediate_structure_update(new_system_graph,f,structure_count)
         end
 
-    #= terminating_nodes = [if isempty(outneighbors(new_system_graph,node)) node end for node in 1:nv(new_system_graph)] #identify terminating nodes #
+        #= terminating_nodes = [if isempty(outneighbors(new_system_graph,node)) node end for node in 1:nv(new_system_graph)] #identify terminating nodes #
         for t_node in terminating_nodes
             belief_dict[t_node] = update_node_belief(belief_dict, link_reliability,new_system_graph, t_node);
         end
@@ -72,68 +84,8 @@ Random.seed!(2409);
 
 
 
-    function causes_diamond(original_graph::Dict{Int64, Vector{Int64}}, edge::Tuple{Int64, Int64})
-        # Add the edge to the adjacency list
-        if haskey(original_graph, edge[1])
-            push!(original_graph[edge[1]], edge[2])
-        else
-            original_graph[edge[1]] = [edge[2]]
-        end 
 
-        # Run the has_diamond_subgraph function to check for diamonds
-        has_diamond, diamond_paths = has_diamond_subgraph(original_graph)
-
-        # If a diamond is found, return true and the diamond subgraph
-        if has_diamond
-            return true, diamond_paths
-        else
-            return false, nothing
-        end
-    end
-
-    function is_fork(node::Int64, original_graph::Dict{Int64, Vector{Int64}})
-        return number_of_outgoing_edges(node, original_graph) > 1 && number_of_incoming_edges(node, original_graph) > 0
-    end
-
-    function is_join(node::Int64, original_graph::Dict{Int64, Vector{Int64}})
-        return number_of_incoming_edges(node, original_graph) > 1
-    end
-
-    function number_of_incoming_edges(node::Int64, original_graph::Dict{Int64, Vector{Int64}})
-        return count(node in values(original_graph[i]) for i in keys(original_graph))
-    end
-
-    function number_of_outgoing_edges(node::Int64, original_graph::Dict{Int64, Vector{Int64}})
-        return length(get(original_graph, node, Int64[]))
-    end
-
-    function get_children(node::Int64, original_graph::Dict{Int64, Vector{Int64}})
-        return filter(x -> x != 0, get(original_graph, node, Int64[]))
-    end
-
-    function has_diamond_subgraph(original_graph::Dict{Int64, Vector{Int64}})
-        
-        all_diamond_paths = Vector{Vector{Tuple{Int64, Int64}}}()
-
-        for node in keys(original_graph)
-            if is_fork(node, original_graph)
-                visited_nodes = Vector{Int64}()
-                diamond_paths = find_diamond_path(node, visited_nodes, original_graph)
-                if !isempty(diamond_paths)
-                    diamond_group = reduce(vcat, diamond_paths)
-                    push!(all_diamond_paths, diamond_group)
-                end
-            end
-        end
-
-        if !isempty(all_diamond_paths)
-            return true, all_diamond_paths
-        else
-            return false, nothing
-        end
-    end
-
-    function find_diamond_path(node::Int64, visited_nodes::Vector{Int64}, original_graph::Dict{Int64, Vector{Int64}})
+    function find_diamond_path(node, visited_nodes, adj_matrix)
         diamond_edgepaths = Vector{Vector{Tuple{Int64, Int64}}}()
         if node in visited_nodes
             return diamond_edgepaths
@@ -141,19 +93,19 @@ Random.seed!(2409);
 
         push!(visited_nodes, node)
 
-        for child_node in get_children(node, original_graph)
-            if is_join(child_node, original_graph)
+        for child_node in get_children(node, adj_matrix)
+            if is_join(child_node, adj_matrix)
                 # Found the join node; add it to the path and return
                 push!(diamond_edgepaths, [(node, child_node)])
             else
                 # Recurse on child nodes
-                child_paths = find_diamond_path(child_node, visited_nodes, original_graph)
+                child_paths = find_diamond_path(child_node, visited_nodes, adj_matrix)
                 for path in child_paths
                     if path[1][1] == node
                         # Add current edge to existing path
                         push!(path, (node, child_node))
                         push!(diamond_edgepaths, path)
-                    else
+                    elseif isempty(path) || path[end][2] != child_node
                         # Create new path
                         new_path = [(node, child_node)]
                         append!(new_path, path)
@@ -169,6 +121,86 @@ Random.seed!(2409);
         return diamond_edgepaths
     end
 
+    function remove_invalid_paths(diamond_edgepaths)
+        valid_paths = Vector{Vector{Tuple{Int64, Int64}}}()
+        for path in diamond_edgepaths
+            valid = true
+            if length(path) > 1
+                fork_node = path[1][1]
+                join_node = path[end][2]
+                for i in 1:length(path) - 1
+                    edge = path[i]
+                    if edge[1] == join_node || edge[2] == fork_node
+                        valid = false
+                        break
+                    end
+                end
+            else
+                valid = false
+            end
+            if valid
+                push!(valid_paths, path)
+            end
+        end
+        return valid_paths
+    end
+
+    function is_join(node, adj_matrix)
+        return number_of_incoming_edges(node, adj_matrix) > 1
+    end
+
+    function get_children(node, adj_matrix)
+        return findall(x -> x != 0, adj_matrix[node, :])
+    end
+
+    function causes_diamond(adj_matrix, edge)
+        # Add the edge to the adjacency matrix
+        adj_matrix[edge[1], edge[2]] = 1
+
+        # Run the has_diamond_subgraph function to check for diamonds
+        has_diamond, diamond_paths = has_diamond_subgraph(adj_matrix)
+
+        # If a diamond is found, return true and the diamond subgraph
+        if has_diamond
+            return true, diamond_paths
+        else
+            return false, nothing
+        end
+    end
+
+    function has_diamond_subgraph(adj_matrix)
+        all_diamond_paths = Vector{Vector{Tuple{Int64, Int64}}}()
+
+        for node in 1:size(adj_matrix, 1)
+            if is_fork(node, adj_matrix)
+                visited_nodes = Vector{Int64}()
+                diamond_paths = find_diamond_path(node, visited_nodes, adj_matrix)
+                diamond_paths = remove_invalid_paths(diamond_paths)
+                if !isempty(diamond_paths)
+                    diamond_group = reduce(vcat, diamond_paths)
+                    push!(all_diamond_paths, diamond_group)
+                end
+            end
+        end
+
+        if !isempty(all_diamond_paths)
+            return true, all_diamond_paths
+        else
+            return false, nothing
+        end
+    end
+
+    function is_fork(node, adj_matrix)
+        return number_of_outgoing_edges(node, adj_matrix) > 1 && number_of_incoming_edges(node, adj_matrix) > 0
+    end
+
+    function number_of_incoming_edges(node, adj_matrix)
+        return count(x -> x != 0, adj_matrix[:, node])
+    end
+
+    function number_of_outgoing_edges(node, adj_matrix)
+        return count(x -> x != 0, adj_matrix[node, :])
+    end
 
 
 

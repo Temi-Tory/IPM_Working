@@ -19,7 +19,7 @@ module DiamondCheckModuleMatrix
                         # Add current edge to existing path
                         push!(path, (node, child_node))
                         push!(diamond_edgepaths, path)
-                    else
+                    elseif isempty(path) || path[end][2] != child_node
                         # Create new path
                         new_path = [(node, child_node)]
                         append!(new_path, path)
@@ -33,6 +33,30 @@ module DiamondCheckModuleMatrix
         filter!(visited_node -> visited_node != node, visited_nodes)
 
         return diamond_edgepaths
+    end
+
+    function remove_invalid_paths(diamond_edgepaths)
+        valid_paths = Vector{Vector{Tuple{Int64, Int64}}}()
+        for path in diamond_edgepaths
+            valid = true
+            if length(path) > 1
+                fork_node = path[1][1]
+                join_node = path[end][2]
+                for i in 1:length(path) - 1
+                    edge = path[i]
+                    if edge[1] == join_node || edge[2] == fork_node
+                        valid = false
+                        break
+                    end
+                end
+            else
+                valid = false
+            end
+            if valid
+                push!(valid_paths, path)
+            end
+        end
+        return valid_paths
     end
 
     function is_join(node, adj_matrix)
@@ -65,6 +89,7 @@ module DiamondCheckModuleMatrix
             if is_fork(node, adj_matrix)
                 visited_nodes = Vector{Int64}()
                 diamond_paths = find_diamond_path(node, visited_nodes, adj_matrix)
+                diamond_paths = remove_invalid_paths(diamond_paths)
                 if !isempty(diamond_paths)
                     diamond_group = reduce(vcat, diamond_paths)
                     push!(all_diamond_paths, diamond_group)
