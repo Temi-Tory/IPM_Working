@@ -5,7 +5,8 @@
 
 
 
-DiamondCheckModuleMatrix.has_diamond_subgraph(adj_matrixsp)
+
+DiamondCheckModuleMatrix.has_diamond_subgraph(Test_Matrix)
 
 Matrix(adj_matrixsp)
 

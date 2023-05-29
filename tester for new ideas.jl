@@ -289,3 +289,99 @@ diamond_exist, diamond_paths = has_diamond_subgraph(original_system_matrix);
 #original_system_graph = DiGraph(diamond_matrix);
 #plotinteraction(original_system_graph, findSources(diamond_matrix));í
 
+
+
+
+function  plotinteraction(Network_Graph, sources)
+    f, ax, p= graphplot(Network_Graph,
+    arrow_size=[50 for i in 1:ne(Network_Graph)],
+    arrowcolor  = "pink",
+    edge_width = [3 for i in 1:ne(Network_Graph)],
+    node_color="lightgrey", #Use colours to identify sink vs source nodes                                      
+    node_size=[50 for i in 1:nv(Network_Graph) ]
+    )
+    ax.yreversed = true 
+    hidedecorations!(ax)  # hides ticks, grid and lables 
+    hidespines!(ax)  # hide the frame 
+
+    deregister_interaction!(ax, :rectanglezoom)
+    register_interaction!(ax, :edgehover, EdgeHoverHighlight(p))
+    register_interaction!(ax, :edgedrag, EdgeDrag(p))
+    register_interaction!(ax, :nodehover, NodeHoverHighlight(p))
+    register_interaction!(ax, :nodedrag, NodeDrag(p))
+
+    function action(idx, event, axis)
+        p.edge_color[][idx] = rand(RGB)
+        p.edge_color[] = p.edge_color[]
+    end
+    register_interaction!(ax, :edgeclick, EdgeClickHandler(action))
+    display(f);
+end
+
+
+
+adj_matrix = [
+    0 1 0 0 0;
+    0 0 1 1 0;
+    0 0 0 0 1;
+    0 0 0 0 1;
+    0 0 0 0 0;
+]
+original_system_graph = DiGraph(adj_matrix);
+plotinteraction(original_system_graph, findSources(adj_matrix));
+
+using  .Information_Propagation
+Information_Propagation.reliability_propagation(adj_matrix,findSources(adj_matrix),0.9,1.0)
+Information_Propagation.MC_result(original_system_graph,adj_matrix,0.9,findSources(adj_matrix))
+
+
+
+original_system_graph = DiGraph(8);
+
+#add_edge!(original_system_graph,1,2);
+add_edge!(original_system_graph,2,3);
+add_edge!(original_system_graph,2,4);
+add_edge!(original_system_graph,4,5);
+add_edge!(original_system_graph,3,5);
+
+add_edge!(original_system_graph,4,6);
+add_edge!(original_system_graph,6,7);
+add_edge!(original_system_graph,5,7);
+
+
+plotinteraction(original_system_graph, findSources(Matrix(adjacency_matrix(original_system_graph))));
+
+
+
+g= Graphs.DiGraph(22);
+add_edge!(g,1,11);
+add_edge!(g,2,11);
+add_edge!(g,3,12);
+add_edge!(g,4,12);
+add_edge!(g,5,13);
+add_edge!(g,6,13);
+add_edge!(g,7,14);
+add_edge!(g,8,14);
+add_edge!(g,9,15);
+add_edge!(g,10,15);
+add_edge!(g,11,16);
+add_edge!(g,12,16);
+add_edge!(g,13,16);
+add_edge!(g,12,17);
+add_edge!(g,13,17);
+add_edge!(g,14,17);
+add_edge!(g,12,18);
+add_edge!(g,13,18);
+add_edge!(g,15,18);
+add_edge!(g,16,19);
+add_edge!(g,17,20);
+add_edge!(g,18,21);
+add_edge!(g,19,22);
+add_edge!(g,20,22);
+add_edge!(g,21,22);
+
+plotinteraction(g, [1:10]);
+using  Information_Propagation;
+Information_Propagation.reliability_propagation(Matrix(adjacency_matrix(g)),[1:10],0.9,1.0)
+
+Information_Propagation.MC_result(g,Matrix(adjacency_matrix(g)),0.9,[1:10],100000)
