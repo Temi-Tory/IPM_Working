@@ -23,7 +23,7 @@ Random.seed!(2409);
                         (outneighbors(new_system_graph, node) != outneighbors(original_system_graph, node)) || isempty(outneighbors(original_system_graph,node)) 
                     )
                 ) 
-                    belief_dict[node]=(if node in sources node_Priors else update_node_belief(belief_dict, link_reliability,new_system_graph, node) end)
+                    belief_dict[node]=(if node in sources node_Priors[node] else update_node_belief(belief_dict, link_reliability,new_system_graph, node) end)
 
                     children=[c for c in outneighbors(original_system_graph,node)];
                         for child in children
@@ -49,13 +49,16 @@ Random.seed!(2409);
         empty!(edgepairs) # Clear the edgepairs list after updating the graph
     end
 
-    function reliability_propagation(system_matrix,sources,link_reliability,node_Priors)
+    function reliability_propagation(system_matrix,sources,link_reliability,node_Priors=[])
 
         
         original_system_graph= DiGraph(system_matrix)
         new_system_graph = DiGraph(zero(system_matrix));
         belief_dict=Dict(); edgepairs=[]; terminating_nodes=[]; #f = Figure(); structure_count=0;
 
+        if (node_Priors == [])
+            node_Priors = fill(1.0, nv(new_system_graph));
+        end
         while new_system_graph != original_system_graph
             belief_dict,edgepairs = update_belief(new_system_graph,original_system_graph,link_reliability,node_Priors,sources,belief_dict,edgepairs)
             update_graph(new_system_graph,edgepairs);
