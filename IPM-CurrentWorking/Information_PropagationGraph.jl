@@ -73,8 +73,9 @@ Random.seed!(2409);
             belief_dict[t_node] = update_node_belief(belief_dict, link_reliability,new_system_graph, t_node);
         end
         =#
-        
-        belief_dict[nv(new_system_graph)] = 1-prod([ 1- (belief_dict[parent]*link_reliability) for parent in inneighbors(new_system_graph, nv(new_system_graph))]);
+
+        belief_dict,edgepairs = update_belief(new_system_graph,original_system_graph,link_reliability,node_Priors,sources,belief_dict,edgepairs)
+       # belief_dict[nv(new_system_graph)] = 1-prod([ 1- (belief_dict[parent]*link_reliability) for parent in inneighbors(new_system_graph, nv(new_system_graph))]);
 
         Node_Reliability=sort(collect(pairs(belief_dict)), by=x->x[1]);
 
