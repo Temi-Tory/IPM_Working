@@ -1,6 +1,6 @@
 module Information_Propagation_PowerDist
 import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, IncrementalInference,SimpleWeightedGraphs
+using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, SimpleWeightedGraphs
 
 Random.seed!(2409);
 

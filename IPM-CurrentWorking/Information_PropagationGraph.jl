@@ -1,7 +1,7 @@
 module Information_Propagation
 
 import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, IncrementalInference,SimpleWeightedGraphs
+using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, SimpleWeightedGraphs
 using GraphMakie.NetworkLayout 
 CairoMakie.activate!()
 
@@ -14,29 +14,25 @@ Random.seed!(2409);
         return updated_belief
     end
 
-    function update_belief(new_system_graph,original_system_graph,link_reliability,node_Priors,sources,belief_dict,edgepairs)
-        for node in 1:nv(new_system_graph) #for every node in graph       
-            if (
-                    inneighbors(new_system_graph, node)==inneighbors(original_system_graph, node) 
-                    && 
-                    ( 
-                        (outneighbors(new_system_graph, node) != outneighbors(original_system_graph, node)) || isempty(outneighbors(original_system_graph,node)) 
-                    )
-                ) 
-                    belief_dict[node]=(if node in sources node_Priors[node] else update_node_belief(belief_dict, link_reliability,new_system_graph, node) end)
+   function update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs)
+    for node in 1:nv(new_system_graph) #for every node in graph       
+        if inneighbors(new_system_graph, node) == inneighbors(original_system_graph, node) && 
+           (outneighbors(new_system_graph, node) != outneighbors(original_system_graph, node) || isempty(outneighbors(original_system_graph, node)))
+            # Check if the node is in the sources list
+            belief_dict[node] = (node in sources ? node_Priors[node] : update_node_belief(belief_dict, link_reliability, new_system_graph, node))
 
-                    children=[c for c in outneighbors(original_system_graph,node)];
-                        for child in children
-                            if (inneighbors(new_system_graph, child)==inneighbors(original_system_graph, child) && isempty(outneighbors(original_system_graph,child)))
-                                belief_dict[child] = update_node_belief(belief_dict, link_reliability,new_system_graph, child)
-                            else append!(edgepairs,[(node,child) for child in children])   
-                            end
-                    end
-            end   
-    
-        end    
-        return belief_dict,edgepairs
-    end
+            children = [c for c in outneighbors(original_system_graph, node)]
+            for child in children
+                if inneighbors(new_system_graph, child) == inneighbors(original_system_graph, child) && isempty(outneighbors(original_system_graph, child))
+                    belief_dict[child] = update_node_belief(belief_dict, link_reliability, new_system_graph, child)
+                else
+                    append!(edgepairs, [(node, child) for child in children])
+                end
+            end
+        end
+    end    
+    return belief_dict, edgepairs
+end
 
     function update_graph(new_system_graph,edgepairs)
         for edge in edgepairs 

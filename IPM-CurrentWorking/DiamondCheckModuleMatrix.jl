@@ -1,4 +1,5 @@
 module DiamondCheckModuleMatrix
+using SparseArrays
     # Define a function to find diamond-shaped paths in a graph
     function find_diamond_path(node, visited_nodes, adj_matrix)
         # Initialize an empty array to store the diamond edge paths
@@ -17,7 +18,7 @@ module DiamondCheckModuleMatrix
             # If the child_node is a join node, add it to the path and return
             if is_join(child_node, adj_matrix)
                 push!(diamond_edgepaths, [(node, child_node)])
-            else
+            else 
                 # Recursively call the function for the child_node
                 child_paths = find_diamond_path(child_node, visited_nodes, adj_matrix)
                 for path in child_paths
@@ -141,6 +142,7 @@ end # DiamondCheckModule end
 
 
 
+using SparseArrays 
 nodi = sparse([
     0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;
     0  0  1  0  0  1  0  0  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0;
@@ -171,7 +173,7 @@ DiamondCheckModuleMatrix.has_diamond_subgraph(nodi)
 plotinteraction(DiGraph(Matrix(nodi)), [1,3,13])
 
 
-Test_Matrix=  sparse([
+Test_Matrix=  SparseArrays([
 0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;
 0  0  1  0  0  1  0  0  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0;
 0  0  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;
@@ -199,3 +201,6 @@ Test_Matrix=  sparse([
 
 
 DiamondCheckModuleMatrix.has_diamond_subgraph(Test_Matrix)
+
+import Pkg
+Pkg.add("SparseArrays")

@@ -1,0 +1,253 @@
+module Information_Propagation
+    import Cairo,Fontconfig 
+    using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, SimpleWeightedGraphs
+    using GraphMakie.NetworkLayout 
+
+    include("DiamondModule")
+    using  .DiamondModule
+    # Define the type for the edge pair
+    struct EdgePair
+        from::Int
+        to::Int
+    end
+
+    function extract_join_nodes_from_diamonds(diamonds::Vector{Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}})
+        diamond_join_dict = Dict{Int64, Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}}()
+        for diamond in diamonds
+            join_node = diamond[2]
+            diamond_join_dict[join_node] = diamond
+        end
+        return diamond_join_dict
+    end
+    
+    function find_non_fork_sources_in_diamond(diamond_adj_matrix::Matrix{Int64})
+        source_nodes = []
+        num_nodes = size(diamond_adj_matrix, 1)
+    
+        for node in 2:num_nodes  # Start from 2 to exclude the fork node (which will be to be node 1)
+            if sum(diamond_adj_matrix[:, node]) == 0
+                push!(source_nodes, node)
+            end
+        end
+    
+        return source_nodes
+    end
+
+    function updateDiamondJoinBelief(diamond::Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}, original_belif_dict::Dict{Int64, Float64},  link_reliability::Dict{EdgePair, Float64})
+        reversemap =  Dict(value => key for (key, value) in diamond[4])
+         #for success scenario
+        success_Graph = DiGraph(diamond[3])
+        succes_diamond_node_Priors = fill(1.0, nv(success_Graph));
+        non_forks = find_non_fork_sources_in_diamond(diamond[3])
+        succes_diamond_node_Priors[1] = 1.0
+        for non_fork_source in non_forks
+         succes_diamond_node_Priors[non_fork_source] = original_belif_dict[diamond[4][non_fork_source]]; #value of node  in the main graph 
+        end
+           
+        success_diamond_link_reliability = Dict{Information_Propagation.EdgePair, Float64}()
+        for e in edges(success_Graph)
+            #diamond_link_reliability[Information_Propagation.EdgePair(src(e), dst(e))] = link_reliability[Information_Propagation.EdgePair(src(e), dst(e))]
+            success_diamond_link_reliability[Information_Propagation.EdgePair(src(e), dst(e))] =  link_reliability[Information_Propagation.EdgePair(diamond[4][src(e)], diamond[4][dst(e)])]
+     
+            #reliability = link_reliability[Information_Propagation.EdgePair(src(e), dst(e))]
+        end
+     
+           
+         _,success = Information_Propagation.reliability_propagation(diamond[3],success_diamond_link_reliability,succes_diamond_node_Priors)
+         join_success_belief = success[reversemap[diamond[2]]].second
+      
+     
+     
+         #for failure scenario
+         failure_Graph = DiGraph(diamond[3])
+         failure_diamond_node_Priors = fill(1.0, nv(failure_Graph));
+         non_forks = find_non_fork_sources_in_diamond(diamond[3])
+         failure_diamond_node_Priors[1] = 0.0
+         for non_fork_source in non_forks
+             failure_diamond_node_Priors[non_fork_source] = original_belif_dict[diamond[4][non_fork_source]]; #value of node  in the main graph 
+         end
+             
+         failure_diamond_link_reliability = Dict{Information_Propagation.EdgePair, Float64}()
+         for e in edges(failure_Graph)
+             #diamond_link_reliability[Information_Propagation.EdgePair(src(e), dst(e))] = link_reliability[Information_Propagation.EdgePair(src(e), dst(e))]
+             failure_diamond_link_reliability[Information_Propagation.EdgePair(src(e), dst(e))] =  link_reliability[Information_Propagation.EdgePair(diamond[4][src(e)], diamond[4][dst(e)])]
+     
+             #reliability = link_reliability[Information_Propagation.EdgePair(src(e), dst(e))]
+         end
+     
+             
+         _,failure = Information_Propagation.reliability_propagation(diamond[3],failure_diamond_link_reliability,failure_diamond_node_Priors)
+         join_failure_belief = failure[reversemap[diamond[2]]].second
+     
+         fork_actual_belief = original_belif_dict[diamond[4][1]]
+         join_updated_belif = (join_success_belief * fork_actual_belief) + (join_failure_belief*(1-fork_actual_belief))
+         return join_updated_belif
+    end
+
+    function is_value_a_diamond_join(value::Int64, diamond_set::Vector{Tuple{Int64, Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}}})
+        for diamond_pair in diamond_set
+            diamond = diamond_pair[2]
+            join_node = diamond[2]
+            if join_node == value
+                return true
+            end
+        end
+        return false
+    end
+    
+    function find_associated_diamond(node::Int64, diamond_set::Vector{Tuple{Int64, Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}}})
+        for diamond_pair in diamond_set
+            join_node = diamond_pair[1]
+            diamond = diamond_pair[2]
+            if join_node == node
+                return diamond
+            end
+        end
+        return nothing
+    end
+    
+    function findSources(adj_matrix::Matrix{Int64})
+        num_nodes = size(adj_matrix, 1)
+        sources = Vector{Int64}()
+    
+        # Iterate over each node in the graph
+        for i in 1:num_nodes
+            incoming_edges = 0
+            # Check if there are any incoming edges to node i
+            for j in 1:num_nodes
+                incoming_edges += adj_matrix[j, i]
+            end
+    
+            # If there are no incoming edges to node i, add it to sources
+            if incoming_edges == 0
+                push!(sources, i)
+            end
+        end
+    
+        return sources
+    end #findSources function end
+
+    function reliability_propagation(
+        system_matrix::Matrix{Int}, 
+        link_reliability::Dict{EdgePair, Float64}, 
+        node_Priors::Vector{Float64} = []
+        )
+
+        sources::Vector{Int} = findSources(system_matrix);
+        original_system_graph = DiGraph(system_matrix)
+        new_system_graph = DiGraph(zero(system_matrix))
+                # Initialize belief_dict as a Dict{Int64, Float64}
+        belief_dict = Dict{Int64, Float64}()
+
+        diamond_set = extract_join_nodes_from_diamonds(DiamondModule.find_diamond_subgraphs(system_matrix))
+        # Initialize edgepairs as a Vector{Tuple{Int64, Int64}}
+        edgepairs = Vector{Tuple{Int64, Int64}}()
+        terminating_nodes = []
+
+        if isempty(node_Priors)
+            node_Priors = fill(1.0, nv(new_system_graph))
+        end
+
+        while new_system_graph != original_system_graph
+            belief_dict, edgepairs = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs,diamond_set)
+            update_graph(new_system_graph, edgepairs)
+        end
+
+        belief_dict, edgepairs = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs,diamond_set)
+
+        Node_Reliability = sort(collect(pairs(belief_dict)), by = x -> x[1])
+
+        return new_system_graph, Node_Reliability
+    end
+
+    function update_node_belief(
+        belief_dict::Dict{Int,Float64}, 
+        link_reliability::Dict{EdgePair, Float64}, 
+        new_system_graph::DiGraph, 
+        node::Int,
+        diamond_set::Dict{Int64, Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}}
+        )
+        if haskey(diamond_set, node)
+            diamond = diamond_set[node]
+            return updateDiamondJoinBelief(diamond, belief_dict, link_reliability)
+        end
+        messages_from_parents = [1 - (belief_dict[parent] * link_reliability[EdgePair(parent, node)]) for parent in inneighbors(new_system_graph, node)]
+        updated_belief = 1 - prod(messages_from_parents)
+        return updated_belief
+    end
+
+    function update_belief(
+        new_system_graph::DiGraph, 
+        original_system_graph::DiGraph, 
+        link_reliability::Dict{EdgePair, Float64}, 
+        node_Priors::Vector{Float64}, 
+        sources::Vector{Int}, 
+        belief_dict::Dict{Int,Float64},        
+        edgepairs::Vector{Tuple{Int,Int}},
+        diamond_set::Dict{Int64, Tuple{Int64, Int64, Matrix{Int64}, Dict{Int64, Int64}}}
+
+        )
+        for node in 1:nv(new_system_graph)
+            if inneighbors(new_system_graph, node) == inneighbors(original_system_graph, node) && 
+            (outneighbors(new_system_graph, node) != outneighbors(original_system_graph, node) || isempty(outneighbors(original_system_graph, node)))
+                belief_dict[node] = (node in sources) ? node_Priors[node] : update_node_belief(belief_dict, link_reliability, new_system_graph, node,diamond_set)
+
+                children = [c for c in outneighbors(original_system_graph, node)]
+                for child in children
+                    if inneighbors(new_system_graph, child) == inneighbors(original_system_graph, child) && isempty(outneighbors(original_system_graph, child))
+                        belief_dict[child] = update_node_belief(belief_dict, link_reliability, new_system_graph, child,diamond_set)
+                    else
+                        append!(edgepairs, [(node, child) for child in children])
+                    end
+                end
+            end
+        end
+        return belief_dict, edgepairs
+    end
+
+    function update_graph(new_system_graph::DiGraph, edgepairs::Vector{Tuple{Int,Int}})
+        for edge in edgepairs
+            add_edge!(new_system_graph, edge[1], edge[2])
+        end
+        empty!(edgepairs) # Clear the edgepairs list after updating the graph
+    end
+
+
+
+
+    function MC_result(
+        original_system_graph::DiGraph, 
+        system_matrix::Matrix{Int}, 
+        link_reliability::Dict{EdgePair, Float64}, 
+        sources::Vector{Int}, 
+        N::Int=100000
+        )
+        edge_pairs = Tuple.(edges(original_system_graph))
+        active_count = zeros(nv(original_system_graph))
+        
+        for i in 1:N
+            MC_mat = zero(system_matrix)
+            MonteCarlo_Network_Graph = DiGraph(MC_mat)
+            
+            for edge in edge_pairs
+                if rand(Bernoulli(link_reliability[EdgePair(edge[1], edge[2])]))
+                    add_edge!(MonteCarlo_Network_Graph, edge[1], edge[2])
+                end
+            end
+            
+            for node in 1:nv(MonteCarlo_Network_Graph)
+                if node in sources
+                    active_count[node] += 1.0
+                else
+                    mc_path_to_source = [has_path(MonteCarlo_Network_Graph, source, node) for source in sources]
+                    if any(mc_path_to_source)
+                        active_count[node] += 1
+                    end
+                end
+            end
+        end
+
+        return active_count / N
+    end
+
+end

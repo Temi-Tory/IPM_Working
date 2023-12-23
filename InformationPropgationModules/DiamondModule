@@ -1,0 +1,140 @@
+module DiamondModule
+
+function find_forks(adj_matrix::Array{Int, 2})::Vector{Int}
+    forks = Int[]
+    num_nodes = size(adj_matrix, 1)
+
+    for i in 1:num_nodes
+        if sum(adj_matrix[i, :]) > 1
+            push!(forks, i)
+        end
+    end
+
+    return forks
+end
+
+function find_joins(adj_matrix::Array{Int, 2})::Vector{Int}
+    joins = Int[]
+    num_nodes = size(adj_matrix, 1)
+
+    for i in 1:num_nodes
+        if sum(adj_matrix[:, i]) > 1
+            push!(joins, i)
+        end
+    end
+
+    return joins
+end
+
+function identify_diamond_paths(all_paths::Vector{Vector{Int}})::Vector{Tuple{Vector{Int}, Vector{Int}}}
+    diamond_paths = []
+    for i in 1:length(all_paths)
+        for j in i+1:length(all_paths)
+            if is_valid_diamond(all_paths[i], all_paths[j])
+                push!(diamond_paths, (all_paths[i], all_paths[j]))
+            end
+        end
+    end
+    return diamond_paths
+end
+
+function is_valid_diamond(path1::Vector{Int}, path2::Vector{Int})::Bool
+    return length(intersect(path1, path2)) == 2
+end
+
+function find_all_paths(current::Int, target::Int, adj_matrix::Array{Int, 2}, path::Vector{Int}, all_paths::Vector{Vector{Int}}, visited::Set{Int})::Vector{Vector{Int}}
+    if current in visited
+        return all_paths
+    end
+
+    new_path = [path; current]
+    new_visited = union(visited, Set([current]))
+
+    if current == target
+        push!(all_paths, new_path)
+        return all_paths
+    end
+
+    for next_node in findall(adj_matrix[current, :] .== 1)
+        find_all_paths(next_node, target, adj_matrix, new_path, all_paths, new_visited)
+    end
+
+    return all_paths
+end
+
+function find_diamond_subgraphs(adj_matrix::Array{Int, 2})::Vector{Tuple{Int, Int, Array{Int, 2}, Dict{Int, Int}}}
+    forks = find_forks(adj_matrix)
+    joins = find_joins(adj_matrix)
+    diamonds = []
+    decomposed_graph = copy(adj_matrix)
+
+    for fork in forks
+        for join in joins
+            if fork != join && is_valid_diamond_pair(fork, join, adj_matrix)
+                # Initialize path, all_paths, and visited with the correct types
+                path = Int[]
+                all_paths = Vector{Vector{Int}}()
+                visited = Set{Int}()
+
+                all_paths = find_all_paths(fork, join, decomposed_graph, path, all_paths, visited)
+                diamond_paths = identify_diamond_paths(all_paths)
+                for (path1, path2) in diamond_paths
+                    diamond_nodes, node_index_map = create_diamond_adj_matrix(fork, unique([path1; path2]), adj_matrix)
+                    push!(diamonds, (fork, join, diamond_nodes, node_index_map))
+                    decomposed_graph = collapse_diamond(fork, join, decomposed_graph)
+                end
+            end
+        end
+    end
+
+    return diamonds
+end
+
+function create_diamond_adj_matrix(fork::Int64, diamond_nodes::Vector{Int64}, adj_matrix::Matrix{Int64})
+    # Ensure the fork node is the first in the list
+    diamond_nodes = setdiff(diamond_nodes, [fork])
+    pushfirst!(diamond_nodes, fork)
+
+    non_fork_nodes = diamond_nodes[2:end]
+    for node in non_fork_nodes
+        incoming_neighbors = direct_edge_neighbors(node, adj_matrix)
+        diamond_nodes = union(diamond_nodes, incoming_neighbors)
+    end
+
+    diamond_size = length(diamond_nodes)
+    diamond_adj_matrix = zeros(Int, diamond_size, diamond_size)
+    node_index_map = Dict(node => idx for (idx, node) in enumerate(diamond_nodes))
+
+    for i in 1:diamond_size
+        for j in 1:diamond_size
+            if adj_matrix[diamond_nodes[i], diamond_nodes[j]] == 1
+                diamond_adj_matrix[node_index_map[diamond_nodes[i]], node_index_map[diamond_nodes[j]]] = 1
+            end
+        end
+    end
+
+    node_index_map = Dict(value => key for (key, value) in node_index_map)
+    return diamond_adj_matrix, node_index_map
+end
+
+function is_valid_diamond_pair(fork::Int, join::Int, adj_matrix::Array{Int, 2})::Bool
+    return sum(adj_matrix[:, fork]) != 0
+end
+
+function direct_edge_neighbors(node::Int, adj_matrix::Array{Int, 2})::Vector{Int}
+    incoming_neighbors = Int[]
+    for i in 1:size(adj_matrix, 1)
+        if adj_matrix[i, node] == 1
+            push!(incoming_neighbors, i)
+        end
+    end
+    return incoming_neighbors
+end
+
+function collapse_diamond(fork::Int, join::Int, graph::Array{Int, 2})::Array{Int, 2}
+    graph[fork, :] .= 0
+    graph[fork, join] = 1
+    return graph
+end
+
+end # module

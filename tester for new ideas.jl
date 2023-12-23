@@ -1,5 +1,5 @@
 import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, IncrementalInference,SimpleWeightedGraphs
+using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, SimpleWeightedGraphs
 using GraphMakie.NetworkLayout 
 #using  .InformationPropagation
 CairoMakie.activate!()
@@ -170,31 +170,6 @@ function findSources(adj_matrix::Matrix{Int64})
     return sources
 end #findSources function end
 
-function  plotinteraction(Network_Graph, sources)
-    f, ax, p= graphplot(Network_Graph,
-    arrow_size=[25 for i in 1:ne(Network_Graph)],
-    arrowcolor  = "pink",
-    nlabels= repr.(1:nv(Network_Graph)),
-    edge_width = [3 for i in 1:ne(Network_Graph)],
-    node_color=[if i in sources "blue" else "pink"  end for i in 1:nv(Network_Graph)  ], #Use colours to identify sink vs source nodes                                      
-    node_size=[20 for i in 1:nv(Network_Graph) ])
-    ax.yreversed = true 
-    hidedecorations!(ax)  # hides ticks, grid and lables 
-    hidespines!(ax)  # hide the frame 
-
-    deregister_interaction!(ax, :rectanglezoom)
-    register_interaction!(ax, :edgehover, EdgeHoverHighlight(p))
-    register_interaction!(ax, :edgedrag, EdgeDrag(p))
-    register_interaction!(ax, :nodehover, NodeHoverHighlight(p))
-    register_interaction!(ax, :nodedrag, NodeDrag(p))
-
-    function action(idx, event, axis)
-        p.edge_color[][idx] = rand(RGB)
-        p.edge_color[] = p.edge_color[]
-    end
-    register_interaction!(ax, :edgeclick, EdgeClickHandler(action))
-    display(f);
-end
 
 function adjmatrix_to_adjlist(adj_matrix::Matrix{Int64})
     n = size(adj_matrix, 1)
@@ -297,6 +272,7 @@ function  plotinteraction(Network_Graph, sources)
     arrow_size=[50 for i in 1:ne(Network_Graph)],
     arrowcolor  = "pink",
     edge_width = [3 for i in 1:ne(Network_Graph)],
+    nodelabelsize  = 3.8
     node_color="lightgrey", #Use colours to identify sink vs source nodes                                      
     node_size=[50 for i in 1:nv(Network_Graph) ]
     )
