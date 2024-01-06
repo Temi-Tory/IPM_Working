@@ -11,7 +11,7 @@ Node_Priors = Float64[]#if empty, then all nodes will have an initial reliabilty
 link_reliability = Dict{Information_Propagation.EdgePair, Float64}()
 
 # Read system data and create the graph
-system_data = readdlm("csvfiles/Shelby county gas.csv", ',', header= false, Int)
+system_data = readdlm("csvfiles/InformationPropgationModules.csv", ',', header= false, Int)
 original_system_matrix = Matrix(DataFrame(system_data, :auto))
 original_system_graph = DiGraph(original_system_matrix)
 
