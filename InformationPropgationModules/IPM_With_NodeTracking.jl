@@ -46,8 +46,8 @@ function modify_adj_matrix(fork::Int, join::Int, adj_matrix::Array{Int, 2}, edge
     return adj_matrix
 end
 
-function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2}, ancestors::Set{Int})::Vector{Vector{Tuple{Int, Int}}}
-    # Create a copy of the ancestors set and include the join node itself
+function find_diamond_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2}, ancestors::Set{Int})::Vector{Vector{Tuple{Int, Int}}}
+   # Create a copy of the ancestors set and include the join node itself
     ancestorsInclusive = copy(ancestors)
     push!(ancestorsInclusive, join)
 
@@ -61,20 +61,20 @@ function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2
 
         # If the current node is the join node, add the edge path to all_edge_paths
         if current == join
-            push!(all_edge_paths, edge_path)
+           push!(all_edge_paths, edge_path)
             continue
         end
 
         # Explore all next nodes from the current node
         for next_node in findall(adj_matrix[current, :] .== 1)
             # Add the edge to the path if the next node is an ancestor
-            if next_node in ancestorsInclusive && (current, next_node) ∉ edge_path
+            if next_node in ancestorsInclusive && (adj_matrix[current, next_node] == 1) && (current, next_node) ∉ edge_path
                 new_edge_path = [edge_path; (current, next_node)]
                 push!(queue, (next_node, new_edge_path))
             end
         end
     end
-
+    
     # Check if there are more than one distinct paths
     if length(all_edge_paths) > 1
         # Combine all distinct edge paths into one edge path
@@ -84,12 +84,12 @@ function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2
         for node in unique([edge[2] for edge in combined_edge_path if edge[1] != fork])
             for in_node in findall(adj_matrix[:, node] .== 1)
                 if in_node != fork && (in_node, node) ∉ combined_edge_path && adj_matrix[in_node, node] == 1
-                    push!(combined_edge_path, (in_node, node))
+                  push!(combined_edge_path, (in_node, node))
                 end
             end
         end
-
         return [combined_edge_path]
+
     else
         # Return an empty vector if there is only one distinct path
         return Vector{Vector{Tuple{Int, Int}}}()
@@ -128,7 +128,7 @@ function update_belief(new_system_graph, original_system_graph, link_reliability
                 fork_ancestors = filter(x -> x ∉ sources && outdegree(original_system_graph, x) > 1, ancestors_dict[node])
                 for fork in fork_ancestors
                     # Use decomposedsystem_matrix instead of original_system_graph
-                    edge_paths = find_all_paths_iterative(fork, node, decomposedsystem_matrix, ancestors_dict[node])
+                    edge_paths = find_diamond_paths_iterative(fork, node, decomposedsystem_matrix, ancestors_dict[node])
                     # Store the edge paths if any are found
                     if !isempty(edge_paths)
                         all_paths_dict[(fork, node)] = edge_paths
@@ -225,27 +225,3 @@ function findSources(adj_matrix::Matrix{Int64})
 end #findSources function end
 
 
-
-# Read system data and create the graph
-#system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
-#system_data = readdlm("csvfiles/Shelby county gas.csv", ',', header= false, Int)
-system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv", ',', header= false, Int)
-system_matrix = Matrix(DataFrame(system_data, :auto))
-system_graph = DiGraph(system_matrix)
-
-w,x,y,z = Information_Propagation.reliability_propagation(system_matrix, findSources(system_matrix), 0.9);
-
-using JSON
-
-
-# Open a file for writing
-output_file = open("output.json", "w")
-
-# Create a pretty-printed JSON string with indentation and newlines
-json_string = JSON.json(z, 4)  # Use the second argument to specify the indentation level
-
-# Write the pretty-printed JSON string to the file
-write(output_file, json_string)
-
-# Close the file
-close(output_file)
