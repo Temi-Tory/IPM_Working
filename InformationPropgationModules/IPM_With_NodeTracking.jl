@@ -12,6 +12,7 @@ function reliability_propagation(system_matrix, sources, link_reliability, node_
     new_system_graph = DiGraph(zero(system_matrix))
     belief_dict = Dict()
     edgepairs = []
+    decomposedsystem_matrix = copy(system_matrix)
     ancestors_dict = Dict{Int, Set{Int}}()  # Dictionary to track ancestors
     all_paths_dict = Dict{Tuple{Int, Int}, Vector{Vector{Tuple{Int, Int}}}}()  # Updated to store edge paths
 
@@ -20,15 +21,29 @@ function reliability_propagation(system_matrix, sources, link_reliability, node_
     end
 
     while new_system_graph != original_system_graph
-        belief_dict, edgepairs, ancestors_dict, all_paths_dict = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict)
+        belief_dict, edgepairs, ancestors_dict, all_paths_dict = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict,decomposedsystem_matrix)
         update_graph(new_system_graph, edgepairs)
     end
 
-    belief_dict, edgepairs, ancestors_dict, all_paths_dict = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict)
+    belief_dict, edgepairs, ancestors_dict, all_paths_dict = update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict,decomposedsystem_matrix)
 
     Node_Reliability = sort(collect(pairs(belief_dict)), by=x->x[1])
 
     return new_system_graph, Node_Reliability, ancestors_dict, all_paths_dict
+end
+
+function modify_adj_matrix(fork::Int, join::Int, adj_matrix::Array{Int, 2}, edge_paths::Vector{Vector{Tuple{Int, Int}}})
+    # Remove edges in the edge paths from the adjacency matrix
+    for edge_path in edge_paths
+        for (u, v) in edge_path
+            adj_matrix[u, v] = 0
+        end
+    end
+
+    # Add an edge from the fork node to the join node
+    adj_matrix[fork, join] = 1
+
+    return adj_matrix
 end
 
 function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2}, ancestors::Set{Int})::Vector{Vector{Tuple{Int, Int}}}
@@ -53,7 +68,7 @@ function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2
         # Explore all next nodes from the current node
         for next_node in findall(adj_matrix[current, :] .== 1)
             # Add the edge to the path if the next node is an ancestor
-            if next_node in ancestorsInclusive
+            if next_node in ancestorsInclusive && (current, next_node) ∉ edge_path
                 new_edge_path = [edge_path; (current, next_node)]
                 push!(queue, (next_node, new_edge_path))
             end
@@ -63,7 +78,17 @@ function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2
     # Check if there are more than one distinct paths
     if length(all_edge_paths) > 1
         # Combine all distinct edge paths into one edge path
-        combined_edge_path = vcat(all_edge_paths...)
+        combined_edge_path = unique(vcat(all_edge_paths...))
+
+        # Include additional incoming edges to non-fork nodes in the combined path
+        for node in unique([edge[2] for edge in combined_edge_path if edge[1] != fork])
+            for in_node in findall(adj_matrix[:, node] .== 1)
+                if in_node != fork && (in_node, node) ∉ combined_edge_path && adj_matrix[in_node, node] == 1
+                    push!(combined_edge_path, (in_node, node))
+                end
+            end
+        end
+
         return [combined_edge_path]
     else
         # Return an empty vector if there is only one distinct path
@@ -71,7 +96,7 @@ function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2
     end
 end
 
-function update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict)
+function update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict, decomposedsystem_matrix)
     for node in 1:nv(new_system_graph)
         if inneighbors(new_system_graph, node) == inneighbors(original_system_graph, node) && 
             (outneighbors(new_system_graph, node) != outneighbors(original_system_graph, node) || isempty(outneighbors(original_system_graph, node)))
@@ -102,16 +127,19 @@ function update_belief(new_system_graph, original_system_graph, link_reliability
             if indegree(original_system_graph, node) > 1
                 fork_ancestors = filter(x -> x ∉ sources && outdegree(original_system_graph, x) > 1, ancestors_dict[node])
                 for fork in fork_ancestors
-                    edge_paths = find_all_paths_iterative(fork, node, Matrix(adjacency_matrix(original_system_graph)), ancestors_dict[node])
+                    # Use decomposedsystem_matrix instead of original_system_graph
+                    edge_paths = find_all_paths_iterative(fork, node, decomposedsystem_matrix, ancestors_dict[node])
                     # Store the edge paths if any are found
                     if !isempty(edge_paths)
                         all_paths_dict[(fork, node)] = edge_paths
+                        # Update the decomposed adjacency matrix
+                        decomposedsystem_matrix = modify_adj_matrix(fork, node, decomposedsystem_matrix, edge_paths)
                     end
                 end
             end
         end
     end
-    return belief_dict, edgepairs, ancestors_dict, all_paths_dict
+    return belief_dict, edgepairs, ancestors_dict, all_paths_dict, decomposedsystem_matrix
 end
 
 function update_node_belief(belief_dict, link_reliability,new_system_graph, node)
