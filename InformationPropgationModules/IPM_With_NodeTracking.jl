@@ -5,6 +5,11 @@ using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFile
 using GraphMakie.NetworkLayout 
 CairoMakie.activate!()
 
+struct EdgePair
+    from::Int
+    to::Int
+end
+
 Random.seed!(2409);
 
 function reliability_propagation(system_matrix, sources, link_reliability, node_Priors=[])
@@ -143,7 +148,7 @@ function update_belief(new_system_graph, original_system_graph, link_reliability
 end
 
 function update_node_belief(belief_dict, link_reliability,new_system_graph, node)
-    messages_from_parents = [ 1 - (belief_dict[parent]* link_reliability) for parent in inneighbors(new_system_graph, node)] #message is failure probability of parent
+    messages_from_parents = [ 1 - (belief_dict[parent]* link_reliability[EdgePair(parent, node)]) for parent in inneighbors(new_system_graph, node)] #message is failure probability of parent
     updated_belief =  1 - prod(messages_from_parents)
     return updated_belief
 end
@@ -199,29 +204,3 @@ function MC_result(original_system_graph,system_matrix,link_reliability,sources,
    return  active_count ./ N
 end
 end #end module
-
-import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions
-
-function findSources(adj_matrix::Matrix{Int64})
-    num_nodes = size(adj_matrix, 1)
-    sources = Vector{Int64}()
-
-    # Iterate over each node in the graph
-    for i in 1:num_nodes
-        incoming_edges = 0
-        # Check if there are any incoming edges to node i
-        for j in 1:num_nodes
-            incoming_edges += adj_matrix[j, i]
-        end
-
-        # If there are no incoming edges to node i, add it to sources
-        if incoming_edges == 0
-            push!(sources, i)
-        end
-    end
-
-    return sources
-end #findSources function end
-
-
