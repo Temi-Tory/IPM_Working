@@ -13,7 +13,7 @@ function reliability_propagation(system_matrix, sources, link_reliability, node_
     belief_dict = Dict()
     edgepairs = []
     ancestors_dict = Dict{Int, Set{Int}}()  # Dictionary to track ancestors
-    all_paths_dict = Dict{Tuple{Int, Int}, Vector{Vector{Int}}}()
+    all_paths_dict = Dict{Tuple{Int, Int}, Vector{Vector{Tuple{Int, Int}}}}()  # Updated to store edge paths
 
     if isempty(node_Priors)
         node_Priors = fill(1.0, nv(new_system_graph))
@@ -31,54 +31,44 @@ function reliability_propagation(system_matrix, sources, link_reliability, node_
     return new_system_graph, Node_Reliability, ancestors_dict, all_paths_dict
 end
 
-function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2}, ancestors::Set{Int})::Vector{Vector{Int}}
+function find_all_paths_iterative(fork::Int, join::Int, adj_matrix::Array{Int, 2}, ancestors::Set{Int})::Vector{Vector{Tuple{Int, Int}}}
     # Create a copy of the ancestors set and include the join node itself
     ancestorsInclusive = copy(ancestors)
     push!(ancestorsInclusive, join)
 
     # Initialize an empty vector to store all paths and a queue for BFS
-    all_paths = Vector{Vector{Int}}()
-    queue = [(fork, [fork])]
+    all_edge_paths = Vector{Vector{Tuple{Int, Int}}}()
+    queue = [(fork, [])]  # Start with an empty edge path
 
     # Iterate until the queue is empty
     while !isempty(queue)
-        current, path = popfirst!(queue)
+        current, edge_path = popfirst!(queue)
 
-        # If the current node is the join node, add the path to all_paths
+        # If the current node is the join node, add the edge path to all_edge_paths
         if current == join
-            push!(all_paths, path)
+            push!(all_edge_paths, edge_path)
             continue
         end
 
         # Explore all next nodes from the current node
         for next_node in findall(adj_matrix[current, :] .== 1)
-            # Add the next node to the path if it's not already in the path and is an ancestor
-            if next_node ∉ path && next_node in ancestorsInclusive
-                new_path = [path; next_node]
-                push!(queue, (next_node, new_path))
+            # Add the edge to the path if the next node is an ancestor
+            if next_node in ancestorsInclusive
+                new_edge_path = [edge_path; (current, next_node)]
+                push!(queue, (next_node, new_edge_path))
             end
         end
     end
 
-    return all_paths
-end
-
-function combine_and_expand_paths(paths::Vector{Vector{Int}}, adj_matrix::Array{Int, 2}, fork_node::Int)::Vector{Int}
-    # Combine all paths into a single set of unique nodes
-    combined_path = unique(vcat(paths...))
-
-    # Include nodes that have direct edges to any node in the combined path, excluding the fork node
-    for node in combined_path
-        if node != fork_node
-            for connected_node in findall(adj_matrix[:, node] .== 1)
-                if connected_node ∉ combined_path
-                    push!(combined_path, connected_node)
-                end
-            end
-        end
+    # Check if there are more than one distinct paths
+    if length(all_edge_paths) > 1
+        # Combine all distinct edge paths into one edge path
+        combined_edge_path = vcat(all_edge_paths...)
+        return [combined_edge_path]
+    else
+        # Return an empty vector if there is only one distinct path
+        return Vector{Vector{Tuple{Int, Int}}}()
     end
-
-    return combined_path
 end
 
 function update_belief(new_system_graph, original_system_graph, link_reliability, node_Priors, sources, belief_dict, edgepairs, ancestors_dict, all_paths_dict)
@@ -112,16 +102,14 @@ function update_belief(new_system_graph, original_system_graph, link_reliability
             if indegree(original_system_graph, node) > 1
                 fork_ancestors = filter(x -> x ∉ sources && outdegree(original_system_graph, x) > 1, ancestors_dict[node])
                 for fork in fork_ancestors
-                    paths = find_all_paths_iterative(fork, node, Matrix(adjacency_matrix(original_system_graph)), ancestors_dict[node])
-                    # Combine and expand paths if more than one path is found
-                    if length(paths) > 1
-                        combined_path = combine_and_expand_paths(paths, Matrix(adjacency_matrix(original_system_graph)), fork)
-                        all_paths_dict[(fork, node)] = [combined_path]  # Wrap combined_path in another vector
+                    edge_paths = find_all_paths_iterative(fork, node, Matrix(adjacency_matrix(original_system_graph)), ancestors_dict[node])
+                    # Store the edge paths if any are found
+                    if !isempty(edge_paths)
+                        all_paths_dict[(fork, node)] = edge_paths
                     end
                 end
             end
         end
-
     end
     return belief_dict, edgepairs, ancestors_dict, all_paths_dict
 end
