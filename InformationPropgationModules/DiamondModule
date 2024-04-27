@@ -42,27 +42,30 @@ function is_valid_diamond(path1::Vector{Int}, path2::Vector{Int})::Bool
     return length(intersect(path1, path2)) == 2
 end
 
-function find_all_paths(current::Int, target::Int, adj_matrix::Array{Int, 2}, path::Vector{Int}, all_paths::Vector{Vector{Int}}, visited::Set{Int})::Vector{Vector{Int}}
-    if current in visited
-        return all_paths
-    end
+function find_all_paths(start::Int, target::Int, adj_matrix::Array{Int, 2}, ancestors::Dict{Int, Set{Int}})::Vector{Vector{Int}}
+    all_paths = Vector{Vector{Int}}()
+    stack = [(start, [start])]
 
-    new_path = [path; current]
-    new_visited = union(visited, Set([current]))
+    while !isempty(stack)
+        current, path = pop!(stack)
 
-    if current == target
-        push!(all_paths, new_path)
-        return all_paths
-    end
-
-    for next_node in findall(adj_matrix[current, :] .== 1)
-        find_all_paths(next_node, target, adj_matrix, new_path, all_paths, new_visited)
+        if current == target
+            push!(all_paths, path)
+        else
+            next_nodes = findall(adj_matrix[current, :] .== 1)
+            for next_node in next_nodes
+                if next_node ∉ ancestors[current]  # Ensure we do not revisit ancestors of the current node
+                    new_path = [path; next_node]
+                    push!(stack, (next_node, new_path))
+                end
+            end
+        end
     end
 
     return all_paths
 end
 
-function find_diamond_subgraphs(adj_matrix::Array{Int, 2})::Vector{Tuple{Int, Int, Array{Int, 2}, Dict{Int, Int}}}
+function find_diamond_subgraphs(adj_matrix::Array{Int, 2}, ancestors::Dict{Int, Set{Int}})::Vector{Tuple{Int, Int, Array{Int, 2}, Dict{Int, Int}}}
     forks = find_forks(adj_matrix)
     joins = find_joins(adj_matrix)
     diamonds = []
@@ -71,12 +74,7 @@ function find_diamond_subgraphs(adj_matrix::Array{Int, 2})::Vector{Tuple{Int, In
     for fork in forks
         for join in joins
             if fork != join && is_valid_diamond_pair(fork, join, adj_matrix)
-                # Initialize path, all_paths, and visited with the correct types
-                path = Int[]
-                all_paths = Vector{Vector{Int}}()
-                visited = Set{Int}()
-
-                all_paths = find_all_paths(fork, join, decomposed_graph, path, all_paths, visited)
+                all_paths = find_all_paths(fork, join, decomposed_graph, ancestors)
                 diamond_paths = identify_diamond_paths(all_paths)
                 for (path1, path2) in diamond_paths
                     diamond_nodes, node_index_map = create_diamond_adj_matrix(fork, unique([path1; path2]), adj_matrix)

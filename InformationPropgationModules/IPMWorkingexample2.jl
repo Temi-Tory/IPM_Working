@@ -29,14 +29,40 @@ function findSources(adj_matrix::Matrix{Int64})
     return sources
 end #findSources function end
 
+import Cairo,Fontconfig 
+using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions
+GLMakie.activate!();
+ 
+include("IPM_With_NodeTracking.jl") 
+using .Information_Propagation
+#= G= DiGraph(5)
 
-# Create a dictionary to hold the reliability values
+
+add_edge!(G, 1,2);
+add_edge!(G, 2,3);
+add_edge!(G, 2,4);
+add_edge!(G, 3,5);
+add_edge!(G, 4,5);
+
+# Iterate through each edge in the graph and set reliability
+link_reliability = Dict{Tuple{Int64, Int64}, Float64}()
+for e in edges(G)
+    link_reliability[(src(e), dst(e))] = 0.9
+    reliability = link_reliability[(src(e), dst(e))]
+end
+
+Node_Priors = fill(0.9, 5)
+g_matrix = Matrix(adjacency_matrix(G))
+graph,algo_results,ancestorDict,diamondsFoundbtweenForkJoin=Information_Propagation.reliability_propagation(g_matrix,link_reliability,Node_Priors)
+algo_results#output_dictionary returned a dictionary where key is node number and value is propagated reliability
+ =#
+ # Create a dictionary to hold the reliability values
 link_reliability = Dict{Tuple{Int64, Int64}, Float64}()
 
 # Read system data and create the graph
-#system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
+system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/Shelby county gas.csv", ',', header= false, Int)
-system_data = readdlm("csvfiles/16 NodeNetwork Adjacency matrix.csv", ',', header= false, Int)
+#system_data = readdlm("csvfiles/16 NodeNetwork Adjacency matrix.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv", ',', header= false, Int)
 
 original_system_matrix = Matrix(DataFrame(system_data, :auto))
@@ -50,9 +76,9 @@ for e in edges(original_system_graph)
 end
 
 graph,algo_results,ancestorDict,diamondsFoundbtweenForkJoin=Information_Propagation.reliability_propagation(original_system_matrix,link_reliability,Node_Priors); 
-algo_results#output_dictionary returned a dictionary where key is node number and value is propagated reliability
-
-mc = Information_Propagation.MC_result(original_system_graph,original_system_matrix,0.9,findSources(original_system_matrix),40000000)
+ancestorDict#output_dictionary returned a dictionary where key is node number and value is propagated reliability
+plotinteraction(original_system_graph, findSources(original_system_matrix)) 
+#= mc = Information_Propagation.MC_result(original_system_graph,original_system_matrix,0.9,findSources(original_system_matrix),40000000)
 md= Dict()
 for i in eachindex(mc)
     md[i] = mc[i]
@@ -68,7 +94,7 @@ println(collect(edges(original_system_graph)))
 # Display the DataFrame
 println(df)
 ancestorDict
-diamondsFoundbtweenForkJoin
+diamondsFoundbtweenForkJoin =#
 
 #=
 path_one_true = 0.9*0.9*0.9; path_one_false = 0.9*0.9*0.1; 
