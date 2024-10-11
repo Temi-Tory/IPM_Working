@@ -94,7 +94,7 @@ end
             MC_mat= zero(system_matrix);
             MonteCarlo_Network_Graph= DiGraph(MC_mat)
             
-            for edge in 1:length(edge_pairs)            
+            for edge in eachindex(edge_pairs)            
                 if rand(Bernoulli(link_reliability))
                 add_edge!(MonteCarlo_Network_Graph,edge_pairs[edge][1],edge_pairs[edge][2])
                 end

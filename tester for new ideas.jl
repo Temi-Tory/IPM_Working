@@ -272,7 +272,7 @@ function  plotinteraction(Network_Graph, sources)
     arrow_size=[50 for i in 1:ne(Network_Graph)],
     arrowcolor  = "pink",
     edge_width = [3 for i in 1:ne(Network_Graph)],
-    nodelabelsize  = 3.8
+    nodelabelsize  = 3.8,
     node_color="lightgrey", #Use colours to identify sink vs source nodes                                      
     node_size=[50 for i in 1:nv(Network_Graph) ]
     )

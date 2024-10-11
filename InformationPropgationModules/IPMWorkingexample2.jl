@@ -60,19 +60,19 @@ algo_results#output_dictionary returned a dictionary where key is node number an
 link_reliability = Dict{Tuple{Int64, Int64}, Float64}()
 
 # Read system data and create the graph
-system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
+#system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/Shelby county gas.csv", ',', header= false, Int)
-#system_data = readdlm("csvfiles/16 NodeNetwork Adjacency matrix.csv", ',', header= false, Int)
+system_data = readdlm("csvfiles/16 NodeNetwork Adjacency matrix.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv", ',', header= false, Int)
 
 original_system_matrix = Matrix(DataFrame(system_data, :auto))
 original_system_graph = DiGraph(original_system_matrix)
 
 
-# Iterate through each edge in the graph and set reliability
+# Iterate through each edge in the graph and set probability
 for e in edges(original_system_graph)
-    link_reliability[(src(e), dst(e))] = 0.9
-    reliability = link_reliability[(src(e), dst(e))]
+    link_probability[(src(e), dst(e))] = 0.9
+    probability = link_probability[(src(e), dst(e))]
 end
 
 graph,algo_results,ancestorDict,diamondsFoundbtweenForkJoin=Information_Propagation.reliability_propagation(original_system_matrix,link_reliability,Node_Priors); 

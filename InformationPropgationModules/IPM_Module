@@ -281,11 +281,11 @@ module InformationPropagation
 
     function MC_result(
         original_system_graph::DiGraph, 
-        link_reliability::Dict{EdgePair, Distribution}, 
-        node_reliability::Dict{Int, Distribution},
+        link_probability::Dict{EdgePair, Distribution}, 
+        node_probability::Dict{Int, Distribution},
         sources::Vector{Int}, 
         N::Int=100000
-    )
+        )
         nv_original = nv(original_system_graph)
         edge_pairs = Tuple.(edges(original_system_graph))
         active_count = zeros(nv_original)
@@ -294,13 +294,13 @@ module InformationPropagation
             # Initialize a copy of the graph structure to simulate on
             MonteCarlo_Network_Graph = deepcopy(original_system_graph)
             
-            # Sample reliability for nodes and determine their active status
-            node_active = Dict(node => rand(node_reliability[node])  for node in vertices(MonteCarlo_Network_Graph))
+            # Sample probability for nodes and determine their active status
+            node_active = Dict(node => rand(node_probability[node])  for node in vertices(MonteCarlo_Network_Graph))
             
-            # Sample reliability for edges based on node activity and apply directly
+            # Sample probability for edges based on node activity and apply directly
             for (src, dst) in edge_pairs
                 if node_active[src] && node_active[dst]  # Ensure both nodes are active to consider the edge
-                    if rand(link_reliability[EdgePair(src, dst)]) > rand()
+                    if rand(link_probability[EdgePair(src, dst)]) == 1
                         add_edge!(MonteCarlo_Network_Graph, src, dst)
                     else
                         rem_edge!(MonteCarlo_Network_Graph, src, dst)
@@ -313,9 +313,9 @@ module InformationPropagation
             # Evaluate active nodes based on path reachability from sources
             for node in 1:nv(MonteCarlo_Network_Graph)        
                 if node in sources 
-                    if rand(node_reliability[node])                        
-                        active_count[node]= active_count[node] + 1  
-                    end
+                    if node_active[node]
+                        active_count[node] += 1
+                    end                    
                 else
                     #path_to_source=[has_path(original_Pwr_dist_graph,i,node) for i in sources]
                     mc_path_to_source=[has_path(MonteCarlo_Network_Graph,i,node) for i in sources]

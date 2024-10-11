@@ -306,24 +306,43 @@ end
 
 
 
-function MC_result(original_system_graph,system_matrix,link_reliability,sources,N=100000)
-    edge_pairs=Tuple.(edges(original_system_graph));
-    active_count=zeros(nv(original_system_graph));
+function MC_result(
+    original_system_graph::DiGraph, 
+    link_probability::Dict{Tuple{Int64, Int64}, Distribution} , 
+    node_probability::Dict{Int, Distribution},
+    sources::Vector{Int}, 
+    N::Int=100000
+    )
+    nv_original = nv(original_system_graph)
+    edge_pairs = Tuple.(edges(original_system_graph))
+    active_count = zeros(nv_original)
     
     for i in 1:N
-        MC_mat= zero(system_matrix);
-        MonteCarlo_Network_Graph= DiGraph(MC_mat)
+        # Initialize a copy of the graph structure to simulate on
+        MonteCarlo_Network_Graph = deepcopy(original_system_graph)
         
-        for edge in 1:length(edge_pairs)            
-           # if rand(Bernoulli(link_reliability[(edge_pairs[edge][1],edge_pairs[edge][2])]))
-           if rand(Bernoulli(link_reliability))
-            add_edge!(MonteCarlo_Network_Graph,edge_pairs[edge][1],edge_pairs[edge][2])
+        # Sample probability for nodes and determine their active status
+        node_active = Dict(node => rand(node_probability[node])  for node in vertices(MonteCarlo_Network_Graph))
+        
+        # Sample probability for edges based on node activity and apply directly
+        for (src, dst) in edge_pairs
+            if node_active[src] && node_active[dst]  # Ensure both nodes are active to consider the edge
+                if rand(link_probability[(src, dst)]) == 1
+                    add_edge!(MonteCarlo_Network_Graph, src, dst)
+                else
+                    rem_edge!(MonteCarlo_Network_Graph, src, dst)
+                end
+            else
+                rem_edge!(MonteCarlo_Network_Graph, src, dst)  # Remove edge if either node is not active
             end
         end
-   
+        
+        # Evaluate active nodes based on path reachability from sources
         for node in 1:nv(MonteCarlo_Network_Graph)        
             if node in sources 
-                active_count[node]= 1.0
+                if node_active[node]
+                    active_count[node] += 1
+                end                    
             else
                 #path_to_source=[has_path(original_Pwr_dist_graph,i,node) for i in sources]
                 mc_path_to_source=[has_path(MonteCarlo_Network_Graph,i,node) for i in sources]
@@ -336,10 +355,11 @@ function MC_result(original_system_graph,system_matrix,link_reliability,sources,
                 end =#
             end
         end
-        
     end
-   return  active_count ./ N
+    
+    return active_count / N
 end
+
 end #end module
 
 
