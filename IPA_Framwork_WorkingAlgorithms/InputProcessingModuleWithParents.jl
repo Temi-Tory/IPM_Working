@@ -25,6 +25,11 @@ module InputProcessingModule
                 end
             end
         end
+
+        # Add empty set for nodes that have no incoming edges
+        for node in setdiff(all_nodes, keys(incoming_index))
+            incoming_index[node] = Set{Int64}()
+        end
         
         source_nodes = setdiff(all_nodes, keys(incoming_index))
         return edgelist, outgoing_index, incoming_index, source_nodes

@@ -1,6 +1,6 @@
 module GraphChordaliltyModule
 
-using Test, DataStructures
+using Test, DataStructures, Combinatorics
 #= ```
 A chordal graph (also known as a triangulated graph) is a graph in which every cycle of four or more nodes has a chord. A chord is an edge that connects two non-adjacent nodes in the cycle, effectively breaking it into smaller cycles.
 
@@ -55,32 +55,55 @@ function connected_components(G::Dict{Int, Set{Int}})
     connected component by itself, as there is no other node connected to it. =#
     return ConnectedComponentsIterator(G)
 end
+function complete_to_chordal(G::Dict{Int, Set{Int}})
+    # Create a copy of the input graph
+    H = deepcopy(G)
+    
+    # Get the set of all vertices
+    V = Set(keys(H))
+    
+    # Initialize the elimination ordering
+    alpha = Dict{Int, Int}()
+    
+    # Initialize the set of eliminated vertices
+    eliminated = Set{Int}()
+    
+    # Perform the elimination process
+    for i in length(V):-1:1
+        # Find the vertex with the minimum neighborhood among non-eliminated vertices
+        v = argmin([length(setdiff(H[u], eliminated)) for u in setdiff(V, eliminated)])
+        
+        # Add v to the elimination ordering
+        alpha[v] = i
+        
+        # Add edges between all pairs of non-adjacent neighbors of v
+        neighbors = setdiff(H[v], eliminated)
+        for u in neighbors, w in neighbors
+            if u != w && !(w in H[u])
+                push!(H[u], w)
+                push!(H[w], u)
+            end
+        end
+        
+        # Mark v as eliminated
+        push!(eliminated, v)
+    end
+    
+    return H, alpha
+end
+
+# Helper function to find the vertex with minimum degree
+function argmin(degrees)
+    min_degree, min_vertex = findmin(degrees)
+    return min_vertex
+end
 
 function is_chordal_graph(G::Dict{Int, Set{Int}})::Bool
     ordering = lexicographic_breadth_first_search(G)
     return is_perfect_elimination_ordering(G, ordering)
 end
 
-function lexicographic_breadth_first_search(G::Dict{Int, Set{Int}})::Set{Int}
-    n = length(G)
-    unnumbered = Set(keys(G))
-    ordering = Int[]
-    
-    while !isempty(unnumbered)
-        v = first(unnumbered)
-        for u in unnumbered
-            if length(intersect(Set(G[u]), Set(ordering))) > length(intersect(Set(G[v]), Set(ordering)))
-                v = u
-            end
-        end
-        push!(ordering, v)
-        delete!(unnumbered, v)
-    end
-    
-    return reverse(ordering)
-end
-
-function is_perfect_elimination_ordering(G::Dict{Int, Set{Int}}, ordering::Set{Int})::Bool
+function is_perfect_elimination_ordering(G::Dict{Int, Set{Int}}, ordering::Vector{Int})::Bool
     n = length(G)
     for i in 1:n-1
         v = ordering[i]
@@ -95,30 +118,36 @@ function is_perfect_elimination_ordering(G::Dict{Int, Set{Int}}, ordering::Set{I
     return true
 end
 
-function complete_to_chordal_graph(G::Dict{Int, Set{Int}})::Tuple{Dict{Int, Set{Int}}, Dict{Int, Int}}
-    H = deepcopy(G)
-    ordering = lexicographic_breadth_first_search(H)
-    n = length(H)
-    
-    for i in 1:n-1
-        v = ordering[i]
-        later_neighbors = [u for u in H[v] if findfirst(==(u), ordering) > i]
-        if !isempty(later_neighbors)
-            w = later_neighbors[argmax([findfirst(==(u), ordering) for u in later_neighbors])]
-            for u in later_neighbors
-                if u != w
-                    if !(u in H[w])
-                        push!(H[w], u)
-                        push!(H[u], w)
-                    end
-                end
+function lexicographic_breadth_first_search(G::Dict{Int, Set{Int}})::Vector{Int}
+    unnumbered = Set(keys(G))
+    ordering = Int[]
+    scores = Dict{Int, Int}()
+
+    # Initialize scores to track intersections
+    for v in unnumbered
+        scores[v] = 0
+    end
+
+    while !isempty(unnumbered)
+        # Pick the node with the largest score
+        v = argmax(scores)
+        push!(ordering, v)
+        delete!(unnumbered, v)
+        delete!(scores, v)
+
+        # Update scores of neighbors
+        for u in G[v]
+            if u in unnumbered
+                scores[u] += 1
             end
         end
     end
-    
-    alpha = Dict(v => i for (i, v) in enumerate(reverse(ordering)))
-    return H, alpha
+
+    return ordering
 end
+
+
+
 
 function chordal_graph_cliques(G::Dict{Int, Set{Int}})
     Channel() do channel
