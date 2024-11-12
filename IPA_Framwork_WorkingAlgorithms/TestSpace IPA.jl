@@ -125,9 +125,9 @@ function print_graph_details(
 end
 
 
-filepath = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv"
+#filepath = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv"
 #filepath = "csvfiles/Shelby county gas.csv"
-#filepath = "csvfiles/16 NodeNetwork Adjacency matrix.csv"
+filepath = "csvfiles/16 NodeNetwork Adjacency matrix.csv"
 #filepath = "csvfiles/KarlNetwork.csv"
 
 edgelist, outgoing_index, incoming_index, source_nodes = InputProcessingModule.read_graph_to_dict(filepath)
