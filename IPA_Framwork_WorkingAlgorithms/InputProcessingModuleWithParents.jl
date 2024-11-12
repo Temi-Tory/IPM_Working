@@ -1,13 +1,30 @@
 module InputProcessingModule
-    import Cairo, Fontconfig 
-    using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions, DataStructures, SparseArrays, BenchmarkTools, Combinatorics
+    import  Fontconfig 
+    using Random, Graphs,   DataFrames, DelimitedFiles, Distributions, DataStructures, SparseArrays, BenchmarkTools, Combinatorics
 
+    
+
+    """
+        read_graph_to_dict(filename::String)
+
+        Reads a directed graph from a file where each line represents a node and its outgoing edges.
+        Returns a tuple containing:
+        - edgelist: Vector of (source, target) pairs
+        - outgoing_index: Dict mapping nodes to their outgoing neighbors
+        - incoming_index: Dict mapping nodes to their incoming neighbors
+        - source_nodes: Set of nodes with no incoming edges
+
+        Throws:
+            SystemError if file cannot be opened
+            ArgumentError if file format is invalid
+    """
     function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
         edgelist = Vector{Tuple{Int64,Int64}}()
         outgoing_index = Dict{Int64,Set{Int64}}()
         incoming_index = Dict{Int64,Set{Int64}}()
         all_nodes = Set{Int64}()
         
+        isfile(filename) || throw(SystemError("File not found: $filename"))
         open(filename, "r") do file
             for (source, line) in enumerate(eachline(file))
                 push!(all_nodes, source)
@@ -26,14 +43,21 @@ module InputProcessingModule
             end
         end
 
+        source_nodes = setdiff(all_nodes, keys(incoming_index))
         # Add empty set for nodes that have no incoming edges
-        for node in setdiff(all_nodes, keys(incoming_index))
+        for node in source_nodes
             incoming_index[node] = Set{Int64}()
         end
         
-        source_nodes = setdiff(all_nodes, keys(incoming_index))
         return edgelist, outgoing_index, incoming_index, source_nodes
     end
+
+    """
+        identify_fork_and_join_nodes(outgoing_index, incoming_index)
+
+        Identifies fork nodes (nodes with multiple outgoing edges) and join nodes (nodes with multiple incoming edges).
+        Returns a tuple of (fork_nodes, join_nodes).
+    """
     function identify_fork_and_join_nodes(
         outgoing_index::Dict{Int64,Set{Int64}},
         incoming_index::Dict{Int64,Set{Int64}}
@@ -59,14 +83,26 @@ module InputProcessingModule
         return fork_nodes, join_nodes
     end
     
+    """
+        find_iteration_sets(edgelist, outgoing_index, incoming_index, fork_nodes, join_nodes, source_nodes)
+
+        Performs a topological sort while tracking ancestor-descendant relationships and diamond patterns.
+        Returns:
+        - iteration_sets: Vector of node sets that can be processed in parallel
+        - ancestors: Dict mapping each node to its ancestor set
+        - descendants: Dict mapping each node to its descendant set
+        - common_ancestors_dict: Dict mapping join nodes to their diamond structures
+
+        Throws:
+            ArgumentError if graph contains cycles
+    """
     function find_iteration_sets(
         edgelist::Vector{Tuple{Int64,Int64}},
         outgoing_index::Dict{Int64,Set{Int64}},
-        incoming_index::Dict{Int64,Set{Int64}},
-        fork_nodes::Set{Int64},
-        join_nodes::Set{Int64},
-        source_nodes::Set{Int64},
-        )::Tuple{Vector{Set{Int64}}, Dict{Int64, Set{Int64}}, Dict{Int64, Set{Int64}}, Dict{Int64, DiamondStructure}}
+        incoming_index::Dict{Int64,Set{Int64}}
+        )::Tuple{Vector{Set{Int64}}, Dict{Int64, Set{Int64}}, Dict{Int64, Set{Int64}}}
+        
+        isempty(edgelist) && return (Vector{Set{Int64}}(), Dict{Int64,Set{Int64}}(), Dict{Int64,Set{Int64}}(), Dict{Int64,DiamondStructure}())
         
         # Find the maximum node id
         n = maximum(max(first(edge), last(edge)) for edge in edgelist)
@@ -82,7 +118,6 @@ module InputProcessingModule
         
         ancestors = Dict(node => Set{Int64}([node]) for node in all_nodes)
         descendants = Dict(node => Set{Int64}() for node in all_nodes)
-        common_ancestors_dict = Dict{Int64, DiamondStructure}()
     
         queue = Queue{Int64}()
         for node in all_nodes
@@ -101,17 +136,6 @@ module InputProcessingModule
             for _ in 1:level_size
                 node = dequeue!(queue)
     
-                if node in join_nodes
-                    if haskey(incoming_index, node)
-                        parents = incoming_index[node]
-                        if length(parents) > 1
-                            diamond_structure = pre_process_maximamal_diamond_subgraph(parents, ancestors, source_nodes, fork_nodes)
-                            if !isempty(diamond_structure.common_ancestors)
-                                common_ancestors_dict[node] = diamond_structure
-                            end
-                        end
-                    end
-                end
     
                 push!(current_set, node)
                 
@@ -152,48 +176,8 @@ module InputProcessingModule
             push!(iteration_sets, current_set)
         end
         
-        return (iteration_sets, ancestors, descendants, common_ancestors_dict)
+        return (iteration_sets, ancestors, descendants)
     end
-    
-    struct DiamondStructure
-        common_ancestors::Set{Int64}
-        parent_groups::Dict{Set{Int64}, Set{Int64}}
-    end
-    
-    function pre_process_maximamal_diamond_subgraph(
-        parents::Set{Int64},
-        ancestors::Dict{Int64, Set{Int64}},
-        source_nodes::Set{Int64},
-        fork_nodes::Set{Int64},
-        max_combination_size::Int = 5
-        )::DiamondStructure
-        # Input validation
-        if !all(parent in keys(ancestors) for parent in parents)
-            throw(ArgumentError("All parents must exist in the ancestors dictionary"))
-        end
-    
-        # Get fork ancestors for each parent
-        parent_fork_ancestors = Dict(
-            parent => intersect(setdiff(ancestors[parent], source_nodes), fork_nodes)
-            for parent in parents
-        )
         
-        common_ancestors = Set{Int64}()
-        parent_groups = Dict{Set{Int64}, Set{Int64}}()
-        
-        # Generate combinations of parents
-        for r in 2:min(length(parents), max_combination_size)
-            for parent_combination in combinations(collect(parents), r)
-                parent_set = Set(parent_combination)
-                shared_ancestors = intersect((parent_fork_ancestors[p] for p in parent_set)...)
-                
-                if !isempty(shared_ancestors)
-                    union!(common_ancestors, shared_ancestors)
-                    parent_groups[parent_set] = shared_ancestors
-                end
-            end
-        end
-        
-        return DiamondStructure(common_ancestors, parent_groups)
-    end
+   
 end
