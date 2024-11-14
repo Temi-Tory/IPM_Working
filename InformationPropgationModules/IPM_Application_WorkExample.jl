@@ -1,5 +1,5 @@
-import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions
+
+using Random, Graphs, DataFrames, DelimitedFiles, Distributions
 
 
 
@@ -12,10 +12,10 @@ link_reliability = Dict{InformationPropagation.EdgePair, Distribution}()
 Node_Priors = Dict{Int, Distribution}() #Assign an empty vector to Node_Priors
 
 # Read system data and create the graph
-system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
+#system_data = readdlm("csvfiles/KarlNetwork.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/Shelby county gas.csv", ',', header= false, Int)
 #system_data = readdlm("csvfiles/16 NodeNetwork Adjacency matrix.csv", ',', header= false, Int)
-#system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv", ',', header= false, Int)
+system_data = readdlm("csvfiles/16_node_old.csv", ',', header= false, Int)
 
 
 original_system_matrix = Matrix(DataFrame(system_data, :auto))
@@ -61,7 +61,7 @@ ouptput_dictionary
 end #findSources function end
 
 
-mc = InformationPropagation.MC_result(original_system_graph,link_reliability,Node_Priors,findSources(original_system_matrix),10000000)
+mc = InformationPropagation.MC_result(original_system_graph,link_reliability,Node_Priors,findSources(original_system_matrix),8000000)
 md= Dict()
 for i in eachindex(mc)
     md[i] = mc[i]

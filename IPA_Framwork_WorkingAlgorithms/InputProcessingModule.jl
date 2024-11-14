@@ -18,40 +18,110 @@ module InputProcessingModule
             SystemError if file cannot be opened
             ArgumentError if file format is invalid
     """
-    function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
+    
+
+    function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}, Dict{Int64, Float64}, Dict{Tuple{Int64,Int64}, Float64}}
         edgelist = Vector{Tuple{Int64,Int64}}()
         outgoing_index = Dict{Int64,Set{Int64}}()
         incoming_index = Dict{Int64,Set{Int64}}()
         all_nodes = Set{Int64}()
+        node_priors = Dict{Int64, Float64}()
+        edge_probabilities = Dict{Tuple{Int64,Int64}, Float64}()
         
         isfile(filename) || throw(SystemError("File not found: $filename"))
         open(filename, "r") do file
             for (source, line) in enumerate(eachline(file))
+                values = parse.(Float64, split(line, ','))
+                
+                # Validate number of columns
+                length(values) >= 2 || throw(ArgumentError("Line $source: Invalid format - need at least 2 columns"))
+                
+                # Extract and validate node prior
+                prior = values[1]
+                if !(0 ≤ prior ≤ 1)
+                    throw(ArgumentError("Line $source: Node prior $prior not in range [0,1]"))
+                end
+                node_priors[source] = prior
+                
+                # Process edge probabilities (skip first column which is the prior)
+                edge_probs = values[2:end]
                 push!(all_nodes, source)
-                targets = Set(findall(!iszero, parse.(Int, split(line, ','))))
-                if !isempty(targets)
-                    append!(edgelist, ((source, target) for target in targets))
-                    outgoing_index[source] = targets
-                    union!(all_nodes, targets)
-                    for target in targets
+                
+                for (target, prob) in enumerate(edge_probs)
+                    # Validate edge probability
+                    if prob != 0 && !(0 < prob ≤ 1)
+                        throw(ArgumentError("Line $source: Edge probability $prob to node $target not in range (0,1]"))
+                    end
+                    
+                    if prob > 0
+                        # Check for self-loops
+                        if source == target
+                            throw(ArgumentError("Line $source: Self-loop detected"))
+                        end
+                        
+                        push!(edgelist, (source, target))
+                        if !haskey(outgoing_index, source)
+                            outgoing_index[source] = Set{Int64}()
+                        end
+                        push!(outgoing_index[source], target)
                         if !haskey(incoming_index, target)
                             incoming_index[target] = Set{Int64}()
                         end
                         push!(incoming_index[target], source)
+                        edge_probabilities[(source, target)] = prob
+                        push!(all_nodes, target)
                     end
                 end
             end
         end
-
+    
+        # Validate DAG property
+        function has_cycle(graph::Dict{Int64,Set{Int64}})
+            visited = Set{Int64}()
+            temp_visited = Set{Int64}()
+            
+            function dfs(node::Int64)
+                if node in temp_visited
+                    return true  # Cycle detected
+                end
+                if node in visited
+                    return false
+                end
+                push!(temp_visited, node)
+                
+                if haskey(graph, node)
+                    for neighbor in graph[node]
+                        if dfs(neighbor)
+                            return true
+                        end
+                    end
+                end
+                
+                delete!(temp_visited, node)
+                push!(visited, node)
+                return false
+            end
+            
+            for node in keys(graph)
+                if dfs(node)
+                    return true
+                end
+            end
+            return false
+        end
+        
+        if has_cycle(outgoing_index)
+            throw(ArgumentError("Graph contains cycles - must be a DAG"))
+        end
+    
         source_nodes = setdiff(all_nodes, keys(incoming_index))
         # Add empty set for nodes that have no incoming edges
         for node in source_nodes
             incoming_index[node] = Set{Int64}()
         end
         
-        return edgelist, outgoing_index, incoming_index, source_nodes
+        return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
     end
-
     """
         identify_fork_and_join_nodes(outgoing_index, incoming_index)
 

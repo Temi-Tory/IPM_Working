@@ -1,7 +1,5 @@
 module InformationPropagation
-    import Cairo,Fontconfig 
-    using Random, Graphs, GraphMakie, QuadGK, GLMakie, Turing, CairoMakie, DataFrames, DelimitedFiles, Distributions, MetaGraphs, IterTools, SimpleWeightedGraphs
-    using GraphMakie.NetworkLayout 
+using Distributions, Graphs
 
     include("DiamondModule")
     using  .DiamondModule
