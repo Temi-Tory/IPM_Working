@@ -3,7 +3,7 @@ using   Graphs, ChordalGraph, MetaGraphsNext, NetworkLayout,  DataFrames, Delimi
 
 using Main.InputProcessingModule
 
-using  Main.NetworkDecomposition
+using  Main.NetworkDecompositionModule
 
 function print_common_ancestors_dict(common_ancestors_dict)
     println("Common Ancestors Dictionary:")
@@ -86,7 +86,7 @@ edgelist, outgoing_index, incoming_index, source_nodes = InputProcessingModule.r
 fork_nodes, join_nodes = InputProcessingModule.identify_fork_and_join_nodes(outgoing_index, incoming_index)
 iteration_sets, ancestors, descendants = InputProcessingModule.find_iteration_sets(edgelist, outgoing_index, incoming_index);
 
-diamond_structures = NetworkDecomposition.identify_and_group_diamonds(
+diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
     join_nodes,
     ancestors,
     incoming_index,
@@ -99,7 +99,7 @@ diamond_structures = NetworkDecomposition.identify_and_group_diamonds(
     pretty_print_diamonds(diamond_structures::Dict{Int64, GroupedDiamondStructure})
     Prints diamond structures in a readable format.
 """
-function pretty_print_diamonds(diamond_structures::Dict{Int64, NetworkDecomposition.GroupedDiamondStructure})
+function pretty_print_diamonds(diamond_structures::Dict{Int64, NetworkDecompositionModule.GroupedDiamondStructure})
     println("\nDiamond Patterns Analysis")
     println("=" ^ 50)
     
@@ -132,7 +132,7 @@ end
     pretty_print_diamond(structure::GroupedDiamondStructure)
     Prints a single diamond structure in a readable format.
 """
-function pretty_print_diamond(structure::NetworkDecomposition.GroupedDiamondStructure)
+function pretty_print_diamond(structure::NetworkDecompositionModule.GroupedDiamondStructure)
     println("\nDiamond Pattern at Join Node: $(structure.join_node)")
     println("-" ^ 40)
     

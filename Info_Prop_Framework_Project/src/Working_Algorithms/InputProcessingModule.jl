@@ -1,8 +1,7 @@
 module InputProcessingModule
-    import  Fontconfig 
-    using Random, Graphs,   DataFrames, DelimitedFiles, Distributions, DataStructures, SparseArrays, BenchmarkTools, Combinatorics
-
-    
+    import Fontconfig 
+    using Random,  DataFrames, DelimitedFiles, Distributions, 
+        DataStructures, SparseArrays, Combinatorics
 
     """
         read_graph_to_dict(filename::String)
