@@ -193,7 +193,7 @@ mc_results = MC_result(
     source_nodes,
     node_priors,
     edge_probabilities,
-    900000
+    600000
 )
 
 sorted_mc = OrderedDict(sort(collect(mc_results)))
@@ -214,16 +214,14 @@ df.PercentageDiff = (df.AbsDiff ./ df.McResults) .* 100
 # Format numbers for better display
 formatted_df = select(df,
     :Node,
-    :AlgoResults => ByRow(x -> round(x, digits=4)) => :AlgoResults,
-    :McResults => ByRow(x -> round(x, digits=4)) => :McResults,
-    :AbsDiff => ByRow(x -> round(x, digits=6)) => :AbsDiff,
-    :PercentageDiff => ByRow(x -> round(x, digits=2)) => :PercentageDiff
+    :AlgoResults,
+    :McResults,
+    :AbsDiff,
+    :PercentageDiff
 )
-
 show(sort(formatted_df, :PercentageDiff, by=abs, rev=true), allrows=true) 
-#= using CSV
-(() -> begin;CSV.write("formatted_df_metro.csv", sort(formatted_df, :PercentageDiff, by=abs, rev=true));nothing;end)()
-=#
+using CSV
+CSV.write("formatted_df_metro.csv", sort(formatted_df, :PercentageDiff, by=abs, rev=true))
 #incoming_index[170]
 #diamond_structures[170]
 
