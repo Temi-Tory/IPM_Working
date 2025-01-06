@@ -66,7 +66,7 @@ using DataStructures, Graphs, Test, SimpleWeightedGraphs, Combinatorics, Chordal
 
         # Add vertices with their data (cliques)
         for (i, clique) in index_to_clique
-            add_vertex!(meta_jt, i, clique)
+           # add_vertex!(meta_jt, i, clique)
         end
 
         # Add edges and their weights
