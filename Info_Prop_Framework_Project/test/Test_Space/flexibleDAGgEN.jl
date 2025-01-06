@@ -1,4 +1,27 @@
-# Additional imports needed
+#=
+# First, activate the project environment
+using Pkg
+Pkg.activate(".")
+
+# Add the required packages
+Pkg.add([
+    "Graphs",
+    "Random",
+    "DataStructures",
+    "Distributions",
+    "StatsBase",
+    "Statistics",
+    "GraphViz"
+])
+
+# To ensure the packages persist, we should instantiate the project
+Pkg.instantiate()
+  =#
+
+
+using Random
+using Graphs
+using GraphViz
 using StatsBase: sample
 using Distributions: Poisson
 # Core properties for infrastructure modeling
@@ -15,6 +38,155 @@ struct InfraProperties
     join_prob::Float64      # Probability of join patterns
     redundancy::Float64     # Path redundancy factor (0-1)
 end
+
+function analyze_ranked_dag(g::SimpleDiGraph, rank_labels::Dict{Int,Int}, nodes_per_rank::Vector{Vector{Int}})
+    println("Ranked DAG Analysis:")
+    println("Total vertices: ", nv(g))
+    println("Total edges: ", ne(g))
+    
+    # Validate basic DAG properties
+    println("\nValidation:")
+    
+    # Check if it's a DAG (no cycles)
+    has_cycles = false
+    try
+        topological_sort_by_dfs(g)
+    catch e
+        has_cycles = true
+    end
+    println("Is valid DAG: ", !has_cycles)
+    
+    # Check for fragmentation
+    components = weakly_connected_components(g)
+    println("Number of components: ", length(components))
+    if length(components) > 1
+        println("WARNING: Graph is fragmented!")
+        println("Fragments:")
+        for (i, component) in enumerate(components)
+            println("  Fragment $i: nodes $component")
+        end
+    else
+        println("Graph is not fragmented (good)")
+    end
+
+    # Rank analysis
+    println("\nRank Analysis:")
+    for (rank, nodes) in enumerate(nodes_per_rank)
+        println("Rank $rank: $(length(nodes)) nodes $nodes")
+    end
+
+    # Path analysis
+    sources = sort([v for v in vertices(g) if isempty(inneighbors(g, v))])
+    sinks = sort([v for v in vertices(g) if isempty(outneighbors(g, v))])
+    
+    println("\nPath Analysis:")
+    println("Source nodes: $sources")
+    println("Sink nodes: $sinks")
+    
+    # Find multiple longest paths
+    paths = Vector{Vector{Int}}()
+    path_lengths = Vector{Int}()
+    
+    for source in sources
+        for sink in sinks
+            path = enumerate_paths(dijkstra_shortest_paths(g, source), sink)
+            if !isempty(path)  # Only add valid paths
+                push!(paths, path)
+                push!(path_lengths, length(path))
+            end
+        end
+    end
+    
+    # Sort and get top 5 shortest paths
+    if !isempty(paths)
+        sorted_indices = shortest(path_lengths, rev=false)
+        num_paths = min(5, length(paths))
+        
+        println("\nTop $num_paths shortest Paths:")
+        for i in 1:num_paths
+            path = paths[sorted_indices[i]]
+            println("\nPath $i:")
+            println("Length: ", length(path))
+            println("Nodes: ", path)
+            path_ranks = [rank_labels[n] for n in path]
+            println("Ranks: ", path_ranks)
+            
+            println("Path transitions:")
+            for j in 1:length(path)-1
+                from = path[j]
+                to = path[j+1]
+                println("  R$(rank_labels[from]): $from → R$(rank_labels[to]): $to")
+            end
+            
+            # Calculate rank coverage
+            unique_ranks = length(unique(path_ranks))
+            total_ranks = length(nodes_per_rank)
+            println("Rank coverage: $unique_ranks/$total_ranks ($(round(100*unique_ranks/total_ranks, digits=1))%)")
+        end
+    else
+        println("No paths found!")
+    end
+end
+  
+  function generate_dot_string(g::SimpleDiGraph, rank_labels::Dict{Int,Int})
+      # Color scheme for ranks
+      colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+      
+      dot = """
+      digraph {
+          rankdir=TB;
+          node [style=filled, shape=circle, width=0.15, height=0.15, fixedsize=true];  # Halved node size
+          graph [nodesep=0.2, ranksep=0.3, splines=line];  # Tighter spacing, straight lines
+      """
+      
+      # Group nodes by rank
+      max_rank = maximum(values(rank_labels))
+      for rank in 1:max_rank
+          dot *= "    { rank=same; "
+          nodes_in_rank = sort([v for (v, r) in rank_labels if r == rank])
+          
+          # Add nodes with just the number label
+          color = colors[mod1(rank, length(colors))]
+          for node in nodes_in_rank
+              dot *= "\"$node\" [label=\"$node\", fillcolor=\"$color\", fontcolor=white, fontsize=6] "  # Smaller font
+          end
+          dot *= "}\n"
+      end
+      
+      # Add edges with thinner arrows
+      for e in edges(g)
+          dot *= "    \"$(src(e))\" -> \"$(dst(e))\" [color=\"#000000\", penwidth=0.1, arrowsize=0.3];\n"
+      end
+      
+      dot *= "}"
+      return dot
+  end
+  
+  function visualize_dag(g::SimpleDiGraph, rank_labels::Dict{Int,Int}, filename::String)
+      # Generate DOT string
+      dot_str = generate_dot_string(g, rank_labels)
+   #=    
+      # Create temporary DOT file
+      dot_file = "$filename.dot"
+      open(dot_file, "w") do f
+          write(f, dot_str)
+      end
+      
+      # Use GraphViz command line tools to generate the output
+      try
+          run(`dot -Tpdf $dot_file -o $filename.pdf`)
+          run(`dot -Tpng $dot_file -o $filename.png`)
+          println("Saved visualizations as '$filename.pdf' and '$filename.png'")
+      catch e
+          println("Error generating visualization: ", e)
+          println("Make sure GraphViz command line tools are installed.")
+      finally
+          rm(dot_file)
+      end
+       =#
+      # Return the DOT string for inspection
+      return dot_str
+  end
 
 # Generator for infrastructure DAGs
 function generate_infra_dag(props::InfraProperties)
@@ -181,23 +353,6 @@ end
 
 
 
-# Test the generator
-props = InfraProperties(
-    500,    # min_nodes
-    600,    # max_nodes
-    15,     # min_ranks
-    20,     # max_ranks
-    0.06,   # source_ratio
-    0.06,   # sink_ratio
-    0.15,   # edge_density
-    6,      # skip_distance
-    0.3,    # fork_prob
-    0.3,    # join_prob
-    0.4     # redundancy
-)
-
-g, labels, ranks = generate_infra_dag(props)
-analyze_ranked_dag(g, labels, ranks)
 # Example usage
 props = InfraProperties(
     500,    # min_nodes
@@ -218,3 +373,17 @@ analyze_ranked_dag(g, labels, ranks)
 
 dot_str = visualize_dag(g, labels, "full_hybrid")
 graph = GraphViz.load(IOBuffer(dot_str))
+
+using DelimitedFiles
+
+# Get adjacency matrix
+# Set target directory for output
+output_dir = "Info_Prop_Framework_Project/test/GeneratedDatasets"
+mkpath(output_dir)  # Create directory if it doesn't exist
+
+# Save matrix
+adj_matrix = Matrix(adjacency_matrix(g))
+n_vert = nv(g)
+n_edges = ne(g)
+filepath = joinpath(output_dir, "graph_matrix_" * string(n_vert) * "x" * string(n_edges) * ".csv")
+writedlm(filepath, adj_matrix, ',')
