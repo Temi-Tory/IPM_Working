@@ -1,8 +1,41 @@
 module InputProcessingModule
     import Fontconfig 
-    using Random,  DataFrames, DelimitedFiles, Distributions, 
+    using Random, DataFrames, DelimitedFiles, Distributions, JSON,
         DataStructures, SparseArrays, Combinatorics
 
+    export ProbabilitySlices, read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets
+
+    """
+        struct ProbabilitySlices
+
+        A structure to hold probability values and their corresponding weights.
+        The weights are used to sample from the values.
+
+        Fields:
+        - values: Vector of probability values
+        - weights: Vector of weights corresponding to the values
+
+        Constructor:
+        - ProbabilitySlices(values::Vector{Float64}, weights::Vector{Float64})
+    """
+    struct ProbabilitySlices
+        values::Vector{Float64}
+        weights::Vector{Float64}
+        
+        # Constructor with validation
+        function ProbabilitySlices(values::Vector{Float64}, weights::Vector{Float64})
+            if length(values) != length(weights)
+                throw(ArgumentError("Values and weights must have same length"))
+            end
+            if !all(0 .<= values .<= 1)
+                throw(ArgumentError("Values must be probabilities between 0 and 1"))
+            end
+            if abs(sum(weights) - 1.0) > 1e-10
+                throw(ArgumentError("Weights must sum to 1.0"))
+            end
+            new(values, weights)
+        end
+    end
     """
         read_graph_to_dict(filename::String)
 
@@ -16,9 +49,7 @@ module InputProcessingModule
         Throws:
             SystemError if file cannot be opened
             ArgumentError if file format is invalid
-    """
-    
-
+    """  
     function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}, Dict{Int64, Float64}, Dict{Tuple{Int64,Int64}, Float64}}
         edgelist = Vector{Tuple{Int64,Int64}}()
         outgoing_index = Dict{Int64,Set{Int64}}()
@@ -121,6 +152,135 @@ module InputProcessingModule
         
         return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
     end
+
+    """
+        read_graph_to_dict(adj_matrix_file::String, probabilities_file::String)
+
+        Reads a directed graph from:
+        - An adjacency matrix file (CSV) defining graph structure
+        - A JSON file containing probability slices for nodes and edges
+
+        Returns a tuple containing:
+        - edgelist: Vector of (source, target) pairs
+        - outgoing_index: Dict mapping nodes to their outgoing neighbors
+        - incoming_index: Dict mapping nodes to their incoming neighbors
+        - source_nodes: Set of nodes with no incoming edges
+        - node_priors: Dict mapping nodes to their ProbabilitySlices
+        - edge_probabilities: Dict mapping (source,target) pairs to ProbabilitySlices
+
+        Throws:
+            SystemError if files cannot be opened
+            ArgumentError if file formats are invalid
+    """
+    function read_graph_to_dict(adj_matrix_file::String, probabilities_file::String
+        )::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}, Dict{Int64, ProbabilitySlices}, Dict{Tuple{Int64,Int64}, ProbabilitySlices}}
+        # Read and parse the adjacency matrix
+        isfile(adj_matrix_file) || throw(SystemError("File not found: $adj_matrix_file"))
+        adj_matrix = readdlm(adj_matrix_file, ',', Int)
+        
+        # Read and parse the probabilities JSON
+        isfile(probabilities_file) || throw(SystemError("File not found: $probabilities_file"))
+        prob_data = JSON.parsefile(probabilities_file)
+        
+        # Initialize data structures
+        edgelist = Vector{Tuple{Int64,Int64}}()
+        outgoing_index = Dict{Int64,Set{Int64}}()
+        incoming_index = Dict{Int64,Set{Int64}}()
+        all_nodes = Set{Int64}()
+        node_priors = Dict{Int64, ProbabilitySlices}()
+        edge_probabilities = Dict{Tuple{Int64,Int64}, ProbabilitySlices}()
+        
+        # Process node probabilities
+        for (node_str, node_data) in prob_data["nodes"]
+            node = parse(Int, node_str)
+            node_priors[node] = ProbabilitySlices(
+                Float64.(node_data["values"]),
+                Float64.(node_data["weights"])
+            )
+            push!(all_nodes, node)
+        end
+        
+        # Process graph structure and edge probabilities
+        n_nodes = size(adj_matrix, 1)
+        for i in 1:n_nodes
+            for j in 1:n_nodes
+                if adj_matrix[i,j] == 1
+                    # Add edge to data structures
+                    push!(edgelist, (i,j))
+                    
+                    if !haskey(outgoing_index, i)
+                        outgoing_index[i] = Set{Int64}()
+                    end
+                    push!(outgoing_index[i], j)
+                    
+                    if !haskey(incoming_index, j)
+                        incoming_index[j] = Set{Int64}()
+                    end
+                    push!(incoming_index[j], i)
+                    
+                    # Get edge probability from JSON
+                    edge_key = "($i,$j)"
+                    if haskey(prob_data["edges"], edge_key)
+                        edge_data = prob_data["edges"][edge_key]
+                        edge_probabilities[(i,j)] = ProbabilitySlices(
+                            Float64.(edge_data["values"]),
+                            Float64.(edge_data["weights"])
+                        )
+                    else
+                        throw(ArgumentError("Missing probability data for edge $edge_key"))
+                    end
+                end
+            end
+        end
+        
+        # Validate DAG property
+        function has_cycle(graph::Dict{Int64,Set{Int64}})
+            visited = Set{Int64}()
+            temp_visited = Set{Int64}()
+            
+            function dfs(node::Int64)
+                if node in temp_visited
+                    return true  # Cycle detected
+                end
+                if node in visited
+                    return false
+                end
+                push!(temp_visited, node)
+                
+                if haskey(graph, node)
+                    for neighbor in graph[node]
+                        if dfs(neighbor)
+                            return true
+                        end
+                    end
+                end
+                
+                delete!(temp_visited, node)
+                push!(visited, node)
+                return false
+            end
+            
+            for node in keys(graph)
+                if dfs(node)
+                    return true
+                end
+            end
+            return false
+        end
+        
+        if has_cycle(outgoing_index)
+            throw(ArgumentError("Graph contains cycles - must be a DAG"))
+        end
+        
+        source_nodes = setdiff(all_nodes, keys(incoming_index))
+        # Add empty sets for nodes with no incoming edges
+        for node in source_nodes
+            incoming_index[node] = Set{Int64}()
+        end
+        
+        return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
+    end
+
     """
         identify_fork_and_join_nodes(outgoing_index, incoming_index)
 
@@ -248,5 +408,6 @@ module InputProcessingModule
         return (iteration_sets, ancestors, descendants)
     end
         
+
    
 end

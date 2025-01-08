@@ -132,12 +132,14 @@ end
 #filepath = "csvfiles/Shelby county gas.csv"
 #filepath = "csvfiles/16 NodeNetwork Adjacency matrix.csv"
 #filepath = "csvfiles/KarlNetwork.csv"
-filepath = "csvfiles/metro_dag_with_probs.csv"
+#filepath = "csvfiles/metro_undirected_ImprovedDAG_HighProb.csv"
+filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
+filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
 
 
 # Read and process the graph
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = 
-    read_graph_to_dict(filepath)
+    read_graph_to_dict(filepathcsv, filepathjson)
 
 # Identify structure
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)

@@ -6,10 +6,27 @@ module IPAFramework
     include("Working_Algorithms/VisualizeGraphsModule.jl")
     include("Working_Algorithms/GenerateGraphModule.jl")
     include("Working_Algorithms/UndirectedToDagModule.jl")
+    include("Working_Algorithms/ReachabilityWithIntSlicesModule.jl")
+  
 
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
 
-    using .InputProcessingModule:   read_graph_to_dict, 
+
+    using .ReachabilityWithIntSlicesModule: validate_network_data_slices,       
+                                          update_beliefs_iterative_slices,    
+                                          updateDiamondJoin_slices,          
+                                          calculate_diamond_groups_belief_slices,
+                                          calculate_regular_belief_slices,    
+                                          inclusion_exclusion_slices,        
+                                          MC_result_slices,                  
+                                          calculate_path_probability,
+                                          sample_from_slices,
+                                          has_path_slices,                   
+                                          consolidate_slices,
+                                          combine_slices_with_uncertainty
+                                    
+    using .InputProcessingModule:   ProbabilitySlices,
+                                    read_graph_to_dict, 
                                    identify_fork_and_join_nodes,
                                    find_iteration_sets
 
@@ -33,11 +50,13 @@ module IPAFramework
 
     using .GenerateGraphModule: InfraProperties,
                                     generate_infra_dag,
-                                    analyze_ranked_dag
+                                    analyze_ranked_dag,
+                                    generate_dag_probabilities
 
-    using .UndirectedToDagModule: undirected_to_dag,
-                                    analyze_generated_dag,  
-                                    process_graph_from_csv
+    using .UndirectedToDagModule: improved_undirected_to_dag,
+                                    process_graph_from_csv,
+                                    analyze_generated_dag,
+                                    validate_dag
        
     export  read_graph_to_dict,
             identify_fork_and_join_nodes, 
@@ -61,8 +80,24 @@ module IPAFramework
             InfraProperties,
             generate_infra_dag,
             analyze_ranked_dag,
+            generate_dag_probabilities,
             # UndirectedToDAG exports
-            undirected_to_dag,
-            analyze_generated_dag,  
-            process_graph_from_csv
+            improved_undirected_to_dag,
+            process_graph_from_csv,
+            analyze_generated_dag,
+            validate_dag,
+            # ReachabilityWithIntSlicesModule exports
+            ProbabilitySlices,
+            validate_network_data_slices,
+            update_beliefs_iterative_slices,
+            updateDiamondJoin_slices,
+            calculate_diamond_groups_belief_slices,
+            calculate_regular_belief_slices,
+            inclusion_exclusion_slices,
+            MC_result_slices,
+            calculate_path_probability,
+            sample_from_slices,
+            has_path_slices,
+            consolidate_slices,
+            combine_slices_with_uncertainty
 end

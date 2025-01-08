@@ -1,7 +1,8 @@
 module GenerateGraphModule
     using Random, Graphs, GraphViz, StatsBase, Distributions, DelimitedFiles
-
-    export InfraProperties, generate_infra_dag, analyze_ranked_dag
+    using LinearAlgebra, JSON
+    
+    export InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities
 
     struct InfraProperties
         min_nodes::Int          
@@ -42,7 +43,15 @@ module GenerateGraphModule
         end
     end
 
-    function generate_infra_dag(props::InfraProperties; save_csv::Bool=false, output_dir::String="")
+    function generate_infra_dag(
+        props::InfraProperties; 
+        save_csv::Bool=false, 
+        save_probs::Bool=false,
+        output_dir::String="",
+        max_slices::Int=5,
+        uniform_slices::Bool=false,
+        edge_dist::Distribution=Beta(8,2)
+    )
         # Generate the graph
         g = SimpleDiGraph(rand(props.min_nodes:props.max_nodes))
         rank_labels = assign_infra_ranks(nv(g), rand(props.min_ranks:props.max_ranks), props)
@@ -54,18 +63,33 @@ module GenerateGraphModule
         add_infrastructure_patterns!(g, nodes_per_rank, props)
         ensure_connectivity!(g, nodes_per_rank)
     
-        if save_csv && !isempty(output_dir)
+        if (save_csv || save_probs) && !isempty(output_dir)
             # Create the directory path if it doesn't exist
             mkpath(output_dir)
             
-            # Generate matrix and filename
+            # Generate matrix
             adj_matrix = Matrix(adjacency_matrix(g))
-            filename = "Generated_DAG_Vert$(nv(g))xEdge$(ne(g)).csv"
-            filepath = joinpath(output_dir, filename)
+            base_filename = "Generated_DAG_Vert$(nv(g))xEdge$(ne(g))"
             
-            # Save the matrix
-            writedlm(filepath, adj_matrix, ',')
-            println("Saved DAG to: $filepath")
+            if save_csv
+                filepath = joinpath(output_dir, base_filename * ".csv")
+                writedlm(filepath, adj_matrix, ',')
+                println("Saved DAG to: $filepath")
+            end
+            
+            if save_probs
+                _, _ = generate_dag_probabilities(
+                    g, 
+                    adj_matrix,
+                    rank_labels,
+                    output_dir,
+                    base_filename;
+                    max_slices=max_slices,
+                    uniform_slices=uniform_slices,
+                    edge_dist=edge_dist
+                )
+                println("Saved probability files to: $(base_filename)_high_prob.json and $(base_filename)_varied_prob.json")
+            end
         end
         
         return g, rank_labels, nodes_per_rank
@@ -300,5 +324,109 @@ module GenerateGraphModule
         else
             println("No paths found!")
         end
+    end
+
+  
+    function generate_dag_probabilities(
+        g::SimpleDiGraph,
+        adj_matrix::Matrix{Int},
+        rank_labels::Dict{Int,Int},
+        output_dir::String,
+        base_filename::String;
+        max_slices::Int=5,
+        uniform_slices::Bool=false,
+        edge_dist::Distribution=Beta(8,2)
+    )
+        # Ensure output directory exists
+        mkpath(output_dir)
+        
+        # Two versions of probability data
+        prob_data_high = Dict{String,Any}(
+            "nodes" => Dict{String,Dict{String,Vector{Float64}}}(),
+            "edges" => Dict{String,Dict{String,Vector{Float64}}}()
+        )
+        
+        prob_data_varied = Dict{String,Any}(
+            "nodes" => Dict{String,Dict{String,Vector{Float64}}}(),
+            "edges" => Dict{String,Dict{String,Vector{Float64}}}()
+        )
+        
+        # Generate node probabilities with error handling
+        for v in vertices(g)
+            try
+                n_slices = uniform_slices ? max_slices : rand(2:max_slices)
+                
+                if rank_labels[v] == 1  # Source nodes - always high probability
+                    values = sort!(0.98 .+ rand(n_slices) .* 0.02)
+                    weights = normalize!(rand(n_slices), 1)
+                    
+                    node_data = Dict("values" => values, "weights" => weights)
+                    prob_data_high["nodes"][string(v)] = node_data
+                    prob_data_varied["nodes"][string(v)] = node_data
+                    
+                else  # Non-source nodes
+                    # High probability version
+                    high_values = sort!(0.95 .+ rand(n_slices) .* 0.05)
+                    high_weights = normalize!(rand(n_slices), 1)
+                    prob_data_high["nodes"][string(v)] = Dict(
+                        "values" => high_values,
+                        "weights" => high_weights
+                    )
+                    
+                    # Varied version
+                    varied_values = sort!(rand(Beta(2,2), n_slices))
+                    varied_values = clamp.(varied_values, 0, 1)
+                    varied_weights = normalize!(rand(n_slices), 1)
+                    prob_data_varied["nodes"][string(v)] = Dict(
+                        "values" => varied_values,
+                        "weights" => varied_weights
+                    )
+                end
+            catch e
+                @warn "Error processing node $v" exception=e
+            end
+        end
+        
+        # Generate edge probabilities with error handling
+        for i in 1:size(adj_matrix, 1)
+            for j in 1:size(adj_matrix, 2)
+                if adj_matrix[i,j] == 1
+                    try
+                        n_slices = uniform_slices ? max_slices : rand(2:max_slices)
+                        
+                        values = sort!(rand(edge_dist, n_slices))
+                        values = clamp.(values, 0, 1)
+                        weights = normalize!(rand(n_slices), 1)
+                        
+                        edge_key = "($i,$j)"
+                        edge_data = Dict("values" => values, "weights" => weights)
+                        
+                        prob_data_high["edges"][edge_key] = edge_data
+                        prob_data_varied["edges"][edge_key] = edge_data
+                    catch e
+                        @warn "Error processing edge ($i,$j)" exception=e
+                    end
+                end
+            end
+        end
+        
+        # Save both versions with error handling
+        try
+            high_path = joinpath(output_dir, base_filename * "_high_prob.json")
+            varied_path = joinpath(output_dir, base_filename * "_varied_prob.json")
+            
+            open(high_path, "w") do io
+                JSON.print(io, prob_data_high, 4)
+            end
+            
+            open(varied_path, "w") do io
+                JSON.print(io, prob_data_varied, 4)
+            end
+        catch e
+            @error "Error saving probability files" exception=e
+            rethrow(e)
+        end
+        
+        return prob_data_high, prob_data_varied
     end
 end

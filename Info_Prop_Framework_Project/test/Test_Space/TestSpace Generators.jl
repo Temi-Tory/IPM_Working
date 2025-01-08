@@ -2,20 +2,24 @@ using .IPAFramework
 using Graphs, GraphViz
 
 #= # Read and convert graph, save output
-g, orig_matrix, orig_edges, dag_edges = process_graph_from_csv("csvfiles/metro_undirected.csv", output_dir="csvfiles")
+g, orig_matrix, orig_edges, dag_edges, metrics = process_graph_from_csv(
+    "csvfiles/metro_undirected.csv", 
+    output_dir="csvfiles"
+)
+
 # Analyze and visualize
-analyze_generated_dag(g, orig_matrix)
+analysis_results = analyze_generated_dag(g, orig_matrix, metrics)
 dot_str = visualize_graph(g)
 graph = GraphViz.load(IOBuffer(dot_str)) =#
 
 
-#= # Read and convert graph only - dont save matrix 
-g, orig_matrix, orig_edges, dag_edges = process_graph_from_csv("csvfiles/metro_undirected.csv")
+#= # Read and convert graph only - don't save matrix 
+g, orig_matrix, orig_edges, dag_edges, metrics = process_graph_from_csv("csvfiles/metro_undirected.csv")
 
 # Same analysis and visualization
-analyze_generated_dag(g, orig_matrix)
+analysis_results = analyze_generated_dag(g, orig_matrix, metrics)
 dot_str = visualize_graph(g)
-graph = GraphViz.load(IOBuffer(dot_str)) =#
+graph = GraphViz.load(IOBuffer(dot_str))=#
 
 
 
@@ -32,17 +36,37 @@ props = InfraProperties(
     0.3,    # fork_prob
     0.3,    # join_prob
     0.4     # redundancy
+);
+
+
+props = InfraProperties(
+    50,    # min_nodes
+    60,    # max_nodes
+    5,     # min_ranks
+    10,     # max_ranks
+    0.06,   # source_ratio
+    0.06,   # sink_ratio
+    0.15,   # edge_density
+    6,      # skip_distance
+    0.3,    # fork_prob
+    0.3,    # join_prob
+    0.4     # redundancy
+);
+
+## Generate graph with both matrix and probabilities
+g, rank_labels, nodes_per_rank= generate_infra_dag(
+    props,
+    save_csv=true,
+    save_probs=true,
+    output_dir="Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets",
+    max_slices=5,
+    uniform_slices=false
 )
 
-# Generate DAG and save
-#g, labels, ranks = generate_infra_dag(props, save_csv=true, output_dir="Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets")
-
-# Generate DAG and dont save
-g, labels, ranks = generate_infra_dag(props)
 
 # Analyze generated DAG
-analyze_ranked_dag(g, labels, ranks)
+analyze_ranked_dag(g, rank_labels, nodes_per_rank)
 
 # Visualize
-dot_str = visualize_graph(g,  labels)
+dot_str = visualize_graph(g,  rank_labels)
 graph = GraphViz.load(IOBuffer(dot_str))
