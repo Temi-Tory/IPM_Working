@@ -136,13 +136,14 @@ end
 #filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
 #filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
 
-#= filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert13xEdge31.csv"
-filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert13xEdge31interval_certain_nodes.json"
- =#
+#=
 filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83.csv"
 filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83interval_certain_nodes.json"
+ =#
 
-
+ filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77.csv"
+ filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77_high_prob.json"
+ 
 
 # Read and process the graph
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 

@@ -362,26 +362,23 @@ module GenerateGraphModule
         # Generate node probabilities with error handling
         for v in vertices(g)
             try
-                n_slices = uniform_slices ? max_slices : rand(2:max_slices)
-                
-                if rank_labels[v] == 1  # Source nodes - always high probability
-                    values = sort!(0.98 .+ rand(n_slices) .* 0.02)
-                    weights = normalize!(rand(n_slices), 1)
-                    
-                    node_data = Dict("values" => values, "weights" => weights)
+                if rank_labels[v] == 1  # Source nodes - always certain (1.0)
+                    node_data = Dict(
+                        "values" => [1.0],
+                        "weights" => [1.0]
+                    )
                     prob_data_high["nodes"][string(v)] = node_data
                     prob_data_varied["nodes"][string(v)] = node_data
                     
                 else  # Non-source nodes
-                    # High probability version
-                    high_values = sort!(0.95 .+ rand(n_slices) .* 0.05)
-                    high_weights = normalize!(rand(n_slices), 1)
+                    # High probability version - certain always  value
                     prob_data_high["nodes"][string(v)] = Dict(
-                        "values" => high_values,
-                        "weights" => high_weights
+                        "values" => [1.0],
+                        "weights" => [1.0]
                     )
                     
-                    # Varied version
+                    # Varied version - multiple slices
+                    n_slices = uniform_slices ? max_slices : rand(2:max_slices)
                     varied_values = sort!(rand(Beta(2,2), n_slices))
                     varied_values = clamp.(varied_values, 0, 1)
                     varied_weights = normalize!(rand(n_slices), 1)
@@ -395,7 +392,7 @@ module GenerateGraphModule
             end
         end
         
-        # Generate edge probabilities with error handling
+        # Generate edge probabilities with error handling - varied in both versions
         for i in 1:size(adj_matrix, 1)
             for j in 1:size(adj_matrix, 2)
                 if adj_matrix[i,j] == 1
@@ -411,6 +408,7 @@ module GenerateGraphModule
                         
                         prob_data_high["edges"][edge_key] = edge_data
                         prob_data_varied["edges"][edge_key] = edge_data
+                    
                     catch e
                         @warn "Error processing edge ($i,$j)" exception=e
                     end
