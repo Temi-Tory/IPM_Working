@@ -133,12 +133,19 @@ end
 #filepath = "csvfiles/16 NodeNetwork Adjacency matrix.csv"
 #filepath = "csvfiles/KarlNetwork.csv"
 #filepath = "csvfiles/metro_undirected_ImprovedDAG_HighProb.csv"
-filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
-filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
+#filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
+#filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
+
+#= filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert13xEdge31.csv"
+filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert13xEdge31interval_certain_nodes.json"
+ =#
+filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83.csv"
+filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83interval_certain_nodes.json"
+
 
 
 # Read and process the graph
-edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = 
+edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 
     read_graph_to_dict(filepathcsv, filepathjson)
 
 # Identify structure
@@ -155,7 +162,7 @@ diamond_structures = identify_and_group_diamonds(
     iteration_sets,
     edgelist,
     descendants
-)
+);
 #pretty_print_diamonds(diamond_structures)
 #= print_graph_details(
     edgelist, 
@@ -170,84 +177,72 @@ diamond_structures = identify_and_group_diamonds(
     diamond_structures
 ) =#
 
-output = IPAFramework.update_beliefs_iterative(
-    edgelist,  
-    iteration_sets,
+output =  update_beliefs_iterative(
+    edgelist,
+    iteration_sets, 
     outgoing_index,
     incoming_index,
     source_nodes,
     node_priors,
-    edge_probabilities,
-    descendants, 
-    ancestors,
+    link_probability,
+    descendants,
+    ancestors, 
     diamond_structures,
     join_nodes,
     fork_nodes
-);
+ );
 using OrderedCollections
-# Sort by key
-sorted_output = OrderedDict(sort(collect(output)))
 
-mc_results = MC_result(
+mc_results = MC_result_interval(
     edgelist,
     outgoing_index,
     incoming_index,
     source_nodes,
     node_priors,
-    edge_probabilities,
-    600000
+    link_probability,
+    1000000
 )
 
+
+
+
+# Define comparison for Intervals
+import Base: isless
+function isless(a::Interval, b::Interval)
+   if a.lower != b.lower
+       return a.lower < b.lower
+   end
+   return a.upper < b.upper
+end
+
+# Sort outputs
+sorted_algo = OrderedDict(sort(collect(output)))
 sorted_mc = OrderedDict(sort(collect(mc_results)))
 
-# To display it more nicely:
-using DataFrames
-
+# Create base DataFrame
 df = DataFrame(
-    Node = collect(keys(sorted_output)),
-    AlgoResults = collect(values(sorted_output)),
-    McResults = collect(values(sorted_mc))
+  Node = collect(keys(sorted_algo)),
+  AlgoLower = map(x -> x.lower, values(sorted_algo)),
+  AlgoUpper = map(x -> x.upper, values(sorted_algo)), 
+  MCLower = map(x -> x.lower, values(sorted_mc)),
+  MCUpper = map(x -> x.upper, values(sorted_mc))
 )
 
-# Add difference calculations
-df.AbsDiff = abs.(df.AlgoResults .- df.McResults)
-df.PercentageDiff = (df.AbsDiff ./ df.McResults) .* 100
+# Add difference columns
+df.LowerDiff = abs.(df.AlgoLower .- df.MCLower)
+df.UpperDiff = abs.(df.AlgoUpper .- df.MCUpper) 
+df.MaxDiff = max.(df.LowerDiff, df.UpperDiff)
 
-# Format numbers for better display
-formatted_df = select(df,
-    :Node,
-    :AlgoResults,
-    :McResults,
-    :AbsDiff,
-    :PercentageDiff
-)
-show(sort(formatted_df, :PercentageDiff, by=abs, rev=true), allrows=true) 
+# Display sorted result
+show(sort(df, :MaxDiff, rev=true), allrows=true)
+
 using CSV
-CSV.write("formatted_df_metro.csv", sort(formatted_df, :PercentageDiff, by=abs, rev=true))
-#incoming_index[170]
-#diamond_structures[170]
 
-#sorted_output[170]
-#= 
-using  CSV
-# Read existing CSV
-df = CSV.read("formatted_df_metro.csv", DataFrame)
+output_dir = "Info_Prop_Framework_Project/test/Results/"
+filename_ = "Generated_DAG_Vert13xEdge31interval_certain_nodes.result_mc_1000000"
 
-# Update only AlgoResults column
-df.AlgoResults = [sorted_output[node] for node in df.Node]
+# Create directory if it doesn't exist
+mkpath(output_dir)
 
-# Recalculate differences (keeping original McResults)
-df.AbsDiff = abs.(df.AlgoResults .- df.McResults)
-df.PercentageDiff = (df.AbsDiff ./ df.McResults) .* 100
-
-# Format numbers for updated columns only
-formatted_df = select(df,
-    :Node,
-    :AlgoResults => ByRow(x -> round(x, digits=4)) => :AlgoResults,
-    :McResults => ByRow(x -> round(x, digits=4)) => :McResults,
-    :AbsDiff => ByRow(x -> round(x, digits=6)) => :AbsDiff,
-    :PercentageDiff => ByRow(x -> round(x, digits=2)) => :PercentageDiff
-)
-
-# Sort and write back
-CSV.write("formatted_df_metro.csv", sort(formatted_df, :PercentageDiff, by=abs, rev=true)) =#
+# Save sorted DataFrame
+CSV.write(joinpath(output_dir, filename_), sort(df, :MaxDiff, rev=true))

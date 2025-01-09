@@ -6,26 +6,12 @@ module IPAFramework
     include("Working_Algorithms/VisualizeGraphsModule.jl")
     include("Working_Algorithms/GenerateGraphModule.jl")
     include("Working_Algorithms/UndirectedToDagModule.jl")
-    include("Working_Algorithms/ReachabilityWithIntSlicesModule.jl")
   
 
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
 
-
-    using .ReachabilityWithIntSlicesModule: validate_network_data_slices,       
-                                          update_beliefs_iterative_slices,    
-                                          updateDiamondJoin_slices,          
-                                          calculate_diamond_groups_belief_slices,
-                                          calculate_regular_belief_slices,    
-                                          inclusion_exclusion_slices,        
-                                          MC_result_slices,                  
-                                          calculate_path_probability_slices,
-                                          sample_from_slices,
-                                          has_path_slices,                   
-                                          consolidate_slices,
-                                          combine_slices_with_uncertainty
-                                    
     using .InputProcessingModule:   ProbabilitySlices,
+                                    Interval,
                                     read_graph_to_dict, 
                                    identify_fork_and_join_nodes,
                                    find_iteration_sets
@@ -43,6 +29,7 @@ module IPAFramework
                               calculate_regular_belief,
                               inclusion_exclusion,
                               MC_result,
+                              MC_result_interval,
                               has_path
 
     using .VisualizeGraphsModule:  generate_graph_dot_string,
@@ -86,18 +73,9 @@ module IPAFramework
             process_graph_from_csv,
             analyze_generated_dag,
             validate_dag,
-            # ReachabilityWithIntSlicesModule exports
+
+
             ProbabilitySlices,
-            validate_network_data_slices,
-            update_beliefs_iterative_slices,
-            updateDiamondJoin_slices,
-            calculate_diamond_groups_belief_slices,
-            calculate_regular_belief_slices,
-            inclusion_exclusion_slices,
-            MC_result_slices,
-            calculate_path_probability_slices,
-            sample_from_slices,
-            has_path_slices,
-            consolidate_slices,
-            combine_slices_with_uncertainty
+            Interval,
+            MC_result_interval
 end

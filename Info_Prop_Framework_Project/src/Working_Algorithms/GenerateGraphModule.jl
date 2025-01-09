@@ -88,6 +88,14 @@ module GenerateGraphModule
                     uniform_slices=uniform_slices,
                     edge_dist=edge_dist
                 )
+                _, _ =   generate_dag_probabilities(
+                    g, 
+                    adj_matrix,
+                    rank_labels,
+                    output_dir,
+                    base_filename;
+                )
+              
                 println("Saved probability files to: $(base_filename)_high_prob.json and $(base_filename)_varied_prob.json")
             end
         end
@@ -428,5 +436,45 @@ module GenerateGraphModule
         end
         
         return prob_data_high, prob_data_varied
+    end
+
+    function generate_dag_probabilities(g::SimpleDiGraph, adj_matrix::Matrix{Int}, rank_labels::Dict{Int,Int}, output_dir::String, base_filename::String)
+        mkpath(output_dir)
+        certain_nodes = Dict{String,Any}("nodes" => Dict(), "edges" => Dict())
+        varied_nodes = Dict{String,Any}("nodes" => Dict(), "edges" => Dict())
+        
+        default_rank = length(unique(values(rank_labels))) ÷ 2
+        for v in vertices(g)
+            !haskey(rank_labels, v) && (rank_labels[v] = default_rank)
+        end
+        
+        for v in vertices(g)
+            if rank_labels[v] == 1
+                node_interval = Dict("lower" => 1.0, "upper" => 1.0)
+                certain_nodes["nodes"][string(v)] = node_interval
+                varied_nodes["nodes"][string(v)] = node_interval
+            else
+                certain_nodes["nodes"][string(v)] = Dict("lower" => 1.0, "upper" => 1.0)
+                lower = rand(Beta(2,2))
+                upper = max(lower, rand(Beta(8,2)))  # Ensure upper > lower
+                varied_nodes["nodes"][string(v)] = Dict("lower" => lower, "upper" => upper)
+            end
+        end
+        
+        for i in 1:size(adj_matrix,1), j in 1:size(adj_matrix,1)
+            if adj_matrix[i,j] == 1
+                lower = rand(Beta(2,2))
+                upper = max(lower, rand(Beta(8,2)))  # Ensure upper > lower
+                edge_interval = Dict("lower" => lower, "upper" => upper)
+                edge_key = "($i,$j)"
+                certain_nodes["edges"][edge_key] = edge_interval
+                varied_nodes["edges"][edge_key] = edge_interval
+            end
+        end
+        
+        write(joinpath(output_dir, base_filename * "interval_certain_nodes.json"), JSON.json(certain_nodes, 4))
+        write(joinpath(output_dir, base_filename * "interval_varied_nodes.json"), JSON.json(varied_nodes, 4))
+        
+        return certain_nodes, varied_nodes
     end
 end
