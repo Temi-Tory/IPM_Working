@@ -128,26 +128,32 @@ function print_graph_details(
 end
 
 
-#filepath = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv"
-#filepath = "csvfiles/Shelby county gas.csv"
-#filepath = "csvfiles/16 NodeNetwork Adjacency matrix.csv"
-#filepath = "csvfiles/KarlNetwork.csv"
-#filepath = "csvfiles/metro_undirected_ImprovedDAG_HighProb.csv"
+filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv"
+show(incoming_index)
+edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities =  read_graph_to_dict(filepathcsv);
 #filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
 #filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
 
-#=
+#= 
 filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83.csv"
 filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83interval_certain_nodes.json"
  =#
 
- filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77.csv"
+#=  filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77.csv"
  filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77_high_prob.json"
- 
+  =#
 
+  
 # Read and process the graph
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 
+read_graph_to_dict(filepath)
+#= 
+edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 
     read_graph_to_dict(filepathcsv, filepathjson)
+ =#
+#= # Convert to p-boxes
+node_priors_pbox = convert_to_pbox_priors(node_priors)
+link_probability_pbox = convert_to_pbox_probabilities(link_probability) =#
 
 # Identify structure
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
@@ -178,7 +184,7 @@ diamond_structures = identify_and_group_diamonds(
     diamond_structures
 ) =#
 
-output =  update_beliefs_iterative(
+output =  @benchmark(update_beliefs_iterative(
     edgelist,
     iteration_sets, 
     outgoing_index,
@@ -191,18 +197,43 @@ output =  update_beliefs_iterative(
     diamond_structures,
     join_nodes,
     fork_nodes
- );
-using OrderedCollections
+ )) 
 
-mc_results = MC_result_interval(
+#=  output =  update_beliefs_iterative_pbox(
+    edgelist,
+    iteration_sets, 
+    outgoing_index,
+    incoming_index,
+    source_nodes,
+    node_priors_pbox,
+    link_probability_pbox,
+    descendants,
+    ancestors, 
+    diamond_structures,
+    join_nodes,
+    fork_nodes
+ ); =#
+using OrderedCollections
+@benchmark(mc_results = @benchmark(MC_result(
     edgelist,
     outgoing_index,
     incoming_index,
     source_nodes,
     node_priors,
     link_probability,
-    1000000
-)
+    100000
+))
+
+using BenchmarkTools
+#= mc_results = MC_result_interval(
+    edgelist,
+    outgoing_index,
+    incoming_index,
+    source_nodes,
+    node_priors,
+    link_probability,
+    100000
+) =#
 
 
 
@@ -219,7 +250,7 @@ end
 # Sort outputs
 sorted_algo = OrderedDict(sort(collect(output)))
 sorted_mc = OrderedDict(sort(collect(mc_results)))
-
+#= 
 # Create base DataFrame
 df = DataFrame(
   Node = collect(keys(sorted_algo)),
@@ -235,7 +266,20 @@ df.UpperDiff = abs.(df.AlgoUpper .- df.MCUpper)
 df.MaxDiff = max.(df.LowerDiff, df.UpperDiff)
 
 # Display sorted result
-show(sort(df, :MaxDiff, rev=true), allrows=true)
+show(sort(df, :MaxDiff, rev=true), allrows=true) =#
+
+# Create base DataFrame using the float values directly
+df = DataFrame(
+  Node = collect(keys(sorted_algo)),
+  AlgoValue = collect(values(sorted_algo)),
+  MCValue = collect(values(sorted_mc))
+)
+
+# Add a difference column (if needed)
+df.Diff = abs.(df.AlgoValue .- df.MCValue)
+
+# Display sorted result (if you want to sort by the difference)
+show(sort(df, :Diff, rev=true), allrows=true)
 
 using CSV
 
@@ -247,3 +291,21 @@ mkpath(output_dir)
 
 # Save sorted DataFrame
 CSV.write(joinpath(output_dir, filename_), sort(df, :MaxDiff, rev=true))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
