@@ -128,32 +128,10 @@ function print_graph_details(
 end
 
 
-filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv"
-show(incoming_index)
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+
+
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities =  read_graph_to_dict(filepathcsv);
-#filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123.csv"
-#filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert52xEdge123_high_prob.json"
-
-#= 
-filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83.csv"
-filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge83interval_certain_nodes.json"
- =#
-
-#=  filepathcsv = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77.csv"
- filepathjson = "Info_Prop_Framework_Project/test/GeneratedDatasets/Datasets/Generated_DAG_Vert30xEdge77_high_prob.json"
-  =#
-
-  
-# Read and process the graph
-edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 
-read_graph_to_dict(filepath)
-#= 
-edgelist, outgoing_index, incoming_index, source_nodes, node_priors, link_probability = 
-    read_graph_to_dict(filepathcsv, filepathjson)
- =#
-#= # Convert to p-boxes
-node_priors_pbox = convert_to_pbox_priors(node_priors)
-link_probability_pbox = convert_to_pbox_probabilities(link_probability) =#
 
 # Identify structure
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
@@ -184,14 +162,14 @@ diamond_structures = identify_and_group_diamonds(
     diamond_structures
 ) =#
 
-output =  @benchmark(update_beliefs_iterative(
+output =  (update_beliefs_iterative(
     edgelist,
     iteration_sets, 
     outgoing_index,
     incoming_index,
     source_nodes,
     node_priors,
-    link_probability,
+    edge_probabilities,
     descendants,
     ancestors, 
     diamond_structures,
@@ -199,53 +177,18 @@ output =  @benchmark(update_beliefs_iterative(
     fork_nodes
  )) 
 
-#=  output =  update_beliefs_iterative_pbox(
-    edgelist,
-    iteration_sets, 
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors_pbox,
-    link_probability_pbox,
-    descendants,
-    ancestors, 
-    diamond_structures,
-    join_nodes,
-    fork_nodes
- ); =#
+
 using OrderedCollections
-@benchmark(mc_results = @benchmark(MC_result(
+mc_results = (MC_result(
     edgelist,
     outgoing_index,
     incoming_index,
     source_nodes,
     node_priors,
-    link_probability,
-    100000
+    edge_probabilities,
+    1000000
 ))
 
-using BenchmarkTools
-#= mc_results = MC_result_interval(
-    edgelist,
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    link_probability,
-    100000
-) =#
-
-
-
-
-# Define comparison for Intervals
-import Base: isless
-function isless(a::Interval, b::Interval)
-   if a.lower != b.lower
-       return a.lower < b.lower
-   end
-   return a.upper < b.upper
-end
 
 # Sort outputs
 sorted_algo = OrderedDict(sort(collect(output)))
@@ -280,32 +223,4 @@ df.Diff = abs.(df.AlgoValue .- df.MCValue)
 
 # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)
-
-using CSV
-
-output_dir = "Info_Prop_Framework_Project/test/Results/"
-filename_ = "Generated_DAG_Vert13xEdge31interval_certain_nodes.result_mc_1000000"
-
-# Create directory if it doesn't exist
-mkpath(output_dir)
-
-# Save sorted DataFrame
-CSV.write(joinpath(output_dir, filename_), sort(df, :MaxDiff, rev=true))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#=  =#
