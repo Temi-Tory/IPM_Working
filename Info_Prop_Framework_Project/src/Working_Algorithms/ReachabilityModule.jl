@@ -358,6 +358,9 @@ module ReachabilityModule
         belief_dict::Dict{Int64,Float64}
     )
 
+    if join_node == 193
+        
+    
 
         println("========== Processing Diamond ==========")
         println("Join node: $join_node, Fork node: $fork_node")
@@ -371,7 +374,7 @@ module ReachabilityModule
         println("Subgraph sources: $(subgraph.sources)")
         println("Subgraph edges: $(subgraph.edgelist)")
 
-   
+   end
 
         # Get the precomputed subgraph
         subgraph = ancestor_group.subgraph
@@ -411,7 +414,9 @@ module ReachabilityModule
             subgraph.edgelist,
             subgraph.descendants
         )
-    
+        if join_node == 193
+        println("sub_diamond_structures",sub_diamond_structures )
+        end
         # Success case (fork = 1)
         sub_node_priors[fork_node] = 1.0
         success_belief = update_beliefs_iterative(
@@ -470,6 +475,8 @@ module ReachabilityModule
         join_node = diamond_structure.join_node
         group_combined_beliefs = Float64[]
 
+        if join_node == 193
+            
         println("\n===== Diamond Structure for Node $join_node =====")
             println("Diamond groups: $(length(diamond_structure.diamond))")
             println("Non-diamond parents: $(diamond_structure.non_diamond_parents)")
@@ -480,6 +487,7 @@ module ReachabilityModule
                 println("  Influenced parents: $(group.influenced_parents)")
                 println("  Highest nodes: $(group.highest_nodes)")
             end
+        end
 
         for group in diamond_structure.diamond
             fork_node = first(group.highest_nodes)

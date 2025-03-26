@@ -13,7 +13,7 @@ module NetworkDecompositionModule
     end
 
     # Represents a single ancestor group pattern within a diamond
-    struct AncestorGroup
+    mutable struct AncestorGroup
         # All ancestors in this group
         ancestors::Set{Int64}
         # Parents influenced by this ancestor group
@@ -46,27 +46,55 @@ module NetworkDecompositionModule
     )
         isempty(ancestor_groups) && return
     
-        # First extract subgraphs for all groups
-        for (i, group) in enumerate(ancestor_groups)
-            fork_node = first(group.highest_nodes)
-            subgraph = extract_diamondsubgraph(
-                group,
-                fork_node,
-                join_node,
-                edgelist,
-                ancestors,
-                descendants,
-                incoming_index,
-                iteration_sets
-            )
-            # Create new AncestorGroup with updated subgraph
-            ancestor_groups[i] = AncestorGroup(
-                group.ancestors,
-                group.influenced_parents,
-                group.highest_nodes,
-                subgraph
-            )
+        # Create a new vector to store the expanded groups
+        expanded_groups = Vector{AncestorGroup}()
+        
+        # For each original group, create separate groups for each highest node
+        for group in ancestor_groups
+            for fork_node in group.highest_nodes
+                # Create a single-node highest_nodes set for this fork node
+                single_highest = Set{Int64}([fork_node])
+                
+                # Create a temporary ancestor group with just this highest node
+                temp_group = AncestorGroup(
+                    group.ancestors,
+                    group.influenced_parents,
+                    single_highest,
+                    DiamondSubgraph(  # Empty/default subgraph
+                        Set{Int64}(), Set{Int64}(), Vector{Tuple{Int64, Int64}}(),
+                        Vector{Set{Int64}}(), Dict{Int64,Set{Int64}}(),
+                        Dict{Int64,Set{Int64}}(), Dict{Int64,Set{Int64}}(),
+                        Dict{Int64,Set{Int64}}()
+                    )
+                )
+                
+                # Extract subgraph for this specific fork node
+                group.ancestors, group.influenced_parents,single_highest, subgraph = extract_diamondsubgraph(
+                    temp_group,
+                    fork_node,
+                    join_node,
+                    edgelist,
+                    ancestors,
+                    descendants,
+                    incoming_index,
+                    iteration_sets
+                )
+                
+                # Create new AncestorGroup with updated subgraph
+                new_group = AncestorGroup(
+                    group.ancestors,
+                    group.influenced_parents,
+                    single_highest,
+                    subgraph
+                )
+                
+                push!(expanded_groups, new_group)
+            end
         end
+        
+        # Replace original groups with the expanded set
+        empty!(ancestor_groups)
+        append!(ancestor_groups, expanded_groups)
         
         # Filter out redundant groups
         groups_to_remove = Set{AncestorGroup}()
@@ -300,7 +328,7 @@ module NetworkDecompositionModule
     end
     
     function extract_diamondsubgraph(
-        ancestor_group, 
+        ancestor_group::AncestorGroup, 
         fork_node::Int64,
         join_node::Int64,
         edgelist::Vector{Tuple{Int64, Int64}},
@@ -308,11 +336,14 @@ module NetworkDecompositionModule
         descendants::Dict{Int64, Set{Int64}},
         incoming_index::Dict{Int64, Set{Int64}},
         iteration_sets::Vector{Set{Int64}}
-    )::DiamondSubgraph
+    )::Tuple{Set{Int64}, Set{Int64}, Set{Int64}, DiamondSubgraph}
         # Initialize sources and collect base nodes
         sub_sources = Set{Int64}([fork_node])
         relevant_nodes = collect_base_nodes(fork_node, join_node, ancestor_group)
         
+
+
+
         # Build subgraph step by step
         add_intermediate_nodes!(relevant_nodes, fork_node, ancestor_group, descendants, ancestors)
         
@@ -322,7 +353,61 @@ module NetworkDecompositionModule
             relevant_nodes, sub_sources, fork_node, join_node, incoming_index
         )
         append!(sub_edgelist, additional_edgelist)
+
+        # for all new edges coming from check if src of the new edges are node in ancestor_group.ancestors(Set{Int64}) and not the fork node
+        additionalegesfromancestor_ = [edge[1] for edge in additional_edgelist if (edge[1] in ancestor_group.ancestors) && (edge[1] != fork_node)];
+
+        if !isempty(additionalegesfromancestor_)
+            #get the node in additionalegesfromancestor_ that is in the highest iteration. 
+            selected_node = nothing
+            for iter_set in iteration_sets
+                common_nodes = intersect(iter_set, additionalegesfromancestor_)
+                if !isempty(common_nodes)
+                    selected_node = first(common_nodes)
+                    break
+                end
+            end
+
+            if selected_node !== nothing
+                # Set the new fork_node and sub_sources
+                fork_node = selected_node
+                ancestor_group.highest_nodes =  Set{Int64}([selected_node]);
+                sub_sources = Set{Int64}([fork_node])
+                
+                # Find the iteration index of the new fork_node
+                new_iter = find_iteration_index(fork_node, iteration_sets)
+                
+                if new_iter !== nothing
+                    # Filter out any nodes in ancestor_group.highest_nodes that come from a later iteration than new_iter
+                    ancestor_group.highest_nodes = filter(node -> begin
+                        iter_idx = find_iteration_index(node, iteration_sets)
+                        iter_idx !== nothing && iter_idx <= new_iter
+                    end, ancestor_group.highest_nodes)
+                    
+                    # Similarly, filter ancestor_group.ancestors
+                    ancestor_group.ancestors = filter(node -> begin
+                        iter_idx = find_iteration_index(node, iteration_sets)
+                        iter_idx !== nothing && iter_idx <= new_iter
+                    end, ancestor_group.ancestors)
+                end
+                #rebuild diamond subraph
+                relevant_nodes = collect_base_nodes(fork_node, join_node, ancestor_group);
+                
+                # Build subgraph step by step
+                add_intermediate_nodes!(relevant_nodes, fork_node, ancestor_group, descendants, ancestors)
+                
+                sub_edgelist = extract_edges(relevant_nodes, fork_node, edgelist)
+                
+                additional_edgelist = handle_additional_nodes!(
+                    relevant_nodes, sub_sources, fork_node, join_node, incoming_index
+                )
+                sub_edgelist = union(sub_edgelist, additional_edgelist)
+            end          
+
+        end
+
         
+
         # Create filtered iteration sets
         sub_iteration_sets = [intersect(set, relevant_nodes) for set in iteration_sets]
         filter!(!isempty, sub_iteration_sets)
@@ -331,7 +416,8 @@ module NetworkDecompositionModule
         sub_outgoing, sub_incoming = build_graph_indices(sub_edgelist)
         sub_descendants, sub_ancestors = calculate_ancestry(sub_edgelist)
         
-        return DiamondSubgraph(
+        return ancestor_group.ancestors, ancestor_group.influenced_parents,ancestor_group.highest_nodes,
+         DiamondSubgraph(
             relevant_nodes,
             sub_sources,
             sub_edgelist,
@@ -366,4 +452,13 @@ module NetworkDecompositionModule
         
         return highest_nodes
     end
+    function find_iteration_index(node::Int64, iteration_sets::Vector{Set{Int64}})
+        for (i, iter_set) in enumerate(iteration_sets)
+            if node in iter_set
+                return i
+            end
+        end
+        return nothing
+    end
+    
 end
