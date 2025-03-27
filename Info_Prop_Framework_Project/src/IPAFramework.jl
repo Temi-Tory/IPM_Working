@@ -11,7 +11,7 @@ module IPAFramework
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
 
     using .InputProcessingModule:   ProbabilitySlices,
-                                    Interval,
+                                   # Interval,
                                     read_graph_to_dict, 
                                    identify_fork_and_join_nodes,
                                    find_iteration_sets
@@ -29,7 +29,7 @@ module IPAFramework
                               calculate_regular_belief,
                               inclusion_exclusion,
                               MC_result,
-                              MC_result_interval,
+                            #  MC_result_interval,
                               has_path
 
     using .VisualizeGraphsModule:  generate_graph_dot_string,
@@ -75,7 +75,7 @@ module IPAFramework
             validate_dag,
 
 
-            ProbabilitySlices,
-            Interval,
-            MC_result_interval
+            ProbabilitySlices
+          #  Interval,
+          #  MC_result_interval
 end
