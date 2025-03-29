@@ -6,7 +6,7 @@ using DataFrames, DelimitedFiles, Distributions,
 
 # Import framework
 using .IPAFramework
-
+#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/join_260.csv";
 filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 
@@ -30,7 +30,8 @@ diamond_structures = identify_and_group_diamonds(
 	descendants,
 );
 
-#diamond_structures[248]
+#diamond_structures[305].diamond[1].highest_nodes
+#diamond_structures[305]
 #=
 print_graph_details(
     edgelist, 
@@ -44,7 +45,7 @@ print_graph_details(
     descendants, 
     diamond_structures
 ) =#
-
+#show(iteration_sets)
 output =  update_beliefs_iterative(
     edgelist,
     iteration_sets, 
@@ -60,7 +61,12 @@ output =  update_beliefs_iterative(
     fork_nodes
 );
 
+#output[261]
 
+sorted_algo = OrderedDict(sort(collect(output)));
+#show(diamond_structures)
+#show(edgelist)
+#show(iteration_sets)
 
 #= 
 
@@ -130,7 +136,7 @@ df.Diff = abs.(df.AlgoValue .- df.MCValue)
 # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)
 
-using CSV
+using CSV 
 
 # Sort the DataFrame by the Diff column in descending order
 sorted_df = sort(df, :Diff, rev=true)
