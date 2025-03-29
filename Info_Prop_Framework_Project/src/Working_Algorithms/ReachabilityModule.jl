@@ -257,23 +257,6 @@ function updateDiamondJoin(
     belief_dict::Dict{Int64,Float64}
 )
 
-    
-
-
-    println("========== Processing Diamond ==========")
-    println("Join node: $join_node, Fork node: $fork_node")
-    println("Ancestor group ancestors: $(ancestor_group.ancestors)")
-    println("Influenced parents: $(ancestor_group.influenced_parents)")
-    println("Highest nodes: $(ancestor_group.highest_nodes)")
-    
-    # Get the precomputed subgraph
-    subgraph = ancestor_group.subgraph
-    println("Subgraph relevant nodes: $(subgraph.relevant_nodes)")
-    println("Subgraph sources: $(subgraph.sources)")
-    println("Subgraph edges: $(subgraph.edgelist)")
-
-
-
     # Get the precomputed subgraph
     subgraph = ancestor_group.subgraph
     
@@ -325,8 +308,6 @@ function updateDiamondJoin(
         sub_incoming_index
     )
 
-    println("Subgraph fork nodes (fresh): $sub_fork_nodes")
-    println("Subgraph join nodes (fresh): $sub_join_nodes")
 
     # Use the fresh data structures for diamond identification
     sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
@@ -339,10 +320,7 @@ function updateDiamondJoin(
         subgraph.edgelist,
         sub_descendants
     )
-    println("sub_diamond_structures",sub_diamond_structures )
-if !isempty(sub_diamond_structures)
-    println("Will dsicover sub-diamond in next step")
-end
+ 
     # Success case (fork = 1)
     sub_node_priors[fork_node] = 1.0
     success_belief = update_beliefs_iterative(
@@ -401,19 +379,9 @@ function calculate_diamond_groups_belief(
     join_node = diamond_structure.join_node
     group_combined_beliefs = Float64[]
 
-    if join_node == 193
-        
-    println("\n===== Diamond Structure for Node $join_node =====")
-        println("Diamond groups: $(length(diamond_structure.diamond))")
-        println("Non-diamond parents: $(diamond_structure.non_diamond_parents)")
-        
-        for (i, group) in enumerate(diamond_structure.diamond)
-            println("Group $i:")
-            println("  Ancestors: $(group.ancestors)")
-            println("  Influenced parents: $(group.influenced_parents)")
-            println("  Highest nodes: $(group.highest_nodes)")
-        end
-    end
+    
+
+
 
     for group in diamond_structure.diamond
         fork_node = first(group.highest_nodes)

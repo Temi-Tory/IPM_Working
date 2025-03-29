@@ -6,7 +6,7 @@ using DataFrames, DelimitedFiles, Distributions,
 
 # Import framework
 using .IPAFramework
-
+#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/join_260.csv";
 filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 
@@ -30,7 +30,32 @@ diamond_structures = identify_and_group_diamonds(
 	descendants,
 );
 
-#diamond_structures[248]
+function find_iteration_index(node::Int64, iteration_sets::Vector{Set{Int64}})
+    for (i, iter_set) in enumerate(iteration_sets)
+        if node in iter_set
+            return i
+        end
+    end
+    return nothing
+end
+
+pretty_print_diamonds(diamond_structures)
+
+
+if join_node in [261, 260, 202, 305]
+    println("Iteration Sets for Diamond forks at join node: $join_node")
+    itersets = Set{Int64}();
+    for group in diamond_structures[260].diamond
+
+        iterpostion = find_iteration_index(first(group.highest_nodes), iteration_sets);
+        push!(itersets, iterpostion);
+    end
+    
+        
+    println(itersets)
+ end
+
+#diamond_structures[305]
 #=
 print_graph_details(
     edgelist, 
@@ -44,7 +69,7 @@ print_graph_details(
     descendants, 
     diamond_structures
 ) =#
-
+#show(edgelist)
 output =  update_beliefs_iterative(
     edgelist,
     iteration_sets, 
@@ -61,6 +86,8 @@ output =  update_beliefs_iterative(
 );
 
 
+sorted_algo = OrderedDict(sort(collect(output)));
+#show(sorted_algo)
 
 #= 
 
@@ -130,7 +157,7 @@ df.Diff = abs.(df.AlgoValue .- df.MCValue)
 # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)
 
-using CSV
+using CSV 
 
 # Sort the DataFrame by the Diff column in descending order
 sorted_df = sort(df, :Diff, rev=true)
