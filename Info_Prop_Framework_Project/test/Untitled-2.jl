@@ -30,8 +30,7 @@ diamond_structures = identify_and_group_diamonds(
 	descendants,
 );
 
-#diamond_structures[305].diamond[1].highest_nodes
-#diamond_structures[305]
+#diamond_structures[248]
 #=
 print_graph_details(
     edgelist, 
@@ -45,7 +44,7 @@ print_graph_details(
     descendants, 
     diamond_structures
 ) =#
-#show(iteration_sets)
+
 output =  update_beliefs_iterative(
     edgelist,
     iteration_sets, 
@@ -63,10 +62,6 @@ output =  update_beliefs_iterative(
 
 #output[261]
 
-sorted_algo = OrderedDict(sort(collect(output)));
-#show(diamond_structures)
-#show(edgelist)
-#show(iteration_sets)
 
 #= 
 
