@@ -6,6 +6,7 @@ module IPAFramework
     include("Working_Algorithms/VisualizeGraphsModule.jl")
     include("Working_Algorithms/GenerateGraphModule.jl")
     include("Working_Algorithms/UndirectedToDagModule.jl")
+    include("Working_Algorithms/ReachabilityModule_Pbox.jl")
   
 
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
@@ -31,6 +32,13 @@ module IPAFramework
                               MC_result,
                             #  MC_result_interval,
                               has_path
+
+    using .ReachabilityModule_Pbox: pbox_validate_network_data,
+                                pbox_update_beliefs_iterative,
+                                pbox_updateDiamondJoin,
+                                pbox_calculate_diamond_groups_belief,
+                                pbox_calculate_regular_belief,
+                                pbox_inclusion_exclusion
 
     using .VisualizeGraphsModule:  generate_graph_dot_string,
                                     visualize_graph
@@ -75,7 +83,15 @@ module IPAFramework
             validate_dag,
 
 
-            ProbabilitySlices
+            ProbabilitySlices,
+
+            pbox_validate_network_data,
+    pbox_update_beliefs_iterative,
+    pbox_updateDiamondJoin,
+    pbox_calculate_diamond_groups_belief,
+    pbox_calculate_regular_belief,
+    pbox_inclusion_exclusion
           #  Interval,
           #  MC_result_interval
 end
+
