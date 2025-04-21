@@ -1,11 +1,19 @@
 import Cairo,Fontconfig 
-using Random, Graphs, GraphMakie, GLMakie, CairoMakie, DataFrames, DelimitedFiles, Distributions
-#using  .Information_Propagation;
+using Random, Graphs #using  .Information_Propagation;
 #using .Information_Propagation_PowerDist
+
+system_data = readdlm("csvfiles/metro_undirected.csv",  ',', header= false, Int);
+original_system_matrix = Matrix(DataFrame(system_data, :auto));
+original_system_graph = Graph(original_system_matrix);
+
+#get edges
+show(collect(edges(original_system_graph)))
 
 #=system_data = readdlm("csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv",  ',', header= false, Int);
 original_system_matrix = Matrix(DataFrame(system_data, :auto));
 original_system_graph = DiGraph(original_system_matrix);
+
+metro_undirected
 
 using BenchmarkTools
 @btime _,b = Information_Propagation.reliability_propagation(original_system_matrix,[1,7,18],0.9,[],true);

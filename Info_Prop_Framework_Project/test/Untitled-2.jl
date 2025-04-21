@@ -7,7 +7,11 @@ using DataFrames, DelimitedFiles, Distributions,
 using .IPAFramework
 #filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/join_260.csv";
-filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
+#filepathcsv = "csvfiles/KarlNetwork.csv";
+
+filepathcsv = "csvfiles/layereddiamond.csv";
+
+#filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
 # Identify structure
@@ -15,6 +19,8 @@ fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_i
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index);
 
 
+
+#show(edgelist)
 #node_priors[1]= 0.6561
 #node_priors[4]= 0.729
 # Analyze diamond structures
@@ -28,7 +34,11 @@ diamond_structures = identify_and_group_diamonds(
 	edgelist,
 	descendants,
 );
-
+#show(diamond_structures)
+#show(diamond_structures[24])
+#show(diamond_structures[24].diamond[1].subgraph.edgelist)
+#show(diamond_structures[261])
+#show(diamond_structures[261].diamond[1].subgraph.edgelist)
 
 """
     convert_node_priors_to_pbox(node_priors::Dict{Int64, Float64}, 
@@ -183,8 +193,7 @@ end
 # beta_edges = convert_edge_to_parametric_distributions(edge_probabilities)
 
 
-
-#diamond_structures[248]
+#diamond_structures[261]
 #=
 print_graph_details(
     edgelist, 
@@ -279,7 +288,7 @@ CSV.write("pbox_mc_comparison.csv", sorted_comparison)
 
  =#
  #sample = rand(output_pbox[261])
- 
+
  output =  update_beliefs_iterative(
     edgelist,
     iteration_sets, 
@@ -295,8 +304,60 @@ CSV.write("pbox_mc_comparison.csv", sorted_comparison)
     fork_nodes
 );
 
+#output[261]
+function analyze_diamond_dependencies(
+  diamond_structure::GroupedDiamondStructure,
+  incoming_index::Dict{Int64, Set{Int64}},
+  outgoing_index::Dict{Int64, Set{Int64}},
+  ancestors::Dict{Int64, Set{Int64}},
+  descendants::Dict{Int64, Set{Int64}}
+)
+  join_node = diamond_structure.join_node
+  path_dependencies = Dict{Int64, Dict{Int64, Set{Int64}}}()  # fork_node -> path_id -> shared_nodes
+  
+  for (i, group) in enumerate(diamond_structure.diamond)
+      fork_node = first(group.highest_nodes)
+      path_dependencies[fork_node] = Dict{Int64, Set{Int64}}()
+      
+      # Identify all possible paths from fork to join
+      paths = find_all_paths(fork_node, join_node, outgoing_index)
+      
+      # Identify shared nodes across paths
+      shared_nodes = find_shared_nodes(paths)
+      
+      # Store shared nodes for each path
+      for (j, path) in enumerate(paths)
+          path_dependencies[fork_node][j] = intersect(Set(path), shared_nodes)
+      end
+  end
+  
+  return path_dependencies
+end
 
-#show(output[261])
+function find_shared_nodes(paths::Vector{Vector{Int64}})
+  node_count = Dict{Int64, Int64}()
+  
+  # Count occurrences of each node across all paths
+  for path in paths
+      for node in path
+          node_count[node] = get(node_count, node, 0) + 1
+      end
+  end
+  
+  # Return nodes that appear in multiple paths
+  return Set([node for (node, count) in node_count if count > 1])
+end
+
+#= analyze_diamond_dependencies(
+  diamond_structures[261],
+  incoming_index,
+  outgoing_index,
+  ancestors,
+  descendants
+) =#
+
+#show(ancestors[261])
+#show(diamond_structures[261].diamond[1].subgraph.edgelist)
 
 
 #= 
@@ -308,7 +369,7 @@ mc_results = (MC_result(
     source_nodes,
     node_priors,
     edge_probabilities,
-    1000000
+    1_000_000,
 ));
 
 # Sort outputs
@@ -319,11 +380,11 @@ sorted_mc = OrderedDict(sort(collect(mc_results)));
 df = DataFrame(
   Node = collect(keys(sorted_algo)),
   AlgoValue = collect(values(sorted_algo)),
-  MCValue = collect(values(sorted_mc))
+  Exact = collect(values(sorted_mc))
 )
 
 # Add a difference column (if needed)
-df.Diff = abs.(df.AlgoValue .- df.MCValue)
+df.Diff = abs.(df.AlgoValue .- df.Exact)
 
 # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)

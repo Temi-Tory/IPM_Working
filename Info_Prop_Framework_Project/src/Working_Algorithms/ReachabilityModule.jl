@@ -144,7 +144,8 @@ function update_beliefs_iterative(
                     iteration_sets,
                     edgelist,
                     join_nodes,
-                    fork_nodes
+                    fork_nodes,
+                    source_nodes
                 )
                 
                 # Use inclusion-exclusion for diamond groups
@@ -226,6 +227,7 @@ function calculate_regular_belief(
     return combined_probability_from_parents
 end
 
+
 function inclusion_exclusion(belief_values::Vector{Float64})
     combined_belief = 0.0
     num_beliefs = length(belief_values)
@@ -254,7 +256,8 @@ function updateDiamondJoin(
     ancestor_group::AncestorGroup,
     link_probability::Dict{Tuple{Int64,Int64},Float64},
     node_priors::Dict{Int64,Float64},
-    belief_dict::Dict{Int64,Float64}
+    belief_dict::Dict{Int64,Float64},
+    source_nodes::Set{Int64} 
 )
 
     # Get the precomputed subgraph
@@ -308,8 +311,25 @@ function updateDiamondJoin(
         sub_incoming_index
     )
 
+    # NEW: Find all sources that are also fork nodes to condition on
+    conditioning_nodes = Set{Int64}([fork_node])
+    for source in fresh_sources
+        if source in sub_fork_nodes && source != fork_node && source ∉ source_nodes
+            push!(conditioning_nodes, source)
+        end
+    end
+    
+       
+     join_node_parents = Set{Int64}()
+    for (i, j) in subgraph.edgelist
+        push!(get!(sub_outgoing_index, i, Set{Int64}()), j)
+        push!(get!(sub_incoming_index, j, Set{Int64}()), i)
+        
+        if j == join_node
+            push!(join_node_parents, i)  
+        end
+    end
 
-    # Use the fresh data structures for diamond identification
     sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
         sub_join_nodes,
         sub_ancestors,
@@ -320,46 +340,124 @@ function updateDiamondJoin(
         subgraph.edgelist,
         sub_descendants
     )
+
+    # Process sub_diamond_structures before updating beliefs
+    for (join_node, grouped_structure) in sub_diamond_structures
+        # Skip if there's only one diamond group
+        if length(grouped_structure.diamond) <= 1
+            continue
+        end
+        
+        # Check for shared direct edges to join node
+        edge_to_diamond_map = Dict{Tuple{Int64, Int64}, Set{Int}}()
+        
+        # Map each edge to the diamonds containing it
+        for (idx, ancestor_group) in enumerate(grouped_structure.diamond)
+            for edge in ancestor_group.subgraph.edgelist
+                # Check if this edge leads directly to the join node
+                if edge[2] == join_node
+                    if !haskey(edge_to_diamond_map, edge)
+                        edge_to_diamond_map[edge] = Set{Int}()
+                    end
+                    push!(edge_to_diamond_map[edge], idx)
+                end
+            end
+        end
+        
+        # Find diamonds that share direct edges to join node
+        shared_edge_diamonds = Set{Int}()
+        
+        # Find edges shared by multiple diamonds
+        for (edge, diamond_indices) in edge_to_diamond_map
+            if length(diamond_indices) > 1
+                # This edge is shared by multiple diamonds and goes to join node
+                union!(shared_edge_diamonds, diamond_indices)
+            end
+        end
+        
+        # If we found diamonds to drop
+        if !isempty(shared_edge_diamonds)
+            # Create a new list without the problematic diamonds
+            new_diamond_groups = AncestorGroup[]
+            
+            for i in 1:length(grouped_structure.diamond)
+                if i ∉ shared_edge_diamonds
+                    push!(new_diamond_groups, grouped_structure.diamond[i])
+                end
+            end
+            
+            # Replace the original diamond groups with filtered ones
+            grouped_structure.diamond = new_diamond_groups
+            
+            # If all diamonds were filtered out, remove this join node from sub_diamond_structures
+            if isempty(new_diamond_groups)
+                delete!(sub_diamond_structures, join_node)
+            end
+        end
+    end
  
-    # Success case (fork = 1)
-    sub_node_priors[fork_node] = 1.0
-    success_belief = update_beliefs_iterative(
-        subgraph.edgelist,          
-        sub_iteration_sets,  # Use fresh iteration sets
-        sub_outgoing_index,  # Use fresh outgoing index
-        sub_incoming_index,  # Use fresh incoming index
-        fresh_sources,
-        sub_node_priors,
-        sub_link_probability,
-        sub_descendants,     # Use fresh descendants
-        sub_ancestors,       # Use fresh ancestors
-        sub_diamond_structures,
-        sub_join_nodes,      # Use fresh join nodes
-        sub_fork_nodes       # Use fresh fork nodes
-    )[join_node]
+   
 
-    # Failure case (fork = 0)
-    sub_node_priors[fork_node] = 0.0
-    failure_belief = update_beliefs_iterative(
-        subgraph.edgelist,          
-        sub_iteration_sets,  # Use fresh iteration sets
-        sub_outgoing_index,  # Use fresh outgoing index
-        sub_incoming_index,  # Use fresh incoming index
-        fresh_sources,
-        sub_node_priors,
-        sub_link_probability,
-        sub_descendants,     # Use fresh descendants
-        sub_ancestors,       # Use fresh ancestors
-        sub_diamond_structures,
-        sub_join_nodes,      # Use fresh join nodes
-        sub_fork_nodes       # Use fresh fork nodes
-    )[join_node]
-
-    updated_belief_dict = copy(belief_dict)
-    updated_belief_dict[fork_node] = original_fork_belief
-    updated_belief_dict[join_node] = (success_belief * original_fork_belief) + 
-                                    (failure_belief * (1 - original_fork_belief))
-    return updated_belief_dict
+     # NEW: Use multi-conditioning approach
+     conditioning_nodes_list = collect(conditioning_nodes)
+    
+     # Generate all possible states of conditioning nodes (0 or 1)
+     final_belief = 0.0
+     
+     # Use binary representation for efficiency
+     for state_idx in 0:(2^length(conditioning_nodes_list) - 1)
+         # Calculate state probability
+         state_probability = 1.0
+         conditioning_state = Dict{Int64, Float64}()
+         
+         for (i, node) in enumerate(conditioning_nodes_list)
+             # Store original belief for this node
+             original_belief = belief_dict[node]
+             
+             # Check if the i-th bit is set
+             if (state_idx & (1 << (i-1))) != 0
+                 conditioning_state[node] = 1.0
+                 state_probability *= original_belief
+             else
+                 conditioning_state[node] = 0.0
+                 state_probability *= (1.0 - original_belief)
+             end
+         end
+         
+         # Make a copy of sub_node_priors for this iteration
+         current_priors = copy(sub_node_priors)
+         
+         # Set conditioning nodes to their current state
+         for (node, value) in conditioning_state
+             current_priors[node] = value
+         end
+         
+         # Run belief propagation with these nodes fixed
+         state_beliefs = update_beliefs_iterative(
+             subgraph.edgelist,
+             sub_iteration_sets,
+             sub_outgoing_index,
+             sub_incoming_index,
+             fresh_sources,
+             current_priors,
+             sub_link_probability,
+             sub_descendants,
+             sub_ancestors,
+             sub_diamond_structures,
+             sub_join_nodes,
+             sub_fork_nodes
+         )
+         
+         # Weight the result by the probability of this state
+         join_belief = state_beliefs[join_node]
+         final_belief += join_belief * state_probability
+     end
+     
+     # Update belief dictionary with combined result
+     updated_belief_dict = copy(belief_dict)
+     updated_belief_dict[join_node] = final_belief
+     
+     return updated_belief_dict
 end
 
 function calculate_diamond_groups_belief(
@@ -374,26 +472,262 @@ function calculate_diamond_groups_belief(
     iteration_sets::Vector{Set{Int64}},
     edgelist::Vector{Tuple{Int64,Int64}},
     join_nodes::Set{Int64},
-    fork_nodes::Set{Int64}
+    fork_nodes::Set{Int64},
+    source_nodes::Set{Int64} 
 )
     join_node = diamond_structure.join_node
     group_combined_beliefs = Float64[]
 
+    # Find shared nodes between diamond groups
+    shared_nodes = Dict{Int64, Set{Int}}()
     
-
-
-
-    for group in diamond_structure.diamond
-        fork_node = first(group.highest_nodes)
-        updated_belief_dict = updateDiamondJoin(
-            fork_node,
-            join_node,
-            group,
-            link_probability,
-            node_priors,
-            belief_dict
-        )
-        push!(group_combined_beliefs, updated_belief_dict[join_node])
+    for (i, group) in enumerate(diamond_structure.diamond)
+        for node in group.subgraph.relevant_nodes
+            if node != join_node
+                if !haskey(shared_nodes, node)
+                    shared_nodes[node] = Set{Int}()
+                end
+                push!(shared_nodes[node], i)
+            end
+        end
+    end
+    
+    # Keep only nodes shared between multiple groups
+    multi_group_nodes = filter(pair -> length(pair.second) > 1, shared_nodes)
+    
+    # If no shared nodes, use original algorithm
+    if isempty(multi_group_nodes)
+        for group in diamond_structure.diamond
+            fork_node = first(group.highest_nodes)
+            updated_belief_dict = updateDiamondJoin(
+                fork_node,
+                join_node,
+                group,
+                link_probability,
+                node_priors,
+                belief_dict,
+                source_nodes
+            )
+            push!(group_combined_beliefs, updated_belief_dict[join_node])
+        end
+    else
+        # Determine which groups need to be combined
+        group_connections = Dict{Int, Set{Int}}()
+        for (_, group_indices) in multi_group_nodes
+            for i in group_indices
+                if !haskey(group_connections, i)
+                    group_connections[i] = Set{Int}()
+                end
+                union!(group_connections[i], group_indices)
+            end
+        end
+        
+        # Find connected components
+        visited = Set{Int}()
+        components = Vector{Set{Int}}()
+        
+        for i in 1:length(diamond_structure.diamond)
+            if i in visited
+                continue
+            end
+            
+            # Start a new component
+            component = Set{Int}()
+            queue = [i]
+            
+            while !isempty(queue)
+                current = popfirst!(queue)
+                if current in visited
+                    continue
+                end
+                
+                push!(visited, current)
+                push!(component, current)
+                
+                if haskey(group_connections, current)
+                    for neighbor in group_connections[current]
+                        if neighbor ∉ visited
+                            push!(queue, neighbor)
+                        end
+                    end
+                end
+            end
+            
+            push!(components, component)
+        end
+        
+        # Process each component
+        for component in components
+            if length(component) == 1
+                # Single group - use original algorithm
+                group_idx = first(component)
+                group = diamond_structure.diamond[group_idx]
+                fork_node = first(group.highest_nodes)
+                updated_belief_dict = updateDiamondJoin(
+                    fork_node,
+                    join_node,
+                    group,
+                    link_probability,
+                    node_priors,
+                    belief_dict,
+                    source_nodes
+                )
+                push!(group_combined_beliefs, updated_belief_dict[join_node])
+            else
+                # Multiple connected groups - use combinatorial approach
+                # Collect all fork nodes from the component
+                component_fork_nodes = Set{Int64}()
+                for idx in component
+                    union!(component_fork_nodes, diamond_structure.diamond[idx].highest_nodes)
+                end
+                
+                # Convert to list for indexing
+                fork_nodes_list = collect(component_fork_nodes)
+                
+                # Create combined subgraph
+                combined_nodes = Set{Int64}()
+                combined_edges = Vector{Tuple{Int64, Int64}}()
+                
+                for idx in component
+                    group = diamond_structure.diamond[idx]
+                    union!(combined_nodes, group.subgraph.relevant_nodes)
+                    append!(combined_edges, group.subgraph.edgelist)
+                end
+                
+                # Make sure join node is included
+                push!(combined_nodes, join_node)
+                
+                # Generate indices for combined subgraph
+                combined_outgoing = Dict{Int64, Set{Int64}}()
+                combined_incoming = Dict{Int64, Set{Int64}}()
+                
+                for (i, j) in combined_edges
+                    push!(get!(combined_outgoing, i, Set{Int64}()), j)
+                    push!(get!(combined_incoming, j, Set{Int64}()), i)
+                end
+                
+                # Identify true source nodes in the combined subgraph
+                # Sources are nodes with no incoming edges in the combined subgraph
+                combined_sources = Set{Int64}()
+                for node in combined_nodes
+                    if !haskey(combined_incoming, node) || isempty(combined_incoming[node])
+                        push!(combined_sources, node)
+                    end
+                end
+                
+                # Generate all possible states of fork nodes (0 or 1)
+                combined_belief = 0.0
+                
+                # Use binary representation for efficiency
+                for state_idx in 0:(2^length(fork_nodes_list) - 1)
+                    # Calculate fork state probability
+                    state_probability = 1.0
+                    fork_state_dict = Dict{Int64, Float64}()
+                    
+                    for (i, node) in enumerate(fork_nodes_list)
+                        # Check if the i-th bit is set
+                        if (state_idx & (1 << (i-1))) != 0
+                            fork_state_dict[node] = 1.0
+                            state_probability *= belief_dict[node]
+                        else
+                            fork_state_dict[node] = 0.0
+                            state_probability *= (1.0 - belief_dict[node])
+                        end
+                    end
+                    
+                    # We need to handle the case where fork nodes aren't sources
+                    # Create a temporary belief propagation network with fixed fork states
+                    
+                    # First, calculate iteration sets and other network properties
+                    sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
+                        combined_edges,
+                        combined_outgoing,
+                        combined_incoming
+                    )
+                    
+                    # Make a copy of node_priors and create a temporary belief dictionary
+                    temp_belief = Dict{Int64, Float64}()
+                    
+                    # Assign fixed values to fork nodes
+                    for (node, state) in fork_state_dict
+                        temp_belief[node] = state
+                    end
+                    
+                    # Assign values to source nodes
+                    for node in combined_sources
+                        if !haskey(temp_belief, node)  # Don't override fork nodes
+                            temp_belief[node] = node_priors[node]
+                        end
+                    end
+                    
+                    # Propagate beliefs through the network
+                    for node_set in sub_iteration_sets
+                        for node in node_set
+                            # Skip nodes we've already assigned
+                            if haskey(temp_belief, node)
+                                continue
+                            end
+                            
+                            # Get parents
+                            if !haskey(combined_incoming, node)
+                                continue  # No parents
+                            end
+                            
+                            parents = combined_incoming[node]
+                            parent_beliefs = Float64[]
+                            
+                            for parent in parents
+                                if !haskey(temp_belief, parent)
+                                    # This shouldn't happen with proper iteration sets
+                                    continue
+                                end
+                                
+                                parent_belief = temp_belief[parent]
+                                
+                                if haskey(link_probability, (parent, node))
+                                    edge_prob = link_probability[(parent, node)]
+                                    push!(parent_beliefs, parent_belief * edge_prob)
+                                end
+                            end
+                            
+                            # Combine parent beliefs
+                            if isempty(parent_beliefs)
+                                temp_belief[node] = 0.0
+                            elseif length(parent_beliefs) == 1
+                                temp_belief[node] = parent_beliefs[1]
+                            else
+                                temp_belief[node] = inclusion_exclusion(parent_beliefs)
+                            end
+                        end
+                    end
+                    
+                    # Check if join node has a calculated belief
+                    if haskey(temp_belief, join_node)
+                        join_belief = temp_belief[join_node]
+                        # Add to total using law of total probability
+                        combined_belief += join_belief * state_probability
+                    else
+                        # If join node belief wasn't calculated, there's a problem with the subgraph
+                        # Use fallback strategy - take the value from original algorithm
+                        fallback_group = diamond_structure.diamond[first(component)]
+                        fallback_fork = first(fallback_group.highest_nodes)
+                        fallback_belief_dict = updateDiamondJoin(
+                            fallback_fork,
+                            join_node,
+                            fallback_group,
+                            link_probability,
+                            node_priors,
+                            belief_dict,
+                            source_nodes
+                        )
+                        combined_belief = fallback_belief_dict[join_node]
+                        break  # Exit the loop, use fallback
+                    end
+                end
+                
+                push!(group_combined_beliefs, combined_belief)
+            end
+        end
     end
 
     return group_combined_beliefs

@@ -26,10 +26,12 @@ function pretty_print_diamonds(diamond_structures::Dict{Int64, GroupedDiamondStr
             ancestors_str = join(collect(group.ancestors), ", ")
             parents_str = join(collect(group.influenced_parents), ", ")
             highest_str = join(collect(group.highest_nodes), ", ")
-            
+            edgelist = group.subgraph.edgelist
+
             println("  Common Ancestors: [$ancestors_str]")
             println("  ├─ Highest Nodes: [$highest_str]")
             println("  └─ Influences Parents: [$parents_str]")
+            println("  └─ Edgelist: $edgelist")
             println()
         end
 
@@ -55,11 +57,13 @@ function pretty_print_diamond(structure::GroupedDiamondStructure)
         ancestors_str = join(collect(group.ancestors), ", ")
         parents_str = join(collect(group.influenced_parents), ", ")
         highest_str = join(collect(group.highest_nodes), ", ")
-        
+        edgelist = group.subgraph.edgelist
+
+        println("  Common Ancestors: [$ancestors_str]")
         println("  Common Ancestors: [$ancestors_str]")
         println("  ├─ Highest Nodes: [$highest_str]")
         println("  └─ Influences Parents: [$parents_str]")
-        println()
+        println(     println("  └─ Edgelist: $edgelist"))
     end
 
     # Print non-diamond parents if any exist
