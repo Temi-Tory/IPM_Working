@@ -251,7 +251,7 @@ function inclusion_exclusion(belief_values::Vector{Float64})
 end
 
 function updateDiamondJoin(
-    fork_node::Int64,
+    fork_nodes::Set{Int64},  # Changed from fork_node::Int64 to fork_nodes::Set{Int64}
     join_node::Int64, 
     ancestor_group::AncestorGroup,
     link_probability::Dict{Tuple{Int64,Int64},Float64},
@@ -259,7 +259,6 @@ function updateDiamondJoin(
     belief_dict::Dict{Int64,Float64},
     source_nodes::Set{Int64} 
 )
-
     # Get the precomputed subgraph
     subgraph = ancestor_group.subgraph
     
@@ -274,14 +273,16 @@ function updateDiamondJoin(
     for node in subgraph.relevant_nodes
         if node ∉ subgraph.sources
             sub_node_priors[node] = node_priors[node]
-        elseif node != fork_node
+        elseif node ∉ fork_nodes  # Changed from != to ∉
             sub_node_priors[node] = belief_dict[node]
         end
     end
 
-    # Store original fork belief for final calculation
-    original_fork_belief = belief_dict[fork_node]
-
+    # Store original fork beliefs for final calculation
+    original_fork_beliefs = Dict{Int64, Float64}()
+    for node in fork_nodes
+        original_fork_beliefs[node] = belief_dict[node]
+    end
 
     # Create fresh outgoing and incoming indices for the subgraph
     sub_outgoing_index = Dict{Int64, Set{Int64}}()
@@ -298,6 +299,7 @@ function updateDiamondJoin(
             push!(fresh_sources, node)
         end
     end
+    
     # Calculate fresh iteration sets, ancestors, and descendants
     sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
         subgraph.edgelist, 
@@ -311,25 +313,27 @@ function updateDiamondJoin(
         sub_incoming_index
     )
 
-    # NEW: Find all sources that are also fork nodes to condition on
-    conditioning_nodes = Set{Int64}([fork_node])
-    for source in fresh_sources
-        if source in sub_fork_nodes && source != fork_node && source ∉ source_nodes
-            push!(conditioning_nodes, source)
-        end
+    # Start with all fork nodes as conditioning nodes
+    conditioning_nodes = copy(fork_nodes)
+    
+    # Add any additional conditioning nodes not already included
+    for each_fork_node in fork_nodes
+        additional_nodes = identify_conditioning_nodes(
+            each_fork_node,
+            join_node,
+            sub_fork_nodes,
+            fresh_sources,
+            sub_outgoing_index,
+            sub_descendants,
+            sub_ancestors,
+            sub_incoming_index  
+        )
+        union!(conditioning_nodes, additional_nodes)
     end
     
-       
-     join_node_parents = Set{Int64}()
-    for (i, j) in subgraph.edgelist
-        push!(get!(sub_outgoing_index, i, Set{Int64}()), j)
-        push!(get!(sub_incoming_index, j, Set{Int64}()), i)
-        
-        if j == join_node
-            push!(join_node_parents, i)  
-        end
-    end
-
+    # Remove any duplicates
+    conditioning_nodes = unique(conditioning_nodes)
+    
     sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
         sub_join_nodes,
         sub_ancestors,
@@ -341,123 +345,180 @@ function updateDiamondJoin(
         sub_descendants
     )
 
-    # Process sub_diamond_structures before updating beliefs
-    for (join_node, grouped_structure) in sub_diamond_structures
-        # Skip if there's only one diamond group
-        if length(grouped_structure.diamond) <= 1
-            continue
+    # NEW: Use multi-conditioning approach
+    conditioning_nodes_list = collect(conditioning_nodes)
+    if join_node == 15
+        println("Conditioning nodes: $conditioning_nodes_list")
+        println("Fork nodes: $fork_nodes")
+        println("Join node: $join_node")
+    end
+    
+    # Generate all possible states of conditioning nodes (0 or 1)
+    final_belief = 0.0
+    
+    # Use binary representation for efficiency
+    for state_idx in 0:(2^length(conditioning_nodes_list) - 1)
+        # Calculate state probability
+        state_probability = 1.0
+        conditioning_state = Dict{Int64, Float64}()
+        
+        for (i, node) in enumerate(conditioning_nodes_list)
+            # Store original belief for this node
+            original_belief = belief_dict[node]
+            
+            # Check if the i-th bit is set
+            if (state_idx & (1 << (i-1))) != 0
+                conditioning_state[node] = 1.0
+                state_probability *= original_belief
+            else
+                conditioning_state[node] = 0.0
+                state_probability *= (1.0 - original_belief)
+            end
         end
         
-        # Check for shared direct edges to join node
-        edge_to_diamond_map = Dict{Tuple{Int64, Int64}, Set{Int}}()
+        # Make a copy of sub_node_priors for this iteration
+        current_priors = copy(sub_node_priors)
         
-        # Map each edge to the diamonds containing it
-        for (idx, ancestor_group) in enumerate(grouped_structure.diamond)
-            for edge in ancestor_group.subgraph.edgelist
-                # Check if this edge leads directly to the join node
-                if edge[2] == join_node
-                    if !haskey(edge_to_diamond_map, edge)
-                        edge_to_diamond_map[edge] = Set{Int}()
+        # Set conditioning nodes to their current state
+        for (node, value) in conditioning_state
+            current_priors[node] = value
+        end
+        
+        # Run belief propagation with these nodes fixed
+        state_beliefs = update_beliefs_iterative(
+            subgraph.edgelist,
+            sub_iteration_sets,
+            sub_outgoing_index,
+            sub_incoming_index,
+            fresh_sources,
+            current_priors,
+            sub_link_probability,
+            sub_descendants,
+            sub_ancestors,
+            sub_diamond_structures,
+            sub_join_nodes,
+            sub_fork_nodes
+        )
+        
+        # Weight the result by the probability of this state
+        join_belief = state_beliefs[join_node]
+        final_belief += join_belief * state_probability
+    end
+    
+    # Update belief dictionary with combined result
+    updated_belief_dict = copy(belief_dict)
+    updated_belief_dict[join_node] = final_belief
+    
+    return updated_belief_dict
+end
+
+function identify_conditioning_nodes(
+    fork_node::Int64,
+    join_node::Int64,
+    sub_fork_nodes::Set{Int64},
+    fresh_sources::Set{Int64},
+    sub_outgoing_index::Dict{Int64, Set{Int64}},
+    sub_descendants::Dict{Int64, Set{Int64}},
+    sub_ancestors::Dict{Int64, Set{Int64}},
+    sub_incoming_index::Dict{Int64, Set{Int64}} = Dict{Int64, Set{Int64}}()  # Added parameter
+)
+    # Start with the fork node
+    conditioning_nodes = Set{Int64}([fork_node])
+    
+    # Add sources that are also fork nodes
+    for source in fresh_sources
+        if source in sub_fork_nodes && source != fork_node
+            push!(conditioning_nodes, source)
+        end
+    end
+    
+    # Check for intermediate convergence points
+    for node in setdiff(sub_descendants[fork_node], Set([fork_node, join_node]))
+        # Check if it's a convergence point with multiple incoming edges
+        if haskey(sub_incoming_index, node) && length(sub_incoming_index[node]) > 1
+            # Ensure it can reach the join node
+            if haskey(sub_descendants, node) && join_node in sub_descendants[node]
+                # Check if parents come from different branches
+                parents = sub_incoming_index[node]
+                has_independent_parents = false
+                
+                for parent1 in parents
+                    for parent2 in parents
+                        if parent1 != parent2
+                            # Check if these parents have no common ancestor except fork_node
+                            anc1 = get(sub_ancestors, parent1, Set{Int64}())
+                            anc2 = get(sub_ancestors, parent2, Set{Int64}())
+                            common_anc = intersect(anc1, anc2)
+                            
+                            # If they only share the fork_node as common ancestor,
+                            # they're from independent branches
+                            if common_anc == Set([fork_node]) || isempty(common_anc)
+                                has_independent_parents = true
+                                break
+                            end
+                        end
                     end
-                    push!(edge_to_diamond_map[edge], idx)
+                    if has_independent_parents
+                        break
+                    end
                 end
-            end
-        end
-        
-        # Find diamonds that share direct edges to join node
-        shared_edge_diamonds = Set{Int}()
-        
-        # Find edges shared by multiple diamonds
-        for (edge, diamond_indices) in edge_to_diamond_map
-            if length(diamond_indices) > 1
-                # This edge is shared by multiple diamonds and goes to join node
-                union!(shared_edge_diamonds, diamond_indices)
-            end
-        end
-        
-        # If we found diamonds to drop
-        if !isempty(shared_edge_diamonds)
-            # Create a new list without the problematic diamonds
-            new_diamond_groups = AncestorGroup[]
-            
-            for i in 1:length(grouped_structure.diamond)
-                if i ∉ shared_edge_diamonds
-                    push!(new_diamond_groups, grouped_structure.diamond[i])
+                
+                if has_independent_parents
+                    push!(conditioning_nodes, node)
                 end
-            end
-            
-            # Replace the original diamond groups with filtered ones
-            grouped_structure.diamond = new_diamond_groups
-            
-            # If all diamonds were filtered out, remove this join node from sub_diamond_structures
-            if isempty(new_diamond_groups)
-                delete!(sub_diamond_structures, join_node)
             end
         end
     end
- 
-   
-
-     # NEW: Use multi-conditioning approach
-     conditioning_nodes_list = collect(conditioning_nodes)
     
-     # Generate all possible states of conditioning nodes (0 or 1)
-     final_belief = 0.0
-     
-     # Use binary representation for efficiency
-     for state_idx in 0:(2^length(conditioning_nodes_list) - 1)
-         # Calculate state probability
-         state_probability = 1.0
-         conditioning_state = Dict{Int64, Float64}()
-         
-         for (i, node) in enumerate(conditioning_nodes_list)
-             # Store original belief for this node
-             original_belief = belief_dict[node]
-             
-             # Check if the i-th bit is set
-             if (state_idx & (1 << (i-1))) != 0
-                 conditioning_state[node] = 1.0
-                 state_probability *= original_belief
-             else
-                 conditioning_state[node] = 0.0
-                 state_probability *= (1.0 - original_belief)
-             end
-         end
-         
-         # Make a copy of sub_node_priors for this iteration
-         current_priors = copy(sub_node_priors)
-         
-         # Set conditioning nodes to their current state
-         for (node, value) in conditioning_state
-             current_priors[node] = value
-         end
-         
-         # Run belief propagation with these nodes fixed
-         state_beliefs = update_beliefs_iterative(
-             subgraph.edgelist,
-             sub_iteration_sets,
-             sub_outgoing_index,
-             sub_incoming_index,
-             fresh_sources,
-             current_priors,
-             sub_link_probability,
-             sub_descendants,
-             sub_ancestors,
-             sub_diamond_structures,
-             sub_join_nodes,
-             sub_fork_nodes
-         )
-         
-         # Weight the result by the probability of this state
-         join_belief = state_beliefs[join_node]
-         final_belief += join_belief * state_probability
-     end
-     
-     # Update belief dictionary with combined result
-     updated_belief_dict = copy(belief_dict)
-     updated_belief_dict[join_node] = final_belief
-     
-     return updated_belief_dict
+    # Also add significant fork points
+    for node in sub_fork_nodes
+        if node != fork_node && node != join_node && node ∉ conditioning_nodes
+            if is_significant_fork(node, join_node, conditioning_nodes, sub_outgoing_index, sub_descendants)
+                push!(conditioning_nodes, node)
+            end
+        end
+    end
+    
+    return conditioning_nodes
+end
+
+function is_significant_fork(node, join_node, existing_conditions, outgoing_index, descendants)
+    # Only consider nodes with multiple outgoing edges
+    if !haskey(outgoing_index, node) || length(outgoing_index[node]) < 2
+        return false
+    end
+    
+    # Count truly independent paths to join_node
+    independent_paths = 0
+    checked_paths = Set{Int64}()
+    
+    for child in outgoing_index[node]
+        # Skip if already checked or can't reach join_node
+        if child in checked_paths || !haskey(descendants, child) || join_node ∉ descendants[child]
+            continue
+        end
+        
+        # This child can reach join_node
+        independent_paths += 1
+        push!(checked_paths, child)
+        
+        # Check if paths from other children share nodes with this path
+        child_descendants = get(descendants, child, Set{Int64}())
+        for other_child in outgoing_index[node]
+            if other_child != child && other_child ∉ checked_paths
+                if haskey(descendants, other_child) && join_node in descendants[other_child]
+                    # Check if paths share intermediate nodes
+                    other_descendants = get(descendants, other_child, Set{Int64}())
+                    if !isempty(intersect(child_descendants, other_descendants))
+                        # Paths share nodes - not independent
+                        push!(checked_paths, other_child)
+                    end
+                end
+            end
+        end
+    end
+    
+    return independent_paths >= 2
 end
 
 function calculate_diamond_groups_belief(
@@ -477,263 +538,133 @@ function calculate_diamond_groups_belief(
 )
     join_node = diamond_structure.join_node
     group_combined_beliefs = Float64[]
-
-    # Find shared nodes between diamond groups
-    shared_nodes = Dict{Int64, Set{Int}}()
-    
-    for (i, group) in enumerate(diamond_structure.diamond)
-        for node in group.subgraph.relevant_nodes
-            if node != join_node
-                if !haskey(shared_nodes, node)
-                    shared_nodes[node] = Set{Int}()
-                end
-                push!(shared_nodes[node], i)
-            end
-        end
+    if join_node == 260
+        x= 10
     end
-    
-    # Keep only nodes shared between multiple groups
-    multi_group_nodes = filter(pair -> length(pair.second) > 1, shared_nodes)
-    
-    # If no shared nodes, use original algorithm
-    if isempty(multi_group_nodes)
-        for group in diamond_structure.diamond
-            fork_node = first(group.highest_nodes)
-            updated_belief_dict = updateDiamondJoin(
-                fork_node,
-                join_node,
-                group,
-                link_probability,
-                node_priors,
-                belief_dict,
-                source_nodes
-            )
-            push!(group_combined_beliefs, updated_belief_dict[join_node])
-        end
-    else
-        # Determine which groups need to be combined
-        group_connections = Dict{Int, Set{Int}}()
-        for (_, group_indices) in multi_group_nodes
-            for i in group_indices
-                if !haskey(group_connections, i)
-                    group_connections[i] = Set{Int}()
-                end
-                union!(group_connections[i], group_indices)
-            end
-        end
-        
-        # Find connected components
-        visited = Set{Int}()
-        components = Vector{Set{Int}}()
-        
-        for i in 1:length(diamond_structure.diamond)
-            if i in visited
-                continue
-            end
-            
-            # Start a new component
-            component = Set{Int}()
-            queue = [i]
-            
-            while !isempty(queue)
-                current = popfirst!(queue)
-                if current in visited
-                    continue
-                end
-                
-                push!(visited, current)
-                push!(component, current)
-                
-                if haskey(group_connections, current)
-                    for neighbor in group_connections[current]
-                        if neighbor ∉ visited
-                            push!(queue, neighbor)
-                        end
-                    end
-                end
-            end
-            
-            push!(components, component)
-        end
-        
-        # Process each component
-        for component in components
-            if length(component) == 1
-                # Single group - use original algorithm
-                group_idx = first(component)
-                group = diamond_structure.diamond[group_idx]
-                fork_node = first(group.highest_nodes)
-                updated_belief_dict = updateDiamondJoin(
-                    fork_node,
-                    join_node,
-                    group,
-                    link_probability,
-                    node_priors,
-                    belief_dict,
-                    source_nodes
-                )
-                push!(group_combined_beliefs, updated_belief_dict[join_node])
-            else
-                # Multiple connected groups - use combinatorial approach
-                # Collect all fork nodes from the component
-                component_fork_nodes = Set{Int64}()
-                for idx in component
-                    union!(component_fork_nodes, diamond_structure.diamond[idx].highest_nodes)
-                end
-                
-                # Convert to list for indexing
-                fork_nodes_list = collect(component_fork_nodes)
-                
-                # Create combined subgraph
-                combined_nodes = Set{Int64}()
-                combined_edges = Vector{Tuple{Int64, Int64}}()
-                
-                for idx in component
-                    group = diamond_structure.diamond[idx]
-                    union!(combined_nodes, group.subgraph.relevant_nodes)
-                    append!(combined_edges, group.subgraph.edgelist)
-                end
-                
-                # Make sure join node is included
-                push!(combined_nodes, join_node)
-                
-                # Generate indices for combined subgraph
-                combined_outgoing = Dict{Int64, Set{Int64}}()
-                combined_incoming = Dict{Int64, Set{Int64}}()
-                
-                for (i, j) in combined_edges
-                    push!(get!(combined_outgoing, i, Set{Int64}()), j)
-                    push!(get!(combined_incoming, j, Set{Int64}()), i)
-                end
-                
-                # Identify true source nodes in the combined subgraph
-                # Sources are nodes with no incoming edges in the combined subgraph
-                combined_sources = Set{Int64}()
-                for node in combined_nodes
-                    if !haskey(combined_incoming, node) || isempty(combined_incoming[node])
-                        push!(combined_sources, node)
-                    end
-                end
-                
-                # Generate all possible states of fork nodes (0 or 1)
-                combined_belief = 0.0
-                
-                # Use binary representation for efficiency
-                for state_idx in 0:(2^length(fork_nodes_list) - 1)
-                    # Calculate fork state probability
-                    state_probability = 1.0
-                    fork_state_dict = Dict{Int64, Float64}()
-                    
-                    for (i, node) in enumerate(fork_nodes_list)
-                        # Check if the i-th bit is set
-                        if (state_idx & (1 << (i-1))) != 0
-                            fork_state_dict[node] = 1.0
-                            state_probability *= belief_dict[node]
-                        else
-                            fork_state_dict[node] = 0.0
-                            state_probability *= (1.0 - belief_dict[node])
-                        end
-                    end
-                    
-                    # We need to handle the case where fork nodes aren't sources
-                    # Create a temporary belief propagation network with fixed fork states
-                    
-                    # First, calculate iteration sets and other network properties
-                    sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
-                        combined_edges,
-                        combined_outgoing,
-                        combined_incoming
-                    )
-                    
-                    # Make a copy of node_priors and create a temporary belief dictionary
-                    temp_belief = Dict{Int64, Float64}()
-                    
-                    # Assign fixed values to fork nodes
-                    for (node, state) in fork_state_dict
-                        temp_belief[node] = state
-                    end
-                    
-                    # Assign values to source nodes
-                    for node in combined_sources
-                        if !haskey(temp_belief, node)  # Don't override fork nodes
-                            temp_belief[node] = node_priors[node]
-                        end
-                    end
-                    
-                    # Propagate beliefs through the network
-                    for node_set in sub_iteration_sets
-                        for node in node_set
-                            # Skip nodes we've already assigned
-                            if haskey(temp_belief, node)
-                                continue
-                            end
-                            
-                            # Get parents
-                            if !haskey(combined_incoming, node)
-                                continue  # No parents
-                            end
-                            
-                            parents = combined_incoming[node]
-                            parent_beliefs = Float64[]
-                            
-                            for parent in parents
-                                if !haskey(temp_belief, parent)
-                                    # This shouldn't happen with proper iteration sets
-                                    continue
-                                end
-                                
-                                parent_belief = temp_belief[parent]
-                                
-                                if haskey(link_probability, (parent, node))
-                                    edge_prob = link_probability[(parent, node)]
-                                    push!(parent_beliefs, parent_belief * edge_prob)
-                                end
-                            end
-                            
-                            # Combine parent beliefs
-                            if isempty(parent_beliefs)
-                                temp_belief[node] = 0.0
-                            elseif length(parent_beliefs) == 1
-                                temp_belief[node] = parent_beliefs[1]
-                            else
-                                temp_belief[node] = inclusion_exclusion(parent_beliefs)
-                            end
-                        end
-                    end
-                    
-                    # Check if join node has a calculated belief
-                    if haskey(temp_belief, join_node)
-                        join_belief = temp_belief[join_node]
-                        # Add to total using law of total probability
-                        combined_belief += join_belief * state_probability
-                    else
-                        # If join node belief wasn't calculated, there's a problem with the subgraph
-                        # Use fallback strategy - take the value from original algorithm
-                        fallback_group = diamond_structure.diamond[first(component)]
-                        fallback_fork = first(fallback_group.highest_nodes)
-                        fallback_belief_dict = updateDiamondJoin(
-                            fallback_fork,
-                            join_node,
-                            fallback_group,
-                            link_probability,
-                            node_priors,
-                            belief_dict,
-                            source_nodes
-                        )
-                        combined_belief = fallback_belief_dict[join_node]
-                        break  # Exit the loop, use fallback
-                    end
-                end
-                
-                push!(group_combined_beliefs, combined_belief)
-            end
-        end
+    for group in diamond_structure.diamond
+        updated_belief_dict = updateDiamondJoin(
+            group.highest_nodes,
+            join_node,
+            group,
+            link_probability,
+            node_priors,
+            belief_dict,
+            source_nodes
+        )
+        push!(group_combined_beliefs, updated_belief_dict[join_node])
     end
 
     return group_combined_beliefs
 end
 
+function identify_conditioning_nodes(
+    fork_node::Int64,
+    join_node::Int64,
+    sub_fork_nodes::Set{Int64},
+    fresh_sources::Set{Int64},
+    sub_outgoing_index::Dict{Int64, Set{Int64}},
+    sub_descendants::Dict{Int64, Set{Int64}},
+    sub_ancestors::Dict{Int64, Set{Int64}},
+    sub_incoming_index::Dict{Int64, Set{Int64}} = Dict{Int64, Set{Int64}}()  # Added parameter
+)
+    # Start with the fork node
+    conditioning_nodes = Set{Int64}([fork_node])
+    
+    # Add sources that are also fork nodes
+    for source in fresh_sources
+        if source in sub_fork_nodes && source != fork_node
+            push!(conditioning_nodes, source)
+        end
+    end
+    
+    # Check for intermediate convergence points
+    for node in setdiff(sub_descendants[fork_node], Set([fork_node, join_node]))
+        # Check if it's a convergence point with multiple incoming edges
+        if haskey(sub_incoming_index, node) && length(sub_incoming_index[node]) > 1
+            # Ensure it can reach the join node
+            if haskey(sub_descendants, node) && join_node in sub_descendants[node]
+                # Check if parents come from different branches
+                parents = sub_incoming_index[node]
+                has_independent_parents = false
+                
+                for parent1 in parents
+                    for parent2 in parents
+                        if parent1 != parent2
+                            # Check if these parents have no common ancestor except fork_node
+                            anc1 = get(sub_ancestors, parent1, Set{Int64}())
+                            anc2 = get(sub_ancestors, parent2, Set{Int64}())
+                            common_anc = intersect(anc1, anc2)
+                            
+                            # If they only share the fork_node as common ancestor,
+                            # they're from independent branches
+                            if common_anc == Set([fork_node]) || isempty(common_anc)
+                                has_independent_parents = true
+                                break
+                            end
+                        end
+                    end
+                    if has_independent_parents
+                        break
+                    end
+                end
+                
+                if has_independent_parents
+                    push!(conditioning_nodes, node)
+                end
+            end
+        end
+    end
+    
+    # Also add significant fork points
+    for node in sub_fork_nodes
+        if node != fork_node && node != join_node && node ∉ conditioning_nodes
+            if is_significant_fork(node, join_node, conditioning_nodes, sub_outgoing_index, sub_descendants)
+                push!(conditioning_nodes, node)
+            end
+        end
+    end
+    
+    return conditioning_nodes
+end
 
+function is_significant_fork(node, join_node, existing_conditions, outgoing_index, descendants)
+    # Only consider nodes with multiple outgoing edges
+    if !haskey(outgoing_index, node) || length(outgoing_index[node]) < 2
+        return false
+    end
+    
+    # Count truly independent paths to join_node
+    independent_paths = 0
+    checked_paths = Set{Int64}()
+    
+    for child in outgoing_index[node]
+        # Skip if already checked or can't reach join_node
+        if child in checked_paths || !haskey(descendants, child) || join_node ∉ descendants[child]
+            continue
+        end
+        
+        # This child can reach join_node
+        independent_paths += 1
+        push!(checked_paths, child)
+        
+        # Check if paths from other children share nodes with this path
+        child_descendants = get(descendants, child, Set{Int64}())
+        for other_child in outgoing_index[node]
+            if other_child != child && other_child ∉ checked_paths
+                if haskey(descendants, other_child) && join_node in descendants[other_child]
+                    # Check if paths share intermediate nodes
+                    other_descendants = get(descendants, other_child, Set{Int64}())
+                    if !isempty(intersect(child_descendants, other_descendants))
+                        # Paths share nodes - not independent
+                        push!(checked_paths, other_child)
+                    end
+                end
+            end
+        end
+    end
+    
+    return independent_paths >= 2
+end
 
 
 
