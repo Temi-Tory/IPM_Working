@@ -31,7 +31,8 @@ module IPAFramework
                               inclusion_exclusion,
                               MC_result,
                             #  MC_result_interval,
-                              has_path
+                              has_path,
+                              path_enumeration_result
 
     using .ReachabilityModule_Pbox: pbox_validate_network_data,
                                 pbox_update_beliefs_iterative,
@@ -68,6 +69,7 @@ module IPAFramework
             inclusion_exclusion,
             MC_result,
             has_path,
+            path_enumeration_result,
             # VisualizeGraphsModule exports
             generate_graph_dot_string,
             visualize_graph,

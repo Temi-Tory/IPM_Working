@@ -130,6 +130,7 @@ module NetworkDecompositionModule
                 incoming_index
             )
 
+            #for each group in ancestor_groups, check if any two or more sub_sources share an ancestor
         # Safety check - we should always have at least one group left
         if isempty(ancestor_groups)
             error("Invalid state: All ancestor groups were filtered out for join node $join_node")
@@ -144,8 +145,9 @@ module NetworkDecompositionModule
         fork_nodes::Set{Int64},
         iteration_sets::Vector{Set{Int64}},
         edgelist::Vector{Tuple{Int64, Int64}},
-        descendants::Dict{Int64, Set{Int64}},
-        excludedjoinNode::Int64 = -1
+        descendants::Dict{Int64, Set{Int64}},        
+        node_priors::Dict{Int64,Float64},
+        excludedjoinNode::Int64 = -1,
     )::Dict{Int64, GroupedDiamondStructure}
         grouped_structures = Dict{Int64, GroupedDiamondStructure}()
         if excludedjoinNode != -1
@@ -167,6 +169,12 @@ module NetworkDecompositionModule
                 length(parents) < 2 && continue
                 
                 non_diamond_parents = Set(parents)
+                # Only Exlude Source Nodes Whose prior is 0 or 1
+                # This is to avoid diamond structures that are not relevant for the analysis
+                # Filter to keep only source nodes whose prior is 0 or 1 (the irrelevant ones)
+                source_nodes = Set(node for node in source_nodes if node_priors[node] == 0.0 || node_priors[node] == 1.0)
+
+                # Now source_nodes only contains irrelevant nodes
                 filtered_parents = filter(parent -> parent ∉ source_nodes, parents)
                 
                 parent_fork_ancestors = Dict(
@@ -526,7 +534,7 @@ module NetworkDecompositionModule
                 end
             end
             
-            # Filter out original source nodes (node 18)
+            # Filter out original source nodes 
             common_ancestors = setdiff(common_ancestors, source_nodes)
             
             if !isempty(common_ancestors)

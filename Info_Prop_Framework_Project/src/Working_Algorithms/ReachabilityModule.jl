@@ -193,9 +193,11 @@ function update_beliefs_iterative(
             
             # Final combination of all belief sources
             if length(all_beliefs) == 1
-                belief_dict[node] = all_beliefs[1]
+                _preprior = all_beliefs[1]
+                belief_dict[node] = node_priors[node] * _preprior
             else
-                belief_dict[node] = inclusion_exclusion(all_beliefs)
+                _preprior = inclusion_exclusion(all_beliefs)
+                belief_dict[node] = node_priors[node] * _preprior
             end
         end
     end
@@ -259,6 +261,7 @@ function updateDiamondJoin(
     belief_dict::Dict{Int64,Float64},
     source_nodes::Set{Int64} 
 )
+
     # Get the precomputed subgraph
     subgraph = ancestor_group.subgraph
     
@@ -266,22 +269,6 @@ function updateDiamondJoin(
     sub_link_probability = Dict{Tuple{Int64, Int64}, Float64}()
     for edge in subgraph.edgelist
         sub_link_probability[edge] = link_probability[edge]
-    end
-
-    # Create sub_node_priors for the subgraph nodes
-    sub_node_priors = Dict{Int64, Float64}()
-    for node in subgraph.relevant_nodes
-        if node ∉ subgraph.sources
-            sub_node_priors[node] = node_priors[node]
-        elseif node ∉ fork_nodes  # Changed from != to ∉
-            sub_node_priors[node] = belief_dict[node]
-        end
-    end
-
-    # Store original fork beliefs for final calculation
-    original_fork_beliefs = Dict{Int64, Float64}()
-    for node in fork_nodes
-        original_fork_beliefs[node] = belief_dict[node]
     end
 
     # Create fresh outgoing and incoming indices for the subgraph
@@ -313,26 +300,33 @@ function updateDiamondJoin(
         sub_incoming_index
     )
 
-    # Start with all fork nodes as conditioning nodes
+   # Start with all fork nodes as conditioning nodes
     conditioning_nodes = copy(fork_nodes)
-    
-    # Add any additional conditioning nodes not already included
-    for each_fork_node in fork_nodes
-        additional_nodes = identify_conditioning_nodes(
-            each_fork_node,
-            join_node,
-            sub_fork_nodes,
-            fresh_sources,
-            sub_outgoing_index,
-            sub_descendants,
-            sub_ancestors,
-            sub_incoming_index  
-        )
-        union!(conditioning_nodes, additional_nodes)
+
+    # Add sources that are also fork nodes in one step
+    for source in fresh_sources
+        if source in sub_fork_nodes && source ∉ fork_nodes
+            push!(conditioning_nodes, source)
+        end
     end
     
-    # Remove any duplicates
-    conditioning_nodes = unique(conditioning_nodes)
+   
+    # Create sub_node_priors for the subgraph nodes
+    sub_node_priors = Dict{Int64, Float64}()
+    for node in subgraph.relevant_nodes
+        if node ∉ subgraph.sources
+            sub_node_priors[node] = node_priors[node]
+            if node == join_node
+                # If the node is the join node, set its prior to 1.0
+                sub_node_priors[node] = 1.0                
+            end
+        elseif node ∉ conditioning_nodes 
+            sub_node_priors[node] = belief_dict[node]
+        elseif node ∈ conditioning_nodes 
+            sub_node_priors[node] =  1.0    ## Set conditioning nodes to 1.0 so that diamonds identifcation works
+        end
+    end
+
     
     sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
         sub_join_nodes,
@@ -342,16 +336,13 @@ function updateDiamondJoin(
         sub_fork_nodes,
         sub_iteration_sets,
         subgraph.edgelist,
-        sub_descendants
+        sub_descendants,
+        sub_node_priors
     )
 
     # NEW: Use multi-conditioning approach
     conditioning_nodes_list = collect(conditioning_nodes)
-    if join_node == 15
-        println("Conditioning nodes: $conditioning_nodes_list")
-        println("Fork nodes: $fork_nodes")
-        println("Join node: $join_node")
-    end
+    
     
     # Generate all possible states of conditioning nodes (0 or 1)
     final_belief = 0.0
@@ -412,75 +403,6 @@ function updateDiamondJoin(
     return updated_belief_dict
 end
 
-function identify_conditioning_nodes(
-    fork_node::Int64,
-    join_node::Int64,
-    sub_fork_nodes::Set{Int64},
-    fresh_sources::Set{Int64},
-    sub_outgoing_index::Dict{Int64, Set{Int64}},
-    sub_descendants::Dict{Int64, Set{Int64}},
-    sub_ancestors::Dict{Int64, Set{Int64}},
-    sub_incoming_index::Dict{Int64, Set{Int64}} = Dict{Int64, Set{Int64}}()  # Added parameter
-)
-    # Start with the fork node
-    conditioning_nodes = Set{Int64}([fork_node])
-    
-    # Add sources that are also fork nodes
-    for source in fresh_sources
-        if source in sub_fork_nodes && source != fork_node
-            push!(conditioning_nodes, source)
-        end
-    end
-    
-    # Check for intermediate convergence points
-    for node in setdiff(sub_descendants[fork_node], Set([fork_node, join_node]))
-        # Check if it's a convergence point with multiple incoming edges
-        if haskey(sub_incoming_index, node) && length(sub_incoming_index[node]) > 1
-            # Ensure it can reach the join node
-            if haskey(sub_descendants, node) && join_node in sub_descendants[node]
-                # Check if parents come from different branches
-                parents = sub_incoming_index[node]
-                has_independent_parents = false
-                
-                for parent1 in parents
-                    for parent2 in parents
-                        if parent1 != parent2
-                            # Check if these parents have no common ancestor except fork_node
-                            anc1 = get(sub_ancestors, parent1, Set{Int64}())
-                            anc2 = get(sub_ancestors, parent2, Set{Int64}())
-                            common_anc = intersect(anc1, anc2)
-                            
-                            # If they only share the fork_node as common ancestor,
-                            # they're from independent branches
-                            if common_anc == Set([fork_node]) || isempty(common_anc)
-                                has_independent_parents = true
-                                break
-                            end
-                        end
-                    end
-                    if has_independent_parents
-                        break
-                    end
-                end
-                
-                if has_independent_parents
-                    push!(conditioning_nodes, node)
-                end
-            end
-        end
-    end
-    
-    # Also add significant fork points
-    for node in sub_fork_nodes
-        if node != fork_node && node != join_node && node ∉ conditioning_nodes
-            if is_significant_fork(node, join_node, conditioning_nodes, sub_outgoing_index, sub_descendants)
-                push!(conditioning_nodes, node)
-            end
-        end
-    end
-    
-    return conditioning_nodes
-end
 
 function is_significant_fork(node, join_node, existing_conditions, outgoing_index, descendants)
     # Only consider nodes with multiple outgoing edges
@@ -538,8 +460,8 @@ function calculate_diamond_groups_belief(
 )
     join_node = diamond_structure.join_node
     group_combined_beliefs = Float64[]
-    if join_node == 260
-        x= 10
+    if join_node == 13
+        println("diamond_structure: ", diamond_structure)
     end
     for group in diamond_structure.diamond
         updated_belief_dict = updateDiamondJoin(
@@ -576,195 +498,311 @@ function identify_conditioning_nodes(
             push!(conditioning_nodes, source)
         end
     end
-    
-    # Check for intermediate convergence points
-    for node in setdiff(sub_descendants[fork_node], Set([fork_node, join_node]))
-        # Check if it's a convergence point with multiple incoming edges
-        if haskey(sub_incoming_index, node) && length(sub_incoming_index[node]) > 1
-            # Ensure it can reach the join node
-            if haskey(sub_descendants, node) && join_node in sub_descendants[node]
-                # Check if parents come from different branches
-                parents = sub_incoming_index[node]
-                has_independent_parents = false
-                
-                for parent1 in parents
-                    for parent2 in parents
-                        if parent1 != parent2
-                            # Check if these parents have no common ancestor except fork_node
-                            anc1 = get(sub_ancestors, parent1, Set{Int64}())
-                            anc2 = get(sub_ancestors, parent2, Set{Int64}())
-                            common_anc = intersect(anc1, anc2)
-                            
-                            # If they only share the fork_node as common ancestor,
-                            # they're from independent branches
-                            if common_anc == Set([fork_node]) || isempty(common_anc)
-                                has_independent_parents = true
-                                break
-                            end
-                        end
-                    end
-                    if has_independent_parents
-                        break
-                    end
-                end
-                
-                if has_independent_parents
-                    push!(conditioning_nodes, node)
-                end
-            end
-        end
-    end
-    
-    # Also add significant fork points
-    for node in sub_fork_nodes
-        if node != fork_node && node != join_node && node ∉ conditioning_nodes
-            if is_significant_fork(node, join_node, conditioning_nodes, sub_outgoing_index, sub_descendants)
-                push!(conditioning_nodes, node)
-            end
-        end
-    end
-    
     return conditioning_nodes
 end
 
-function is_significant_fork(node, join_node, existing_conditions, outgoing_index, descendants)
-    # Only consider nodes with multiple outgoing edges
-    if !haskey(outgoing_index, node) || length(outgoing_index[node]) < 2
+
+
+
+
+    function MC_result(
+        edgelist::Vector{Tuple{Int64,Int64}},
+        outgoing_index::Dict{Int64,Set{Int64}},
+        incoming_index::Dict{Int64,Set{Int64}},
+        source_nodes::Set{Int64},
+        node_priors::Dict{Int64, Float64},
+        edge_probabilities::Dict{Tuple{Int64,Int64}, Float64},
+        N::Int=100000
+    )
+        # Get all nodes
+        all_nodes = reduce(union, values(incoming_index), init=keys(incoming_index))
+        active_count = Dict{Int64, Float64}()
+        for node in all_nodes
+            active_count[node] = 0.0
+        end
+
+        for _ in 1:N
+            # Sample node states
+            node_active = Dict(
+                node => rand() < node_priors[node]
+                for node in all_nodes
+            )
+
+            # Sample edge states
+            active_edges = Dict{Tuple{Int64,Int64}, Bool}()
+            for edge in edgelist
+                src, dst = edge
+                if node_active[src] && node_active[dst]
+                    active_edges[edge] = rand() < edge_probabilities[edge]
+                else
+                    active_edges[edge] = false
+                end
+            end
+
+            # Create subgraph with only active edges
+            sub_outgoing = Dict{Int64, Set{Int64}}()
+            for (src, dst) in edgelist
+                if active_edges[(src, dst)]
+                    if !haskey(sub_outgoing, src)
+                        sub_outgoing[src] = Set{Int64}()
+                    end
+                    push!(sub_outgoing[src], dst)
+                end
+            end
+
+            # Check reachability for each node
+            for node in all_nodes
+                if node in source_nodes
+                    if node_active[node]
+                        active_count[node] += 1
+                    end
+                else
+                    # Check if node is reachable from any source
+                    reachable = false
+                    for source in source_nodes
+                        if has_path(sub_outgoing, source, node)
+                            reachable = true
+                            break
+                        end
+                    end
+                    if reachable
+                        active_count[node] += 1
+                    end
+                end
+            end
+        end
+
+        # Convert counts to probabilities
+        for node in keys(active_count)
+            active_count[node] /= N
+        end
+
+        return active_count
+    end
+
+    # Helper function to check if there's a path between two nodes
+    function has_path(graph::Dict{Int64, Set{Int64}}, start::Int64, target::Int64)
+        visited = Set{Int64}()
+        queue = [start]
+        
+        while !isempty(queue)
+            node = popfirst!(queue)
+            if node == target
+                return true
+            end
+            
+            if haskey(graph, node)
+                for neighbor in graph[node]
+                    if neighbor ∉ visited
+                        push!(visited, neighbor)
+                        push!(queue, neighbor)
+                    end
+                end
+            end
+        end
+        
         return false
     end
-    
-    # Count truly independent paths to join_node
-    independent_paths = 0
-    checked_paths = Set{Int64}()
-    
-    for child in outgoing_index[node]
-        # Skip if already checked or can't reach join_node
-        if child in checked_paths || !haskey(descendants, child) || join_node ∉ descendants[child]
-            continue
+
+
+
+
+
+        
+    function path_enumeration_result(
+        outgoing_index::Dict{Int64,Set{Int64}},
+        incoming_index::Dict{Int64,Set{Int64}},
+        source_nodes::Set{Int64},
+        node_priors::Dict{Int64, Float64},
+        edge_probabilities::Dict{Tuple{Int64,Int64}, Float64}
+    )
+        # Get all nodes
+        all_nodes = reduce(union, values(incoming_index), init=keys(incoming_index))
+        active_probability = Dict{Int64, Float64}()
+        
+        # For source nodes, the activation probability is simply their prior
+        for node in source_nodes
+            active_probability[node] = node_priors[node]
         end
         
-        # This child can reach join_node
-        independent_paths += 1
-        push!(checked_paths, child)
+        # For non-source nodes, calculate using path enumeration
+        for node in setdiff(all_nodes, source_nodes)
+            # Step 1: Find all paths from all source nodes to this node
+            all_paths = Vector{Vector{Int64}}()
+            for source in source_nodes
+                paths_from_source = find_all_paths(outgoing_index, source, node)
+                append!(all_paths, paths_from_source)
+            end
+            
+            if isempty(all_paths)
+                active_probability[node] = 0.0
+                continue
+            end
+            
+            # Step 2: Convert paths to edge sets for inclusion-exclusion
+            path_edge_sets = Vector{Vector{Tuple{Int64,Int64}}}()
+            for path in all_paths
+                edges = Vector{Tuple{Int64,Int64}}()
+                for i in 1:(length(path)-1)
+                    push!(edges, (path[i], path[i+1]))
+                end
+                push!(path_edge_sets, edges)
+            end
+            
+            # Step 3: Calculate node activation probability using path enumeration
+            # We need to account for both:
+            # - The probability that the target node itself is active
+            # - The probability that there's at least one active path to the node
+            
+            # Calculate probability that at least one path is active
+            path_probability = calculate_with_inclusion_exclusion(
+                path_edge_sets, 
+                edge_probabilities, 
+                node_priors, 
+                source_nodes
+            )
+            
+            # Final probability is the product of:
+            # - The probability that the target node itself is active (based on its prior)
+            # - The probability that there's at least one active path to the node
+            active_probability[node] = node_priors[node] * path_probability
+        end
         
-        # Check if paths from other children share nodes with this path
-        child_descendants = get(descendants, child, Set{Int64}())
-        for other_child in outgoing_index[node]
-            if other_child != child && other_child ∉ checked_paths
-                if haskey(descendants, other_child) && join_node in descendants[other_child]
-                    # Check if paths share intermediate nodes
-                    other_descendants = get(descendants, other_child, Set{Int64}())
-                    if !isempty(intersect(child_descendants, other_descendants))
-                        # Paths share nodes - not independent
-                        push!(checked_paths, other_child)
+        return active_probability
+    end
+    
+    # Find all paths from start to target using DFS
+    function find_all_paths(
+        graph::Dict{Int64, Set{Int64}}, 
+        start::Int64, 
+        target::Int64
+    )
+        paths = Vector{Vector{Int64}}()
+        visited = Set{Int64}()
+        current_path = Int64[]
+        
+        function dfs(current)
+            push!(visited, current)
+            push!(current_path, current)
+            
+            if current == target
+                # Found a path to target
+                push!(paths, copy(current_path))
+            else
+                # Continue exploration
+                if haskey(graph, current)
+                    for neighbor in graph[current]
+                        if neighbor ∉ visited
+                            dfs(neighbor)
+                        end
                     end
                 end
             end
-        end
-    end
-    
-    return independent_paths >= 2
-end
-
-
-
-
-function MC_result(
-    edgelist::Vector{Tuple{Int64,Int64}},
-    outgoing_index::Dict{Int64,Set{Int64}},
-    incoming_index::Dict{Int64,Set{Int64}},
-    source_nodes::Set{Int64},
-    node_priors::Dict{Int64, Float64},
-    edge_probabilities::Dict{Tuple{Int64,Int64}, Float64},
-    N::Int=100000
-)
-    # Get all nodes
-    all_nodes = reduce(union, values(incoming_index), init=keys(incoming_index))
-    active_count = Dict{Int64, Float64}()
-    for node in all_nodes
-        active_count[node] = 0.0
-    end
-
-    for _ in 1:N
-        # Sample node states
-        node_active = Dict(
-            node => rand() < node_priors[node]
-            for node in all_nodes
-        )
-
-        # Sample edge states
-        active_edges = Dict{Tuple{Int64,Int64}, Bool}()
-        for edge in edgelist
-            src, dst = edge
-            if node_active[src] && node_active[dst]
-                active_edges[edge] = rand() < edge_probabilities[edge]
-            else
-                active_edges[edge] = false
-            end
-        end
-
-        # Create subgraph with only active edges
-        sub_outgoing = Dict{Int64, Set{Int64}}()
-        for (src, dst) in edgelist
-            if active_edges[(src, dst)]
-                if !haskey(sub_outgoing, src)
-                    sub_outgoing[src] = Set{Int64}()
-                end
-                push!(sub_outgoing[src], dst)
-            end
-        end
-
-        # Check reachability for each node
-        for node in all_nodes
-            if node in source_nodes
-                if node_active[node]
-                    active_count[node] += 1
-                end
-            else
-                # Check if node is reachable from any source
-                reachable = false
-                for source in source_nodes
-                    if has_path(sub_outgoing, source, node)
-                        reachable = true
-                        break
-                    end
-                end
-                if reachable
-                    active_count[node] += 1
-                end
-            end
-        end
-    end
-
-    # Convert counts to probabilities
-    for node in keys(active_count)
-        active_count[node] /= N
-    end
-
-    return active_count
-end
-
-# Helper function to check if there's a path between two nodes
-function has_path(graph::Dict{Int64, Set{Int64}}, start::Int64, target::Int64)
-    visited = Set{Int64}()
-    queue = [start]
-    
-    while !isempty(queue)
-        node = popfirst!(queue)
-        if node == target
-            return true
+            
+            # Backtrack
+            pop!(current_path)
+            delete!(visited, current)
         end
         
-        if haskey(graph, node)
-            for neighbor in graph[node]
-                if neighbor ∉ visited
-                    push!(visited, neighbor)
-                    push!(queue, neighbor)
-                end
-            end
-        end
+        dfs(start)
+        return paths
     end
     
-    return false
-end
+   
+    function calculate_with_inclusion_exclusion(
+        path_edge_sets::Vector{Vector{Tuple{Int64,Int64}}},
+        edge_probabilities::Dict{Tuple{Int64,Int64}, Float64},
+        node_priors::Dict{Int64, Float64},
+        source_nodes::Set{Int64}
+    )
+        n = length(path_edge_sets)
+        if n == 0
+            return 0.0
+        end
+        
+        # First, collect all nodes in each path (excluding the target node which is the last node in each path)
+        path_node_sets = Vector{Set{Int64}}()
+        for (i, path_edges) in enumerate(path_edge_sets)
+            nodes = Set{Int64}()
+            # Extract all nodes from edges
+            for (src, dst) in path_edges
+                push!(nodes, src)
+                # Don't include the target node here - we'll handle it separately
+                if dst != path_edges[end][2]
+                    push!(nodes, dst)
+                end
+            end
+            push!(path_node_sets, nodes)
+        end
+        
+        total_probability = 0.0
+        
+        # For each non-empty subset of paths (2^n - 1 subsets)
+        for mask in 1:(2^n - 1)
+            subset_edge_sets = Vector{Vector{Tuple{Int64,Int64}}}()
+            subset_node_sets = Vector{Set{Int64}}()
+            
+            # Collect paths in this subset
+            for i in 0:(n-1)
+                if (mask & (1 << i)) != 0
+                    push!(subset_edge_sets, path_edge_sets[i+1])
+                    push!(subset_node_sets, path_node_sets[i+1])
+                end
+            end
+            
+            # Calculate UNION of edges in this subset
+            union_edges = union_of_edge_sets(subset_edge_sets)
+            
+            # Calculate UNION of nodes in this subset
+            union_nodes = reduce(union, subset_node_sets)
+            
+            # Calculate probability for this union
+            term_probability = 1.0
+            
+            # Include probability of ALL nodes in the paths (excluding target node)
+            for node in union_nodes
+                term_probability *= node_priors[node]
+            end
+            
+            # Include probability of ALL edges in the union
+            for edge in union_edges
+                term_probability *= edge_probabilities[edge]
+            end
+            
+            # Apply inclusion-exclusion sign rule
+            subset_size = count_ones(mask)
+            sign = iseven(subset_size) ? -1 : 1
+            
+            total_probability += sign * term_probability
+        end
+        
+        return total_probability
+    end
+    
+    # Find union of edge sets
+    function union_of_edge_sets(edge_sets::Vector{Vector{Tuple{Int64,Int64}}})
+        if isempty(edge_sets)
+            return Tuple{Int64,Int64}[]
+        end
+        
+        if length(edge_sets) == 1
+            return edge_sets[1]
+        end
+        
+        # Start with an empty set
+        union_edges = Set{Tuple{Int64,Int64}}()
+        
+        # Union all edge sets
+        for edge_set in edge_sets
+            for edge in edge_set
+                push!(union_edges, edge)
+            end
+        end
+        
+        return collect(union_edges)
+    end
+    
+
+
+
 end

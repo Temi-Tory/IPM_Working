@@ -6,8 +6,8 @@ using DataFrames, DelimitedFiles, Distributions,
 # Import framework
 using .IPAFramework
 
-filepathcsv = "csvfiles/layereddiamond_3.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+#filepathcsv = "csvfiles/layereddiamond_3.csv";
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
@@ -71,7 +71,15 @@ diamond_structures = #= @run  =# identify_and_group_diamonds(
     fork_nodes
 );
 
+@btime exact_results = path_enumeration_result(
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities
+    );
 
+sorted_mc = OrderedDict(sort(collect(exact_results)));
 #output[260]
 #output[13] #mc = 0.921...
 #= 
