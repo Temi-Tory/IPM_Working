@@ -114,24 +114,27 @@ end
 Example usage: =#
 dot_string = """
 digraph G {
-  
+  1 [style=filled, fillcolor=grey];
+  3 [style=filled, fillcolor=grey];
+  13 [style=filled, fillcolor=grey];
+ 
+ 
+  1 -> 2;
+  1 -> 5;
+  2 -> 6;
+  3 -> 2;
 
-1 -> 2;
-1 -> 5;
-2 -> 3;
-2 -> 10;
-3 -> 6;
-4 -> 12;
-5 -> 7;
-6 -> 11;
-7 -> 4;
-7 -> 8;
-7 -> 9;
-8 -> 11;
-9 -> 8;
-10 -> 9;
-11 -> 13;
-12 -> 13;
+  3 -> 7;
+  5 -> 6;
+  5 -> 9;
+  6 -> 7;
+ 
+  9 -> 10;
+  10 -> 6;
+
+  13 -> 9;
+}
+
 
 """
 adj_matrix, node_map = dot_to_adj(dot_string)

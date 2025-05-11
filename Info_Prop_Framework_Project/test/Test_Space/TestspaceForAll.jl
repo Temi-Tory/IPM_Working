@@ -6,10 +6,10 @@ using DataFrames, DelimitedFiles, Distributions,
 # Import framework
 using .IPAFramework
 
-filepathcsv = "csvfiles/layereddiamond_3.csv";
+#filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
-#filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
+filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 
 #show(edgelist)
@@ -18,10 +18,13 @@ edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probab
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index);
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index);
 
-map!(x -> 0.9999, values(node_priors));
+#map!(x -> 0.9999, values(node_priors));
+map!(x -> 0.9, values(node_priors));
+map!(x -> 0.9, values(edge_probabilities));
+#map!(x -> 0.9999, values(edge_probabilities));
 
 # Analyze diamond structures
-diamond_structures = #= @run  =# identify_and_group_diamonds(
+diamond_structures= #= @run  =# identify_and_group_diamonds(
 	join_nodes,
 	ancestors,
 	incoming_index,
@@ -32,7 +35,10 @@ diamond_structures = #= @run  =# identify_and_group_diamonds(
 	descendants,
     node_priors
 );
-
+#show(diamond_structures)
+#show(diamond_structures[7].diamond[1].subgraph.relevant_nodes)
+#show(diamond_structures[7].diamond[1].subgraph.edgelist)
+#
 #@run
 (
 output =  update_beliefs_iterative(
@@ -53,7 +59,8 @@ output =  update_beliefs_iterative(
 sorted_algo = OrderedDict(sort(collect(output)));
 
 #show(sorted_algo)
-#output[260]
+#output[16]
+
 exact_results =  path_enumeration_result(
         outgoing_index,
         incoming_index,

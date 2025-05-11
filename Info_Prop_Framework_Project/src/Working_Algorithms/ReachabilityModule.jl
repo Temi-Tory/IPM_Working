@@ -402,47 +402,6 @@ function updateDiamondJoin(
     
     return updated_belief_dict
 end
-
-
-function is_significant_fork(node, join_node, existing_conditions, outgoing_index, descendants)
-    # Only consider nodes with multiple outgoing edges
-    if !haskey(outgoing_index, node) || length(outgoing_index[node]) < 2
-        return false
-    end
-    
-    # Count truly independent paths to join_node
-    independent_paths = 0
-    checked_paths = Set{Int64}()
-    
-    for child in outgoing_index[node]
-        # Skip if already checked or can't reach join_node
-        if child in checked_paths || !haskey(descendants, child) || join_node ∉ descendants[child]
-            continue
-        end
-        
-        # This child can reach join_node
-        independent_paths += 1
-        push!(checked_paths, child)
-        
-        # Check if paths from other children share nodes with this path
-        child_descendants = get(descendants, child, Set{Int64}())
-        for other_child in outgoing_index[node]
-            if other_child != child && other_child ∉ checked_paths
-                if haskey(descendants, other_child) && join_node in descendants[other_child]
-                    # Check if paths share intermediate nodes
-                    other_descendants = get(descendants, other_child, Set{Int64}())
-                    if !isempty(intersect(child_descendants, other_descendants))
-                        # Paths share nodes - not independent
-                        push!(checked_paths, other_child)
-                    end
-                end
-            end
-        end
-    end
-    
-    return independent_paths >= 2
-end
-
 function calculate_diamond_groups_belief(
     diamond_structure::GroupedDiamondStructure,
     belief_dict::Dict{Int64,Float64},
@@ -460,12 +419,9 @@ function calculate_diamond_groups_belief(
 )
     join_node = diamond_structure.join_node
     group_combined_beliefs = Float64[]
-    if join_node == 13
-        println("diamond_structure: ", diamond_structure)
-    end
     for group in diamond_structure.diamond
         updated_belief_dict = updateDiamondJoin(
-            group.highest_nodes,
+            group.highest_nodes, 
             join_node,
             group,
             link_probability,
@@ -475,9 +431,13 @@ function calculate_diamond_groups_belief(
         )
         push!(group_combined_beliefs, updated_belief_dict[join_node])
     end
-
     return group_combined_beliefs
 end
+
+
+
+
+
 
 function identify_conditioning_nodes(
     fork_node::Int64,

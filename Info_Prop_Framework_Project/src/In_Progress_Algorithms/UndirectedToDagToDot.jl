@@ -100,7 +100,7 @@ end
 
 using Graphs, CSV, DataFrames, DelimitedFiles
 # For example, if you have a graph
-system_data = readdlm("csvfiles/layereddiamond_3.csv",  ',', header= false, Int);
+system_data = readdlm("csvfiles/16_node_old.csv",  ',', header= false, Int);
 original_system_matrix = Matrix(DataFrame(system_data, :auto));
 original_system_graph = DiGraph(original_system_matrix);
 #filepathcsv = "csvfiles/layereddiamond.csv";

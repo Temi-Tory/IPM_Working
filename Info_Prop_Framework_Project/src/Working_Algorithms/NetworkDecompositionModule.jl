@@ -131,6 +131,16 @@ module NetworkDecompositionModule
             )
 
             #for each group in ancestor_groups, check if any two or more sub_sources share an ancestor
+            # NEW: Process shared subsources after merging diamonds
+    process_shared_subsources!(
+        ancestor_groups,
+        join_node,
+        ancestors,
+        descendants,
+        edgelist,
+        iteration_sets,
+        source_nodes
+    )
         # Safety check - we should always have at least one group left
         if isempty(ancestor_groups)
             error("Invalid state: All ancestor groups were filtered out for join node $join_node")
@@ -512,12 +522,18 @@ module NetworkDecompositionModule
             relevant_nodes, sub_sources, fork_node, join_node, incoming_index
         )
         append!(sub_edgelist, additional_edgelist)
-    
-        # Collect all additional sources but exclude original sources
-        additional_sources = Set{Int64}([edge[1] for edge in additional_edgelist if edge[1] != fork_node && edge[1] ∉ source_nodes])
         
-        # Check for common ancestors between additional sources and the ancestor group
-        if !isempty(additional_sources)
+        # NEW: Keep checking for common ancestors until none are found
+        found_common_ancestors = false
+        while true 
+            # Collect all additional sources but exclude original sources
+            additional_sources = Set{Int64}([edge[1] for edge in additional_edgelist if edge[1] != fork_node && edge[1] ∉ source_nodes])
+            
+            # Check for common ancestors between additional sources and the ancestor group
+            if isempty(additional_sources)
+                break  # No additional sources to check
+            end
+            
             # Gather all potential common ancestors
             common_ancestors = Set{Int64}()
             
@@ -537,77 +553,87 @@ module NetworkDecompositionModule
             # Filter out original source nodes 
             common_ancestors = setdiff(common_ancestors, source_nodes)
             
-            if !isempty(common_ancestors)
-                # Find the earliest iteration
-                earliest_iter = typemax(Int)
-                earliest_ancestors = Set{Int64}()
-                
-                for node in common_ancestors
-                    node_iter = find_iteration_index(node, iteration_sets)
-                    if node_iter !== nothing
-                        if node_iter < earliest_iter
-                            earliest_iter = node_iter
-                            earliest_ancestors = Set{Int64}([node])
-                        elseif node_iter == earliest_iter
-                            push!(earliest_ancestors, node)
-                        end
-                    end
-                end
-                
-                # Create separate diamonds for each common ancestor in the earliest iteration
-                if !isempty(earliest_ancestors)
-                    for common_ancestor in earliest_ancestors
-                        # Create a copy of the ancestor group for this specific ancestor
-                        new_ancestors = copy(ancestor_group.ancestors)
-                        new_influenced_parents = copy(ancestor_group.influenced_parents)
-                        
-                        # Set the new fork_node
-                        current_fork = common_ancestor
-                        current_highest = Set{Int64}([current_fork])
-                        current_sources = Set{Int64}([current_fork])
-                        
-                        # Rebuild diamond subgraph for this specific ancestor
-                        current_nodes = collect_base_nodes(current_fork, join_node, ancestor_group)
-                        add_intermediate_nodes!(current_nodes, current_fork, ancestor_group, descendants, ancestors)
-                        current_edgelist = extract_edges(current_nodes, current_fork, edgelist)
-                        
-                        current_additional = handle_additional_nodes!(
-                            current_nodes, current_sources, current_fork, join_node, incoming_index
-                        )
-                        current_edgelist = union(current_edgelist, current_additional)
-                        
-                        # Create filtered iteration sets
-                        current_iter_sets = [intersect(set, current_nodes) for set in iteration_sets]
-                        filter!(!isempty, current_iter_sets)
-                        
-                        # Build graph structures
-                        current_outgoing, current_incoming = build_graph_indices(current_edgelist)
-                        current_descendants, current_ancestors = calculate_ancestry(current_edgelist)
-                        
-                        # Create the diamond for this specific ancestor
-                        current_diamond = DiamondSubgraph(
-                            current_nodes,
-                            current_sources,
-                            current_edgelist,
-                            current_iter_sets,
-                            current_outgoing,
-                            current_incoming,
-                            current_descendants,
-                            current_ancestors
-                        )
-                        
-                        # Add this result to the vector
-                        push!(results, (new_ancestors, new_influenced_parents, current_highest, current_diamond))
-                    end
-                    
-                    # Return all the results if we created new diamonds
-                    if !isempty(results)
-                        return results
+            if isempty(common_ancestors)
+                break  # No common ancestors found
+            end
+            
+            # Find the earliest iteration
+            earliest_iter = typemax(Int)
+            earliest_ancestors = Set{Int64}()
+            
+            for node in common_ancestors
+                node_iter = find_iteration_index(node, iteration_sets)
+                if node_iter !== nothing
+                    if node_iter < earliest_iter
+                        earliest_iter = node_iter
+                        earliest_ancestors = Set{Int64}([node])
+                    elseif node_iter == earliest_iter
+                        push!(earliest_ancestors, node)
                     end
                 end
             end
+            
+            if isempty(earliest_ancestors)
+                break  # No earliest ancestors found
+            end
+            
+            # Found common ancestors, set the flag
+            found_common_ancestors = true
+            
+            # Process the earliest ancestors (pick the first one for simplicity)
+            common_ancestor = first(earliest_ancestors)
+            
+            # Create a copy of the ancestor group for this specific ancestor
+            new_ancestors = copy(ancestor_group.ancestors)
+            new_influenced_parents = copy(ancestor_group.influenced_parents)
+            
+            # Set the new fork_node
+            current_fork = common_ancestor
+            current_highest = Set{Int64}([current_fork])
+            current_sources = Set{Int64}([current_fork])
+            
+            # Rebuild diamond subgraph for this specific ancestor
+            current_nodes = collect_base_nodes(current_fork, join_node, ancestor_group)
+            add_intermediate_nodes!(current_nodes, current_fork, ancestor_group, descendants, ancestors)
+            current_edgelist = extract_edges(current_nodes, current_fork, edgelist)
+            
+            current_additional = handle_additional_nodes!(
+                current_nodes, current_sources, current_fork, join_node, incoming_index
+            )
+            current_edgelist = union(current_edgelist, current_additional)
+            
+            # Create filtered iteration sets
+            current_iter_sets = [intersect(set, current_nodes) for set in iteration_sets]
+            filter!(!isempty, current_iter_sets)
+            
+            # Build graph structures
+            current_outgoing, current_incoming = build_graph_indices(current_edgelist)
+            current_descendants, current_ancestors = calculate_ancestry(current_edgelist)
+            
+            # Create the diamond for this specific ancestor
+            current_diamond = DiamondSubgraph(
+                current_nodes,
+                current_sources,
+                current_edgelist,
+                current_iter_sets,
+                current_outgoing,
+                current_incoming,
+                current_descendants,
+                current_ancestors
+            )
+            
+            # Add this result to the vector
+            push!(results, (new_ancestors, new_influenced_parents, current_highest, current_diamond))
+            
+            # Break the loop since we've found and processed common ancestors
+            break
         end
-    
+        
+        # If we found common ancestors, return the results
+        if found_common_ancestors && !isempty(results)
+            return results
+        end
+        
         # If no common ancestors found, create the original diamond
         sub_iteration_sets = [intersect(set, relevant_nodes) for set in iteration_sets]
         filter!(!isempty, sub_iteration_sets)
@@ -634,6 +660,129 @@ module NetworkDecompositionModule
         return results
     end
 
+    function process_shared_subsources!(
+        ancestor_groups::Vector{AncestorGroup},
+        join_node::Int64,
+        ancestors::Dict{Int64, Set{Int64}},
+        descendants::Dict{Int64, Set{Int64}},
+        edgelist::Vector{Tuple{Int64, Int64}},
+        iteration_sets::Vector{Set{Int64}},
+        source_nodes::Set{Int64}
+    )
+        for group_idx in eachindex(ancestor_groups)
+            group = ancestor_groups[group_idx]
+            subgraph = group.subgraph
+            
+            # Keep processing until no more changes
+            changed = true
+            while changed
+                changed = false
+                
+                # Get sources that aren't already in highest_nodes
+                sources_to_check = setdiff(subgraph.sources, group.highest_nodes)
+                
+                if length(sources_to_check) >= 2
+                    # Get ALL ancestors for each source - NOT just those in group.ancestors
+                    source_ancestors = Dict{Int64, Set{Int64}}()
+                    for source in sources_to_check
+                        if haskey(ancestors, source)
+                            # Don't filter by group.ancestors - get ALL ancestors
+                            valid_ancestors = setdiff(ancestors[source], source_nodes)
+                            source_ancestors[source] = valid_ancestors
+                        end
+                    end
+                    
+                    # Find shared ancestors between sources
+                    shared_ancestors = Set{Int64}()
+                    sources_sharing_ancestors = Set{Int64}()
+                    
+                    sources_array = collect(sources_to_check)
+                    for i in eachindex(sources_array)
+                        source_i = sources_array[i]
+                        haskey(source_ancestors, source_i) || continue
+                        
+                        for j in (i+1):lastindex(sources_array)
+                            source_j = sources_array[j]
+                            haskey(source_ancestors, source_j) || continue
+                            
+                            shared = intersect(source_ancestors[source_i], source_ancestors[source_j])
+                            if !isempty(shared)
+                                union!(shared_ancestors, shared)
+                                push!(sources_sharing_ancestors, source_i)
+                                push!(sources_sharing_ancestors, source_j)
+                            end
+                        end
+                    end
+                    
+                    # Rest of function remains the same...
+                    if !isempty(shared_ancestors)
+                        # Find earliest iteration shared ancestors
+                        earliest_iter = typemax(Int)
+                        earliest_shared_ancestors = Set{Int64}()
+                        
+                        for node in shared_ancestors
+                            node_iter = find_iteration_index(node, iteration_sets)
+                            if node_iter !== nothing
+                                if node_iter < earliest_iter
+                                    earliest_iter = node_iter
+                                    earliest_shared_ancestors = Set{Int64}([node])
+                                elseif node_iter == earliest_iter
+                                    push!(earliest_shared_ancestors, node)
+                                end
+                            end
+                        end
+                        
+                        if !isempty(earliest_shared_ancestors)
+                            # Update highest nodes 
+                            union!(group.highest_nodes, earliest_shared_ancestors)
+                            
+                            # Update group.ancestors to include these new shared ancestors
+                            union!(group.ancestors, earliest_shared_ancestors)
+                            
+                            # Update sources: add shared ancestors, remove sources that share them
+                            union!(subgraph.sources, earliest_shared_ancestors)
+                            setdiff!(subgraph.sources, sources_sharing_ancestors)
+                            
+                            # Add paths from shared ancestors to join node
+                            for ancestor in earliest_shared_ancestors
+                                if haskey(descendants, ancestor) && haskey(ancestors, join_node)
+                                    # Find nodes on paths from ancestor to join_node
+                                    path_nodes = intersect(descendants[ancestor], ancestors[join_node])
+                                    push!(path_nodes, ancestor)  # Add the ancestor itself
+                                    push!(path_nodes, join_node) # Add join_node itself
+                                    
+                                    # Add to relevant_nodes
+                                    union!(subgraph.relevant_nodes, path_nodes)
+                                    
+                                    # Add edges between these nodes
+                                    for edge in edgelist
+                                        src, dst = edge
+                                        if src in path_nodes && dst in path_nodes
+                                            push!(subgraph.edgelist, edge)
+                                        end
+                                    end
+                                end
+                            end
+                            
+                            # Ensure unique edges
+                            unique!(subgraph.edgelist)
+                            
+                            # Update graph structures
+                            subgraph.outgoing, subgraph.incoming = build_graph_indices(subgraph.edgelist)
+                            subgraph.descendants, subgraph.ancestors = calculate_ancestry(subgraph.edgelist)
+                            
+                            # Update iteration sets
+                            subgraph.iteration_sets = [intersect(set, subgraph.relevant_nodes) for set in iteration_sets]
+                            filter!(!isempty, subgraph.iteration_sets)
+                            
+                            # Signal that we made changes
+                            changed = true
+                        end
+                    end
+                end
+            end
+        end
+    end
     """
         Find highest iteration set containing any of the given nodes
         Returns all nodes that appear in the highest iteration
