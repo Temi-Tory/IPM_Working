@@ -132,15 +132,69 @@ module NetworkDecompositionModule
 
             #for each group in ancestor_groups, check if any two or more sub_sources share an ancestor
             # NEW: Process shared subsources after merging diamonds
-    process_shared_subsources!(
-        ancestor_groups,
-        join_node,
-        ancestors,
-        descendants,
-        edgelist,
-        iteration_sets,
-        source_nodes
-    )
+            process_shared_subsources!(
+                ancestor_groups,
+                join_node,
+                ancestors,
+                descendants,
+                edgelist,
+                iteration_sets,
+                source_nodes
+            )
+
+            # for each ancestor group, get intermediate nodes, these are nodes in group's relevant_nodes that are not:
+            #- in the ancestor group's highest nodes
+            #- in the ancestor group's source nodes
+            #- the join node
+            for group in ancestor_groups
+                # get the relevant nodes for this group
+                intermediate_nodes = setdiff(
+                    group.subgraph.relevant_nodes,
+                    union(group.highest_nodes, group.subgraph.sources, Set([join_node]))
+                )
+                
+                #check if any intermediate nodes are in the missing incoming edges from main graph compared to the subgraph
+                missing_edges = Vector{Tuple{Int64, Int64}}()
+                new_nodes = Set{Int64}()
+                
+                for node in intermediate_nodes
+                    if haskey(incoming_index, node)
+                        for src in incoming_index[node]
+                            edge = (src, node)
+                            if edge in edgelist && !(edge in group.subgraph.edgelist)
+                                push!(missing_edges, edge)
+                                push!(new_nodes, src)
+                            end
+                        end
+                    end
+                end
+                
+                # If found missing edges, update the subgraph
+                if !isempty(missing_edges)
+                    # Update relevant_nodes to include new source nodes
+                    union!(group.subgraph.relevant_nodes, new_nodes)
+                    
+                    # Update sources with new nodes that have no incoming edges
+                    for node in new_nodes
+                        if !haskey(incoming_index, node) || isempty(incoming_index[node])
+                            push!(group.subgraph.sources, node)
+                        end
+                    end
+                    
+                    # Update edgelist with missing edges
+                    append!(group.subgraph.edgelist, missing_edges)
+                    
+                    # Rebuild iteration_sets
+                    group.subgraph.iteration_sets = [intersect(set, group.subgraph.relevant_nodes) for set in iteration_sets]
+                    filter!(!isempty, group.subgraph.iteration_sets)
+                    
+                    # Rebuild outgoing and incoming indices
+                    group.subgraph.outgoing, group.subgraph.incoming = build_graph_indices(group.subgraph.edgelist)
+                    
+                    # Rebuild descendants and ancestors
+                    group.subgraph.descendants, group.subgraph.ancestors = calculate_ancestry(group.subgraph.edgelist)
+                end
+            end
         # Safety check - we should always have at least one group left
         if isempty(ancestor_groups)
             error("Invalid state: All ancestor groups were filtered out for join node $join_node")
@@ -268,64 +322,7 @@ module NetworkDecompositionModule
         )
     end
     
-    function add_intermediate_nodes!(relevant_nodes::Set{Int64}, 
-                                   fork_node::Int64,
-                                   ancestor_group,
-                                   descendants::Dict{Int64, Set{Int64}},
-                                   ancestors::Dict{Int64, Set{Int64}})
-        for parent in ancestor_group.influenced_parents
-            parent_intermediates = intersect(
-                descendants[fork_node],
-                ancestors[parent]
-            )
-            union!(relevant_nodes, parent_intermediates)
-        end
-    end
-    
-    function extract_edges(relevant_nodes::Set{Int64}, 
-                          fork_node::Int64,
-                          edgelist::Vector{Tuple{Int64, Int64}})
-        sub_edgelist = Vector{Tuple{Int64, Int64}}()
-        
-        for edge in edgelist
-            if edge[1] in relevant_nodes && edge[2] in relevant_nodes && edge[2] != fork_node
-                push!(sub_edgelist, edge)
-            end
-        end
-        
-        return sub_edgelist
-    end
-    
-    function handle_additional_nodes!(relevant_nodes::Set{Int64},
-                                    sub_sources::Set{Int64},
-                                    fork_node::Int64,
-                                    join_node::Int64,
-                                    incoming_index::Dict{Int64, Set{Int64}})
-        sub_edgelist = Vector{Tuple{Int64, Int64}}()
-        
-        additional_nodes = Set{Int64}()
-        for node in relevant_nodes
-            if node != fork_node && node != join_node
-                incoming_nodes = incoming_index[node]
-                new_incoming_nodes = setdiff(incoming_nodes, relevant_nodes)
-                
-                if !isempty(new_incoming_nodes)
-                    union!(additional_nodes, new_incoming_nodes)
-                    union!(sub_sources, new_incoming_nodes)
-                    
-                    for new_node in new_incoming_nodes
-                        push!(sub_edgelist, (new_node, node))
-                    end
-                end
-            end
-        end
-        
-        if !isempty(additional_nodes)
-            union!(relevant_nodes, additional_nodes)
-        end
-        
-        return sub_edgelist
-    end
+   
     
     function build_graph_indices(sub_edgelist::Vector{Tuple{Int64, Int64}})
         sub_outgoing = Dict{Int64, Set{Int64}}()
@@ -365,6 +362,84 @@ module NetworkDecompositionModule
         return sub_descendants, sub_ancestors
     end
     
+
+     function add_intermediate_nodes!(relevant_nodes::Set{Int64}, 
+                                   fork_node::Int64,
+                                   ancestor_group,
+                                   descendants::Dict{Int64, Set{Int64}},
+                                   ancestors::Dict{Int64, Set{Int64}})
+
+        for parent in ancestor_group.influenced_parents
+            parent_intermediates = intersect(
+                descendants[fork_node],
+                ancestors[parent]
+            )
+            union!(relevant_nodes, parent_intermediates)
+        end
+     
+    end
+    
+    function extract_edges(relevant_nodes::Set{Int64}, 
+                      fork_node::Int64,
+                      join_node::Int64,
+                      edgelist::Vector{Tuple{Int64, Int64}})
+        sub_edgelist = Vector{Tuple{Int64, Int64}}()
+
+      
+        for edge in edgelist
+            source, target = edge
+            
+            # Case 1: Outgoing edges from fork node
+            if source == fork_node && target in relevant_nodes
+                push!(sub_edgelist, edge)
+            
+            # Case 2: Incoming edges to join node (only if source is relevant)
+            elseif target == join_node && source in relevant_nodes
+                push!(sub_edgelist, edge)
+            
+            # Case 3: Incoming edges to intermediate nodes (regardless of source)
+            elseif target in relevant_nodes && target != fork_node && target != join_node
+                push!(sub_edgelist, edge)
+                
+            # Case 4: Other edges between relevant nodes
+            elseif source in relevant_nodes && target in relevant_nodes
+                push!(sub_edgelist, edge)
+            end
+        end
+        
+        return sub_edgelist
+
+    end
+    
+    function handle_additional_nodes!(relevant_nodes::Set{Int64},
+                                    sub_sources::Set{Int64},
+                                    fork_node::Int64,
+                                    join_node::Int64,
+                                    incoming_index::Dict{Int64, Set{Int64}})
+        sub_edgelist = Vector{Tuple{Int64, Int64}}()
+        additional_nodes = Set{Int64}()
+        for node in relevant_nodes
+            if node != fork_node && node != join_node
+                incoming_nodes = incoming_index[node]
+                new_incoming_nodes = setdiff(incoming_nodes, relevant_nodes)
+                
+                if !isempty(new_incoming_nodes)
+                    union!(additional_nodes, new_incoming_nodes)
+                    union!(sub_sources, new_incoming_nodes)
+                    
+                    for new_node in new_incoming_nodes
+                        push!(sub_edgelist, (new_node, node))
+                    end
+                end
+            end
+        end
+        
+        if !isempty(additional_nodes)
+            union!(relevant_nodes, additional_nodes)
+        end
+        
+        return sub_edgelist
+    end
     function merge_overlapping_diamonds!(
         ancestor_groups::Vector{AncestorGroup}, 
         join_node::Int64,
@@ -441,7 +516,7 @@ module NetworkDecompositionModule
                         # Build subgraph step by step
                         add_intermediate_nodes!(relevant_nodes, new_fork_node, temp_group, descendants, ancestors)
                         
-                        sub_edgelist = extract_edges(relevant_nodes, new_fork_node, edgelist)
+                        sub_edgelist = extract_edges(relevant_nodes, new_fork_node,join_node, edgelist)
                         
                         additional_edgelist = handle_additional_nodes!(
                             relevant_nodes, sub_sources, new_fork_node, join_node, incoming_index
@@ -516,7 +591,7 @@ module NetworkDecompositionModule
         # Build subgraph step by step
         add_intermediate_nodes!(relevant_nodes, fork_node, ancestor_group, descendants, ancestors)
         
-        sub_edgelist = extract_edges(relevant_nodes, fork_node, edgelist)
+        sub_edgelist = extract_edges(relevant_nodes, fork_node,join_node, edgelist)
         
         additional_edgelist = handle_additional_nodes!(
             relevant_nodes, sub_sources, fork_node, join_node, incoming_index
@@ -595,7 +670,7 @@ module NetworkDecompositionModule
             # Rebuild diamond subgraph for this specific ancestor
             current_nodes = collect_base_nodes(current_fork, join_node, ancestor_group)
             add_intermediate_nodes!(current_nodes, current_fork, ancestor_group, descendants, ancestors)
-            current_edgelist = extract_edges(current_nodes, current_fork, edgelist)
+            current_edgelist = extract_edges(current_nodes, current_fork, join_node,edgelist)
             
             current_additional = handle_additional_nodes!(
                 current_nodes, current_sources, current_fork, join_node, incoming_index

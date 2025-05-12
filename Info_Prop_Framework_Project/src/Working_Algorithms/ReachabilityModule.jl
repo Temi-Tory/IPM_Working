@@ -265,6 +265,7 @@ function updateDiamondJoin(
     # Get the precomputed subgraph
     subgraph = ancestor_group.subgraph
     
+    
     # Create sub_link_probability just for the subgraph edges
     sub_link_probability = Dict{Tuple{Int64, Int64}, Float64}()
     for edge in subgraph.edgelist
@@ -287,13 +288,16 @@ function updateDiamondJoin(
         end
     end
     
+
+    subgraph.edgelist = unique(subgraph.edgelist)
     # Calculate fresh iteration sets, ancestors, and descendants
     sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
         subgraph.edgelist, 
         sub_outgoing_index, 
         sub_incoming_index
     )
-
+  
+    sub_iteration_sets = subgraph.iteration_sets
     # Identify fork and join nodes using the fresh indices
     sub_fork_nodes, sub_join_nodes = InputProcessingModule.identify_fork_and_join_nodes(
         sub_outgoing_index, 
@@ -310,7 +314,6 @@ function updateDiamondJoin(
         end
     end
     
-   
     # Create sub_node_priors for the subgraph nodes
     sub_node_priors = Dict{Int64, Float64}()
     for node in subgraph.relevant_nodes

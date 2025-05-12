@@ -7,9 +7,9 @@ using DataFrames, DelimitedFiles, Distributions,
 using .IPAFramework
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
-filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
+#filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 
 #show(edgelist)
@@ -35,10 +35,13 @@ diamond_structures= #= @run  =# identify_and_group_diamonds(
 	descendants,
     node_priors
 );
+
+
+#pushfirst!(diamond_structures[7].diamond[1].subgraph.iteration_sets, Set([13]));
 #show(diamond_structures)
-#show(diamond_structures[7].diamond[1].subgraph.relevant_nodes)
-#show(diamond_structures[7].diamond[1].subgraph.edgelist)
-#
+#show(diamond_structures[7].diamond[1].subgraph.iteration_sets)
+#show(diamond_structures[7].non_diamond_parents diamond[1].subgraph.edgelist)
+#push!(diamond_structures[7].diamond[1].subgraph.edgelist, (13, 9))
 #@run
 (
 output =  update_beliefs_iterative(
@@ -59,7 +62,7 @@ output =  update_beliefs_iterative(
 sorted_algo = OrderedDict(sort(collect(output)));
 
 #show(sorted_algo)
-#output[16]
+#output[12]
 
 exact_results =  path_enumeration_result(
         outgoing_index,
