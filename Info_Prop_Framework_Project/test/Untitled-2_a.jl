@@ -91,7 +91,7 @@ mc_results = (MC_result(
     source_nodes,
     node_priors,
     edge_probabilities,
-    1_000_000,
+    5_00_000,
 ));
 
 # Sort outputs
@@ -116,7 +116,7 @@ using CSV
 sorted_df = sort(df, :Diff, rev=true)
 
 # Save the sorted DataFrame as a CSV file
-CSV.write("sorted_layered_result.csv", sorted_df)
+CSV.write("sorted_mumin_result.csv", sorted_df)
 
  =#
 

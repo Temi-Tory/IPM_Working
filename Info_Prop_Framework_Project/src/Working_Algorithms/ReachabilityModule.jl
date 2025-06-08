@@ -297,7 +297,7 @@ function updateDiamondJoin(
         sub_incoming_index
     )
   
-    sub_iteration_sets = subgraph.iteration_sets
+    #sub_iteration_sets = subgraph.iteration_sets
     # Identify fork and join nodes using the fresh indices
     sub_fork_nodes, sub_join_nodes = InputProcessingModule.identify_fork_and_join_nodes(
         sub_outgoing_index, 
@@ -330,7 +330,7 @@ function updateDiamondJoin(
         end
     end
 
-    
+     subgraph.sources = fresh_sources
     sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
         sub_join_nodes,
         sub_ancestors,
