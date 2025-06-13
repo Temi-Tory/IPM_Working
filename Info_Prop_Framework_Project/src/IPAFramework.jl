@@ -41,7 +41,8 @@ module IPAFramework
                                 pbox_updateDiamondJoin,
                                 pbox_calculate_diamond_groups_belief,
                                 pbox_calculate_regular_belief,
-                                pbox_inclusion_exclusion
+                                pbox_inclusion_exclusion,
+                                convert_to_pbox_data
 
     using .VisualizeGraphsModule:  generate_graph_dot_string,
                                     visualize_graph
@@ -94,7 +95,8 @@ module IPAFramework
     pbox_updateDiamondJoin,
     pbox_calculate_diamond_groups_belief,
     pbox_calculate_regular_belief,
-    pbox_inclusion_exclusion
+    pbox_inclusion_exclusion,
+    convert_to_pbox_data
           #  Interval,
           #  MC_result_interval
 end

@@ -1,4 +1,12 @@
 module NetworkDecompositionModule
+
+    import ProbabilityBoundsAnalysis
+        # Create aliases to avoid ambiguity
+        const PBA = ProbabilityBoundsAnalysis
+        # Type aliases for convenience
+        const PBAInterval = ProbabilityBoundsAnalysis.Interval
+        const pbox = ProbabilityBoundsAnalysis.pbox
+
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
     
     mutable struct DiamondSubgraph
@@ -210,7 +218,7 @@ module NetworkDecompositionModule
         iteration_sets::Vector{Set{Int64}},
         edgelist::Vector{Tuple{Int64, Int64}},
         descendants::Dict{Int64, Set{Int64}},        
-        node_priors::Dict{Int64,Float64},
+        node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}} ,
         excludedjoinNode::Int64 = -1,
     )::Dict{Int64, GroupedDiamondStructure}
         grouped_structures = Dict{Int64, GroupedDiamondStructure}()
@@ -233,12 +241,23 @@ module NetworkDecompositionModule
                 length(parents) < 2 && continue
                 
                 non_diamond_parents = Set(parents)
-                # Only Exlude Source Nodes Whose prior is 0 or 1
-                # This is to avoid diamond structures that are not relevant for the analysis
-                # Filter to keep only source nodes whose prior is 0 or 1 (the irrelevant ones)
-                source_nodes = Set(node for node in source_nodes if node_priors[node] == 0.0 || node_priors[node] == 1.0)
+                # Find source nodes that are irrelevant (prior = 0 or 1) for diamond structure analysis
+                first_key = first(keys(node_priors))
+                if isa(node_priors[first_key], pbox)
+                    irrelevant_sources = Set{Int64}()
+                    for node in source_nodes
+                        prior = node_priors[node]
+                        # Check if mean bounds are exactly 0 or exactly 1
+                        if (prior.ml == 0.0 && prior.mh == 0.0) || (prior.ml == 1.0 && prior.mh == 1.0)
+                            push!(irrelevant_sources, node)
+                        end
+                    end
+                    source_nodes = irrelevant_sources
+                else
+                    source_nodes = Set(node for node in source_nodes if node_priors[node] == 0.0 || node_priors[node] == 1.0)
+                end
 
-                # Now source_nodes only contains irrelevant nodes
+                # Exclude irrelevant source nodes from parent consideration
                 filtered_parents = filter(parent -> parent ∉ source_nodes, parents)
                 
                 parent_fork_ancestors = Dict(

@@ -119,10 +119,11 @@ df = DataFrame(
 
 # Add a difference column (if needed)
 df.Diff = abs.(df.AlgoValue .- df.MCValue)
-# Display sorted result (if you want to sort by the difference)
+#= # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)
+=#
 #= 
-using CSV
+using CSV 
 
 # Sort the DataFrame by the Diff column in descending order
 sorted_df = sort(df, :Diff, rev=true)
