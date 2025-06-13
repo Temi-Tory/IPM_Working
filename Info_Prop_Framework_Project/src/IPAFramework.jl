@@ -3,6 +3,7 @@ module IPAFramework
     include("Working_Algorithms/InputProcessingModule.jl")
     include("Working_Algorithms/NetworkDecompositionModule.jl")
     include("Working_Algorithms/ReachabilityModule.jl")
+    include("Working_Algorithms/ComparisonModules.jl")
     include("Working_Algorithms/VisualizeGraphsModule.jl")
     include("Working_Algorithms/GenerateGraphModule.jl")
     include("Working_Algorithms/UndirectedToDagModule.jl")
@@ -28,8 +29,9 @@ module IPAFramework
                               updateDiamondJoin,
                               calculate_diamond_groups_belief,
                               calculate_regular_belief,
-                              inclusion_exclusion,
-                              MC_result,
+                              inclusion_exclusion
+
+  using .ComparisonModules: MC_result,
                             #  MC_result_interval,
                               has_path,
                               path_enumeration_result
