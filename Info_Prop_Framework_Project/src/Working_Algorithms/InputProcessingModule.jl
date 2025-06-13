@@ -3,22 +3,24 @@ module InputProcessingModule
     using Random, DataFrames, DelimitedFiles, Distributions, JSON,
         DataStructures, SparseArrays, Combinatorics
 
-    export ProbabilitySlices, read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets, Interval
+    #export ProbabilitySlices, read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets, Interval
+    export Interval
+
+    # Basic interval type
     struct Interval
         lower::Float64
         upper::Float64
         
         function Interval(lower::Float64, upper::Float64)
             if lower > upper
-                throw(ArgumentError("Lower bound ($lower) cannot be greater than upper bound ($upper)"))
-            end
-            if lower < 0 || upper > 1
-                throw(ArgumentError("Interval bounds must be between 0 and 1"))
+                throw(ArgumentError("Lower bound must be ≤ upper bound"))
             end
             new(lower, upper)
         end
     end
 
+    # Constructor for creating interval from single value (deterministic case)
+    Interval(value::Float64) = Interval(value, value)
     """
         struct ProbabilitySlices
 

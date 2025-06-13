@@ -265,8 +265,9 @@ df.PercError = (df.AbsDiff ./ abs.(df.ExactValue)) .* 100
 
     # Display sorted result (if you want to sort by the difference)
     show(sort(df, :AbsDiff, rev=true), allrows=true)
-
-
+using CSV
+sorted_df = sort(df, :AbsDiff, rev=true)
+CSV.write("sorted_metro_1.0x0.9_result.csv", sorted_df)
 
 
 #= 

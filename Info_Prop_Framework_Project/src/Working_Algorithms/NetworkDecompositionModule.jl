@@ -7,6 +7,11 @@ module NetworkDecompositionModule
         const PBAInterval = ProbabilityBoundsAnalysis.Interval
         const pbox = ProbabilityBoundsAnalysis.pbox
 
+        
+        using ..InputProcessingModule 
+    
+        const Interval = InputProcessingModule.Interval
+
     export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
     
     mutable struct DiamondSubgraph
@@ -218,7 +223,7 @@ module NetworkDecompositionModule
         iteration_sets::Vector{Set{Int64}},
         edgelist::Vector{Tuple{Int64, Int64}},
         descendants::Dict{Int64, Set{Int64}},        
-        node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}} ,
+        node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}, Dict{Int64,Interval}} ,
         excludedjoinNode::Int64 = -1,
     )::Dict{Int64, GroupedDiamondStructure}
         grouped_structures = Dict{Int64, GroupedDiamondStructure}()
@@ -241,7 +246,7 @@ module NetworkDecompositionModule
                 length(parents) < 2 && continue
                 
                 non_diamond_parents = Set(parents)
-                # Find source nodes that are irrelevant (prior = 0 or 1) for diamond structure analysis
+               # Find source nodes that are irrelevant (prior = 0 or 1) for diamond structure analysis
                 first_key = first(keys(node_priors))
                 if isa(node_priors[first_key], pbox)
                     irrelevant_sources = Set{Int64}()
@@ -253,7 +258,18 @@ module NetworkDecompositionModule
                         end
                     end
                     source_nodes = irrelevant_sources
+                elseif isa(node_priors[first_key], Interval)
+                    irrelevant_sources = Set{Int64}()
+                    for node in source_nodes
+                        prior = node_priors[node]
+                        # Check if interval bounds are exactly [0,0] or exactly [1,1]
+                        if (prior.lower == 0.0 && prior.upper == 0.0) || (prior.lower == 1.0 && prior.upper == 1.0)
+                            push!(irrelevant_sources, node)
+                        end
+                    end
+                    source_nodes = irrelevant_sources
                 else
+                    # Float64 case
                     source_nodes = Set(node for node in source_nodes if node_priors[node] == 0.0 || node_priors[node] == 1.0)
                 end
 
