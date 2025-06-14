@@ -10,6 +10,7 @@ module IPAFramework
     include("Working_Algorithms/ReachabilityModule_Pbox.jl")
     include("Working_Algorithms/ReachabilityModule_Interval.jl")
     include("Working_Algorithms/TimeAnalysisModule.jl")
+    include("Working_Algorithms/DiamondClassificationModule.jl")
 
     # Import from modules
     using .InputProcessingModule: ProbabilitySlices, Interval, read_graph_to_dict, 
@@ -41,7 +42,12 @@ module IPAFramework
                               time_update_beliefs_iterative, get_project_duration,
                               get_critical_path_nodes, format_results,
                               to_hours, from_hours, validate_time_parameters
-
+                              
+    # Updated DiamondClassification imports
+    using .DiamondClassificationModule: DiamondClassification, classify_diamond_exhaustive,
+                                 ForkStructure, InternalStructure, PathTopology, JoinStructure, 
+                                 ExternalConnectivity, DegenerateCases
+    
     # EXPORTS - Organized by module
     export 
         # Core types
@@ -84,6 +90,10 @@ module IPAFramework
         InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities,
 
         # Undirected to DAG conversion
-        improved_undirected_to_dag, process_graph_from_csv, analyze_generated_dag, validate_dag
-
+        improved_undirected_to_dag, process_graph_from_csv, analyze_generated_dag, validate_dag,
+        
+        # Exhaustive Diamond Classification
+        DiamondClassification, classify_diamond_exhaustive,
+        ForkStructure, InternalStructure, PathTopology, JoinStructure, 
+        ExternalConnectivity, DegenerateCases
 end

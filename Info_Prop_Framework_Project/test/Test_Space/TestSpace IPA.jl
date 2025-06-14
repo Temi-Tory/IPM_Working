@@ -36,7 +36,26 @@ diamond_structures= identify_and_group_diamonds(
     node_priors
 );
 
-
+#= # Exhaustive classification for each diamond
+for (join_node, diamonds_at_node) in diamond_structures
+    for (i, diamond) in enumerate(diamonds_at_node.diamond)
+        classification = classify_diamond_exhaustive(
+            diamond, join_node,
+            edgelist, outgoing_index, incoming_index, source_nodes,
+            fork_nodes, join_nodes, iteration_sets, ancestors, descendants
+        )
+        
+        println("Join Node $join_node, Diamond $i:")
+        println("  Fork Structure: $(classification.fork_structure)")
+        println("  Internal Structure: $(classification.internal_structure)")
+        println("  Path Topology: $(classification.path_topology)")
+        println("  Join Structure: $(classification.join_structure)")
+        println("  External Connectivity: $(classification.external_connectivity)")
+        println("  Forks: $(classification.fork_count), Size: $(classification.subgraph_size)")
+        println("  Optimization: $(classification.optimization_potential)")
+        println()
+    end
+end =#
 
 (
 output =  update_beliefs_iterative(

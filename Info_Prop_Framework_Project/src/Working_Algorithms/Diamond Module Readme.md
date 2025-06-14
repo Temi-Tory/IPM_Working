@@ -706,3 +706,8 @@ optimization_analysis/
 3. **Integration APIs** - Connect to external optimization tools
 
 This roadmap transforms your sophisticated diamond analysis framework into a comprehensive optimization and decision-support system while preserving all the mathematical rigor you've already built.
+
+The diamodn Module output's edge;ist also alows for you to create edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities based on original graph which give esach graph as indivdiial tweakavble inputs to go into the recahbility and othe rflow modules 
+
+
+This would ber a  module that user can extedn and add their own interpretation and optimization layers, allowing for domain-specific insights and recommendations.
