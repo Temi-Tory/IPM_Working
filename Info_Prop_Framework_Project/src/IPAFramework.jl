@@ -8,109 +8,83 @@ module IPAFramework
     include("Working_Algorithms/GenerateGraphModule.jl")
     include("Working_Algorithms/UndirectedToDagModule.jl")
     include("Working_Algorithms/ReachabilityModule_Pbox.jl")
-     include("Working_Algorithms/ReachabilityModule_Interval.jl")
-  
+    include("Working_Algorithms/ReachabilityModule_Interval.jl")
+    include("Working_Algorithms/TimeAnalysisModule.jl")
 
-    export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph, Interval
+    # Import from modules
+    using .InputProcessingModule: ProbabilitySlices, Interval, read_graph_to_dict, 
+                                 identify_fork_and_join_nodes, find_iteration_sets
 
-    using .InputProcessingModule:   ProbabilitySlices,
-                                   Interval,
-                                    read_graph_to_dict, 
-                                   identify_fork_and_join_nodes,
-                                   find_iteration_sets
+    using .NetworkDecompositionModule: AncestorGroup, GroupedDiamondStructure, DiamondSubgraph,
+                                      identify_and_group_diamonds, find_highest_iteration_nodes
 
-    using .NetworkDecompositionModule:  AncestorGroup,
-                                       GroupedDiamondStructure,
-                                       DiamondSubgraph,
-                                       identify_and_group_diamonds,
-                                       find_highest_iteration_nodes
+    using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
+                              calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion
 
-    using .ReachabilityModule: validate_network_data,
-                              update_beliefs_iterative,
-                              updateDiamondJoin,
-                              calculate_diamond_groups_belief,
-                              calculate_regular_belief,
-                              inclusion_exclusion
+    using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
-  using .ComparisonModules: MC_result,
-                            #  MC_result_interval,
-                              has_path,
-                              path_enumeration_result
+    using .ReachabilityModule_Pbox: pbox_validate_network_data, pbox_update_beliefs_iterative,
+                                   pbox_updateDiamondJoin, pbox_calculate_diamond_groups_belief,
+                                   pbox_calculate_regular_belief, pbox_inclusion_exclusion, convert_to_pbox_data
 
-    using .ReachabilityModule_Pbox: pbox_validate_network_data,
-                                pbox_update_beliefs_iterative,
-                                pbox_updateDiamondJoin,
-                                pbox_calculate_diamond_groups_belief,
-                                pbox_calculate_regular_belief,
-                                pbox_inclusion_exclusion,
-                                convert_to_pbox_data
+    using .ReachabilityModule_Interval: interval_update_beliefs_iterative, interval_updateDiamondJoin,
+                                       interval_calculate_diamond_groups_belief, interval_calculate_regular_belief,
+                                       interval_inclusion_exclusion
 
-    using .ReachabilityModule_Interval: #interval_validate_network_data,
-                                interval_update_beliefs_iterative,
-                                interval_updateDiamondJoin,
-                                interval_calculate_diamond_groups_belief,
-                                interval_calculate_regular_belief,
-                                interval_inclusion_exclusion
-    using .VisualizeGraphsModule:  generate_graph_dot_string,
-                                    visualize_graph
+    using .VisualizeGraphsModule: generate_graph_dot_string, visualize_graph
 
-    using .GenerateGraphModule: InfraProperties,
-                                    generate_infra_dag,
-                                    analyze_ranked_dag,
-                                    generate_dag_probabilities
+    using .GenerateGraphModule: InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities
 
-    using .UndirectedToDagModule: improved_undirected_to_dag,
-                                    process_graph_from_csv,
-                                    analyze_generated_dag,
-                                    validate_dag
-       
-    export  read_graph_to_dict,
-            identify_fork_and_join_nodes, 
-            find_iteration_sets,
-            # Network decomposition exports
-            identify_and_group_diamonds,
-            find_highest_iteration_nodes,
-            # Reachability exports
-            validate_network_data,
-            update_beliefs_iterative,
-            updateDiamondJoin,
-            calculate_diamond_groups_belief,
-            calculate_regular_belief,
-            inclusion_exclusion,
-            MC_result,
-            has_path,
-            path_enumeration_result,
-            # VisualizeGraphsModule exports
-            generate_graph_dot_string,
-            visualize_graph,
-            # Graph Generation exports
-            InfraProperties,
-            generate_infra_dag,
-            analyze_ranked_dag,
-            generate_dag_probabilities,
-            # UndirectedToDAG exports
-            improved_undirected_to_dag,
-            process_graph_from_csv,
-            analyze_generated_dag,
-            validate_dag,
+    using .UndirectedToDagModule: improved_undirected_to_dag, process_graph_from_csv, 
+                                 analyze_generated_dag, validate_dag
 
+    using .TimeAnalysisModule: TimeUnit, NonNegativeTime, TimeFlowParameters,
+                              time_update_beliefs_iterative, get_project_duration,
+                              get_critical_path_nodes, format_results,
+                              to_hours, from_hours, validate_time_parameters
 
-            ProbabilitySlices,
+    # EXPORTS - Organized by module
+    export 
+        # Core types
+        AncestorGroup, GroupedDiamondStructure, DiamondSubgraph, 
+        Interval, ProbabilitySlices,
+        TimeUnit, NonNegativeTime,  #  Time types
 
-            pbox_validate_network_data,
-    pbox_update_beliefs_iterative,
-    pbox_updateDiamondJoin,
-    pbox_calculate_diamond_groups_belief,
-    pbox_calculate_regular_belief,
-    pbox_inclusion_exclusion,
-    convert_to_pbox_data,
-          #  Interval,
-          #  MC_result_interval
-          interval_validate_network_data,
-        interval_update_beliefs_iterative,
-        interval_updateDiamondJoin,
-        interval_calculate_diamond_groups_belief,
-        interval_calculate_regular_belief,
-        interval_inclusion_exclusion
+        # Input processing
+        read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets,
+
+        # Network decomposition  
+        identify_and_group_diamonds, find_highest_iteration_nodes,
+
+        # Standard reachability analysis
+        validate_network_data, update_beliefs_iterative, updateDiamondJoin,
+        calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
+
+        # Comparison methods
+        MC_result, has_path, path_enumeration_result,
+
+        # P-box reachability analysis
+        pbox_validate_network_data, pbox_update_beliefs_iterative, pbox_updateDiamondJoin,
+        pbox_calculate_diamond_groups_belief, pbox_calculate_regular_belief, 
+        pbox_inclusion_exclusion, convert_to_pbox_data,
+
+        # Interval reachability analysis  
+        interval_update_beliefs_iterative, interval_updateDiamondJoin,
+        interval_calculate_diamond_groups_belief, interval_calculate_regular_belief,
+        interval_inclusion_exclusion,
+
+        #  TIME ANALYSIS EXPORTS - Complete set
+        TimeFlowParameters, time_update_beliefs_iterative,
+        get_project_duration, get_critical_path_nodes, format_results,
+        to_hours, from_hours, validate_time_parameters,
+
+        # Visualization
+        generate_graph_dot_string, visualize_graph,
+
+        # Graph generation
+        InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities,
+
+        # Undirected to DAG conversion
+        improved_undirected_to_dag, process_graph_from_csv, analyze_generated_dag, validate_dag
+
 end
-
