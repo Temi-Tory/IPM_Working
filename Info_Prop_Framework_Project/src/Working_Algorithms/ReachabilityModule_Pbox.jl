@@ -168,7 +168,7 @@ module ReachabilityModule_Pbox
         link_probability::Dict{Tuple{Int64,Int64},pbox},
         descendants::Dict{Int64, Set{Int64}}, 
         ancestors::Dict{Int64, Set{Int64}},
-        diamond_structures::Dict{Int64, GroupedDiamondStructure},
+        diamond_structures::Dict{Int64, DiamondsAtNode},
         join_nodes::Set{Int64},
         fork_nodes::Set{Int64}
     )
@@ -195,16 +195,7 @@ module ReachabilityModule_Pbox
                         structure,
                         belief_dict,
                         link_probability,
-                        node_priors,
-                        descendants,
-                        ancestors,
-                        incoming_index,
-                        outgoing_index,
-                        iteration_sets,
-                        edgelist,
-                        join_nodes,
-                        fork_nodes,
-                        source_nodes
+                        node_priors
                     )
                     
                     # Use inclusion-exclusion for diamond groups
@@ -322,28 +313,24 @@ module ReachabilityModule_Pbox
     end
 
     function pbox_updateDiamondJoin(
-        fork_nodes::Set{Int64},  # Changed from fork_node::Int64 to fork_nodes::Set{Int64}
+        fork_nodes::Set{Int64},
         join_node::Int64, 
-        ancestor_group::AncestorGroup,
+        diamond::Diamond,  #  Change from ancestor_group::AncestorGroup
         link_probability::Dict{Tuple{Int64,Int64},pbox},
         node_priors::Dict{Int64,pbox},
-        belief_dict::Dict{Int64,pbox},
-        source_nodes::Set{Int64} 
-    )
-        # Get the precomputed subgraph
-        subgraph = ancestor_group.subgraph
-        
-        # Create sub_link_probability just for the subgraph edges
+        belief_dict::Dict{Int64,pbox}
+        )
+        # Create sub_link_probability just for the diamond edges
         sub_link_probability = Dict{Tuple{Int64, Int64}, pbox}()
-        for edge in subgraph.edgelist
+        for edge in diamond.edgelist  #  Use diamond.edgelist
             sub_link_probability[edge] = link_probability[edge]
         end
 
-        # Create fresh outgoing and incoming indices for the subgraph
+        # Create fresh outgoing and incoming indices for the diamond
         sub_outgoing_index = Dict{Int64, Set{Int64}}()
         sub_incoming_index = Dict{Int64, Set{Int64}}()
 
-        for (i, j) in subgraph.edgelist
+        for (i, j) in diamond.edgelist  #  Use diamond.edgelist
             push!(get!(sub_outgoing_index, i, Set{Int64}()), j)
             push!(get!(sub_incoming_index, j, Set{Int64}()), i)
         end
@@ -355,10 +342,9 @@ module ReachabilityModule_Pbox
             end
         end
         
-        subgraph.edgelist = unique(subgraph.edgelist)
         # Calculate fresh iteration sets, ancestors, and descendants
         sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
-            subgraph.edgelist, 
+            diamond.edgelist,  #  Use diamond.edgelist
             sub_outgoing_index, 
             sub_incoming_index
         )
@@ -379,10 +365,10 @@ module ReachabilityModule_Pbox
             end
         end
         
-        # Create sub_node_priors for the subgraph nodes
+        # Create sub_node_priors for the diamond nodes
         sub_node_priors = Dict{Int64, pbox}()
-        for node in subgraph.relevant_nodes
-            if node ∉ subgraph.sources
+        for node in diamond.relevant_nodes  #  Use diamond.relevant_nodes
+            if node ∉ fresh_sources  #  Use fresh_sources
                 sub_node_priors[node] = node_priors[node]
                 if node == join_node
                     # If the node is the join node, set its prior to 1.0
@@ -391,19 +377,18 @@ module ReachabilityModule_Pbox
             elseif node ∉ conditioning_nodes 
                 sub_node_priors[node] = belief_dict[node]
             elseif node ∈ conditioning_nodes 
-                sub_node_priors[node] = PBA.makepbox(PBA.interval(1.0, 1.0))    ## Set conditioning nodes to 1.0 so that diamonds identification works
+                sub_node_priors[node] = PBA.makepbox(PBA.interval(1.0, 1.0))
             end
         end
 
-        subgraph.sources = fresh_sources
         sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
             sub_join_nodes,
             sub_ancestors,
             sub_incoming_index,
-            subgraph.sources,
+            fresh_sources,  #  Use fresh_sources
             sub_fork_nodes,
             sub_iteration_sets,
-            subgraph.edgelist,
+            diamond.edgelist,  #  Use diamond.edgelist
             sub_descendants,
             sub_node_priors
         )
@@ -447,7 +432,7 @@ module ReachabilityModule_Pbox
             
             # Run belief propagation with these nodes fixed
             state_beliefs = pbox_update_beliefs_iterative(
-                subgraph.edgelist,
+                diamond.edgelist,
                 sub_iteration_sets,
                 sub_outgoing_index,
                 sub_incoming_index,
@@ -475,36 +460,24 @@ module ReachabilityModule_Pbox
     end
 
     function pbox_calculate_diamond_groups_belief(
-        diamond_structure::GroupedDiamondStructure,
+        diamond_structure::DiamondsAtNode,
         belief_dict::Dict{Int64,pbox},
         link_probability::Dict{Tuple{Int64,Int64},pbox},
-        node_priors::Dict{Int64,pbox},
-        descendants::Dict{Int64,Set{Int64}}, 
-        ancestors::Dict{Int64,Set{Int64}},
-        incoming_index::Dict{Int64,Set{Int64}},
-        outgoing_index::Dict{Int64,Set{Int64}},
-        iteration_sets::Vector{Set{Int64}},
-        edgelist::Vector{Tuple{Int64,Int64}},
-        join_nodes::Set{Int64},
-        fork_nodes::Set{Int64},
-        source_nodes::Set{Int64} 
+        node_priors::Dict{Int64,pbox}
     )
-        join_node = diamond_structure.join_node
+         join_node = diamond_structure.join_node
         group_combined_beliefs = pbox[]
-
-        for group in diamond_structure.diamond
+        for diamond  in diamond_structure.diamond
             updated_belief_dict = pbox_updateDiamondJoin(
-                group.highest_nodes, 
+                diamond.highest_nodes, 
                 join_node,
-                group,
+                diamond,
                 link_probability,
                 node_priors,
-                belief_dict,
-                source_nodes
+                belief_dict
             )
             push!(group_combined_beliefs, updated_belief_dict[join_node])
         end
-
         return group_combined_beliefs
     end
     

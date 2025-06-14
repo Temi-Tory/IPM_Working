@@ -15,8 +15,7 @@ module IPAFramework
     using .InputProcessingModule: ProbabilitySlices, Interval, read_graph_to_dict, 
                                  identify_fork_and_join_nodes, find_iteration_sets
 
-    using .NetworkDecompositionModule: AncestorGroup, GroupedDiamondStructure, DiamondSubgraph,
-                                      identify_and_group_diamonds, find_highest_iteration_nodes
+    using .NetworkDecompositionModule: DiamondsAtNode, Diamond, identify_and_group_diamonds
 
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion
@@ -46,7 +45,7 @@ module IPAFramework
     # EXPORTS - Organized by module
     export 
         # Core types
-        AncestorGroup, GroupedDiamondStructure, DiamondSubgraph, 
+        DiamondsAtNode, Diamond,
         Interval, ProbabilitySlices,
         TimeUnit, NonNegativeTime,  #  Time types
 

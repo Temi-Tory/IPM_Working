@@ -10,7 +10,7 @@ using .IPAFramework
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
-#filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
+filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/munin/munin_dag.csv";
 
@@ -56,4 +56,15 @@ output =  pbox_update_beliefs_iterative(
 
 #sorted_algo = OrderedDict(sort(collect(output)));
 
-#output[205]
+#= output for Pacific Gas and Electric node priors and edge probabilities = 0.9
+     Dict{Int64, pbox} with 23 entries:
+  5  => Pbox:     ~  ( range=0.58329, mean=0.58329, var=0.0)
+  16 => Pbox:     ~  ( range=0.729, mean=0.729, var=0.0)
+  20 => Pbox:     ~  ( range=0.48454, mean=0.48454, var=0.0)
+  12 => Pbox:     ~  ( range=0.59049, mean=0.59049, var=0.0)
+  8  => Pbox:     ~  ( range=0.729, mean=0.729, var=0.0)
+  17 => Pbox:     ~  ( range=0.59049, mean=0.59049, var=0.0)
+  1  => Pbox:     ~  ( range=0.9, mean=0.9, var=0.0)
+  ⋮  => ⋮
+
+#output[23] Pbox:     ~  ( range=0.57239, mean=0.57239, var=0.0) =#

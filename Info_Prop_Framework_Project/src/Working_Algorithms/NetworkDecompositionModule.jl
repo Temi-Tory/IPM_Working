@@ -12,8 +12,26 @@ module NetworkDecompositionModule
     
         const Interval = InputProcessingModule.Interval
 
-    export AncestorGroup, GroupedDiamondStructure, DiamondSubgraph
+    export DiamondsAtNode, Diamond # non mutable structs for diamond patterns for external use
     
+     # Represents a single ancestor group pattern within a diamond
+    struct Diamond
+        relevant_nodes::Set{Int64}
+        # Nodes from this group in the highest iteration set
+        highest_nodes::Set{Int64}
+        edgelist::Vector{Tuple{Int64, Int64}}
+    end
+
+    struct DiamondsAtNode
+        # Diamond pattern groups
+        diamond::Vector{Diamond}
+        # Parents that aren't part of any diamond pattern
+        non_diamond_parents::Set{Int64}
+        # The join node where paths converge
+        join_node::Int64
+    end
+
+    #internal structure to hold diamond subgraph information
     mutable struct DiamondSubgraph
         relevant_nodes::Set{Int64}
         sources::Set{Int64}
@@ -46,7 +64,19 @@ module NetworkDecompositionModule
         join_node::Int64
     end
 
-    
+    function to_external(grouped_structure::GroupedDiamondStructure)::DiamondsAtNode
+        external_diamonds = [Diamond(
+            group.subgraph.relevant_nodes, 
+            group.highest_nodes, 
+            unique(group.subgraph.edgelist)  # ← Ensure uniqueness 
+        ) for group in grouped_structure.diamond]
+        
+        return DiamondsAtNode(
+            external_diamonds,
+            grouped_structure.non_diamond_parents,
+            grouped_structure.join_node
+        )
+    end
 
     function extract_and_filter_ancestor_groups!(
         ancestor_groups::Vector{AncestorGroup},
@@ -225,7 +255,7 @@ module NetworkDecompositionModule
         descendants::Dict{Int64, Set{Int64}},        
         node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}, Dict{Int64,Interval}} ,
         excludedjoinNode::Int64 = -1,
-    )::Dict{Int64, GroupedDiamondStructure}
+    )::Dict{Int64, DiamondsAtNode}
         grouped_structures = Dict{Int64, GroupedDiamondStructure}()
         if excludedjoinNode != -1
 
@@ -346,7 +376,8 @@ module NetworkDecompositionModule
             end
         end
         
-        return grouped_structures
+        return Dict(join_node => to_external(grouped_structure) 
+           for (join_node, grouped_structure) in grouped_structures);
     end   
     
     function collect_base_nodes(fork_node::Int64, join_node::Int64, ancestor_group)::Set{Int64}

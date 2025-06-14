@@ -110,7 +110,7 @@ module ReachabilityModule
         link_probability::Dict{Tuple{Int64,Int64},Float64},
         descendants::Dict{Int64, Set{Int64}}, 
         ancestors::Dict{Int64, Set{Int64}},
-        diamond_structures::Dict{Int64, GroupedDiamondStructure},
+        diamond_structures::Dict{Int64, DiamondsAtNode},
         join_nodes::Set{Int64},
         fork_nodes::Set{Int64}
     )
@@ -136,16 +136,7 @@ module ReachabilityModule
                         structure,
                         belief_dict,
                         link_probability,
-                        node_priors,
-                        descendants,
-                        ancestors,
-                        incoming_index,
-                        outgoing_index,
-                        iteration_sets,
-                        edgelist,
-                        join_nodes,
-                        fork_nodes,
-                        source_nodes
+                        node_priors
                     )
                     
                     # Use inclusion-exclusion for diamond groups
@@ -252,30 +243,26 @@ module ReachabilityModule
     end
 
     function updateDiamondJoin(
-        fork_nodes::Set{Int64},  # Changed from fork_node::Int64 to fork_nodes::Set{Int64}
+        fork_nodes::Set{Int64},  
         join_node::Int64, 
-        ancestor_group::AncestorGroup,
+        diamond::Diamond,
         link_probability::Dict{Tuple{Int64,Int64},Float64},
         node_priors::Dict{Int64,Float64},
-        belief_dict::Dict{Int64,Float64},
-        source_nodes::Set{Int64} 
+        belief_dict::Dict{Int64,Float64}
     )
 
-        # Get the precomputed subgraph
-        subgraph = ancestor_group.subgraph
         
-        
-        # Create sub_link_probability just for the subgraph edges
+        # Create sub_link_probability just for the diamond edges
         sub_link_probability = Dict{Tuple{Int64, Int64}, Float64}()
-        for edge in subgraph.edgelist
+        for edge in diamond.edgelist
             sub_link_probability[edge] = link_probability[edge]
         end
 
-        # Create fresh outgoing and incoming indices for the subgraph
+        # Create fresh outgoing and incoming indices for the diamond
         sub_outgoing_index = Dict{Int64, Set{Int64}}()
         sub_incoming_index = Dict{Int64, Set{Int64}}()
 
-        for (i, j) in subgraph.edgelist
+        for (i, j) in diamond.edgelist
             push!(get!(sub_outgoing_index, i, Set{Int64}()), j)
             push!(get!(sub_incoming_index, j, Set{Int64}()), i)
         end
@@ -287,16 +274,13 @@ module ReachabilityModule
             end
         end
         
-
-        subgraph.edgelist = unique(subgraph.edgelist)
         # Calculate fresh iteration sets, ancestors, and descendants
         sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
-            subgraph.edgelist, 
+            diamond.edgelist, 
             sub_outgoing_index, 
             sub_incoming_index
         )
     
-        #sub_iteration_sets = subgraph.iteration_sets
         # Identify fork and join nodes using the fresh indices
         sub_fork_nodes, sub_join_nodes = InputProcessingModule.identify_fork_and_join_nodes(
             sub_outgoing_index, 
@@ -313,10 +297,10 @@ module ReachabilityModule
             end
         end
         
-        # Create sub_node_priors for the subgraph nodes
+        # Create sub_node_priors for the diamond nodes
         sub_node_priors = Dict{Int64, Float64}()
-        for node in subgraph.relevant_nodes
-            if node ∉ subgraph.sources
+        for node in diamond.relevant_nodes
+            if node ∉ fresh_sources
                 sub_node_priors[node] = node_priors[node]
                 if node == join_node
                     # If the node is the join node, set its prior to 1.0
@@ -329,15 +313,14 @@ module ReachabilityModule
             end
         end
 
-        subgraph.sources = fresh_sources
         sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
             sub_join_nodes,
             sub_ancestors,
             sub_incoming_index,
-            subgraph.sources,
+            fresh_sources,
             sub_fork_nodes,
             sub_iteration_sets,
-            subgraph.edgelist,
+            diamond.edgelist,
             sub_descendants,
             sub_node_priors
         )
@@ -379,7 +362,7 @@ module ReachabilityModule
             
             # Run belief propagation with these nodes fixed
             state_beliefs = update_beliefs_iterative(
-                subgraph.edgelist,
+                diamond.edgelist,
                 sub_iteration_sets,
                 sub_outgoing_index,
                 sub_incoming_index,
@@ -406,31 +389,21 @@ module ReachabilityModule
     end
 
     function calculate_diamond_groups_belief(
-        diamond_structure::GroupedDiamondStructure,
+        diamond_structure::DiamondsAtNode,
         belief_dict::Dict{Int64,Float64},
         link_probability::Dict{Tuple{Int64,Int64},Float64},
-        node_priors::Dict{Int64,Float64},
-        descendants::Dict{Int64,Set{Int64}}, 
-        ancestors::Dict{Int64,Set{Int64}},
-        incoming_index::Dict{Int64,Set{Int64}},
-        outgoing_index::Dict{Int64,Set{Int64}},
-        iteration_sets::Vector{Set{Int64}},
-        edgelist::Vector{Tuple{Int64,Int64}},
-        join_nodes::Set{Int64},
-        fork_nodes::Set{Int64},
-        source_nodes::Set{Int64} 
+        node_priors::Dict{Int64,Float64} 
     )
         join_node = diamond_structure.join_node
         group_combined_beliefs = Float64[]
-        for group in diamond_structure.diamond
+        for diamond  in diamond_structure.diamond
             updated_belief_dict = updateDiamondJoin(
-                group.highest_nodes, 
+                diamond.highest_nodes, 
                 join_node,
-                group,
+                diamond,
                 link_probability,
                 node_priors,
-                belief_dict,
-                source_nodes
+                belief_dict
             )
             push!(group_combined_beliefs, updated_belief_dict[join_node])
         end
