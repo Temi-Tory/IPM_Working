@@ -171,4 +171,6 @@ end
 
 println("🚀 Server running on: http://localhost:8080")
 # Start server
-HTTP.serve(route_handler, "127.0.0.1", 8080)
+
+HTTP.serve(route_handler, "127.0.0.1", 8080)#(only localhost):
+#HTTP.serve(route_handler, "0.0.0.0", 8080)(all interfaces)
