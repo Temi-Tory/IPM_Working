@@ -19,7 +19,7 @@ const overrideEdgeProb = document.getElementById('overrideEdgeProb');
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Network Analysis Tool loaded');
+    console.log('Network Analysis Tool loaded');
     
     // File input handler
     fileInput.addEventListener('change', handleFileUpload);
@@ -73,15 +73,15 @@ function handleFileUpload(event) {
     if (!file.name.toLowerCase().endsWith('.csv')) {
         currentFile = null;
         analyzeBtn.disabled = true;
-        updateFileStatus('❌ Please select a CSV file', 'file-error');
+        updateFileStatus('Please select a CSV file', 'file-error');
         return;
     }
     
     currentFile = file;
     analyzeBtn.disabled = false;
-    updateFileStatus(`✅ File loaded: ${file.name} (${formatFileSize(file.size)})`, 'file-success');
+    updateFileStatus(`File loaded: ${file.name} (${formatFileSize(file.size)})`, 'file-success');
     
-    console.log('📁 File loaded:', file.name);
+    console.log('File loaded:', file.name);
 }
 
 // Update file status display
@@ -118,7 +118,7 @@ async function runAnalysis() {
         return;
     }
     
-    console.log('🔬 Starting analysis...');
+    console.log('Starting analysis...');
     
     // Show loading, hide other sections
     hideElements([results, error]);
@@ -135,7 +135,7 @@ async function runAnalysis() {
         const overrideNodePriorValue = overrideNodePrior.checked;
         const overrideEdgeProbValue = overrideEdgeProb.checked;
         
-        console.log('📊 Parameters:', { 
+        console.log('Parameters:', { 
             nodePrior, 
             edgeProb, 
             overrideNodePrior: overrideNodePriorValue,
@@ -169,14 +169,14 @@ async function runAnalysis() {
             throw new Error(result.error || 'Analysis failed');
         }
         
-        console.log('✅ Analysis complete:', result);
+        console.log('Analysis complete:', result);
         
         // Store results and display
         analysisResults = result;
         displayResults(result);
         
     } catch (err) {
-        console.error('❌ Analysis error:', err);
+        console.error('Analysis error:', err);
         showError(`Analysis failed: ${err.message}`);
     } finally {
         hideElements([loading]);
@@ -212,7 +212,7 @@ function displayResults(result) {
         displayClassification(result);
     }
     
-    console.log('📈 Results displayed');
+    console.log('Results displayed');
 }
 
 // Display summary
@@ -266,7 +266,7 @@ function displayClassification(result) {
     if (result.summary.diamonds > 0) {
         classificationResults.innerHTML = `
             <div class="diamond-group">
-                <h5>💎 Diamond Structures Found</h5>
+                <h5>Diamond Structures Found</h5>
                 <p><strong>${result.summary.diamonds}</strong> diamond structures identified in the network.</p>
                 <p><em>Detailed classification analysis would be displayed here.</em></p>
             </div>
@@ -284,9 +284,9 @@ function displayClassification(result) {
 // Show error message
 function showError(message) {
     hideElements([results, loading]);
-    error.textContent = `❌ ${message}`;
+    error.textContent = `Error: ${message}`;
     showElement(error);
-    console.error('💥 Error:', message);
+    console.error('Error:', message);
 }
 
 // Utility function to format numbers
