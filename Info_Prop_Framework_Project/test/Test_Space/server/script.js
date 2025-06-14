@@ -14,6 +14,8 @@ const edgeProbSlider = document.getElementById('edgeProb');
 const nodeValueSpan = document.getElementById('nodeValue');
 const edgeValueSpan = document.getElementById('edgeValue');
 const includeClassification = document.getElementById('includeClassification');
+const overrideNodePrior = document.getElementById('overrideNodePrior');
+const overrideEdgeProb = document.getElementById('overrideEdgeProb');
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -40,6 +42,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (analysisResults && classificationDiv) {
             classificationDiv.style.display = this.checked ? 'block' : 'none';
         }
+    });
+    
+    // Override checkbox handlers
+    overrideNodePrior.addEventListener('change', function() {
+        nodePriorSlider.disabled = !this.checked;
+        nodeValueSpan.style.opacity = this.checked ? '1' : '0.5';
+        console.log('Override node prior:', this.checked);
+    });
+    
+    overrideEdgeProb.addEventListener('change', function() {
+        edgeProbSlider.disabled = !this.checked;
+        edgeValueSpan.style.opacity = this.checked ? '1' : '0.5';
+        console.log('Override edge prob:', this.checked);
     });
 });
 
@@ -117,14 +132,23 @@ async function runAnalysis() {
         // Get parameters
         const nodePrior = parseFloat(nodePriorSlider.value);
         const edgeProb = parseFloat(edgeProbSlider.value);
+        const overrideNodePriorValue = overrideNodePrior.checked;
+        const overrideEdgeProbValue = overrideEdgeProb.checked;
         
-        console.log('📊 Parameters:', { nodePrior, edgeProb });
+        console.log('📊 Parameters:', { 
+            nodePrior, 
+            edgeProb, 
+            overrideNodePrior: overrideNodePriorValue,
+            overrideEdgeProb: overrideEdgeProbValue
+        });
         
         // Make API request
         const requestData = {
             csvContent: csvContent,
             nodePrior: nodePrior,
-            edgeProb: edgeProb
+            edgeProb: edgeProb,
+            overrideNodePrior: overrideNodePriorValue,
+            overrideEdgeProb: overrideEdgeProbValue
         };
         
         const response = await fetch('/api/analyze', {
