@@ -1,6 +1,8 @@
 // Global variables
 let currentFile = null;
 let analysisResults = null;
+let networkData = null; // Store the network structure data
+let selectedNode = null;
 
 // DOM elements
 const fileInput = document.getElementById('fileInput');
@@ -16,6 +18,23 @@ const edgeValueSpan = document.getElementById('edgeValue');
 const includeClassification = document.getElementById('includeClassification');
 const overrideNodePrior = document.getElementById('overrideNodePrior');
 const overrideEdgeProb = document.getElementById('overrideEdgeProb');
+
+// Tab elements
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+// Visualization elements
+const showSourceNodes = document.getElementById('showSourceNodes');
+const showSinkNodes = document.getElementById('showSinkNodes');
+const showForkNodes = document.getElementById('showForkNodes');
+const showJoinNodes = document.getElementById('showJoinNodes');
+const showIterations = document.getElementById('showIterations');
+const layoutSelect = document.getElementById('layoutSelect');
+const resetZoomBtn = document.getElementById('resetZoom');
+const fitToScreenBtn = document.getElementById('fitToScreen');
+const exportDotBtn = document.getElementById('exportDot');
+const networkGraph = document.getElementById('network-graph');
+const selectedNodeInfo = document.getElementById('selected-node-info');
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -56,6 +75,26 @@ document.addEventListener('DOMContentLoaded', function() {
         edgeValueSpan.style.opacity = this.checked ? '1' : '0.5';
         console.log('Override edge prob:', this.checked);
     });
+    
+    // Tab navigation handlers
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            switchTab(targetTab);
+        });
+    });
+    
+    // Visualization control handlers
+    showSourceNodes.addEventListener('change', updateVisualization);
+    showSinkNodes.addEventListener('change', updateVisualization);
+    showForkNodes.addEventListener('change', updateVisualization);
+    showJoinNodes.addEventListener('change', updateVisualization);
+    showIterations.addEventListener('change', updateVisualization);
+    layoutSelect.addEventListener('change', updateVisualization);
+    
+    resetZoomBtn.addEventListener('click', resetVisualization);
+    fitToScreenBtn.addEventListener('click', fitVisualizationToScreen);
+    exportDotBtn.addEventListener('click', exportGraphAsDot);
 });
 
 // Handle file upload
@@ -173,7 +212,13 @@ async function runAnalysis() {
         
         // Store results and display
         analysisResults = result;
+        networkData = result.networkData; // Store network structure for visualization
         displayResults(result);
+        
+        // Enable visualization tab if we have network data
+        if (networkData) {
+            enableVisualizationTab();
+        }
         
     } catch (err) {
         console.error('Analysis error:', err);
@@ -292,4 +337,382 @@ function showError(message) {
 // Utility function to format numbers
 function formatNumber(num, decimals = 2) {
     return parseFloat(num).toFixed(decimals);
+}
+
+// Tab Management Functions
+function switchTab(tabName) {
+    // Remove active class from all tabs and content
+    tabBtns.forEach(btn => btn.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
+    
+    // Add active class to selected tab and content
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // If switching to visualization tab and we have data, update visualization
+    if (tabName === 'visualization' && networkData) {
+        setTimeout(() => updateVisualization(), 100); // Small delay to ensure DOM is ready
+    }
+}
+
+function enableVisualizationTab() {
+    const vizTab = document.querySelector('[data-tab="visualization"]');
+    vizTab.disabled = false;
+    vizTab.style.opacity = '1';
+    console.log('Visualization tab enabled');
+}
+
+// Visualization Functions
+function updateVisualization() {
+    if (!networkData) {
+        console.log('No network data available for visualization');
+        return;
+    }
+    
+    console.log('Updating visualization with options:', {
+        showSource: showSourceNodes.checked,
+        showSink: showSinkNodes.checked,
+        showFork: showForkNodes.checked,
+        showJoin: showJoinNodes.checked,
+        showIterations: showIterations.checked,
+        layout: layoutSelect.value
+    });
+    
+    // Create network visualization (placeholder for now)
+    createNetworkVisualization();
+}
+
+function createNetworkVisualization() {
+    // Clear existing visualization
+    networkGraph.innerHTML = '';
+    
+    if (!networkData || !networkData.nodes) {
+        networkGraph.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">No network data available</div>';
+        return;
+    }
+    
+    // Prepare nodes for vis.js
+    const visNodes = networkData.nodes.map(nodeId => {
+        const node = {
+            id: nodeId,
+            label: nodeId.toString(),
+            color: getNodeColor(nodeId),
+            font: { color: 'white', size: 12 },
+            size: 15,
+            borderWidth: 2,
+            borderColor: '#333'
+        };
+        
+        // Add node type information as title (tooltip)
+        node.title = `Node: ${nodeId}<br>Type: ${getNodeType(nodeId)}<br>Probability: ${getNodeProbability(nodeId)}`;
+        
+        return node;
+    });
+    
+    // Prepare edges for vis.js
+    const visEdges = networkData.edges.map((edge, index) => ({
+        id: index,
+        from: edge[0],
+        to: edge[1],
+        arrows: 'to',
+        color: { color: '#333', highlight: '#667eea' },
+        width: 1,
+        smooth: { type: 'dynamic' }
+    }));
+    
+    // Create dataset
+    const data = {
+        nodes: new vis.DataSet(visNodes),
+        edges: new vis.DataSet(visEdges)
+    };
+    
+    // Configure visualization options
+    const options = {
+        layout: getLayoutOptions(),
+        physics: {
+            enabled: layoutSelect.value === 'force',
+            stabilization: { iterations: 100 }
+        },
+        interaction: {
+            hover: true,
+            selectConnectedEdges: true
+        },
+        edges: {
+            smooth: true,
+            arrows: { to: { enabled: true, scaleFactor: 0.8 } }
+        },
+        nodes: {
+            chosen: {
+                node: function(values, id, selected, hovering) {
+                    values.shadowColor = '#667eea';
+                    values.shadowSize = 10;
+                }
+            }
+        }
+    };
+    
+    // Create network
+    const network = new vis.Network(networkGraph, data, options);
+    
+    // Add event listeners
+    network.on('selectNode', function(event) {
+        if (event.nodes.length > 0) {
+            selectNode(event.nodes[0]);
+        }
+    });
+    
+    network.on('deselectNode', function() {
+        selectedNode = null;
+        updateNodeDetails();
+    });
+    
+    // Store network instance for zoom/fit functions
+    window.networkInstance = network;
+    
+    console.log('Network visualization created with', visNodes.length, 'nodes and', visEdges.length, 'edges');
+}
+
+function getNodeColor(nodeId) {
+    const colors = {
+        source: '#ff6b6b',    // Red for source nodes
+        sink: '#4ecdc4',      // Teal for sink nodes  
+        fork: '#45b7d1',      // Blue for fork nodes
+        join: '#96ceb4',      // Green for join nodes
+        regular: '#74b9ff'    // Light blue for regular nodes
+    };
+    
+    // Priority order for coloring
+    if (showSourceNodes.checked && networkData.sourceNodes?.includes(nodeId)) {
+        return colors.source;
+    }
+    if (showSinkNodes.checked && networkData.sinkNodes?.includes(nodeId)) {
+        return colors.sink;
+    }
+    if (showForkNodes.checked && networkData.forkNodes?.includes(nodeId)) {
+        return colors.fork;
+    }
+    if (showJoinNodes.checked && networkData.joinNodes?.includes(nodeId)) {
+        return colors.join;
+    }
+    
+    // Color by iteration sets if enabled
+    if (showIterations.checked && networkData.iterationSets) {
+        const iterationColors = ['#e17055', '#fdcb6e', '#6c5ce7', '#a29bfe', '#fd79a8'];
+        for (let i = 0; i < networkData.iterationSets.length; i++) {
+            if (networkData.iterationSets[i].includes(nodeId)) {
+                return iterationColors[i % iterationColors.length];
+            }
+        }
+    }
+    
+    return colors.regular;
+}
+
+function getLayoutOptions() {
+    switch (layoutSelect.value) {
+        case 'hierarchical':
+            return {
+                hierarchical: {
+                    enabled: true,
+                    direction: 'UD',
+                    sortMethod: 'directed',
+                    levelSeparation: 100,
+                    nodeSpacing: 100
+                }
+            };
+        case 'circular':
+            return {
+                randomSeed: 2
+            };
+        case 'force':
+        default:
+            return {
+                randomSeed: 2
+            };
+    }
+}
+
+function resetVisualization() {
+    console.log('Resetting visualization');
+    selectedNode = null;
+    updateNodeDetails();
+    
+    if (window.networkInstance) {
+        // Reset selection and highlighting
+        window.networkInstance.unselectAll();
+        window.networkInstance.setSelection({ nodes: [], edges: [] });
+    }
+    
+    // Recreate visualization to reset colors and states
+    updateVisualization();
+}
+
+function fitVisualizationToScreen() {
+    console.log('Fitting visualization to screen');
+    if (window.networkInstance) {
+        window.networkInstance.fit({
+            animation: {
+                duration: 1000,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+    }
+}
+
+function selectNode(nodeId) {
+    selectedNode = nodeId;
+    updateNodeDetails();
+    highlightNodeConnections(nodeId);
+}
+
+function updateNodeDetails() {
+    if (!selectedNode || !networkData) {
+        selectedNodeInfo.innerHTML = 'Click a node to see details';
+        return;
+    }
+    
+    // Display node details (placeholder)
+    selectedNodeInfo.innerHTML = `
+        <div><strong>Node:</strong> ${selectedNode}</div>
+        <div><strong>Type:</strong> ${getNodeType(selectedNode)}</div>
+        <div><strong>Probability:</strong> ${getNodeProbability(selectedNode)}</div>
+        <div><strong>Iteration Set:</strong> ${getNodeIteration(selectedNode)}</div>
+        <div style="margin-top: 15px;">
+            <button onclick="highlightAncestors('${selectedNode}')" style="margin-right: 5px; padding: 5px 10px; font-size: 12px;">Show Ancestors</button>
+            <button onclick="highlightDescendants('${selectedNode}')" style="padding: 5px 10px; font-size: 12px;">Show Descendants</button>
+        </div>
+    `;
+}
+
+function getNodeType(nodeId) {
+    if (!networkData) return 'Unknown';
+    
+    const types = [];
+    if (networkData.sourceNodes?.includes(nodeId)) types.push('Source');
+    if (networkData.sinkNodes?.includes(nodeId)) types.push('Sink');
+    if (networkData.forkNodes?.includes(nodeId)) types.push('Fork');
+    if (networkData.joinNodes?.includes(nodeId)) types.push('Join');
+    
+    return types.length > 0 ? types.join(', ') : 'Regular';
+}
+
+function getNodeProbability(nodeId) {
+    if (!analysisResults?.results) return 'N/A';
+    
+    const nodeResult = analysisResults.results.find(r => r.node === nodeId);
+    return nodeResult ? nodeResult.probability.toFixed(4) : 'N/A';
+}
+
+function getNodeIteration(nodeId) {
+    if (!networkData?.iterationSets) return 'N/A';
+    
+    for (let i = 0; i < networkData.iterationSets.length; i++) {
+        if (networkData.iterationSets[i].includes(nodeId)) {
+            return i + 1;
+        }
+    }
+    return 'N/A';
+}
+
+function highlightNodeConnections(nodeId) {
+    console.log(`Highlighting connections for node ${nodeId}`);
+    
+    if (!window.networkInstance) return;
+    
+    // Get connected nodes
+    const connectedNodes = window.networkInstance.getConnectedNodes(nodeId);
+    const connectedEdges = window.networkInstance.getConnectedEdges(nodeId);
+    
+    // Highlight the selected node and its connections
+    window.networkInstance.setSelection({
+        nodes: [nodeId, ...connectedNodes],
+        edges: connectedEdges
+    }, { highlightEdges: true });
+}
+
+function highlightAncestors(nodeId) {
+    console.log(`Highlighting ancestors of node ${nodeId}`);
+    
+    if (!networkData?.ancestors || !window.networkInstance) return;
+    
+    const ancestors = networkData.ancestors[nodeId] || [];
+    const nodes = window.networkInstance.body.data.nodes;
+    
+    // Update node colors to highlight ancestors
+    nodes.update(networkData.nodes.map(id => ({
+        id: id,
+        color: ancestors.includes(id) ? '#ffeaa7' : getNodeColor(id)
+    })));
+    
+    // Select the ancestors
+    window.networkInstance.setSelection({ 
+        nodes: [nodeId, ...ancestors], 
+        edges: [] 
+    });
+}
+
+function highlightDescendants(nodeId) {
+    console.log(`Highlighting descendants of node ${nodeId}`);
+    
+    if (!networkData?.descendants || !window.networkInstance) return;
+    
+    const descendants = networkData.descendants[nodeId] || [];
+    const nodes = window.networkInstance.body.data.nodes;
+    
+    // Update node colors to highlight descendants
+    nodes.update(networkData.nodes.map(id => ({
+        id: id,
+        color: descendants.includes(id) ? '#fd79a8' : getNodeColor(id)
+    })));
+    
+    // Select the descendants
+    window.networkInstance.setSelection({ 
+        nodes: [nodeId, ...descendants], 
+        edges: [] 
+    });
+}
+
+// Export functions
+async function exportGraphAsDot() {
+    if (!networkData) {
+        alert('No network data available to export');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/export-dot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                networkData: networkData,
+                showSourceNodes: showSourceNodes.checked,
+                showSinkNodes: showSinkNodes.checked,
+                showForkNodes: showForkNodes.checked,
+                showJoinNodes: showJoinNodes.checked,
+                showIterations: showIterations.checked
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Download the DOT file
+            const blob = new Blob([result.dotString], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'network_graph.dot';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log('DOT file exported successfully');
+        } else {
+            throw new Error(result.error || 'Export failed');
+        }
+    } catch (err) {
+        console.error('Export error:', err);
+        alert(`Export failed: ${err.message}`);
+    }
 }

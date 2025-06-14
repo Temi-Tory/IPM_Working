@@ -11,6 +11,8 @@ include("../../../src/IPAFramework.jl")
 
 # Import framework exactly like TestSpace IPA.jl does
 using .IPAFramework
+using .IPAFramework: generate_graph_dot_string
+using Graphs
 
 println("✅ IPAFramework loaded!")
 
@@ -31,6 +33,52 @@ for file in html_files
         println("✅ Found: $file")
     else
         println("❌ Missing: $file")
+    end
+end
+
+function handle_dot_export(req::HTTP.Request)
+    try
+        data = JSON.parse(String(req.body))
+        network_data = data["networkData"]
+        
+        # Create a SimpleDiGraph from the network data
+        nodes = network_data["nodes"]
+        edges = network_data["edges"]
+        
+        # Create graph
+        g = SimpleDiGraph(length(nodes))
+        
+        # Create node mapping
+        node_to_index = Dict(node => i for (i, node) in enumerate(nodes))
+        
+        # Add edges
+        for edge in edges
+            from_idx = node_to_index[edge[1]]
+            to_idx = node_to_index[edge[2]]
+            add_edge!(g, from_idx, to_idx)
+        end
+        
+        # Generate DOT string
+        dot_string = generate_graph_dot_string(g)
+        
+        # Replace numeric indices with actual node names in DOT string
+        for (node, idx) in node_to_index
+            dot_string = replace(dot_string, "\"$idx\"" => "\"$node\"")
+        end
+        
+        response_data = Dict(
+            "success" => true,
+            "dotString" => dot_string
+        )
+        
+        println("✅ DOT export complete!")
+        
+        return HTTP.Response(200, JSON_HEADERS, JSON.json(response_data))
+        
+    catch e
+        println("❌ DOT export error: $e")
+        error_response = Dict("success" => false, "error" => string(e))
+        return HTTP.Response(500, JSON_HEADERS, JSON.json(error_response))
     end
 end
 
@@ -104,6 +152,8 @@ function route_handler(req::HTTP.Request)
     
     if req.method == "POST" && req.target == "/api/analyze"
         return handle_analysis(req)
+    elseif req.method == "POST" && req.target == "/api/export-dot"
+        return handle_dot_export(req)
     end
     
     return HTTP.Response(404, CORS_HEADERS, "Not Found")
@@ -165,9 +215,29 @@ function handle_analysis(req::HTTP.Request)
         actual_node_prior = override_node_prior ? node_prior : "From CSV"
         actual_edge_prob = override_edge_prob ? edge_prob : "From CSV"
         
+        # Identify sink nodes (nodes with no outgoing edges)
+        all_nodes = union(keys(outgoing_index), keys(incoming_index))
+        sink_nodes = [node for node in all_nodes if !haskey(outgoing_index, node) || isempty(outgoing_index[node])]
+        
+        # Prepare network structure data for visualization
+        network_data = Dict(
+            "nodes" => collect(all_nodes),
+            "edges" => [(edge[1], edge[2]) for edge in edgelist],
+            "sourceNodes" => collect(source_nodes),
+            "sinkNodes" => sink_nodes,
+            "forkNodes" => collect(fork_nodes),
+            "joinNodes" => collect(join_nodes),
+            "iterationSets" => iteration_sets,
+            "nodeCount" => length(all_nodes),
+            "edgeCount" => length(edgelist),
+            "ancestors" => ancestors,
+            "descendants" => descendants
+        )
+        
         response_data = Dict(
             "success" => true,
             "results" => results,
+            "networkData" => network_data,
             "summary" => Dict(
                 "nodes" => length(union(keys(outgoing_index), keys(incoming_index))),
                 "edges" => length(edgelist),
