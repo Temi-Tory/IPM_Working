@@ -1,5 +1,4 @@
 module InputProcessingModule
-    import Fontconfig 
     using Random, DataFrames, DelimitedFiles, Distributions, JSON,
         DataStructures, SparseArrays, Combinatorics
 

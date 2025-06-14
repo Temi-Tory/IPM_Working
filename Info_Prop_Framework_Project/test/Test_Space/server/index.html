@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Information Propagation Framework Toolkit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Network Analysis Tool</h1>
+        
+        <div class="upload-section">
+            <h3>Upload Network File</h3>
+            <input type="file" id="fileInput" accept=".csv">
+            <div id="fileStatus"></div>
+        </div>
+        
+        <div class="parameters">
+            <h3>Analysis Parameters</h3>
+            <label>Node Prior: <input type="range" id="nodePrior" min="0.1" max="1" step="0.1" value="1.0"> <span id="nodeValue">1.0</span></label>
+            <label>Edge Probability: <input type="range" id="edgeProb" min="0.1" max="1" step="0.1" value="0.9"> <span id="edgeValue">0.9</span></label>
+            
+            <div class="options">
+                <label><input type="checkbox" id="includeClassification"> Include Diamond Classification</label>
+            </div>
+        </div>
+        
+        <button id="analyzeBtn" disabled>🔍 Analyze Network</button>
+        
+        <div id="loading" style="display: none;">
+            <p>⏳ Running analysis...</p>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+        
+        <div id="results" style="display: none;">
+            <h3>📈 Analysis Results</h3>
+            <div id="summary"></div>
+            
+            <h4>Node Probabilities</h4>
+            <table id="resultsTable">
+                <thead>
+                    <tr><th>Node</th><th>Probability</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            
+            <div id="classification" style="display: none;">
+                <h4>💎 Diamond Classifications</h4>
+                <div id="classificationResults"></div>
+            </div>
+        </div>
+        
+        <div id="error" style="display: none;"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

@@ -10,8 +10,8 @@ using .IPAFramework
 
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
-filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+#filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/munin/munin_dag.csv";
 
@@ -20,7 +20,7 @@ edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probab
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index);
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index);
 
-map!(x -> 0.9, values(node_priors));
+map!(x -> 1.0, values(node_priors));
 map!(x -> 0.9, values(edge_probabilities));
 
 
