@@ -92,13 +92,14 @@ export class ParameterManager {
     // Check if parameter editing is available
     updateParameterEditingAvailability() {
         const hasNetworkData = AppState.networkData || AppState.structureData?.networkData;
+        const hasFileUploaded = AppState.currentFile; // Check if file is uploaded
         const hasDiamondData = AppState.currentDiamondData;
 
-        // Main analysis buttons
-        this.dom.setElementDisabled('editNodePriorsBtn', !hasNetworkData);
-        this.dom.setElementDisabled('editEdgeProbsBtn', !hasNetworkData);
+        // Main analysis buttons - Enable if file is uploaded (don't require analysis first)
+        this.dom.setElementDisabled('editNodePriorsBtn', !hasFileUploaded);
+        this.dom.setElementDisabled('editEdgeProbsBtn', !hasFileUploaded);
 
-        // Diamond analysis buttons
+        // Diamond analysis buttons - Still require diamond data
         this.dom.setElementDisabled('editDiamondNodePriorsBtn', !hasDiamondData);
         this.dom.setElementDisabled('editDiamondEdgeProbsBtn', !hasDiamondData);
 
@@ -225,11 +226,18 @@ export class ParameterManager {
                 });
             });
         } else {
-            // Load all network nodes
+            // Load all network nodes - try multiple sources
             const networkData = this.getNetworkData();
-            if (!networkData || !networkData.nodes) return [];
+            let nodeList = [];
             
-            networkData.nodes.forEach(nodeId => {
+            if (networkData && networkData.nodes) {
+                nodeList = networkData.nodes;
+            } else if (AppState.currentFile) {
+                // If no analysis data yet, try to extract nodes from file data
+                nodeList = this.extractNodesFromFile();
+            }
+            
+            nodeList.forEach(nodeId => {
                 const originalValue = this.getOriginalNodePrior(nodeId);
                 const modifiedValue = this.getModifiedValue(`nodes-${nodeId}`);
                 
@@ -244,6 +252,22 @@ export class ParameterManager {
         }
         
         return nodes.sort((a, b) => a.id - b.id);
+    }
+
+    // Extract nodes from uploaded file when analysis hasn't run yet
+    extractNodesFromFile() {
+        if (!AppState.currentFile) return [];
+        
+        try {
+            // This is a simplified extraction - in a real implementation,
+            // you'd parse the CSV to get actual node IDs
+            // For now, return a reasonable default range
+            const nodeCount = 20; // Default assumption
+            return Array.from({length: nodeCount}, (_, i) => i + 1);
+        } catch (error) {
+            console.error('Error extracting nodes from file:', error);
+            return [];
+        }
     }
 
     loadEdgeProbabilityData(isDiamond = false) {

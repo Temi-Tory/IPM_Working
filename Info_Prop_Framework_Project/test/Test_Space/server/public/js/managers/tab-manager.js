@@ -19,13 +19,18 @@ export class TabManager {
             btn.addEventListener('click', (event) => {
                 const targetTab = btn.dataset.tab;
                 
+                // Update tab availability first to ensure current state
+                this.updateTabAvailability();
+                
                 // Check if tab is available
                 if (!this.isTabAvailable(targetTab)) {
                     event.preventDefault();
+                    console.log(`Tab ${targetTab} is not available, showing requirements message`);
                     this.showTabRequirementsMessage(targetTab);
                     return;
                 }
                 
+                console.log(`Tab ${targetTab} is available, switching to it`);
                 this.switchTab(targetTab);
             });
         });
@@ -155,7 +160,8 @@ export class TabManager {
         // Tier 2: Diamond analysis completed (includes structure)
         this.availableTabs = new Set(['analysis', 'structure', 'diamonds', 'visualization']);
         
-        // Show diamond analysis badge
+        // Show both structure and diamond analysis badges since Tier 2 includes Tier 1
+        this.addAnalysisBadge('structure', 'Structure Analysis Complete');
         this.addAnalysisBadge('diamond', 'Diamond Analysis Complete');
         
         // Enable diamonds tab if not already active
@@ -163,14 +169,16 @@ export class TabManager {
             this.switchTab('diamonds');
         }
         
-        console.log('Tier 2 enabled - Tabs: analysis, structure, diamonds, visualization');
+        console.log('Tier 2 enabled - Tabs: analysis, structure, diamonds, visualization (includes Tier 1)');
     }
 
     enableFullMode(fullData) {
         // Tier 3: Full belief propagation completed (includes all)
         this.availableTabs = new Set(['analysis', 'structure', 'diamonds', 'visualization', 'results']);
         
-        // Show full analysis badge
+        // Show all analysis badges since Tier 3 includes Tiers 1 & 2
+        this.addAnalysisBadge('structure', 'Structure Analysis Complete');
+        this.addAnalysisBadge('diamond', 'Diamond Analysis Complete');
         this.addAnalysisBadge('full', 'Full Analysis Complete');
         
         // Enable results tab
@@ -178,7 +186,7 @@ export class TabManager {
             this.switchTab('results');
         }
         
-        console.log('Tier 3 enabled - All tabs available');
+        console.log('Tier 3 enabled - All tabs available (includes Tiers 1 & 2)');
     }
 
     resetAllTabs() {
@@ -238,6 +246,12 @@ export class TabManager {
     }
 
     showTabRequirementsMessage(tabName) {
+        // Double-check if tab is actually available before showing warning
+        if (this.isTabAvailable(tabName)) {
+            console.log(`Tab ${tabName} is actually available, skipping warning message`);
+            return;
+        }
+        
         const message = this.getTabRequirementMessage(tabName);
         
         // Create temporary notification
