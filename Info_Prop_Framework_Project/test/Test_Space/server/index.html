@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Information Propagation Framework Toolkit</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Information Propagation Framework Toolkit</title>    
+    <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css">
+    
+    <!-- Import map for ES6 modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "/js/managers/dom-manager.js": "/js/managers/dom-manager.js",
+            "/js/managers/file-manager.js": "/js/managers/file-manager.js",
+            "/js/managers/analysis-manager.js": "/js/managers/analysis-manager.js",
+            "/js/managers/diamond-manager.js": "/js/managers/diamond-manager.js",
+            "/js/managers/visualization-manager.js": "/js/managers/visualization-manager.js",
+            "/js/managers/tab-manager.js": "/js/managers/tab-manager.js",
+            "/js/managers/export-manager.js": "/js/managers/export-manager.js",
+            "/js/managers/state-manager.js": "/js/managers/state-manager.js",
+            "/js/utils/ui-utils.js": "/js/utils/ui-utils.js"
+        }
+    }
+    </script>
     <!-- Add this line to the <head> section of index.html to prevent favicon 404 -->
     <link rel="icon" type="image/x-icon" 
         href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACF/0YAhf9GE4X/RlOF/0aAhf9Gf4X/RlOF/0YThf9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI3/RgON/0Z8jf9G5Y3/RveN/0bwjf9G143/RoGN/0YXjf9GAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACW/0YHlv9Gmrb/RvO6/0b/tf9G/7X/Rv+6/0b/tv9G9pj/Rp2W/0YJAAAAAAAAAAAAAAAAAAAAAAAAAACe/0YLnv9G1q7/Rv+y/0b/qf9G/6n/Rv+p/0b/qf9G/6n/Rv+y/0b/rv9G2Z7/Rg0AAAAAAAAAAAAAAAAAAAAAqP9GFqj/Rv6x/0b/p/9G/5//Rv+f/0b/n/9G/5//Rv+f/0b/n/9G/6f/Rv+x/0b+qP9GGAAAAAAAAAAAAAAAAACs/0YdrP9G/6//Rv+j/0b/nP9G/5r/Rv+a/0b/mv9G/5r/Rv+a/0b/mv9G/6P/Rv+v/0b/rP9GHwAAAAAAAAAAAAAAAACw/0Yhrv9G/67/Rv+h/0b/mf9G/5f/Rv+X/0b/l/9G/5f/Rv+X/0b/l/9G/5n/Rv+h/0b/rv9G/7D/RiMAAAAAAAAAAAAAAAAAs/9GJbL/Rv+t/0b/oP9G/5j/Rv+W/0b/lv9G/5b/Rv+W/0b/lv9G/5b/Rv+Y/0b/oP9G/63/Rv+z/0YnAAAAAAAAAAAAAAAAALT/Rim1/0b/q/9G/5//Rv+X/0b/lf9G/5X/Rv+V/0b/lf9G/5X/Rv+V/0b/l/9G/5//Rv+r/0b/tP9GKwAAAAAAAAAAAAAAAAC4/0Ysuv9G/6n/Rv+e/0b/lv9G/5T/Rv+U/0b/lP9G/5T/Rv+U/0b/lP9G/5b/Rv+e/0b/qf9G/7j/Ri4AAAAAAAAAAAAAAAAAAL//Rji2/0b/qP9G/53/Rv+V/0b/k/9G/5P/Rv+T/0b/k/9G/5P/Rv+T/0b/lf9G/53/Rv+o/0b/v/9GOgAAAAAAAAAAAAAAAADK/0Y2yf9G8Lj/Rv+m/0b/nP9G/5L/Rv+S/0b/kv9G/5L/Rv+S/0b/nP9G/6b/Rv+4/0b/yf9G8sr/RjgAAAAAAAAAAAAAAAAAz/9GHs//Rq3S/0bx0v9G/83/Rv+e/0b/j/9G/5z/Rv/N/0b/0v9G/9L/RvHP/0av0P9GIAAAAAAAAAAAAAAAAAAAAAAz/9GBs//RhHP/0YHMz/G1Yz/RpYz/0Y5z/9G1M3/Rtz3/0Yj3/0Yuz/9GH8//RgAAAAAAAAAAAAAAAAAAAAAAM/9GAMz/Rooz/0aYM/9G5s//RvPP/0bwz/9G5s//RpiN/0YqM/9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM//RgPP/0Y6z/9Gns//Rr7P/0a+z/9Gns//RjrP/0YDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMz/RgzP/0YWz/9GFs//RgzAAAAAAAAAAAAAAAAA/38AAP9/AAD+HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/h8AAP5/AAD/fwAA/38AAA=="
@@ -175,66 +192,6 @@
                 </div>
                 
                 <div id="diamondList" class="diamond-list"></div>
-                
-                <!-- Diamond Detail Modal -->
-                <div id="diamondDetailModal" class="modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h4 id="diamondDetailTitle">Diamond Details</h4>
-                            <span class="close">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <div id="diamondDetailContent"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Diamond Path Analysis Modal -->
-                <div id="diamondPathModal" class="modal" style="display: none;">
-                    <div class="modal-content large-modal">
-                        <div class="modal-header">
-                            <h4 id="diamondPathTitle">Diamond Path Analysis</h4>
-                            <span class="close" onclick="closeDiamondPathModal()">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <div id="diamondPathContent">
-                                <div class="path-analysis-container">
-                                    <div class="path-controls">
-                                        <h5>Diamond Subset Parameters</h5>
-                                        <div class="parameter-controls">
-                                            <div class="control-row">
-                                                <label>Override Node Priors:</label>
-                                                <input type="checkbox" id="pathOverrideNodes">
-                                                <input type="range" id="pathNodePrior" min="0.1" max="1" step="0.1" value="1.0" disabled>
-                                                <span id="pathNodeValue">1.0</span>
-                                            </div>
-                                            <div class="control-row">
-                                                <label>Override Edge Probabilities:</label>
-                                                <input type="checkbox" id="pathOverrideEdges">
-                                                <input type="range" id="pathEdgeProb" min="0.1" max="1" step="0.1" value="0.9" disabled>
-                                                <span id="pathEdgeValue">0.9</span>
-                                            </div>
-                                        </div>
-                                        <div class="path-actions">
-                                            <button id="runPathAnalysis" class="action-btn analyze-btn">Run Analysis</button>
-                                            <button id="resetPathParams" class="action-btn">Reset Parameters</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="path-visualization">
-                                        <h5>Diamond Subgraph</h5>
-                                        <div id="pathNetworkGraph"></div>
-                                    </div>
-                                    
-                                    <div class="path-results" id="pathResults" style="display: none;">
-                                        <h5>Subset Analysis Results</h5>
-                                        <div id="pathResultsTable"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -292,6 +249,66 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <!-- Diamond Detail Modal -->
+    <div id="diamondDetailModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="diamondDetailTitle">Diamond Details</h4>
+                <span class="close" onclick="closeModal('diamondDetailModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="diamondDetailContent"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diamond Path Analysis Modal -->
+    <div id="diamondPathModal" class="modal" style="display: none;">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h4 id="diamondPathTitle">Diamond Path Analysis</h4>
+                <span class="close" onclick="closeModal('diamondPathModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="diamondPathContent">
+                    <div class="path-analysis-container">
+                        <div class="path-controls">
+                            <h5>Diamond Subset Parameters</h5>
+                            <div class="parameter-controls">
+                                <div class="control-row">
+                                    <label>Override Node Priors:</label>
+                                    <input type="checkbox" id="pathOverrideNodes">
+                                    <input type="range" id="pathNodePrior" min="0.1" max="1" step="0.1" value="1.0" disabled>
+                                    <span id="pathNodeValue">1.0</span>
+                                </div>
+                                <div class="control-row">
+                                    <label>Override Edge Probabilities:</label>
+                                    <input type="checkbox" id="pathOverrideEdges">
+                                    <input type="range" id="pathEdgeProb" min="0.1" max="1" step="0.1" value="0.9" disabled>
+                                    <span id="pathEdgeValue">0.9</span>
+                                </div>
+                            </div>
+                            <div class="path-actions">
+                                <button id="runPathAnalysis" class="action-btn analyze-btn">Run Analysis</button>
+                                <button id="resetPathParams" class="action-btn">Reset Parameters</button>
+                            </div>
+                        </div>
+                        
+                        <div class="path-visualization">
+                            <h5>Diamond Subgraph</h5>
+                            <div id="pathNetworkGraph"></div>
+                        </div>
+                        
+                        <div class="path-results" id="pathResults" style="display: none;">
+                            <h5>Subset Analysis Results</h5>
+                            <div id="pathResultsTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="/js/main.js"></script>
 </body>
 </html>

@@ -16,7 +16,8 @@ using DataFrames, DelimitedFiles, Distributions,
     DataStructures, SparseArrays, BenchmarkTools, 
     Combinatorics, Random
 
-# Include IPAFramework (path from server folder to src folder)
+# Include IPAFramework - FIXED PATH
+# From test/Test_Space/server/ to Info_Prop_Framework_Project/src/
 include("../../../src/IPAFramework.jl")
 
 # Import framework exactly like TestSpace IPA.jl does
@@ -26,10 +27,35 @@ using Graphs
 
 println("✅ Enhanced IPAFramework loaded!")
 
-# Change to the script's directory
-script_dir = dirname(@__FILE__)
-cd(script_dir)
+# Get the server directory and change to it
+const SERVER_DIR = dirname(@__FILE__)
+cd(SERVER_DIR)
 println("Changed to script directory: ", pwd())
+
+# Debug: Print file structure
+println("🔍 Debug - Checking file structure:")
+println("Server directory: ", SERVER_DIR)
+println("Current working directory: ", pwd())
+
+# Check if critical files exist
+critical_paths = [
+    joinpath(SERVER_DIR, "index.html"),
+    joinpath(SERVER_DIR, "public"),
+    joinpath(SERVER_DIR, "public", "css"),
+    joinpath(SERVER_DIR, "public", "css", "style.css"),
+    joinpath(SERVER_DIR, "public", "js"),
+    joinpath(SERVER_DIR, "public", "js", "main.js"),
+    joinpath(SERVER_DIR, "public", "js", "managers"),
+    joinpath(SERVER_DIR, "public", "js", "utils")
+]
+
+for path in critical_paths
+    if isfile(path) || isdir(path)
+        println("✅ Found: ", path)
+    else
+        println("❌ Missing: ", path)
+    end
+end
 
 # CORS headers constants
 const CORS_HEADERS = [
@@ -613,6 +639,7 @@ function handle_diamond_subset_analysis(req::HTTP.Request)
         return HTTP.Response(500, JSON_HEADERS, JSON.json(error_response))
     end
 end
+
 function handle_dot_export(req::HTTP.Request)
     try
         data = JSON.parse(String(req.body))
@@ -659,43 +686,87 @@ function handle_dot_export(req::HTTP.Request)
     end
 end
 
-# Main route handler
+# CORRECTED Main route handler with absolute paths
 function route_handler(req::HTTP.Request)
+    println("🔍 DEBUG: Request method: $(req.method), target: $(req.target)")
+    
     if req.method == "OPTIONS"
         return HTTP.Response(200, CORS_HEADERS)
     end
     
     if req.method == "GET"
         if req.target == "/" || req.target == "/index.html"
-            possible_paths = [
-                "index.html",
-                "./index.html", 
-                joinpath(dirname(@__FILE__), "index.html")
-            ]
-            
-            for path in possible_paths
-                if isfile(path)
-                    println("📂 Serving index.html from: $path")
-                    return HTTP.Response(200, HTML_HEADERS, read(path, String))
-                end
+            # Serve index.html from server directory
+            index_path = joinpath(SERVER_DIR, "index.html")
+            if isfile(index_path)
+                println("📂 Serving index.html from: $index_path")
+                return HTTP.Response(200, HTML_HEADERS, read(index_path, String))
+            else
+                println("❌ index.html not found at: $index_path")
+                return HTTP.Response(404, HTML_HEADERS, "index.html not found at: $index_path")
             end
             
-            return HTTP.Response(404, HTML_HEADERS, "index.html not found")
-            
-        elseif req.target == "/style.css"
-            css_path = joinpath(dirname(@__FILE__), "style.css")
+        elseif startswith(req.target, "/css/")
+            # Serve CSS files from public/css/
+            css_file = req.target[6:end]  # Remove "/css/" - 6 characters: /, c, s, s, /, (space)
+            css_path = joinpath(SERVER_DIR, "public", "css", css_file)
+            println("🔍 DEBUG CSS: target='$(req.target)', length=$(length(req.target)), css_file='$css_file', css_path='$css_path'")
             if isfile(css_path)
+                println("📂 Serving CSS file: $css_path")
                 return HTTP.Response(200, CSS_HEADERS, read(css_path, String))
             else
-                return HTTP.Response(404, HTML_HEADERS, "style.css not found")
+                println("❌ CSS file not found: $css_path")
+                return HTTP.Response(404, HTML_HEADERS, "CSS file not found: $css_path")
             end
             
-        elseif req.target == "/script.js"
-            js_path = joinpath(dirname(@__FILE__), "script.js")
-            if isfile(js_path)
-                return HTTP.Response(200, JS_HEADERS, read(js_path, String))
+        elseif startswith(req.target, "/js/")
+            # Handle main.js specifically
+            if req.target == "/js/main.js"
+                main_path = joinpath(SERVER_DIR, "public", "js", "main.js")
+                if isfile(main_path)
+                    println("📂 Serving main.js from: $main_path")
+                    return HTTP.Response(200, JS_HEADERS, read(main_path, String))
+                else
+                    println("❌ main.js not found at: $main_path")
+                    return HTTP.Response(404, HTML_HEADERS, "main.js not found at: $main_path")
+                end
+                
+            # Handle manager files
+            elseif startswith(req.target, "/js/managers/")
+                manager_file = req.target[14:end]  # Remove "/js/managers/" - 14 characters
+                manager_path = joinpath(SERVER_DIR, "public", "js", "managers", manager_file)
+                println("🔍 DEBUG JS Manager: target='$(req.target)', length=$(length(req.target)), manager_file='$manager_file', manager_path='$manager_path'")
+                if isfile(manager_path)
+                    println("📂 Serving manager file: $manager_path")
+                    return HTTP.Response(200, JS_HEADERS, read(manager_path, String))
+                else
+                    println("❌ Manager file not found: $manager_path")
+                    return HTTP.Response(404, HTML_HEADERS, "Manager file not found: $manager_path")
+                end
+                
+            # Handle utils files
+            elseif startswith(req.target, "/js/utils/")
+                util_file = req.target[11:end]  # Remove "/js/utils/"
+                util_path = joinpath(SERVER_DIR, "public", "js", "utils", util_file)
+                if isfile(util_path)
+                    println("📂 Serving util file: $util_path")
+                    return HTTP.Response(200, JS_HEADERS, read(util_path, String))
+                else
+                    println("❌ Util file not found: $util_path")
+                    return HTTP.Response(404, HTML_HEADERS, "Util file not found: $util_path")
+                end
+                
+            # Handle any other JS files
             else
-                return HTTP.Response(404, HTML_HEADERS, "script.js not found")
+                js_file = req.target[4:end]  # Remove "/js/"
+                js_path = joinpath(SERVER_DIR, "public", "js", js_file)
+                if isfile(js_path)
+                    println("📂 Serving JS file: $js_path")
+                    return HTTP.Response(200, JS_HEADERS, read(js_path, String))
+                else
+                    println("❌ JS file not found: $js_path")
+                    return HTTP.Response(404, HTML_HEADERS, "JS file not found: $js_path")
+                end
             end
         end
     end
@@ -712,7 +783,7 @@ function route_handler(req::HTTP.Request)
         end
     end
     
-    return HTTP.Response(404, CORS_HEADERS, "Not Found")
+    return HTTP.Response(404, CORS_HEADERS, "Not Found: $(req.target)")
 end
 
 println("🚀 Enhanced server running on: http://localhost:8080")
@@ -720,6 +791,7 @@ println("📊 Features: Diamond Classification, Monte Carlo Validation, Enhanced
 println("🔧 UTF-8 encoding enabled for proper icon display")
 println("✨ CSS icons used for cross-platform compatibility")
 println("💎 Diamond subset analysis now available")
+println("📁 Serving static files from public/ directory using SERVER_DIR: $SERVER_DIR")
 
 # Start server
 HTTP.serve(route_handler, "127.0.0.1", 8080) #(only localhost):
