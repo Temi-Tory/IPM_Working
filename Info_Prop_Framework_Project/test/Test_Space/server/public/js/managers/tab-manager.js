@@ -22,16 +22,24 @@ export class TabManager {
                 // Update tab availability first to ensure current state
                 this.updateTabAvailability();
                 
-                // Check if tab is available
-                if (!this.isTabAvailable(targetTab)) {
-                    event.preventDefault();
-                    console.log(`Tab ${targetTab} is not available, showing requirements message`);
-                    this.showTabRequirementsMessage(targetTab);
+                // Multiple checks for tab availability
+                const isTabAvailable = this.isTabAvailable(targetTab);
+                const dataAvailable = btn.getAttribute('data-tab-available') === 'true';
+                const isButtonDisabled = btn.disabled || btn.classList.contains('tab-disabled');
+                
+                console.log(`Tab click: ${targetTab}, tabAvailable=${isTabAvailable}, dataAvailable=${dataAvailable}, buttonDisabled=${isButtonDisabled}`);
+                
+                // Primary check: If tab is available according to our state, allow the click
+                if (isTabAvailable && dataAvailable) {
+                    console.log(`Tab ${targetTab} is available, switching to it`);
+                    this.switchTab(targetTab);
                     return;
                 }
                 
-                console.log(`Tab ${targetTab} is available, switching to it`);
-                this.switchTab(targetTab);
+                // Tab is not available - prevent the click and show warning
+                event.preventDefault();
+                console.log(`Tab ${targetTab} is not available, showing requirements message`);
+            
             });
         });
         
@@ -138,7 +146,12 @@ export class TabManager {
                 console.warn(`Unknown analysis mode: ${mode}`);
         }
         
+        // Force immediate update and then delayed update to ensure it sticks
         this.updateTabAvailability();
+        setTimeout(() => {
+            this.updateTabAvailability();
+            console.log('Delayed tab availability update completed');
+        }, 100);
     }
 
     enableStructureMode(structureData) {
@@ -209,25 +222,50 @@ export class TabManager {
     }
 
     updateTabAvailability() {
+        console.log('Updating tab availability. Current mode:', this.analysisMode, 'Available tabs:', Array.from(this.availableTabs));
+        
+        // Ensure we have valid DOM elements
+        if (!this.dom.elements.tabBtns || this.dom.elements.tabBtns.length === 0) {
+            console.warn('No tab buttons found during availability update');
+            return;
+        }
+        
         this.dom.elements.tabBtns.forEach(btn => {
             const tabName = btn.dataset.tab;
             const isAvailable = this.isTabAvailable(tabName);
             
-            // Update button appearance
+            console.log(`Tab ${tabName}: available=${isAvailable}`);
+            
+            // Update button appearance with more explicit state management
             if (isAvailable) {
+                // Enable the tab
                 btn.disabled = false;
                 btn.classList.remove('tab-disabled');
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
                 btn.title = ''; // Clear any tooltip
+                
+                // Force remove any lingering disabled attributes and styles
+                btn.removeAttribute('disabled');
+                btn.style.pointerEvents = 'auto';
+                
+                // Add a data attribute to track state
+                btn.setAttribute('data-tab-available', 'true');
             } else {
+                // Disable the tab
                 btn.disabled = true;
                 btn.classList.add('tab-disabled');
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
+                btn.style.pointerEvents = 'none';
                 btn.title = this.getTabRequirementMessage(tabName);
+                
+                // Add a data attribute to track state
+                btn.setAttribute('data-tab-available', 'false');
             }
         });
+        
+        console.log('Tab availability update completed');
     }
 
     getTabRequirementMessage(tabName) {
@@ -245,65 +283,7 @@ export class TabManager {
         }
     }
 
-    showTabRequirementsMessage(tabName) {
-        // Double-check if tab is actually available before showing warning
-        if (this.isTabAvailable(tabName)) {
-            console.log(`Tab ${tabName} is actually available, skipping warning message`);
-            return;
-        }
-        
-        const message = this.getTabRequirementMessage(tabName);
-        
-        // Create temporary notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #dc3545;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 10000;
-            font-weight: 600;
-            animation: slideInRight 0.3s ease-out;
-        `;
-        notification.textContent = message;
-        
-        // Add slide-in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInRight {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.animation = 'fadeOut 0.3s ease-out forwards';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-                if (style.parentNode) {
-                    style.parentNode.removeChild(style);
-                }
-            }, 300);
-        }, 3000);
-        
-        // Add fadeOut animation
-        style.textContent += `
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateX(0); }
-                to { opacity: 0; transform: translateX(100%); }
-            }
-        `;
-    }
+
 
     // Analysis progress badges
     addAnalysisBadge(type, message) {
