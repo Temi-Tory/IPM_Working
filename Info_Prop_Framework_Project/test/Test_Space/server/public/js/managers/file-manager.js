@@ -1,10 +1,11 @@
-// file-manager.js - File handling operations
+// file-manager.js - Enhanced file handling with parameter integration
 import { UIUtils } from '../utils/ui-utils.js';
 import { AppState } from '../main.js';
 
 export class FileManager {
-    constructor(domManager) {
+    constructor(domManager, parameterManager = null) {
         this.dom = domManager;
+        this.parameterManager = parameterManager;
     }
 
     initializeEventListeners() {
@@ -25,6 +26,7 @@ export class FileManager {
             AppState.currentFile = null;
             this.dom.setElementDisabled('analyzeBtn', true);
             this.dom.updateFileStatus('No file selected', 'file-error');
+            this.updateParameterEditingAvailability();
             return;
         }
         
@@ -32,6 +34,7 @@ export class FileManager {
             AppState.currentFile = null;
             this.dom.setElementDisabled('analyzeBtn', true);
             this.dom.updateFileStatus('Please select a CSV file', 'file-error');
+            this.updateParameterEditingAvailability();
             return;
         }
         
@@ -42,7 +45,17 @@ export class FileManager {
             'file-success'
         );
         
+        // Update parameter editing availability
+        this.updateParameterEditingAvailability();
+        
         console.log('File loaded:', file.name);
+    }
+
+    updateParameterEditingAvailability() {
+        // Update parameter editing buttons based on file availability
+        if (this.parameterManager) {
+            this.parameterManager.updateParameterEditingAvailability();
+        }
     }
 
     getCurrentFile() {
@@ -57,7 +70,7 @@ export class FileManager {
     }
 
     getAnalysisRequestData() {
-        return {
+        const baseData = {
             csvContent: null, // Will be set by the caller
             nodePrior: this.dom.getElementValue('nodePriorSlider') ? 
                 parseFloat(this.dom.getElementValue('nodePriorSlider')) : 1.0,
@@ -68,6 +81,54 @@ export class FileManager {
             includeClassification: this.dom.isElementChecked('includeClassification'),
             enableMonteCarlo: this.dom.isElementChecked('enableMonteCarlo')
         };
+
+        // Add individual parameter overrides if parameter manager is available
+        if (this.parameterManager) {
+            const individualNodePriors = this.parameterManager.getIndividualNodePriorOverrides();
+            const individualEdgeProbs = this.parameterManager.getIndividualEdgeProbabilityOverrides();
+            
+            // Only include individual overrides if we have any
+            if (Object.keys(individualNodePriors).length > 0 || Object.keys(individualEdgeProbs).length > 0) {
+                baseData.individualNodePriors = individualNodePriors;
+                baseData.individualEdgeProbabilities = individualEdgeProbs;
+                baseData.useIndividualOverrides = true;
+                
+                console.log('Including individual parameter overrides:', {
+                    nodeOverrides: Object.keys(individualNodePriors).length,
+                    edgeOverrides: Object.keys(individualEdgeProbs).length
+                });
+            }
+        }
+
+        return baseData;
+    }
+
+    getDiamondAnalysisRequestData() {
+        const baseData = {
+            overrideNodePrior: this.dom.isElementChecked('pathOverrideNodes'),
+            overrideEdgeProb: this.dom.isElementChecked('pathOverrideEdges'),
+            nodePrior: parseFloat(this.dom.getElementValue('pathNodePrior') || '1.0'),
+            edgeProb: parseFloat(this.dom.getElementValue('pathEdgeProb') || '0.9')
+        };
+
+        // Add diamond-specific individual parameter overrides
+        if (this.parameterManager) {
+            const diamondNodePriors = this.parameterManager.getDiamondIndividualNodePriorOverrides();
+            const diamondEdgeProbs = this.parameterManager.getDiamondIndividualEdgeProbabilityOverrides();
+            
+            if (Object.keys(diamondNodePriors).length > 0 || Object.keys(diamondEdgeProbs).length > 0) {
+                baseData.individualNodePriors = diamondNodePriors;
+                baseData.individualEdgeProbabilities = diamondEdgeProbs;
+                baseData.useIndividualOverrides = true;
+                
+                console.log('Including diamond individual parameter overrides:', {
+                    nodeOverrides: Object.keys(diamondNodePriors).length,
+                    edgeOverrides: Object.keys(diamondEdgeProbs).length
+                });
+            }
+        }
+
+        return baseData;
     }
 
     isFileLoaded() {
@@ -80,5 +141,48 @@ export class FileManager {
 
     getFileSize() {
         return AppState.currentFile ? AppState.currentFile.size : 0;
+    }
+
+    // Clear individual parameter overrides when new file is loaded
+    clearParameterOverrides() {
+        if (this.parameterManager) {
+            this.parameterManager.clearIndividualOverrides();
+        }
+        
+        // Clear from global state
+        if (AppState.individualParameterOverrides) {
+            AppState.individualParameterOverrides.clear();
+        }
+    }
+
+    // Get summary of parameter customizations
+    getParameterCustomizationSummary() {
+        let summary = {
+            hasGlobalOverrides: false,
+            hasIndividualOverrides: false,
+            nodeOverrideCount: 0,
+            edgeOverrideCount: 0,
+            diamondNodeOverrideCount: 0,
+            diamondEdgeOverrideCount: 0
+        };
+
+        // Check global overrides
+        summary.hasGlobalOverrides = this.dom.isElementChecked('overrideNodePrior') || 
+                                   this.dom.isElementChecked('overrideEdgeProb');
+
+        // Check individual overrides
+        if (this.parameterManager) {
+            summary.nodeOverrideCount = this.parameterManager.getModifiedCount('nodes');
+            summary.edgeOverrideCount = this.parameterManager.getModifiedCount('edges');
+            summary.diamondNodeOverrideCount = this.parameterManager.getModifiedCount('diamond-nodes');
+            summary.diamondEdgeOverrideCount = this.parameterManager.getModifiedCount('diamond-edges');
+            
+            summary.hasIndividualOverrides = summary.nodeOverrideCount > 0 || 
+                                           summary.edgeOverrideCount > 0 ||
+                                           summary.diamondNodeOverrideCount > 0 ||
+                                           summary.diamondEdgeOverrideCount > 0;
+        }
+
+        return summary;
     }
 }

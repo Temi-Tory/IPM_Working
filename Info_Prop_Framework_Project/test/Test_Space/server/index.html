@@ -20,6 +20,7 @@
             "/js/managers/tab-manager.js": "/js/managers/tab-manager.js",
             "/js/managers/export-manager.js": "/js/managers/export-manager.js",
             "/js/managers/state-manager.js": "/js/managers/state-manager.js",
+            "/js/managers/parameter-manager.js": "/js/managers/parameter-manager.js",
             "/js/utils/ui-utils.js": "/js/utils/ui-utils.js"
         }
     }
@@ -28,6 +29,398 @@
     <link rel="icon" type="image/x-icon" 
         href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACF/0YAhf9GE4X/RlOF/0aAhf9Gf4X/RlOF/0YThf9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI3/RgON/0Z8jf9G5Y3/RveN/0bwjf9G143/RoGN/0YXjf9GAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACW/0YHlv9Gmrb/RvO6/0b/tf9G/7X/Rv+6/0b/tv9G9pj/Rp2W/0YJAAAAAAAAAAAAAAAAAAAAAAAAAACe/0YLnv9G1q7/Rv+y/0b/qf9G/6n/Rv+p/0b/qf9G/6n/Rv+y/0b/rv9G2Z7/Rg0AAAAAAAAAAAAAAAAAAAAAqP9GFqj/Rv6x/0b/p/9G/5//Rv+f/0b/n/9G/5//Rv+f/0b/n/9G/6f/Rv+x/0b+qP9GGAAAAAAAAAAAAAAAAACs/0YdrP9G/6//Rv+j/0b/nP9G/5r/Rv+a/0b/mv9G/5r/Rv+a/0b/mv9G/6P/Rv+v/0b/rP9GHwAAAAAAAAAAAAAAAACw/0Yhrv9G/67/Rv+h/0b/mf9G/5f/Rv+X/0b/l/9G/5f/Rv+X/0b/l/9G/5n/Rv+h/0b/rv9G/7D/RiMAAAAAAAAAAAAAAAAAs/9GJbL/Rv+t/0b/oP9G/5j/Rv+W/0b/lv9G/5b/Rv+W/0b/lv9G/5b/Rv+Y/0b/oP9G/63/Rv+z/0YnAAAAAAAAAAAAAAAAALT/Rim1/0b/q/9G/5//Rv+X/0b/lf9G/5X/Rv+V/0b/lf9G/5X/Rv+V/0b/l/9G/5//Rv+r/0b/tP9GKwAAAAAAAAAAAAAAAAC4/0Ysuv9G/6n/Rv+e/0b/lv9G/5T/Rv+U/0b/lP9G/5T/Rv+U/0b/lP9G/5b/Rv+e/0b/qf9G/7j/Ri4AAAAAAAAAAAAAAAAAAL//Rji2/0b/qP9G/53/Rv+V/0b/k/9G/5P/Rv+T/0b/k/9G/5P/Rv+T/0b/lf9G/53/Rv+o/0b/v/9GOgAAAAAAAAAAAAAAAADK/0Y2yf9G8Lj/Rv+m/0b/nP9G/5L/Rv+S/0b/kv9G/5L/Rv+S/0b/nP9G/6b/Rv+4/0b/yf9G8sr/RjgAAAAAAAAAAAAAAAAAz/9GHs//Rq3S/0bx0v9G/83/Rv+e/0b/j/9G/5z/Rv/N/0b/0v9G/9L/RvHP/0av0P9GIAAAAAAAAAAAAAAAAAAAAAAz/9GBs//RhHP/0YHMz/G1Yz/RpYz/0Y5z/9G1M3/Rtz3/0Yj3/0Yuz/9GH8//RgAAAAAAAAAAAAAAAAAAAAAAM/9GAMz/Rooz/0aYM/9G5s//RvPP/0bwz/9G5s//RpiN/0YqM/9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM//RgPP/0Y6z/9Gns//Rr7P/0a+z/9Gns//RjrP/0YDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMz/RgzP/0YWz/9GFs//RgzAAAAAAAAAAAAAAAAA/38AAP9/AAD+HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/h8AAP5/AAD/fwAA/38AAA=="
     >
+
+    <style>
+        /* Individual Parameter Editor Styles */
+        .individual-params-section {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .individual-params-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .individual-params-title {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .param-edit-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .param-edit-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+        }
+
+        .param-edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .param-edit-btn.edges-btn {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+            box-shadow: 0 2px 6px rgba(253, 121, 168, 0.3);
+        }
+
+        .param-edit-btn.edges-btn:hover {
+            box-shadow: 0 6px 16px rgba(253, 121, 168, 0.4);
+        }
+
+        .individual-params-status {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-value {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Parameter Editor Modal Styles */
+        .param-editor-modal {
+            position: fixed;
+            z-index: 1500;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .param-editor-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .param-editor-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .param-editor-header.edges {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+        }
+
+        .param-editor-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .param-editor-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .param-search {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .param-search:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .param-controls-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .param-batch-input {
+            width: 80px;
+            padding: 6px 8px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .param-batch-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .param-batch-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .param-table-container {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .param-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .param-table.edges th {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+        }
+
+        .param-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+
+        .param-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .param-table tr:hover {
+            background: #e3f2fd;
+        }
+
+        .param-input {
+            width: 80px;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .param-input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .param-input.modified {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+            font-weight: 600;
+        }
+
+        .param-input.edges.modified {
+            background: rgba(253, 121, 168, 0.1);
+            border-color: #fd79a8;
+        }
+
+        .param-reset-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .param-reset-btn:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .param-node-id, .param-edge-id {
+            font-family: 'Courier New', monospace;
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .param-edge-id {
+            background: #fd79a8;
+        }
+
+        .param-original-value {
+            color: #666;
+            font-style: italic;
+            font-size: 11px;
+        }
+
+        .param-footer {
+            background: #f8f9fa;
+            padding: 15px 25px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .param-footer-stats {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .param-footer-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .param-footer-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .param-footer-btn.save {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .param-footer-btn.cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .param-footer-btn.reset {
+            background: #dc3545;
+            color: white;
+        }
+
+        .param-footer-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* No data state */
+        .param-no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .param-no-data h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .param-editor-content {
+                width: 95%;
+                margin: 1% auto;
+                max-height: 95vh;
+            }
+
+            .param-editor-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .param-controls-group {
+                justify-content: space-between;
+            }
+
+            .param-table th,
+            .param-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .param-input {
+                width: 60px;
+                font-size: 11px;
+            }
+
+            .param-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .param-footer-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -88,6 +481,36 @@
                     <div class="parameter-group">
                         <label>Edge Probability: <input type="range" id="edgeProb" min="0.1" max="1" step="0.1" value="0.9"> <span id="edgeValue">0.9</span></label>
                         <label class="checkbox-label"><input type="checkbox" id="overrideEdgeProb"> Override all edge probabilities with this value</label>
+                    </div>
+                </div>
+
+                <!-- NEW: Individual Parameter Control Section -->
+                <div class="individual-params-section">
+                    <div class="individual-params-header">
+                        <h4 class="individual-params-title">🎛️ Individual Parameter Control</h4>
+                        <div class="param-edit-buttons">
+                            <button id="editNodePriorsBtn" class="param-edit-btn nodes-btn" disabled>
+                                Edit Node Priors
+                            </button>
+                            <button id="editEdgeProbsBtn" class="param-edit-btn edges-btn" disabled>
+                                Edit Edge Probabilities
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="individualParamsStatus" class="individual-params-status" style="display: none;">
+                        <div class="status-item">
+                            <span class="status-label">Modified Node Priors:</span>
+                            <span class="status-value" id="modifiedNodesCount">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Modified Edge Probabilities:</span>
+                            <span class="status-value" id="modifiedEdgesCount">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Using Individual Values:</span>
+                            <span class="status-value" id="usingIndividualValues">No</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -383,7 +806,7 @@
         </div>
     </div>
     
-    <!-- Diamond Path Analysis Modal -->
+    <!-- Enhanced Diamond Path Analysis Modal -->
     <div id="diamondPathModal" class="modal" style="display: none;">
         <div class="modal-content large-modal">
             <div class="modal-header">
@@ -409,6 +832,33 @@
                                     <span id="pathEdgeValue">0.9</span>
                                 </div>
                             </div>
+                            
+                            <!-- NEW: Individual parameter controls for diamond path analysis -->
+                            <div class="individual-params-section">
+                                <div class="individual-params-header">
+                                    <h6 class="individual-params-title">🎛️ Diamond Individual Parameters</h6>
+                                    <div class="param-edit-buttons">
+                                        <button id="editDiamondNodePriorsBtn" class="param-edit-btn nodes-btn" disabled>
+                                            Edit Diamond Node Priors
+                                        </button>
+                                        <button id="editDiamondEdgeProbsBtn" class="param-edit-btn edges-btn" disabled>
+                                            Edit Diamond Edge Probabilities
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div id="diamondIndividualParamsStatus" class="individual-params-status" style="display: none;">
+                                    <div class="status-item">
+                                        <span class="status-label">Modified Diamond Node Priors:</span>
+                                        <span class="status-value" id="modifiedDiamondNodesCount">0</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <span class="status-label">Modified Diamond Edge Probabilities:</span>
+                                        <span class="status-value" id="modifiedDiamondEdgesCount">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="path-actions">
                                 <button id="runPathAnalysis" class="action-btn analyze-btn">🔬 Run Analysis</button>
                                 <button id="resetPathParams" class="action-btn">🔄 Reset Parameters</button>
@@ -429,7 +879,478 @@
             </div>
         </div>
     </div>
+
+    <!-- NEW: Individual Parameter Editor Modal -->
+    <div id="parameterEditorModal" class="param-editor-modal" style="display: none;">
+        <div class="param-editor-content">
+            <div id="parameterEditorHeader" class="param-editor-header">
+                <h4 id="parameterEditorTitle">Edit Parameters</h4>
+                <span class="close" onclick="closeParameterEditor()">&times;</span>
+            </div>
+            <div class="param-editor-body">
+                <div class="param-editor-controls">
+                    <input type="text" id="parameterSearch" class="param-search" placeholder="Search by ID...">
+                    <div class="param-controls-group">
+                        <label>Batch Set:</label>
+                        <input type="number" id="batchValue" class="param-batch-input" min="0" max="1" step="0.01" value="0.5">
+                        <button id="batchSetSelected" class="param-batch-btn">Set Selected</button>
+                        <button id="batchSetAll" class="param-batch-btn">Set All</button>
+                        <button id="batchResetSelected" class="param-batch-btn" style="background: #dc3545;">Reset Selected</button>
+                    </div>
+                </div>
+                
+                <div id="parameterTableContainer" class="param-table-container">
+                    <div class="param-no-data">
+                        <h4>No Data Available</h4>
+                        <p>Please upload a file and run analysis first.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="param-footer">
+                <div class="param-footer-stats">
+                    <span id="parameterStats">0 items • 0 modified</span>
+                </div>
+                <div class="param-footer-actions">
+                    <button id="resetAllParameters" class="param-footer-btn reset">Reset All</button>
+                    <button id="cancelParameterEdit" class="param-footer-btn cancel">Cancel</button>
+                    <button id="saveParameters" class="param-footer-btn save">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <script type="module" src="/js/main.js"></script>
+    <script type="module">
+        // Enhanced main.js with parameter manager integration
+        import { DOMManager } from './js/managers/dom-manager.js';
+        import { FileManager } from './js/managers/file-manager.js';
+        import { AnalysisManager } from './js/managers/analysis-manager.js';
+        import { DiamondManager } from './js/managers/diamond-manager.js';
+        import { VisualizationManager } from './js/managers/visualization-manager.js';
+        import { TabManager } from './js/managers/tab-manager.js';
+        import { ExportManager } from './js/managers/export-manager.js';
+        import { StateManager } from './js/managers/state-manager.js';
+        import { ParameterManager } from './js/managers/parameter-manager.js';
+        import { UIUtils } from './js/utils/ui-utils.js';
+
+        // Global state
+        export const AppState = {
+            currentFile: null,
+            analysisResults: null,
+            networkData: null,
+            diamondData: null,
+            monteCarloResults: null,
+            selectedNode: null,
+            originalNodePriors: null,
+            originalEdgeProbabilities: null,
+            currentDiamondData: null,
+            pathNetworkInstance: null,
+            individualParameterOverrides: new Map()
+        };
+
+        // Global managers reference
+        let managers = null;
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Enhanced Network Analysis Tool loading...');
+            
+            try {
+                // Initialize managers
+                const domManager = new DOMManager();
+                const fileManager = new FileManager(domManager);
+                const parameterManager = new ParameterManager(domManager);
+                const analysisManager = new AnalysisManager(domManager, parameterManager);
+                const diamondManager = new DiamondManager(domManager, parameterManager);
+                const visualizationManager = new VisualizationManager(domManager);
+                const tabManager = new TabManager(domManager);
+                const exportManager = new ExportManager(domManager);
+                const stateManager = new StateManager();
+                
+                // Store managers globally
+                managers = {
+                    dom: domManager,
+                    file: fileManager,
+                    parameter: parameterManager,
+                    analysis: analysisManager,
+                    diamond: diamondManager,
+                    visualization: visualizationManager,
+                    tab: tabManager,
+                    export: exportManager,
+                    state: stateManager
+                };
+                
+                // Verify critical DOM elements
+                const elementsValid = domManager.verifyElements();
+                if (!elementsValid) {
+                    console.warn('Some DOM elements are missing - functionality may be limited');
+                }
+                
+                // Initialize all event listeners
+                console.log('Initializing event listeners...');
+                fileManager.initializeEventListeners();
+                parameterManager.initializeEventListeners();
+                analysisManager.initializeEventListeners();
+                diamondManager.initializeEventListeners();
+                visualizationManager.initializeEventListeners();
+                tabManager.initializeEventListeners();
+                exportManager.initializeEventListeners();
+                
+                // Initialize UI states
+                UIUtils.updateAllCheckboxStates();
+                
+                // Make managers globally available for cross-module communication
+                window.AppManagers = managers;
+                window.AppState = AppState;
+                
+                // Setup global functions for HTML onclick handlers
+                setupGlobalFunctions();
+                
+                // Initial parameter availability check
+                parameterManager.updateParameterEditingAvailability();
+                
+                console.log('✅ All managers initialized successfully');
+                console.log('🚀 Enhanced Network Analysis Tool ready');
+                
+            } catch (error) {
+                console.error('❌ Error initializing application:', error);
+                
+                // Show error to user
+                const container = document.querySelector('.container');
+                if (container) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #f5c6cb;';
+                    errorDiv.innerHTML = `
+                        <h3>Initialization Error</h3>
+                        <p>Failed to initialize the application: ${error.message}</p>
+                        <p>Please refresh the page and try again.</p>
+                    `;
+                    container.insertBefore(errorDiv, container.firstChild);
+                }
+            }
+        });
+
+        // Setup global functions that need to be accessible from HTML onclick handlers
+        function setupGlobalFunctions() {
+            console.log('Setting up global functions...');
+            
+            // Visualization functions
+            window.focusOnNode = function(nodeId) {
+                console.log('Global focusOnNode called for node:', nodeId);
+                if (managers?.visualization) {
+                    managers.visualization.focusOnNode(nodeId);
+                } else {
+                    console.error('Visualization manager not available');
+                }
+            };
+
+            // Diamond analysis functions
+            window.showNodeDiamonds = function(nodeId) {
+                console.log('Global showNodeDiamonds called for node:', nodeId);
+                if (managers?.diamond) {
+                    managers.diamond.showNodeDiamonds(nodeId);
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            window.showDiamondDetail = function(joinNode, diamondIndex) {
+                console.log('Global showDiamondDetail called for join node:', joinNode, 'index:', diamondIndex);
+                if (managers?.diamond) {
+                    managers.diamond.showDiamondDetail(joinNode, diamondIndex);
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            window.focusOnDiamondInViz = function(joinNode) {
+                console.log('Global focusOnDiamondInViz called for join node:', joinNode);
+                if (managers?.diamond) {
+                    managers.diamond.focusOnDiamondInViz(joinNode);
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            window.analyzeDiamondPaths = function(joinNode) {
+                console.log('Global analyzeDiamondPaths called for join node:', joinNode);
+                if (managers?.diamond) {
+                    managers.diamond.analyzeDiamondPaths(joinNode);
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            window.showDiamondForJoin = function(joinNode) {
+                console.log('Global showDiamondForJoin called for join node:', joinNode);
+                if (managers?.diamond) {
+                    managers.diamond.showDiamondForJoin(joinNode);
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            // Ancestor/descendant highlighting functions
+            window.highlightAncestors = function(nodeId) {
+                console.log('Global highlightAncestors called for node:', nodeId);
+                if (managers?.visualization) {
+                    managers.visualization.highlightAncestors(nodeId);
+                } else {
+                    console.error('Visualization manager not available');
+                }
+            };
+
+            window.highlightDescendants = function(nodeId) {
+                console.log('Global highlightDescendants called for node:', nodeId);
+                if (managers?.visualization) {
+                    managers.visualization.highlightDescendants(nodeId);
+                } else {
+                    console.error('Visualization manager not available');
+                }
+            };
+
+            // Modal control functions
+            window.closeDiamondPathModal = function() {
+                console.log('Global closeDiamondPathModal called');
+                if (managers?.diamond) {
+                    managers.diamond.closeDiamondPathModal();
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            window.closeDiamondDetailModal = function() {
+                console.log('Global closeDiamondDetailModal called');
+                if (managers?.diamond) {
+                    managers.diamond.closeModal('diamondDetailModal');
+                } else {
+                    console.error('Diamond manager not available');
+                }
+            };
+
+            // Generic modal close function
+            window.closeModal = function(modalId) {
+                console.log('Global closeModal called for:', modalId);
+                if (managers?.diamond) {
+                    managers.diamond.closeModal(modalId);
+                } else {
+                    console.error('Diamond manager not available');
+                    // Fallback - try to close modal directly
+                    const modal = document.getElementById(modalId);
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                }
+            };
+
+            // Parameter editor functions
+            window.openParameterEditor = function(mode) {
+                console.log('Global openParameterEditor called for mode:', mode);
+                if (managers?.parameter) {
+                    managers.parameter.openParameterEditor(mode);
+                } else {
+                    console.error('Parameter manager not available');
+                }
+            };
+
+            window.closeParameterEditor = function() {
+                console.log('Global closeParameterEditor called');
+                if (managers?.parameter) {
+                    managers.parameter.closeParameterEditor();
+                } else {
+                    console.error('Parameter manager not available');
+                }
+            };
+
+            // Export functions
+            window.exportResults = function() {
+                console.log('Global exportResults called');
+                if (managers?.export) {
+                    managers.export.exportResults();
+                } else {
+                    console.error('Export manager not available');
+                }
+            };
+
+            window.exportDiamondAnalysis = function() {
+                console.log('Global exportDiamondAnalysis called');
+                if (managers?.export) {
+                    managers.export.exportDiamondAnalysis();
+                } else {
+                    console.error('Export manager not available');
+                }
+            };
+
+            // State management functions
+            window.saveCurrentState = function(description) {
+                console.log('Global saveCurrentState called');
+                if (managers?.state) {
+                    managers.state.saveState(description || 'Manual save');
+                } else {
+                    console.error('State manager not available');
+                }
+            };
+
+            window.resetApplication = function() {
+                console.log('Global resetApplication called');
+                if (managers?.state) {
+                    managers.state.clearCurrentState();
+                    // Refresh the page or reset UI
+                    location.reload();
+                } else {
+                    console.error('State manager not available');
+                }
+            };
+
+            // Debug functions (useful for development)
+            window.debugAppState = function() {
+                console.log('=== Current Application State ===');
+                console.log('AppState:', AppState);
+                console.log('Managers:', managers);
+                if (managers?.state) {
+                    console.log('State Summary:', managers.state.getStateSummary());
+                }
+                return AppState;
+            };
+
+            window.debugNetworkData = function() {
+                console.log('=== Network Data Debug ===');
+                console.log('Network Data:', AppState.networkData);
+                console.log('Diamond Data:', AppState.diamondData);
+                console.log('Analysis Results:', AppState.analysisResults);
+                return {
+                    networkData: AppState.networkData,
+                    diamondData: AppState.diamondData,
+                    analysisResults: AppState.analysisResults
+                };
+            };
+
+            console.log('✅ Global functions setup complete');
+        }
+
+        // Global modal click handler (fallback for any modal clicks not handled elsewhere)
+        window.onclick = function(event) {
+            try {
+                // Handle modal backdrop clicks
+                if (event.target.classList.contains('modal') || event.target.classList.contains('param-editor-modal')) {
+                    const modalId = event.target.id;
+                    if (modalId) {
+                        console.log('Modal backdrop clicked:', modalId);
+                        if (modalId === 'parameterEditorModal') {
+                            window.closeParameterEditor();
+                        } else {
+                            window.closeModal(modalId);
+                        }
+                    }
+                }
+                
+                // Handle close button clicks
+                if (event.target.classList.contains('close')) {
+                    const modal = event.target.closest('.modal, .param-editor-modal');
+                    if (modal) {
+                        console.log('Close button clicked for modal:', modal.id);
+                        if (modal.id === 'parameterEditorModal') {
+                            window.closeParameterEditor();
+                        } else {
+                            window.closeModal(modal.id);
+                        }
+                    }
+                }
+                
+                // Let diamond manager handle its specific modal clicks too
+                if (managers?.diamond) {
+                    managers.diamond.handleModalClicks(event);
+                }
+            } catch (error) {
+                console.error('Error in global modal click handler:', error);
+            }
+        };
+
+        // Enhanced global function to force close all modals
+        window.forceCloseAllModals = function() {
+            console.log('Force closing all modals...');
+            const modalSelectors = [
+                '.modal',
+                '.param-editor-modal',
+                '#analysisOptionsModal',
+                '#diamondDetailModal',
+                '#diamondPathModal',
+                '#parameterEditorModal'
+            ];
+            
+            modalSelectors.forEach(selector => {
+                const modals = document.querySelectorAll(selector);
+                modals.forEach(modal => {
+                    if (modal.style.display !== 'none') {
+                        console.log('Force closing modal:', modal.id || modal.className);
+                        modal.style.display = 'none';
+                        modal.style.setProperty('display', 'none', 'important');
+                        
+                        // Remove from DOM if it's a dynamically created modal
+                        if (modal.id === 'analysisOptionsModal') {
+                            modal.remove();
+                        }
+                    }
+                });
+            });
+            
+            // Clear any modal-related global state
+            if (window.AppState) {
+                window.AppState.currentDiamondData = null;
+                window.AppState.pathNetworkInstance = null;
+            }
+            
+            console.log('All modals force closed');
+        };
+
+        // Global keyboard handler
+        document.addEventListener('keydown', function(event) {
+            try {
+                // Escape key closes any open modals
+                if (event.key === 'Escape') {
+                    const openModals = document.querySelectorAll('.modal[style*="block"], .param-editor-modal[style*="block"]');
+                    openModals.forEach(modal => {
+                        if (modal.id) {
+                            console.log('Escape pressed - closing modal:', modal.id);
+                            if (modal.id === 'parameterEditorModal') {
+                                window.closeParameterEditor();
+                            } else {
+                                window.closeModal(modal.id);
+                            }
+                        }
+                    });
+                }
+                
+                // Ctrl+S saves current state (prevent default browser save)
+                if (event.ctrlKey && event.key === 's') {
+                    event.preventDefault();
+                    window.saveCurrentState('Keyboard shortcut save');
+                }
+                
+                // F5 or Ctrl+R - let default behavior happen but log it
+                if (event.key === 'F5' || (event.ctrlKey && event.key === 'r')) {
+                    console.log('Page refresh triggered');
+                }
+                
+            } catch (error) {
+                console.error('Error in global keyboard handler:', error);
+            }
+        });
+
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            
+            // Show user-friendly error for critical failures
+            if (event.error && event.error.message) {
+                const message = event.error.message;
+                if (message.includes('vis') || message.includes('network') || message.includes('visualization')) {
+                    console.error('Visualization error - check vis.js library loading');
+                }
+            }
+        });
+
+        // Export managers for external access (useful for debugging)
+        export { managers };
+    </script>
 </body>
 </html>

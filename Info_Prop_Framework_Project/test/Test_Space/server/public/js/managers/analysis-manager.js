@@ -1,10 +1,11 @@
-// analysis-manager.js - Enhanced analysis operations with three-tier support
+// analysis-manager.js - Enhanced analysis operations with individual parameter support
 import { AppState } from '../main.js';
 import { UIUtils } from '../utils/ui-utils.js';
 
 export class AnalysisManager {
-    constructor(domManager) {
+    constructor(domManager, parameterManager = null) {
         this.dom = domManager;
+        this.parameterManager = parameterManager;
         this.currentAnalysisMode = null; // 'structure', 'diamond', 'full'
         this.analysisHistory = [];
     }
@@ -23,6 +24,27 @@ export class AnalysisManager {
         this.dom.safeAddEventListener('sortSelect', 'change', () => {
             this.updateResultsTable();
         });
+
+        // Watch for parameter changes to update availability
+        this.setupParameterChangeWatchers();
+    }
+
+    setupParameterChangeWatchers() {
+        // Watch for when network data becomes available
+        const originalSetNetworkData = (data) => {
+            AppState.networkData = data;
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
+        };
+
+        // Watch for when structure data becomes available
+        const originalSetStructureData = (data) => {
+            AppState.structureData = data;
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
+        };
     }
 
     showAnalysisOptionModal() {
@@ -31,7 +53,7 @@ export class AnalysisManager {
             return;
         }
 
-        // Create modal for analysis options
+        // Create modal for analysis options with parameter summary
         const modal = this.createAnalysisOptionsModal();
         document.body.appendChild(modal);
         modal.style.display = 'block';
@@ -43,13 +65,22 @@ export class AnalysisManager {
         modal.id = 'analysisOptionsModal';
         modal.style.cssText = 'display: none; z-index: 1000;';
         
+        // Get parameter customization summary
+        const fileManager = window.AppManagers?.file;
+        const paramSummary = fileManager ? fileManager.getParameterCustomizationSummary() : {};
+        
+        // Create parameter status display
+        const parameterStatusHtml = this.createParameterStatusDisplay(paramSummary);
+        
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-content" style="max-width: 700px;">
                 <div class="modal-header">
                     <h4>Choose Analysis Type</h4>
                     <span class="close" onclick="closeModal('analysisOptionsModal')">&times;</span>
                 </div>
                 <div class="modal-body">
+                    ${parameterStatusHtml}
+                    
                     <div class="analysis-options">
                         <div class="analysis-option" data-mode="structure">
                             <div class="option-header">
@@ -241,10 +272,120 @@ export class AnalysisManager {
                 color: #666;
                 font-size: 14px;
             }
+
+            .parameter-status-display {
+                background: rgba(102, 126, 234, 0.08);
+                border: 2px solid #667eea;
+                border-radius: 12px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+
+            .parameter-status-header {
+                color: #667eea;
+                font-weight: 600;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .parameter-status-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+            }
+
+            .parameter-status-item {
+                background: rgba(255, 255, 255, 0.8);
+                padding: 8px 12px;
+                border-radius: 6px;
+                border-left: 3px solid #667eea;
+                font-size: 13px;
+            }
+
+            .parameter-status-label {
+                font-weight: 600;
+                color: #333;
+            }
+
+            .parameter-status-value {
+                color: #667eea;
+                font-weight: 500;
+            }
+
+            .no-parameter-customization {
+                color: #666;
+                font-style: italic;
+                text-align: center;
+                padding: 10px;
+            }
         `;
         document.head.appendChild(style);
 
         return modal;
+    }
+
+    createParameterStatusDisplay(paramSummary) {
+        if (!paramSummary.hasGlobalOverrides && !paramSummary.hasIndividualOverrides) {
+            return `
+                <div class="parameter-status-display">
+                    <div class="parameter-status-header">
+                        🎛️ Parameter Configuration
+                    </div>
+                    <div class="no-parameter-customization">
+                        Using default parameter values from CSV file
+                    </div>
+                </div>
+            `;
+        }
+
+        const statusItems = [];
+
+        if (paramSummary.hasGlobalOverrides) {
+            const globalOverrides = [];
+            if (this.dom.isElementChecked('overrideNodePrior')) {
+                globalOverrides.push(`Node Prior: ${this.dom.getElementValue('nodePrior')}`);
+            }
+            if (this.dom.isElementChecked('overrideEdgeProb')) {
+                globalOverrides.push(`Edge Prob: ${this.dom.getElementValue('edgeProb')}`);
+            }
+            
+            statusItems.push(`
+                <div class="parameter-status-item">
+                    <div class="parameter-status-label">Global Overrides:</div>
+                    <div class="parameter-status-value">${globalOverrides.join(', ')}</div>
+                </div>
+            `);
+        }
+
+        if (paramSummary.hasIndividualOverrides) {
+            const individualOverrides = [];
+            if (paramSummary.nodeOverrideCount > 0) {
+                individualOverrides.push(`${paramSummary.nodeOverrideCount} Node${paramSummary.nodeOverrideCount > 1 ? 's' : ''}`);
+            }
+            if (paramSummary.edgeOverrideCount > 0) {
+                individualOverrides.push(`${paramSummary.edgeOverrideCount} Edge${paramSummary.edgeOverrideCount > 1 ? 's' : ''}`);
+            }
+            
+            statusItems.push(`
+                <div class="parameter-status-item">
+                    <div class="parameter-status-label">Individual Overrides:</div>
+                    <div class="parameter-status-value">${individualOverrides.join(', ')}</div>
+                </div>
+            `);
+        }
+
+        return `
+            <div class="parameter-status-display">
+                <div class="parameter-status-header">
+                    🎛️ Active Parameter Customizations
+                </div>
+                <div class="parameter-status-grid">
+                    ${statusItems.join('')}
+                </div>
+            </div>
+        `;
     }
 
     // Tier 1: Structure-only analysis
@@ -293,6 +434,11 @@ export class AnalysisManager {
             AppState.originalNodePriors = result.originalData?.nodePriors;
             AppState.originalEdgeProbabilities = result.originalData?.edgeProbabilities;
             
+            // Update parameter manager availability
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
+            
             // Update analysis mode
             this.currentAnalysisMode = 'structure';
             this.addToAnalysisHistory('structure', result.summary);
@@ -302,6 +448,9 @@ export class AnalysisManager {
             
             // Display structure results
             this.displayStructureResults(result);
+            
+            // Ensure all modals are closed after successful analysis
+            this.closeAllModals();
             
             console.log('✅ Structure analysis workflow complete');
             
@@ -361,6 +510,11 @@ export class AnalysisManager {
             AppState.originalNodePriors = result.originalData?.nodePriors;
             AppState.originalEdgeProbabilities = result.originalData?.edgeProbabilities;
             
+            // Update parameter manager availability
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
+            
             // Update analysis mode
             this.currentAnalysisMode = 'diamond';
             this.addToAnalysisHistory('diamond', result.summary);
@@ -370,6 +524,9 @@ export class AnalysisManager {
             
             // Display diamond results
             this.displayDiamondResults(result);
+            
+            // Ensure all modals are closed after successful analysis
+            this.closeAllModals();
             
             console.log('✅ Diamond analysis workflow complete');
             
@@ -397,6 +554,14 @@ export class AnalysisManager {
             
             const requestData = fileManager.getAnalysisRequestData();
             requestData.csvContent = csvContent;
+            
+            // Log parameter information for debugging
+            if (requestData.useIndividualOverrides) {
+                console.log('Running full analysis with individual parameter overrides:', {
+                    nodeOverrides: Object.keys(requestData.individualNodePriors || {}).length,
+                    edgeOverrides: Object.keys(requestData.individualEdgeProbabilities || {}).length
+                });
+            }
             
             const response = await fetch('/api/analyze-enhanced', {
                 method: 'POST',
@@ -430,6 +595,11 @@ export class AnalysisManager {
                 AppState.originalEdgeProbabilities = result.originalData.edgeProbabilities;
             }
             
+            // Update parameter manager availability
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
+            
             // Update analysis mode
             this.currentAnalysisMode = 'full';
             this.addToAnalysisHistory('full', result.summary);
@@ -439,6 +609,9 @@ export class AnalysisManager {
             
             // Display results
             this.displayResults(result);
+            
+            // Ensure all modals are closed after successful analysis
+            this.closeAllModals();
             
             console.log('✅ Full analysis workflow complete');
             
@@ -477,7 +650,8 @@ export class AnalysisManager {
         this.analysisHistory.push({
             mode: mode,
             timestamp: new Date().toISOString(),
-            summary: summary
+            summary: summary,
+            parameterOverrides: this.parameterManager ? this.parameterManager.hasIndividualOverrides() : false
         });
         
         // Keep only last 10 analyses
@@ -492,6 +666,45 @@ export class AnalysisManager {
         if (modal) {
             modal.style.display = 'none';
             modal.remove();
+        }
+        
+        // Also close any other open modals that might interfere
+        this.closeAllModals();
+    }
+
+    closeAllModals() {
+        // Use the global force close function for comprehensive modal cleanup
+        if (window.forceCloseAllModals) {
+            window.forceCloseAllModals();
+        } else {
+            // Fallback method if global function not available
+            const modalIds = [
+                'analysisOptionsModal',
+                'diamondDetailModal',
+                'diamondPathModal',
+                'parameterEditorModal'
+            ];
+            
+            modalIds.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal && modal.style.display !== 'none') {
+                    console.log('Force closing modal:', modalId);
+                    modal.style.display = 'none';
+                    modal.style.setProperty('display', 'none', 'important');
+                    
+                    // Special cleanup for specific modals
+                    if (modalId === 'parameterEditorModal' && window.AppManagers?.parameter) {
+                        window.AppManagers.parameter.closeParameterEditor();
+                    } else if (modalId === 'diamondPathModal' && window.AppManagers?.diamond) {
+                        window.AppManagers.diamond.closeDiamondPathModal();
+                    }
+                    
+                    // Remove dynamically created modals
+                    if (modalId === 'analysisOptionsModal') {
+                        modal.remove();
+                    }
+                }
+            });
         }
     }
 

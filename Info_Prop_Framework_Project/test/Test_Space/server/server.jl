@@ -1,4 +1,4 @@
-# Enhanced server with diamond classification and Monte Carlo validation
+# Enhanced server with individual parameter support, diamond classification and Monte Carlo validation
 using HTTP, JSON
 
 # Ensure UTF-8 encoding for proper emoji/icon display
@@ -83,6 +83,85 @@ const JSON_HEADERS = [
     "Content-Type" => "application/json; charset=utf-8",
     "Access-Control-Allow-Origin" => "*"
 ]
+
+# Enhanced parameter application function
+function apply_individual_parameter_overrides!(node_priors, edge_probabilities, individual_overrides)
+    """
+    Apply individual parameter overrides to node priors and edge probabilities.
+    
+    Args:
+        node_priors: Dict{Int64, Float64} - original node priors
+        edge_probabilities: Dict{Tuple{Int64,Int64}, Float64} - original edge probabilities  
+        individual_overrides: Dict - contains individualNodePriors and individualEdgeProbabilities
+    """
+    
+    if !haskey(individual_overrides, "useIndividualOverrides") || !individual_overrides["useIndividualOverrides"]
+        return 0, 0  # No overrides to apply
+    end
+    
+    nodes_modified = 0
+    edges_modified = 0
+    
+    # Apply individual node prior overrides
+    if haskey(individual_overrides, "individualNodePriors")
+        for (node_key, new_value) in individual_overrides["individualNodePriors"]
+            try
+                node_id = parse(Int64, string(node_key))
+                if haskey(node_priors, node_id)
+                    old_value = node_priors[node_id]
+                    node_priors[node_id] = Float64(new_value)
+                    nodes_modified += 1
+                    println("🎛️ Override node $node_id prior: $old_value → $new_value")
+                else
+                    println("⚠️ Warning: Node $node_id not found in original priors")
+                end
+            catch e
+                println("⚠️ Warning: Failed to parse node ID '$node_key': $e")
+            end
+        end
+    end
+    
+    # Apply individual edge probability overrides
+    if haskey(individual_overrides, "individualEdgeProbabilities")
+        for (edge_key, new_value) in individual_overrides["individualEdgeProbabilities"]
+            try
+                # Parse edge key format: "(from, to)"
+                edge_str = string(edge_key)
+                if startswith(edge_str, "(") && endswith(edge_str, ")")
+                    # Remove parentheses and split
+                    inner = edge_str[2:end-1]
+                    parts = split(inner, ",")
+                    if length(parts) == 2
+                        from_node = parse(Int64, strip(parts[1]))
+                        to_node = parse(Int64, strip(parts[2]))
+                        edge_tuple = (from_node, to_node)
+                        
+                        if haskey(edge_probabilities, edge_tuple)
+                            old_value = edge_probabilities[edge_tuple]
+                            edge_probabilities[edge_tuple] = Float64(new_value)
+                            edges_modified += 1
+                            println("🎛️ Override edge $edge_tuple probability: $old_value → $new_value")
+                        else
+                            println("⚠️ Warning: Edge $edge_tuple not found in original probabilities")
+                        end
+                    else
+                        println("⚠️ Warning: Invalid edge key format: '$edge_key'")
+                    end
+                else
+                    println("⚠️ Warning: Edge key doesn't match expected format: '$edge_key'")
+                end
+            catch e
+                println("⚠️ Warning: Failed to parse edge key '$edge_key': $e")
+            end
+        end
+    end
+    
+    if nodes_modified > 0 || edges_modified > 0
+        println("✅ Applied individual parameter overrides: $nodes_modified nodes, $edges_modified edges")
+    end
+    
+    return nodes_modified, edges_modified
+end
 
 # Monte Carlo validation function (optimized version from MC_Optimized.jl)
 function MC_result_optimized(
@@ -544,7 +623,7 @@ function handle_diamond_analysis(req::HTTP.Request)
     end
 end
 
-# Enhanced analysis handler with diamond classification and Monte Carlo
+# Enhanced analysis handler with individual parameter support
 function handle_enhanced_analysis(req::HTTP.Request)
     try
         data = JSON.parse(String(req.body))
@@ -556,11 +635,15 @@ function handle_enhanced_analysis(req::HTTP.Request)
         include_classification = get(data, "includeClassification", true)
         enable_monte_carlo = get(data, "enableMonteCarlo", false)
         
+        # NEW: Check for individual parameter overrides
+        use_individual_overrides = get(data, "useIndividualOverrides", false)
+        
         temp_file = tempname() * ".csv"
         write(temp_file, csv_content)
         
         println("🔄 Running enhanced analysis...")
         println("📊 Classification: $include_classification, Monte Carlo: $enable_monte_carlo")
+        println("🎛️ Individual overrides: $use_individual_overrides")
         
         # Read graph data from CSV file
         edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(temp_file)
@@ -569,15 +652,48 @@ function handle_enhanced_analysis(req::HTTP.Request)
         original_node_priors = copy(node_priors)
         original_edge_probabilities = copy(edge_probabilities)
         
-        # Apply overrides
+        # Apply individual parameter overrides FIRST (before global overrides)
+        nodes_individually_modified = 0
+        edges_individually_modified = 0
+        if use_individual_overrides
+            println("🎛️ Applying individual parameter overrides...")
+            nodes_individually_modified, edges_individually_modified = apply_individual_parameter_overrides!(
+                node_priors, edge_probabilities, data
+            )
+        end
+        
+        # Apply global overrides AFTER individual overrides (global overrides take precedence)
+        nodes_globally_modified = 0
+        edges_globally_modified = 0
+        
         if override_node_prior
-            println("🔄 Overriding all node priors with: $node_prior")
-            map!(x -> node_prior, values(node_priors))
+            println("🔄 Overriding remaining node priors with global value: $node_prior")
+            for (node_id, current_value) in node_priors
+                if current_value != node_prior  # Only count if actually changing
+                    nodes_globally_modified += 1
+                end
+                node_priors[node_id] = node_prior
+            end
         end
         
         if override_edge_prob
-            println("🔄 Overriding all edge probabilities with: $edge_prob")
-            map!(x -> edge_prob, values(edge_probabilities))
+            println("🔄 Overriding remaining edge probabilities with global value: $edge_prob")
+            for (edge_key, current_value) in edge_probabilities
+                if current_value != edge_prob  # Only count if actually changing
+                    edges_globally_modified += 1
+                end
+                edge_probabilities[edge_key] = edge_prob
+            end
+        end
+        
+        # Log parameter modification summary
+        total_nodes_modified = nodes_individually_modified + nodes_globally_modified
+        total_edges_modified = edges_individually_modified + edges_globally_modified
+        
+        if total_nodes_modified > 0 || total_edges_modified > 0
+            println("📊 Parameter modification summary:")
+            println("   • Nodes: $nodes_individually_modified individual + $nodes_globally_modified global = $total_nodes_modified total")
+            println("   • Edges: $edges_individually_modified individual + $edges_globally_modified global = $total_edges_modified total")
         end
         
         # Basic network analysis
@@ -721,8 +837,17 @@ function handle_enhanced_analysis(req::HTTP.Request)
         rm(temp_file)
         
         # Determine summary values
-        actual_node_prior = override_node_prior ? node_prior : "From CSV"
-        actual_edge_prob = override_edge_prob ? edge_prob : "From CSV"
+        actual_node_prior = override_node_prior ? node_prior : "Mixed (individual + CSV)"
+        actual_edge_prob = override_edge_prob ? edge_prob : "Mixed (individual + CSV)"
+        
+        # Include individual override information in summary
+        if use_individual_overrides && !override_node_prior && !override_edge_prob
+            actual_node_prior = "Individual overrides only"
+            actual_edge_prob = "Individual overrides only"
+        elseif use_individual_overrides
+            actual_node_prior = override_node_prior ? "$node_prior (global)" : "Mixed (individual + CSV)"
+            actual_edge_prob = override_edge_prob ? "$edge_prob (global)" : "Mixed (individual + CSV)"
+        end
         
         # Original data for frontend comparison
         original_data = Dict(
@@ -738,6 +863,15 @@ function handle_enhanced_analysis(req::HTTP.Request)
             "diamondData" => diamond_data,
             "monteCarloResults" => monte_carlo_results,
             "originalData" => original_data,
+            "parameterModifications" => Dict(
+                "nodesIndividuallyModified" => nodes_individually_modified,
+                "edgesIndividuallyModified" => edges_individually_modified,
+                "nodesGloballyModified" => nodes_globally_modified,
+                "edgesGloballyModified" => edges_globally_modified,
+                "totalNodesModified" => total_nodes_modified,
+                "totalEdgesModified" => total_edges_modified,
+                "useIndividualOverrides" => use_individual_overrides
+            ),
             "summary" => Dict(
                 "nodes" => length(all_nodes),
                 "edges" => length(edgelist),
@@ -855,7 +989,7 @@ function handle_analysis(req::HTTP.Request)
     end
 end
 
-# Diamond subset analysis handler
+# Enhanced diamond subset analysis handler with individual parameter support
 function handle_diamond_subset_analysis(req::HTTP.Request)
     try
         data = JSON.parse(String(req.body))
@@ -865,7 +999,13 @@ function handle_diamond_subset_analysis(req::HTTP.Request)
         node_prior = get(data, "nodePrior", 1.0)
         edge_prob = get(data, "edgeProb", 0.9)
         
+        # NEW: Check for individual parameter overrides
+        use_individual_overrides = get(data, "useIndividualOverrides", false)
+        
         println("🔍 Running diamond subset analysis for join node: $(diamond_data["joinNode"])")
+        if use_individual_overrides
+            println("🎛️ Using individual parameter overrides for diamond subset")
+        end
         
         # Extract diamond structure data
         structure = diamond_data["structure"]
@@ -935,22 +1075,35 @@ function handle_diamond_subset_analysis(req::HTTP.Request)
         # Create node priors for subset
         subset_node_priors = Dict{Int64,Float64}()
         for node in diamond_nodes
-            if override_node_prior
-                subset_node_priors[node] = Float64(node_prior)
-            else
-                # Use original prior if available, otherwise default to 1.0
-                subset_node_priors[node] = 1.0  # Simplified for subset analysis
-            end
+            # Default to 1.0 if not specified
+            subset_node_priors[node] = 1.0
         end
         
         # Create edge probabilities for subset
         subset_edge_probs = Dict{Tuple{Int64,Int64},Float64}()
         for edge in diamond_edges
-            if override_edge_prob
+            # Default to 0.9 if not specified
+            subset_edge_probs[edge] = 0.9
+        end
+        
+        # Apply individual parameter overrides FIRST
+        if use_individual_overrides
+            println("🎛️ Applying diamond individual parameter overrides...")
+            apply_individual_parameter_overrides!(subset_node_priors, subset_edge_probs, data)
+        end
+        
+        # Apply global overrides AFTER individual overrides
+        if override_node_prior
+            println("🔄 Overriding diamond node priors with: $node_prior")
+            for node in keys(subset_node_priors)
+                subset_node_priors[node] = Float64(node_prior)
+            end
+        end
+        
+        if override_edge_prob
+            println("🔄 Overriding diamond edge probabilities with: $edge_prob")
+            for edge in keys(subset_edge_probs)
                 subset_edge_probs[edge] = Float64(edge_prob)
-            else
-                # Use original probability if available, otherwise default to 0.9
-                subset_edge_probs[edge] = 0.9  # Simplified for subset analysis
             end
         end
         
@@ -990,7 +1143,8 @@ function handle_diamond_subset_analysis(req::HTTP.Request)
                 "nodes" => length(diamond_nodes),
                 "edges" => length(diamond_edges),
                 "sources" => length(subset_sources),
-                "joinNode" => join_node
+                "joinNode" => join_node,
+                "usedIndividualOverrides" => use_individual_overrides
             )
         )
         
@@ -1157,12 +1311,14 @@ end
 
 println("🚀 Enhanced server running on: http://localhost:8080")
 println("📊 Features: Three-Tier Analysis System, Diamond Classification, Monte Carlo Validation")
+println("🎛️ NEW: Individual Parameter Control - modify specific node priors and edge probabilities")
 println("🔧 UTF-8 encoding enabled for proper icon display")
 println("✨ CSS icons used for cross-platform compatibility")
-println("💎 Diamond subset analysis available")
+println("💎 Diamond subset analysis available with individual parameter support")
 println("🏗️ Tier 1: Structure-only analysis endpoint at /api/parse-structure")
 println("💎 Tier 2: Diamond analysis endpoint at /api/analyze-diamond") 
-println("📈 Tier 3: Full analysis endpoint at /api/analyze-enhanced")
+println("📈 Tier 3: Full analysis endpoint at /api/analyze-enhanced (now supports individual parameters)")
+println("🎛️ Individual parameter overrides: apply custom values to specific nodes/edges")
 println("📁 Serving static files from public/ directory using SERVER_DIR: $SERVER_DIR")
 
 # Start server

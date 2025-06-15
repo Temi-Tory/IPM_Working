@@ -1,10 +1,11 @@
-// diamond-manager.js - Diamond analysis management
+// diamond-manager.js - Enhanced diamond analysis with individual parameter support
 import { AppState } from '../main.js';
 import { UIUtils } from '../utils/ui-utils.js';
 
 export class DiamondManager {
-    constructor(domManager) {
+    constructor(domManager, parameterManager = null) {
         this.dom = domManager;
+        this.parameterManager = parameterManager;
         this.pathNetworkInstance = null;
     }
 
@@ -594,7 +595,7 @@ export class DiamondManager {
         }, 200);
     }
 
-    // Diamond path analysis methods
+    // Enhanced diamond path analysis methods with parameter support
     analyzeDiamondPaths(joinNode) {
         console.log('Analyzing paths for diamond at join node:', joinNode);
         
@@ -610,6 +611,11 @@ export class DiamondManager {
                 structure: AppState.diamondData.diamondStructures[joinNode],
                 classification: AppState.diamondData.diamondClassifications?.find(d => d.join_node == joinNode)
             };
+            
+            // Update parameter manager availability for diamond-specific controls
+            if (this.parameterManager) {
+                this.parameterManager.updateParameterEditingAvailability();
+            }
             
             // Set modal title
             this.dom.setElementText('diamondPathTitle', `Diamond Path Analysis - Join Node ${joinNode}`);
@@ -668,7 +674,7 @@ export class DiamondManager {
                 structure.non_diamond_parents.forEach(node => diamondNodes.add(parseInt(node)));
             }
             
-            // Collect all edges in the diamond
+            // Collect all edges
             const diamondEdges = [];
             if (structure.diamond && Array.isArray(structure.diamond)) {
                 structure.diamond.forEach(group => {
@@ -745,7 +751,7 @@ export class DiamondManager {
             // Configure options for smaller subgraph
             const options = {
                 layout: {
-                    force: {
+                    hierarchical: {
                         enabled: true,
                         direction: 'UD',
                         sortMethod: 'directed',
@@ -797,6 +803,12 @@ export class DiamondManager {
         if (pathOverrideNodes) UIUtils.updateCheckboxState(pathOverrideNodes);
         if (pathOverrideEdges) UIUtils.updateCheckboxState(pathOverrideEdges);
         
+        // Clear any individual diamond parameter overrides
+        if (this.parameterManager) {
+            this.parameterManager.clearIndividualOverrides('diamond-nodes');
+            this.parameterManager.clearIndividualOverrides('diamond-edges');
+        }
+        
         // Hide results
         this.dom.hideElements(['pathResults']);
         
@@ -812,14 +824,28 @@ export class DiamondManager {
         console.log('Running diamond subset analysis...');
         
         try {
-            // Prepare request data
-            const requestData = {
-                diamondData: AppState.currentDiamondData,
+            // Get request data with individual parameter support
+            const fileManager = window.AppManagers?.file;
+            const baseRequestData = fileManager ? fileManager.getDiamondAnalysisRequestData() : {
                 overrideNodePrior: this.dom.isElementChecked('pathOverrideNodes'),
                 overrideEdgeProb: this.dom.isElementChecked('pathOverrideEdges'),
                 nodePrior: parseFloat(this.dom.getElementValue('pathNodePrior') || '1.0'),
                 edgeProb: parseFloat(this.dom.getElementValue('pathEdgeProb') || '0.9')
             };
+            
+            // Prepare request data
+            const requestData = {
+                diamondData: AppState.currentDiamondData,
+                ...baseRequestData
+            };
+            
+            // Log parameter information for debugging
+            if (requestData.useIndividualOverrides) {
+                console.log('Running diamond subset analysis with individual parameter overrides:', {
+                    nodeOverrides: Object.keys(requestData.individualNodePriors || {}).length,
+                    edgeOverrides: Object.keys(requestData.individualEdgeProbabilities || {}).length
+                });
+            }
             
             // Show loading state
             this.dom.setElementDisabled('runPathAnalysis', true);
@@ -875,6 +901,8 @@ export class DiamondManager {
                 <div class="path-summary">
                     <h6>Analysis Summary</h6>
                     <p>Nodes: ${summary.nodes || 0}, Edges: ${summary.edges || 0}, Sources: ${summary.sources || 0}</p>
+                    ${this.parameterManager && this.parameterManager.hasDiamondModifications() ? 
+                        '<p class="parameter-info">🎛️ Using individual parameter overrides</p>' : ''}
                 </div>
             ` : '';
             
@@ -928,17 +956,29 @@ export class DiamondManager {
             this.closeDiamondPathModal();
         } else if (modalId === 'diamondDetailModal') {
             this.dom.hideElements(['diamondDetailModal']);
+            // Force hide with important style
+            const modal = document.getElementById('diamondDetailModal');
+            if (modal) {
+                modal.style.setProperty('display', 'none', 'important');
+            }
         } else {
             // Generic modal close
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.style.display = 'none';
+                modal.style.setProperty('display', 'none', 'important');
             }
         }
     }
 
     closeDiamondPathModal() {
         this.dom.hideElements(['diamondPathModal']);
+        
+        // Force hide with important style
+        const modal = document.getElementById('diamondPathModal');
+        if (modal) {
+            modal.style.setProperty('display', 'none', 'important');
+        }
         
         // Clean up network instance
         if (this.pathNetworkInstance) {
@@ -953,6 +993,11 @@ export class DiamondManager {
         // Clear global state
         AppState.currentDiamondData = null;
         AppState.pathNetworkInstance = null;
+        
+        // Update parameter manager availability
+        if (this.parameterManager) {
+            this.parameterManager.updateParameterEditingAvailability();
+        }
         
         // Clear DOM elements
         const pathNetworkGraph = this.dom.elements.pathNetworkGraph;

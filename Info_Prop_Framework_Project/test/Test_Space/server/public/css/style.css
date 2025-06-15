@@ -1,3 +1,19 @@
+/* Modal Management - Ensure proper hiding */
+.modal[style*="display: none"],
+.param-editor-modal[style*="display: none"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
+
+/* Ensure modals don't interfere when hidden */
+.modal:not([style*="display: block"]),
+.param-editor-modal:not([style*="display: block"]) {
+    display: none !important;
+}
+
 * {
     margin: 0;
     padding: 0;
