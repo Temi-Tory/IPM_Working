@@ -24,7 +24,7 @@
         }
     }
     </script>
-    <!-- Add this line to the <head> section of index.html to prevent favicon 404 -->
+    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" 
         href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACF/0YAhf9GE4X/RlOF/0aAhf9Gf4X/RlOF/0YThf9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI3/RgON/0Z8jf9G5Y3/RveN/0bwjf9G143/RoGN/0YXjf9GAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACW/0YHlv9Gmrb/RvO6/0b/tf9G/7X/Rv+6/0b/tv9G9pj/Rp2W/0YJAAAAAAAAAAAAAAAAAAAAAAAAAACe/0YLnv9G1q7/Rv+y/0b/qf9G/6n/Rv+p/0b/qf9G/6n/Rv+y/0b/rv9G2Z7/Rg0AAAAAAAAAAAAAAAAAAAAAqP9GFqj/Rv6x/0b/p/9G/5//Rv+f/0b/n/9G/5//Rv+f/0b/n/9G/6f/Rv+x/0b+qP9GGAAAAAAAAAAAAAAAAACs/0YdrP9G/6//Rv+j/0b/nP9G/5r/Rv+a/0b/mv9G/5r/Rv+a/0b/mv9G/6P/Rv+v/0b/rP9GHwAAAAAAAAAAAAAAAACw/0Yhrv9G/67/Rv+h/0b/mf9G/5f/Rv+X/0b/l/9G/5f/Rv+X/0b/l/9G/5n/Rv+h/0b/rv9G/7D/RiMAAAAAAAAAAAAAAAAAs/9GJbL/Rv+t/0b/oP9G/5j/Rv+W/0b/lv9G/5b/Rv+W/0b/lv9G/5b/Rv+Y/0b/oP9G/63/Rv+z/0YnAAAAAAAAAAAAAAAAALT/Rim1/0b/q/9G/5//Rv+X/0b/lf9G/5X/Rv+V/0b/lf9G/5X/Rv+V/0b/l/9G/5//Rv+r/0b/tP9GKwAAAAAAAAAAAAAAAAC4/0Ysuv9G/6n/Rv+e/0b/lv9G/5T/Rv+U/0b/lP9G/5T/Rv+U/0b/lP9G/5b/Rv+e/0b/qf9G/7j/Ri4AAAAAAAAAAAAAAAAAAL//Rji2/0b/qP9G/53/Rv+V/0b/k/9G/5P/Rv+T/0b/k/9G/5P/Rv+T/0b/lf9G/53/Rv+o/0b/v/9GOgAAAAAAAAAAAAAAAADK/0Y2yf9G8Lj/Rv+m/0b/nP9G/5L/Rv+S/0b/kv9G/5L/Rv+S/0b/nP9G/6b/Rv+4/0b/yf9G8sr/RjgAAAAAAAAAAAAAAAAAz/9GHs//Rq3S/0bx0v9G/83/Rv+e/0b/j/9G/5z/Rv/N/0b/0v9G/9L/RvHP/0av0P9GIAAAAAAAAAAAAAAAAAAAAAAz/9GBs//RhHP/0YHMz/G1Yz/RpYz/0Y5z/9G1M3/Rtz3/0Yj3/0Yuz/9GH8//RgAAAAAAAAAAAAAAAAAAAAAAM/9GAMz/Rooz/0aYM/9G5s//RvPP/0bwz/9G5s//RpiN/0YqM/9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM//RgPP/0Y6z/9Gns//Rr7P/0a+z/9Gns//RjrP/0YDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMz/RgzP/0YWz/9GFs//RgzAAAAAAAAAAAAAAAAA/38AAP9/AAD+HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/h8AAP5/AAD/fwAA/38AAA=="
     >
@@ -33,42 +33,101 @@
     <div class="container">
         <h1>Information Propagation Framework Toolkit</h1>
         
-        <!-- Tab Navigation -->
+        <!-- Enhanced Tab Navigation with Three-Tier Support -->
         <div class="tab-navigation">
-            <button class="tab-btn active" data-tab="analysis">Analysis</button>
-            <button class="tab-btn" data-tab="results">Results</button>
-            <button class="tab-btn" data-tab="diamonds">Diamond Analysis</button>
-            <button class="tab-btn" data-tab="visualization">Visualization</button>
+            <button class="tab-btn active" data-tab="analysis" title="Upload files and configure analysis">
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">Analysis</span>
+            </button>
+            <button class="tab-btn tab-disabled" data-tab="structure" title="Run structure analysis first">
+                <span class="tab-icon">🏗️</span>
+                <span class="tab-label">Structure</span>
+                <span class="tier-indicator">Tier 1</span>
+            </button>
+            <button class="tab-btn tab-disabled" data-tab="diamonds" title="Run diamond analysis first">
+                <span class="tab-icon">💎</span>
+                <span class="tab-label">Diamonds</span>
+                <span class="tier-indicator">Tier 2</span>
+            </button>
+            <button class="tab-btn tab-disabled" data-tab="visualization" title="Run analysis first">
+                <span class="tab-icon">🎯</span>
+                <span class="tab-label">Visualization</span>
+            </button>
+            <button class="tab-btn tab-disabled" data-tab="results" title="Run full analysis first">
+                <span class="tab-icon">📈</span>
+                <span class="tab-label">Results</span>
+                <span class="tier-indicator">Tier 3</span>
+            </button>
         </div>
         
         <!-- Analysis Tab -->
         <div id="analysis-tab" class="tab-content active">
             <div class="upload-section">
-                <h3>Upload Network File</h3>
-                <input type="file" id="fileInput" accept=".csv">
+                <h3>📁 Upload Network File</h3>
+                <div class="file-upload-area">
+                    <input type="file" id="fileInput" accept=".csv">
+                    <div class="upload-helper">
+                        <span class="upload-icon">📄</span>
+                        <p>Drop your CSV file here or click to browse</p>
+                        <small>Supported format: CSV with adjacency matrix or edge list</small>
+                    </div>
+                </div>
                 <div id="fileStatus"></div>
             </div>
             
             <div class="parameters">
-                <h3>Analysis Parameters</h3>
+                <h3>⚙️ Analysis Parameters</h3>
                 
-                <div class="parameter-group">
-                    <label>Node Prior: <input type="range" id="nodePrior" min="0.1" max="1" step="0.1" value="1.0"> <span id="nodeValue">1.0</span></label>
-                    <label class="checkbox-label"><input type="checkbox" id="overrideNodePrior"> Override all node priors with this value</label>
+                <div class="parameter-section">
+                    <h4>Basic Parameters</h4>
+                    <div class="parameter-group">
+                        <label>Node Prior: <input type="range" id="nodePrior" min="0.1" max="1" step="0.1" value="1.0"> <span id="nodeValue">1.0</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="overrideNodePrior"> Override all node priors with this value</label>
+                    </div>
+                    
+                    <div class="parameter-group">
+                        <label>Edge Probability: <input type="range" id="edgeProb" min="0.1" max="1" step="0.1" value="0.9"> <span id="edgeValue">0.9</span></label>
+                        <label class="checkbox-label"><input type="checkbox" id="overrideEdgeProb"> Override all edge probabilities with this value</label>
+                    </div>
                 </div>
                 
-                <div class="parameter-group">
-                    <label>Edge Probability: <input type="range" id="edgeProb" min="0.1" max="1" step="0.1" value="0.9"> <span id="edgeValue">0.9</span></label>
-                    <label class="checkbox-label"><input type="checkbox" id="overrideEdgeProb"> Override all edge probabilities with this value</label>
-                </div>
-                
-                <div class="options">
-                    <label class="checkbox-label"><input type="checkbox" id="includeClassification" checked> Include Diamond Classification</label>
-                    <label class="checkbox-label"><input type="checkbox" id="enableMonteCarlo"> Enable Monte Carlo Validation</label>
+                <div class="parameter-section">
+                    <h4>Advanced Options</h4>
+                    <div class="options">
+                        <label class="checkbox-label"><input type="checkbox" id="includeClassification" checked> Include Diamond Classification</label>
+                        <label class="checkbox-label"><input type="checkbox" id="enableMonteCarlo"> Enable Monte Carlo Validation</label>
+                    </div>
                 </div>
             </div>
             
-            <button id="analyzeBtn" disabled>Analyze Network</button>
+            <div class="analysis-action-section">
+                <button id="analyzeBtn" class="main-analyze-btn" disabled>
+                    <span class="btn-icon">🚀</span>
+                    <span class="btn-text">Analyze Network</span>
+                    <span class="btn-subtitle">Choose analysis type</span>
+                </button>
+                
+                <div class="quick-analysis-info">
+                    <h4>📋 Three-Tier Analysis System</h4>
+                    <div class="tier-info-grid">
+                        <div class="tier-info-card">
+                            <span class="tier-badge tier-1">1</span>
+                            <h5>Structure Analysis</h5>
+                            <p>Fast topology parsing, diamond identification, graph statistics</p>
+                        </div>
+                        <div class="tier-info-card">
+                            <span class="tier-badge tier-2">2</span>
+                            <h5>Diamond Analysis</h5>
+                            <p>Enhanced diamond classification and structural insights</p>
+                        </div>
+                        <div class="tier-info-card">
+                            <span class="tier-badge tier-3">3</span>
+                            <h5>Full Analysis</h5>
+                            <p>Complete belief propagation with probability calculations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div id="loading" style="display: none;">
                 <p>Running analysis...</p>
@@ -80,10 +139,72 @@
             <div id="error" style="display: none;"></div>
         </div>
         
+        <!-- NEW: Structure Analysis Tab (Tier 1) -->
+        <div id="structure-tab" class="tab-content">
+            <div id="structureAnalysis" style="display: none;">
+                <h3>🏗️ Network Structure Analysis</h3>
+                
+                <div id="structureSummary" class="structure-summary-grid">
+                    <div class="summary-card">
+                        <span class="summary-value" id="structureNodes">0</span>
+                        <span class="summary-label">Total Nodes</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="structureEdges">0</span>
+                        <span class="summary-label">Total Edges</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="structureDensity">0.000</span>
+                        <span class="summary-label">Graph Density</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="structureDepth">0</span>
+                        <span class="summary-label">Max Depth</span>
+                    </div>
+                </div>
+                
+                <div class="structure-details-grid">
+                    <div class="structure-detail-section">
+                        <h4>📊 Node Type Distribution</h4>
+                        <div id="nodeTypeChart" class="chart-container"></div>
+                        <div id="nodeTypeStats" class="stats-list"></div>
+                    </div>
+                    
+                    <div class="structure-detail-section">
+                        <h4>🔗 Connectivity Analysis</h4>
+                        <div id="connectivityStats" class="stats-list"></div>
+                        <div id="highDegreeNodes" class="node-list"></div>
+                    </div>
+                    
+                    <div class="structure-detail-section">
+                        <h4>⚡ Structural Properties</h4>
+                        <div id="structuralProperties" class="stats-list"></div>
+                    </div>
+                    
+                    <div class="structure-detail-section">
+                        <h4>💎 Diamond Structures Found</h4>
+                        <div id="structureDiamonds" class="diamond-preview"></div>
+                    </div>
+                </div>
+                
+                <div class="structure-actions">
+                    <button onclick="window.AppManagers.tab.switchTab('visualization')" class="action-btn visualize-btn">
+                        🎯 Visualize Structure
+                    </button>
+                    <button onclick="window.AppManagers.analysis.runDiamondAnalysis()" class="action-btn diamond-btn">
+                        💎 Upgrade to Diamond Analysis
+                    </button>
+                    <button onclick="window.AppManagers.analysis.runFullAnalysis()" class="action-btn full-btn">
+                        📈 Upgrade to Full Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Results Tab -->
         <div id="results-tab" class="tab-content">
             <div id="results" style="display: none;">
-                <h3>Analysis Results</h3>
+                <h3>📈 Analysis Results</h3>
                 <div id="summary"></div>
                 
                 <div class="results-controls">
@@ -102,10 +223,10 @@
                             <option value="type">Node Type</option>
                         </select>
                     </label>
-                    <button id="exportResultsBtn">Export Results</button>
+                    <button id="exportResultsBtn" class="export-btn">📥 Export Results</button>
                 </div>
                 
-                <h4>Node Probabilities</h4>
+                <h4>🎯 Node Probabilities</h4>
                 <table id="resultsTable">
                     <thead>
                         <tr>
@@ -122,7 +243,7 @@
                 </table>
                 
                 <div id="monteCarloComparison" style="display: none;">
-                    <h4>Monte Carlo Validation</h4>
+                    <h4>🎲 Monte Carlo Validation</h4>
                     <div id="mcResults"></div>
                 </div>
             </div>
@@ -131,7 +252,7 @@
         <!-- Diamond Analysis Tab -->
         <div id="diamonds-tab" class="tab-content">
             <div id="diamondAnalysis" style="display: none;">
-                <h3>Diamond Structure Analysis</h3>
+                <h3>💎 Diamond Structure Analysis</h3>
                 
                 <div id="diamondSummary" class="diamond-summary-grid">
                     <div class="summary-card">
@@ -198,21 +319,21 @@
         <!-- Visualization Tab -->
         <div id="visualization-tab" class="tab-content">
             <div class="viz-controls">
-                <h3>Visualization Options</h3>
+                <h3>🎯 Visualization Options</h3>
                 <div class="control-group">
-                    <label class="checkbox-label"><input type="checkbox" id="showSourceNodes" checked> Highlight Source Nodes</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showSinkNodes" checked> Highlight Sink Nodes</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showForkNodes"> Highlight Fork Nodes</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showJoinNodes"> Highlight Join Nodes</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showIterations"> Color by Iteration Sets</label>
-                    <label class="checkbox-label"><input type="checkbox" id="showDiamonds"> Highlight Diamond Structures</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showSourceNodes" checked> 🔴 Highlight Source Nodes</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showSinkNodes" checked> 🟢 Highlight Sink Nodes</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showForkNodes"> 🔵 Highlight Fork Nodes</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showJoinNodes"> 🟡 Highlight Join Nodes</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showIterations"> 🌈 Color by Iteration Sets</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showDiamonds"> 💎 Highlight Diamond Structures</label>
                 </div>
                 <div class="control-group">
                     <label>Layout: 
                         <select id="layoutSelect">
-                            <option value="hierarchical">Hierarchical</option>
-                            <option value="force">Force-Directed</option>
-                            <option value="circular">Circular</option>
+                            <option value="hierarchical">📊 Hierarchical</option>
+                            <option value="force">⚡ Force-Directed</option>
+                            <option value="circular">⭕ Circular</option>
                         </select>
                     </label>
                     <label>Focus on Diamond: 
@@ -220,22 +341,22 @@
                             <option value="none">None</option>
                         </select>
                     </label>
-                    <button id="resetZoom">Reset View</button>
-                    <button id="fitToScreen">Fit to Screen</button>
-                    <button id="exportDot">Export DOT</button>
+                    <button id="resetZoom" class="control-btn">🔄 Reset View</button>
+                    <button id="fitToScreen" class="control-btn">📐 Fit to Screen</button>
+                    <button id="exportDot" class="control-btn">💾 Export DOT</button>
                 </div>
             </div>
             
             <div id="visualization-container">
                 <div id="network-graph"></div>
                 <div id="node-details">
-                    <h4>Node Details</h4>
+                    <h4>🔍 Node Details</h4>
                     <div id="selected-node-info">Click a node to see details</div>
                 </div>
             </div>
             
             <div id="viz-legend">
-                <h4>Legend</h4>
+                <h4>🗺️ Legend</h4>
                 <div class="legend-items">
                     <div class="legend-item"><span class="icon icon-source"></span> Source Nodes</div>
                     <div class="legend-item"><span class="icon icon-sink"></span> Sink Nodes</div>
@@ -273,7 +394,7 @@
                 <div id="diamondPathContent">
                     <div class="path-analysis-container">
                         <div class="path-controls">
-                            <h5>Diamond Subset Parameters</h5>
+                            <h5>💎 Diamond Subset Parameters</h5>
                             <div class="parameter-controls">
                                 <div class="control-row">
                                     <label>Override Node Priors:</label>
@@ -289,18 +410,18 @@
                                 </div>
                             </div>
                             <div class="path-actions">
-                                <button id="runPathAnalysis" class="action-btn analyze-btn">Run Analysis</button>
-                                <button id="resetPathParams" class="action-btn">Reset Parameters</button>
+                                <button id="runPathAnalysis" class="action-btn analyze-btn">🔬 Run Analysis</button>
+                                <button id="resetPathParams" class="action-btn">🔄 Reset Parameters</button>
                             </div>
                         </div>
                         
                         <div class="path-visualization">
-                            <h5>Diamond Subgraph</h5>
+                            <h5>🕸️ Diamond Subgraph</h5>
                             <div id="pathNetworkGraph"></div>
                         </div>
                         
                         <div class="path-results" id="pathResults" style="display: none;">
-                            <h5>Subset Analysis Results</h5>
+                            <h5>📊 Subset Analysis Results</h5>
                             <div id="pathResultsTable"></div>
                         </div>
                     </div>

@@ -122,17 +122,55 @@ export class DiamondManager {
             const classifications = AppState.diamondData.diamondClassifications;
             const totalDiamonds = classifications.length;
             const complexDiamonds = classifications.filter(d => d.complexity_score > 10).length;
-            const avgComplexity = totalDiamonds > 0 ? 
+            const avgComplexity = totalDiamonds > 0 ?
                 classifications.reduce((sum, d) => sum + d.complexity_score, 0) / totalDiamonds : 0;
-            const maxPathCount = totalDiamonds > 0 ? 
+            const maxPathCount = totalDiamonds > 0 ?
                 Math.max(...classifications.map(d => d.path_count || 0)) : 0;
             
-            this.dom.setElementText('totalDiamonds', totalDiamonds);
-            this.dom.setElementText('complexDiamonds', complexDiamonds);
-            this.dom.setElementText('averageComplexity', avgComplexity.toFixed(1));
-            this.dom.setElementText('maxPathCount', maxPathCount);
+            console.log('Attempting to update diamond summary with values:', {totalDiamonds, complexDiamonds, avgComplexity, maxPathCount});
             
-            console.log('Diamond summary updated:', {totalDiamonds, complexDiamonds, avgComplexity, maxPathCount});
+            // Check if elements exist before setting
+            const totalElement = document.getElementById('totalDiamonds');
+            const complexElement = document.getElementById('complexDiamonds');
+            const avgElement = document.getElementById('averageComplexity');
+            const maxElement = document.getElementById('maxPathCount');
+            
+            console.log('DOM elements found:', {
+                totalElement: !!totalElement,
+                complexElement: !!complexElement,
+                avgElement: !!avgElement,
+                maxElement: !!maxElement
+            });
+            
+            if (totalElement) {
+                totalElement.textContent = totalDiamonds;
+                console.log('Set totalDiamonds to:', totalDiamonds);
+            } else {
+                console.error('totalDiamonds element not found!');
+            }
+            
+            if (complexElement) {
+                complexElement.textContent = complexDiamonds;
+                console.log('Set complexDiamonds to:', complexDiamonds);
+            } else {
+                console.error('complexDiamonds element not found!');
+            }
+            
+            if (avgElement) {
+                avgElement.textContent = avgComplexity.toFixed(1);
+                console.log('Set averageComplexity to:', avgComplexity.toFixed(1));
+            } else {
+                console.error('averageComplexity element not found!');
+            }
+            
+            if (maxElement) {
+                maxElement.textContent = maxPathCount;
+                console.log('Set maxPathCount to:', maxPathCount);
+            } else {
+                console.error('maxPathCount element not found!');
+            }
+            
+            console.log('Diamond summary update completed');
         } catch (error) {
             console.error('Error updating diamond summary:', error);
         }

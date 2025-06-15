@@ -180,6 +180,370 @@ function find_all_reachable(graph::Dict{Int64, Set{Int64}}, sources::Set{Int64})
     return reachable
 end
 
+# NEW: Structure-only parsing handler for Tier 1 visualization
+function handle_parse_structure(req::HTTP.Request)
+    try
+        data = JSON.parse(String(req.body))
+        csv_content = data["csvContent"]
+        
+        temp_file = tempname() * ".csv"
+        write(temp_file, csv_content)
+        
+        println("🔄 Running Tier 1: Structure-only analysis...")
+        
+        # Read graph data from CSV file (same as full analysis)
+        edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(temp_file)
+        
+        # TIER 1: Only basic structural elements - NO DIAMOND IDENTIFICATION
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # TIER 1: NO diamond analysis - that's for Tier 2!
+        
+        # TIER 1: Collect basic network statistics (no diamond analysis)
+        all_nodes = union(keys(outgoing_index), keys(incoming_index))
+        sink_nodes = [node for node in all_nodes if !haskey(outgoing_index, node) || isempty(outgoing_index[node])]
+        
+        # Calculate additional statistics
+        isolated_nodes = [node for node in all_nodes if 
+            (!haskey(outgoing_index, node) || isempty(outgoing_index[node])) &&
+            (!haskey(incoming_index, node) || isempty(incoming_index[node]))]
+            
+        # Find nodes with high in-degree (potential bottlenecks)
+        high_indegree_nodes = []
+        high_outdegree_nodes = []
+        for node in all_nodes
+            indegree = haskey(incoming_index, node) ? length(incoming_index[node]) : 0
+            outdegree = haskey(outgoing_index, node) ? length(outgoing_index[node]) : 0
+            
+            if indegree >= 3
+                push!(high_indegree_nodes, Dict("node" => node, "degree" => indegree))
+            end
+            if outdegree >= 3
+                push!(high_outdegree_nodes, Dict("node" => node, "degree" => outdegree))
+            end
+        end
+        
+        # Sort by degree
+        sort!(high_indegree_nodes, by = x -> x["degree"], rev = true)
+        sort!(high_outdegree_nodes, by = x -> x["degree"], rev = true)
+        
+        # Calculate graph density
+        max_possible_edges = length(all_nodes) * (length(all_nodes) - 1)
+        graph_density = max_possible_edges > 0 ? length(edgelist) / max_possible_edges : 0.0
+        
+        # Analyze longest paths through the network
+        max_iteration_depth = length(iteration_sets)
+        
+        # Node type distribution
+        node_type_counts = Dict(
+            "source" => length(source_nodes),
+            "sink" => length(sink_nodes),
+            "fork" => length(fork_nodes),
+            "join" => length(join_nodes),
+            "isolated" => length(isolated_nodes),
+            "regular" => length(all_nodes) - length(source_nodes) - length(sink_nodes) - 
+                        length(fork_nodes) - length(join_nodes) - length(isolated_nodes)
+        )
+        
+        # TIER 1: Basic network data only (no diamond data)
+        network_data = Dict(
+            "nodes" => collect(all_nodes),
+            "edges" => [(edge[1], edge[2]) for edge in edgelist],
+            "sourceNodes" => collect(source_nodes),
+            "sinkNodes" => sink_nodes,
+            "forkNodes" => collect(fork_nodes),
+            "joinNodes" => collect(join_nodes),
+            "isolatedNodes" => isolated_nodes,
+            "highIndegreeNodes" => high_indegree_nodes,
+            "highOutdegreeNodes" => high_outdegree_nodes,
+            "iterationSets" => iteration_sets,
+            "ancestors" => ancestors,
+            "descendants" => descendants,
+            "nodeCount" => length(all_nodes),
+            "edgeCount" => length(edgelist),
+            "maxIterationDepth" => max_iteration_depth,
+            "graphDensity" => graph_density,
+            "nodeTypeDistribution" => node_type_counts
+        )
+        
+        # Include original parameter data for potential future analysis
+        original_data = Dict(
+            "nodePriors" => node_priors,
+            "edgeProbabilities" => edge_probabilities
+        )
+        
+        # TIER 1: NO diamond analysis - explicitly set to null
+        diamond_data = nothing
+        
+        
+        rm(temp_file)
+        
+        # TIER 1: Structure-only statistics (no diamond data)
+        statistics = Dict(
+            "basic" => Dict(
+                "nodes" => length(all_nodes),
+                "edges" => length(edgelist),
+                "density" => round(graph_density, digits=4),
+                "maxDepth" => max_iteration_depth
+            ),
+            "nodeTypes" => node_type_counts,
+            "structural" => Dict(
+                "isolatedNodes" => length(isolated_nodes),
+                "highDegreeNodes" => length(high_indegree_nodes) + length(high_outdegree_nodes),
+                "iterationSets" => length(iteration_sets)
+            ),
+            "connectivity" => Dict(
+                "stronglyConnectedComponents" => 1,  # Simplified for now
+                "avgPathLength" => max_iteration_depth > 0 ? max_iteration_depth / 2.0 : 0.0,
+                "hasIsolatedNodes" => length(isolated_nodes) > 0
+            )
+        )
+        
+        response_data = Dict(
+            "success" => true,
+            "mode" => "structure-only",
+            "analysisType" => "Tier 1: Structure Analysis",
+            "networkData" => network_data,
+            "diamondData" => diamond_data,  # null for Tier 1
+            "originalData" => original_data,
+            "statistics" => statistics,
+            "summary" => Dict(
+                "analysisType" => "Structure Analysis (Tier 1)",
+                "nodes" => length(all_nodes),
+                "edges" => length(edgelist),
+                "density" => round(graph_density, digits=4),
+                "maxDepth" => max_iteration_depth,
+                "hasDiamonds" => false,  # Tier 1 doesn't identify diamonds
+                "hasResults" => false   # Tier 1 doesn't calculate probabilities
+            )
+        )
+        
+        println("✅ Tier 1: Structure-only analysis complete!")
+        
+        return HTTP.Response(200, JSON_HEADERS, JSON.json(response_data))
+        
+    catch e
+        println("❌ Structure analysis error: $e")
+        error_response = Dict("success" => false, "error" => string(e))
+        return HTTP.Response(500, JSON_HEADERS, JSON.json(error_response))
+    end
+end
+
+# NEW: Tier 2 Diamond analysis handler (structure + diamond classification, no belief propagation)
+function handle_diamond_analysis(req::HTTP.Request)
+    try
+        data = JSON.parse(String(req.body))
+        csv_content = data["csvContent"]
+        
+        temp_file = tempname() * ".csv"
+        write(temp_file, csv_content)
+        
+        println("🔄 Running Tier 2: Diamond analysis...")
+        
+        # Read graph data from CSV file
+        edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(temp_file)
+        
+        # TIER 2: Basic structural elements (same as Tier 1)
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # TIER 2: NOW add diamond structure identification
+        diamond_structures = identify_and_group_diamonds(
+            join_nodes, ancestors, incoming_index, source_nodes,
+            fork_nodes, iteration_sets, edgelist, descendants, node_priors
+        )
+        
+        # Collect network statistics (same as Tier 1)
+        all_nodes = union(keys(outgoing_index), keys(incoming_index))
+        sink_nodes = [node for node in all_nodes if !haskey(outgoing_index, node) || isempty(outgoing_index[node])]
+        isolated_nodes = [node for node in all_nodes if 
+            (!haskey(outgoing_index, node) || isempty(outgoing_index[node])) &&
+            (!haskey(incoming_index, node) || isempty(incoming_index[node]))]
+            
+        # Find nodes with high in-degree (potential bottlenecks)
+        high_indegree_nodes = []
+        high_outdegree_nodes = []
+        for node in all_nodes
+            indegree = haskey(incoming_index, node) ? length(incoming_index[node]) : 0
+            outdegree = haskey(outgoing_index, node) ? length(outgoing_index[node]) : 0
+            
+            if indegree >= 3
+                push!(high_indegree_nodes, Dict("node" => node, "degree" => indegree))
+            end
+            if outdegree >= 3
+                push!(high_outdegree_nodes, Dict("node" => node, "degree" => outdegree))
+            end
+        end
+        
+        sort!(high_indegree_nodes, by = x -> x["degree"], rev = true)
+        sort!(high_outdegree_nodes, by = x -> x["degree"], rev = true)
+        
+        max_possible_edges = length(all_nodes) * (length(all_nodes) - 1)
+        graph_density = max_possible_edges > 0 ? length(edgelist) / max_possible_edges : 0.0
+        max_iteration_depth = length(iteration_sets)
+        
+        node_type_counts = Dict(
+            "source" => length(source_nodes),
+            "sink" => length(sink_nodes),
+            "fork" => length(fork_nodes),
+            "join" => length(join_nodes),
+            "isolated" => length(isolated_nodes),
+            "regular" => length(all_nodes) - length(source_nodes) - length(sink_nodes) - 
+                        length(fork_nodes) - length(join_nodes) - length(isolated_nodes)
+        )
+        
+        # TIER 2: Network data (same as Tier 1)
+        network_data = Dict(
+            "nodes" => collect(all_nodes),
+            "edges" => [(edge[1], edge[2]) for edge in edgelist],
+            "sourceNodes" => collect(source_nodes),
+            "sinkNodes" => sink_nodes,
+            "forkNodes" => collect(fork_nodes),
+            "joinNodes" => collect(join_nodes),
+            "isolatedNodes" => isolated_nodes,
+            "highIndegreeNodes" => high_indegree_nodes,
+            "highOutdegreeNodes" => high_outdegree_nodes,
+            "iterationSets" => iteration_sets,
+            "ancestors" => ancestors,
+            "descendants" => descendants,
+            "nodeCount" => length(all_nodes),
+            "edgeCount" => length(edgelist),
+            "maxIterationDepth" => max_iteration_depth,
+            "graphDensity" => graph_density,
+            "nodeTypeDistribution" => node_type_counts
+        )
+        
+        original_data = Dict(
+            "nodePriors" => node_priors,
+            "edgeProbabilities" => edge_probabilities
+        )
+        
+        # TIER 2: Diamond structure analysis and classification
+        diamond_data = nothing
+        if !isempty(diamond_structures)
+            println("🔍 Running diamond structure classification...")
+            
+            # Run exhaustive classification for each diamond
+            diamond_classifications = []
+            for (join_node, diamonds_at_node) in diamond_structures
+                for (i, diamond) in enumerate(diamonds_at_node.diamond)
+                    try
+                        classification = classify_diamond_exhaustive(
+                            diamond, join_node,
+                            edgelist, outgoing_index, incoming_index, source_nodes,
+                            fork_nodes, join_nodes, iteration_sets, ancestors, descendants
+                        )
+                        
+                        # Convert to dictionary for JSON serialization
+                        classification_dict = Dict(
+                            "join_node" => join_node,
+                            "diamond_index" => i,
+                            "fork_structure" => string(classification.fork_structure),
+                            "internal_structure" => string(classification.internal_structure),
+                            "path_topology" => string(classification.path_topology),
+                            "join_structure" => string(classification.join_structure),
+                            "external_connectivity" => string(classification.external_connectivity),
+                            "degeneracy" => string(classification.degeneracy),
+                            "fork_count" => classification.fork_count,
+                            "subgraph_size" => classification.subgraph_size,
+                            "internal_forks" => classification.internal_forks,
+                            "internal_joins" => classification.internal_joins,
+                            "path_count" => classification.path_count,
+                            "complexity_score" => classification.complexity_score,
+                            "optimization_potential" => classification.optimization_potential,
+                            "bottleneck_risk" => classification.bottleneck_risk
+                        )
+                        
+                        push!(diamond_classifications, classification_dict)
+                        
+                        println("💎 Classified diamond at join $join_node: $(classification.internal_structure)")
+                        
+                    catch e
+                        println("⚠️ Warning: Failed to classify diamond at join $join_node: $e")
+                    end
+                end
+            end
+            
+            # Convert diamond structures to serializable format
+            serializable_structures = Dict()
+            for (join_node, structure) in diamond_structures
+                serializable_structures[string(join_node)] = Dict(
+                    "join_node" => join_node,
+                    "non_diamond_parents" => collect(structure.non_diamond_parents),
+                    "diamond" => [
+                        Dict(
+                            "relevant_nodes" => collect(diamond.relevant_nodes),
+                            "highest_nodes" => collect(diamond.highest_nodes),
+                            "edgelist" => diamond.edgelist
+                        ) for diamond in structure.diamond
+                    ]
+                )
+            end
+            
+            diamond_data = Dict(
+                "diamondClassifications" => diamond_classifications,
+                "diamondStructures" => serializable_structures
+            )
+            
+            println("✅ Diamond classification complete!")
+        end
+        
+        rm(temp_file)
+        
+        # TIER 2: Statistics including diamond data
+        statistics = Dict(
+            "basic" => Dict(
+                "nodes" => length(all_nodes),
+                "edges" => length(edgelist),
+                "density" => round(graph_density, digits=4),
+                "maxDepth" => max_iteration_depth
+            ),
+            "nodeTypes" => node_type_counts,
+            "structural" => Dict(
+                "diamonds" => length(diamond_structures),
+                "isolatedNodes" => length(isolated_nodes),
+                "highDegreeNodes" => length(high_indegree_nodes) + length(high_outdegree_nodes),
+                "iterationSets" => length(iteration_sets)
+            ),
+            "connectivity" => Dict(
+                "stronglyConnectedComponents" => 1,
+                "avgPathLength" => max_iteration_depth > 0 ? max_iteration_depth / 2.0 : 0.0,
+                "hasIsolatedNodes" => length(isolated_nodes) > 0
+            )
+        )
+        
+        response_data = Dict(
+            "success" => true,
+            "mode" => "diamond-analysis",
+            "analysisType" => "Tier 2: Diamond Analysis",
+            "networkData" => network_data,
+            "diamondData" => diamond_data,
+            "originalData" => original_data,
+            "statistics" => statistics,
+            "summary" => Dict(
+                "analysisType" => "Diamond Analysis (Tier 2)",
+                "nodes" => length(all_nodes),
+                "edges" => length(edgelist),
+                "diamonds" => length(diamond_structures),
+                "density" => round(graph_density, digits=4),
+                "maxDepth" => max_iteration_depth,
+                "hasDiamonds" => !isempty(diamond_structures),
+                "hasResults" => false   # Tier 2 doesn't calculate probabilities
+            )
+        )
+        
+        println("✅ Tier 2: Diamond analysis complete!")
+        
+        return HTTP.Response(200, JSON_HEADERS, JSON.json(response_data))
+        
+    catch e
+        println("❌ Diamond analysis error: $e")
+        error_response = Dict("success" => false, "error" => string(e))
+        return HTTP.Response(500, JSON_HEADERS, JSON.json(error_response))
+    end
+end
+
 # Enhanced analysis handler with diamond classification and Monte Carlo
 function handle_enhanced_analysis(req::HTTP.Request)
     try
@@ -368,6 +732,7 @@ function handle_enhanced_analysis(req::HTTP.Request)
         
         response_data = Dict(
             "success" => true,
+            "mode" => "full-analysis",
             "results" => results,
             "networkData" => network_data,
             "diamondData" => diamond_data,
@@ -776,6 +1141,10 @@ function route_handler(req::HTTP.Request)
             return handle_analysis(req)
         elseif req.target == "/api/analyze-enhanced"
             return handle_enhanced_analysis(req)
+        elseif req.target == "/api/parse-structure"
+            return handle_parse_structure(req)
+        elseif req.target == "/api/analyze-diamond"
+            return handle_diamond_analysis(req)
         elseif req.target == "/api/analyze-diamond-subset"
             return handle_diamond_subset_analysis(req)
         elseif req.target == "/api/export-dot"
@@ -787,10 +1156,13 @@ function route_handler(req::HTTP.Request)
 end
 
 println("🚀 Enhanced server running on: http://localhost:8080")
-println("📊 Features: Diamond Classification, Monte Carlo Validation, Enhanced Visualization")
+println("📊 Features: Three-Tier Analysis System, Diamond Classification, Monte Carlo Validation")
 println("🔧 UTF-8 encoding enabled for proper icon display")
 println("✨ CSS icons used for cross-platform compatibility")
-println("💎 Diamond subset analysis now available")
+println("💎 Diamond subset analysis available")
+println("🏗️ Tier 1: Structure-only analysis endpoint at /api/parse-structure")
+println("💎 Tier 2: Diamond analysis endpoint at /api/analyze-diamond") 
+println("📈 Tier 3: Full analysis endpoint at /api/analyze-enhanced")
 println("📁 Serving static files from public/ directory using SERVER_DIR: $SERVER_DIR")
 
 # Start server
