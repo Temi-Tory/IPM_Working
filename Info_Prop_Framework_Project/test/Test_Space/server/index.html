@@ -1,10 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Information Propagation Framework Toolkit</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css">
+    <!-- Add this line to the <head> section of index.html to prevent favicon 404 -->
+    <link rel="icon" type="image/x-icon" 
+        href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACF/0YAhf9GE4X/RlOF/0aAhf9Gf4X/RlOF/0YThf9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI3/RgON/0Z8jf9G5Y3/RveN/0bwjf9G143/RoGN/0YXjf9GAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACW/0YHlv9Gmrb/RvO6/0b/tf9G/7X/Rv+6/0b/tv9G9pj/Rp2W/0YJAAAAAAAAAAAAAAAAAAAAAAAAAACe/0YLnv9G1q7/Rv+y/0b/qf9G/6n/Rv+p/0b/qf9G/6n/Rv+y/0b/rv9G2Z7/Rg0AAAAAAAAAAAAAAAAAAAAAqP9GFqj/Rv6x/0b/p/9G/5//Rv+f/0b/n/9G/5//Rv+f/0b/n/9G/6f/Rv+x/0b+qP9GGAAAAAAAAAAAAAAAAACs/0YdrP9G/6//Rv+j/0b/nP9G/5r/Rv+a/0b/mv9G/5r/Rv+a/0b/mv9G/6P/Rv+v/0b/rP9GHwAAAAAAAAAAAAAAAACw/0Yhrv9G/67/Rv+h/0b/mf9G/5f/Rv+X/0b/l/9G/5f/Rv+X/0b/l/9G/5n/Rv+h/0b/rv9G/7D/RiMAAAAAAAAAAAAAAAAAs/9GJbL/Rv+t/0b/oP9G/5j/Rv+W/0b/lv9G/5b/Rv+W/0b/lv9G/5b/Rv+Y/0b/oP9G/63/Rv+z/0YnAAAAAAAAAAAAAAAAALT/Rim1/0b/q/9G/5//Rv+X/0b/lf9G/5X/Rv+V/0b/lf9G/5X/Rv+V/0b/l/9G/5//Rv+r/0b/tP9GKwAAAAAAAAAAAAAAAAC4/0Ysuv9G/6n/Rv+e/0b/lv9G/5T/Rv+U/0b/lP9G/5T/Rv+U/0b/lP9G/5b/Rv+e/0b/qf9G/7j/Ri4AAAAAAAAAAAAAAAAAAL//Rji2/0b/qP9G/53/Rv+V/0b/k/9G/5P/Rv+T/0b/k/9G/5P/Rv+T/0b/lf9G/53/Rv+o/0b/v/9GOgAAAAAAAAAAAAAAAADK/0Y2yf9G8Lj/Rv+m/0b/nP9G/5L/Rv+S/0b/kv9G/5L/Rv+S/0b/nP9G/6b/Rv+4/0b/yf9G8sr/RjgAAAAAAAAAAAAAAAAAz/9GHs//Rq3S/0bx0v9G/83/Rv+e/0b/j/9G/5z/Rv/N/0b/0v9G/9L/RvHP/0av0P9GIAAAAAAAAAAAAAAAAAAAAAAz/9GBs//RhHP/0YHMz/G1Yz/RpYz/0Y5z/9G1M3/Rtz3/0Yj3/0Yuz/9GH8//RgAAAAAAAAAAAAAAAAAAAAAAM/9GAMz/Rooz/0aYM/9G5s//RvPP/0bwz/9G5s//RpiN/0YqM/9GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM//RgPP/0Y6z/9Gns//Rr7P/0a+z/9Gns//RjrP/0YDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMz/RgzP/0YWz/9GFs//RgzAAAAAAAAAAAAAAAAA/38AAP9/AAD+HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/B8AAPwfAAD8HwAA/h8AAP5/AAD/fwAA/38AAA=="
+    >
 </head>
 <body>
     <div class="container">
@@ -13,6 +19,8 @@
         <!-- Tab Navigation -->
         <div class="tab-navigation">
             <button class="tab-btn active" data-tab="analysis">Analysis</button>
+            <button class="tab-btn" data-tab="results">Results</button>
+            <button class="tab-btn" data-tab="diamonds">Diamond Analysis</button>
             <button class="tab-btn" data-tab="visualization">Visualization</button>
         </div>
         
@@ -38,7 +46,8 @@
                 </div>
                 
                 <div class="options">
-                    <label class="checkbox-label"><input type="checkbox" id="includeClassification"> Include Diamond Classification</label>
+                    <label class="checkbox-label"><input type="checkbox" id="includeClassification" checked> Include Diamond Classification</label>
+                    <label class="checkbox-label"><input type="checkbox" id="enableMonteCarlo"> Enable Monte Carlo Validation</label>
                 </div>
             </div>
             
@@ -51,25 +60,182 @@
                 </div>
             </div>
             
+            <div id="error" style="display: none;"></div>
+        </div>
+        
+        <!-- Results Tab -->
+        <div id="results-tab" class="tab-content">
             <div id="results" style="display: none;">
                 <h3>Analysis Results</h3>
                 <div id="summary"></div>
                 
+                <div class="results-controls">
+                    <label>Show Top: 
+                        <select id="topNodesSelect">
+                            <option value="10">10 Nodes</option>
+                            <option value="20">20 Nodes</option>
+                            <option value="50">50 Nodes</option>
+                            <option value="all" selected>All Nodes</option>
+                        </select>
+                    </label>
+                    <label>Sort By: 
+                        <select id="sortSelect">
+                            <option value="probability">Probability</option>
+                            <option value="node">Node ID</option>
+                            <option value="type">Node Type</option>
+                        </select>
+                    </label>
+                    <button id="exportResultsBtn">Export Results</button>
+                </div>
+                
                 <h4>Node Probabilities</h4>
                 <table id="resultsTable">
                     <thead>
-                        <tr><th>Node</th><th>Probability</th></tr>
+                        <tr>
+                            <th>Node</th>
+                            <th>Type</th>
+                            <th>Prior</th>
+                            <th>Calculated</th>
+                            <th>Difference</th>
+                            <th>Diamond Member</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
                 
-                <div id="classification" style="display: none;">
-                    <h4>Diamond Classifications</h4>
-                    <div id="classificationResults"></div>
+                <div id="monteCarloComparison" style="display: none;">
+                    <h4>Monte Carlo Validation</h4>
+                    <div id="mcResults"></div>
                 </div>
             </div>
-            
-            <div id="error" style="display: none;"></div>
+        </div>
+        
+        <!-- Diamond Analysis Tab -->
+        <div id="diamonds-tab" class="tab-content">
+            <div id="diamondAnalysis" style="display: none;">
+                <h3>Diamond Structure Analysis</h3>
+                
+                <div id="diamondSummary" class="diamond-summary-grid">
+                    <div class="summary-card">
+                        <span class="summary-value" id="totalDiamonds">0</span>
+                        <span class="summary-label">Total Diamonds</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="complexDiamonds">0</span>
+                        <span class="summary-label">Complex Diamonds</span>
+                        <small class="summary-help">Complexity > 10</small>
+                    </div>
+                    <div class="summary-card tooltip">
+                        <span class="summary-value" id="averageComplexity">0</span>
+                        <span class="summary-label">Avg Complexity <span style="color: #999; font-size: 12px;">(?)</span></span>
+                        <span class="tooltiptext">
+                            <strong>Complexity Score Formula:</strong><br>
+                            (Nodes × Forks) + (Internal Decision Points × 2) + Edge Density<br><br>
+                            <strong>Components:</strong><br>
+                            • <strong>Base:</strong> Network size × fork complexity<br>
+                            • <strong>Internal:</strong> Nested decision points (weighted 2×)<br>
+                            • <strong>Density:</strong> How interconnected the diamond is<br><br>
+                            <strong>Higher scores</strong> indicate more computational complexity and potential bottlenecks
+                        </span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="maxPathCount">0</span>
+                        <span class="summary-label">Max Paths</span>
+                    </div>
+                </div>
+                
+                <div class="diamond-controls">
+                    <label>Filter by Type: 
+                        <select id="diamondTypeFilter">
+                            <option value="all">All Types</option>
+                            <option value="SIMPLE">Simple</option>
+                            <option value="NESTED">Nested</option>
+                            <option value="SEQUENTIAL">Sequential</option>
+                            <option value="INTERCONNECTED">Interconnected</option>
+                        </select>
+                    </label>
+                    <label>Filter by Fork Structure: 
+                        <select id="forkStructureFilter">
+                            <option value="all">All Structures</option>
+                            <option value="SINGLE_FORK">Single Fork</option>
+                            <option value="MULTI_FORK">Multi Fork</option>
+                            <option value="CHAINED_FORK">Chained Fork</option>
+                            <option value="SELF_INFLUENCE_FORK">Self Influence</option>
+                        </select>
+                    </label>
+                    <label>Sort by: 
+                        <select id="diamondSortSelect">
+                            <option value="complexity">Complexity</option>
+                            <option value="joinNode">Join Node</option>
+                            <option value="size">Size</option>
+                            <option value="pathCount">Path Count</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <div id="diamondList" class="diamond-list"></div>
+                
+                <!-- Diamond Detail Modal -->
+                <div id="diamondDetailModal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 id="diamondDetailTitle">Diamond Details</h4>
+                            <span class="close">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div id="diamondDetailContent"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Diamond Path Analysis Modal -->
+                <div id="diamondPathModal" class="modal" style="display: none;">
+                    <div class="modal-content large-modal">
+                        <div class="modal-header">
+                            <h4 id="diamondPathTitle">Diamond Path Analysis</h4>
+                            <span class="close" onclick="closeDiamondPathModal()">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div id="diamondPathContent">
+                                <div class="path-analysis-container">
+                                    <div class="path-controls">
+                                        <h5>Diamond Subset Parameters</h5>
+                                        <div class="parameter-controls">
+                                            <div class="control-row">
+                                                <label>Override Node Priors:</label>
+                                                <input type="checkbox" id="pathOverrideNodes">
+                                                <input type="range" id="pathNodePrior" min="0.1" max="1" step="0.1" value="1.0" disabled>
+                                                <span id="pathNodeValue">1.0</span>
+                                            </div>
+                                            <div class="control-row">
+                                                <label>Override Edge Probabilities:</label>
+                                                <input type="checkbox" id="pathOverrideEdges">
+                                                <input type="range" id="pathEdgeProb" min="0.1" max="1" step="0.1" value="0.9" disabled>
+                                                <span id="pathEdgeValue">0.9</span>
+                                            </div>
+                                        </div>
+                                        <div class="path-actions">
+                                            <button id="runPathAnalysis" class="action-btn analyze-btn">Run Analysis</button>
+                                            <button id="resetPathParams" class="action-btn">Reset Parameters</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="path-visualization">
+                                        <h5>Diamond Subgraph</h5>
+                                        <div id="pathNetworkGraph"></div>
+                                    </div>
+                                    
+                                    <div class="path-results" id="pathResults" style="display: none;">
+                                        <h5>Subset Analysis Results</h5>
+                                        <div id="pathResultsTable"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Visualization Tab -->
@@ -82,6 +248,7 @@
                     <label class="checkbox-label"><input type="checkbox" id="showForkNodes"> Highlight Fork Nodes</label>
                     <label class="checkbox-label"><input type="checkbox" id="showJoinNodes"> Highlight Join Nodes</label>
                     <label class="checkbox-label"><input type="checkbox" id="showIterations"> Color by Iteration Sets</label>
+                    <label class="checkbox-label"><input type="checkbox" id="showDiamonds"> Highlight Diamond Structures</label>
                 </div>
                 <div class="control-group">
                     <label>Layout: 
@@ -89,6 +256,11 @@
                             <option value="hierarchical">Hierarchical</option>
                             <option value="force">Force-Directed</option>
                             <option value="circular">Circular</option>
+                        </select>
+                    </label>
+                    <label>Focus on Diamond: 
+                        <select id="focusDiamondSelect">
+                            <option value="none">None</option>
                         </select>
                     </label>
                     <button id="resetZoom">Reset View</button>
@@ -108,10 +280,11 @@
             <div id="viz-legend">
                 <h4>Legend</h4>
                 <div class="legend-items">
-                    <div class="legend-item"><span class="legend-color source"></span> Source Nodes</div>
-                    <div class="legend-item"><span class="legend-color sink"></span> Sink Nodes</div>
-                    <div class="legend-item"><span class="legend-color fork"></span> Fork Nodes</div>
-                    <div class="legend-item"><span class="legend-color join"></span> Join Nodes</div>
+                    <div class="legend-item"><span class="icon icon-source"></span> Source Nodes</div>
+                    <div class="legend-item"><span class="icon icon-sink"></span> Sink Nodes</div>
+                    <div class="legend-item"><span class="icon icon-fork"></span> Fork Nodes</div>
+                    <div class="legend-item"><span class="icon icon-join"></span> Join Nodes</div>
+                    <div class="legend-item"><span class="icon icon-diamond"></span> Diamond Nodes</div>
                     <div class="legend-item"><span class="legend-color ancestor"></span> Ancestors</div>
                     <div class="legend-item"><span class="legend-color descendant"></span> Descendants</div>
                 </div>
