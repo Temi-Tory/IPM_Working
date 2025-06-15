@@ -177,6 +177,10 @@ function handle_analysis(req::HTTP.Request)
         # Read graph data from CSV file (always get original values from file)
         edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(temp_file)
         
+        # Store original values for the frontend
+        original_node_priors = copy(node_priors)
+        original_edge_probabilities = copy(edge_probabilities)
+        
         # Conditionally override based on checkbox settings
         if override_node_prior
             println("🔄 Overriding all node priors with: $node_prior")
@@ -234,10 +238,17 @@ function handle_analysis(req::HTTP.Request)
             "descendants" => descendants
         )
         
+        # Prepare original data for frontend comparison
+        original_data = Dict(
+            "nodePriors" => original_node_priors,
+            "edgeProbabilities" => original_edge_probabilities
+        )
+        
         response_data = Dict(
             "success" => true,
             "results" => results,
             "networkData" => network_data,
+            "originalData" => original_data,  # Add original data for comparison
             "summary" => Dict(
                 "nodes" => length(union(keys(outgoing_index), keys(incoming_index))),
                 "edges" => length(edgelist),

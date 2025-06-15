@@ -3,6 +3,8 @@ let currentFile = null;
 let analysisResults = null;
 let networkData = null; // Store the network structure data
 let selectedNode = null;
+let originalNodePriors = null; // Store original prior values
+let originalEdgeProbabilities = null; // Store original edge probabilities
 
 // DOM elements
 const fileInput = document.getElementById('fileInput');
@@ -61,18 +63,39 @@ document.addEventListener('DOMContentLoaded', function() {
         if (analysisResults && classificationDiv) {
             classificationDiv.style.display = this.checked ? 'block' : 'none';
         }
+        updateCheckboxState(this);
     });
     
-    // Override checkbox handlers
+    // Override checkbox handlers with enhanced visual feedback
     overrideNodePrior.addEventListener('change', function() {
         nodePriorSlider.disabled = !this.checked;
-        nodeValueSpan.style.opacity = this.checked ? '1' : '0.5';
+        const paramGroup = this.closest('.parameter-group');
+        
+        if (this.checked) {
+            nodeValueSpan.classList.remove('span-disabled');
+            paramGroup.classList.add('override-active');
+        } else {
+            nodeValueSpan.classList.add('span-disabled');
+            paramGroup.classList.remove('override-active');
+        }
+        
+        updateCheckboxState(this);
         console.log('Override node prior:', this.checked);
     });
     
     overrideEdgeProb.addEventListener('change', function() {
         edgeProbSlider.disabled = !this.checked;
-        edgeValueSpan.style.opacity = this.checked ? '1' : '0.5';
+        const paramGroup = this.closest('.parameter-group');
+        
+        if (this.checked) {
+            edgeValueSpan.classList.remove('span-disabled');
+            paramGroup.classList.add('override-active');
+        } else {
+            edgeValueSpan.classList.add('span-disabled');
+            paramGroup.classList.remove('override-active');
+        }
+        
+        updateCheckboxState(this);
         console.log('Override edge prob:', this.checked);
     });
     
@@ -84,18 +107,66 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Visualization control handlers
-    showSourceNodes.addEventListener('change', updateVisualization);
-    showSinkNodes.addEventListener('change', updateVisualization);
-    showForkNodes.addEventListener('change', updateVisualization);
-    showJoinNodes.addEventListener('change', updateVisualization);
-    showIterations.addEventListener('change', updateVisualization);
+    // Visualization control handlers with state management
+    showSourceNodes.addEventListener('change', function() {
+        updateCheckboxState(this);
+        updateVisualization();
+    });
+    showSinkNodes.addEventListener('change', function() {
+        updateCheckboxState(this);
+        updateVisualization();
+    });
+    showForkNodes.addEventListener('change', function() {
+        updateCheckboxState(this);
+        updateVisualization();
+    });
+    showJoinNodes.addEventListener('change', function() {
+        updateCheckboxState(this);
+        updateVisualization();
+    });
+    showIterations.addEventListener('change', function() {
+        updateCheckboxState(this);
+        updateVisualization();
+    });
+    
     layoutSelect.addEventListener('change', updateVisualization);
     
     resetZoomBtn.addEventListener('click', resetVisualization);
     fitToScreenBtn.addEventListener('click', fitVisualizationToScreen);
     exportDotBtn.addEventListener('click', exportGraphAsDot);
+    
+    // Initialize checkbox states
+    updateAllCheckboxStates();
 });
+
+// Enhanced checkbox state management
+function updateCheckboxState(checkbox) {
+    const label = checkbox.closest('label');
+    if (checkbox.checked) {
+        label.classList.add('active');
+        if (!label.classList.contains('active-state-indicator')) {
+            label.classList.add('active-state-indicator');
+        }
+    } else {
+        label.classList.remove('active');
+        label.classList.remove('active-state-indicator');
+    }
+}
+
+function updateAllCheckboxStates() {
+    // Update all checkboxes on page load
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        updateCheckboxState(checkbox);
+    });
+    
+    // Initialize override states
+    if (!overrideNodePrior.checked) {
+        nodeValueSpan.classList.add('span-disabled');
+    }
+    if (!overrideEdgeProb.checked) {
+        edgeValueSpan.classList.add('span-disabled');
+    }
+}
 
 // Handle file upload
 function handleFileUpload(event) {
@@ -213,6 +284,13 @@ async function runAnalysis() {
         // Store results and display
         analysisResults = result;
         networkData = result.networkData; // Store network structure for visualization
+        
+        // Store original values for comparison
+        if (result.originalData) {
+            originalNodePriors = result.originalData.nodePriors;
+            originalEdgeProbabilities = result.originalData.edgeProbabilities;
+        }
+        
         displayResults(result);
         
         // Enable visualization tab if we have network data
@@ -378,7 +456,7 @@ function updateVisualization() {
         layout: layoutSelect.value
     });
     
-    // Create network visualization (placeholder for now)
+    // Create network visualization
     createNetworkVisualization();
 }
 
@@ -387,7 +465,7 @@ function createNetworkVisualization() {
     networkGraph.innerHTML = '';
     
     if (!networkData || !networkData.nodes) {
-        networkGraph.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">No network data available</div>';
+        networkGraph.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 16px; text-align: center;"><div>📊<br>No network data available<br><small>Run analysis first</small></div></div>';
         return;
     }
     
@@ -397,14 +475,21 @@ function createNetworkVisualization() {
             id: nodeId,
             label: nodeId.toString(),
             color: getNodeColor(nodeId),
-            font: { color: 'white', size: 12 },
-            size: 15,
+            font: { color: 'white', size: 12, face: 'Arial' },
+            size: getNodeSize(nodeId),
             borderWidth: 2,
-            borderColor: '#333'
+            borderColor: '#333',
+            shadow: { enabled: true, color: 'rgba(0,0,0,0.1)', size: 5 }
         };
         
-        // Add node type information as title (tooltip)
-        node.title = `Node: ${nodeId}<br>Type: ${getNodeType(nodeId)}<br>Probability: ${getNodeProbability(nodeId)}`;
+        // Enhanced tooltip with prior vs calculated
+        const prior = getNodePrior(nodeId);
+        const calculated = getNodeProbability(nodeId);
+        node.title = `<strong>Node: ${nodeId}</strong><br/>` +
+                    `Type: ${getNodeType(nodeId)}<br/>` +
+                    `Prior: ${prior}<br/>` +
+                    `Calculated: ${calculated}<br/>` +
+                    `Iteration: ${getNodeIteration(nodeId)}`;
         
         return node;
     });
@@ -415,9 +500,10 @@ function createNetworkVisualization() {
         from: edge[0],
         to: edge[1],
         arrows: 'to',
-        color: { color: '#333', highlight: '#667eea' },
-        width: 1,
-        smooth: { type: 'dynamic' }
+        color: { color: '#666', highlight: '#667eea' },
+        width: 2,
+        smooth: { type: 'dynamic' },
+        shadow: { enabled: true, color: 'rgba(0,0,0,0.1)', size: 2 }
     }));
     
     // Create dataset
@@ -431,21 +517,24 @@ function createNetworkVisualization() {
         layout: getLayoutOptions(),
         physics: {
             enabled: layoutSelect.value === 'force',
-            stabilization: { iterations: 100 }
+            stabilization: { iterations: 150 },
+            barnesHut: { gravitationalConstant: -2000, springConstant: 0.001 }
         },
         interaction: {
             hover: true,
-            selectConnectedEdges: true
+            selectConnectedEdges: true,
+            tooltipDelay: 100
         },
         edges: {
-            smooth: true,
+            smooth: { type: 'continuous' },
             arrows: { to: { enabled: true, scaleFactor: 0.8 } }
         },
         nodes: {
             chosen: {
                 node: function(values, id, selected, hovering) {
                     values.shadowColor = '#667eea';
-                    values.shadowSize = 10;
+                    values.shadowSize = 15;
+                    values.borderWidth = 4;
                 }
             }
         }
@@ -468,6 +557,11 @@ function createNetworkVisualization() {
     
     // Store network instance for zoom/fit functions
     window.networkInstance = network;
+    
+    // Add loading complete indicator
+    network.on('stabilizationIterationsDone', function() {
+        console.log('Network stabilization complete');
+    });
     
     console.log('Network visualization created with', visNodes.length, 'nodes and', visEdges.length, 'edges');
 }
@@ -508,6 +602,15 @@ function getNodeColor(nodeId) {
     return colors.regular;
 }
 
+function getNodeSize(nodeId) {
+    // Size nodes based on their calculated probability
+    const probability = getNodeProbabilityValue(nodeId);
+    if (probability !== null) {
+        return 15 + (probability * 20); // Scale from 15 to 35
+    }
+    return 15;
+}
+
 function getLayoutOptions() {
     switch (layoutSelect.value) {
         case 'hierarchical':
@@ -516,8 +619,9 @@ function getLayoutOptions() {
                     enabled: true,
                     direction: 'UD',
                     sortMethod: 'directed',
-                    levelSeparation: 100,
-                    nodeSpacing: 100
+                    levelSeparation: 120,
+                    nodeSpacing: 120,
+                    treeSpacing: 200
                 }
             };
         case 'circular':
@@ -567,19 +671,41 @@ function selectNode(nodeId) {
 
 function updateNodeDetails() {
     if (!selectedNode || !networkData) {
-        selectedNodeInfo.innerHTML = 'Click a node to see details';
+        selectedNodeInfo.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;"><br>Click a node to see details</div>';
         return;
     }
     
-    // Display node details (placeholder)
+    const prior = getNodePrior(selectedNode);
+    const calculated = getNodeProbability(selectedNode);
+    const nodeType = getNodeType(selectedNode);
+    const iteration = getNodeIteration(selectedNode);
+    
+    // Enhanced node details with comparison
     selectedNodeInfo.innerHTML = `
-        <div><strong>Node:</strong> ${selectedNode}</div>
-        <div><strong>Type:</strong> ${getNodeType(selectedNode)}</div>
-        <div><strong>Probability:</strong> ${getNodeProbability(selectedNode)}</div>
-        <div><strong>Iteration Set:</strong> ${getNodeIteration(selectedNode)}</div>
-        <div style="margin-top: 15px;">
-            <button onclick="highlightAncestors('${selectedNode}')" style="margin-right: 5px; padding: 5px 10px; font-size: 12px;">Show Ancestors</button>
-            <button onclick="highlightDescendants('${selectedNode}')" style="padding: 5px 10px; font-size: 12px;">Show Descendants</button>
+        <div class="node-detail-item">
+            <strong>Node:</strong> ${selectedNode}
+        </div>
+        <div class="node-detail-item">
+            <strong>Type:</strong> ${nodeType}
+        </div>
+        <div class="node-detail-item">
+            <strong>Iteration Set:</strong> ${iteration}
+        </div>
+        
+        <div class="probability-comparison">
+            <div class="prob-item prior">
+                <span class="prob-value">${prior}</span>
+                <div class="prob-label">Prior Probability</div>
+            </div>
+            <div class="prob-item calculated">
+                <span class="prob-value">${calculated}</span>
+                <div class="prob-label">Calculated Belief</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onclick="highlightAncestors('${selectedNode}')" style="flex: 1; min-width: 120px; padding: 6px 10px; font-size: 12px; background: #ffeaa7; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Ancestors</button>
+            <button onclick="highlightDescendants('${selectedNode}')" style="flex: 1; min-width: 120px; padding: 6px 10px; font-size: 12px; background: #fd79a8; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; color: white;">Descendants</button>
         </div>
     `;
 }
@@ -596,11 +722,26 @@ function getNodeType(nodeId) {
     return types.length > 0 ? types.join(', ') : 'Regular';
 }
 
+function getNodePrior(nodeId) {
+    // Get original prior probability from the data
+    if (originalNodePriors && originalNodePriors[nodeId] !== undefined) {
+        return originalNodePriors[nodeId].toFixed(4);
+    }
+    return 'N/A';
+}
+
 function getNodeProbability(nodeId) {
     if (!analysisResults?.results) return 'N/A';
     
     const nodeResult = analysisResults.results.find(r => r.node === nodeId);
     return nodeResult ? nodeResult.probability.toFixed(4) : 'N/A';
+}
+
+function getNodeProbabilityValue(nodeId) {
+    if (!analysisResults?.results) return null;
+    
+    const nodeResult = analysisResults.results.find(r => r.node === nodeId);
+    return nodeResult ? nodeResult.probability : null;
 }
 
 function getNodeIteration(nodeId) {
@@ -641,7 +782,8 @@ function highlightAncestors(nodeId) {
     // Update node colors to highlight ancestors
     nodes.update(networkData.nodes.map(id => ({
         id: id,
-        color: ancestors.includes(id) ? '#ffeaa7' : getNodeColor(id)
+        color: ancestors.includes(id) ? '#ffeaa7' : getNodeColor(id),
+        borderWidth: ancestors.includes(id) ? 4 : 2
     })));
     
     // Select the ancestors
@@ -662,7 +804,8 @@ function highlightDescendants(nodeId) {
     // Update node colors to highlight descendants
     nodes.update(networkData.nodes.map(id => ({
         id: id,
-        color: descendants.includes(id) ? '#fd79a8' : getNodeColor(id)
+        color: descendants.includes(id) ? '#fd79a8' : getNodeColor(id),
+        borderWidth: descendants.includes(id) ? 4 : 2
     })));
     
     // Select the descendants

@@ -116,12 +116,20 @@ h1 {
 
 .parameter-group {
     margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.parameter-group.override-active {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.08);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .parameter-group:last-child {
-    border-bottom: none;
     margin-bottom: 0;
 }
 
@@ -136,56 +144,105 @@ h1 {
     display: flex !important;
     align-items: center;
     margin-bottom: 10px !important;
-    font-size: 0.9rem !important;
+    font-size: 0.95rem !important;
     color: #666 !important;
-    font-weight: normal !important;
+    font-weight: 500 !important;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.checkbox-label:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.checkbox-label.active {
+    background: rgba(102, 126, 234, 0.12);
+    border-color: #667eea;
+    color: #667eea !important;
+    font-weight: 600 !important;
 }
 
 .parameters input[type="range"] {
     width: 200px;
     margin: 0 10px;
     accent-color: #667eea;
+    height: 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
 .parameters input[type="range"]:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+}
+
+.parameters input[type="range"]:not(:disabled):hover {
+    transform: scaleY(1.2);
 }
 
 .parameters input[type="checkbox"] {
     margin-right: 10px;
-    transform: scale(1.2);
+    transform: scale(1.3);
     accent-color: #667eea;
+    cursor: pointer;
 }
 
 .parameters span {
-    background: #667eea;
+    background: linear-gradient(45deg, #667eea, #764ba2);
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border-radius: 6px;
     font-weight: bold;
-    min-width: 40px;
+    min-width: 50px;
     display: inline-block;
     text-align: center;
-    transition: opacity 0.3s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.span-disabled {
+    opacity: 0.4;
+    box-shadow: none;
+    background: #ccc !important;
 }
 
 .options {
     margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #e0e0e0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    border-top: 3px solid #28a745;
 }
 
 .options label {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.options label:hover {
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.options label.active {
+    background: rgba(40, 167, 69, 0.12);
+    border-color: #28a745;
+    color: #28a745;
+    font-weight: 600;
 }
 
 .options input[type="checkbox"] {
     margin-right: 10px;
-    transform: scale(1.2);
-    accent-color: #667eea;
+    transform: scale(1.3);
+    accent-color: #28a745;
 }
 
 #analyzeBtn {
@@ -393,6 +450,7 @@ h1 {
     border-bottom: 3px solid transparent;
     transition: all 0.3s ease;
     flex: 1;
+    position: relative;
 }
 
 .tab-btn:hover {
@@ -404,6 +462,20 @@ h1 {
     color: #667eea;
     border-bottom-color: #667eea;
     background: rgba(102, 126, 234, 0.1);
+    font-weight: 700;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #667eea;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px white, 0 0 8px rgba(102, 126, 234, 0.6);
 }
 
 /* Tab Content */
@@ -442,7 +514,9 @@ h1 {
     flex-wrap: wrap;
     gap: 15px;
     margin-bottom: 15px;
-    padding-bottom: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
     border-bottom: 1px solid #e0e0e0;
 }
 
@@ -456,14 +530,45 @@ h1 {
     align-items: center;
     font-size: 14px;
     color: #555;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    font-weight: 500;
+}
+
+.control-group label:hover {
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.control-group label.active {
+    background: rgba(40, 167, 69, 0.15);
+    border-color: #28a745;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.control-group input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+    accent-color: #28a745;
 }
 
 .control-group select {
     margin-left: 10px;
-    padding: 5px 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    padding: 6px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
     background: white;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.control-group select:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .control-group button {
@@ -473,18 +578,24 @@ h1 {
     padding: 8px 16px;
     border-radius: 6px;
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
 }
 
 .control-group button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+.control-group button:active {
+    transform: translateY(0);
 }
 
 #visualization-container {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 320px;
     gap: 20px;
     height: 600px;
 }
@@ -519,6 +630,55 @@ h1 {
     color: #555;
 }
 
+.node-detail-item {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border-left: 3px solid #667eea;
+}
+
+.node-detail-item strong {
+    color: #333;
+}
+
+.probability-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.prob-item {
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    border: 2px solid #e0e0e0;
+}
+
+.prob-item.prior {
+    border-color: #ffc107;
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.prob-item.calculated {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.prob-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: block;
+}
+
+.prob-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
 #viz-legend {
     background: white;
     padding: 20px;
@@ -545,14 +705,22 @@ h1 {
     align-items: center;
     font-size: 14px;
     color: #555;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .legend-color {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    margin-right: 8px;
+    margin-right: 10px;
     border: 2px solid #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .legend-color.source { background: #ff6b6b; }
@@ -561,6 +729,26 @@ h1 {
 .legend-color.join { background: #96ceb4; }
 .legend-color.ancestor { background: #ffeaa7; }
 .legend-color.descendant { background: #fd79a8; }
+
+/* Visual feedback for active states */
+.active-state-indicator {
+    position: relative;
+}
+
+.active-state-indicator::before {
+    color: #28a745;
+    font-size: 1.2rem;
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
@@ -586,6 +774,10 @@ h1 {
     .tab-btn {
         font-size: 14px;
         padding: 12px 20px;
+    }
+    
+    .probability-comparison {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -626,5 +818,9 @@ h1 {
     
     #network-graph {
         height: 400px;
+    }
+    
+    .control-group {
+        padding: 10px;
     }
 }
