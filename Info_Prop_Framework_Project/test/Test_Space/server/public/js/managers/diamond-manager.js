@@ -707,7 +707,7 @@ export class DiamondManager {
             // Configure options for smaller subgraph
             const options = {
                 layout: {
-                    hierarchical: {
+                    force: {
                         enabled: true,
                         direction: 'UD',
                         sortMethod: 'directed',
