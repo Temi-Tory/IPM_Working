@@ -11,10 +11,19 @@ export class AnalysisManager {
     }
 
     initializeEventListeners() {
-        // Main analyze button handler - now supports three-tier analysis
-        this.dom.safeAddEventListener('analyzeBtn', 'click', () => {
-            this.showAnalysisOptionModal();
+        // NEW: Direct analysis type button handlers
+        this.dom.safeAddEventListener('structureAnalysisBtn', 'click', () => {
+            this.runStructureAnalysis();
         });
+        
+        this.dom.safeAddEventListener('diamondAnalysisBtn', 'click', () => {
+            this.runDiamondAnalysis();
+        });
+        
+        this.dom.safeAddEventListener('reachabilityAnalysisBtn', 'click', () => {
+            this.runFullAnalysis();
+        });
+        
         
         // Results control handlers
         this.dom.safeAddEventListener('topNodesSelect', 'change', () => {
@@ -395,7 +404,7 @@ export class AnalysisManager {
         
         this.dom.hideElements(['results', 'error', 'diamondAnalysis']);
         this.dom.showElement('loading');
-        this.dom.setElementDisabled('analyzeBtn', true);
+        this.dom.setElementDisabled('structureAnalysisBtn', true);
         
         try {
             const fileManager = window.AppManagers.file;
@@ -428,6 +437,11 @@ export class AnalysisManager {
             // Store Tier 1 results in global state
             AppState.structureData = result;
             AppState.networkData = result.networkData;
+            window.AppState = window.AppState || {};
+            window.AppState.networkData = AppState.networkData;
+            console.log('✅ Structure Analysis - AppState.networkData set to:', AppState.networkData);
+            console.log('✅ Structure Analysis - window.AppState.networkData set to:', window.AppState?.networkData);
+       
             AppState.diamondData = null; // Tier 1 has no diamond data
             AppState.analysisResults = null; // Tier 1 has no probability results
             AppState.monteCarloResults = null;
@@ -459,7 +473,7 @@ export class AnalysisManager {
             this.dom.showError(`Structure analysis failed: ${err.message}`);
         } finally {
             this.dom.hideElements(['loading']);
-            this.dom.setElementDisabled('analyzeBtn', false);
+            this.dom.setElementDisabled('structureAnalysisBtn', false);
         }
     }
 
@@ -470,7 +484,7 @@ export class AnalysisManager {
         
         this.dom.hideElements(['results', 'error']);
         this.dom.showElement('loading');
-        this.dom.setElementDisabled('analyzeBtn', true);
+        this.dom.setElementDisabled('diamondAnalysisBtn', true);
         
         try {
             const fileManager = window.AppManagers.file;
@@ -504,6 +518,11 @@ export class AnalysisManager {
             // Store Tier 2 results in global state
             AppState.structureData = result;
             AppState.networkData = result.networkData;
+            window.AppState = window.AppState || {};
+            window.AppState.networkData = AppState.networkData;
+            console.log('✅ Diamond Analysis - AppState.networkData set to:', AppState.networkData);
+            console.log('✅ Diamond Analysis - window.AppState.networkData set to:', window.AppState?.networkData);
+      
             AppState.diamondData = result.diamondData; // NOW has diamond data with classifications
             AppState.analysisResults = null; // Tier 2 still has no probability results
             AppState.monteCarloResults = null;
@@ -535,7 +554,7 @@ export class AnalysisManager {
             this.dom.showError(`Diamond analysis failed: ${err.message}`);
         } finally {
             this.dom.hideElements(['loading']);
-            this.dom.setElementDisabled('analyzeBtn', false);
+            this.dom.setElementDisabled('diamondAnalysisBtn', false);
         }
     }
 
@@ -546,7 +565,7 @@ export class AnalysisManager {
         
         this.dom.hideElements(['results', 'error', 'diamondAnalysis']);
         this.dom.showElement('loading');
-        this.dom.setElementDisabled('analyzeBtn', true);
+        this.dom.setElementDisabled('reachabilityAnalysisBtn', true);
         
         try {
             const fileManager = window.AppManagers.file;
@@ -587,6 +606,10 @@ export class AnalysisManager {
             AppState.structureData = result; // Keep structure data for compatibility
             AppState.analysisResults = result; // NOW has probability results
             AppState.networkData = result.networkData;
+            window.AppState = window.AppState || {};
+window.AppState.networkData = AppState.networkData;
+            console.log('✅ Full Analysis - AppState.networkData set to:', AppState.networkData);
+            console.log('✅ Full Analysis - window.AppState.networkData set to:', window.AppState?.networkData);
             AppState.diamondData = result.diamondData;
             AppState.monteCarloResults = result.monteCarloResults;
             
@@ -620,9 +643,10 @@ export class AnalysisManager {
             this.dom.showError(`Full analysis failed: ${err.message}`);
         } finally {
             this.dom.hideElements(['loading']);
-            this.dom.setElementDisabled('analyzeBtn', false);
+            this.dom.setElementDisabled('reachabilityAnalysisBtn', false);
         }
     }
+
 
     // Analysis workflow helpers
     canUpgradeAnalysis(targetMode) {

@@ -2187,3 +2187,297 @@ input:focus {
         text-align: left;
     }
 }
+
+
+.input-method-card {
+background: rgba(40, 167, 69, 0.05);
+border: 1px solid #28a745;
+border-radius: 8px;
+padding: 20px;
+}
+
+.input-method-card h5 {
+color: #28a745;
+margin-bottom: 15px;
+font-weight: 600;
+}
+
+.file-upload-group {
+display: flex;
+flex-direction: column;
+gap: 15px;
+}
+
+.file-upload-item {
+display: flex;
+flex-direction: column;
+gap: 5px;
+}
+
+.file-upload-item label {
+font-weight: 500;
+color: #333;
+}
+
+.file-upload-item input[type="file"] {
+padding: 8px;
+border: 2px solid #ddd;
+border-radius: 6px;
+background: white;
+}
+
+.file-upload-item small {
+color: #666;
+font-style: italic;
+}
+
+.conversion-controls, .mass-set-controls {
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.conversion-settings {
+background: rgba(40, 167, 69, 0.1);
+padding: 15px;
+border-radius: 6px;
+border-left: 4px solid #28a745;
+margin-top: 10px;
+}
+
+.conversion-settings label {
+display: flex;
+flex-direction: column;
+gap: 5px;
+margin-bottom: 10px;
+}
+
+
+.results-table {
+width: 100%;
+border-collapse: collapse;
+}
+
+.results-table th {
+background: linear-gradient(45deg, #28a745, #20c997);
+color: white;
+padding: 12px;
+text-align: left;
+font-weight: bold;
+position: sticky;
+top: 0;
+z-index: 10;
+}
+
+.results-table td {
+padding: 10px 12px;
+border-bottom: 1px solid #e0e0e0;
+font-size: 13px;
+}
+
+.results-table tr:nth-child(even) {
+background: #f8f9fa;
+}
+
+.results-table tr:hover {
+background: #e8f5e8;
+}
+
+.critical-path-node {
+background: rgba(255, 193, 7, 0.2) !important;
+font-weight: bold;
+}
+
+.critical-path-indicator {
+background: #ffc107;
+color: #212529;
+padding: 2px 8px;
+border-radius: 12px;
+font-size: 11px;
+font-weight: bold;
+}
+
+.slack-time {
+font-family: 'Courier New', monospace;
+color: #666;
+}
+
+.slack-time.zero {
+color: #dc3545;
+font-weight: bold;
+}
+
+/* Analysis Type Selection Styles */
+.analysis-type-selection {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.analysis-type-selection h4 {
+    color: #667eea;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.analysis-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.analysis-option-btn {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    min-height: 120px;
+    position: relative;
+}
+
+.analysis-option-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+}
+
+.analysis-option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.analysis-option-btn .btn-icon {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.analysis-option-btn .btn-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.analysis-option-btn .btn-subtitle {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 400;
+}
+
+/* Specific colors for different analysis types */
+.analysis-option-btn#structureAnalysisBtn:hover:not(:disabled) {
+    border-color: #28a745;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+}
+
+.analysis-option-btn#diamondAnalysisBtn:hover:not(:disabled) {
+    border-color: #fd79a8;
+    background: linear-gradient(135deg, rgba(253, 121, 168, 0.1) 0%, rgba(253, 121, 168, 0.05) 100%);
+}
+
+.analysis-option-btn#reachabilityAnalysisBtn:hover:not(:disabled) {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%);
+}
+
+.analysis-option-btn#timeAnalysisBtn:hover:not(:disabled) {
+    border-color: #28a745;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .analysis-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .analysis-option-btn {
+        min-height: 100px;
+        padding: 15px;
+    }
+}
+
+.main-analyze-btn {
+background: linear-gradient(45deg, #28a745, #20c997);
+color: white;
+border: none;
+padding: 18px 40px;
+border-radius: 12px;
+font-size: 1.2rem;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.3s ease;
+letter-spacing: 0.5px;
+text-transform: uppercase;
+box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 5px;
+min-width: 250px;
+}
+
+.main-analyze-btn:hover:not(:disabled) {
+transform: translateY(-3px);
+box-shadow: 0 15px 30px rgba(40, 167, 69, 0.4);
+background: linear-gradient(45deg, #218838, #1e7e34);
+}
+
+.main-analyze-btn:disabled {
+background: linear-gradient(45deg, #ccc, #999);
+cursor: not-allowed;
+transform: none;
+box-shadow: none;
+}
+
+.btn-icon {
+font-size: 1.5rem;
+}
+
+.btn-text {
+font-size: 1.2rem;
+font-weight: 700;
+}
+
+.btn-subtitle {
+font-size: 0.9rem;
+opacity: 0.9;
+font-weight: 400;
+text-transform: none;
+}
+
+/* Responsive adjustments for time analysis */
+@media (max-width: 768px) {
+.time-input-methods {
+    grid-template-columns: 1fr;
+}
+
+.time-results-summary {
+    grid-template-columns: 1fr;
+}
+
+.time-results-controls {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.time-analysis-actions {
+    flex-direction: column;
+}
+
+.main-analyze-btn {
+    min-width: auto;
+    width: 100%;
+}
+}

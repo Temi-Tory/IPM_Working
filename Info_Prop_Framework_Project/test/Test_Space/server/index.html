@@ -524,11 +524,30 @@
             </div>
             
             <div class="analysis-action-section">
-                <button id="analyzeBtn" class="main-analyze-btn" disabled>
-                    <span class="btn-icon">🚀</span>
-                    <span class="btn-text">Analyze Network</span>
-                    <span class="btn-subtitle">Choose analysis type</span>
-                </button>
+                <div class="analysis-type-selection">
+                    <h4>🚀 Choose Analysis Type</h4>
+                    <div class="analysis-options">
+                        <button id="structureAnalysisBtn" class="analysis-option-btn" disabled>
+                            <span class="btn-icon">🏗️</span>
+                            <span class="btn-text">Structure Analysis</span>
+                            <span class="btn-subtitle">Tier 1: Fast topology parsing</span>
+                        </button>
+                        
+                        <button id="diamondAnalysisBtn" class="analysis-option-btn" disabled>
+                            <span class="btn-icon">💎</span>
+                            <span class="btn-text">Diamond Analysis</span>
+                            <span class="btn-subtitle">Tier 2: Enhanced classification</span>
+                        </button>
+                        
+                        <button id="reachabilityAnalysisBtn" class="analysis-option-btn" disabled>
+                            <span class="btn-icon">📈</span>
+                            <span class="btn-text">Reachability Analysis</span>
+                            <span class="btn-subtitle">Tier 3: Belief propagation</span>
+                        </button>
+                        
+                    </div>
+                </div>
+                
                 
                 <div class="quick-analysis-info">
                     <h4>📋 Three-Tier Analysis System</h4>
@@ -545,8 +564,7 @@
                         </div>
                         <div class="tier-info-card">
                             <span class="tier-badge tier-3">3</span>
-                            <h5>Full Analysis</h5>
-                            <p>Complete belief propagation with probability calculations</p>
+                            <h5>Advanced Analysis</h5>
                         </div>
                     </div>
                 </div>
@@ -671,7 +689,7 @@
                 </div>
             </div>
         </div>
-        
+                
         <!-- Diamond Analysis Tab -->
         <div id="diamonds-tab" class="tab-content">
             <div id="diamondAnalysis" style="display: none;">

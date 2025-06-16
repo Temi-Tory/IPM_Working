@@ -7,7 +7,7 @@ export class TabManager {
         this.tabHierarchy = {
             'analysis': 0,
             'structure': 1,
-            'diamonds': 2, 
+            'diamonds': 2,
             'visualization': 2,
             'results': 3
         };
@@ -121,7 +121,8 @@ export class TabManager {
                     }, 100);
                 }
                 break;
-        }
+                
+       }
     }
 
     // Three-tier analysis mode management
@@ -202,6 +203,7 @@ export class TabManager {
         console.log('Tier 3 enabled - All tabs available (includes Tiers 1 & 2)');
     }
 
+   
     resetAllTabs() {
         // Reset to initial state
         this.availableTabs = new Set(['analysis']);

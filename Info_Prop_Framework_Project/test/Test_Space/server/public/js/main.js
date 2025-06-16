@@ -7,6 +7,7 @@ import { VisualizationManager } from './managers/visualization-manager.js';
 import { TabManager } from './managers/tab-manager.js';
 import { ExportManager } from './managers/export-manager.js';
 import { StateManager } from './managers/state-manager.js';
+import { ParameterManager } from './managers/parameter-manager.js';
 import { UIUtils } from './utils/ui-utils.js';
 
 // Global state
@@ -33,8 +34,9 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         // Initialize managers
         const domManager = new DOMManager();
+        const parameterManager = new ParameterManager(domManager);
         const fileManager = new FileManager(domManager);
-        const analysisManager = new AnalysisManager(domManager);
+        const analysisManager = new AnalysisManager(domManager, parameterManager);
         const diamondManager = new DiamondManager(domManager);
         const visualizationManager = new VisualizationManager(domManager);
         const tabManager = new TabManager(domManager);
@@ -50,7 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
             visualization: visualizationManager,
             tab: tabManager,
             export: exportManager,
-            state: stateManager
+            state: stateManager,
+            parameter: parameterManager
         };
         
         // Verify critical DOM elements
@@ -62,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize all event listeners
         console.log('Initializing event listeners...');
         fileManager.initializeEventListeners();
+        parameterManager.initializeEventListeners();
         analysisManager.initializeEventListeners();
         diamondManager.initializeEventListeners();
         visualizationManager.initializeEventListeners();
@@ -264,16 +268,28 @@ function setupGlobalFunctions() {
 
     window.debugNetworkData = function() {
         console.log('=== Network Data Debug ===');
-        console.log('Network Data:', AppState.networkData);
-        console.log('Diamond Data:', AppState.diamondData);
-        console.log('Analysis Results:', AppState.analysisResults);
+        console.log('AppState.networkData:', AppState.networkData);
+        console.log('window.AppState:', window.AppState);
+        console.log('window.AppState.networkData:', window.AppState?.networkData);
+        console.log('AppState.currentFile:', AppState.currentFile);
+        console.log('AppState.structureData:', AppState.structureData);
+        console.log('AppState.diamondData:', AppState.diamondData);
+        console.log('AppState.analysisResults:', AppState.analysisResults);
+        
+        // Check if managers are available
+        console.log('Available Managers:', Object.keys(window.AppManagers || {}));
+        
         return {
             networkData: AppState.networkData,
+            windowNetworkData: window.AppState?.networkData,
+            currentFile: AppState.currentFile,
+            structureData: AppState.structureData,
             diamondData: AppState.diamondData,
-            analysisResults: AppState.analysisResults
+            analysisResults: AppState.analysisResults,
+            managers: Object.keys(window.AppManagers || {})
         };
     };
-
+    
     console.log('✅ Global functions setup complete');
 }
 

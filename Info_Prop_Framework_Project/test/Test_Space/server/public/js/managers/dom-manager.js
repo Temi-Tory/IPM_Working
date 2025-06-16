@@ -11,10 +11,14 @@ export class DOMManager {
             // File input elements
             fileInput: document.getElementById('fileInput'),
             fileStatus: document.getElementById('fileStatus'),
-            analyzeBtn: document.getElementById('analyzeBtn'),
             loading: document.getElementById('loading'),
             results: document.getElementById('results'),
             error: document.getElementById('error'),
+            
+            // Analysis type buttons
+            structureAnalysisBtn: document.getElementById('structureAnalysisBtn'),
+            diamondAnalysisBtn: document.getElementById('diamondAnalysisBtn'),
+            reachabilityAnalysisBtn: document.getElementById('reachabilityAnalysisBtn'),
             
             // Parameter controls
             nodePriorSlider: document.getElementById('nodePrior'),
@@ -124,7 +128,8 @@ export class DOMManager {
 
     verifyElements() {
         const criticalElements = [
-            'fileInput', 'analyzeBtn', 'loading', 'results', 'error',
+            'fileInput', 'loading', 'results', 'error',
+            'structureAnalysisBtn', 'diamondAnalysisBtn', 'reachabilityAnalysisBtn', 
             'nodePriorSlider', 'edgeProbSlider', 'nodeValueSpan', 'edgeValueSpan'
         ];
         
@@ -289,14 +294,14 @@ export class DOMManager {
     }
 
     // Element state management
-    setElementDisabled(elementKey, disabled) {
-        const element = this.elements[elementKey];
+    setElementDisabled(elementId, disabled) {
+        const element = document.getElementById(elementId);
         if (element) {
             element.disabled = disabled;
-            if (disabled) {
-                element.classList.add('disabled-state');
+            if (!disabled) {
+                element.classList.remove('disabled');
             } else {
-                element.classList.remove('disabled-state');
+                element.classList.add('disabled');
             }
         }
     }

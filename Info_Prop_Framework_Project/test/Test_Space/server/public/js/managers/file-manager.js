@@ -24,7 +24,7 @@ export class FileManager {
         
         if (!file) {
             AppState.currentFile = null;
-            this.dom.setElementDisabled('analyzeBtn', true);
+            this.disableAnalysisButtons();
             this.dom.updateFileStatus('No file selected', 'file-error');
             this.updateParameterEditingAvailability();
             return;
@@ -32,16 +32,16 @@ export class FileManager {
         
         if (!file.name.toLowerCase().endsWith('.csv')) {
             AppState.currentFile = null;
-            this.dom.setElementDisabled('analyzeBtn', true);
+            this.disableAnalysisButtons();
             this.dom.updateFileStatus('Please select a CSV file', 'file-error');
             this.updateParameterEditingAvailability();
             return;
         }
         
         AppState.currentFile = file;
-        this.dom.setElementDisabled('analyzeBtn', false);
+        this.enableAnalysisButtons();
         this.dom.updateFileStatus(
-            `File loaded: ${file.name} (${UIUtils.formatFileSize(file.size)})`, 
+            `File loaded: ${file.name} (${UIUtils.formatFileSize(file.size)})`,
             'file-success'
         );
         
@@ -184,5 +184,19 @@ export class FileManager {
         }
 
         return summary;
+    }
+
+    // Enable all analysis buttons when file is loaded
+    enableAnalysisButtons() {
+        this.dom.setElementDisabled('structureAnalysisBtn', false);
+        this.dom.setElementDisabled('diamondAnalysisBtn', false);
+        this.dom.setElementDisabled('reachabilityAnalysisBtn', false);
+    }
+
+    // Disable all analysis buttons when no file is loaded
+    disableAnalysisButtons() {
+        this.dom.setElementDisabled('structureAnalysisBtn', true);
+        this.dom.setElementDisabled('diamondAnalysisBtn', true);
+        this.dom.setElementDisabled('reachabilityAnalysisBtn', true);
     }
 }
