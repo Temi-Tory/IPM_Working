@@ -139,6 +139,7 @@
             Debug Info
           </button>
 
+
           <button 
             mat-button 
             (click)="resetView()">
@@ -215,39 +216,43 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Visualization Display -->
+    <!-- Visualization Display - CONTAINER ALWAYS AVAILABLE -->
     <mat-card class="page-card visualization-card">
       <mat-card-header>
         <mat-card-title>
           <mat-icon>scatter_plot</mat-icon>
           Network Visualization
         </mat-card-title>
-        <mat-card-subtitle>Interactive DOT graph visualization</mat-card-subtitle>
+        <mat-card-subtitle>Interactive D3 network visualization</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        @if (isGeneratingDot()) {
-          <div class="loading-container">
-            <mat-spinner></mat-spinner>
-            <p>Generating visualization...</p>
+        <!-- Container is ALWAYS present, content changes based on state -->
+        <div class="visualization-container">
+          <div #dotContainer class="dot-container">
+            <!-- Content varies based on state -->
+            @if (isGeneratingDot()) {
+              <div class="loading-container">
+                <mat-spinner></mat-spinner>
+                <p>Generating visualization...</p>
+              </div>
+            } @else if (dotString()) {
+              <!-- Visualization will be rendered here by the service -->
+            } @else {
+              <div class="no-visualization">
+                <mat-icon>scatter_plot</mat-icon>
+                <h3>No Visualization Generated</h3>
+                <p>Click "Generate Visualization" to create an interactive DOT graph of your network.</p>
+                <button 
+                  mat-raised-button 
+                  color="primary" 
+                  (click)="generateVisualization()">
+                  <mat-icon>play_arrow</mat-icon>
+                  Generate Now
+                </button>
+              </div>
+            }
           </div>
-        } @else if (dotString()) {
-          <div class="visualization-container">
-            <div #dotContainer class="dot-container"></div>
-          </div>
-        } @else {
-          <div class="no-visualization">
-            <mat-icon>scatter_plot</mat-icon>
-            <h3>No Visualization Generated</h3>
-            <p>Click "Generate Visualization" to create an interactive DOT graph of your network.</p>
-            <button 
-              mat-raised-button 
-              color="primary" 
-              (click)="generateVisualization()">
-              <mat-icon>play_arrow</mat-icon>
-              Generate Now
-            </button>
-          </div>
-        }
+        </div>
       </mat-card-content>
     </mat-card>
 

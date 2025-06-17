@@ -8,7 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { GraphStateService } from '../../services/graph-state.service';
+import { GraphStateService } from '../../services/graph-state-service';
 
 interface UploadResult {
   success: boolean;

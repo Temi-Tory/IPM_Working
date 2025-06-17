@@ -13,7 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatBadgeModule } from '@angular/material/badge';
 
-import { GraphStateService } from '../../services/graph-state.service';
+import { GraphStateService } from '../../services/graph-state-service';
 
 interface NodeInfo {
   id: number;

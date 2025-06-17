@@ -16,7 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 
-import { GraphStateService } from '../../services/graph-state.service';
+import { GraphStateService } from '../../services/graph-state-service';
 import { MainServerService } from '../../services/main-server-service';
 
 interface ParameterPreset {
