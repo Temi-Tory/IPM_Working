@@ -104,7 +104,7 @@
                       step="0.01"
                       [discrete]="false"
                       [showTickMarks]="false">
-                      <input matSliderThumb formControlName="nodePrior">
+                      <input matSliderThumb formControlName="nodePrior" name="nodePrior">
                     </mat-slider>
                     <div class="slider-value">{{ formatSliderValue(basicForm.get('nodePrior')?.value || 0) }}</div>
                   </div>
@@ -143,7 +143,7 @@
                       step="0.01"
                       [discrete]="false"
                       [showTickMarks]="false">
-                      <input matSliderThumb formControlName="edgeProb">
+                      <input matSliderThumb formControlName="edgeProb" name="edgeProb">
                     </mat-slider>
                     <div class="slider-value">{{ formatSliderValue(basicForm.get('edgeProb')?.value || 0) }}</div>
                   </div>

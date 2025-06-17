@@ -103,31 +103,29 @@ interface DiamondModalData {
               
               <div class="control-group">
                 <div class="control-row">
-                  <mat-checkbox 
+                  <mat-checkbox
                     [(ngModel)]="overrideNodes"
                     (change)="updateParams()">
                     Override Diamond Node Priors (Mass)
                   </mat-checkbox>
-                  <mat-slider 
+                  <mat-slider
                     [disabled]="!overrideNodes"
-                    [min]="0.1" [max]="1" [step]="0.1"
-                    [(ngModel)]="nodePrior"
-                    (input)="updateParams()">
+                    [min]="0.1" [max]="1" [step]="0.1">
+                    <input matSliderThumb [(ngModel)]="nodePrior" (ngModelChange)="updateParams()" name="nodePrior">
                   </mat-slider>
                   <span class="value-display">{{ nodePrior.toFixed(1) }}</span>
                 </div>
                 
                 <div class="control-row">
-                  <mat-checkbox 
+                  <mat-checkbox
                     [(ngModel)]="overrideEdges"
                     (change)="updateParams()">
                     Override Diamond Edge Probabilities (Mass)
                   </mat-checkbox>
-                  <mat-slider 
+                  <mat-slider
                     [disabled]="!overrideEdges"
-                    [min]="0.1" [max]="1" [step]="0.1"
-                    [(ngModel)]="edgeProb"
-                    (input)="updateParams()">
+                    [min]="0.1" [max]="1" [step]="0.1">
+                    <input matSliderThumb [(ngModel)]="edgeProb" (ngModelChange)="updateParams()" name="edgeProb">
                   </mat-slider>
                   <span class="value-display">{{ edgeProb.toFixed(1) }}</span>
                 </div>
