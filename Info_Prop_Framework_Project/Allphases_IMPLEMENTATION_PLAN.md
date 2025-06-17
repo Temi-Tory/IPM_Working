@@ -1,15 +1,8 @@
+#plan 
+static site: test\Test_Space\server
+andgular site: site\info-prop-frmwrk\apps\info-prop-frmwrk-ui\src
 # Angular Enhancement: Implementation Checklist
-chcek box as each process complete 
-## Phase 1: Project Setup & Understanding
-
-### □ 1.1 Project Analysis
-- [ ] Review current Angular app structure (Port 4200)
-- [ ] Understand existing file organization
-- [ ] Identify key service files: `graph-state-service.ts`
-- [ ] Locate parameters page: `apps/info-prop-frmwrk-ui/src/app/pages/parameters/parameters.ts`
-- [ ] Map out current navigation structure
-
-### □ 1.2 User Workflow Documentation Review
+User Workflow Documentation Review
 - [ ] Understand 5 application flow states:
   - [ ] Initial State (Upload only)
   - [ ] File Validated (Parameters unlocked)
