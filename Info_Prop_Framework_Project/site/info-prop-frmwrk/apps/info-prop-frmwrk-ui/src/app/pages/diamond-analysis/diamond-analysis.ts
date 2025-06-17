@@ -18,6 +18,7 @@ import { MainServerService } from '../../services/main-server-service';
 import { DiamondClassification, DiamondStructureData, DiamondGroup, DiamondSubsetAnalysisRequest } from '../../shared/models/main-sever-interface';
 import { DiamondPathAnalysisModalComponent } from './diamond-modal';
 import { DiamondDetailModalComponent } from './diamond-detail-modal';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 
 interface DiamondSummary {
@@ -37,7 +38,7 @@ interface DiamondListItem extends DiamondClassification {
   imports: [
     CommonModule, MatCardModule, MatIconModule, MatButtonModule,
     MatSelectModule, MatCheckboxModule, MatSliderModule, MatTableModule,
-    MatDialogModule, MatTabsModule, FormsModule, RouterModule
+    MatDialogModule, MatTabsModule, FormsModule, RouterModule, MatTooltipModule
   ],
   templateUrl: './diamond-analysis.html',
   styleUrl: './diamond-analysis.scss',
@@ -220,8 +221,9 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy {
     return 'red';
   }
 
-  getRiskBadgeColor(risk: string): string {
-    switch (risk.toLowerCase()) {
+  getRiskBadgeColor(risk: string | number | undefined): string {
+    const riskStr = risk?.toString().toLowerCase() || 'low';
+    switch (riskStr) {
       case 'low': return 'success';
       case 'medium': return 'warning';
       case 'high': case 'very_high': return 'danger';

@@ -41,35 +41,86 @@
         <mat-tab-group>
           <!-- Diamond Analysis Tab -->
           <mat-tab label="💎 Diamond Analysis">
-            <!-- Diamond Summary -->
-            <div class="diamond-summary-grid">
-              <div class="summary-card">
-                <span class="summary-value">{{ diamondSummary().totalDiamonds }}</span>
-                <span class="summary-label">Total Diamonds</span>
-              </div>
-              <div class="summary-card">
-                <span class="summary-value">{{ diamondSummary().complexDiamonds }}</span>
-                <span class="summary-label">Complex Diamonds</span>
-                <small class="summary-help">Complexity > 10</small>
-              </div>
-              <div class="summary-card tooltip">
-                <span class="summary-value">{{ diamondSummary().averageComplexity }}</span>
-                <span class="summary-label">Avg Complexity 
-                  <mat-icon class="info-icon">help_outline</mat-icon>
-                </span>
-                <div class="tooltiptext">
-                  <strong>Complexity Score Formula:</strong><br>
-                  (Nodes × Forks) + (Internal Decision Points × 2) + Edge Density<br><br>
-                  <strong>Components:</strong><br>
-                  • <strong>Base:</strong> Network size × fork complexity<br>
-                  • <strong>Internal:</strong> Nested decision points (weighted 2×)<br>
-                  • <strong>Density:</strong> How interconnected the diamond is<br><br>
-                  <strong>Higher scores</strong> indicate more computational complexity
+            <!-- Enhanced Dashboard Summary -->
+            <div class="dashboard-overview">
+              <h3>📊 Diamond Analysis Dashboard</h3>
+              <div class="dashboard-summary-grid">
+                <div class="dashboard-card primary">
+                  <div class="card-icon">💎</div>
+                  <div class="card-content">
+                    <span class="card-value">{{ diamondSummary().totalDiamonds }}</span>
+                    <span class="card-label">Total Diamonds</span>
+                    <span class="card-description">Identified diamond structures in network</span>
+                  </div>
+                </div>
+                
+                <div class="dashboard-card complexity tooltip">
+                  <div class="card-icon">🧮</div>
+                  <div class="card-content">
+                    <span class="card-value">{{ diamondSummary().averageComplexity }}</span>
+                  <span class="card-label">
+                    Avg Complexity Score
+                    <mat-icon
+                      class="info-icon"
+                      matTooltip="
+                        Complexity Score Formula:
+                        (Nodes × Forks) + (Internal Decision Points × 2) + Edge Density
+                  
+                        Components:
+                        • Base: Network size × fork complexity
+                        • Internal: Nested decision points (weighted 2×)
+                        • Density: How interconnected the diamond is
+                  
+                        Interpretation:
+                        • 0-5: Low complexity, efficient processing
+                        • 5-10: Moderate complexity, may need optimization
+                        • 10+: High complexity, potential bottleneck
+                      "
+                      matTooltipPosition="below"
+                      >help_outline</mat-icon>
+                  </span>
+                  <span class="card-description">Computational complexity measure</span>
+                  </div>
+                </div>
+                
+                <div class="dashboard-card warning">
+                  <div class="card-icon">⚠️</div>
+                  <div class="card-content">
+                    <span class="card-value">{{ diamondSummary().complexDiamonds }}</span>
+                    <span class="card-label">High Complexity</span>
+                    <span class="card-description">Diamonds with complexity > 10</span>
+                  </div>
+                </div>
+                
+                <div class="dashboard-card paths">
+                  <div class="card-icon">🛤️</div>
+                  <div class="card-content">
+                    <span class="card-value">{{ diamondSummary().maxPathCount }}</span>
+                    <span class="card-label">Max Path Count</span>
+                    <span class="card-description">Highest parallel paths in any diamond</span>
+                  </div>
                 </div>
               </div>
-              <div class="summary-card">
-                <span class="summary-value">{{ diamondSummary().maxPathCount }}</span>
-                <span class="summary-label">Max Paths</span>
+            </div>
+
+            <!-- Compact Classification Legend -->
+            <div class="classification-legend">
+              <h4>🔍 Classification Types</h4>
+              <div class="legend-row">
+                <div class="legend-group">
+                  <span class="legend-title">Fork:</span>
+                  <span class="type-chip single-fork">SINGLE</span>
+                  <span class="type-chip multi-fork">MULTI</span>
+                  <span class="type-chip chained-fork">CHAINED</span>
+                  <span class="type-chip self-influence">SELF_INFLUENCE</span>
+                </div>
+                <div class="legend-group">
+                  <span class="legend-title">Internal:</span>
+                  <span class="type-chip simple">SIMPLE</span>
+                  <span class="type-chip nested">NESTED</span>
+                  <span class="type-chip sequential">SEQUENTIAL</span>
+                  <span class="type-chip interconnected">INTERCONNECTED</span>
+                </div>
               </div>
             </div>
 
@@ -115,7 +166,7 @@
                   <div class="diamond-header">
                     <h4>Diamond at Join Node {{ diamond.join_node }}</h4>
                     <div class="diamond-badges">
-                      <span class="badge" [ngClass]="'badge-' + getRiskBadgeColor(diamond.bottleneck_risk?.toString())">
+                      <span class="badge" [ngClass]="'badge-' + getRiskBadgeColor(diamond.bottleneck_risk)">
                         {{ diamond.bottleneck_risk }}
                       </span>
                       <span class="complexity-score" [style.color]="getComplexityColor(diamond.complexity_score)">
