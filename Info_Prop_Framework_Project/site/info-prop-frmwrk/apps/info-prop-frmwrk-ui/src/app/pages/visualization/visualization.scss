@@ -44,8 +44,8 @@
 
 .controls-card {
   .controls-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 24px;
     margin-bottom: 24px;
   }
@@ -53,40 +53,134 @@
   .control-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     
     .control-label {
-      font-weight: 500;
-      font-size: 0.875rem;
-      color: rgba(0, 0, 0, 0.87);
-      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 1.1em;
+      color: #1976d2;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .layout-select,
-    .highlight-select {
+    .highlight-select,
+    .diamond-focus-select {
       min-width: 200px;
     }
     
-    .zoom-slider {
-      width: 100%;
-      margin: 8px 0;
+    .layout-focus-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .control-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      
+      .control-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: #f5f5f5;
+          border-color: #1976d2;
+          transform: translateY(-1px);
+        }
+        
+        mat-icon {
+          font-size: 18px;
+        }
+      }
     }
     
     .checkbox-group {
       mat-chip-set {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        
         mat-chip {
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
           
-          &[highlighted] {
-            background-color: var(--mat-primary-color);
-            color: white;
+          &[highlighted="true"] {
+            background-color: #1976d2 !important;
+            color: white !important;
+          }
+          
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
           }
           
           mat-icon {
             margin-right: 4px;
           }
         }
+      }
+    }
+  }
+  
+  .subgraph-controls {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    
+    h4 {
+      margin-top: 0;
+      color: #1976d2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .subgraph-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .node-input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      
+      .node-input {
+        width: 120px;
+      }
+    }
+    
+    .multi-node-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      
+      .multi-node-input {
+        width: 200px;
+      }
+    }
+    
+    .clear-highlights-btn {
+      background: #f44336;
+      color: white;
+      
+      &:hover {
+        background: #d32f2f;
       }
     }
   }
@@ -210,6 +304,72 @@
     &.updating {
       border-color: var(--mat-primary-color);
       box-shadow: 0 0 8px rgba(63, 81, 181, 0.3);
+    }
+    
+    .viz-main-content {
+      display: flex;
+      gap: 16px;
+      min-height: 500px;
+      
+      .network-graph {
+        flex: 1;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        min-height: 500px;
+      }
+      
+      .node-details {
+        width: 300px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        padding: 16px;
+        
+        h4 {
+          margin-top: 0;
+          color: #1976d2;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .node-info-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+          
+          .label {
+            font-weight: 500;
+            color: #666;
+          }
+          
+          .value {
+            font-weight: 600;
+            color: #333;
+          }
+        }
+        
+        .node-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 16px;
+          
+          button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-start;
+          }
+        }
+        
+        .no-selection {
+          text-align: center;
+          color: #999;
+          font-style: italic;
+          padding: 20px;
+        }
+      }
     }
     
     .dot-container {
@@ -393,8 +553,33 @@
   }
   
   .controls-card .controls-grid {
-    grid-template-columns: 1fr;
     gap: 16px;
+  }
+  
+  .viz-main-content {
+    flex-direction: column;
+    
+    .node-details {
+      width: 100%;
+    }
+  }
+  
+  .layout-focus-row {
+    flex-direction: column;
+    align-items: stretch;
+    
+    .layout-select, .diamond-focus-select {
+      min-width: auto;
+      width: 100%;
+    }
+  }
+  
+  .control-buttons {
+    justify-content: center;
+  }
+  
+  .highlight-toggles .checkbox-group mat-chip-set {
+    justify-content: center;
   }
   
   .info-card .network-info {
