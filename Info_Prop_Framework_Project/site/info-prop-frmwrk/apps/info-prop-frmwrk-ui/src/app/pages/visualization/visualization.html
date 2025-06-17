@@ -60,19 +60,71 @@
             </mat-select>
           </div>
 
+          <!-- Diamond Focus Controls -->
+          @if (availableDiamonds().length > 0) {
+            <div class="control-group">
+              <span class="control-label">Focus on Diamond</span>
+              <mat-select
+                [(value)]="focusedDiamond"
+                (selectionChange)="onDiamondFocusChange()"
+                class="diamond-select">
+                <mat-option value="">None</mat-option>
+                @for (diamond of availableDiamonds(); track diamond.join_node) {
+                  <mat-option [value]="diamond.join_node">
+                    Diamond {{ diamond.join_node }} ({{ diamond.subgraph_size }} nodes)
+                  </mat-option>
+                }
+              </mat-select>
+            </div>
+          }
+
+          <!-- Subgraph Highlighting -->
+          <div class="control-group">
+            <span class="control-label">Subgraph Highlighting</span>
+            <div class="subgraph-controls">
+              <div class="node-input-group">
+                <mat-form-field appearance="outline" class="node-input">
+                  <mat-label>From Node</mat-label>
+                  <input matInput type="number" [(ngModel)]="fromNode" placeholder="Start node">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="node-input">
+                  <mat-label>To Node</mat-label>
+                  <input matInput type="number" [(ngModel)]="toNode" placeholder="End node">
+                </mat-form-field>
+                <button mat-button (click)="highlightPath()" [disabled]="!fromNode || !toNode">
+                  <mat-icon>route</mat-icon>
+                  Highlight Path
+                </button>
+              </div>
+              <div class="multi-node-group">
+                <mat-form-field appearance="outline" class="multi-node-input">
+                  <mat-label>Multiple Nodes</mat-label>
+                  <input matInput [(ngModel)]="multiNodeInput" placeholder="e.g., 1,5,10,15">
+                </mat-form-field>
+                <button mat-button (click)="highlightMultipleNodes()" [disabled]="!multiNodeInput">
+                  <mat-icon>scatter_plot</mat-icon>
+                  Highlight Nodes
+                </button>
+              </div>
+              <button mat-button (click)="clearCustomHighlights()" *ngIf="hasCustomHighlights()">
+                <mat-icon>clear</mat-icon>
+                Clear Custom Highlights
+              </button>
+            </div>
+          </div>
 
           <!-- Display Options -->
           <div class="control-group">
             <span class="control-label">Display Options</span>
             <div class="checkbox-group">
               <mat-chip-set>
-                <mat-chip 
+                <mat-chip
                   [highlighted]="showNodeLabels()"
                   (click)="showNodeLabels.set(!showNodeLabels()); onNodeLabelsChange()">
                   <mat-icon>label</mat-icon>
                   Node Labels
                 </mat-chip>
-                <mat-chip 
+                <mat-chip
                   [highlighted]="showEdgeLabels()"
                   (click)="showEdgeLabels.set(!showEdgeLabels()); onEdgeLabelsChange()">
                   <mat-icon>linear_scale</mat-icon>
@@ -158,6 +210,18 @@
             <span class="info-label">Highlighting:</span>
             <span class="info-value">{{ highlightMode() }}</span>
           </div>
+          @if (focusedDiamond()) {
+            <div class="info-item">
+              <span class="info-label">Focused Diamond:</span>
+              <span class="info-value">{{ focusedDiamond() }}</span>
+            </div>
+          }
+          @if (hasCustomHighlights()) {
+            <div class="info-item">
+              <span class="info-label">Custom Highlights:</span>
+              <span class="info-value">{{ getCustomHighlightCount() }} nodes</span>
+            </div>
+          }
         </div>
 
         <!-- Highlighting Legend -->
@@ -191,6 +255,24 @@
                   <div class="legend-color gradient"></div>
                   <span>Iteration Levels (Color Gradient)</span>
                 </div>
+              }
+              @if (focusedDiamond()) {
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #FF5722;"></div>
+                  <span>Focused Diamond {{ focusedDiamond() }}</span>
+                </div>
+              }
+              @if (hasCustomHighlights()) {
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #9C27B0;"></div>
+                  <span>Custom Highlighted Nodes</span>
+                </div>
+                @if (highlightedPath().length > 0) {
+                  <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00BCD4;"></div>
+                    <span>Path Highlighting</span>
+                  </div>
+                }
               }
             </div>
           </div>

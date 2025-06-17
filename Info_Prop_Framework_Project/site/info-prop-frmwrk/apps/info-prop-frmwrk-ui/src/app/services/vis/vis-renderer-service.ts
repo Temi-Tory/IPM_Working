@@ -73,6 +73,38 @@ export class VisualizationRendererService {
   }
 
   /**
+   * Fit visualization to screen by calculating optimal zoom level
+   */
+  fitToScreen(container?: HTMLElement): void {
+    const targetContainer = container || this.lastRenderedContainer;
+    if (targetContainer && this.currentSvg) {
+      try {
+        const svg = this.currentSvg.node();
+        if (svg) {
+          const bounds = svg.getBBox();
+          const containerRect = targetContainer.getBoundingClientRect();
+          
+          const scaleX = containerRect.width / bounds.width;
+          const scaleY = containerRect.height / bounds.height;
+          const scale = Math.min(scaleX, scaleY) * 0.9; // 90% to add some padding
+          
+          const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.1, 4]);
+          const transform = d3.zoomIdentity
+            .translate(containerRect.width / 2, containerRect.height / 2)
+            .scale(scale)
+            .translate(-bounds.x - bounds.width / 2, -bounds.y - bounds.height / 2);
+            
+          this.currentSvg.call(zoom.transform, transform);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error fitting to screen:', error);
+      }
+    } else {
+      console.warn('⚠️ No SVG available for fit to screen');
+    }
+  }
+
+  /**
    * Cleanup current instance
    */
   async cleanup(): Promise<void> {
@@ -192,6 +224,8 @@ export class VisualizationRendererService {
       })
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
+      .attr('data-node-id', (d: D3Node) => d.id)
+      .attr('data-node-type', (d: D3Node) => d.type)
       .style('cursor', 'pointer')
       .call(this.createDragBehavior(simulation) as any);
 
