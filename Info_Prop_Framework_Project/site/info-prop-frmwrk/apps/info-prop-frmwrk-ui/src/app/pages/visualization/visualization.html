@@ -1,15 +1,289 @@
-
-  <div class="page-container">
-    <mat-card class="page-card">
+<div class="page-container">
+  <!-- No Graph Loaded Warning -->
+  @if (!isGraphLoaded()) {
+    <mat-card class="page-card warning-card">
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>visibility</mat-icon>
-          Network Visualization
+          <mat-icon>warning</mat-icon>
+          No Graph Loaded
         </mat-card-title>
-        <mat-card-subtitle>Visualize network graphs and data</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <p>This page will display interactive network visualizations.</p>
+        <p>Please upload a graph file first to visualize the network.</p>
+        <button mat-raised-button color="primary" routerLink="/upload">
+          <mat-icon>upload_file</mat-icon>
+          Upload Graph
+        </button>
       </mat-card-content>
     </mat-card>
+  } @else {
+    
+    <!-- Visualization Controls -->
+    <mat-card class="page-card controls-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>tune</mat-icon>
+          Visualization Controls
+        </mat-card-title>
+        <mat-card-subtitle>Configure layout, highlighting, and display options</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="controls-grid">
+          
+          <!-- Layout Selection -->
+          <div class="control-group">
+            <span class="control-label">Layout Algorithm</span>
+            <mat-select
+              [(value)]="selectedLayout"
+              (selectionChange)="onLayoutChange()"
+              class="layout-select">
+              @for (layout of layoutOptions; track layout.value) {
+                <mat-option [value]="layout.value" [matTooltip]="layout.description">
+                  {{ layout.label }}
+                </mat-option>
+              }
+            </mat-select>
+          </div>
+
+          <!-- Highlighting Mode -->
+          <div class="control-group">
+            <span class="control-label">Highlighting</span>
+            <mat-select
+              [(value)]="highlightMode"
+              (selectionChange)="onHighlightModeChange()"
+              class="highlight-select">
+              @for (option of highlightOptions; track option.value) {
+                <mat-option [value]="option.value">
+                  {{ option.label }}
+                </mat-option>
+              }
+            </mat-select>
+          </div>
+
+          <!-- Zoom Control -->
+          <div class="control-group">
+            <span class="control-label">Zoom Level: {{ zoomLevel() }}%</span>
+            <mat-slider
+              min="25"
+              max="200"
+              step="25"
+              class="zoom-slider">
+              <input matSliderThumb [value]="zoomLevel()" (valueChange)="onZoomChange($event)">
+            </mat-slider>
+          </div>
+
+          <!-- Display Options -->
+          <div class="control-group">
+            <span class="control-label">Display Options</span>
+            <div class="checkbox-group">
+              <mat-chip-set>
+                <mat-chip 
+                  [highlighted]="showNodeLabels()"
+                  (click)="showNodeLabels.set(!showNodeLabels()); onNodeLabelsChange()">
+                  <mat-icon>label</mat-icon>
+                  Node Labels
+                </mat-chip>
+                <mat-chip 
+                  [highlighted]="showEdgeLabels()"
+                  (click)="showEdgeLabels.set(!showEdgeLabels()); onEdgeLabelsChange()">
+                  <mat-icon>linear_scale</mat-icon>
+                  Edge Labels
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="generateVisualization()"
+            [disabled]="isGeneratingDot()">
+            <ng-container>
+              @if (isGeneratingDot()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                Generating...
+              } @else {
+                <mat-icon>refresh</mat-icon>
+                Generate Visualization
+              }
+            </ng-container>
+          </button>
+
+          <button 
+            mat-stroked-button 
+            (click)="downloadDotFile()"
+            [disabled]="!dotString()">
+            <mat-icon>download</mat-icon>
+            Download DOT
+          </button>
+
+          <button 
+            mat-stroked-button 
+            (click)="exportVisualization()"
+            [disabled]="!dotString()">
+            <mat-icon>image</mat-icon>
+            Export Image
+          </button>
+
+          <button 
+            mat-button 
+            (click)="resetView()">
+            <mat-icon>restore</mat-icon>
+            Reset View
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Network Information -->
+    <mat-card class="page-card info-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>info</mat-icon>
+          Network Information
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="network-info">
+          <div class="info-item">
+            <span class="info-label">Nodes:</span>
+            <span class="info-value">{{ nodeCount() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Edges:</span>
+            <span class="info-value">{{ edgeCount() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Layout:</span>
+            <span class="info-value">{{ selectedLayout() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Highlighting:</span>
+            <span class="info-value">{{ highlightMode() }}</span>
+          </div>
+        </div>
+
+        <!-- Highlighting Legend -->
+        @if (highlightMode() !== 'none' && nodeHighlights().length > 0) {
+          <mat-divider></mat-divider>
+          <div class="highlight-legend">
+            <h4>Color Legend</h4>
+            <div class="legend-items">
+              @if (highlightMode() === 'node-types') {
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #4CAF50;"></div>
+                  <span>Source Nodes</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #FF9800;"></div>
+                  <span>Fork Nodes</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #2196F3;"></div>
+                  <span>Join Nodes</span>
+                </div>
+              }
+              @if (highlightMode() === 'diamond-structures') {
+                <div class="legend-item">
+                  <div class="legend-color" style="background-color: #E91E63;"></div>
+                  <span>Diamond Structure Nodes</span>
+                </div>
+              }
+              @if (highlightMode() === 'iteration-levels') {
+                <div class="legend-item">
+                  <div class="legend-color gradient"></div>
+                  <span>Iteration Levels (Color Gradient)</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Visualization Display -->
+    <mat-card class="page-card visualization-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>scatter_plot</mat-icon>
+          Network Visualization
+        </mat-card-title>
+        <mat-card-subtitle>Interactive DOT graph visualization</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (isGeneratingDot()) {
+          <div class="loading-container">
+            <mat-spinner></mat-spinner>
+            <p>Generating visualization...</p>
+          </div>
+        } @else if (dotString()) {
+          <div class="visualization-container">
+            <div #dotContainer class="dot-container"></div>
+          </div>
+        } @else {
+          <div class="no-visualization">
+            <mat-icon>scatter_plot</mat-icon>
+            <h3>No Visualization Generated</h3>
+            <p>Click "Generate Visualization" to create an interactive DOT graph of your network.</p>
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="generateVisualization()">
+              <mat-icon>play_arrow</mat-icon>
+              Generate Now
+            </button>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Layout Information -->
+    <mat-card class="page-card help-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>help_outline</mat-icon>
+          Layout Algorithms Guide
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="layout-help">
+          @for (layout of layoutOptions; track layout.value) {
+            <div class="layout-info">
+              <h4>{{ layout.label }}</h4>
+              <p>{{ layout.description }}</p>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Navigation Actions -->
+    <mat-card class="page-card actions-card">
+      <mat-card-content>
+        <div class="navigation-actions">
+          <button mat-stroked-button routerLink="/network-structure">
+            <mat-icon>account_tree</mat-icon>
+            Network Structure
+          </button>
+          
+          <button mat-stroked-button routerLink="/parameters">
+            <mat-icon>tune</mat-icon>
+            Configure Parameters
+          </button>
+          
+          <button mat-stroked-button routerLink="/diamond-analysis">
+            <mat-icon>diamond</mat-icon>
+            Diamond Analysis
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  }
 </div>

@@ -14,7 +14,9 @@
     "@angular/platform-browser": "~20.0.0",
     "@angular/router": "~20.0.0",
     "@hpcc-js/wasm": "^2.23.0",
+    "@types/d3": "^7.4.3",
     "chart.js": "^4.5.0",
+    "d3": "^7.9.0",
     "rxjs": "~7.8.0",
     "zone.js": "~0.15.0"
   },
