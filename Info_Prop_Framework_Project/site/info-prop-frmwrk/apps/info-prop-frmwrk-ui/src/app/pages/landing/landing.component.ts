@@ -300,7 +300,7 @@ export class LandingComponent implements OnInit, OnDestroy {
           const sampleRows = lines.slice(0, Math.min(5, lines.length));
           for (let i = 0; i < sampleRows.length; i++) {
             const cells = sampleRows[i].split(',');
-            const nonNumericCells = cells.filter((cell, index) => {
+            const nonNumericCells = cells.filter((cell) => {
               const trimmed = cell.trim();
               return trimmed !== '' && isNaN(Number(trimmed));
             });
@@ -310,7 +310,7 @@ export class LandingComponent implements OnInit, OnDestroy {
             }
           }
         }
-      } catch (contentError) {
+      } catch  {
         result.errors.push('Failed to read file content. Check file encoding.');
         result.isValid = false;
       }
@@ -372,7 +372,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     }
   }
 
-  private createFileSession(file: File, analysisResult: any): void {
+  private createFileSession(file: File, analysisResult: unknown): void {
     try {
       const sessionData = {
         fileName: file.name,
@@ -455,8 +455,6 @@ export class LandingComponent implements OnInit, OnDestroy {
   }
 
   previewSample(sampleType: string): void {
-    const sampleData = this.generateSampleCSV(16, `${sampleType} Preview`);
-    const lines = sampleData.split('\n').slice(1, 6); // Skip header, show first 5 rows
     
     let preview = `Sample ${sampleType} network format:\n\n`;
     preview += 'Row 1: 0.8,0.0,0.3,0.0,0.2,0.0...\n';
@@ -469,7 +467,7 @@ export class LandingComponent implements OnInit, OnDestroy {
   }
 
   // Parameter change handling
-  onParametersChanged(parameters: any): void {
+  onParametersChanged(parameters: unknown): void {
     console.log('Parameters changed:', parameters);
     // This will trigger re-analysis when parameters are modified
     // The actual implementation will be handled by the data service
@@ -535,7 +533,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     window.URL.revokeObjectURL(url);
   }
 
-  private downloadJSON(data: any, filename: string): void {
+  private downloadJSON(data: unknown, filename: string): void {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

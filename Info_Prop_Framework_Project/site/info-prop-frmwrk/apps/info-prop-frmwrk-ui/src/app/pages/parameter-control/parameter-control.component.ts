@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -222,7 +222,7 @@ export class ParameterControlComponent implements OnInit, OnDestroy {
     };
 
     this.validateParameters(updatedOverrides);
-    this.dataService.setParameterOverrides(updatedOverrides);
+    this.dataService.updateParameterOverrides(updatedOverrides);
     this.parametersChanged.emit(updatedOverrides);
   }
 
@@ -257,7 +257,7 @@ export class ParameterControlComponent implements OnInit, OnDestroy {
     edgeParam.isModified = newValue !== edgeParam.originalValue;
 
     // Update data service
-    this.dataService.setIndividualEdgeProbability(edgeParam.edgeKey, newValue);
+    this.dataService.setIndividualEdgeProbability(edgeParam.fromNode, edgeParam.toNode, newValue);
     
     // Enable individual overrides if not already enabled
     if (!this.currentOverrides.useIndividualOverrides) {
@@ -305,7 +305,17 @@ export class ParameterControlComponent implements OnInit, OnDestroy {
   }
 
   resetAllParameters(): void {
-    this.dataService.clearIndividualOverrides();
+    // Clear individual overrides by updating parameter overrides
+    this.dataService.updateParameterOverrides({
+      useGlobalNodePrior: false,
+      globalNodePrior: 1.0,
+      useGlobalEdgeProb: false,
+      globalEdgeProb: 0.9,
+      useIndividualOverrides: false,
+      individualNodePriors: {},
+      individualEdgeProbabilities: {}
+    });
+    
     this.globalParametersForm.reset({
       useGlobalNodePrior: false,
       globalNodePrior: 1.0,
@@ -423,7 +433,10 @@ export class ParameterControlComponent implements OnInit, OnDestroy {
         
         // Update edge probabilities
         for (const [edgeKey, value] of Object.entries(edgeProbabilities || {})) {
-          this.dataService.setIndividualEdgeProbability(edgeKey, value as number);
+          const [fromStr, toStr] = edgeKey.replace(/[()]/g, '').split(',');
+          const fromNode = parseInt(fromStr.trim());
+          const toNode = parseInt(toStr.trim());
+          this.dataService.setIndividualEdgeProbability(fromNode, toNode, value as number);
         }
       }
 

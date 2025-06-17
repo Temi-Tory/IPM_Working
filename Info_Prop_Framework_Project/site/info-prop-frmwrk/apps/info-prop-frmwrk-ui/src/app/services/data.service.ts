@@ -2,9 +2,16 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+export interface EdgeData {
+  from: number;
+  to: number;
+  probability?: number;
+}
+
 export interface NetworkData {
   nodes: number[];
   edges: [number, number][];
+  edgeList: EdgeData[]; // Added for visualization compatibility
   sourceNodes: number[];
   sinkNodes: number[];
   forkNodes: number[];
@@ -17,6 +24,9 @@ export interface NetworkData {
   maxIterationDepth?: number;
   graphDensity?: number;
   nodeTypeDistribution?: Record<string, number>;
+  isolatedNodes?: number[];
+  highIndegreeNodes?: Array<{node: number, degree: number}>;
+  highOutdegreeNodes?: Array<{node: number, degree: number}>;
 }
 
 export interface DiamondData {
@@ -61,6 +71,19 @@ export interface AnalysisCache {
   reachabilityResults?: ReachabilityResults;
 }
 
+export interface VisualizationState {
+  selectedLayout: string;
+  colorScheme: string;
+  nodeSize: number;
+  edgeWidth: number;
+  showNodeLabels: boolean;
+  showEdgeLabels: boolean;
+  selectedNodes: Set<string>;
+  selectedEdges: Set<string>;
+  zoomLevel: number;
+  panPosition: { x: number; y: number };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -68,6 +91,10 @@ export class DataService {
   // Current file state
   private currentFileSubject = new BehaviorSubject<File | null>(null);
   public currentFile$ = this.currentFileSubject.asObservable();
+
+  // Original data state (raw parsed data)
+  private originalDataSubject = new BehaviorSubject<any>(null);
+  public originalData$ = this.originalDataSubject.asObservable();
 
   // Network data state
   private networkDataSubject = new BehaviorSubject<NetworkData | null>(null);
@@ -102,6 +129,21 @@ export class DataService {
   });
   public parameterOverrides$ = this.parameterOverridesSubject.asObservable();
 
+  // Visualization state
+  private visualizationStateSubject = new BehaviorSubject<VisualizationState>({
+    selectedLayout: 'dot',
+    colorScheme: 'default',
+    nodeSize: 50,
+    edgeWidth: 2,
+    showNodeLabels: true,
+    showEdgeLabels: false,
+    selectedNodes: new Set(),
+    selectedEdges: new Set(),
+    zoomLevel: 1,
+    panPosition: { x: 0, y: 0 }
+  });
+  public visualizationState$ = this.visualizationStateSubject.asObservable();
+
   // Loading state
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
@@ -113,101 +155,134 @@ export class DataService {
   // Analysis cache
   private analysisCache = new Map<string, AnalysisCache>();
 
-  // Original data from CSV (for parameter override comparisons)
-  private originalDataSubject = new BehaviorSubject<unknown>(null);
-  public originalData$ = this.originalDataSubject.asObservable();
-
   constructor() {
-    // Load cached state from localStorage on startup
+    // Initialize with any persisted state
     this.loadPersistedState();
-    
-    // Auto-save important state changes
-    this.setupStatePersistence();
   }
 
-  // File management
-  setCurrentFile(file: File | null): void {
+  // File management methods
+  setCurrentFile(file: File): void {
     this.currentFileSubject.next(file);
-    if (!file) {
-      this.clearAnalysisData();
-    } else {
-      // Reset analysis progress when new file is loaded
-      this.resetAnalysisProgress();
-    }
+    this.clearAnalysisResults();
+    console.log('File set:', file.name);
   }
 
   getCurrentFile(): File | null {
     return this.currentFileSubject.value;
   }
 
-  // Network data management
-  setNetworkData(data: NetworkData | null): void {
-    this.networkDataSubject.next(data);
-    if (data) {
-      this.updateAnalysisProgress({ tier1Complete: true, currentTier: 1 });
-    }
+  hasFile(): boolean {
+    return this.currentFileSubject.value !== null;
+  }
+
+  clearCurrentFile(): void {
+    this.currentFileSubject.next(null);
+    this.clearAllData();
+  }
+
+  // Network data methods
+  setNetworkData(data: any): void {
+    // Transform the data to ensure compatibility
+    const transformedData: NetworkData = {
+      ...data,
+      edgeList: this.createEdgeList(data.edges || []),
+      // Ensure all required arrays exist
+      sourceNodes: data.sourceNodes || [],
+      sinkNodes: data.sinkNodes || [],
+      forkNodes: data.forkNodes || [],
+      joinNodes: data.joinNodes || [],
+      nodes: data.nodes || [],
+      edges: data.edges || [],
+      nodeCount: data.nodeCount || 0,
+      edgeCount: data.edgeCount || 0
+    };
+
+    this.networkDataSubject.next(transformedData);
+    
+    // Update analysis progress
+    const currentProgress = this.analysisProgressSubject.value;
+    this.analysisProgressSubject.next({
+      ...currentProgress,
+      tier1Complete: true,
+      currentTier: Math.max(currentProgress.currentTier, 1),
+      lastAnalysisTime: new Date()
+    });
+    
+    console.log('Network data updated with', transformedData.nodeCount, 'nodes and', transformedData.edgeCount, 'edges');
+  }
+
+  private createEdgeList(edges: [number, number][]): EdgeData[] {
+    return edges.map(([from, to]) => ({
+      from,
+      to,
+      probability: 0.9 // Default probability, can be overridden later
+    }));
   }
 
   getNetworkData(): NetworkData | null {
     return this.networkDataSubject.value;
   }
 
-  // Diamond data management
-  setDiamondData(data: DiamondData | null): void {
+  // Original data methods
+  setOriginalData(data: any): void {
+    this.originalDataSubject.next(data);
+    console.log('Original data updated');
+  }
+
+  getOriginalData(): any {
+    return this.originalDataSubject.value;
+  }
+
+  // Diamond data methods
+  setDiamondData(data: DiamondData): void {
     this.diamondDataSubject.next(data);
-    if (data) {
-      this.updateAnalysisProgress({ tier2Complete: true, currentTier: 2 });
-    }
+    
+    // Update analysis progress
+    const currentProgress = this.analysisProgressSubject.value;
+    this.analysisProgressSubject.next({
+      ...currentProgress,
+      tier2Complete: true,
+      currentTier: Math.max(currentProgress.currentTier, 2),
+      lastAnalysisTime: new Date()
+    });
+    
+    console.log('Diamond data updated');
   }
 
   getDiamondData(): DiamondData | null {
     return this.diamondDataSubject.value;
   }
 
-  // Reachability results management
-  setReachabilityResults(results: ReachabilityResults | null): void {
+  // Reachability methods
+  setReachabilityResults(results: ReachabilityResults): void {
     this.reachabilityResultsSubject.next(results);
-    if (results) {
-      this.updateAnalysisProgress({ tier3Complete: true, currentTier: 3 });
-    }
+    
+    // Update analysis progress
+    const currentProgress = this.analysisProgressSubject.value;
+    this.analysisProgressSubject.next({
+      ...currentProgress,
+      tier3Complete: true,
+      currentTier: Math.max(currentProgress.currentTier, 3),
+      lastAnalysisTime: new Date()
+    });
+    
+    console.log('Reachability results updated with', results.results.length, 'node results');
   }
 
   getReachabilityResults(): ReachabilityResults | null {
     return this.reachabilityResultsSubject.value;
   }
 
-  // Analysis progress management
-  updateAnalysisProgress(updates: Partial<AnalysisProgress>): void {
-    const current = this.analysisProgressSubject.value;
-    const updated = {
-      ...current,
-      ...updates,
-      lastAnalysisTime: new Date()
-    };
-    this.analysisProgressSubject.next(updated);
-  }
-
-  resetAnalysisProgress(): void {
-    this.analysisProgressSubject.next({
-      tier1Complete: false,
-      tier2Complete: false,
-      tier3Complete: false,
-      currentTier: 0
-    });
-  }
-
-  getAnalysisProgress(): AnalysisProgress {
-    return this.analysisProgressSubject.value;
-  }
-
-  // Parameter override management
-  setParameterOverrides(overrides: Partial<ParameterOverrides>): void {
+  // Parameter override methods
+  updateParameterOverrides(overrides: Partial<ParameterOverrides>): void {
     const current = this.parameterOverridesSubject.value;
     const updated = { ...current, ...overrides };
     this.parameterOverridesSubject.next(updated);
     
-    // Clear cached results that depend on parameters
-    this.invalidateParameterDependentCache();
+    // Invalidate cached results when parameters change
+    this.invalidateAnalysisCache();
+    
+    console.log('Parameter overrides updated:', overrides);
   }
 
   getParameterOverrides(): ParameterOverrides {
@@ -225,10 +300,11 @@ export class DataService {
       useIndividualOverrides: true
     };
     this.parameterOverridesSubject.next(updated);
-    this.invalidateParameterDependentCache();
+    this.invalidateAnalysisCache();
   }
 
-  setIndividualEdgeProbability(edgeKey: string, value: number): void {
+  setIndividualEdgeProbability(fromNode: number, toNode: number, value: number): void {
+    const edgeKey = `${fromNode}-${toNode}`;
     const current = this.parameterOverridesSubject.value;
     const updated = {
       ...current,
@@ -239,102 +315,132 @@ export class DataService {
       useIndividualOverrides: true
     };
     this.parameterOverridesSubject.next(updated);
-    this.invalidateParameterDependentCache();
+    this.invalidateAnalysisCache();
   }
 
-  clearIndividualOverrides(): void {
-    const current = this.parameterOverridesSubject.value;
-    const updated = {
-      ...current,
-      useIndividualOverrides: false,
-      individualNodePriors: {},
-      individualEdgeProbabilities: {}
-    };
-    this.parameterOverridesSubject.next(updated);
-    this.invalidateParameterDependentCache();
+  // Visualization state methods
+  updateVisualizationState(state: Partial<VisualizationState>): void {
+    const current = this.visualizationStateSubject.value;
+    const updated = { ...current, ...state };
+    this.visualizationStateSubject.next(updated);
+    this.persistVisualizationState(updated);
   }
 
-  // Original data management
-  setOriginalData(data: unknown): void {
-    this.originalDataSubject.next(data);
+  getVisualizationState(): VisualizationState {
+    return this.visualizationStateSubject.value;
   }
 
-  getOriginalData(): unknown {
-    return this.originalDataSubject.value;
-  }
-
-  // Loading state management
+  // Loading and error state methods
   setLoading(loading: boolean): void {
     this.loadingSubject.next(loading);
   }
 
-  isLoading(): boolean {
-    return this.loadingSubject.value;
-  }
-
-  // Error management
   setError(error: string | null): void {
     this.errorSubject.next(error);
     if (error) {
-      this.setLoading(false);
+      console.error('DataService Error:', error);
     }
   }
 
   clearError(): void {
-    this.setError(null);
+    this.errorSubject.next(null);
   }
 
-  // Cache management
-  getCacheKey(file: File, parameters?: ParameterOverrides): string {
-    const fileInfo = `${file.name}-${file.size}-${file.lastModified}`;
-    const paramHash = parameters ? this.hashObject(parameters) : 'default';
-    return `${fileInfo}-${paramHash}`;
+  // Analysis progress methods
+  updateAnalysisProgress(progress: Partial<AnalysisProgress>): void {
+    const current = this.analysisProgressSubject.value;
+    const updated = { ...current, ...progress };
+    this.analysisProgressSubject.next(updated);
   }
 
-  getCachedResults(cacheKey: string): AnalysisCache | null {
-    return this.analysisCache.get(cacheKey) || null;
+  getAnalysisProgress(): AnalysisProgress {
+    return this.analysisProgressSubject.value;
   }
 
-  setCachedResults(cacheKey: string, cache: Partial<AnalysisCache>): void {
-    const existing = this.analysisCache.get(cacheKey) || {
-      fileHash: '',
-      parameterHash: '',
-      timestamp: new Date()
-    };
-    
-    this.analysisCache.set(cacheKey, {
-      ...existing,
-      ...cache,
-      timestamp: new Date()
+  resetAnalysisProgress(): void {
+    this.analysisProgressSubject.next({
+      tier1Complete: false,
+      tier2Complete: false,
+      tier3Complete: false,
+      currentTier: 0
     });
   }
 
-  invalidateCache(): void {
-    this.analysisCache.clear();
+  // Cache management methods
+  private generateCacheKey(fileHash: string, parameterHash: string): string {
+    return `${fileHash}-${parameterHash}`;
   }
 
-  invalidateParameterDependentCache(): void {
-    // Remove cache entries that depend on parameters (Tier 2 and 3)
-    for (const [key, cache] of this.analysisCache.entries()) {
-      if (cache.diamondResults || cache.reachabilityResults) {
-        this.analysisCache.delete(key);
-      }
+  private generateParameterHash(): string {
+    const params = this.parameterOverridesSubject.value;
+    return btoa(JSON.stringify(params)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  }
+
+  private generateFileHash(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        const hash = btoa(content).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+        resolve(hash);
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  async getCachedResults(file: File): Promise<AnalysisCache | null> {
+    const fileHash = await this.generateFileHash(file);
+    const parameterHash = this.generateParameterHash();
+    const cacheKey = this.generateCacheKey(fileHash, parameterHash);
+    
+    const cached = this.analysisCache.get(cacheKey);
+    if (cached && this.isCacheValid(cached)) {
+      return cached;
     }
+    
+    return null;
   }
 
-  // State management
-  clearAnalysisData(): void {
+  async setCachedResults(file: File, results: Partial<AnalysisCache>): Promise<void> {
+    const fileHash = await this.generateFileHash(file);
+    const parameterHash = this.generateParameterHash();
+    const cacheKey = this.generateCacheKey(fileHash, parameterHash);
+    
+    const cacheEntry: AnalysisCache = {
+      fileHash,
+      parameterHash,
+      timestamp: new Date(),
+      ...results
+    };
+    
+    this.analysisCache.set(cacheKey, cacheEntry);
+    console.log('Results cached for key:', cacheKey);
+  }
+
+  private isCacheValid(cache: AnalysisCache): boolean {
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    const age = Date.now() - cache.timestamp.getTime();
+    return age < maxAge;
+  }
+
+  private invalidateAnalysisCache(): void {
+    // Clear cache when parameters change
+    this.analysisCache.clear();
+    console.log('Analysis cache invalidated due to parameter changes');
+  }
+
+  // Data clearing methods
+  private clearAnalysisResults(): void {
+    this.originalDataSubject.next(null);
     this.networkDataSubject.next(null);
     this.diamondDataSubject.next(null);
     this.reachabilityResultsSubject.next(null);
-    this.originalDataSubject.next(null);
     this.resetAnalysisProgress();
     this.clearError();
   }
 
-  clearAllData(): void {
-    this.setCurrentFile(null);
-    this.clearAnalysisData();
+   clearAllData(): void {
+    this.clearAnalysisResults();
     this.parameterOverridesSubject.next({
       useGlobalNodePrior: false,
       globalNodePrior: 1.0,
@@ -344,34 +450,87 @@ export class DataService {
       individualNodePriors: {},
       individualEdgeProbabilities: {}
     });
+    this.analysisCache.clear();
+  }
+
+  // Persistence methods
+  private loadPersistedState(): void {
+    try {
+      const savedVizState = localStorage.getItem('ipa-visualization-state');
+      if (savedVizState) {
+        const parsed = JSON.parse(savedVizState);
+        // Reconstruct Sets from arrays
+        if (parsed.selectedNodes) {
+          parsed.selectedNodes = new Set(parsed.selectedNodes);
+        }
+        if (parsed.selectedEdges) {
+          parsed.selectedEdges = new Set(parsed.selectedEdges);
+        }
+        this.visualizationStateSubject.next({ ...this.visualizationStateSubject.value, ...parsed });
+      }
+
+      const savedParams = localStorage.getItem('ipa-parameter-overrides');
+      if (savedParams) {
+        const parsed = JSON.parse(savedParams);
+        this.parameterOverridesSubject.next({ ...this.parameterOverridesSubject.value, ...parsed });
+      }
+    } catch (error) {
+      console.warn('Failed to load persisted state:', error);
+    }
+  }
+
+  private persistVisualizationState(state: VisualizationState): void {
+    try {
+      // Convert Sets to arrays for JSON serialization
+      const serializable = {
+        ...state,
+        selectedNodes: Array.from(state.selectedNodes),
+        selectedEdges: Array.from(state.selectedEdges)
+      };
+      localStorage.setItem('ipa-visualization-state', JSON.stringify(serializable));
+    } catch (error) {
+      console.warn('Failed to persist visualization state:', error);
+    }
+  }
+
+  persistParameterOverrides(): void {
+    try {
+      const state = this.parameterOverridesSubject.value;
+      localStorage.setItem('ipa-parameter-overrides', JSON.stringify(state));
+    } catch (error) {
+      console.warn('Failed to persist parameter overrides:', error);
+    }
   }
 
   // Utility methods
-  hasFile(): boolean {
-    return this.getCurrentFile() !== null;
+  isAnalysisComplete(tier: number): boolean {
+    const progress = this.analysisProgressSubject.value;
+    switch (tier) {
+      case 1: return progress.tier1Complete;
+      case 2: return progress.tier2Complete;
+      case 3: return progress.tier3Complete;
+      default: return false;
+    }
   }
 
-  hasNetworkData(): boolean {
-    return this.getNetworkData() !== null;
+  canProgressToTier(tier: number): boolean {
+    const progress = this.analysisProgressSubject.value;
+    switch (tier) {
+      case 1: return this.hasFile();
+      case 2: return progress.tier1Complete;
+      case 3: return progress.tier2Complete;
+      default: return false;
+    }
   }
 
-  hasDiamondData(): boolean {
-    return this.getDiamondData() !== null;
-  }
-
-  hasReachabilityResults(): boolean {
-    return this.getReachabilityResults() !== null;
-  }
-
-  // Combined state observables for components
-  getFullState$(): Observable<{
-    file: File | null;
+  // Observable combinations for complex state queries
+  get analysisState$(): Observable<{
+    hasFile: boolean;
     networkData: NetworkData | null;
     diamondData: DiamondData | null;
     reachabilityResults: ReachabilityResults | null;
-    analysisProgress: AnalysisProgress;
-    parameterOverrides: ParameterOverrides;
-    loading: boolean;
+    progress: AnalysisProgress;
+    isLoading: boolean;
     error: string | null;
   }> {
     return combineLatest([
@@ -380,48 +539,24 @@ export class DataService {
       this.diamondData$,
       this.reachabilityResults$,
       this.analysisProgress$,
-      this.parameterOverrides$,
       this.loading$,
       this.error$
     ]).pipe(
-      map(([file, networkData, diamondData, reachabilityResults, analysisProgress, parameterOverrides, loading, error]) => ({
-        file,
+      map(([file, networkData, diamondData, reachabilityResults, progress, isLoading, error]) => ({
+        hasFile: !!file,
         networkData,
         diamondData,
         reachabilityResults,
-        analysisProgress,
-        parameterOverrides,
-        loading,
+        progress,
+        isLoading,
         error
       }))
     );
   }
 
-  // Private utility methods
-  private hashObject(obj: object): string {
-    return btoa(JSON.stringify(obj)).replace(/[/+=]/g, '');
-  }
-
-  private loadPersistedState(): void {
-    try {
-      const savedOverrides = localStorage.getItem('ipa-parameter-overrides');
-      if (savedOverrides) {
-        const overrides = JSON.parse(savedOverrides);
-        this.parameterOverridesSubject.next(overrides);
-      }
-    } catch (e) {
-      console.warn('Failed to load persisted state:', e);
-    }
-  }
-
-  private setupStatePersistence(): void {
-    // Save parameter overrides to localStorage when they change
-    this.parameterOverrides$.subscribe(overrides => {
-      try {
-        localStorage.setItem('ipa-parameter-overrides', JSON.stringify(overrides));
-      } catch (e) {
-        console.warn('Failed to persist parameter overrides:', e);
-      }
-    });
+  get canVisualize$(): Observable<boolean> {
+    return this.networkData$.pipe(
+      map(data => !!data && data.nodeCount > 0)
+    );
   }
 }

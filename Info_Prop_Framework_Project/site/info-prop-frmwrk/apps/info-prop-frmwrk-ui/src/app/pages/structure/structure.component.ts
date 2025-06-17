@@ -301,8 +301,8 @@ export class StructureComponent implements OnInit, OnDestroy, AfterViewInit {
           },
           tooltip: {
             callbacks: {
-              label: (context: { dataIndex: string | number; }) => {
-                const stat = this.nodeTypeStatistics[Number(context.dataIndex)];
+              label: (context) => {
+                const stat = this.nodeTypeStatistics[context.dataIndex];
                 return `${stat.type}: ${stat.count} (${stat.percentage}%)`;
               }
             }

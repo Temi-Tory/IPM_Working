@@ -9,7 +9,7 @@
       <mat-icon>speed</mat-icon>
       Tier 1 Analysis
     </div>
-    <p class="subtitle">Interactive graph visualization with customizable layouts</p>
+    <p class="subtitle">Interactive graph visualization with customizable layouts and zoom controls</p>
   </div>
 
   <!-- No Data State -->
@@ -35,8 +35,21 @@
     </mat-card>
   </div>
 
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-section">
+    <mat-card>
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner></mat-spinner>
+          <h3>Loading Network Data...</h3>
+          <p>Please wait while we prepare your network visualization.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
   <!-- Main Visualization Area -->
-  <div *ngIf="networkData" class="visualization-main">
+  <div *ngIf="networkData && !isLoading" class="visualization-main">
     
     <!-- Visualization Controls Toolbar -->
     <mat-toolbar class="viz-toolbar">
@@ -56,53 +69,124 @@
         <mat-form-field appearance="outline" class="compact-field">
           <mat-select [(value)]="colorScheme" (selectionChange)="onColorSchemeChange()">
             <mat-option *ngFor="let scheme of colorSchemeOptions" [value]="scheme.value">
-              {{ scheme.label }}
+              <span class="color-option">
+                <span class="color-dot" [style.background-color]="scheme.nodeColor"></span>
+                {{ scheme.label }}
+              </span>
             </mat-option>
           </mat-select>
         </mat-form-field>
       </div>
 
-      <div class="toolbar-spacer"></div>
-
-      <!-- Zoom Controls -->
-      <div class="toolbar-section zoom-controls">
-        <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom In">
-          <mat-icon>zoom_in</mat-icon>
-        </button>
-        <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom Out">
-          <mat-icon>zoom_out</mat-icon>
-        </button>
-        <button mat-icon-button (click)="resetZoom()" matTooltip="Reset Zoom">
-          <mat-icon>center_focus_strong</mat-icon>
-        </button>
-        <button mat-icon-button (click)="centerGraph()" matTooltip="Center Graph">
-          <mat-icon>my_location</mat-icon>
-        </button>
+      <div class="toolbar-section">
+        <span class="toolbar-label">Node Size:</span>
+        <mat-slider
+          class="size-slider"
+          [min]="20"
+          [max]="100"
+          [step]="10"
+          thumbLabel
+          tickInterval="20">
+          <input matSliderThumb [(ngModel)]="nodeSize" name="nodeSize" (ngModelChange)="onNodeSizeChange()">
+        </mat-slider>
       </div>
 
-      <!-- Export Button -->
-      <button mat-raised-button color="accent" (click)="exportVisualization()">
-        <mat-icon>download</mat-icon>
-        Export
-      </button>
+      <div class="toolbar-section">
+        <span class="toolbar-label">Edge Width:</span>
+        <mat-slider
+          class="size-slider"
+          [min]="1"
+          [max]="5"
+          [step]="0.5"
+          thumbLabel
+          tickInterval="1">
+          <input matSliderThumb [(ngModel)]="edgeWidth" name="edgeWidth" (ngModelChange)="onEdgeWidthChange()">
+        </mat-slider>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <div class="toolbar-actions">
+        <button 
+          mat-icon-button 
+          [class.active]="showNodeLabels"
+          (click)="toggleNodeLabels()"
+          matTooltip="Toggle Node Labels">
+          <mat-icon>label</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          [class.active]="showEdgeLabels"
+          (click)="toggleEdgeLabels()"
+          matTooltip="Toggle Edge Labels">
+          <mat-icon>label_outline</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="zoomIn()"
+          matTooltip="Zoom In">
+          <mat-icon>zoom_in</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="zoomOut()"
+          matTooltip="Zoom Out">
+          <mat-icon>zoom_out</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="resetZoom()"
+          matTooltip="Reset Zoom">
+          <mat-icon>center_focus_strong</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="centerGraph()"
+          matTooltip="Center Graph">
+          <mat-icon>my_location</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="exportVisualization()"
+          matTooltip="Export as SVG">
+          <mat-icon>download</mat-icon>
+        </button>
+
+        <button 
+          mat-raised-button 
+          color="primary"
+          (click)="generateVisualization()"
+          [disabled]="isGeneratingVisualization"
+          matTooltip="Regenerate Visualization">
+          <mat-icon *ngIf="!isGeneratingVisualization">refresh</mat-icon>
+          <mat-spinner *ngIf="isGeneratingVisualization" diameter="20"></mat-spinner>
+          Refresh
+        </button>
+      </div>
     </mat-toolbar>
 
-    <!-- Main Content Area -->
-    <div class="viz-content">
+    <!-- Visualization Area -->
+    <div class="visualization-area">
       
-      <!-- Side Panel -->
-      <mat-card class="side-panel">
+      <!-- Left Sidebar - Settings and Info -->
+      <mat-card class="control-panel">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>tune</mat-icon>
+            <mat-icon>settings</mat-icon>
             Visualization Settings
           </mat-card-title>
         </mat-card-header>
-        <mat-card-content>
+        <mat-card-content class="control-content">
           
           <!-- Layout Settings -->
           <div class="settings-section">
-            <h4>Layout Options</h4>
+            <h4>Layout Algorithm</h4>
             <div class="setting-item">
               <span class="setting-label">Current Layout:</span>
               <span class="setting-value">{{ getCurrentLayoutLabel() }}</span>
@@ -112,57 +196,7 @@
             </p>
           </div>
 
-          <!-- Node Settings -->
-          <div class="settings-section">
-            <h4>Node Settings</h4>
-            <div class="setting-item">
-              <span class="setting-label">Node Size</span>
-              <mat-slider 
-                min="5" 
-                max="30" 
-                step="1"
-                discrete
-                showTickMarks
-                class="setting-slider">
-                <input matSliderThumb [(value)]="nodeSize" (input)="onNodeSizeChange()">
-              </mat-slider>
-              <span class="setting-value">{{ nodeSize }}px</span>
-            </div>
-            
-            <div class="setting-item checkbox-item">
-              <label>
-                <input type="checkbox" [(ngModel)]="showNodeLabels" (change)="toggleNodeLabels()">
-                Show Node Labels
-              </label>
-            </div>
-          </div>
-
-          <!-- Edge Settings -->
-          <div class="settings-section">
-            <h4>Edge Settings</h4>
-            <div class="setting-item">
-              <span class="setting-label">Edge Width</span>
-              <mat-slider 
-                min="1" 
-                max="8" 
-                step="0.5"
-                discrete
-                showTickMarks
-                class="setting-slider">
-                <input matSliderThumb [(value)]="edgeWidth" (input)="onEdgeWidthChange()">
-              </mat-slider>
-              <span class="setting-value">{{ edgeWidth }}px</span>
-            </div>
-            
-            <div class="setting-item checkbox-item">
-              <label>
-                <input type="checkbox" [(ngModel)]="showEdgeLabels" (change)="toggleEdgeLabels()">
-                Show Edge Labels
-              </label>
-            </div>
-          </div>
-
-          <!-- Color Scheme Info -->
+          <!-- Color Settings -->
           <div class="settings-section">
             <h4>Color Scheme</h4>
             <div class="setting-item">
@@ -172,6 +206,32 @@
             <p class="setting-description">
               {{ getCurrentColorSchemeDescription() }}
             </p>
+          </div>
+
+          <!-- Display Options -->
+          <div class="settings-section">
+            <h4>Display Options</h4>
+            <div class="toggle-options">
+              <mat-slide-toggle
+                [(ngModel)]="showNodeLabels"
+                name="showNodeLabels"
+                (change)="toggleNodeLabels()">
+                Show Node Labels
+              </mat-slide-toggle>
+              
+              <mat-slide-toggle
+                [(ngModel)]="showEdgeLabels"
+                name="showEdgeLabels"
+                (change)="toggleEdgeLabels()">
+                Show Edge Labels
+              </mat-slide-toggle>
+              
+              <mat-slide-toggle
+                [(ngModel)]="highlightConnected"
+                name="highlightConnected">
+                Highlight Connected
+              </mat-slide-toggle>
+            </div>
           </div>
 
           <!-- Network Stats -->
@@ -194,6 +254,35 @@
                 <span class="stat-label">Sinks:</span>
                 <span class="stat-value">{{ networkData.sinkNodes.length || 0 }}</span>
               </div>
+              <div class="stat-item">
+                <span class="stat-label">Forks:</span>
+                <span class="stat-value">{{ networkData.forkNodes.length || 0 }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Joins:</span>
+                <span class="stat-value">{{ networkData.joinNodes.length || 0 }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selection Info -->
+          <div class="settings-section" *ngIf="selectedNodes.size > 0 || selectedEdges.size > 0">
+            <h4>Selection</h4>
+            <div class="selection-info">
+              <div *ngIf="selectedNodes.size > 0" class="selection-item">
+                <mat-icon>radio_button_checked</mat-icon>
+                <span>{{ selectedNodes.size }} node(s) selected</span>
+              </div>
+              <div *ngIf="selectedEdges.size > 0" class="selection-item">
+                <mat-icon>polyline</mat-icon>
+                <span>{{ selectedEdges.size }} edge(s) selected</span>
+              </div>
+              <button 
+                mat-stroked-button 
+                class="clear-selection-btn"
+                (click)="clearSelection()">
+                Clear Selection
+              </button>
             </div>
           </div>
 
@@ -203,73 +292,395 @@
       <!-- Main Visualization Panel -->
       <mat-card class="viz-panel">
         <mat-card-content class="viz-content-area">
-          <!-- Placeholder for actual visualization -->
-          <div class="viz-placeholder">
-            <div class="placeholder-content">
-              <mat-icon class="placeholder-icon">bubble_chart</mat-icon>
-              <h3>Interactive Graph Visualization</h3>
-              <p>This will show your network as an interactive graph</p>
-              <div class="placeholder-features">
-                <div class="feature-item">
-                  <mat-icon>touch_app</mat-icon>
-                  <span>Click and drag nodes</span>
-                </div>
-                <div class="feature-item">
-                  <mat-icon>zoom_in</mat-icon>
-                  <span>Zoom and pan</span>
-                </div>
-                <div class="feature-item">
-                  <mat-icon>search</mat-icon>
-                  <span>Search and filter</span>
-                </div>
-                <div class="feature-item">
-                  <mat-icon>colorize</mat-icon>
-                  <span>Node highlighting</span>
-                </div>
-              </div>
-              <div class="coming-soon">
-                <mat-icon>construction</mat-icon>
-                <span>Interactive visualization coming in Phase 4</span>
-              </div>
+          
+          <!-- Graph Generation State -->
+          <div *ngIf="isGeneratingVisualization" class="generating-overlay">
+            <div class="generating-content">
+              <mat-spinner diameter="40"></mat-spinner>
+              <h3>Generating Visualization...</h3>
+              <p>Processing graph layout and rendering...</p>
             </div>
           </div>
+
+          <!-- Graph Container -->
+          <div 
+            #graphContainer 
+            class="graph-container"
+            [class.has-content]="currentSvgContent">
+            
+            <!-- Placeholder when no visualization -->
+            <div *ngIf="!currentSvgContent && !isGeneratingVisualization" class="viz-placeholder">
+              <div class="placeholder-content">
+                <mat-icon class="placeholder-icon">bubble_chart</mat-icon>
+                <h3>Interactive Graph Visualization</h3>
+                <p>Click "Refresh" to generate your network visualization</p>
+                <div class="placeholder-features">
+                  <div class="feature-item">
+                    <mat-icon>touch_app</mat-icon>
+                    <span>Click nodes and edges to select</span>
+                  </div>
+                  <div class="feature-item">
+                    <mat-icon>zoom_in</mat-icon>
+                    <span>Mouse wheel to zoom</span>
+                  </div>
+                  <div class="feature-item">
+                    <mat-icon>pan_tool</mat-icon>
+                    <span>Drag to pan the view</span>
+                  </div>
+                  <div class="feature-item">
+                    <mat-icon>double_arrow</mat-icon>
+                    <span>Double-click to reset zoom</span>
+                  </div>
+                </div>
+                <button 
+                  mat-raised-button 
+                  color="primary"
+                  (click)="generateVisualization()"
+                  class="generate-btn">
+                  <mat-icon>auto_graph</mat-icon>
+                  Generate Visualization
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Graph Controls Overlay -->
+          <div class="graph-controls-overlay" *ngIf="currentSvgContent">
+            <div class="zoom-controls">
+              <button mat-mini-fab (click)="zoomIn()" matTooltip="Zoom In">
+                <mat-icon>add</mat-icon>
+              </button>
+              <button mat-mini-fab (click)="zoomOut()" matTooltip="Zoom Out">
+                <mat-icon>remove</mat-icon>
+              </button>
+              <button mat-mini-fab (click)="resetZoom()" matTooltip="Reset Zoom">
+                <mat-icon>refresh</mat-icon>
+              </button>
+              <button mat-mini-fab (click)="centerGraph()" matTooltip="Center">
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
+            </div>
+          </div>
+
         </mat-card-content>
       </mat-card>
 
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      <mat-card class="action-card">
-        <mat-card-content>
-          <div class="action-content">
-            <mat-icon class="action-icon">account_tree</mat-icon>
-            <div class="action-details">
-              <h4>Structure Analysis</h4>
-              <p>View detailed network topology</p>
-            </div>
-            <button mat-raised-button color="primary" (click)="navigateToStructure()">
-              View Details
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <!-- Statistics Dashboard -->
+    <div class="statistics-dashboard">
+      <div class="dashboard-header">
+        <h2>
+          <mat-icon>analytics</mat-icon>
+          Network Analytics Dashboard
+        </h2>
+        <div class="dashboard-actions">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Filter Metrics</mat-label>
+            <mat-select [(value)]="selectedMetricFilter" (selectionChange)="onMetricFilterChange()">
+              <mat-option value="all">All Metrics</mat-option>
+              <mat-option value="basic">Basic Stats</mat-option>
+              <mat-option value="topology">Topology</mat-option>
+              <mat-option value="connectivity">Connectivity</mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <button mat-raised-button color="primary" (click)="exportStatistics()" matTooltip="Export Statistics">
+            <mat-icon>file_download</mat-icon>
+            Export
+          </button>
+          
+          <button mat-icon-button (click)="refreshStatistics()" matTooltip="Refresh Statistics">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
 
-      <mat-card class="action-card">
-        <mat-card-content>
-          <div class="action-content">
-            <mat-icon class="action-icon">diamond</mat-icon>
-            <div class="action-details">
-              <h4>Diamond Analysis</h4>
-              <p>Identify diamond patterns</p>
+      <!-- Key Metrics Cards -->
+      <div class="metrics-grid">
+        <!-- Basic Network Metrics -->
+        <mat-card class="metric-card" [class.filtered]="!isMetricVisible('basic')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">account_tree</mat-icon>
+              Network Overview
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="metric-grid">
+              <div class="metric-item primary">
+                <div class="metric-value">{{ networkData.nodeCount }}</div>
+                <div class="metric-label">Total Nodes</div>
+              </div>
+              <div class="metric-item primary">
+                <div class="metric-value">{{ networkData.edgeCount }}</div>
+                <div class="metric-label">Total Edges</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-value">{{ getNetworkDensity() | number:'1.3-3' }}</div>
+                <div class="metric-label">Density</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-value">{{ getAverageConnectivity() | number:'1.1-1' }}</div>
+                <div class="metric-label">Avg Connectivity</div>
+              </div>
             </div>
-            <button mat-raised-button color="accent" (click)="navigateToDiamonds()">
-              Run Analysis
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Node Type Distribution -->
+        <mat-card class="metric-card chart-card" [class.filtered]="!isMetricVisible('topology')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">donut_small</mat-icon>
+              Node Distribution
+            </mat-card-title>
+            <button mat-icon-button (click)="toggleChartView('nodeTypes')" matTooltip="Toggle Chart View">
+              <mat-icon>{{ chartViews.nodeTypes ? 'table_chart' : 'pie_chart' }}</mat-icon>
             </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
+          </mat-card-header>
+          <mat-card-content>
+            <div *ngIf="!chartViews.nodeTypes" class="chart-container">
+              <div class="node-type-chart">
+                <div class="chart-legend">
+                  <div class="legend-item" *ngFor="let type of getNodeTypeData()">
+                    <span class="legend-color" [style.background-color]="type.color"></span>
+                    <span class="legend-label">{{ type.label }}</span>
+                    <span class="legend-value">{{ type.value }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="chartViews.nodeTypes" class="data-table">
+              <div class="table-row header">
+                <span>Type</span>
+                <span>Count</span>
+                <span>Percentage</span>
+              </div>
+              <div class="table-row" *ngFor="let type of getNodeTypeData()">
+                <span class="type-cell">
+                  <span class="type-indicator" [style.background-color]="type.color"></span>
+                  {{ type.label }}
+                </span>
+                <span>{{ type.value }}</span>
+                <span>{{ type.percentage | number:'1.1-1' }}%</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Connectivity Analysis -->
+        <mat-card class="metric-card" [class.filtered]="!isMetricVisible('connectivity')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">hub</mat-icon>
+              Connectivity Analysis
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="connectivity-metrics">
+              <div class="connectivity-item">
+                <div class="connectivity-header">
+                  <span class="connectivity-label">Source Nodes</span>
+                  <span class="connectivity-value">{{ networkData.sourceNodes.length }}</span>
+                </div>
+                <div class="connectivity-bar">
+                  <div class="bar-fill source" [style.width.%]="getSourcePercentage()"></div>
+                </div>
+              </div>
+              
+              <div class="connectivity-item">
+                <div class="connectivity-header">
+                  <span class="connectivity-label">Sink Nodes</span>
+                  <span class="connectivity-value">{{ networkData.sinkNodes.length }}</span>
+                </div>
+                <div class="connectivity-bar">
+                  <div class="bar-fill sink" [style.width.%]="getSinkPercentage()"></div>
+                </div>
+              </div>
+              
+              <div class="connectivity-item">
+                <div class="connectivity-header">
+                  <span class="connectivity-label">Fork Nodes</span>
+                  <span class="connectivity-value">{{ networkData.forkNodes.length }}</span>
+                </div>
+                <div class="connectivity-bar">
+                  <div class="bar-fill fork" [style.width.%]="getForkPercentage()"></div>
+                </div>
+              </div>
+              
+              <div class="connectivity-item">
+                <div class="connectivity-header">
+                  <span class="connectivity-label">Join Nodes</span>
+                  <span class="connectivity-value">{{ networkData.joinNodes.length }}</span>
+                </div>
+                <div class="connectivity-bar">
+                  <div class="bar-fill join" [style.width.%]="getJoinPercentage()"></div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Network Health -->
+        <mat-card class="metric-card" [class.filtered]="!isMetricVisible('topology')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">health_and_safety</mat-icon>
+              Network Health
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="health-metrics">
+              <div class="health-item">
+                <div class="health-indicator" [class]="getConnectivityHealthClass()">
+                  <mat-icon>{{ getConnectivityHealthIcon() }}</mat-icon>
+                </div>
+                <div class="health-info">
+                  <div class="health-label">Connectivity</div>
+                  <div class="health-status">{{ getConnectivityHealthStatus() }}</div>
+                </div>
+              </div>
+              
+              <div class="health-item">
+                <div class="health-indicator" [class]="getBalanceHealthClass()">
+                  <mat-icon>{{ getBalanceHealthIcon() }}</mat-icon>
+                </div>
+                <div class="health-info">
+                  <div class="health-label">Balance</div>
+                  <div class="health-status">{{ getBalanceHealthStatus() }}</div>
+                </div>
+              </div>
+              
+              <div class="health-item">
+                <div class="health-indicator" [class]="getComplexityHealthClass()">
+                  <mat-icon>{{ getComplexityHealthIcon() }}</mat-icon>
+                </div>
+                <div class="health-info">
+                  <div class="health-label">Complexity</div>
+                  <div class="health-status">{{ getComplexityHealthStatus() }}</div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Selection Statistics -->
+        <mat-card class="metric-card" *ngIf="selectedNodes.size > 0 || selectedEdges.size > 0" [class.filtered]="!isMetricVisible('basic')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">select_all</mat-icon>
+              Selection Analysis
+            </mat-card-title>
+            <button mat-icon-button (click)="clearSelection()" matTooltip="Clear Selection">
+              <mat-icon>clear</mat-icon>
+            </button>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="selection-stats">
+              <div class="selection-summary">
+                <div class="summary-item">
+                  <mat-icon>radio_button_checked</mat-icon>
+                  <span>{{ selectedNodes.size }} nodes selected</span>
+                </div>
+                <div class="summary-item" *ngIf="selectedEdges.size > 0">
+                  <mat-icon>polyline</mat-icon>
+                  <span>{{ selectedEdges.size }} edges selected</span>
+                </div>
+              </div>
+              
+              <div class="selection-details" *ngIf="selectedNodes.size > 0">
+                <div class="detail-item">
+                  <span class="detail-label">Selection Density:</span>
+                  <span class="detail-value">{{ getSelectionDensity() | number:'1.2-2' }}%</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Connected Components:</span>
+                  <span class="detail-value">{{ getSelectedConnectedComponents() }}</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Performance Metrics -->
+        <mat-card class="metric-card" [class.filtered]="!isMetricVisible('basic')">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon class="metric-icon">speed</mat-icon>
+              Performance
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="performance-metrics">
+              <div class="perf-item">
+                <div class="perf-label">Visualization Time</div>
+                <div class="perf-value">{{ getVisualizationTime() }}ms</div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">Render Quality</div>
+                <div class="perf-value">{{ getRenderQuality() }}</div>
+              </div>
+              <div class="perf-item">
+                <div class="perf-label">Memory Usage</div>
+                <div class="perf-value">{{ getMemoryUsage() }}MB</div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
     </div>
+
+    <!-- Instructions and Help -->
+    <mat-card class="help-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>help_outline</mat-icon>
+          Visualization Controls
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="help-grid">
+          <div class="help-item">
+            <mat-icon>mouse</mat-icon>
+            <div class="help-text">
+              <strong>Mouse Wheel:</strong> Zoom in and out
+            </div>
+          </div>
+          <div class="help-item">
+            <mat-icon>pan_tool</mat-icon>
+            <div class="help-text">
+              <strong>Click & Drag:</strong> Pan around the graph
+            </div>
+          </div>
+          <div class="help-item">
+            <mat-icon>touch_app</mat-icon>
+            <div class="help-text">
+              <strong>Click Nodes/Edges:</strong> Select elements
+            </div>
+          </div>
+          <div class="help-item">
+            <mat-icon>double_arrow</mat-icon>
+            <div class="help-text">
+              <strong>Double Click:</strong> Reset zoom to fit
+            </div>
+          </div>
+          <div class="help-item">
+            <mat-icon>settings</mat-icon>
+            <div class="help-text">
+              <strong>Layout Options:</strong> Change graph arrangement
+            </div>
+          </div>
+          <div class="help-item">
+            <mat-icon>palette</mat-icon>
+            <div class="help-text">
+              <strong>Color Schemes:</strong> Customize appearance
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
 
   </div>
 </div>
