@@ -7,10 +7,11 @@ import {
   ElementRef, 
   AfterViewInit, 
   ChangeDetectorRef, 
-  OnDestroy 
+  OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -64,6 +65,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly rendererService = inject(VisualizationRendererService);
   private readonly highlightService = inject(HighlightService);
+  private readonly route = inject(ActivatedRoute);
 
   // State signals
   isGeneratingDot = signal(false);
@@ -112,6 +114,13 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
 
   // Lifecycle hooks
   async ngAfterViewInit(): Promise<void> {
+    // Check for focusDiamond query parameter
+    this.route.queryParams.subscribe(params => {
+      if (params['focusDiamond']) {
+        const joinNode = parseInt(params['focusDiamond']);
+        this.focusOnDiamond(joinNode);
+      }
+    });
     
     // If graph is already loaded, generate visualization
     if (this.isGraphLoaded()) {
@@ -119,7 +128,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
         this.generateVisualization();
       }, 200);
     }
-    
   }
 
   ngOnDestroy(): void {
@@ -325,7 +333,19 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
- 
+  focusOnDiamond(joinNode: number): void {
+    // Set highlight mode to diamond-structures
+    this.highlightMode.set('diamond-structures');
+    
+    // Generate visualization with diamond focus
+    if (this.isGraphLoaded()) {
+      this.showInfo(`Focusing on diamond at join node ${joinNode}...`);
+      setTimeout(() => {
+        this.generateVisualization();
+      }, 100);
+    }
+  }
+
   // Private methods
   private getContainer(): HTMLElement | null {
     if (this.dotContainer?.nativeElement) {
