@@ -8,6 +8,7 @@ using DataFrames, DelimitedFiles, Distributions,
 using .IPAFramework
 
 
+#user input from ui for eg 
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
@@ -15,15 +16,23 @@ filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/munin/munin_dag.csv";
 
+
+#THIS FILE IS GLOBAL TO THE ENTIRE USER SESSION UNLESS THEY UPLAD ANOTHER FILE 
+# THE STRUCTURAL DETAIL TAB SHOWS THE STRUCTURE OF THE GRAPH
+#THE vISUALIZATION tAB  SHOWS RAPH IN DOT FORMAT INTERCTIVE 
 #fork_nodes, join_nodes , edgelist, outgoing_index, incoming_index, source_nodes, iteration_sets, ancestors, descendant
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
+
+#CAN USE USER PORVIDE OR TWEAK MASS  OR TWEAK INDICUDLA AFTER EITHER OF THE THE WORK 
+map!(x -> 1.0, values(node_priors));
+map!(x -> 0.9, values(edge_probabilities));
+
 # Identify structure
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index);
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index);
 
-map!(x -> 1.0, values(node_priors));
-map!(x -> 0.9, values(edge_probabilities));
 
+#DIAMOND VISAULIZTAION WITHD IFFGERNET DIRLL DOWNS
 
 diamond_structures= identify_and_group_diamonds(
     join_nodes,
@@ -58,6 +67,8 @@ for (join_node, diamonds_at_node) in diamond_structures
     end
 end =#
 
+
+#rEACHABILITY ANALSYSIS TAB
 (
 output =  update_beliefs_iterative(
     edgelist,

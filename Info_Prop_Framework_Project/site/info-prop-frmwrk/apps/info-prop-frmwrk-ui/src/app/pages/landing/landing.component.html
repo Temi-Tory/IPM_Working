@@ -1,0 +1,257 @@
+<div class="upload-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>
+      <mat-icon class="header-icon">upload_file</mat-icon>
+      File Upload & Processing
+    </h1>
+    <p class="subtitle">Upload your network CSV file to begin analysis</p>
+  </div>
+
+  <!-- Main Upload Card -->
+  <mat-card class="upload-card" [class.has-file]="currentFile">
+    <mat-card-content>
+      <!-- File Upload Area -->
+      <div class="file-upload-area" 
+           [class.drag-over]="isDragOver"
+           [class.has-file]="currentFile"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)"
+           (click)="fileInput.click()"
+           (keydown.enter)="fileInput.click()"
+           (keydown.space)="fileInput.click()"
+           tabindex="0"
+           role="button"
+           [attr.aria-label]="'Upload CSV file'">
+        
+        <input #fileInput 
+               type="file" 
+               accept=".csv"
+               (change)="onFileSelected($event)"
+               style="display: none;">
+        
+        <div class="upload-content">
+          <mat-icon class="upload-icon" [class.success]="currentFile">
+            {{ currentFile ? 'check_circle' : 'cloud_upload' }}
+          </mat-icon>
+          
+          <div class="upload-text">
+            <h3 *ngIf="!currentFile">Drop your CSV file here</h3>
+            <h3 *ngIf="currentFile">{{ currentFile.name }}</h3>
+            
+            <p *ngIf="!currentFile" class="upload-hint">
+              or click to browse files
+            </p>
+            <p *ngIf="currentFile" class="file-info">
+              {{ formatFileSize(currentFile.size) }} • {{ currentFile.type || 'CSV file' }}
+            </p>
+          </div>
+          
+          <button 
+            *ngIf="!currentFile"
+            mat-raised-button 
+            color="primary" 
+            class="browse-button">
+            <mat-icon>folder_open</mat-icon>
+            Browse Files
+          </button>
+          
+          <button 
+            *ngIf="currentFile"
+            mat-raised-button 
+            color="warn" 
+            class="clear-button"
+            (click)="clearFile(); $event.stopPropagation()">
+            <mat-icon>clear</mat-icon>
+            Clear File
+          </button>
+        </div>
+      </div>
+
+      <!-- File Requirements -->
+      <div class="requirements-section" *ngIf="!currentFile">
+        <h4>File Requirements:</h4>
+        <ul class="requirements-list">
+          <li><mat-icon>check</mat-icon> CSV format with adjacency matrix or edge list</li>
+          <li><mat-icon>check</mat-icon> Maximum file size: 10MB</li>
+          <li><mat-icon>check</mat-icon> UTF-8 encoding recommended</li>
+          <li><mat-icon>check</mat-icon> First column: node priors, remaining columns: edge probabilities</li>
+        </ul>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- File Status Card -->
+  <mat-card *ngIf="fileStatus" class="status-card" [ngClass]="fileStatusClass">
+    <mat-card-content>
+      <div class="status-content">
+        <mat-icon class="status-icon">
+          {{ fileStatusClass === 'file-success' ? 'check_circle' : 'error' }}
+        </mat-icon>
+        <div class="status-message">{{ fileStatus }}</div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading Card -->
+  <mat-card *ngIf="isLoading" class="loading-card">
+    <mat-card-content>
+      <div class="loading-content">
+        <mat-spinner diameter="32"></mat-spinner>
+        <div class="loading-text">
+          <h4>Processing your file...</h4>
+          <p>Running initial structure analysis</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Analysis Progress Card -->
+  <mat-card *ngIf="currentFile && !isLoading && !error" class="progress-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>analytics</mat-icon>
+        Analysis Progress
+      </mat-card-title>
+      <mat-card-subtitle>Track your analysis through different tiers</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="progress-overview">
+        <div class="progress-stats">
+          <div class="stat">
+            <span class="stat-value">{{ getProgressPercentage() }}%</span>
+            <span class="stat-label">Complete</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ analysisProgress.currentTier || 1 }}</span>
+            <span class="stat-label">Current Tier</span>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Tier Status -->
+      <div class="tier-status">
+        <div class="tier-item" [class]="getTierStatus(1)">
+          <mat-icon class="tier-icon">account_tree</mat-icon>
+          <div class="tier-info">
+            <h4>Tier 1: Structure Analysis</h4>
+            <p>Basic network topology and statistics</p>
+          </div>
+          <mat-icon class="status-icon">
+            {{ getTierStatus(1) === 'complete' ? 'check_circle' : 
+               getTierStatus(1) === 'current' ? 'hourglass_empty' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </div>
+
+        <div class="tier-item" [class]="getTierStatus(2)">
+          <mat-icon class="tier-icon">diamond</mat-icon>
+          <div class="tier-info">
+            <h4>Tier 2: Diamond Analysis</h4>
+            <p>Diamond structure identification and classification</p>
+          </div>
+          <mat-icon class="status-icon">
+            {{ getTierStatus(2) === 'complete' ? 'check_circle' : 
+               getTierStatus(2) === 'current' ? 'hourglass_empty' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </div>
+
+        <div class="tier-item" [class]="getTierStatus(3)">
+          <mat-icon class="tier-icon">psychology</mat-icon>
+          <div class="tier-info">
+            <h4>Tier 3: Reachability Analysis</h4>
+            <p>Belief propagation and probability calculations</p>
+          </div>
+          <mat-icon class="status-icon">
+            {{ getTierStatus(3) === 'complete' ? 'check_circle' : 
+               getTierStatus(3) === 'current' ? 'hourglass_empty' : 'radio_button_unchecked' }}
+          </mat-icon>
+        </div>
+      </div>
+
+      <!-- Quick Navigation -->
+      <div class="quick-nav" *ngIf="analysisProgress.tier1Complete">
+        <mat-divider></mat-divider>
+        <h4>Quick Navigation</h4>
+        <div class="nav-buttons">
+          <button 
+            mat-raised-button 
+            color="primary"
+            (click)="navigateToStructure()">
+            <mat-icon>account_tree</mat-icon>
+            View Structure
+          </button>
+          <button 
+            mat-raised-button 
+            color="primary"
+            (click)="navigateToVisualization()">
+            <mat-icon>bubble_chart</mat-icon>
+            Visualize Network
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Error Card -->
+  <mat-card *ngIf="error" class="error-card">
+    <mat-card-content>
+      <div class="error-content">
+        <mat-icon class="error-icon">error</mat-icon>
+        <div class="error-details">
+          <h4>Processing Error</h4>
+          <p>{{ error }}</p>
+          <button mat-raised-button color="warn" (click)="clearFile()">
+            <mat-icon>refresh</mat-icon>
+            Try Again
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Sample Files Section -->
+  <mat-card class="samples-card" *ngIf="!currentFile">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>folder_special</mat-icon>
+        Sample Files
+      </mat-card-title>
+      <mat-card-subtitle>Try the framework with these example networks</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="sample-files">
+        <div class="sample-file">
+          <mat-icon>description</mat-icon>
+          <div class="sample-info">
+            <h4>Small Network (16 nodes)</h4>
+            <p>Simple network for testing basic functionality</p>
+          </div>
+          <button mat-button color="primary">Download</button>
+        </div>
+        
+        <div class="sample-file">
+          <mat-icon>description</mat-icon>
+          <div class="sample-info">
+            <h4>Power Grid Network</h4>
+            <p>Pacific Gas & Electric power distribution network</p>
+          </div>
+          <button mat-button color="primary">Download</button>
+        </div>
+        
+        <div class="sample-file">
+          <mat-icon>description</mat-icon>
+          <div class="sample-info">
+            <h4>Transportation Network</h4>
+            <p>Metro system with diamond structures</p>
+          </div>
+          <button mat-button color="primary">Download</button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

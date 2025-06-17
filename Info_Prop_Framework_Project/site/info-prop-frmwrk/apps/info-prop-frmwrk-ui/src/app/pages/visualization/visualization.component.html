@@ -1,0 +1,275 @@
+<div class="visualization-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>
+      <mat-icon class="header-icon">bubble_chart</mat-icon>
+      Network Visualization
+    </h1>
+    <div class="tier-badge">
+      <mat-icon>speed</mat-icon>
+      Tier 1 Analysis
+    </div>
+    <p class="subtitle">Interactive graph visualization with customizable layouts</p>
+  </div>
+
+  <!-- No Data State -->
+  <div *ngIf="!networkData && !isLoading" class="no-data-section">
+    <mat-card>
+      <mat-card-content>
+        <div class="no-data-content">
+          <mat-icon class="no-data-icon">upload_file</mat-icon>
+          <h3>No Network Data Available</h3>
+          <p>Please upload a CSV file and run structure analysis first.</p>
+          <div class="no-data-actions">
+            <button mat-raised-button color="primary" (click)="navigateToUpload()">
+              <mat-icon>upload_file</mat-icon>
+              Upload File
+            </button>
+            <button mat-raised-button (click)="navigateToStructure()">
+              <mat-icon>account_tree</mat-icon>
+              Structure Analysis
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Main Visualization Area -->
+  <div *ngIf="networkData" class="visualization-main">
+    
+    <!-- Visualization Controls Toolbar -->
+    <mat-toolbar class="viz-toolbar">
+      <div class="toolbar-section">
+        <span class="toolbar-label">Layout:</span>
+        <mat-form-field appearance="outline" class="compact-field">
+          <mat-select [(value)]="selectedLayout" (selectionChange)="onLayoutChange()">
+            <mat-option *ngFor="let option of layoutOptions" [value]="option.value">
+              {{ option.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="toolbar-section">
+        <span class="toolbar-label">Colors:</span>
+        <mat-form-field appearance="outline" class="compact-field">
+          <mat-select [(value)]="colorScheme" (selectionChange)="onColorSchemeChange()">
+            <mat-option *ngFor="let scheme of colorSchemeOptions" [value]="scheme.value">
+              {{ scheme.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <!-- Zoom Controls -->
+      <div class="toolbar-section zoom-controls">
+        <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom In">
+          <mat-icon>zoom_in</mat-icon>
+        </button>
+        <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom Out">
+          <mat-icon>zoom_out</mat-icon>
+        </button>
+        <button mat-icon-button (click)="resetZoom()" matTooltip="Reset Zoom">
+          <mat-icon>center_focus_strong</mat-icon>
+        </button>
+        <button mat-icon-button (click)="centerGraph()" matTooltip="Center Graph">
+          <mat-icon>my_location</mat-icon>
+        </button>
+      </div>
+
+      <!-- Export Button -->
+      <button mat-raised-button color="accent" (click)="exportVisualization()">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+    </mat-toolbar>
+
+    <!-- Main Content Area -->
+    <div class="viz-content">
+      
+      <!-- Side Panel -->
+      <mat-card class="side-panel">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>tune</mat-icon>
+            Visualization Settings
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          
+          <!-- Layout Settings -->
+          <div class="settings-section">
+            <h4>Layout Options</h4>
+            <div class="setting-item">
+              <span class="setting-label">Current Layout:</span>
+              <span class="setting-value">{{ getCurrentLayoutLabel() }}</span>
+            </div>
+            <p class="setting-description">
+              {{ getCurrentLayoutDescription() }}
+            </p>
+          </div>
+
+          <!-- Node Settings -->
+          <div class="settings-section">
+            <h4>Node Settings</h4>
+            <div class="setting-item">
+              <span class="setting-label">Node Size</span>
+              <mat-slider 
+                min="5" 
+                max="30" 
+                step="1"
+                discrete
+                showTickMarks
+                class="setting-slider">
+                <input matSliderThumb [(value)]="nodeSize" (input)="onNodeSizeChange()">
+              </mat-slider>
+              <span class="setting-value">{{ nodeSize }}px</span>
+            </div>
+            
+            <div class="setting-item checkbox-item">
+              <label>
+                <input type="checkbox" [(ngModel)]="showNodeLabels" (change)="toggleNodeLabels()">
+                Show Node Labels
+              </label>
+            </div>
+          </div>
+
+          <!-- Edge Settings -->
+          <div class="settings-section">
+            <h4>Edge Settings</h4>
+            <div class="setting-item">
+              <span class="setting-label">Edge Width</span>
+              <mat-slider 
+                min="1" 
+                max="8" 
+                step="0.5"
+                discrete
+                showTickMarks
+                class="setting-slider">
+                <input matSliderThumb [(value)]="edgeWidth" (input)="onEdgeWidthChange()">
+              </mat-slider>
+              <span class="setting-value">{{ edgeWidth }}px</span>
+            </div>
+            
+            <div class="setting-item checkbox-item">
+              <label>
+                <input type="checkbox" [(ngModel)]="showEdgeLabels" (change)="toggleEdgeLabels()">
+                Show Edge Labels
+              </label>
+            </div>
+          </div>
+
+          <!-- Color Scheme Info -->
+          <div class="settings-section">
+            <h4>Color Scheme</h4>
+            <div class="setting-item">
+              <span class="setting-label">Current Scheme:</span>
+              <span class="setting-value">{{ getCurrentColorSchemeLabel() }}</span>
+            </div>
+            <p class="setting-description">
+              {{ getCurrentColorSchemeDescription() }}
+            </p>
+          </div>
+
+          <!-- Network Stats -->
+          <div class="settings-section">
+            <h4>Network Statistics</h4>
+            <div class="stats-list">
+              <div class="stat-item">
+                <span class="stat-label">Nodes:</span>
+                <span class="stat-value">{{ networkData.nodeCount }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Edges:</span>
+                <span class="stat-value">{{ networkData.edgeCount }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Sources:</span>
+                <span class="stat-value">{{ networkData.sourceNodes.length || 0 }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Sinks:</span>
+                <span class="stat-value">{{ networkData.sinkNodes.length || 0 }}</span>
+              </div>
+            </div>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Main Visualization Panel -->
+      <mat-card class="viz-panel">
+        <mat-card-content class="viz-content-area">
+          <!-- Placeholder for actual visualization -->
+          <div class="viz-placeholder">
+            <div class="placeholder-content">
+              <mat-icon class="placeholder-icon">bubble_chart</mat-icon>
+              <h3>Interactive Graph Visualization</h3>
+              <p>This will show your network as an interactive graph</p>
+              <div class="placeholder-features">
+                <div class="feature-item">
+                  <mat-icon>touch_app</mat-icon>
+                  <span>Click and drag nodes</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>zoom_in</mat-icon>
+                  <span>Zoom and pan</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>search</mat-icon>
+                  <span>Search and filter</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>colorize</mat-icon>
+                  <span>Node highlighting</span>
+                </div>
+              </div>
+              <div class="coming-soon">
+                <mat-icon>construction</mat-icon>
+                <span>Interactive visualization coming in Phase 4</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <mat-card class="action-card">
+        <mat-card-content>
+          <div class="action-content">
+            <mat-icon class="action-icon">account_tree</mat-icon>
+            <div class="action-details">
+              <h4>Structure Analysis</h4>
+              <p>View detailed network topology</p>
+            </div>
+            <button mat-raised-button color="primary" (click)="navigateToStructure()">
+              View Details
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="action-card">
+        <mat-card-content>
+          <div class="action-content">
+            <mat-icon class="action-icon">diamond</mat-icon>
+            <div class="action-details">
+              <h4>Diamond Analysis</h4>
+              <p>Identify diamond patterns</p>
+            </div>
+            <button mat-raised-button color="accent" (click)="navigateToDiamonds()">
+              Run Analysis
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+  </div>
+</div>

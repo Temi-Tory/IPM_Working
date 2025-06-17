@@ -1,0 +1,350 @@
+<div class="structure-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>
+      <mat-icon class="header-icon">account_tree</mat-icon>
+      Structure Analysis
+    </h1>
+    <div class="tier-badge">
+      <mat-icon>speed</mat-icon>
+      Tier 1 Analysis
+    </div>
+    <p class="subtitle">Network topology, node classification, and basic statistics</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-section">
+    <mat-card>
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <div class="loading-text">
+            <h3>Running Structure Analysis...</h3>
+            <p>Analyzing network topology and node classifications</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-section">
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div class="error-details">
+            <h3>Analysis Error</h3>
+            <p>{{ error }}</p>
+            <button mat-raised-button color="warn" (click)="navigateToUpload()">
+              <mat-icon>upload_file</mat-icon>
+              Upload New File
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- No Data State -->
+  <div *ngIf="!networkData && !isLoading && !error" class="no-data-section">
+    <mat-card>
+      <mat-card-content>
+        <div class="no-data-content">
+          <mat-icon class="no-data-icon">upload_file</mat-icon>
+          <h3>No Network Data Available</h3>
+          <p>Please upload a CSV file first to view structure analysis.</p>
+          <button mat-raised-button color="primary" (click)="navigateToUpload()">
+            <mat-icon>upload_file</mat-icon>
+            Upload File
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Analysis Content -->
+  <div *ngIf="networkData && !isLoading" class="analysis-content">
+    
+    <!-- Overview Statistics -->
+    <mat-card class="overview-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>bar_chart</mat-icon>
+          Network Overview
+        </mat-card-title>
+        <mat-card-subtitle>High-level network statistics and characteristics</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="overview-grid">
+          <div class="overview-item primary">
+            <mat-icon>scatter_plot</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ networkData.nodeCount }}</span>
+              <span class="overview-label">Total Nodes</span>
+            </div>
+          </div>
+          
+          <div class="overview-item primary">
+            <mat-icon>timeline</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ networkData.edgeCount }}</span>
+              <span class="overview-label">Total Edges</span>
+            </div>
+          </div>
+          
+          <div class="overview-item secondary">
+            <mat-icon>donut_small</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ getGraphDensity() }}%</span>
+              <span class="overview-label">Graph Density</span>
+            </div>
+          </div>
+          
+          <div class="overview-item secondary">
+            <mat-icon>hub</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ getAverageConnectivity() }}</span>
+              <span class="overview-label">Avg Connectivity</span>
+            </div>
+          </div>
+          
+          <div class="overview-item tertiary">
+            <mat-icon>psychology</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ getComplexityScore() }}</span>
+              <span class="overview-label">Complexity</span>
+            </div>
+          </div>
+          
+          <div class="overview-item tertiary">
+            <mat-icon>layers</mat-icon>
+            <div class="overview-details">
+              <span class="overview-value">{{ networkData.maxIterationDepth || 'N/A' }}</span>
+              <span class="overview-label">Max Depth</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Node Classification -->
+    <mat-card class="classification-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>category</mat-icon>
+          Node Classification
+        </mat-card-title>
+        <mat-card-subtitle>Breakdown of nodes by structural role</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        
+        <!-- Visual Node Type Summary -->
+        <div class="node-summary">
+          <div class="node-type-chips">
+            <mat-chip-set>
+              <mat-chip 
+                *ngFor="let nodeType of nodeTypeData" 
+                [style.background-color]="nodeType.color"
+                [style.color]="'white'"
+                class="node-type-chip">
+                {{ nodeType.type }}: {{ nodeType.count }} ({{ nodeType.percentage }}%)
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Detailed Node Statistics -->
+        <div class="node-details-grid">
+          <div class="node-detail-item source">
+            <div class="node-detail-header">
+              <mat-icon>input</mat-icon>
+              <h4>Source Nodes</h4>
+            </div>
+            <div class="node-detail-stats">
+              <span class="count">{{ networkData.sourceNodes.length || 0 }}</span>
+              <span class="description">Entry points with no incoming edges</span>
+            </div>
+            <div class="node-list" *ngIf="networkData.sourceNodes && networkData.sourceNodes.length > 0">
+              <span class="list-label">Nodes:</span>
+              <span class="node-ids">{{ networkData.sourceNodes.slice(0, 10).join(', ') }}
+                <span *ngIf="networkData.sourceNodes.length > 10">... (+{{ networkData.sourceNodes.length - 10 }} more)</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="node-detail-item sink">
+            <div class="node-detail-header">
+              <mat-icon>output</mat-icon>
+              <h4>Sink Nodes</h4>
+            </div>
+            <div class="node-detail-stats">
+              <span class="count">{{ networkData.sinkNodes.length || 0 }}</span>
+              <span class="description">Terminal points with no outgoing edges</span>
+            </div>
+            <div class="node-list" *ngIf="networkData.sinkNodes && networkData.sinkNodes.length > 0">
+              <span class="list-label">Nodes:</span>
+              <span class="node-ids">{{ networkData.sinkNodes.slice(0, 10).join(', ') }}
+                <span *ngIf="networkData.sinkNodes.length > 10">... (+{{ networkData.sinkNodes.length - 10 }} more)</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="node-detail-item fork">
+            <div class="node-detail-header">
+              <mat-icon>call_split</mat-icon>
+              <h4>Fork Nodes</h4>
+            </div>
+            <div class="node-detail-stats">
+              <span class="count">{{ networkData.forkNodes.length || 0 }}</span>
+              <span class="description">Branching points with multiple outgoing edges</span>
+            </div>
+            <div class="node-list" *ngIf="networkData.forkNodes && networkData.forkNodes.length > 0">
+              <span class="list-label">Nodes:</span>
+              <span class="node-ids">{{ networkData.forkNodes.slice(0, 10).join(', ') }}
+                <span *ngIf="networkData.forkNodes.length > 10">... (+{{ networkData.forkNodes.length - 10 }} more)</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="node-detail-item join">
+            <div class="node-detail-header">
+              <mat-icon>call_merge</mat-icon>
+              <h4>Join Nodes</h4>
+            </div>
+            <div class="node-detail-stats">
+              <span class="count">{{ networkData.joinNodes.length || 0 }}</span>
+              <span class="description">Convergence points with multiple incoming edges</span>
+            </div>
+            <div class="node-list" *ngIf="networkData.joinNodes && networkData.joinNodes.length > 0">
+              <span class="list-label">Nodes:</span>
+              <span class="node-ids">{{ networkData.joinNodes.slice(0, 10).join(', ') }}
+                <span *ngIf="networkData.joinNodes.length > 10">... (+{{ networkData.joinNodes.length - 10 }} more)</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Network Insights -->
+    <mat-card class="insights-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>insights</mat-icon>
+          Structural Insights
+        </mat-card-title>
+        <mat-card-subtitle>Key observations about network topology</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="insights-list">
+          <div class="insight-item" *ngIf="hasComplexStructure()">
+            <mat-icon class="insight-icon success">check_circle</mat-icon>
+            <div class="insight-content">
+              <h4>Complex Structure Detected</h4>
+              <p>Network contains both fork and join nodes, enabling diamond pattern analysis.</p>
+            </div>
+          </div>
+          
+          <div class="insight-item" *ngIf="!hasComplexStructure()">
+            <mat-icon class="insight-icon info">info</mat-icon>
+            <div class="insight-content">
+              <h4>Simple Structure</h4>
+              <p>Network has limited branching/merging. Diamond analysis may find fewer patterns.</p>
+            </div>
+          </div>
+
+          <div class="insight-item" *ngIf="getGraphDensity() > 20">
+            <mat-icon class="insight-icon warning">warning</mat-icon>
+            <div class="insight-content">
+              <h4>High Density Network</h4>
+              <p>Dense connectivity ({{ getGraphDensity() }}%) may lead to complex propagation patterns.</p>
+            </div>
+          </div>
+
+          <div class="insight-item" *ngIf="getGraphDensity() < 5">
+            <mat-icon class="insight-icon info">info</mat-icon>
+            <div class="insight-content">
+              <h4>Sparse Network</h4>
+              <p>Low density ({{ getGraphDensity() }}%) suggests simple propagation paths.</p>
+            </div>
+          </div>
+
+          <div class="insight-item" *ngIf="(networkData.sourceNodes?.length || 0) === 1">
+            <mat-icon class="insight-icon info">info</mat-icon>
+            <div class="insight-content">
+              <h4>Single Source</h4>
+              <p>All information originates from one source node.</p>
+            </div>
+          </div>
+
+          <div class="insight-item" *ngIf="(networkData.sourceNodes?.length || 0) > 1">
+            <mat-icon class="insight-icon success">check_circle</mat-icon>
+            <div class="insight-content">
+              <h4>Multiple Sources</h4>
+              <p>{{ networkData.sourceNodes.length }} source nodes enable complex propagation scenarios.</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Action Cards -->
+    <div class="action-cards">
+      <mat-card class="action-card primary">
+        <mat-card-content>
+          <div class="action-content">
+            <mat-icon class="action-icon">bubble_chart</mat-icon>
+            <div class="action-details">
+              <h3>Visualize Network</h3>
+              <p>View interactive graph visualization of your network structure</p>
+            </div>
+            <button mat-raised-button color="primary" (click)="navigateToVisualization()">
+              <mat-icon>launch</mat-icon>
+              Open Visualization
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="action-card secondary" *ngIf="hasComplexStructure()">
+        <mat-card-content>
+          <div class="action-content">
+            <mat-icon class="action-icon">diamond</mat-icon>
+            <div class="action-details">
+              <h3>Diamond Analysis</h3>
+              <p>Identify and classify diamond structures for advanced analysis</p>
+            </div>
+            <button mat-raised-button color="accent" (click)="runDiamondAnalysis()" [disabled]="isLoading">
+              <mat-icon>play_arrow</mat-icon>
+              Run Tier 2 Analysis
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Export Section -->
+    <mat-card class="export-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>download</mat-icon>
+          Export Results
+        </mat-card-title>
+        <mat-card-subtitle>Save your structure analysis results</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="export-actions">
+          <button mat-raised-button (click)="exportStructureData()">
+            <mat-icon>download</mat-icon>
+            Download JSON Report
+          </button>
+          <span class="export-note">Includes all structure statistics and node classifications</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>

@@ -1,0 +1,105 @@
+<div class="diamonds-container">
+      <div class="page-header">
+        <h1>
+          <mat-icon class="header-icon">diamond</mat-icon>
+          Diamond Analysis
+        </h1>
+        <div class="tier-badge">
+          <mat-icon>speed</mat-icon>
+          Tier 2 Analysis
+        </div>
+        <p class="subtitle">Diamond structure identification and classification</p>
+      </div>
+
+      <div *ngIf="!networkData" class="no-data-section">
+        <mat-card>
+          <mat-card-content>
+            <div class="no-data-content">
+              <mat-icon class="no-data-icon">account_tree</mat-icon>
+              <h3>Structure Analysis Required</h3>
+              <p>Please run structure analysis first to identify diamond patterns.</p>
+              <button mat-raised-button color="primary" (click)="navigateToStructure()">
+                <mat-icon>account_tree</mat-icon>
+                Run Structure Analysis
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div *ngIf="isLoading" class="loading-section">
+        <mat-card>
+          <mat-card-content>
+            <div class="loading-content">
+              <mat-spinner diameter="40"></mat-spinner>
+              <div class="loading-text">
+                <h3>Running Diamond Analysis...</h3>
+                <p>Identifying and classifying diamond structures</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div *ngIf="networkData && !isLoading" class="analysis-content">
+        <mat-card class="coming-soon-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>diamond</mat-icon>
+              Diamond Pattern Analysis
+            </mat-card-title>
+            <mat-card-subtitle>Advanced diamond structure classification</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="coming-soon-content">
+              <mat-icon class="feature-icon">construction</mat-icon>
+              <h3>Diamond Analysis Coming in Phase 5</h3>
+              <p>This component will provide:</p>
+              <div class="feature-list">
+                <div class="feature-item">
+                  <mat-icon>search</mat-icon>
+                  <span>Diamond structure identification</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>category</mat-icon>
+                  <span>Exhaustive diamond classification</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>insights</mat-icon>
+                  <span>Optimization insights</span>
+                </div>
+                <div class="feature-item">
+                  <mat-icon>compare</mat-icon>
+                  <span>Diamond subset analysis</span>
+                </div>
+              </div>
+              <button mat-raised-button color="accent" (click)="runPlaceholderAnalysis()" [disabled]="isLoading">
+                <mat-icon>play_arrow</mat-icon>
+                Test Diamond Analysis (Placeholder)
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="next-steps-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>navigate_next</mat-icon>
+              Next Steps
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="next-steps">
+              <button mat-raised-button color="primary" (click)="navigateToVisualization()">
+                <mat-icon>bubble_chart</mat-icon>
+                View Network Visualization
+              </button>
+              <button mat-raised-button (click)="navigateToReachability()">
+                <mat-icon>psychology</mat-icon>
+                Reachability Analysis (Tier 3)
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>

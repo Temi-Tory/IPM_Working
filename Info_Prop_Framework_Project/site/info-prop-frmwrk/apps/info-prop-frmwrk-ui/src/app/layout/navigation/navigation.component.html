@@ -1,0 +1,234 @@
+<mat-sidenav-container class="sidenav-container">
+  <!-- Side Navigation -->
+  <mat-sidenav 
+    #drawer 
+    class="sidenav" 
+    fixedInViewport
+    [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'"
+    [opened]="(isHandset$ | async) === false">
+    
+    <!-- Sidenav Header -->
+    <div class="sidenav-header">
+      <div class="logo-container">
+        <mat-icon class="logo-icon">account_tree</mat-icon>
+        <span class="logo-text">Info Prop Framework</span>
+      </div>
+    </div>
+
+    <!-- File Status Section -->
+    <div class="file-status-section" *ngIf="currentFile">
+      <mat-divider></mat-divider>
+      <div class="file-status-content">
+        <div class="file-info">
+          <mat-icon class="file-icon" [class.file-loaded]="currentFile">description</mat-icon>
+          <div class="file-details">
+            <div class="file-name">{{ getCurrentFileName() }}</div>
+            <div class="file-size">{{ getFileSize() }}</div>
+          </div>
+          <button 
+            mat-icon-button 
+            class="clear-file-btn"
+            matTooltip="Clear file and start over"
+            (click)="clearCurrentFile()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        
+        <!-- Analysis Progress -->
+        <div class="analysis-progress">
+          <div class="progress-header">
+            <span class="progress-label">{{ getProgressText() }}</span>
+            <span class="progress-percentage">{{ getProgressPercentage() }}%</span>
+          </div>
+          <mat-progress-bar 
+            mode="determinate" 
+            [value]="getProgressPercentage()"
+            class="progress-bar">
+          </mat-progress-bar>
+          
+          <!-- Tier Indicators -->
+          <div class="tier-indicators">
+            <mat-chip-set class="tier-chips">
+              <mat-chip 
+                [class.tier-complete]="analysisProgress.tier1Complete"
+                [class.tier-current]="analysisProgress.currentTier === 1">
+                Tier 1
+              </mat-chip>
+              <mat-chip 
+                [class.tier-complete]="analysisProgress.tier2Complete"
+                [class.tier-current]="analysisProgress.currentTier === 2">
+                Tier 2
+              </mat-chip>
+              <mat-chip 
+                [class.tier-complete]="analysisProgress.tier3Complete"
+                [class.tier-current]="analysisProgress.currentTier === 3">
+                Tier 3
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Navigation Menu -->
+    <mat-nav-list class="nav-list">
+      <ng-container *ngFor="let item of navigationItems; trackBy: trackByFn">
+        <a 
+          mat-list-item 
+          class="nav-item"
+          [class.disabled]="item.disabled"
+          [class.current-route]="currentRoute === item.route"
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [tabindex]="item.disabled ? -1 : 0"
+          [attr.aria-disabled]="item.disabled"
+          (click)="navigateTo(item.route)">
+          
+          <mat-icon 
+            matListItemIcon 
+            class="nav-icon"
+            [class.tier-1]="item.tier === 1"
+            [class.tier-2]="item.tier === 2"
+            [class.tier-3]="item.tier === 3">
+            {{ item.icon }}
+          </mat-icon>
+          
+          <span matListItemTitle class="nav-label">{{ item.label }}</span>
+          
+          <!-- Tier Badge -->
+          <span 
+            *ngIf="item.tier && item.tier > 0" 
+            class="tier-badge"
+            [class.tier-complete]="
+              (item.tier === 1 && analysisProgress.tier1Complete) ||
+              (item.tier === 2 && analysisProgress.tier2Complete) ||
+              (item.tier === 3 && analysisProgress.tier3Complete)
+            ">
+            T{{ item.tier }}
+          </span>
+          
+          <!-- Loading indicator -->
+          <mat-icon 
+            *ngIf="isLoading && currentRoute === item.route" 
+            class="loading-icon">
+            hourglass_empty
+          </mat-icon>
+        </a>
+      </ng-container>
+    </mat-nav-list>
+
+    <!-- Error Display -->
+    <div *ngIf="error" class="error-section">
+      <mat-divider></mat-divider>
+      <div class="error-content">
+        <mat-icon class="error-icon">error</mat-icon>
+        <span class="error-text">{{ error }}</span>
+      </div>
+    </div>
+
+    <!-- Sidenav Footer -->
+    <div class="sidenav-footer">
+      <mat-divider></mat-divider>
+      <div class="footer-content">
+        <small class="version-info">v1.0.0</small>
+      </div>
+    </div>
+
+  </mat-sidenav>
+
+  <!-- Main Content Area -->
+  <mat-sidenav-content class="main-content">
+    
+    <!-- Top Toolbar -->
+    <mat-toolbar class="toolbar" color="primary">
+      
+      <!-- Menu Button (Mobile) -->
+      <button
+        type="button"
+        aria-label="Toggle sidenav"
+        mat-icon-button
+        (click)="toggleDrawer()"
+        *ngIf="isHandset$ | async">
+        <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
+      </button>
+
+      <!-- App Title -->
+      <span class="app-title">Network Analysis Framework</span>
+
+      <!-- Spacer -->
+      <span class="flex-spacer"></span>
+
+      <!-- Toolbar Actions -->
+      <div class="toolbar-actions">
+        
+        <!-- File Status Chip (Mobile) -->
+        <mat-chip 
+          *ngIf="(isHandset$ | async) && currentFile"
+          class="file-status-chip">
+          <mat-icon matChipAvatar>description</mat-icon>
+          {{ getCurrentFileName() }}
+        </mat-chip>
+
+        <!-- Notifications -->
+        <button
+          mat-icon-button
+          class="action-button"
+          matTooltip="Notifications"
+          matTooltipPosition="below"
+          aria-label="Notifications">
+          <mat-icon>notifications</mat-icon>
+        </button>
+
+        <!-- Full Screen -->
+        <button 
+          mat-icon-button 
+          class="action-button"
+          matTooltip="Full Screen"
+          matTooltipPosition="below">
+          <mat-icon>fullscreen</mat-icon>
+        </button>
+
+        <!-- User Menu -->
+        <button 
+          mat-icon-button 
+          class="user-button"
+          [matMenuTriggerFor]="userMenu"
+          matTooltip="User Menu"
+          matTooltipPosition="below">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+
+        <!-- User Menu Dropdown -->
+        <mat-menu #userMenu="matMenu" class="user-menu">
+          <div class="user-info">
+            <div class="user-avatar">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="user-details">
+              <div class="user-name">Network Analyst</div>
+              <div class="user-email">analyst&#64;framework.com</div>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <button 
+            *ngFor="let menuItem of userMenuItems"
+            mat-menu-item 
+            (click)="onUserMenuAction(menuItem.action)">
+            <mat-icon>{{ menuItem.icon }}</mat-icon>
+            <span>{{ menuItem.label }}</span>
+          </button>
+        </mat-menu>
+
+      </div>
+    </mat-toolbar>
+
+    <!-- Page Content -->
+    <div class="page-content">
+      <router-outlet></router-outlet>
+    </div>
+
+  </mat-sidenav-content>
+</mat-sidenav-container>
