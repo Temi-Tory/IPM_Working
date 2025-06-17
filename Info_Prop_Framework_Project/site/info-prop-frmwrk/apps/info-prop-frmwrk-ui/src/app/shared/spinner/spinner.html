@@ -1,0 +1,55 @@
+<!-- Spinner Overlay Container -->
+<div
+  *ngFor="let spinner of activeSpinners; trackBy: trackBySpinnerId"
+  class="spinner-overlay"
+  (click)="onBackdropClick($event, spinner)"
+  (keydown)="onBackdropKeydown($event, spinner)"
+  [attr.data-spinner-id]="spinner.id"
+  tabindex="0"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="spinner.config.message || 'Loading'">
+  
+  <!-- Spinner Content Container -->
+  <div
+    class="spinner-container"
+    (click)="onSpinnerContainerClick($event)"
+    (keydown)="onSpinnerContainerKeydown($event)"
+    tabindex="-1"
+    role="presentation">
+    
+    <!-- Spinner Content -->
+    <div class="spinner-content">
+      
+      <!-- Material Progress Spinner -->
+      <mat-progress-spinner
+        mode="indeterminate"
+        diameter="60"
+        strokeWidth="4"
+        color="primary">
+      </mat-progress-spinner>
+      
+      <!-- Loading Message -->
+      <p class="spinner-text" *ngIf="spinner.config.message">
+        {{ spinner.config.message }}
+      </p>
+      
+    </div>
+    
+    <!-- Cancel Button -->
+    <button 
+      *ngIf="spinner.config.showCancelButton"
+      mat-raised-button
+      color="warn"
+      class="spinner-cancel-btn"
+      (click)="onCancelSpinner(spinner.id)"
+      type="button">
+      
+      <mat-icon>close</mat-icon>
+      {{ spinner.config.cancelButtonText || 'Cancel' }}
+      
+    </button>
+    
+  </div>
+  
+</div>
