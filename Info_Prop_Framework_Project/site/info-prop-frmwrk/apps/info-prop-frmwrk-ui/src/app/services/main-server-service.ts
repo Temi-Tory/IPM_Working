@@ -1,7 +1,7 @@
-// src/app/services/api.service.ts
+// src/app/services/main-server.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
@@ -15,7 +15,8 @@ import {
   DiamondSubsetAnalysisRequest, 
   DiamondSubsetAnalysisResponse, 
   DotExportRequest, 
-  DotExportResponse 
+  DotExportResponse,
+  DiamondStructureData
 } from '../shared/models/main-sever-interface';
 
 @Injectable({
@@ -106,9 +107,9 @@ export class MainServerService {
     };
   }
 
-  // Helper: Build diamond subset request
+  // Helper: Build diamond subset request - Updated with proper types
   buildDiamondSubsetRequest(
-    diamondData: { joinNode: string; structure: any },
+    diamondData: { joinNode: string; structure: DiamondStructureData },
     overrides?: {
       overrideNodePrior?: boolean;
       overrideEdgeProb?: boolean;
@@ -131,12 +132,12 @@ export class MainServerService {
     };
   }
 
-  private handleError = (error: any): Observable<never> => {
+  // Updated error handling with proper types
+  private handleError = (error: HttpErrorResponse | Error | unknown): Observable<never> => {
     let errorMessage = 'Unknown error occurred';
     
-    if (error.error instanceof ErrorEvent) {
-      errorMessage = `Client Error: ${error.error.message}`;
-    } else {
+    if (error instanceof HttpErrorResponse) {
+      // Server-side HTTP error
       if (error.status === 0) {
         errorMessage = 'Unable to connect to server. Please check if the Julia server is running on localhost:8080';
       } else if (error.status === 500) {
@@ -144,6 +145,18 @@ export class MainServerService {
       } else {
         errorMessage = `Server Error Code: ${error.status}\nMessage: ${error.message}`;
       }
+    } else if (error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Client Error: ${error.message}`;
+    } else if (error instanceof Error) {
+      // Generic Error object
+      errorMessage = `Error: ${error.message}`;
+    } else if (typeof error === 'string') {
+      // String error
+      errorMessage = error;
+    } else {
+      // Unknown error type
+      errorMessage = 'An unexpected error occurred';
     }
     
     console.error('API Error:', error);

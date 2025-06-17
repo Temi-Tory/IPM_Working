@@ -2,10 +2,10 @@
 
 import { Injectable, inject, signal, computed } from "@angular/core";
 import { takeUntil, catchError, of, firstValueFrom } from "rxjs";
-import { MainServerService } from "../../../services/main-server-service";
-import { GraphState, GraphStructure } from "../../models/graph-structure-interface";
-import { FullAnalysisResponse, StructureAnalysisResponse, DiamondAnalysisResponse, NetworkData } from "../../models/main-sever-interface";
-import { SpinnerService, SpinnerConfig } from "./spinner-service";
+import { MainServerService } from "./main-server-service";
+import { GraphState, GraphStructure } from "../shared/models/graph-structure-interface";
+import { FullAnalysisResponse, StructureAnalysisResponse, DiamondAnalysisResponse, NetworkData } from "../shared/models/main-sever-interface";
+import { SpinnerService, SpinnerConfig } from "../shared/spinner/spinner-service/spinner-service";
 
 @Injectable({
   providedIn: 'root'
