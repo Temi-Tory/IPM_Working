@@ -132,6 +132,14 @@
           </button>
 
           <button 
+            mat-stroked-button 
+            (click)="debugVisualization()"
+            color="accent">
+            <mat-icon>bug_report</mat-icon>
+            Debug Info
+          </button>
+
+          <button 
             mat-button 
             (click)="resetView()">
             <mat-icon>restore</mat-icon>

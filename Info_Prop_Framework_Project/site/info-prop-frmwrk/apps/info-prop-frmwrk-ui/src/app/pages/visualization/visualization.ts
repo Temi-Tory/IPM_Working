@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, inject, computed, signal, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -42,6 +42,14 @@ interface D3Link extends d3.SimulationLinkDatum<D3Node> {
   value: number;
 }
 
+// Declare types for DOT rendering libraries
+declare global {
+  interface Window {
+    Viz: any;
+    d3: any;
+  }
+}
+
 @Component({
   selector: 'app-visualization',
   standalone: true,
@@ -70,6 +78,7 @@ export class VisualizationComponent implements AfterViewInit {
   readonly graphState = inject(GraphStateService);
   private mainServerService = inject(MainServerService);
   private snackBar = inject(MatSnackBar);
+  private cdr = inject(ChangeDetectorRef);
 
   // State signals
   isGeneratingDot = signal(false);
@@ -79,6 +88,8 @@ export class VisualizationComponent implements AfterViewInit {
   showNodeLabels = signal<boolean>(true);
   showEdgeLabels = signal<boolean>(false);
   highlightMode = signal<string>('none');
+  private graphvizLoaded = signal<boolean>(false);
+  private renderingLibrary = signal<'d3-graphviz' | 'viz.js' | 'd3-fallback'>('d3-graphviz');
 
   // Layout options for DOT rendering
   readonly layoutOptions: LayoutOption[] = [
@@ -129,7 +140,6 @@ export class VisualizationComponent implements AfterViewInit {
     const structure = this.structure();
     if (!structure) return 0;
     
-    // Extract unique nodes from edgelist and indices
     const nodeSet = new Set<number>();
     structure.edgelist.forEach(([from, to]) => {
       nodeSet.add(from);
@@ -191,12 +201,85 @@ export class VisualizationComponent implements AfterViewInit {
     return highlights;
   });
 
-  ngAfterViewInit() {
+  async ngAfterViewInit() {
+    // Load the best available rendering library
+    await this.loadRenderingLibraries();
+    
     if (this.isGraphLoaded()) {
       this.generateVisualization();
     }
   }
 
+  private async loadRenderingLibraries(): Promise<void> {
+    try {
+      // Try loading d3-graphviz first (best option)
+      await this.loadD3Graphviz();
+      this.renderingLibrary.set('d3-graphviz');
+      console.log('✅ d3-graphviz loaded successfully');
+      return;
+    } catch (error) {
+      console.log('⚠️ d3-graphviz not available, trying Viz.js...');
+    }
+
+    try {
+      // Fallback to Viz.js
+      await this.loadVizJs();
+      this.renderingLibrary.set('viz.js');
+      console.log('✅ Viz.js loaded successfully');
+      return;
+    } catch (error) {
+      console.log('⚠️ Viz.js not available, using D3 fallback');
+      this.renderingLibrary.set('d3-fallback');
+    }
+  }
+
+  private async loadD3Graphviz(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (window.d3?.graphviz) {
+        this.graphvizLoaded.set(true);
+        resolve();
+        return;
+      }
+
+      // Load @hpcc-js/wasm first
+      const wasmScript = document.createElement('script');
+      wasmScript.src = 'https://unpkg.com/@hpcc-js/wasm/dist/graphviz.umd.js';
+      wasmScript.onload = () => {
+        // Then load d3-graphviz
+        const graphvizScript = document.createElement('script');
+        graphvizScript.src = 'https://unpkg.com/d3-graphviz@5.6.0/build/d3-graphviz.min.js';
+        graphvizScript.onload = () => {
+          this.graphvizLoaded.set(true);
+          resolve();
+        };
+        graphvizScript.onerror = () => reject(new Error('Failed to load d3-graphviz'));
+        document.head.appendChild(graphvizScript);
+      };
+      wasmScript.onerror = () => reject(new Error('Failed to load @hpcc-js/wasm'));
+      document.head.appendChild(wasmScript);
+    });
+  }
+
+  private async loadVizJs(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (window.Viz) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/viz.js/2.1.2/viz.js';
+      script.onload = () => {
+        const renderScript = document.createElement('script');
+        renderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/viz.js/2.1.2/full.render.js';
+        renderScript.onload = () => resolve();
+        renderScript.onerror = () => reject(new Error('Failed to load Viz.js render'));
+        document.head.appendChild(renderScript);
+      };
+      script.onerror = () => reject(new Error('Failed to load Viz.js'));
+      document.head.appendChild(script);
+    });
+  }
 
   async generateVisualization() {
     if (!this.isGraphLoaded()) {
@@ -214,22 +297,23 @@ export class VisualizationComponent implements AfterViewInit {
         throw new Error('No graph structure available');
       }
 
-      // Use server's DOT generation instead of local sample
       console.log('🎨 Requesting DOT string from Julia server...');
       
-      // Extract unique nodes from edgelist and indices
+      // Extract and validate nodes
       const nodeSet = new Set<number>();
       structure.edgelist.forEach(([from, to]) => {
         nodeSet.add(from);
         nodeSet.add(to);
       });
-      // Also add nodes from indices that might not be in edges
       Object.keys(structure.outgoing_index).forEach(nodeStr => nodeSet.add(parseInt(nodeStr)));
       Object.keys(structure.incoming_index).forEach(nodeStr => nodeSet.add(parseInt(nodeStr)));
       
       const allNodes = Array.from(nodeSet);
       
-      // Find sink nodes (nodes with no outgoing edges)
+      if (allNodes.length === 0 || structure.edgelist.length === 0) {
+        throw new Error('Graph contains no nodes or edges');
+      }
+      
       const sinkNodes = allNodes.filter(node =>
         !structure.outgoing_index[node] || structure.outgoing_index[node].length === 0
       );
@@ -258,68 +342,179 @@ export class VisualizationComponent implements AfterViewInit {
 
       let dotString = response.dotString;
       console.log('✅ Received DOT string from server:', dotString.substring(0, 200) + '...');
+      console.log('📊 Full DOT string length:', dotString.length);
       
-      // Apply highlighting and styling to the server-generated DOT
+      if (!this.validateDotString(dotString)) {
+        throw new Error('DOT string appears to be empty or invalid');
+      }
+      
+      // Apply highlighting and styling
       dotString = this.applyVisualizationOptions(dotString);
       
+      // Set the DOT string and force change detection
       this.dotString.set(dotString);
-      this.renderDotVisualization(dotString);
+      this.cdr.detectChanges();
       
-      this.snackBar.open('Visualization generated successfully using Julia backend!', 'Close', {
+      // Use the most robust rendering approach
+      await this.renderVisualizationRobust(dotString);
+      
+      this.snackBar.open('Visualization generated successfully!', 'Close', {
         duration: 2000
       });
     } catch (error) {
       console.error('Visualization generation failed:', error);
       
-      // Fallback to local generation if server fails
-      console.log('⚠️ Server DOT generation failed, falling back to local generation...');
-      try {
-        const structure = this.structure();
-        if (structure) {
-          let dotString = this.generateSampleDotString(structure);
-          dotString = this.applyVisualizationOptions(dotString);
-          this.dotString.set(dotString);
-          this.renderDotVisualization(dotString);
-          
-          this.snackBar.open('Visualization generated using fallback method', 'Close', {
-            duration: 3000
-          });
-        }
-      } catch (fallbackError) {
-        console.error('Fallback generation also failed:', fallbackError);
-        this.snackBar.open('Failed to generate visualization', 'Close', {
-          duration: 3000
-        });
-      }
+      // Set placeholder and render fallback
+      this.dotString.set('digraph G { placeholder [label="Loading..."]; }');
+      this.cdr.detectChanges();
+      
+      setTimeout(() => {
+        this.renderFallbackVisualization();
+      }, 100);
+      
+      this.snackBar.open('Using fallback visualization method', 'Close', {
+        duration: 3000
+      });
     } finally {
       this.isGeneratingDot.set(false);
     }
   }
 
-  private generateSampleDotString(structure: any): string {
-    const nodes = structure.nodes || [];
-    const edges = structure.edges || [];
+  private async renderVisualizationRobust(dotString: string): Promise<void> {
+    // Wait for container to be available using multiple strategies
+    const container = await this.ensureContainerAvailable();
     
-    let dot = 'digraph G {\n';
-    dot += '  rankdir="TB";\n';
-    dot += '  node [shape=circle, style=filled, fillcolor=lightblue];\n';
-    dot += '  edge [color=gray];\n\n';
+    const library = this.renderingLibrary();
+    console.log(`🎨 Rendering with ${library}...`);
     
-    // Add nodes
-    nodes.forEach((node: any) => {
-      dot += `  "${node.id}" [label="${node.id}"];\n`;
+    try {
+      switch (library) {
+        case 'd3-graphviz':
+          await this.renderWithD3Graphviz(container, dotString);
+          break;
+        case 'viz.js':
+          await this.renderWithVizJs(container, dotString);
+          break;
+        default:
+          await this.renderWithD3Fallback(container);
+          break;
+      }
+    } catch (error) {
+      console.error(`Failed to render with ${library}:`, error);
+      // Always fallback to D3
+      await this.renderWithD3Fallback(container);
+    }
+  }
+
+  private async ensureContainerAvailable(): Promise<HTMLElement> {
+    // Strategy 1: Check if already available
+    if (this.dotContainer?.nativeElement) {
+      console.log('✅ Container already available');
+      return this.dotContainer.nativeElement;
+    }
+
+    // Strategy 2: Wait for Angular change detection cycles
+    for (let i = 0; i < 10; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      this.cdr.detectChanges();
+      
+      if (this.dotContainer?.nativeElement) {
+        console.log(`✅ Container available after ${i + 1} cycles`);
+        return this.dotContainer.nativeElement;
+      }
+    }
+
+    // Strategy 3: Direct DOM query as last resort
+    const element = document.querySelector('.dot-container') as HTMLElement;
+    if (element) {
+      console.log('✅ Container found via DOM query');
+      return element;
+    }
+
+    throw new Error('Could not ensure container availability');
+  }
+
+  private async renderWithD3Graphviz(container: HTMLElement, dotString: string): Promise<void> {
+    if (!window.d3?.graphviz) {
+      throw new Error('d3-graphviz not available');
+    }
+
+    container.innerHTML = '<div style="text-align: center; padding: 20px;">Rendering with d3-graphviz...</div>';
+
+    // Use d3-graphviz for superior DOT rendering
+    const graphviz = window.d3.select(container)
+      .graphviz()
+      .engine(this.selectedLayout())
+      .fade(true)
+      .tweenShapes(true)
+      .tweenPaths(true)
+      .zoom(true)
+      .fit(true)
+      .width(container.clientWidth || 800)
+      .height(600);
+
+    await new Promise<void>((resolve, reject) => {
+      graphviz
+        .renderDot(dotString, () => {
+          console.log('✅ d3-graphviz rendering completed');
+          resolve();
+        })
+        .onerror((error: any) => {
+          console.error('d3-graphviz error:', error);
+          reject(new Error(`d3-graphviz error: ${error}`));
+        });
     });
-    
-    dot += '\n';
-    
-    // Add edges
-    edges.forEach((edge: any) => {
-      dot += `  "${edge.from}" -> "${edge.to}";\n`;
+  }
+
+  private async renderWithVizJs(container: HTMLElement, dotString: string): Promise<void> {
+    if (!window.Viz) {
+      throw new Error('Viz.js not available');
+    }
+
+    container.innerHTML = '<div style="text-align: center; padding: 20px;">Rendering with Viz.js...</div>';
+
+    const viz = new window.Viz();
+    const svgString = await viz.renderString(dotString, {
+      format: 'svg',
+      engine: this.selectedLayout()
     });
+
+    container.innerHTML = svgString;
+    this.addZoomToSvg(container);
+    console.log('✅ Viz.js rendering completed');
+  }
+
+  private async renderWithD3Fallback(container: HTMLElement): Promise<void> {
+    container.innerHTML = '<div style="text-align: center; padding: 20px;">Rendering with D3 fallback...</div>';
     
-    dot += '}\n';
+    await new Promise(resolve => setTimeout(resolve, 100));
+    this.createD3Visualization(container);
+    console.log('✅ D3 fallback rendering completed');
+  }
+
+  private validateDotString(dotString: string): boolean {
+    if (!dotString || dotString.trim().length === 0) {
+      console.error('DOT string is empty');
+      return false;
+    }
     
-    return dot;
+    if (!dotString.includes('digraph') && !dotString.includes('graph')) {
+      console.error('DOT string does not contain graph declaration');
+      return false;
+    }
+    
+    const hasNodes = dotString.includes('->') || 
+                    dotString.includes('--') || 
+                    /"\d+"\s*\[/.test(dotString) ||
+                    /\d+\s*\[/.test(dotString);
+    
+    if (!hasNodes) {
+      console.error('DOT string appears to contain no nodes or edges');
+      return false;
+    }
+    
+    console.log('✅ DOT string validation passed');
+    return true;
   }
 
   private applyVisualizationOptions(dotString: string): string {
@@ -327,58 +522,80 @@ export class VisualizationComponent implements AfterViewInit {
     
     // Apply layout engine
     const layout = this.selectedLayout();
-    modifiedDot = modifiedDot.replace(/digraph\s+\w+\s*{/, `digraph G {
-  layout="${layout}";
-  rankdir="TB";
-  splines="true";
-  overlap="false";
-  sep="+25,25";`);
+    
+    if (modifiedDot.includes('layout=')) {
+      modifiedDot = modifiedDot.replace(/layout="?\w+"?/, `layout="${layout}"`);
+    } else {
+      modifiedDot = modifiedDot.replace(/digraph\s+\w*\s*{/, `digraph G {
+  layout="${layout}";`);
+    }
 
     // Apply node highlighting
     const highlights = this.nodeHighlights();
     highlights.forEach(highlight => {
-      const nodePattern = new RegExp(`"${highlight.nodeId}"\\s*\\[([^\\]]*)\\]`, 'g');
+      const nodePattern = new RegExp(`"?${highlight.nodeId}"?\\s*\\[([^\\]]*)\\]`, 'g');
       modifiedDot = modifiedDot.replace(nodePattern, (match, attributes) => {
-        const newAttributes = attributes ? 
-          `${attributes}, fillcolor="${highlight.color}", style="filled"` :
-          `fillcolor="${highlight.color}", style="filled"`;
+        let newAttributes = attributes || '';
+        
+        if (newAttributes.includes('fillcolor=')) {
+          newAttributes = newAttributes.replace(/fillcolor="?[^",\]]*"?/, `fillcolor="${highlight.color}"`);
+        } else {
+          newAttributes = newAttributes ? `${newAttributes}, fillcolor="${highlight.color}"` : `fillcolor="${highlight.color}"`;
+        }
+        
+        if (newAttributes.includes('style=')) {
+          if (!newAttributes.includes('filled')) {
+            newAttributes = newAttributes.replace(/style="?([^",\]]*)"?/, 'style="$1,filled"');
+          }
+        } else {
+          newAttributes = newAttributes ? `${newAttributes}, style="filled"` : 'style="filled"';
+        }
+        
         return `"${highlight.nodeId}" [${newAttributes}]`;
       });
     });
 
-    // Apply node label settings
-    if (!this.showNodeLabels()) {
-      modifiedDot = modifiedDot.replace(/node\s*\[([^\]]*)\]/, (match, attributes) => {
-        return `node [${attributes}, label=""]`;
-      });
-    }
-
-    // Apply edge label settings
-    if (!this.showEdgeLabels()) {
-      modifiedDot = modifiedDot.replace(/edge\s*\[([^\]]*)\]/, (match, attributes) => {
-        return `edge [${attributes}, label=""]`;
-      });
-    }
-
     return modifiedDot;
   }
 
-  private async renderDotVisualization(dotString: string) {
-    if (!this.dotContainer) return;
+  private addZoomToSvg(container: HTMLElement): void {
+    const svg = container.querySelector('svg');
+    if (!svg) return;
 
-    try {
-      const container = this.dotContainer.nativeElement;
-      container.innerHTML = ''; // Clear previous content
-      
-      // Create D3 visualization
-      this.createD3Visualization(container);
-      
-    } catch (error) {
-      console.error('Failed to render DOT visualization:', error);
-      this.snackBar.open('Failed to render visualization', 'Close', {
-        duration: 3000
-      });
+    svg.style.width = '100%';
+    svg.style.height = '600px';
+    svg.style.cursor = 'grab';
+
+    const d3Svg = d3.select(svg);
+    const g = d3Svg.select('g');
+
+    if (g.empty()) {
+      const content = svg.innerHTML;
+      svg.innerHTML = `<g>${content}</g>`;
     }
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        const g = d3Svg.select('g');
+        g.attr('transform', event.transform.toString());
+      });
+
+    d3Svg.call(zoom);
+
+    const initialScale = this.zoomLevel() / 100;
+    const transform = d3.zoomIdentity.scale(initialScale);
+    d3Svg.call(zoom.transform as any, transform);
+  }
+
+  private renderFallbackVisualization(): void {
+    const container = document.querySelector('.dot-container') as HTMLElement;
+    if (!container) {
+      console.error('Could not find container for fallback visualization');
+      return;
+    }
+
+    this.createD3Visualization(container);
   }
 
   private createD3Visualization(container: HTMLElement) {
@@ -395,7 +612,7 @@ export class VisualizationComponent implements AfterViewInit {
     // Prepare data for D3
     const nodes: D3Node[] = Array.from(nodeSet).map(nodeId => ({
       id: nodeId,
-      name: `Node ${nodeId}`,
+      name: `${nodeId}`,
       type: this.getNodeType(nodeId, structure)
     }));
 
@@ -409,7 +626,8 @@ export class VisualizationComponent implements AfterViewInit {
     const width = container.clientWidth || 800;
     const height = 600;
 
-    // Create SVG
+    // Clear and create SVG
+    container.innerHTML = '';
     const svg = d3.select(container)
       .append('svg')
       .attr('width', width)
@@ -418,9 +636,10 @@ export class VisualizationComponent implements AfterViewInit {
 
     // Create simulation
     const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink<D3Node, D3Link>(links).id(d => (d as D3Node).id).distance(100))
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2));
+      .force('link', d3.forceLink<D3Node, D3Link>(links).id(d => (d as D3Node).id).distance(80))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(20));
 
     // Add zoom behavior
     const zoom = d3.zoom<SVGSVGElement, unknown>()
@@ -434,6 +653,21 @@ export class VisualizationComponent implements AfterViewInit {
     // Create container group
     const g = svg.append('g');
 
+    // Add arrowhead marker
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '-0 -5 10 10')
+      .attr('refX', 13)
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 13)
+      .attr('markerHeight', 13)
+      .attr('xoverflow', 'visible')
+      .append('svg:path')
+      .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+      .attr('fill', '#999')
+      .style('stroke','none');
+
     // Add links
     const link = g.append('g')
       .selectAll('line')
@@ -441,17 +675,19 @@ export class VisualizationComponent implements AfterViewInit {
       .join('line')
       .attr('stroke', '#999')
       .attr('stroke-opacity', 0.6)
-      .attr('stroke-width', (d: any) => Math.sqrt(d.value) * 2);
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrowhead)');
 
     // Add nodes
     const node = g.append('g')
       .selectAll('circle')
       .data(nodes)
       .join('circle')
-      .attr('r', 8)
+      .attr('r', 12)
       .attr('fill', (d: any) => this.getNodeColor(d.type))
       .attr('stroke', '#fff')
       .attr('stroke-width', 2)
+      .style('cursor', 'pointer')
       .call(d3.drag()
         .on('start', (event, d) => {
           const node = d as D3Node;
@@ -471,36 +707,52 @@ export class VisualizationComponent implements AfterViewInit {
           node.fy = null;
         }) as any);
 
-    // Add labels
-    const label = g.append('g')
-      .selectAll('text')
-      .data(nodes)
-      .join('text')
-      .text((d: D3Node) => d.name)
-      .attr('font-size', 12)
-      .attr('text-anchor', 'middle')
-      .attr('dy', 4);
+    // Add labels if enabled
+    if (this.showNodeLabels()) {
+      const label = g.append('g')
+        .selectAll('text')
+        .data(nodes)
+        .join('text')
+        .text((d: D3Node) => d.name)
+        .attr('font-size', 10)
+        .attr('font-weight', 'bold')
+        .attr('text-anchor', 'middle')
+        .attr('dy', 4)
+        .attr('fill', 'white')
+        .style('pointer-events', 'none');
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', (d: D3Link) => (d.source as D3Node).x || 0)
+          .attr('y1', (d: D3Link) => (d.source as D3Node).y || 0)
+          .attr('x2', (d: D3Link) => (d.target as D3Node).x || 0)
+          .attr('y2', (d: D3Link) => (d.target as D3Node).y || 0);
+
+        node
+          .attr('cx', (d: D3Node) => d.x || 0)
+          .attr('cy', (d: D3Node) => d.y || 0);
+
+        label
+          .attr('x', (d: D3Node) => d.x || 0)
+          .attr('y', (d: D3Node) => d.y || 0);
+      });
+    } else {
+      simulation.on('tick', () => {
+        link
+          .attr('x1', (d: D3Link) => (d.source as D3Node).x || 0)
+          .attr('y1', (d: D3Link) => (d.source as D3Node).y || 0)
+          .attr('x2', (d: D3Link) => (d.target as D3Node).x || 0)
+          .attr('y2', (d: D3Link) => (d.target as D3Node).y || 0);
+
+        node
+          .attr('cx', (d: D3Node) => d.x || 0)
+          .attr('cy', (d: D3Node) => d.y || 0);
+      });
+    }
 
     // Add tooltips
     node.append('title')
-      .text((d: D3Node) => `${d.name}\nType: ${d.type}`);
-
-    // Update positions on simulation tick
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d: D3Link) => (d.source as D3Node).x || 0)
-        .attr('y1', (d: D3Link) => (d.source as D3Node).y || 0)
-        .attr('x2', (d: D3Link) => (d.target as D3Node).x || 0)
-        .attr('y2', (d: D3Link) => (d.target as D3Node).y || 0);
-
-      node
-        .attr('cx', (d: D3Node) => d.x || 0)
-        .attr('cy', (d: D3Node) => d.y || 0);
-
-      label
-        .attr('x', (d: D3Node) => d.x || 0)
-        .attr('y', (d: D3Node) => d.y || 0);
-    });
+      .text((d: D3Node) => `Node ${d.name}\nType: ${d.type}`);
   }
 
   private getNodeType(nodeId: number, structure: any): string {
@@ -519,24 +771,7 @@ export class VisualizationComponent implements AfterViewInit {
     }
   }
 
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  private applyZoom() {
-    if (!this.dotContainer) return;
-    
-    const zoomLevel = this.zoomLevel();
-    const svg = d3.select(this.dotContainer.nativeElement).select('svg');
-    
-    if (!svg.empty()) {
-      const transform = d3.zoomIdentity.scale(zoomLevel / 100);
-      svg.call(d3.zoom().transform as any, transform);
-    }
-  }
-
+  // Event handlers
   onLayoutChange() {
     if (this.dotString()) {
       this.generateVisualization();
@@ -545,7 +780,16 @@ export class VisualizationComponent implements AfterViewInit {
 
   onZoomChange(value: number) {
     this.zoomLevel.set(value);
-    this.applyZoom();
+    
+    const container = this.dotContainer?.nativeElement || document.querySelector('.dot-container') as HTMLElement;
+    if (container) {
+      const svg = d3.select(container).select('svg');
+      if (!svg.empty()) {
+        const zoom = d3.zoom().scaleExtent([0.1, 4]);
+        const transform = d3.zoomIdentity.scale(value / 100);
+        svg.call(zoom.transform as any, transform);
+      }
+    }
   }
 
   onHighlightModeChange() {
@@ -596,9 +840,48 @@ export class VisualizationComponent implements AfterViewInit {
   }
 
   exportVisualization() {
-    // Future: Export as PNG/SVG
-    this.snackBar.open('Export feature coming soon!', 'Close', {
-      duration: 2000
-    });
+    const container = this.dotContainer?.nativeElement || document.querySelector('.dot-container') as HTMLElement;
+    if (!container) {
+      this.snackBar.open('Visualization container not available', 'Close', { duration: 2000 });
+      return;
+    }
+
+    const svg = container.querySelector('svg');
+    if (!svg) {
+      this.snackBar.open('No visualization to export', 'Close', { duration: 2000 });
+      return;
+    }
+
+    try {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `network_visualization_${Date.now()}.svg`;
+      link.click();
+      
+      URL.revokeObjectURL(url);
+      this.snackBar.open('Visualization exported as SVG!', 'Close', { duration: 2000 });
+    } catch (error) {
+      console.error('Export failed:', error);
+      this.snackBar.open('Export failed', 'Close', { duration: 2000 });
+    }
+  }
+
+  debugVisualization() {
+    console.log('🔍 DEBUG INFORMATION:');
+    console.log('Graph loaded:', this.isGraphLoaded());
+    console.log('DOT string available:', !!this.dotString());
+    console.log('DOT string length:', this.dotString()?.length || 0);
+    console.log('Container available:', !!this.dotContainer?.nativeElement);
+    console.log('Rendering library:', this.renderingLibrary());
+    console.log('Library loaded:', this.graphvizLoaded());
+    console.log('Current structure:', this.structure());
+    console.log('Node count:', this.nodeCount());
+    console.log('Edge count:', this.edgeCount());
+    
+    this.snackBar.open('Debug info logged to console', 'Close', { duration: 2000 });
   }
 }
