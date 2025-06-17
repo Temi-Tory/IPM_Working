@@ -15,6 +15,11 @@ interface UploadResult {
   message: string;
 }
 
+interface LoadResult {
+  success: boolean;
+  message: string;
+}
+
 @Component({
   selector: 'app-upload',
   standalone: true,
@@ -42,6 +47,9 @@ export class UploadComponent {
   isDragOver = signal(false);
   isUploading = signal(false);
   uploadResult = signal<UploadResult | null>(null);
+  csvContent = signal<string>('');
+  isLoadingGraph = signal(false);
+  loadResult = signal<LoadResult | null>(null);
 
   // Drag and drop handlers
   onDragOver(event: DragEvent): void {
@@ -101,24 +109,47 @@ export class UploadComponent {
       return;
     }
 
+    // Reset all states when selecting a new file
+    this.resetUploadState();
     this.selectedFile.set(file);
-    this.uploadResult.set(null);
+    
+    // Show warning if graph is already loaded
+    if (this.graphState.isGraphLoaded()) {
+      this.snackBar.open('New file selected - this will replace the current graph', 'Understood', {
+        duration: 5000
+      });
+    }
   }
 
-  // Upload functionality
+  private resetUploadState(): void {
+    this.uploadResult.set(null);
+    this.loadResult.set(null);
+    this.csvContent.set('');
+    this.isUploading.set(false);
+    this.isLoadingGraph.set(false);
+  }
+
+  // Upload functionality - just validate and store file content
   async uploadFile(): Promise<void> {
     const file = this.selectedFile();
     if (!file) return;
 
+    console.log('Starting upload for file:', file.name);
     this.isUploading.set(true);
     this.uploadResult.set(null);
+    this.loadResult.set(null);
 
     try {
       // Read file content
       const csvContent = await this.readFileContent(file);
+      console.log('File content read, length:', csvContent.length);
       
       // Validate CSV format
-      if (!this.validateCsvFormat(csvContent)) {
+      const isValid = this.validateCsvFormat(csvContent);
+      console.log('Validation result:', isValid);
+      
+      if (!isValid) {
+        console.log('Validation failed');
         this.uploadResult.set({
           success: false,
           message: 'Invalid adjacency matrix format. Please ensure the file contains a square matrix with node priors in the first column and edge probabilities in the remaining columns.'
@@ -126,6 +157,45 @@ export class UploadComponent {
         return;
       }
 
+      // Store CSV content for later processing
+      this.csvContent.set(csvContent);
+      console.log('CSV content stored');
+      
+      const result = {
+        success: true,
+        message: `File "${file.name}" validated successfully! Click "Load into Framework" to proceed.`
+      };
+      
+      this.uploadResult.set(result);
+      console.log('Upload result set:', result);
+
+      this.snackBar.open('File validated and ready to load!', 'Load Now', {
+        duration: 4000
+      }).onAction().subscribe(() => {
+        this.loadGraphIntoFramework();
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      this.uploadResult.set({
+        success: false,
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    } finally {
+      this.isUploading.set(false);
+      console.log('Upload process completed');
+    }
+  }
+
+  // Load graph into framework - separate step
+  async loadGraphIntoFramework(): Promise<void> {
+    const csvContent = this.csvContent();
+    if (!csvContent) return;
+
+    this.isLoadingGraph.set(true);
+    this.loadResult.set(null);
+
+    try {
       // Load graph using GraphStateService
       const result = await this.graphState.loadGraphFromCsv(csvContent, {
         message: 'Loading and analyzing graph structure...',
@@ -133,9 +203,9 @@ export class UploadComponent {
       });
 
       if (result.success) {
-        this.uploadResult.set({
+        this.loadResult.set({
           success: true,
-          message: `Graph loaded successfully! Found ${this.graphState.nodeCount()} nodes and ${this.graphState.edgeCount()} edges.`
+          message: `Graph loaded into framework! Found ${this.graphState.nodeCount()} nodes and ${this.graphState.edgeCount()} edges.`
         });
 
         // Show success message with action
@@ -145,29 +215,33 @@ export class UploadComponent {
           // Navigation will be handled by the template button
         });
       } else {
-        this.uploadResult.set({
+        this.loadResult.set({
           success: false,
-          message: result.error || 'Failed to load graph'
+          message: result.error || 'Failed to load graph into framework'
         });
       }
 
     } catch (error) {
-      this.uploadResult.set({
+      this.loadResult.set({
         success: false,
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        message: error instanceof Error ? error.message : 'Failed to load graph into framework'
       });
     } finally {
-      this.isUploading.set(false);
+      this.isLoadingGraph.set(false);
     }
   }
 
-  // Clear selected file
+  // Clear selected file and all state
   clearFile(): void {
     this.selectedFile.set(null);
-    this.uploadResult.set(null);
+    this.resetUploadState();
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
     }
+    
+    this.snackBar.open('File cleared - ready for new upload', 'Close', {
+      duration: 2000
+    });
   }
 
   // Utility methods
@@ -194,24 +268,36 @@ export class UploadComponent {
   }
 
   private validateCsvFormat(content: string): boolean {
-    const lines = content.trim().split('\n');
+    console.log('Validating CSV content:', content.substring(0, 200) + '...');
     
-    // Must have at least 2 rows for a valid adjacency matrix
-    if (lines.length < 2) return false;
+    const lines = content.trim().split('\n');
+    console.log('Number of lines:', lines.length);
+    
+    // Must have at least 1 row for a valid adjacency matrix
+    if (lines.length < 1) {
+      console.log('Validation failed: no lines');
+      return false;
+    }
     
     // Check first row to determine matrix dimensions
     const firstRow = lines[0].trim();
     const firstRowParts = firstRow.split(',');
+    console.log('First row parts:', firstRowParts.length, firstRowParts);
     
     // Must have at least 2 columns (node prior + at least 1 adjacency column)
-    if (firstRowParts.length < 2) return false;
+    if (firstRowParts.length < 2) {
+      console.log('Validation failed: less than 2 columns');
+      return false;
+    }
     
     const matrixSize = firstRowParts.length;
+    console.log('Matrix size (columns):', matrixSize);
     
     // Validate that all rows have the same number of columns
     for (let i = 0; i < lines.length; i++) {
       const rowParts = lines[i].trim().split(',');
       if (rowParts.length !== matrixSize) {
+        console.log(`Validation failed: row ${i} has ${rowParts.length} columns, expected ${matrixSize}`);
         return false;
       }
       
@@ -219,13 +305,25 @@ export class UploadComponent {
       for (const part of rowParts) {
         const value = parseFloat(part.trim());
         if (isNaN(value)) {
+          console.log(`Validation failed: invalid number "${part}" in row ${i}`);
           return false;
         }
       }
     }
     
-    // Matrix should be square (n rows for n-1 adjacency columns + 1 prior column)
-    return lines.length === matrixSize - 1;
+    // For adjacency matrix: number of rows should equal number of nodes
+    // The matrix columns are: [node_prior, adj_1, adj_2, ..., adj_n]
+    // So matrixSize = n + 1, and we should have n rows
+    const expectedRows = matrixSize - 1;
+    console.log(`Expected rows: ${expectedRows}, actual rows: ${lines.length}`);
+    
+    if (lines.length !== expectedRows) {
+      console.log('Validation failed: row count mismatch');
+      return false;
+    }
+    
+    console.log('Validation passed!');
+    return true;
   }
 
   // Sample data generation

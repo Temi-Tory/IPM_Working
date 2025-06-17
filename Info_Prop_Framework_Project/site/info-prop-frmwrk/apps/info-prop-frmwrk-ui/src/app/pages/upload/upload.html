@@ -16,15 +16,11 @@
           class="upload-area"
           [class.drag-over]="isDragOver()"
           [class.has-file]="selectedFile()"
+          [class.has-loaded-graph]="graphState.isGraphLoaded()"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
-          (click)="fileInput.click()"
-          (keydown.enter)="fileInput.click()"
-          (keydown.space)="fileInput.click()"
-          tabindex="0"
-          role="button"
-          [attr.aria-label]="selectedFile() ? 'Change selected file: ' + selectedFile()?.name : 'Click to select a file or drag and drop'">
+          [attr.aria-label]="selectedFile() ? 'Selected file: ' + selectedFile()?.name : 'Drag and drop CSV file here'">
           
           <input
             #fileInput
@@ -34,28 +30,85 @@
             style="display: none;">
           
           <div class="upload-content">
-            @if (!selectedFile) {
+            @if (!selectedFile()) {
               <mat-icon class="upload-icon">cloud_upload</mat-icon>
-              <h3>Drop CSV file here or click to browse</h3>
-              <p>Supported formats: CSV, TXT</p>
-              <button mat-raised-button color="primary" type="button">
+              <h3>Select CSV File</h3>
+              <p>Drag and drop your CSV file here or click browse</p>
+              <p class="format-info">Supported formats: CSV, TXT</p>
+              <button mat-raised-button color="primary" type="button" (click)="fileInput.click()">
                 <mat-icon>folder_open</mat-icon>
-                Browse Files
+                Browse Computer
               </button>
             } @else {
-              <mat-icon class="file-icon">description</mat-icon>
+              @if (graphState.isGraphLoaded()) {
+                <div class="warning-section">
+                  <mat-icon class="warning-icon">warning</mat-icon>
+                  <h3>Replace Current Graph?</h3>
+                  <p>A graph is already loaded. Selecting a new file will reset all current data and analysis.</p>
+                </div>
+              }
+              
+              <mat-icon class="file-icon" [class.ready]="!uploadResult()">description</mat-icon>
               <h3>{{ selectedFile()?.name }}</h3>
               <p>{{ formatFileSize(selectedFile()?.size || 0) }} • {{ selectedFile()?.type || 'text/csv' }}</p>
-              <div class="file-actions">
-                <button mat-raised-button color="primary" (click)="uploadFile()" [disabled]="isUploading">
-                  <mat-icon>upload</mat-icon>
-                  Load Graph
-                </button>
-                <button mat-stroked-button (click)="clearFile()" [disabled]="isUploading">
-                  <mat-icon>clear</mat-icon>
-                  Clear
-                </button>
-              </div>
+              
+              @if (!uploadResult()) {
+                <div class="step-indicator">
+                  <span class="step-number">1</span>
+                  <span class="step-text">File selected - ready to validate</span>
+                </div>
+                <div class="file-actions">
+                  <button mat-raised-button color="primary" (click)="uploadFile()" [disabled]="isUploading()">
+                    <mat-icon>check_circle</mat-icon>
+                    Validate & Prepare File
+                  </button>
+                  <button mat-stroked-button (click)="clearFile()" [disabled]="isUploading()">
+                    <mat-icon>clear</mat-icon>
+                    Remove File
+                  </button>
+                </div>
+              } @else if (uploadResult()?.success && !graphState.isGraphLoaded()) {
+                <div class="step-indicator success">
+                  <span class="step-number">2</span>
+                  <span class="step-text">File validated - ready to load into framework</span>
+                </div>
+                <div class="file-actions">
+                  <button mat-raised-button color="accent" (click)="loadGraphIntoFramework()" [disabled]="isLoadingGraph()">
+                    <mat-icon>settings</mat-icon>
+                    Load into Framework
+                  </button>
+                  <button mat-stroked-button (click)="clearFile()" [disabled]="isLoadingGraph()">
+                    <mat-icon>clear</mat-icon>
+                    Start Over
+                  </button>
+                </div>
+              } @else if (uploadResult()?.success && graphState.isGraphLoaded()) {
+                <div class="step-indicator warning">
+                  <span class="step-number">!</span>
+                  <span class="step-text">Ready to replace current graph</span>
+                </div>
+                <div class="file-actions">
+                  <button mat-raised-button color="warn" (click)="loadGraphIntoFramework()" [disabled]="isLoadingGraph()">
+                    <mat-icon>swap_horiz</mat-icon>
+                    Replace Current Graph
+                  </button>
+                  <button mat-stroked-button (click)="clearFile()" [disabled]="isLoadingGraph()">
+                    <mat-icon>clear</mat-icon>
+                    Cancel
+                  </button>
+                </div>
+              } @else {
+                <div class="file-actions">
+                  <button mat-raised-button color="primary" (click)="uploadFile()" [disabled]="isUploading()">
+                    <mat-icon>refresh</mat-icon>
+                    Try Again
+                  </button>
+                  <button mat-stroked-button (click)="clearFile()" [disabled]="isUploading()">
+                    <mat-icon>clear</mat-icon>
+                    Remove File
+                  </button>
+                </div>
+              }
             }
           </div>
         </div>
@@ -76,7 +129,7 @@
                 <div class="success-content">
                   <mat-icon>check_circle</mat-icon>
                   <div>
-                    <h4>Graph loaded successfully!</h4>
+                    <h4>File uploaded successfully!</h4>
                     <p>{{ uploadResult()?.message }}</p>
                   </div>
                 </div>
@@ -86,6 +139,45 @@
                   <div>
                     <h4>Upload failed</h4>
                     <p>{{ uploadResult()?.message }}</p>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Load Progress -->
+        @if (isLoadingGraph()) {
+          <div class="upload-progress">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <p>Loading graph into framework...</p>
+          </div>
+        }
+
+        <!-- Load Results -->
+        @if (loadResult()) {
+          <mat-card class="result-card" [class.success]="loadResult()?.success" [class.error]="!loadResult()?.success">
+            <mat-card-content>
+              @if (loadResult()?.success) {
+                <div class="success-content">
+                  <mat-icon>check_circle</mat-icon>
+                  <div>
+                    <h4>Graph loaded into framework!</h4>
+                    <p>{{ loadResult()?.message }}</p>
+                  </div>
+                </div>
+                <div class="next-step-actions">
+                  <button mat-raised-button color="primary" routerLink="/parameters">
+                    <mat-icon>tune</mat-icon>
+                    Configure Parameters
+                  </button>
+                </div>
+              } @else {
+                <div class="error-content">
+                  <mat-icon>error</mat-icon>
+                  <div>
+                    <h4>Framework load failed</h4>
+                    <p>{{ loadResult()?.message }}</p>
                   </div>
                 </div>
               }

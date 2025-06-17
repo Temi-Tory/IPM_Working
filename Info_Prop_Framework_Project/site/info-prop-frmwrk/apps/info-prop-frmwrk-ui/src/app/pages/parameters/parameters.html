@@ -40,6 +40,12 @@
             <mat-icon>diamond</mat-icon>
             <span>{{ hasDiamonds() ? 'Has diamonds' : 'No diamonds' }}</span>
           </div>
+          @if (getNodeOverrideCount() > 0 || getEdgeOverrideCount() > 0) {
+            <div class="summary-item">
+              <mat-icon>tune</mat-icon>
+              <span>{{ getNodeOverrideCount() + getEdgeOverrideCount() }} parameter variations from file</span>
+            </div>
+          }
         </div>
       </mat-card-content>
     </mat-card>
@@ -200,6 +206,113 @@
                       help_outline
                     </mat-icon>
                   </mat-checkbox>
+
+                  @if (advancedForm.get('useIndividualOverrides')?.value) {
+                    <div class="individual-overrides-section">
+                      <mat-divider></mat-divider>
+                      
+                      <h4>Individual Parameter Overrides</h4>
+                      <p class="override-description">
+                        These values are loaded from your uploaded file. You can modify individual node and edge parameters here, or leave blank to use the global values above.
+                      </p>
+
+                      <!-- Individual Node Priors -->
+                      <mat-expansion-panel class="override-panel">
+                        <mat-expansion-panel-header>
+                          <mat-panel-title>
+                            <mat-icon>radio_button_unchecked</mat-icon>
+                            Node Prior Overrides
+                          </mat-panel-title>
+                          <mat-panel-description>
+                            {{ getNodeOverrideCount() }} of {{ nodeCount() }} nodes overridden
+                          </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        
+                        <div class="node-overrides-grid">
+                          @for (nodeId of getAvailableNodes(); track nodeId) {
+                            <div class="override-item">
+                              <mat-form-field appearance="outline" class="node-override-field">
+                                <mat-label>Node {{ nodeId }}</mat-label>
+                                <input
+                                  matInput
+                                  type="number"
+                                  min="0.01"
+                                  max="1.0"
+                                  step="0.01"
+                                  [value]="getNodeOverride(nodeId)"
+                                  (input)="setNodeOverride(nodeId, $event)"
+                                  placeholder="Use global ({{ formatSliderValue(basicForm.get('nodePrior')?.value || 0) }})">
+                                <mat-hint>Leave empty for global value</mat-hint>
+                              </mat-form-field>
+                              @if (getNodeOverride(nodeId)) {
+                                <button
+                                  mat-icon-button
+                                  (click)="clearNodeOverride(nodeId)"
+                                  matTooltip="Clear override">
+                                  <mat-icon>clear</mat-icon>
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+                        
+                        <div class="override-actions">
+                          <button mat-button (click)="clearAllNodeOverrides()">
+                            <mat-icon>clear_all</mat-icon>
+                            Clear All Node Overrides
+                          </button>
+                        </div>
+                      </mat-expansion-panel>
+
+                      <!-- Individual Edge Probabilities -->
+                      <mat-expansion-panel class="override-panel">
+                        <mat-expansion-panel-header>
+                          <mat-panel-title>
+                            <mat-icon>trending_flat</mat-icon>
+                            Edge Probability Overrides
+                          </mat-panel-title>
+                          <mat-panel-description>
+                            {{ getEdgeOverrideCount() }} of {{ edgeCount() }} edges overridden
+                          </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        
+                        <div class="edge-overrides-grid">
+                          @for (edge of getAvailableEdges(); track edge.key) {
+                            <div class="override-item">
+                              <mat-form-field appearance="outline" class="edge-override-field">
+                                <mat-label>{{ edge.from }} → {{ edge.to }}</mat-label>
+                                <input
+                                  matInput
+                                  type="number"
+                                  min="0.01"
+                                  max="1.0"
+                                  step="0.01"
+                                  [value]="getEdgeOverride(edge.key)"
+                                  (input)="setEdgeOverride(edge.key, $event)"
+                                  placeholder="Use global ({{ formatSliderValue(basicForm.get('edgeProb')?.value || 0) }})">
+                                <mat-hint>Leave empty for global value</mat-hint>
+                              </mat-form-field>
+                              @if (getEdgeOverride(edge.key)) {
+                                <button
+                                  mat-icon-button
+                                  (click)="clearEdgeOverride(edge.key)"
+                                  matTooltip="Clear override">
+                                  <mat-icon>clear</mat-icon>
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+                        
+                        <div class="override-actions">
+                          <button mat-button (click)="clearAllEdgeOverrides()">
+                            <mat-icon>clear_all</mat-icon>
+                            Clear All Edge Overrides
+                          </button>
+                        </div>
+                      </mat-expansion-panel>
+                    </div>
+                  }
                 </div>
               </form>
             </div>
@@ -237,7 +350,7 @@
               (click)="resetToDefaults()"
               [disabled]="isRunningAnalysis()">
               <mat-icon>refresh</mat-icon>
-              Reset to Defaults
+              Reset to File Values
             </button>
           </div>
 

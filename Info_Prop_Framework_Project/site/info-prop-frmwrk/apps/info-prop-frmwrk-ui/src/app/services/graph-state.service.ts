@@ -463,12 +463,62 @@ export class GraphStateService {
   }
 
   private updateParametersFromAnalysis(result: FullAnalysisResponse): void {
-    // Update the stored parameters if they were modified during analysis
+    // Log parameter modification statistics from analysis
     const structure = this.graphStructure();
     if (structure && result.parameterModifications) {
-      // This would require the API to return the updated parameters
-      // For now, we just note that parameters were modified
-      console.log('Parameters were modified:', result.parameterModifications);
+      console.log('Parameter modifications from analysis:', result.parameterModifications);
+      
+      // The API currently only returns modification counts, not the actual updated values
+      // If the API is enhanced to return updated parameters, we would update the structure here
+      
+      // For now, we just log the modification statistics
+      const mods = result.parameterModifications;
+      if (mods.totalNodesModified > 0 || mods.totalEdgesModified > 0) {
+        console.log(`Analysis modified ${mods.totalNodesModified} nodes and ${mods.totalEdgesModified} edges`);
+        
+        // Trigger a refresh to notify components that parameters may have changed
+        this.refreshParameterDependentState();
+      }
     }
+  }
+
+  /**
+   * Force refresh of parameter-dependent components
+   * Call this when parameters are updated globally
+   */
+  refreshParameterDependentState(): void {
+    // Trigger a state update to notify all components that depend on parameters
+    this.updateState({
+      loadedAt: new Date() // Update timestamp to trigger reactivity
+    });
+  }
+
+  /**
+   * Update global parameters programmatically
+   * This method allows components to update the global parameter state
+   */
+  updateGlobalParameters(
+    nodeUpdates?: { [nodeId: string]: number },
+    edgeUpdates?: { [edgeKey: string]: number }
+  ): void {
+    const structure = this.graphStructure();
+    if (!structure) return;
+
+    const updatedStructure: GraphStructure = {
+      ...structure,
+      node_priors: nodeUpdates
+        ? { ...structure.node_priors, ...nodeUpdates }
+        : structure.node_priors,
+      edge_probabilities: edgeUpdates
+        ? { ...structure.edge_probabilities, ...edgeUpdates }
+        : structure.edge_probabilities
+    };
+
+    this.updateState({
+      structure: updatedStructure
+    });
+
+    console.log('Global parameters updated:', { nodeUpdates, edgeUpdates });
+    this.refreshParameterDependentState();
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -68,6 +68,10 @@ export class ParametersComponent {
   isRunningAnalysis = signal(false);
   analysisProgress = signal(0);
   lastAnalysisResult = signal<any>(null);
+  
+  // Individual parameter overrides
+  nodeOverrides = signal<{ [nodeId: string]: number }>({});
+  edgeOverrides = signal<{ [edgeKey: string]: number }>({});
 
   // Parameter presets
   readonly presets: ParameterPreset[] = [
@@ -122,10 +126,20 @@ export class ParametersComponent {
       monteCarloSamples: [10000, [Validators.min(1000), Validators.max(1000000)]]
     });
 
+    // Initialize form values from loaded graph data
+    this.initializeFromGraphData();
+
     // Redirect if no graph is loaded
     if (!this.isGraphLoaded()) {
       this.router.navigate(['/upload']);
     }
+
+    // Watch for graph changes and reinitialize
+    effect(() => {
+      if (this.isGraphLoaded()) {
+        this.initializeFromGraphData();
+      }
+    });
   }
 
   applyPreset(preset: ParameterPreset): void {
@@ -156,9 +170,16 @@ export class ParametersComponent {
         this.analysisProgress.update(current => Math.min(current + 10, 90));
       }, 200);
 
+      // Include individual overrides in advanced options
+      const enhancedAdvancedOptions = {
+        ...advancedOptions,
+        individualNodePriors: this.nodeOverrides(),
+        individualEdgeProbabilities: this.edgeOverrides()
+      };
+
       const result = await this.graphState.runFullAnalysis(
         basicParams,
-        advancedOptions,
+        enhancedAdvancedOptions,
         {
           message: 'Running full analysis with your parameters...',
           showCancelButton: true
@@ -170,6 +191,10 @@ export class ParametersComponent {
 
       if (result.success) {
         this.lastAnalysisResult.set(result.result);
+        
+        // Sync current parameters to global state after successful analysis
+        this.syncParametersToGlobalState();
+        
         this.snackBar.open('Analysis completed successfully!', 'View Results', {
           duration: 5000
         }).onAction().subscribe(() => {
@@ -181,7 +206,7 @@ export class ParametersComponent {
         });
       }
 
-    } catch (error) {
+    } catch  {
       this.snackBar.open('Analysis failed due to an unexpected error', 'Close', {
         duration: 5000
       });
@@ -192,12 +217,8 @@ export class ParametersComponent {
   }
 
   resetToDefaults(): void {
-    this.basicForm.reset({
-      nodePrior: 0.85,
-      edgeProb: 0.90,
-      overrideNodePrior: true,
-      overrideEdgeProb: true
-    });
+    // Reset to original file values, not hardcoded defaults
+    this.initializeFromGraphData();
 
     this.advancedForm.reset({
       includeClassification: true,
@@ -206,7 +227,7 @@ export class ParametersComponent {
       monteCarloSamples: 10000
     });
 
-    this.snackBar.open('Parameters reset to defaults', 'Close', {
+    this.snackBar.open('Parameters reset to original file values', 'Close', {
       duration: 2000
     });
   }
@@ -224,5 +245,243 @@ export class ParametersComponent {
       useIndividualOverrides: 'Allow individual node/edge parameter overrides'
     };
     return descriptions[param] || '';
+  }
+
+  private initializeFromGraphData(): void {
+    const structure = this.graphState.graphStructure();
+    if (!structure) {
+      // Clear everything if no structure
+      this.clearAllOverrides();
+      return;
+    }
+
+    // Calculate average node prior from file data
+    const nodePriors = Object.values(structure.node_priors || {});
+    const avgNodePrior = nodePriors.length > 0
+      ? nodePriors.reduce((sum, val) => sum + val, 0) / nodePriors.length
+      : 0.85;
+
+    // Calculate average edge probability from file data
+    const edgeProbs = Object.values(structure.edge_probabilities || {});
+    const avgEdgeProb = edgeProbs.length > 0
+      ? edgeProbs.reduce((sum, val) => sum + val, 0) / edgeProbs.length
+      : 0.90;
+
+    // Update form with values from uploaded file
+    this.basicForm.patchValue({
+      nodePrior: avgNodePrior,
+      edgeProb: avgEdgeProb
+    });
+
+    // CLEAR ALL EXISTING OVERRIDES FIRST - new file upload starts fresh
+    this.clearAllOverrides();
+
+    // Initialize individual overrides from file data
+    if (structure.node_priors) {
+      const nodeOverrides: { [nodeId: string]: number } = {};
+      Object.entries(structure.node_priors).forEach(([nodeId, value]) => {
+        // Only set as override if it differs from the average
+        if (Math.abs(value - avgNodePrior) > 0.001) {
+          nodeOverrides[nodeId] = value;
+        }
+      });
+      this.nodeOverrides.set(nodeOverrides);
+    }
+
+    if (structure.edge_probabilities) {
+      const edgeOverrides: { [edgeKey: string]: number } = {};
+      Object.entries(structure.edge_probabilities).forEach(([edgeKey, value]) => {
+        // Only set as override if it differs from the average
+        if (Math.abs(value - avgEdgeProb) > 0.001) {
+          edgeOverrides[edgeKey] = value;
+        }
+      });
+      this.edgeOverrides.set(edgeOverrides);
+    }
+
+    // Show notification about loaded values
+    const hasVariedValues = this.getNodeOverrideCount() > 0 || this.getEdgeOverrideCount() > 0;
+    if (hasVariedValues) {
+      this.snackBar.open(
+        `New file loaded: ${this.getNodeOverrideCount()} node and ${this.getEdgeOverrideCount()} edge parameter variations detected`,
+        'Close',
+        { duration: 4000 }
+      );
+    } else {
+      this.snackBar.open(
+        `New file loaded with uniform parameters: ${this.formatSliderValue(avgNodePrior)} node prior, ${this.formatSliderValue(avgEdgeProb)} edge probability`,
+        'Close',
+        { duration: 3000 }
+      );
+    }
+  }
+
+  private clearAllOverrides(): void {
+    this.nodeOverrides.set({});
+    this.edgeOverrides.set({});
+  }
+
+  getOriginalFileValues(): { avgNodePrior: number; avgEdgeProb: number } {
+    const structure = this.graphState.graphStructure();
+    if (!structure) return { avgNodePrior: 0.85, avgEdgeProb: 0.90 };
+
+    const nodePriors = Object.values(structure.node_priors || {});
+    const avgNodePrior = nodePriors.length > 0
+      ? nodePriors.reduce((sum, val) => sum + val, 0) / nodePriors.length
+      : 0.85;
+
+    const edgeProbs = Object.values(structure.edge_probabilities || {});
+    const avgEdgeProb = edgeProbs.length > 0
+      ? edgeProbs.reduce((sum, val) => sum + val, 0) / edgeProbs.length
+      : 0.90;
+
+    return { avgNodePrior, avgEdgeProb };
+  }
+
+  // Node override methods
+  getNodeOverrideCount(): number {
+    return Object.keys(this.nodeOverrides()).length;
+  }
+
+  getAvailableNodes(): number[] {
+    const structure = this.graphState.graphStructure();
+    if (!structure?.edgelist) return [];
+    
+    const nodes = new Set<number>();
+    structure.edgelist.forEach(([from, to]) => {
+      nodes.add(from);
+      nodes.add(to);
+    });
+    return Array.from(nodes).sort((a, b) => a - b);
+  }
+
+  getNodeOverride(nodeId: number): number | null {
+    return this.nodeOverrides()[nodeId.toString()] || null;
+  }
+
+  setNodeOverride(nodeId: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    
+    if (isNaN(value) || value === 0) {
+      this.clearNodeOverride(nodeId);
+      return;
+    }
+
+    if (value >= 0.01 && value <= 1.0) {
+      this.nodeOverrides.update(overrides => ({
+        ...overrides,
+        [nodeId.toString()]: value
+      }));
+    }
+  }
+
+  clearNodeOverride(nodeId: number): void {
+    this.nodeOverrides.update(overrides => {
+      const updated = { ...overrides };
+      delete updated[nodeId.toString()];
+      return updated;
+    });
+  }
+
+  clearAllNodeOverrides(): void {
+    this.nodeOverrides.set({});
+    this.snackBar.open('All node overrides cleared', 'Close', {
+      duration: 2000
+    });
+  }
+
+  // Edge override methods
+  getEdgeOverrideCount(): number {
+    return Object.keys(this.edgeOverrides()).length;
+  }
+
+  getAvailableEdges(): { key: string; from: number; to: number }[] {
+    const structure = this.graphState.graphStructure();
+    if (!structure?.edgelist) return [];
+    
+    return structure.edgelist.map(([from, to]) => ({
+      key: `${from}-${to}`,
+      from,
+      to
+    }));
+  }
+
+  getEdgeOverride(edgeKey: string): number | null {
+    return this.edgeOverrides()[edgeKey] || null;
+  }
+
+  setEdgeOverride(edgeKey: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    
+    if (isNaN(value) || value === 0) {
+      this.clearEdgeOverride(edgeKey);
+      return;
+    }
+
+    if (value >= 0.01 && value <= 1.0) {
+      this.edgeOverrides.update(overrides => ({
+        ...overrides,
+        [edgeKey]: value
+      }));
+    }
+  }
+
+  clearEdgeOverride(edgeKey: string): void {
+    this.edgeOverrides.update(overrides => {
+      const updated = { ...overrides };
+      delete updated[edgeKey];
+      return updated;
+    });
+  }
+
+  clearAllEdgeOverrides(): void {
+    this.edgeOverrides.set({});
+    this.snackBar.open('All edge overrides cleared', 'Close', {
+      duration: 2000
+    });
+  }
+
+  /**
+   * Update global parameters when user makes changes
+   * This ensures the global state stays in sync with user modifications
+   */
+  updateGlobalParametersFromOverrides(): void {
+    const nodeOverrides = this.nodeOverrides();
+    const edgeOverrides = this.edgeOverrides();
+    
+    if (Object.keys(nodeOverrides).length > 0 || Object.keys(edgeOverrides).length > 0) {
+      this.graphState.updateGlobalParameters(
+        Object.keys(nodeOverrides).length > 0 ? nodeOverrides : undefined,
+        Object.keys(edgeOverrides).length > 0 ? edgeOverrides : undefined
+      );
+    }
+  }
+
+  /**
+   * Called when analysis is complete to sync any parameter changes back to global state
+   */
+  private syncParametersToGlobalState(): void {
+    // Update global state with current form values and overrides
+    const basicParams = this.basicForm.value;
+    const nodeOverrides = this.nodeOverrides();
+    const edgeOverrides = this.edgeOverrides();
+
+    // Build complete parameter sets
+    const allNodePriors: { [nodeId: string]: number } = {};
+    const allEdgeProbabilities: { [edgeKey: string]: number } = {};
+
+    // Set global values for all nodes/edges first
+    this.getAvailableNodes().forEach(nodeId => {
+      allNodePriors[nodeId.toString()] = nodeOverrides[nodeId.toString()] || basicParams.nodePrior;
+    });
+
+    this.getAvailableEdges().forEach(edge => {
+      allEdgeProbabilities[edge.key] = edgeOverrides[edge.key] || basicParams.edgeProb;
+    });
+
+    // Update global state
+    this.graphState.updateGlobalParameters(allNodePriors, allEdgeProbabilities);
   }
 }
