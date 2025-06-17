@@ -60,17 +60,6 @@
             </mat-select>
           </div>
 
-          <!-- Zoom Control -->
-          <div class="control-group">
-            <span class="control-label">Zoom Level: {{ zoomLevel() }}%</span>
-            <mat-slider
-              min="25"
-              max="200"
-              step="25"
-              class="zoom-slider">
-              <input matSliderThumb [value]="zoomLevel()" (valueChange)="onZoomChange($event)">
-            </mat-slider>
-          </div>
 
           <!-- Display Options -->
           <div class="control-group">
@@ -131,13 +120,6 @@
             Export Image
           </button>
 
-          <button 
-            mat-stroked-button 
-            (click)="debugVisualization()"
-            color="accent">
-            <mat-icon>bug_report</mat-icon>
-            Debug Info
-          </button>
 
 
           <button 

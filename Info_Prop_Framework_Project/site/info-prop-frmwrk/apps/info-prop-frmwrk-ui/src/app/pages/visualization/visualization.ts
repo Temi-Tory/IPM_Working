@@ -112,7 +112,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
 
   // Lifecycle hooks
   async ngAfterViewInit(): Promise<void> {
-    console.log('🔧 Visualization component initializing...');
     
     // If graph is already loaded, generate visualization
     if (this.isGraphLoaded()) {
@@ -121,7 +120,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       }, 200);
     }
     
-    console.log('✅ Visualization component initialized');
   }
 
   ngOnDestroy(): void {
@@ -151,14 +149,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       }
 
       const config = this.currentConfig();
-      console.log('🎨 Generating visualization with config:', {
-        layout: config.layout,
-        highlightMode: config.highlightMode,
-        highlights: config.highlights.length,
-        showNodeLabels: config.showNodeLabels,
-        showEdgeLabels: config.showEdgeLabels,
-        zoomLevel: config.zoomLevel
-      });
 
       // Clear container
       container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Preparing D3 visualization...</div>';
@@ -170,11 +160,10 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       
       const message = this.isUpdating() 
         ? 'Visualization updated!'
-        : 'Visualization generated successfully with D3!';
+        : 'Visualization generated successfully!';
         
       this.showSuccess(message);
-      
-      console.log('✅ D3 rendering completed successfully');
+      ;
 
     } catch (error) {
       console.error('❌ Visualization generation failed:', error);
@@ -198,12 +187,10 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
 
   // Event handlers - each triggers immediate re-rendering
   onLayoutChange(): void {
-    console.log(`🔄 Layout changed to: ${this.selectedLayout()}`);
     this.triggerUpdate('Layout');
   }
 
   onZoomChange(value: number): void {
-    console.log(`🔍 Zoom changed to: ${value}%`);
     this.zoomLevel.set(value);
     
     // Apply zoom immediately without full re-render for better UX
@@ -214,18 +201,14 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   }
 
   onHighlightModeChange(): void {
-    console.log(`🎨 Highlight mode changed to: ${this.highlightMode()}`);
-    console.log('🎨 Available highlights:', this.nodeHighlights());
     this.triggerUpdate('Highlighting');
   }
 
   onNodeLabelsChange(): void {
-    console.log(`🏷️ Node labels changed to: ${this.showNodeLabels()}`);
     this.triggerUpdate('Node labels');
   }
 
   onEdgeLabelsChange(): void {
-    console.log(`🏷️ Edge labels changed to: ${this.showEdgeLabels()}`);
     this.triggerUpdate('Edge labels');
   }
 
@@ -327,7 +310,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   }
 
   resetView(): void {
-    console.log('🔄 Resetting view to defaults...');
     
     this.zoomLevel.set(ZOOM_CONFIG.DEFAULT);
     this.selectedLayout.set('dot');
@@ -343,58 +325,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  debugVisualization(): void {
-    const config = this.currentConfig();
-    const highlights = this.nodeHighlights();
-    
-    console.log('🔍 VISUALIZATION DEBUG INFORMATION:');
-    console.log('='.repeat(50));
-    console.log('📊 GRAPH STATE:');
-    console.log('  Graph loaded:', this.isGraphLoaded());
-    console.log('  Node count:', this.nodeCount());
-    console.log('  Edge count:', this.edgeCount());
-    console.log('  Structure available:', !!this.structure());
-    console.log('');
-    console.log('🎛️ CURRENT CONFIGURATION:');
-    console.log('  Layout:', config.layout);
-    console.log('  Highlight mode:', config.highlightMode);
-    console.log('  Show node labels:', config.showNodeLabels);
-    console.log('  Show edge labels:', config.showEdgeLabels);
-    console.log('  Zoom level:', config.zoomLevel + '%');
-    console.log('');
-    console.log('🎨 HIGHLIGHTING:');
-    console.log('  Active highlights:', highlights.length);
-    console.log('  Highlight details:', highlights);
-    if (highlights.length > 0) {
-      highlights.forEach(h => console.log(`    Node ${h.nodeId}: ${h.type} (${h.color})`));
-    }
-    console.log('');
-    console.log('🔧 COMPONENT STATE:');
-    console.log('  Container available:', !!this.getContainer());
-    console.log('  ViewChild available:', !!this.dotContainer?.nativeElement);
-    console.log('  Has rendered once:', this.hasRenderedOnce());
-    console.log('  Is generating:', this.isGeneratingDot());
-    console.log('  Is updating:', this.isUpdating());
-    console.log('  d3 available:', !!window.d3);
-    console.log('  Renderer: D3 only');
-    console.log('='.repeat(50));
-    
-    // Also log graph structure details
-    const structure = this.structure();
-    if (structure) {
-      console.log('📊 GRAPH STRUCTURE DETAILS:');
-      console.log('  Source nodes:', structure.source_nodes?.length || 0, structure.source_nodes);
-      console.log('  Fork nodes:', structure.fork_nodes?.length || 0, structure.fork_nodes);
-      console.log('  Join nodes:', structure.join_nodes?.length || 0, structure.join_nodes);
-      console.log('  Edge list length:', structure.edgelist?.length || 0);
-      console.log('  First few edges:', structure.edgelist?.slice(0, 5));
-      console.log('  Iteration sets:', structure.iteration_sets?.length || 0);
-      console.log('='.repeat(50));
-    }
-    
-    this.showSuccess('Debug information logged to console');
-  }
-
+ 
   // Private methods
   private getContainer(): HTMLElement | null {
     if (this.dotContainer?.nativeElement) {

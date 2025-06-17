@@ -134,7 +134,6 @@ export class UploadComponent {
     const file = this.selectedFile();
     if (!file) return;
 
-    console.log('Starting upload for file:', file.name);
     this.isUploading.set(true);
     this.uploadResult.set(null);
     this.loadResult.set(null);
@@ -142,14 +141,11 @@ export class UploadComponent {
     try {
       // Read file content
       const csvContent = await this.readFileContent(file);
-      console.log('File content read, length:', csvContent.length);
       
       // Validate CSV format
       const isValid = this.validateCsvFormat(csvContent);
-      console.log('Validation result:', isValid);
       
       if (!isValid) {
-        console.log('Validation failed');
         this.uploadResult.set({
           success: false,
           message: 'Invalid adjacency matrix format. Please ensure the file contains a square matrix with node priors in the first column and edge probabilities in the remaining columns.'
@@ -159,7 +155,6 @@ export class UploadComponent {
 
       // Store CSV content for later processing
       this.csvContent.set(csvContent);
-      console.log('CSV content stored');
       
       const result = {
         success: true,
@@ -167,7 +162,6 @@ export class UploadComponent {
       };
       
       this.uploadResult.set(result);
-      console.log('Upload result set:', result);
 
       this.snackBar.open('File validated and ready to load!', 'Load Now', {
         duration: 4000
@@ -183,7 +177,6 @@ export class UploadComponent {
       });
     } finally {
       this.isUploading.set(false);
-      console.log('Upload process completed');
     }
   }
 
@@ -268,36 +261,29 @@ export class UploadComponent {
   }
 
   private validateCsvFormat(content: string): boolean {
-    console.log('Validating CSV content:', content.substring(0, 200) + '...');
     
     const lines = content.trim().split('\n');
-    console.log('Number of lines:', lines.length);
     
     // Must have at least 1 row for a valid adjacency matrix
     if (lines.length < 1) {
-      console.log('Validation failed: no lines');
       return false;
     }
     
     // Check first row to determine matrix dimensions
     const firstRow = lines[0].trim();
     const firstRowParts = firstRow.split(',');
-    console.log('First row parts:', firstRowParts.length, firstRowParts);
     
     // Must have at least 2 columns (node prior + at least 1 adjacency column)
     if (firstRowParts.length < 2) {
-      console.log('Validation failed: less than 2 columns');
       return false;
     }
     
     const matrixSize = firstRowParts.length;
-    console.log('Matrix size (columns):', matrixSize);
     
     // Validate that all rows have the same number of columns
     for (let i = 0; i < lines.length; i++) {
       const rowParts = lines[i].trim().split(',');
       if (rowParts.length !== matrixSize) {
-        console.log(`Validation failed: row ${i} has ${rowParts.length} columns, expected ${matrixSize}`);
         return false;
       }
       
@@ -305,7 +291,6 @@ export class UploadComponent {
       for (const part of rowParts) {
         const value = parseFloat(part.trim());
         if (isNaN(value)) {
-          console.log(`Validation failed: invalid number "${part}" in row ${i}`);
           return false;
         }
       }
@@ -315,14 +300,11 @@ export class UploadComponent {
     // The matrix columns are: [node_prior, adj_1, adj_2, ..., adj_n]
     // So matrixSize = n + 1, and we should have n rows
     const expectedRows = matrixSize - 1;
-    console.log(`Expected rows: ${expectedRows}, actual rows: ${lines.length}`);
     
     if (lines.length !== expectedRows) {
-      console.log('Validation failed: row count mismatch');
       return false;
     }
     
-    console.log('Validation passed!');
     return true;
   }
 

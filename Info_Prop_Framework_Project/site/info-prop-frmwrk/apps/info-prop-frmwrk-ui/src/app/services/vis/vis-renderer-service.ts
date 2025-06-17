@@ -29,14 +29,6 @@ export class VisualizationRendererService {
     this.lastRenderedContainer = container;
     
     try {
-      console.log('🎨 Rendering with D3, config:', {
-        layout: config.layout,
-        highlights: config.highlights.length,
-        showNodeLabels: config.showNodeLabels,
-        showEdgeLabels: config.showEdgeLabels,
-        highlightMode: config.highlightMode,
-        zoomLevel: config.zoomLevel
-      });
       
       const { nodes, links } = this.prepareD3Data(structure, config);
       
@@ -52,7 +44,6 @@ export class VisualizationRendererService {
       // Store references for zoom control
       this.currentSvg = svg;
       
-      console.log('✅ D3 rendering completed successfully');
       return { success: true, renderer: 'd3' };
     } catch (error) {
       console.error('❌ D3 rendering failed:', error);
@@ -66,7 +57,6 @@ export class VisualizationRendererService {
    * Apply zoom to current visualization
    */
   applyZoom(zoomLevel: number, container?: HTMLElement): void {
-    console.log(`🔍 Applying zoom: ${zoomLevel}%`);
     
     const targetContainer = container || this.lastRenderedContainer;
     if (targetContainer && this.currentSvg) {
@@ -74,7 +64,6 @@ export class VisualizationRendererService {
         const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.1, 4]);
         const transform = d3.zoomIdentity.scale(zoomLevel / 100);
         this.currentSvg.call(zoom.transform, transform);
-        console.log('✅ Zoom applied to D3');
       } catch (error) {
         console.warn('⚠️ Error applying zoom:', error);
       }
@@ -96,8 +85,6 @@ export class VisualizationRendererService {
   private prepareD3Data(structure: GraphStructure, config: VisualizationConfig): { nodes: D3Node[], links: D3Link[] } {
     const nodeSet = this.extractUniqueNodes(structure.edgelist);
     const highlightMap = new Map(config.highlights.map((h: NodeHighlight) => [h.nodeId, h.color]));
-
-    console.log(`🎨 Preparing D3 data: ${nodeSet.length} nodes, ${config.highlights.length} highlights, labels=${config.showNodeLabels}`);
 
     const nodes: D3Node[] = nodeSet.map(nodeId => ({
       id: nodeId,
@@ -139,7 +126,6 @@ export class VisualizationRendererService {
     // Use different force configurations based on layout
     const forceConfig = VISUALIZATION_CONSTANTS.FORCE_CONFIGS[config.layout] || VISUALIZATION_CONSTANTS.FORCE_CONFIGS.default;
     
-    console.log(`🔧 Creating simulation for layout: ${config.layout}`, forceConfig);
 
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink<D3Node, D3Link>(links).id(d => (d as D3Node).id).distance(forceConfig.linkDistance))
@@ -200,7 +186,6 @@ export class VisualizationRendererService {
       .attr('fill', (d: D3Node) => {
         // Use highlight color if available, otherwise use type color
         if (d.color) {
-          console.log(`Node ${d.id} highlighted with color ${d.color}`);
           return d.color;
         }
         return this.getNodeColor(d.type);
@@ -213,7 +198,6 @@ export class VisualizationRendererService {
     // Add labels only if enabled in config
     let label: any = null;
     if (config.showNodeLabels) {
-      console.log('Adding node labels');
       label = g.append('g')
         .selectAll('text')
         .data(nodes)
@@ -225,9 +209,7 @@ export class VisualizationRendererService {
         .attr('dy', 4)
         .attr('fill', 'white')
         .style('pointer-events', 'none');
-    } else {
-      console.log('Node labels disabled');
-    }
+    } 
 
     // Add tooltips
     node.append('title')
@@ -252,7 +234,6 @@ export class VisualizationRendererService {
       }
     });
 
-    console.log(`✅ D3 elements rendered: ${nodes.length} nodes, ${links.length} links, labels=${!!label}`);
   }
 
   private addArrowMarker(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>): void {
@@ -291,7 +272,6 @@ export class VisualizationRendererService {
 
   private applyZoomToSvg(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, zoomLevel: number): void {
     if (zoomLevel !== 100) {
-      console.log(`🔍 Setting initial zoom level to ${zoomLevel}%`);
       const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.1, 4]);
       const transform = d3.zoomIdentity.scale(zoomLevel / 100);
       svg.call(zoom.transform, transform);

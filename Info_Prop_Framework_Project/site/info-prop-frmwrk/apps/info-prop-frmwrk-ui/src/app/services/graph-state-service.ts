@@ -466,7 +466,6 @@ export class GraphStateService {
     // Log parameter modification statistics from analysis
     const structure = this.graphStructure();
     if (structure && result.parameterModifications) {
-      console.log('Parameter modifications from analysis:', result.parameterModifications);
       
       // The API currently only returns modification counts, not the actual updated values
       // If the API is enhanced to return updated parameters, we would update the structure here
@@ -474,8 +473,6 @@ export class GraphStateService {
       // For now, we just log the modification statistics
       const mods = result.parameterModifications;
       if (mods.totalNodesModified > 0 || mods.totalEdgesModified > 0) {
-        console.log(`Analysis modified ${mods.totalNodesModified} nodes and ${mods.totalEdgesModified} edges`);
-        
         // Trigger a refresh to notify components that parameters may have changed
         this.refreshParameterDependentState();
       }
@@ -518,7 +515,6 @@ export class GraphStateService {
       structure: updatedStructure
     });
 
-    console.log('Global parameters updated:', { nodeUpdates, edgeUpdates });
     this.refreshParameterDependentState();
   }
 }
