@@ -17,6 +17,7 @@ import { GraphStateService } from '../../services/graph-state-service';
 import { MainServerService } from '../../services/main-server-service';
 import { DiamondClassification, DiamondStructureData, DiamondGroup, DiamondSubsetAnalysisRequest } from '../../shared/models/main-sever-interface';
 import { DiamondPathAnalysisModalComponent } from './diamond-modal';
+import { DiamondDetailModalComponent } from './diamond-detail-modal';
 
 
 interface DiamondSummary {
@@ -170,8 +171,21 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy {
   }
 
   viewDiamondDetails(diamond: DiamondListItem) {
-    // Open diamond detail modal
-    console.log('Diamond details:', diamond);
+    const dialogRef = this.dialog.open(DiamondDetailModalComponent, {
+      width: '90vw',
+      maxWidth: '1000px',
+      height: '85vh',
+      data: {
+        diamond: diamond
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'analyze') {
+        // Open path analysis modal
+        this.analyzeDiamondPath(diamond);
+      }
+    });
   }
 
   visualizeDiamond(diamond: DiamondListItem) {
