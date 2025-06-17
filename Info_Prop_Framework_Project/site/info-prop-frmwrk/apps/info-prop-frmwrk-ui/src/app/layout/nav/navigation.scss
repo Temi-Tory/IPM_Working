@@ -1,0 +1,272 @@
+.sidenav-container {
+  height: 100vh;
+  width: 100%;
+}
+
+.sidenav {
+  width: 280px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-right: 1px solid #334155;
+  transition: width 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.sidenav-collapsed {
+  width: 64px;
+}
+
+/* Header Styles */
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #334155;
+  min-height: 64px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.logo-container.collapsed {
+  justify-content: center;
+}
+
+.logo-icon {
+  color: #3b82f6;
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.toggle-btn {
+  color: #94a3b8;
+  transition: color 0.2s ease;
+}
+
+.toggle-btn:hover {
+  color: #f8fafc;
+}
+
+/* Navigation List Styles */
+.nav-list {
+  padding: 8px 0;
+}
+
+.nav-item {
+  position: relative;
+  margin: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  color: #e2e8f0;
+}
+
+.nav-item:hover {
+  background-color: #7c3aed;
+  color: #fdf4ff;
+  transform: translateX(4px);
+}
+
+.nav-item.active {
+  background-color: #a855f7;
+  color: #fdf4ff;
+}
+
+.nav-item.active .nav-icon {
+  color: #fdf4ff;
+}
+
+.nav-icon {
+  color: #cbd5e1;
+  margin-right: 16px;
+  transition: color 0.2s ease;
+}
+
+.nav-item:hover .nav-icon {
+  color: #fdf4ff;
+}
+
+.nav-label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #f1f5f9;
+}
+
+.nav-item:hover .nav-label {
+  color: #fdf4ff;
+  font-weight: 600;
+}
+
+/* Tooltip for collapsed state */
+.nav-tooltip {
+  position: absolute;
+  left: 64px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1f2937;
+  color: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.nav-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-right-color: #1f2937;
+}
+
+.sidenav-collapsed .nav-item:hover .nav-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Footer Styles */
+.sidenav-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  border-top: 1px solid #334155;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.footer-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Main Content Styles */
+.main-content {
+  background: #f1f5f9;
+  transition: margin-left 0.3s ease-in-out;
+  color: #1e293b;
+}
+
+.content-wrapper {
+  padding: 24px;
+  min-height: 100vh;
+}
+
+/* Improve text contrast for better readability */
+.main-content h1,
+.main-content h2,
+.main-content h3,
+.main-content h4,
+.main-content h5,
+.main-content h6 {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.main-content p,
+.main-content span,
+.main-content div {
+  color: #334155;
+  line-height: 1.6;
+}
+
+/* Material Card styling improvements */
+.main-content mat-card {
+  background: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.main-content mat-card-title {
+  color: #1e293b !important;
+  font-weight: 600;
+}
+
+.main-content mat-card-subtitle {
+  color: #64748b !important;
+}
+
+.main-content mat-card-content {
+  color: #475569 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidenav {
+    width: 100%;
+    position: fixed;
+    z-index: 1000;
+  }
+  
+  .sidenav-collapsed {
+    width: 0;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+}
+
+/* Material Design Overrides */
+.mat-mdc-list-item {
+  --mdc-list-list-item-container-height: 48px;
+}
+
+.mat-mdc-list-item .mdc-list-item__content {
+  padding: 0 16px;
+}
+
+.mat-mdc-nav-list .mat-mdc-list-item {
+  color: inherit;
+}
+
+.mat-mdc-nav-list .mat-mdc-list-item:hover {
+  background-color: transparent;
+}
+
+/* Custom scrollbar for the sidenav */
+.sidenav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidenav::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.sidenav::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 2px;
+}
+
+.sidenav::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

@@ -8,11 +8,15 @@
   "targets": {
     "build": {
       "executor": "@angular/build:application",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "options": {
         "outputPath": "dist/apps/info-prop-frmwrk-ui",
         "browser": "apps/info-prop-frmwrk-ui/src/main.ts",
-        "polyfills": ["zone.js"],
+        "polyfills": [
+          "zone.js"
+        ],
         "tsConfig": "apps/info-prop-frmwrk-ui/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
@@ -21,7 +25,9 @@
             "input": "apps/info-prop-frmwrk-ui/public"
           }
         ],
-        "styles": ["apps/info-prop-frmwrk-ui/src/styles.scss"]
+        "styles": [
+          "apps/info-prop-frmwrk-ui/src/styles.scss"
+        ]
       },
       "configurations": {
         "production": {
@@ -42,7 +48,13 @@
         "development": {
           "optimization": false,
           "extractLicenses": false,
-          "sourceMap": true
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/info-prop-frmwrk-ui/src/environments/environment.ts",
+              "with": "apps/info-prop-frmwrk-ui/src/environments/environment.development.ts"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"

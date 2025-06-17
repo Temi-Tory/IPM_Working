@@ -1,0 +1,59 @@
+<mat-sidenav-container class="sidenav-container">
+  <!-- Side Navigation -->
+  <mat-sidenav
+    #sidenav
+    mode="side"
+    [opened]="isExpanded"
+    class="sidenav"
+    [class.sidenav-collapsed]="!isExpanded">
+    
+    <!-- Header -->
+    <div class="sidenav-header">
+      <div class="logo-container" [class.collapsed]="!isExpanded">
+        <mat-icon class="logo-icon">analytics</mat-icon>
+        <span class="logo-text" *ngIf="isExpanded">Info Prop Framework</span>
+      </div>
+      <button
+        mat-icon-button
+        class="toggle-btn"
+        (click)="toggleSidebar()"
+        [attr.aria-label]="isExpanded ? 'Collapse sidebar' : 'Expand sidebar'">
+        <mat-icon>{{ isExpanded ? 'chevron_left' : 'chevron_right' }}</mat-icon>
+      </button>
+    </div>
+
+    <!-- Navigation Items -->
+    <mat-nav-list class="nav-list">
+      <mat-list-item
+        *ngFor="let item of navItems"
+        class="nav-item"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        (click)="onNavItemClick(item)">
+        
+        <mat-icon matListItemIcon class="nav-icon">{{ item.icon }}</mat-icon>
+        <span matListItemTitle class="nav-label" *ngIf="isExpanded">{{ item.label }}</span>
+        
+        <!-- Tooltip for collapsed state -->
+        <div class="nav-tooltip" *ngIf="!isExpanded">
+          {{ item.label }}
+        </div>
+      </mat-list-item>
+    </mat-nav-list>
+
+    <!-- Footer -->
+    <div class="sidenav-footer" *ngIf="isExpanded">
+      <div class="footer-content">
+        <mat-icon class="footer-icon">info</mat-icon>
+        <span class="footer-text">v1.0.0</span>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <!-- Main Content Area -->
+  <mat-sidenav-content class="main-content">
+    <div class="content-wrapper">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
