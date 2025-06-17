@@ -1,23 +1,203 @@
 
-  <div class="page-container">
+<div class="page-container">
+  <!-- Upload Section -->
+  <mat-card class="page-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>upload_file</mat-icon>
+        Upload Network Data
+      </mat-card-title>
+      <mat-card-subtitle>Upload CSV files containing network edge data</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="upload-section">
+        <!-- File Upload Area -->
+        <div
+          class="upload-area"
+          [class.drag-over]="isDragOver()"
+          [class.has-file]="selectedFile()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+          (click)="fileInput.click()"
+          (keydown.enter)="fileInput.click()"
+          (keydown.space)="fileInput.click()"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="selectedFile() ? 'Change selected file: ' + selectedFile()?.name : 'Click to select a file or drag and drop'">
+          
+          <input
+            #fileInput
+            type="file"
+            accept=".csv,.txt"
+            (change)="onFileSelected($event)"
+            style="display: none;">
+          
+          <div class="upload-content">
+            @if (!selectedFile) {
+              <mat-icon class="upload-icon">cloud_upload</mat-icon>
+              <h3>Drop CSV file here or click to browse</h3>
+              <p>Supported formats: CSV, TXT</p>
+              <button mat-raised-button color="primary" type="button">
+                <mat-icon>folder_open</mat-icon>
+                Browse Files
+              </button>
+            } @else {
+              <mat-icon class="file-icon">description</mat-icon>
+              <h3>{{ selectedFile()?.name }}</h3>
+              <p>{{ formatFileSize(selectedFile()?.size || 0) }} • {{ selectedFile()?.type || 'text/csv' }}</p>
+              <div class="file-actions">
+                <button mat-raised-button color="primary" (click)="uploadFile()" [disabled]="isUploading">
+                  <mat-icon>upload</mat-icon>
+                  Load Graph
+                </button>
+                <button mat-stroked-button (click)="clearFile()" [disabled]="isUploading">
+                  <mat-icon>clear</mat-icon>
+                  Clear
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Upload Progress -->
+        @if (isUploading()) {
+          <div class="upload-progress">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <p>Loading and analyzing graph structure...</p>
+          </div>
+        }
+
+        <!-- Upload Results -->
+        @if (uploadResult()) {
+          <mat-card class="result-card" [class.success]="uploadResult()?.success" [class.error]="!uploadResult()?.success">
+            <mat-card-content>
+              @if (uploadResult()?.success) {
+                <div class="success-content">
+                  <mat-icon>check_circle</mat-icon>
+                  <div>
+                    <h4>Graph loaded successfully!</h4>
+                    <p>{{ uploadResult()?.message }}</p>
+                  </div>
+                </div>
+              } @else {
+                <div class="error-content">
+                  <mat-icon>error</mat-icon>
+                  <div>
+                    <h4>Upload failed</h4>
+                    <p>{{ uploadResult()?.message }}</p>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Graph Information -->
+  @if (graphState.isGraphLoaded()) {
     <mat-card class="page-card">
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>upload_file</mat-icon>
-          Upload File
+          <mat-icon>account_tree</mat-icon>
+          Loaded Graph Information
         </mat-card-title>
-        <mat-card-subtitle>Upload your network data files</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <p>This page will allow you to upload network data files for analysis.</p>
-        <div class="upload-area">
-          <mat-icon class="upload-icon">cloud_upload</mat-icon>
-          <p>Drag and drop files here or click to browse</p>
-          <button mat-raised-button color="primary">
-            <mat-icon>folder_open</mat-icon>
-            Browse Files
-          </button>
+        <div class="graph-info">
+          <div class="info-grid">
+            <div class="info-item">
+              <mat-icon>radio_button_unchecked</mat-icon>
+              <span class="label">Nodes:</span>
+              <span class="value">{{ graphState.nodeCount() }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>trending_flat</mat-icon>
+              <span class="label">Edges:</span>
+              <span class="value">{{ graphState.edgeCount() }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>play_arrow</mat-icon>
+              <span class="label">Source Nodes:</span>
+              <span class="value">{{ graphState.sourceNodeCount() }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>call_split</mat-icon>
+              <span class="label">Fork Nodes:</span>
+              <span class="value">{{ graphState.forkNodeCount() }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>call_merge</mat-icon>
+              <span class="label">Join Nodes:</span>
+              <span class="value">{{ graphState.joinNodeCount() }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>diamond</mat-icon>
+              <span class="label">Has Diamonds:</span>
+              <span class="value">{{ graphState.hasDiamonds() ? 'Yes' : 'No' }}</span>
+            </div>
+          </div>
+          
+          <div class="graph-actions">
+            <button mat-raised-button color="accent" routerLink="/parameters">
+              <mat-icon>tune</mat-icon>
+              Configure Parameters
+            </button>
+            <button mat-stroked-button routerLink="/network-structure">
+              <mat-icon>account_tree</mat-icon>
+              View Structure
+            </button>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>
-  </div>
+  }
+
+  <!-- File Format Help -->
+  <mat-card class="page-card help-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>help_outline</mat-icon>
+        File Format Requirements
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="help-content">
+        <h4>Adjacency Matrix Format</h4>
+        <p>Upload a CSV file with adjacency matrix data in the following format:</p>
+        <div class="code-example">
+          <code>
+            1,0,0.9,0,0.9,0,0,0,0,0<br>
+            1,0,0,0,0,0.9,0,0,0,0<br>
+            1,0,0.9,0,0,0,0.9,0,0,0<br>
+            1,0,0,0,0,0.9,0,0.9,0,0<br>
+            1,0,0,0,0,0,0.9,0,0,0<br>
+            1,0,0,0,0,0,0,0,0,0<br>
+            1,0,0,0,0,0,0,0,0.9,0<br>
+            1,0,0,0,0,0.9,0,0,0,0<br>
+            1,0,0,0,0,0,0,0.9,0,0
+          </code>
+        </div>
+        <ul>
+          <li>First column contains node prior probabilities (typically 1.0)</li>
+          <li>Matrix element (i,j) represents edge probability from node i to node j</li>
+          <li>Use 0 for no edge, probability values (0-1) for existing edges</li>
+          <li>Matrix should be square (n×n for n nodes)</li>
+          <li>No headers required - pure numeric data</li>
+        </ul>
+        
+        <div class="sample-actions">
+          <button
+            mat-stroked-button
+            (click)="generateSampleData()"
+            matTooltip="Download a sample CSV file to test with">
+            <mat-icon>download</mat-icon>
+            Download Sample CSV
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
