@@ -1,0 +1,274 @@
+
+    <mat-card class="file-preview-card" *ngIf="previewData">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>preview</mat-icon>
+          File Preview & Analysis
+        </mat-card-title>
+        <mat-card-subtitle>
+          {{ previewData.fileName }} • {{ formatFileSize(previewData.fileSize) }}
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- File Information -->
+        <div class="file-info-section">
+          <div class="info-grid">
+            <div class="info-item">
+              <mat-icon>description</mat-icon>
+              <div class="info-details">
+                <span class="info-label">File Type</span>
+                <span class="info-value">{{ previewData.fileType }}</span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <mat-icon>schedule</mat-icon>
+              <div class="info-details">
+                <span class="info-label">Last Modified</span>
+                <span class="info-value">{{ previewData.lastModified | date:'medium' }}</span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <mat-icon>grid_on</mat-icon>
+              <div class="info-details">
+                <span class="info-label">Dimensions</span>
+                <span class="info-value">{{ previewData.rowCount }} × {{ previewData.columnCount }}</span>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <mat-icon>text_fields</mat-icon>
+              <div class="info-details">
+                <span class="info-label">Encoding</span>
+                <span class="info-value">{{ previewData.encoding }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation Status -->
+        <div class="validation-section">
+          <mat-expansion-panel class="validation-panel" [expanded]="!previewData.validation.isValid">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon [class]="previewData.validation.isValid ? 'success' : 'error'">
+                  {{ previewData.validation.isValid ? 'check_circle' : 'error' }}
+                </mat-icon>
+                Validation Status
+              </mat-panel-title>
+              <mat-panel-description>
+                {{ previewData.validation.isValid ? 'File passed validation' : 'Issues found' }}
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+            
+            <div class="validation-content">
+              <!-- Errors -->
+              <div class="validation-messages errors" *ngIf="previewData.validation.errors.length > 0">
+                <h4><mat-icon>error</mat-icon> Errors</h4>
+                <ul>
+                  <li *ngFor="let error of previewData.validation.errors">{{ error }}</li>
+                </ul>
+              </div>
+              
+              <!-- Warnings -->
+              <div class="validation-messages warnings" *ngIf="previewData.validation.warnings.length > 0">
+                <h4><mat-icon>warning</mat-icon> Warnings</h4>
+                <ul>
+                  <li *ngFor="let warning of previewData.validation.warnings">{{ warning }}</li>
+                </ul>
+              </div>
+              
+            </div>
+          </mat-expansion-panel>
+        </div>
+
+        <!-- Tabbed Content -->
+        <mat-tab-group class="preview-tabs">
+          
+          <!-- Data Preview Tab -->
+          <mat-tab label="Data Preview">
+            <div class="tab-content">
+              <div class="preview-table-container">
+                <table mat-table [dataSource]="getTableDataSource()" class="preview-table">
+                  
+                  <!-- Dynamic columns based on data -->
+                  <ng-container *ngFor="let column of getTableColumns(); let i = index" [matColumnDef]="'col' + i">
+                    <th mat-header-cell *matHeaderCellDef>
+                      Column {{ i + 1 }}
+                      <small *ngIf="i === 0">(Node Priors)</small>
+                      <small *ngIf="i > 0">(Edge to Node {{ i }})</small>
+                    </th>
+                    <td mat-cell *matCellDef="let row">
+                      <span [class]="getCellClass(row[i])">{{ formatCellValue(row[i]) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="getColumnDefs()"></tr>
+                  <tr mat-row *matRowDef="let row; columns: getColumnDefs();"></tr>
+                </table>
+              </div>
+              
+              <div class="preview-note">
+                <mat-icon>info</mat-icon>
+                <span>Showing first {{ getPreviewRowCount() }} rows of {{ previewData.rowCount }} total rows</span>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Statistics Tab -->
+          <mat-tab label="Statistics">
+            <div class="tab-content">
+              <div class="statistics-grid">
+                
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Data Overview</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-items">
+                      <div class="stat-item">
+                        <span class="stat-label">Total Cells:</span>
+                        <span class="stat-value">{{ previewData.statistics.totalCells | number }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Numeric Cells:</span>
+                        <span class="stat-value">{{ previewData.statistics.numericCells | number }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Empty Cells:</span>
+                        <span class="stat-value">{{ previewData.statistics.emptyCells | number }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Unique Values:</span>
+                        <span class="stat-value">{{ previewData.statistics.uniqueValues | number }}</span>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Value Distribution</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="stat-items">
+                      <div class="stat-item">
+                        <span class="stat-label">Minimum:</span>
+                        <span class="stat-value">{{ previewData.statistics.valueRanges.min | number:'1.3-3' }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Maximum:</span>
+                        <span class="stat-value">{{ previewData.statistics.valueRanges.max | number:'1.3-3' }}</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Average:</span>
+                        <span class="stat-value">{{ previewData.statistics.valueRanges.avg | number:'1.3-3' }}</span>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="stat-card">
+                  <mat-card-header>
+                    <mat-card-title>Data Types</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="data-type-chips">
+                      <mat-chip-set>
+                        <mat-chip *ngFor="let type of getDataTypes()">
+                          {{ type.name }}: {{ type.count }}
+                        </mat-chip>
+                      </mat-chip-set>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Format Info Tab -->
+          <mat-tab label="Format Guide">
+            <div class="tab-content">
+              <div class="format-guide">
+                
+                <mat-card class="guide-card">
+                  <mat-card-header>
+                    <mat-card-title>Expected CSV Format</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="format-example">
+                      <h4>Adjacency Matrix Format:</h4>
+                      <pre class="format-code">
+# First column: Node prior probabilities (0-1)
+# Remaining columns: Edge probabilities to each node (0-1)
+# Zero values indicate no edge connection
+
+0.8,0.0,0.3,0.0
+0.9,0.0,0.0,0.7
+0.1,0.5,0.0,0.2
+0.7,0.0,0.4,0.0</pre>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="guide-card">
+                  <mat-card-header>
+                    <mat-card-title>Column Interpretation</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="interpretation-list">
+                      <div class="interpretation-item">
+                        <mat-icon>looks_one</mat-icon>
+                        <div>
+                          <strong>Column 1 (Node Priors):</strong>
+                          <p>Probability that each node is initially active (0.0 = never, 1.0 = always)</p>
+                        </div>
+                      </div>
+                      <div class="interpretation-item">
+                        <mat-icon>timeline</mat-icon>
+                        <div>
+                          <strong>Remaining Columns (Edge Probabilities):</strong>
+                          <p>Probability of information propagating from row node to column node (0.0 = no edge, 1.0 = certain propagation)</p>
+                        </div>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="guide-card">
+                  <mat-card-header>
+                    <mat-card-title>Validation Rules</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="rules-list">
+                      <div class="rule-item valid">
+                        <mat-icon>check</mat-icon>
+                        <span>All probability values must be between 0 and 1</span>
+                      </div>
+                      <div class="rule-item valid">
+                        <mat-icon>check</mat-icon>
+                        <span>Matrix must be square (N×N nodes)</span>
+                      </div>
+                      <div class="rule-item valid">
+                        <mat-icon>check</mat-icon>
+                        <span>No self-loops (diagonal should be 0)</span>
+                      </div>
+                      <div class="rule-item valid">
+                        <mat-icon>check</mat-icon>
+                        <span>At least one source node (node with edges out)</span>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+
+              </div>
+            </div>
+          </mat-tab>
+
+        </mat-tab-group>
+
+      </mat-card-content>
+    </mat-card>
