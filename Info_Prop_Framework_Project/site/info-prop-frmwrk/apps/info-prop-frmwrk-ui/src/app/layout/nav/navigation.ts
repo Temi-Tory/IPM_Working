@@ -85,15 +85,13 @@ export class Navigation {
       label: 'Reachability Analysis',
       icon: 'share',
       route: '/reachability',
-      requiresGraph: true,
-      requiresAnalysis: true
+      requiresGraph: true
     },
     {
       label: 'Critical Path Analysis',
       icon: 'alt_route',
       route: '/critical-path',
-      requiresGraph: true,
-      requiresAnalysis: true
+      requiresGraph: true
     }
   ];
 
