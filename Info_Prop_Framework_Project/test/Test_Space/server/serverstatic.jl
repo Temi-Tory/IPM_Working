@@ -18,7 +18,7 @@ using DataFrames, DelimitedFiles, Distributions,
 
 # Include IPAFramework - FIXED PATH
 # From test/Test_Space/server/ to Info_Prop_Framework_Project/src/
-include("../../../src/IPAFramework.jl")
+include("../../../src/Network-flow-algos/src/IPAFramework.jl")
 
 # Import framework exactly like TestSpace IPA.jl does
 using .IPAFramework

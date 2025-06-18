@@ -16,7 +16,7 @@ using DataFrames, DelimitedFiles, Distributions,
     Combinatorics, Random
 
 # Include IPAFramework
-include("../../../src/IPAFramework.jl")
+include("IPAFramework.jl")
 using .IPAFramework
 using .IPAFramework: generate_graph_dot_string
 using Graphs
