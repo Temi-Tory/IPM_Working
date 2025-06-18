@@ -72,30 +72,46 @@
   transition: all 0.2s ease;
   cursor: pointer;
   color: #e2e8f0;
-}
 
-.nav-item:hover {
-  background-color: #7c3aed;
-  color: #fdf4ff;
-  transform: translateX(4px);
-}
+  &:hover:not(.nav-item-disabled) {
+    background-color: #7c3aed;
+    color: #fdf4ff;
+    transform: translateX(4px);
+  }
 
-.nav-item.active {
-  background-color: #a855f7;
-  color: #fdf4ff;
-}
+  &.active:not(.nav-item-disabled) {
+    background-color: #a855f7;
+    color: #fdf4ff;
+  }
 
-.nav-item.active .nav-icon {
-  color: #fdf4ff;
+  &.active:not(.nav-item-disabled) .nav-icon {
+    color: #fdf4ff;
+  }
+
+  // Disabled state styles
+  &.nav-item-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background-color: transparent;
+    
+    &:hover {
+      background-color: #374151;
+      transform: none;
+    }
+  }
 }
 
 .nav-icon {
   color: #cbd5e1;
   margin-right: 16px;
   transition: color 0.2s ease;
+
+  &.nav-icon-disabled {
+    color: #6b7280;
+  }
 }
 
-.nav-item:hover .nav-icon {
+.nav-item:hover:not(.nav-item-disabled) .nav-icon {
   color: #fdf4ff;
 }
 
@@ -104,11 +120,28 @@
   font-weight: 500;
   white-space: nowrap;
   color: #f1f5f9;
+
+  &.nav-label-disabled {
+    color: #9ca3af;
+  }
 }
 
-.nav-item:hover .nav-label {
+.nav-item:hover:not(.nav-item-disabled) .nav-label {
   color: #fdf4ff;
   font-weight: 600;
+}
+
+// Disabled indicator
+.disabled-indicator {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #ef4444;
+  opacity: 0.8;
 }
 
 /* Tooltip for collapsed state */
@@ -143,6 +176,69 @@
 .sidenav-collapsed .nav-item:hover .nav-tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+/* Status Section */
+.sidenav-status {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  border-top: 1px solid #334155;
+  border-bottom: 1px solid #334155;
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  
+  &.status-loaded {
+    background-color: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    
+    .status-icon {
+      color: #22c55e;
+    }
+    
+    .status-text {
+      color: #dcfce7;
+    }
+  }
+  
+  &:not(.status-loaded) {
+    background-color: rgba(107, 114, 128, 0.1);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    
+    .status-icon {
+      color: #6b7280;
+    }
+    
+    .status-text {
+      color: #9ca3af;
+    }
+  }
+}
+
+.status-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* Footer Styles */
@@ -234,6 +330,19 @@
   .main-content {
     margin-left: 0 !important;
   }
+
+  .sidenav-status {
+    bottom: 60px;
+    padding: 12px;
+  }
+
+  .status-item {
+    padding: 4px 6px;
+  }
+
+  .status-text {
+    font-size: 11px;
+  }
 }
 
 /* Material Design Overrides */
@@ -249,8 +358,15 @@
   color: inherit;
 }
 
-.mat-mdc-nav-list .mat-mdc-list-item:hover {
+.mat-mdc-nav-list .mat-mdc-list-item:hover:not(.nav-item-disabled) {
   background-color: transparent;
+}
+
+// Ensure disabled items don't have active router link styling
+.mat-mdc-nav-list .mat-mdc-list-item.nav-item-disabled {
+  .mdc-list-item__content {
+    pointer-events: none;
+  }
 }
 
 /* Custom scrollbar for the sidenav */
@@ -269,4 +385,35 @@
 
 .sidenav::-webkit-scrollbar-thumb:hover {
   background: #64748b;
+}
+
+/* Animation for status changes */
+.status-item {
+  animation: statusUpdate 0.3s ease-in-out;
+}
+
+@keyframes statusUpdate {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Enhanced accessibility */
+.nav-item[aria-disabled="true"] {
+  outline: none;
+  
+  &:focus {
+    outline: 2px solid #6b7280;
+    outline-offset: 2px;
+  }
+}
+
+.nav-item:not([aria-disabled="true"]):focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
 }
