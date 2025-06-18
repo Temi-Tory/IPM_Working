@@ -1,3 +1,4 @@
+// parameters.component.ts
 import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -224,7 +225,18 @@ export class ParametersComponent {
         // Task 2.4: Reset stale state on successful completion
         this.graphState.clearParametersChanged();
         
-        this.snackBar.open('Analysis completed successfully!', 'View Results', {
+        // Enhanced feedback with parameter modification details
+        const mods = result.result?.parameterModifications;
+        let message = 'Analysis completed successfully!';
+        
+        if (mods && (mods.totalNodesModified > 0 || mods.totalEdgesModified > 0)) {
+          const nodeText = mods.totalNodesModified > 0 ? `${mods.totalNodesModified} nodes` : '';
+          const edgeText = mods.totalEdgesModified > 0 ? `${mods.totalEdgesModified} edges` : '';
+          const modifiedParts = [nodeText, edgeText].filter(Boolean).join(' and ');
+          message = `Analysis complete! Modified ${modifiedParts} parameters.`;
+        }
+        
+        this.snackBar.open(message, 'View Results', {
           duration: 5000
         }).onAction().subscribe(() => {
           this.router.navigate(['/reachability']);
@@ -243,6 +255,19 @@ export class ParametersComponent {
       this.isRunningAnalysis.set(false);
       setTimeout(() => this.analysisProgress.set(0), 2000);
     }
+  }
+
+  formatEdgeLabel(edgeKey: string): string {
+    // Handle both "(1,2)" and "1-2" formats
+    if (edgeKey.startsWith('(') && edgeKey.endsWith(')')) {
+      const inner = edgeKey.slice(1, -1);
+      const [from, to] = inner.split(',').map(s => s.trim());
+      return `${from} → ${to}`;
+    } else if (edgeKey.includes('-')) {
+      const [from, to] = edgeKey.split('-');
+      return `${from} → ${to}`;
+    }
+    return edgeKey; // Fallback
   }
 
   resetToDefaults(): void {
@@ -437,7 +462,7 @@ export class ParametersComponent {
     if (!structure?.edgelist) return [];
     
     return structure.edgelist.map(([from, to]) => ({
-      key: `${from}-${to}`,
+      key: `(${from},${to})`, // Match server expected format: "(1,2)"
       from,
       to
     }));

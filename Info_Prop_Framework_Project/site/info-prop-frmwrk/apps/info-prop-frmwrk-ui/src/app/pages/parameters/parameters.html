@@ -1,4 +1,4 @@
-
+<!-- parameters.html -->
 <div class="page-container">
   <!-- Graph Status Card -->
   @if (!isGraphLoaded()) {
@@ -49,6 +49,18 @@
         </div>
       </mat-card-content>
     </mat-card>
+
+    <!-- Task 3.1: Add Stale Analysis Warning Card -->
+    @if (isAnalysisStale()) {
+      <mat-card class="page-card warning-card stale-warning">
+        <mat-card-content>
+          <div class="warning-content">
+            <mat-icon>warning</mat-icon>
+            <span>Parameters have been modified since last analysis. Results may be outdated.</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
 
     <!-- Parameter Configuration -->
     <mat-card class="page-card">
@@ -326,6 +338,7 @@
       <mat-card-content>
         <div class="actions-container">
           <div class="action-buttons">
+            <!-- Task 3.2: Update Run Analysis Button Text -->
             <button
               mat-raised-button
               color="primary"
@@ -340,7 +353,7 @@
               } @else {
                 <ng-container>
                   <mat-icon>play_arrow</mat-icon>
-                  Run Analysis
+                  {{ getAnalysisButtonText() }}
                 </ng-container>
               }
             </button>
