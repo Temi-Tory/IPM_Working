@@ -1,6 +1,6 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,8 +12,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { GraphStateService } from '../../services/graph-state-service';
+import { StructureAnalysisResponse, DiamondAnalysisResponse } from '../../shared/models/main-sever-interface';
 
 interface NodeInfo {
   id: number;
@@ -52,13 +55,24 @@ interface DiamondInfo {
     MatTooltipModule,
     MatProgressBarModule,
     MatTableModule,
-    MatBadgeModule
+    MatBadgeModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './network-structure.html',
   styleUrl: './network-structure.scss',
 })
 export class NetworkStructureComponent {
   readonly graphState = inject(GraphStateService);
+  private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
+
+  // Task 3.1: Add Structure Analysis State
+  isRunningStructureAnalysis = signal(false);
+  structureAnalysisResult = signal<StructureAnalysisResponse | null>(null);
+  analysisProgress = signal(0);
+  analysisStep = signal<string>('');
+  lastStructureAnalysisTime = signal<Date | null>(null);
 
   // Computed properties for structural analysis
   readonly isGraphLoaded = computed(() => this.graphState.isGraphLoaded());
@@ -69,6 +83,10 @@ export class NetworkStructureComponent {
   readonly joinNodeCount = computed(() => this.graphState.joinNodeCount());
   readonly forkNodeCount = computed(() => this.graphState.forkNodeCount());
   readonly hasDiamonds = computed(() => this.graphState.hasDiamonds());
+
+  // Task 3.2: Track analysis state for button text
+  readonly hasRunStructureAnalysis = computed(() => this.lastStructureAnalysisTime() !== null);
+  readonly canVisualizeStructure = computed(() => this.isGraphLoaded() && this.hasRunStructureAnalysis());
 
   // Detailed structural analysis
   readonly nodeAnalysis = computed(() => {
@@ -196,6 +214,95 @@ export class NetworkStructureComponent {
   readonly edgeColumns = ['from', 'to', 'probability'];
   readonly diamondColumns = ['joinNode', 'diamondCount', 'totalNodes', 'complexity'];
 
+  // Task 3.1: Implement Structure Analysis Method
+  async runStructureAnalysis(): Promise<void> {
+    if (!this.isGraphLoaded() || this.isRunningStructureAnalysis()) {
+      return;
+    }
+
+    this.isRunningStructureAnalysis.set(true);
+    this.analysisProgress.set(0);
+
+    try {
+      // Task 3.4: Progress indicators with steps
+      this.analysisStep.set('Analyzing topology...');
+      this.analysisProgress.set(25);
+      await this.delay(500);
+
+      const result = await this.graphState.runStructureAnalysis({
+        message: 'Analyzing network structure...',
+        showCancelButton: true
+      });
+
+      this.analysisStep.set('Computing metrics...');
+      this.analysisProgress.set(75);
+      await this.delay(300);
+
+      if (result.success) {
+        this.structureAnalysisResult.set(result.result || null);
+        this.lastStructureAnalysisTime.set(new Date());
+        this.analysisStep.set('Complete!');
+        this.analysisProgress.set(100);
+
+        // Task 3.4: Display completion summary
+        const analysisTime = new Date().toLocaleTimeString();
+        const summary = `Structure analysis completed at ${analysisTime}`;
+        
+        this.snackBar.open(summary, 'Visualize', {
+          duration: 5000
+        }).onAction().subscribe(() => {
+          this.navigateToVisualization();
+        });
+
+        // Reset progress after delay
+        setTimeout(() => {
+          this.analysisProgress.set(0);
+          this.analysisStep.set('');
+        }, 2000);
+
+      } else {
+        this.snackBar.open(`Structure analysis failed: ${result.error}`, 'Close', {
+          duration: 4000
+        });
+      }
+
+    } catch (error) {
+      console.error('Structure analysis error:', error);
+      this.snackBar.open('Structure analysis failed due to an unexpected error', 'Close', {
+        duration: 4000
+      });
+    } finally {
+      this.isRunningStructureAnalysis.set(false);
+      this.analysisProgress.set(0);
+      this.analysisStep.set('');
+    }
+  }
+
+  // Task 3.2: Dynamic button text method
+  getStructureAnalysisButtonText(): string {
+    if (this.isRunningStructureAnalysis()) {
+      return 'Structure Analysis Running...';
+    }
+    
+    if (this.hasRunStructureAnalysis()) {
+      return 'Re-run Structure Analysis';
+    }
+    
+    return 'Run Structure Analysis';
+  }
+
+  // Task 3.3: Navigation to visualization with structure focus
+  navigateToVisualization(): void {
+    this.router.navigate(['/visualization'], {
+      queryParams: { 
+        focusMode: 'structure',
+        highlightMode: 'node-types',
+        layout: 'dot'
+      }
+    });
+  }
+
+  // Utility methods
   private extractUniqueNodes(edges: [number, number][]): number[] {
     const nodes = new Set<number>();
     edges.forEach(([from, to]) => {
@@ -203,6 +310,10 @@ export class NetworkStructureComponent {
       nodes.add(to);
     });
     return Array.from(nodes).sort((a, b) => a - b);
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   getNodeTypeIcon(type: string): string {

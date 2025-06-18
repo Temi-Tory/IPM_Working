@@ -1,36 +1,8 @@
 
-
-## Component 2: Parameters Page Refinement
-**File:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/parameters/parameters.ts`
-
-### □ Task 2.1: Remove Monte Carlo Option (15 minutes)
-- [ ] Remove `enableMonteCarlo` and `monteCarloSamples` from `advancedForm` (line ~124-126)
-- [ ] Remove Monte Carlo related form validation
-- [ ] Update `runAnalysis()` method to exclude Monte Carlo options (line ~174)
-- [ ] Test: Verify Monte Carlo options are completely removed
-
-### □ Task 2.2: Focus on Parameter Modification Only (20 minutes)
-- [ ] Simplify advanced options to focus on individual overrides only
-- [ ] Remove classification options (move to dedicated analysis pages)
-- [ ] Streamline form to emphasize node/edge parameter customization
-- [ ] Test: Parameters page focuses purely on parameter configuration
-
-### □ Task 2.3: Add Comprehensive State Tracking (10 minutes)
-- [ ] Integrate with Phase 2 parameter change tracking
-- [ ] Add `readonly hasUnsavedChanges = computed(() => this.isAnalysisStale())`
-- [ ] Update navigation warnings for unsaved parameter changes
-- [ ] Test: State tracking works across all parameter modifications
-
-**Success Criteria:**
-- [ ] Monte Carlo options removed from Parameters page
-- [ ] Page focuses exclusively on parameter modification
-- [ ] Comprehensive parameter change tracking implemented
-- [ ] Clear indication of unsaved changes
-
 ---
 
 ## Component 3: Network Structure Page Enhancement
-**File:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/network-structure/network-structure.ts`
+**Files:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/network-structure/network-structure.ts an dits html and scss`
 
 ### □ Task 3.1: Add Structure Analysis Button (30 minutes)
 - [ ] Add `isRunningStructureAnalysis = signal(false)` state (line ~61)
@@ -133,6 +105,7 @@
 - [ ] Add reachability probability tables and charts
 - [ ] Display node-to-node reachability probabilities
 - [ ] Show Monte Carlo validation results when enabled
+- [ ] After reacibility calulated, also show node prior probabilities and reachability values in node dteials on hover orc lcik in visualization
 - [ ] Add export functionality for reachability results
 - [ ] Test: Results display correctly with and without Monte Carlo
 
@@ -179,6 +152,10 @@
 - [ ] Add topology validation and error handling
 - [ ] Ensure layout algorithms work with analysis-enhanced data
 - [ ] Test: Topology displays correctly for all analysis combinations
+
+Task 6.5
+- [ ] After reacibility calulated, also show node prior probabilities and reachability values in node dteials on hover orc lcik in visualization
+shoudl show prior only when rechailityy notc ial shoudl aos ho otehr dteial and giev use roprion tigt edgs an dnode that are nactesor or decendnts or both and clear just a mor efeinly uix gpah 
 
 **Success Criteria:**
 - [ ] Visualization requires structure analysis completion
