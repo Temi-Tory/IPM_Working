@@ -112,9 +112,12 @@ export class ParametersComponent {
   readonly edgeCount = computed(() => this.graphState.edgeCount());
   readonly hasDiamonds = computed(() => this.graphState.hasDiamonds());
   
-  // Task 2.1: Add Stale Detection Properties
+  // Task 2.1: Parameter state tracking
   readonly isAnalysisStale = computed(() => this.graphState.isAnalysisStale());
   readonly hasRunAnalysis = computed(() => this.graphState.lastAnalysisRun() !== null);
+
+  // Task 2.3: Add comprehensive state tracking
+  readonly hasUnsavedChanges = computed(() => this.isAnalysisStale());
 
   constructor() {
     this.basicForm = this.fb.group({
@@ -124,14 +127,12 @@ export class ParametersComponent {
       overrideEdgeProb: [true]
     });
 
+    // Task 2.1 & 2.2: Simplified advanced form - removed Monte Carlo and classification options
     this.advancedForm = this.fb.group({
-      includeClassification: [true],
-      enableMonteCarlo: [false],
-      useIndividualOverrides: [false],
-      monteCarloSamples: [10000, [Validators.min(1000), Validators.max(1000000)]]
+      useIndividualOverrides: [false]
     });
 
-    // Task 2.3: Add Form Change Listeners
+    // Task 2.3: Enhanced form change listeners for comprehensive state tracking
     this.basicForm.valueChanges.subscribe(() => {
       this.graphState.markParametersChanged();
     });
@@ -156,7 +157,7 @@ export class ParametersComponent {
     });
   }
 
-  // Task 2.2: Add Dynamic Button Text Method
+  // Task 2.2: Dynamic button text method with state awareness
   getAnalysisButtonText(): string {
     if (!this.hasRunAnalysis()) {
       return 'Run Analysis';
@@ -180,6 +181,7 @@ export class ParametersComponent {
     });
   }
 
+  // Task 2.1: Updated runAnalysis method - removed Monte Carlo options
   async runAnalysis(): Promise<void> {
     if (!this.isGraphLoaded() || this.basicForm.invalid) {
       return;
@@ -197,9 +199,11 @@ export class ParametersComponent {
         this.analysisProgress.update(current => Math.min(current + 10, 90));
       }, 200);
 
-      // Include individual overrides in advanced options
+      // Task 2.1 & 2.2: Simplified advanced options - removed Monte Carlo and classification
       const enhancedAdvancedOptions = {
-        ...advancedOptions,
+        includeClassification: true, // Always include classification (moved from user control)
+        enableMonteCarlo: false,     // Task 2.1: Always disabled - Monte Carlo removed
+        useIndividualOverrides: advancedOptions.useIndividualOverrides,
         individualNodePriors: this.nodeOverrides(),
         individualEdgeProbabilities: this.edgeOverrides()
       };
@@ -222,7 +226,7 @@ export class ParametersComponent {
         // Sync current parameters to global state after successful analysis
         this.syncParametersToGlobalState();
         
-        // Task 2.4: Reset stale state on successful completion
+        // Task 2.3: Reset stale state on successful completion
         this.graphState.clearParametersChanged();
         
         // Enhanced feedback with parameter modification details
@@ -274,11 +278,9 @@ export class ParametersComponent {
     // Reset to original file values, not hardcoded defaults
     this.initializeFromGraphData();
 
+    // Task 2.1: Simplified reset - removed Monte Carlo options
     this.advancedForm.reset({
-      includeClassification: true,
-      enableMonteCarlo: false,
-      useIndividualOverrides: false,
-      monteCarloSamples: 10000
+      useIndividualOverrides: false
     });
 
     this.snackBar.open('Parameters reset to original file values', 'Close', {
@@ -294,8 +296,6 @@ export class ParametersComponent {
     const descriptions: { [key: string]: string } = {
       nodePrior: 'The prior probability that each node is functioning correctly',
       edgeProb: 'The probability that each edge (connection) is operational',
-      includeClassification: 'Include diamond structure classification in the analysis',
-      enableMonteCarlo: 'Run Monte Carlo simulation for validation',
       useIndividualOverrides: 'Allow individual node/edge parameter overrides'
     };
     return descriptions[param] || '';

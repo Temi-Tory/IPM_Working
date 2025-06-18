@@ -26,7 +26,7 @@ mat-card-title {
     align-items: flex-start;
   }
 
-  // Task 3.3: Add Stale Analysis Warning Card Styling
+  // Task 2.3: Enhanced Stale Analysis Warning Card Styling with state tracking
   &.stale-warning {
     border-left-color: #f59e0b;
     background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -53,7 +53,7 @@ mat-card-title {
       }
     }
     
-    // Animation for the warning card
+    // Enhanced animation for the warning card
     animation: slideInFromTop 0.3s ease-out;
   }
 }
@@ -217,7 +217,7 @@ mat-card-title {
   max-width: 12.5rem;
 }
 
-// Advanced options styling
+// Advanced options styling - Task 2.2: Simplified for individual overrides focus
 .advanced-options {
   display: flex;
   flex-direction: column;
@@ -237,11 +237,6 @@ mat-card-title {
       cursor: help;
     }
   }
-}
-
-.monte-carlo-samples {
-  max-width: 18.75rem;
-  margin-left: 2rem;
 }
 
 // Individual overrides section
@@ -308,7 +303,7 @@ mat-card-title {
   border-top: 1px solid #e2e8f0;
 }
 
-// Actions card styling
+// Actions card styling - Task 2.3: Enhanced for state tracking
 .actions-card {
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   
@@ -329,13 +324,18 @@ mat-card-title {
       font-size: 1rem;
       font-weight: 500;
       
-      // Enhanced styling for stale state
+      // Task 2.3: Enhanced styling for stale state with unsaved changes
       &:not(:disabled) {
         position: relative;
         
         // Add subtle pulsing animation when parameters are stale
         &.stale-analysis {
           animation: pulse 2s infinite;
+          border: 2px solid #f59e0b;
+          
+          &:hover {
+            border-color: #d97706;
+          }
         }
       }
     }
@@ -345,19 +345,32 @@ mat-card-title {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
+    align-items: center;
+    
+    // Task 2.3: Style for unsaved changes indicator
+    button[color="warn"] {
+      color: #f59e0b;
+      border-color: #f59e0b;
+      opacity: 0.8;
+      cursor: not-allowed;
+      
+      mat-icon {
+        color: #f59e0b;
+      }
+    }
   }
 }
 
-// Pulse animation for stale analysis button
+// Enhanced pulse animation for stale analysis button - Task 2.3
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }
 
@@ -374,7 +387,7 @@ mat-card-title {
   }
 }
 
-// Results preview styling
+// Results preview styling - Task 2.3: Enhanced with state tracking
 .results-preview {
   border-left: 0.25rem solid #10b981;
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
@@ -388,6 +401,24 @@ mat-card-title {
       margin: 0;
       color: #166534;
       font-weight: 500;
+    }
+    
+    // Task 2.3: Status info styling for state tracking
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 0.5rem;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      
+      mat-icon {
+        color: #10b981;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
     }
     
     .results-actions {
@@ -436,7 +467,7 @@ mat-card-title {
     grid-template-columns: 1fr;
   }
   
-  // Adjust warning content for mobile
+  // Adjust warning content for mobile - Task 2.3
   .warning-card.stale-warning .warning-content {
     flex-direction: column;
     align-items: flex-start;
@@ -450,6 +481,17 @@ mat-card-title {
     
     span {
       font-size: 0.9rem;
+    }
+  }
+  
+  // Task 2.3: Mobile adjustments for secondary actions
+  .secondary-actions {
+    flex-direction: column;
+    align-items: stretch;
+    
+    button {
+      width: 100%;
+      justify-content: center;
     }
   }
 }
@@ -486,4 +528,55 @@ mat-card-title {
       }
     }
   }
+  
+  // Task 2.3: Enhanced button styling for state awareness
+  .mat-mdc-raised-button.stale-analysis {
+    --mdc-filled-button-container-color: #fef3c7;
+    --mdc-filled-button-label-text-color: #92400e;
+    
+    &:hover {
+      --mdc-filled-button-container-color: #fde68a;
+    }
+  }
+}
+
+// Task 2.3: State tracking visual enhancements
+.state-indicator {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    background: #f59e0b;
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+  }
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.3;
+  }
+}
+
+// Enhanced accessibility for state tracking
+.nav-item[aria-disabled="true"] {
+  outline: none;
+  
+  &:focus {
+    outline: 2px solid #6b7280;
+    outline-offset: 2px;
+  }
+}
+
+.nav-item:not([aria-disabled="true"]):focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
 }
