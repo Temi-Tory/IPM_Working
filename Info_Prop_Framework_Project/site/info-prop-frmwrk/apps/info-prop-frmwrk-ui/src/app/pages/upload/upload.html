@@ -1,4 +1,3 @@
-
 <div class="page-container">
   <!-- Upload Section -->
   <mat-card class="page-card">
@@ -35,10 +34,17 @@
               <h3>Select CSV File</h3>
               <p>Drag and drop your CSV file here or click browse</p>
               <p class="format-info">Supported formats: CSV, TXT</p>
-              <button mat-raised-button color="primary" type="button" (click)="fileInput.click()">
-                <mat-icon>folder_open</mat-icon>
-                Browse Computer
-              </button>
+              <div class="upload-options">
+                <button mat-raised-button color="primary" type="button" (click)="fileInput.click()">
+                  <mat-icon>folder_open</mat-icon>
+                  Browse Computer
+                </button>
+                <button mat-stroked-button color="accent" type="button" (click)="loadSampleData()" 
+                        [disabled]="isUploading() || isLoadingGraph()">
+                  <mat-icon>science</mat-icon>
+                  Try with Sample Data
+                </button>
+              </div>
             } @else {
               @if (graphState.isGraphLoaded()) {
                 <div class="warning-section">
@@ -322,7 +328,7 @@
             1,0,0,0,0,0,0,0,0,0<br>
             1,0,0,0,0,0,0,0,0.9,0<br>
             1,0,0,0,0,0.9,0,0,0,0<br>
-            1,0,0,0,0,0,0,0.9,0,0
+            1,0,0,0,0,0,0.9,0,0
           </code>
         </div>
         <ul>
@@ -340,6 +346,15 @@
             matTooltip="Download a sample CSV file to test with">
             <mat-icon>download</mat-icon>
             Download Sample CSV
+          </button>
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="loadSampleData()"
+            [disabled]="isUploading() || isLoadingGraph()"
+            matTooltip="Load sample data directly for quick testing">
+            <mat-icon>science</mat-icon>
+            Try Sample Data
           </button>
         </div>
       </div>

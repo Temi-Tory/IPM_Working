@@ -320,9 +320,26 @@ export class UploadComponent {
       this.fileInput.nativeElement.value = '';
     }
     
-    this.snackBar.open('File cleared - ready for new upload', 'Close', {
-      duration: 2000
-    });
+    // If user clears file after graph is loaded, ask if they want to clear the graph too
+    if (this.graphState.isGraphLoaded()) {
+      const snackBarRef = this.snackBar.open(
+        'File cleared. Keep current graph loaded?', 
+        'Clear Graph', 
+        { duration: 5000 }
+      );
+      
+      snackBarRef.onAction().subscribe(() => {
+        // Clear the graph state (assuming there's a method for this)
+        // You might need to add a clearGraph method to GraphStateService
+        this.snackBar.open('Graph cleared - ready for new data', 'Close', {
+          duration: 2000
+        });
+      });
+    } else {
+      this.snackBar.open('File cleared - ready for new upload', 'Close', {
+        duration: 2000
+      });
+    }
   }
 
   // Utility methods
@@ -477,18 +494,28 @@ export class UploadComponent {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Sample data generation
-  generateSampleData(): void {
-    const sampleCsv = `1,0,0.9,0,0.9,0,0,0,0,0
-1,0,0,0,0,0.9,0,0,0,0
-1,0,0.9,0,0,0,0.9,0,0,0
-1,0,0,0,0,0.9,0,0.9,0,0
-1,0,0,0,0,0,0.9,0,0,0
-1,0,0,0,0,0,0,0,0,0
-1,0,0,0,0,0,0,0,0.9,0
-1,0,0,0,0,0.9,0,0,0,0
-1,0,0,0,0,0,0.9,0,0`;
+  // Sample data methods
+  private getSampleCsvData(): string {
+    return `1,0,0.9,0,0,0.9,0,0,0,0,0,0,0,0,0,0,0
+1,0,0,0,0,0,0.9,0,0,0,0,0,0,0,0,0,0
+1,0,0.9,0,0.9,0,0,0.9,0,0,0,0,0,0,0,0,0
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1,0,0,0,0,0,0.9,0,0,0.9,0,0,0,0,0,0,0
+1,0,0,0,0,0,0,0.9,0,0,0,0,0,0,0,0,0
+1,0,0,0,0,0,0,0,0.9,0,0,0.9,0,0,0,0,0
+1,0,0,0,0.9,0,0,0,0,0,0,0,0.9,0,0,0,0
+1,0,0,0,0,0,0,0,0,0,0.9,0,0,0,0,0,0
+1,0,0,0,0,0,0.9,0,0,0,0,0.9,0,0,0.9,0,0
+1,0,0,0,0,0,0,0,0,0,0,0,0.9,0,0,0.9,0
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9
+1,0,0,0,0,0,0,0,0,0.9,0,0,0,0,0.9,0,0
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9,0
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.9
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0`;
+  }
 
+  generateSampleData(): void {
+    const sampleCsv = this.getSampleCsvData();
     const blob = new Blob([sampleCsv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -500,5 +527,38 @@ export class UploadComponent {
     this.snackBar.open('Sample adjacency matrix CSV downloaded', 'Close', {
       duration: 3000
     });
+  }
+
+  async loadSampleData(): Promise<void> {
+    // Reset all states first
+    this.resetUploadState();
+    
+    // Show warning if graph is already loaded
+    if (this.graphState.isGraphLoaded()) {
+      this.snackBar.open('Loading sample data - this will replace the current graph', 'Understood', {
+        duration: 5000
+      });
+    }
+
+    // Create a virtual file for the sample data
+    const sampleCsv = this.getSampleCsvData();
+    const sampleFile = new File([sampleCsv], 'sample_adjacency_matrix.csv', { type: 'text/csv' });
+    this.selectedFile.set(sampleFile);
+
+    this.snackBar.open('Sample data loaded - validating format...', '', {
+      duration: 2000
+    });
+
+    // Automatically validate the sample data
+    setTimeout(async () => {
+      await this.uploadFile();
+      
+      // If validation was successful, automatically load into framework
+      if (this.uploadResult()?.success) {
+        setTimeout(async () => {
+          await this.loadGraphIntoFramework();
+        }, 1000);
+      }
+    }, 500);
   }
 }

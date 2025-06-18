@@ -4,9 +4,9 @@
 @use '@angular/material' as mat;
 @use '../../../variables' as vars;
 
-// =====================================
+// 
 // COMPONENT HOST & CONTAINER
-// =====================================
+// 
 
 :host {
   display: block;
@@ -22,9 +22,9 @@
   gap: clamp(1rem, 2vw, 2rem);
 }
 
-// =====================================
+// 
 // DASHBOARD HEADER
-// =====================================
+// 
 
 .dashboard-header {
   background: linear-gradient(135deg, 
@@ -156,9 +156,9 @@
   }
 }
 
-// =====================================
+// 
 // STATE CARDS (Error, Empty, etc.)
-// =====================================
+// 
 
 .state-card {
   margin: 2rem;
@@ -199,9 +199,9 @@
   }
 }
 
-// =====================================
+// 
 // METRICS DASHBOARD
-// =====================================
+// 
 
 .metrics-dashboard {
   padding: 0 clamp(1rem, 2vw, 2rem);
@@ -337,9 +337,9 @@
   }
 }
 
-// =====================================
+// 
 // ANALYSIS SUMMARY SECTION
-// =====================================
+// 
 
 .analysis-summary-section {
   padding: 0 clamp(1rem, 2vw, 2rem);
@@ -439,9 +439,9 @@
   }
 }
 
-// =====================================
+// 
 // DIAMONDS SECTION
-// =====================================
+// 
 
 .diamonds-section {
   padding: 0 clamp(1rem, 2vw, 2rem) 2rem;
@@ -579,9 +579,9 @@
   }
 }
 
-// =====================================
+// 
 // DIAMONDS DISPLAY CONTAINER
-// =====================================
+// 
 
 .diamonds-container {
   min-height: 400px;
@@ -617,9 +617,9 @@
   }
 }
 
-// =====================================
+// 
 // DIAMOND CARDS (Grid & Cards View)
-// =====================================
+// 
 
 .diamond-card {
   @include mat.elevation(1);
@@ -879,9 +879,9 @@
   }
 }
 
-// =====================================
+// 
 // LIST VIEW
-// =====================================
+// 
 
 .list-container {
   .list-header {
@@ -1065,9 +1065,9 @@
   }
 }
 
-// =====================================
+// 
 // ANIMATIONS
-// =====================================
+// 
 
 // Expand/Collapse animation
 @keyframes expandCollapse {
@@ -1109,9 +1109,9 @@
   }
 }
 
-// =====================================
+// 
 // RESPONSIVE DESIGN
-// =====================================
+// 
 
 // Tablet breakpoint
 @container (max-width: 1024px) {
@@ -1281,9 +1281,9 @@
   }
 }
 
-// =====================================
+// 
 // ACCESSIBILITY & PREFERENCES
-// =====================================
+// 
 
 // High contrast mode
 @media (prefers-contrast: high) {
@@ -1332,9 +1332,9 @@
   }
 }
 
-// =====================================
+// 
 // DARK THEME OPTIMIZATIONS
-// =====================================
+// 
 
 @media (prefers-color-scheme: dark) {
   .dashboard-header {

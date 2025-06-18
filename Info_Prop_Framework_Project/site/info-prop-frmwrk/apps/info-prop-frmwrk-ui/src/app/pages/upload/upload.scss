@@ -330,8 +330,38 @@
 }
 
 // 
-// FILE ACTIONS
+// FILE ACTIONS & UPLOAD OPTIONS
 // 
+.upload-options {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  
+  @include mobile {
+    flex-direction: column;
+    width: 100%;
+    
+    button {
+      width: 100%;
+    }
+  }
+  
+  button {
+    min-width: 160px;
+    transition: all var(--transition-normal);
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+    
+    mat-icon {
+      margin-right: var(--spacing-sm);
+    }
+  }
+}
+
 .file-actions {
   display: flex;
   gap: var(--spacing-md);
@@ -599,7 +629,25 @@
     .sample-actions {
       margin-top: var(--spacing-xl);
       display: flex;
+      gap: var(--spacing-md);
       justify-content: center;
+      flex-wrap: wrap;
+      
+      @include mobile {
+        flex-direction: column;
+        
+        button {
+          width: 100%;
+        }
+      }
+      
+      button {
+        min-width: 160px;
+        
+        mat-icon {
+          margin-right: var(--spacing-sm);
+        }
+      }
     }
   }
 }

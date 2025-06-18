@@ -4,9 +4,9 @@
 @use '@angular/material' as mat;
 @use '../../../variables' as vars;
 
-// =====================================
+// 
 // COMPONENT HOST & CONTAINER
-// =====================================
+// 
 
 :host {
   display: block;
@@ -34,9 +34,9 @@
   }
 }
 
-// =====================================
+// 
 // PAGE HEADER
-// =====================================
+// 
 
 .page-header {
   @container (min-width: 768px) {
@@ -65,9 +65,9 @@
   }
 }
 
-// =====================================
+// 
 // ANALYSIS CONTROLS SECTION
-// =====================================
+// 
 
 .analysis-card {
   @container (min-width: 768px) {
@@ -182,9 +182,9 @@
   }
 }
 
-// =====================================
+// 
 // INFO CARD SECTION
-// =====================================
+// 
 
 .info-card {
   @container (min-width: 768px) {
@@ -245,9 +245,9 @@
   }
 }
 
-// =====================================
+// 
 // RESULTS SECTION
-// =====================================
+// 
 
 .results-section {
   @container (min-width: 768px) {
@@ -360,9 +360,9 @@
   }
 }
 
-// =====================================
+// 
 // RESULTS TABLE
-// =====================================
+// 
 
 .results-table-card {
   @include mat.elevation(1);
@@ -462,9 +462,9 @@
   }
 }
 
-// =====================================
+// 
 // NODE DETAILS PANEL
-// =====================================
+// 
 
 .node-details-card {
   @container (min-width: 768px) {
@@ -536,9 +536,9 @@
   }
 }
 
-// =====================================
+// 
 // COMPARISON SECTION
-// =====================================
+// 
 
 .comparison-section {
   .comparison-card {
@@ -587,9 +587,9 @@
   }
 }
 
-// =====================================
+// 
 // RESPONSIVE DESIGN & CONTAINER QUERIES
-// =====================================
+// 
 
 // Mobile-first responsive design
 @container (max-width: 767px) {
@@ -662,9 +662,9 @@
   }
 }
 
-// =====================================
+// 
 // ANIMATIONS & TRANSITIONS
-// =====================================
+// 
 
 // Smooth transitions for interactive elements
 .analysis-card,
@@ -720,9 +720,9 @@
   to { left: 100%; }
 }
 
-// =====================================
+// 
 // ACCESSIBILITY ENHANCEMENTS
-// =====================================
+// 
 
 // Focus management
 .analysis-button:focus-visible,
@@ -779,9 +779,9 @@ button:focus-visible {
   }
 }
 
-// =====================================
+// 
 // DARK THEME OPTIMIZATIONS
-// =====================================
+// 
 
 // Ensure proper contrast in dark themes
 @media (prefers-color-scheme: dark) {
