@@ -25,9 +25,9 @@ export class GraphStateService {
     loadedAt: null
   });
 
-  // Task 1.1: Add Parameter Tracking Signals
+  // Task 1.1: Add Parameter Tracking Signals (renamed to avoid conflicts)
   private parametersLastModified = signal<Date | null>(null);
-  private lastAnalysisRun = signal<Date | null>(null);
+  private _lastAnalysisRun = signal<Date | null>(null);
 
   // Public computed signals
   readonly isGraphLoaded = computed(() => this.state().isLoaded);
@@ -41,7 +41,7 @@ export class GraphStateService {
   // Task 1.1: Add Analysis Stale Detection
   readonly isAnalysisStale = computed(() => {
     const parametersModified = this.parametersLastModified();
-    const analysisRun = this.lastAnalysisRun();
+    const analysisRun = this._lastAnalysisRun();
     
     // No analysis stale if no parameters have been modified
     if (!parametersModified) return false;
@@ -52,6 +52,9 @@ export class GraphStateService {
     // Analysis is stale if parameters were modified after last analysis
     return parametersModified > analysisRun;
   });
+
+  // Expose lastAnalysisRun as public computed signal
+  readonly lastAnalysisRun = computed(() => this._lastAnalysisRun());
 
   // Computed graph properties - Fixed nodeCount calculation
   readonly nodeCount = computed(() => {
@@ -71,6 +74,11 @@ export class GraphStateService {
   // Task 1.2: Add Parameter Change Method
   markParametersChanged(): void {
     this.parametersLastModified.set(new Date());
+  }
+
+  // Add missing clearParametersChanged method
+  clearParametersChanged(): void {
+    this.parametersLastModified.set(null);
   }
 
   /**
@@ -142,7 +150,7 @@ export class GraphStateService {
       });
 
       // Task 1.3: Update analysis timestamp
-      this.lastAnalysisRun.set(new Date());
+      this._lastAnalysisRun.set(new Date());
 
       return { success: true };
 
@@ -218,7 +226,7 @@ export class GraphStateService {
       });
 
       // Task 1.3: Update analysis timestamp on success
-      this.lastAnalysisRun.set(new Date());
+      this._lastAnalysisRun.set(new Date());
 
       // Update graph structure if parameter modifications were made
       if (result.parameterModifications) {
@@ -281,7 +289,7 @@ export class GraphStateService {
       }
 
       // Task 1.3: Update analysis timestamp on success
-      this.lastAnalysisRun.set(new Date());
+      this._lastAnalysisRun.set(new Date());
 
       return { success: true, result };
 
@@ -341,7 +349,7 @@ export class GraphStateService {
       }
 
       // Task 1.3: Update analysis timestamp on success
-      this.lastAnalysisRun.set(new Date());
+      this._lastAnalysisRun.set(new Date());
 
       return { success: true, result };
 
@@ -430,7 +438,7 @@ export class GraphStateService {
     
     // Clear parameter tracking signals
     this.parametersLastModified.set(null);
-    this.lastAnalysisRun.set(null);
+    this._lastAnalysisRun.set(null);
   }
 
   /**
