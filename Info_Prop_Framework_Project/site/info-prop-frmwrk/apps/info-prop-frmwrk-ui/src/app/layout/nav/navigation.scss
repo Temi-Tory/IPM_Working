@@ -344,24 +344,40 @@
 //
 @include mobile {
   .sidenav {
-    width: 100%;
+    width: 280px; // Fixed width for better mobile UX
     position: fixed;
     z-index: var(--z-index-modal);
     transform: translateX(-100%);
     transition: transform var(--transition-normal);
+    box-shadow: var(--shadow-xl); // Enhanced shadow for mobile overlay
 
+    // Show navigation when NOT collapsed (inverted logic for mobile)
     &:not(.sidenav-collapsed) {
       transform: translateX(0);
     }
 
+    // Hide navigation when collapsed
     &-collapsed {
-      transform: translateX(-100%);
+      transform: translateX(-280px); // Match the width for proper hiding
     }
 
     &-status {
       bottom: calc(var(--spacing-xl) + var(--spacing-sm));
       padding: var(--spacing-md);
     }
+  }
+
+  // Add overlay background for mobile navigation
+  .sidenav:not(.sidenav-collapsed)::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 280px; // Start after the navigation
+    width: calc(100vw - 280px);
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    pointer-events: auto;
   }
 
   .status {
