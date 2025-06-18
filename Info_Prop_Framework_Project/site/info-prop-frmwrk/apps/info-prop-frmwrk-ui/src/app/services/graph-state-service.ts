@@ -25,6 +25,10 @@ export class GraphStateService {
     loadedAt: null
   });
 
+  // Task 1.1: Add Parameter Tracking Signals
+  private parametersLastModified = signal<Date | null>(null);
+  private lastAnalysisRun = signal<Date | null>(null);
+
   // Public computed signals
   readonly isGraphLoaded = computed(() => this.state().isLoaded);
   readonly csvContent = computed(() => this.state().csvContent);
@@ -33,6 +37,21 @@ export class GraphStateService {
   readonly lastAnalysisType = computed(() => this.state().lastAnalysisType);
   readonly error = computed(() => this.state().error);
   readonly loadedAt = computed(() => this.state().loadedAt);
+
+  // Task 1.1: Add Analysis Stale Detection
+  readonly isAnalysisStale = computed(() => {
+    const parametersModified = this.parametersLastModified();
+    const analysisRun = this.lastAnalysisRun();
+    
+    // No analysis stale if no parameters have been modified
+    if (!parametersModified) return false;
+    
+    // Analysis is stale if no analysis has been run yet
+    if (!analysisRun) return true;
+    
+    // Analysis is stale if parameters were modified after last analysis
+    return parametersModified > analysisRun;
+  });
 
   // Computed graph properties - Fixed nodeCount calculation
   readonly nodeCount = computed(() => {
@@ -48,6 +67,11 @@ export class GraphStateService {
   readonly sourceNodeCount = computed(() => this.state().structure?.source_nodes?.length || 0);
   readonly joinNodeCount = computed(() => this.state().structure?.join_nodes?.length || 0);
   readonly forkNodeCount = computed(() => this.state().structure?.fork_nodes?.length || 0);
+
+  // Task 1.2: Add Parameter Change Method
+  markParametersChanged(): void {
+    this.parametersLastModified.set(new Date());
+  }
 
   /**
    * Load graph structure from CSV content with spinner integration
@@ -116,6 +140,9 @@ export class GraphStateService {
         loadedAt: new Date(),
         error: null
       });
+
+      // Task 1.3: Update analysis timestamp
+      this.lastAnalysisRun.set(new Date());
 
       return { success: true };
 
@@ -190,6 +217,9 @@ export class GraphStateService {
         error: null
       });
 
+      // Task 1.3: Update analysis timestamp on success
+      this.lastAnalysisRun.set(new Date());
+
       // Update graph structure if parameter modifications were made
       if (result.parameterModifications) {
         this.updateParametersFromAnalysis(result);
@@ -250,6 +280,9 @@ export class GraphStateService {
         });
       }
 
+      // Task 1.3: Update analysis timestamp on success
+      this.lastAnalysisRun.set(new Date());
+
       return { success: true, result };
 
     } catch (analysisError: unknown) {
@@ -306,6 +339,9 @@ export class GraphStateService {
           lastAnalysisType: 'diamond'
         });
       }
+
+      // Task 1.3: Update analysis timestamp on success
+      this.lastAnalysisRun.set(new Date());
 
       return { success: true, result };
 
@@ -391,6 +427,10 @@ export class GraphStateService {
       error: null,
       loadedAt: null
     });
+    
+    // Clear parameter tracking signals
+    this.parametersLastModified.set(null);
+    this.lastAnalysisRun.set(null);
   }
 
   /**
@@ -515,6 +555,8 @@ export class GraphStateService {
       structure: updatedStructure
     });
 
+    // Mark parameters as changed
+    this.markParametersChanged();
     this.refreshParameterDependentState();
   }
 }
