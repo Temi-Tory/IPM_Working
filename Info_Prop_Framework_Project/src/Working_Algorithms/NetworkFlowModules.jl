@@ -2,9 +2,9 @@ module NetworkFlowModule
     using ..NetworkDecompositionModule
     using ..InputProcessingModule
 
-    # =============================================================================
+    # =================================
     # FLOW TYPE SYSTEM - Polymorphic dispatch for different network analyses
-    # =============================================================================
+    # =================================
     abstract type FlowType end
     
     struct ReliabilityFlow <: FlowType end      # Original: P(success) 
@@ -16,9 +16,9 @@ module NetworkFlowModule
     struct RiskAdjustedFlow <: FlowType end     # Reliability × Capacity
     struct MultiObjectiveFlow <: FlowType end   # Combined optimization
 
-    # =============================================================================
+    # =================================
     # ENHANCED INPUT STRUCTURES
-    # =============================================================================
+    # =================================
     
     # Basic flow parameters
     struct FlowParameters
@@ -62,9 +62,9 @@ module NetworkFlowModule
         inspection_delays::Dict{Int64, Float64}
     end
 
-    # =============================================================================
+    # =================================
     # FLOW COMBINATION RULES - Polymorphic dispatch by flow type
-    # =============================================================================
+    # =================================
     
     function combine_flows(flows::Vector{Float64}, ::ReliabilityFlow)
         # Inclusion-exclusion for dependent probabilities (existing)
@@ -112,9 +112,9 @@ module NetworkFlowModule
         return (time_cost, resource_cost, reliability)
     end
 
-    # =============================================================================
+    # =================================
     # DIAMOND HANDLING BY FLOW TYPE
-    # =============================================================================
+    # =================================
     
     function handle_diamond(group::AncestorGroup, flow_type::TimeFlow, 
                            results::Dict, params::FlowParameters)
@@ -248,9 +248,9 @@ module NetworkFlowModule
         return reliability * capacity  # Expected effective capacity
     end
 
-    # =============================================================================
+    # =================================
     # UNIFIED NETWORK ANALYSIS FUNCTION
-    # =============================================================================
+    # =================================
     
     function analyze_network_flow(
         # Standard network structure (from existing modules)
@@ -318,9 +318,9 @@ module NetworkFlowModule
         return results
     end
 
-    # =============================================================================
+    # =================================
     # HELPER FUNCTIONS
-    # =============================================================================
+    # =================================
     
     function get_source_value(node::Int64, params::FlowParameters, flow_type::FlowType)
         if isa(flow_type, ReliabilityFlow)
@@ -439,9 +439,9 @@ module NetworkFlowModule
         return paths
     end
 
-    # =============================================================================
+    # =================================
     # SPECIALIZED ANALYSIS FUNCTIONS
-    # =============================================================================
+    # =================================
     
     function critical_path_analysis(network_data, task_durations, dependency_delays)
         params = FlowParameters(

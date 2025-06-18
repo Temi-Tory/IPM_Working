@@ -1,2 +1,363 @@
-// Custom theme definitions can be added here when needed
-// For now, keeping it simple to avoid compilation issues
+// _theme.scss - Theme configuration for Angular Material and custom theming
+
+@use '@angular/material' as mat;
+@use 'sass:map';
+
+// 
+// CUSTOM COLOR PALETTES
+// 
+
+// Define custom palettes based on our muted color scheme
+$custom-purple-palette: (
+  50: #f4f1f8,
+  100: #e8e2f0,
+  200: #d1c5e1,
+  300: #b9a8d1,
+  400: #a28bc2,
+  500: #8b7aa8,  // Primary
+  600: #7a6a96,
+  700: #6a5a84,
+  800: #594a72,
+  900: #493a60,
+  A100: #c5b6dc,
+  A200: #b09fcf,
+  A400: #9b88c2,
+  A700: #8671b5,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: white,
+    A700: white,
+  )
+);
+
+$custom-pink-palette: (
+  50: #fbf3f5,
+  100: #f7e6eb,
+  200: #efcdd7,
+  300: #e6b4c3,
+  400: #de9baf,
+  500: #c08b9b,  // Secondary
+  600: #ad7c8c,
+  700: #996d7c,
+  800: #865e6d,
+  900: #734f5d,
+  A100: #f0c1d0,
+  A200: #e6a8bb,
+  A400: #dc8fa6,
+  A700: #d27691,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: white,
+    A700: white,
+  )
+);
+
+$custom-maroon-palette: (
+  50: #f7f0f3,
+  100: #efe1e7,
+  200: #dfc3cf,
+  300: #cfa5b7,
+  400: #bf879f,
+  500: #8b5a6f,  // Accent
+  600: #7d5163,
+  700: #6e4857,
+  800: #603f4b,
+  900: #51363f,
+  A100: #d4a0b4,
+  A200: #c5889f,
+  A400: #b6708a,
+  A700: #a75875,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: white,
+    A700: white,
+  )
+);
+
+$custom-brown-palette: (
+  50: #faf8f5,
+  100: #f5f1eb,
+  200: #ebe3d7,
+  300: #e0d5c3,
+  400: #d6c7af,
+  500: #9b8b7a,  // Tertiary
+  600: #8c7d6e,
+  700: #7c6e62,
+  800: #6d6056,
+  900: #5d514a,
+  A100: #d4c4b3,
+  A200: #c5b3a0,
+  A400: #b6a28d,
+  A700: #a7917a,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: rgba(black, 0.87),
+    A700: white,
+  )
+);
+
+// 
+// MATERIAL THEME DEFINITION
+// 
+
+// Define the custom theme using modern Angular Material M3 API
+$custom-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$violet-palette,
+    tertiary: mat.$red-palette,
+    use-system-variables: false,
+  ),
+  typography: (
+    use-system-variables: false,
+    brand-family: var(--font-family-base),
+    plain-family: var(--font-family-base),
+    bold-weight: var(--font-weight-bold),
+    medium-weight: var(--font-weight-medium),
+    regular-weight: var(--font-weight-normal),
+  ),
+  density: (
+    scale: 0,
+  )
+));
+
+// Apply the theme
+:root {
+  @include mat.all-component-themes($custom-theme);
+  @include mat.system-level-colors($custom-theme);
+  @include mat.system-level-typography($custom-theme);
+}
+
+// 
+// COMPONENT THEME OVERRIDES
+// 
+
+// Card component styling
+.mat-mdc-card {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+  
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+// Button component styling
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+  
+  &.mat-primary {
+    &.mat-mdc-raised-button,
+    &.mat-mdc-flat-button {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+      
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+    }
+  }
+}
+
+// Form field styling
+.mat-mdc-form-field {
+  &.mat-focused {
+    .mat-mdc-form-field-focus-overlay {
+      background-color: rgba(139, 122, 168, 0.05);
+    }
+  }
+}
+
+// Select dropdown styling
+.mat-mdc-select-panel {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-lg);
+}
+
+// Dialog styling
+.mat-mdc-dialog-container {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-2xl);
+}
+
+// Snackbar styling
+.mat-mdc-snackbar-surface {
+  background: var(--color-text-primary);
+  color: var(--color-bg-surface);
+  
+  &.success-snackbar {
+    background: var(--color-success);
+  }
+  
+  &.error-snackbar {
+    background: var(--color-error);
+  }
+  
+  &.warning-snackbar {
+    background: var(--color-warning);
+  }
+  
+  &.info-snackbar {
+    background: var(--color-info);
+  }
+}
+
+// Progress bar styling
+.mat-mdc-progress-bar {
+  .mdc-linear-progress__bar-inner {
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  }
+}
+
+// Slider styling
+.mat-mdc-slider {
+  .mdc-slider__track--active_fill {
+    border-color: var(--color-primary);
+  }
+  
+  .mdc-slider__thumb-knob {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+  }
+}
+
+// Checkbox styling
+.mat-mdc-checkbox {
+  &.mat-mdc-checkbox-checked {
+    .mdc-checkbox__background {
+      background-color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+  }
+}
+
+// Radio button styling
+.mat-mdc-radio-button {
+  &.mat-mdc-radio-checked {
+    .mdc-radio__inner-circle {
+      border-color: var(--color-primary);
+    }
+    
+    .mdc-radio__outer-circle {
+      border-color: var(--color-primary);
+    }
+  }
+}
+
+// Tab styling
+.mat-mdc-tab {
+  &.mdc-tab--active {
+    .mdc-tab__text-label {
+      color: var(--color-primary);
+    }
+    
+    .mdc-tab-indicator__content--underline {
+      border-color: var(--color-primary);
+    }
+  }
+}
+
+// Chip styling
+.mat-mdc-chip {
+  background-color: var(--color-bg-surface-alt);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  
+  &.mat-mdc-chip-selected {
+    background-color: var(--color-primary-subtle);
+    border-color: var(--color-primary);
+    color: var(--color-primary-dark);
+  }
+}
+
+// 
+// DARK MODE THEME
+// 
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    // Override CSS variables for dark mode
+    --color-bg-base: #1a1615;
+    --color-bg-surface: #252220;
+    --color-bg-surface-alt: #2a2725;
+    --color-bg-elevated: #302b2a;
+    
+    --color-text-primary: #f4ede8;
+    --color-text-secondary: #d4c4bc;
+    --color-text-muted: #a89f99;
+    
+    --color-border-light: #3d3635;
+    --color-border-medium: #524947;
+    --color-border-dark: #665c59;
+    
+    // Adjust shadows for dark mode
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+  
+  // Material component adjustments for dark mode
+  .mat-mdc-card {
+    background: var(--color-bg-surface);
+    border-color: var(--color-border-medium);
+  }
+  
+  .mat-mdc-select-panel {
+    background: var(--color-bg-surface);
+    border-color: var(--color-border-medium);
+  }
+}

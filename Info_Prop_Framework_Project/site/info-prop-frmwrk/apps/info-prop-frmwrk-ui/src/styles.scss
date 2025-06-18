@@ -1,173 +1,126 @@
+// styles.scss - Main entry point for the application styles
+// Following SMACSS methodology
+
+// ALL @use STATEMENTS MUST COME FIRST
+// 1. Angular Material setup
 @use '@angular/material' as mat;
 
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
+// 2. Use our custom theme configuration
+@use 'theme';
+
+// 3. Use CSS custom properties and variables (with global forwarding)
+@use 'variables' as *;
+
+// 4. Use base/reset styles
+@use 'base';
+
+// 5. Use layout styles
+@use 'layout';
+
+// 6. Use module styles
+@use 'modules';
+
+// 7. Use state styles
+@use 'state';
+
+// 8. Use component-specific styles
+@use 'app/app';
+@use 'app/layout/nav/navigation';
+@use 'app/pages/upload/upload';
+@use 'app/pages/parameters/parameters';
+@use 'app/pages/network-structure/network-structure';
+@use 'app/pages/visualization/visualization';
+@use 'app/pages/diamond-analysis/diamond-analysis';
+@use 'app/pages/reachability/reachability';
+@use 'app/pages/critical-path/critical-path';
+@use 'app/shared/spinner/spinner';
+
+// NOW INCLUDE ANGULAR MATERIAL CORE AFTER ALL @use STATEMENTS
 @include mat.core();
 
-// Define a light theme
-$light-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: mat.$azure-palette,
-    tertiary: mat.$orange-palette,
-  ),
-));
-
-// Apply the theme to the root element
-:root {
-  @include mat.all-component-themes($light-theme);
-}
-
-/* You can add global styles to this file, and also import other style files */
-
-/* Global CSS Variables */
-:root {
-  /* Navigation */
-  --nav-width: 280px;
-  --nav-collapsed-width: 64px;
-  --nav-z-index: 1000;
-  
-  /* Content */
-  --content-max-width: 1200px;
-  --content-max-height: 100vh;
-  --content-padding: 24px;
-  
-  /* Z-Index Scale */
-  --z-index-dropdown: 1000;
-  --z-index-sticky: 1020;
-  --z-index-fixed: 1030;
-  --z-index-modal-backdrop: 1040;
-  --z-index-modal: 1050;
-  --z-index-popover: 1060;
-  --z-index-tooltip: 1070;
-  --z-index-spinner: 9999;
-  
-  /* Colors */
-  --primary-purple: #7c3aed;
-  --primary-purple-light: #a855f7;
-  --primary-purple-dark: #5b21b6;
-  --accent-pink: #ec4899;
-  --accent-pink-light: #f472b6;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  
-  /* Border Radius */
-  --border-radius-sm: 4px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
-  
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.2s ease;
-  --transition-slow: 0.3s ease;
-}
-
-html,
-body {
-	height: 100vh;
-	width: 100vw;
-}
-
-body {
-	margin: 0;
-	padding: 0;
-	font-family: Roboto, "Helvetica Neue", sans-serif;
-	overflow-x: hidden;
-}
-
-/* Main layout using viewport units */
-.main-container {
-	min-height: 100vh;
-	width: 100vw;
-	position: relative;
-}
-
-/* App and components use relative units */
-app-root {
-	display: block;
-	width: 100%;
-	height: 100%;
-	position: relative;
-}
-
-/* Utility classes for responsive design */
+// 9. Utility classes for responsive design
 .w-full { width: 100%; }
 .h-full { height: 100%; }
+.w-screen { width: 100vw; }
+.h-screen { height: 100vh; }
 .relative { position: relative; }
 .absolute { position: absolute; }
 .fixed { position: fixed; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 0.75rem; }
+.m-4 { margin: 1rem; }
 
-/* Spinner overlay base styles */
-.spinner-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100vw;
-	height: 100vh;
-	background-color: rgba(0, 0, 0, 0.5);
-	z-index: var(--z-index-spinner);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	backdrop-filter: blur(2px);
-	-webkit-backdrop-filter: blur(2px);
+// 10. Responsive utilities
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
 }
 
-.spinner-container {
-	background: white;
-	border-radius: var(--border-radius-lg);
-	padding: 2rem;
-	box-shadow: var(--shadow-xl);
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1rem;
-	min-width: 200px;
-	max-width: 90vw;
-	position: relative;
+@media (min-width: 769px) {
+  .hide-desktop { display: none !important; }
+  .show-desktop { display: block !important; }
 }
 
-.spinner-content {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1rem;
+// 11. Print styles
+@media print {
+  .no-print { display: none !important; }
+  
+  body {
+    font-size: 12pt;
+    color: black;
+    background: white;
+  }
 }
 
-.spinner-text {
-	font-size: 1rem;
-	color: #666;
-	text-align: center;
-	margin: 0;
+// 12. Animation utilities
+.transition-all { transition: all var(--transition-normal) ease; }
+.transition-fast { transition: all var(--transition-fast) ease; }
+.transition-slow { transition: all var(--transition-slow) ease; }
+
+// 13. Accessibility helpers
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-.spinner-cancel-btn {
-	margin-top: 1rem;
-	min-width: 100px;
+// 14. Focus visible styles for better accessibility
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
-/* Animation for spinner appearance */
-@keyframes fadeInSpinner {
-	from {
-		opacity: 0;
-		transform: scale(0.9);
-	}
-	to {
-		opacity: 1;
-		transform: scale(1);
-	}
+// 15. Smooth scrolling
+html {
+  scroll-behavior: smooth;
 }
 
-.spinner-overlay {
-	animation: fadeInSpinner var(--transition-normal) ease-out;
+// 16. Selection colors
+::selection {
+  background-color: var(--color-primary-light);
+  color: var(--color-text-on-primary);
 }
 
-.spinner-container {
-	animation: fadeInSpinner var(--transition-normal) ease-out 0.1s;
+::-moz-selection {
+  background-color: var(--color-primary-light);
+  color: var(--color-text-on-primary);
 }

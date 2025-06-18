@@ -1,6 +1,6 @@
-# =============================================================================
+# =================================
 # P-BOX VERSION SCALING LIMITATIONS AND PERFORMANCE ANALYSIS
-# =============================================================================
+# =================================
 #
 # SUMMARY:
 # The p-box implementation provides high-fidelity uncertainty propagation but 
@@ -11,7 +11,7 @@
 # - Substation networks: Works well (typically smaller, less complex)
 # - Municipal networks: Intractable (hours to weeks depending on diamond nesting levels)
 #
-# =============================================================================
+# =================================
 
 """
 # COMPUTATIONAL COMPLEXITY ANALYSIS
@@ -179,9 +179,9 @@ The p-box approach provides theoretical rigor but is computationally prohibitive
 for large-scale, complex network analysis.
 """
 
-# =============================================================================
+# =================================
 # USAGE GUIDELINES
-# =============================================================================
+# =================================
 
 # Use this P-box module when:
 # - Grid or substation networks (typically < 1000 nodes)

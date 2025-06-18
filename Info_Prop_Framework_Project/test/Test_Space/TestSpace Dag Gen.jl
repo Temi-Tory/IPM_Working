@@ -286,5 +286,5 @@ println("\nNumber of entries with >0.5% difference: ", high_diff)
 println("Percentage of total: ", round(high_diff/nrow(df) * 100, digits=2), "%")
 # Display results
 println("\nResults comparison (sorted by highest percentage difference):")
-println("========================================================")
+println("============")
 show(formatted_df, allrows=true)

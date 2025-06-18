@@ -1,10 +1,10 @@
-# =============================================================================
+# =================================
 # UNCERTAINTY REPRESENTATION HIERARCHY FOR BELIEF NETWORKS
-# =============================================================================
+# =================================
 
-# =============================================================================
+# =================================
 # 1. THREE-TIER COMPUTATIONAL APPROACH
-# =============================================================================
+# =================================
 
 # TIER 1: FIXED (Float64) - Deterministic Analysis
 # - Single point estimates
@@ -24,9 +24,9 @@
 # - Maximum precision for uncertainty quantification
 # - Smaller networks or critical subsystems
 
-# =============================================================================
+# =================================
 # 2. COMPUTATIONAL SCALING
-# =============================================================================
+# =================================
 
 # For belief propagation with:
 # - N nodes, E edges, D diamonds, C conditioning nodes per diamond
@@ -43,9 +43,9 @@
 # - Intervals: ~10^5 operations (FAST) 
 # - P-box: ~10^9 operations (SLOW but manageable for smaller networks)
 
-# =============================================================================
+# =================================
 # 3. WHAT EACH TIER CAN REPRESENT
-# =============================================================================
+# =================================
 
 # FIXED VALUES CAN REPRESENT:
 # - Deterministic scenarios: "Exactly 0.7 probability"
@@ -72,9 +72,9 @@
 # - Complex dependencies: Copula structures
 # - Everything intervals can, plus distributional shape
 
-# =============================================================================
+# =================================
 # 4. CONVERSION CAPABILITIES
-# =============================================================================
+# =================================
 
 # UPWARD CONVERSION (Less → More Information):
 # Fixed → Interval: point_value → [point_value, point_value]
@@ -89,9 +89,9 @@
 # AUTOMATIC FALLBACK STRATEGY:
 # Try P-box → If intractable → Convert to Interval → If still slow → Use Fixed
 
-# =============================================================================
+# =================================
 # 5. DECISION FRAMEWORK: WHEN TO USE WHAT
-# =============================================================================
+# =================================
 
 # USE FIXED WHEN:
 # ✓ Network size > 5,000 nodes
@@ -116,9 +116,9 @@
 # ✓ Small critical subsystems require precision
 # ✓ Have computational time for thorough analysis
 
-# =============================================================================
+# =================================
 # 6. PRACTICAL IMPLEMENTATION STRATEGY
-# =============================================================================
+# =================================
 
 # TIERED ANALYSIS WORKFLOW:
 
@@ -142,9 +142,9 @@
 # - Critical paths: P-boxes  
 # - Non-critical branches: Fixed values
 
-# =============================================================================
+# =================================
 # 7. UNCERTAINTY SOURCES AND BEST REPRESENTATIONS
-# =============================================================================
+# =================================
 
 # MEASUREMENT UNCERTAINTY: "Sensor ± error"
 # → Intervals: [measurement - error, measurement + error]
@@ -164,9 +164,9 @@
 # → P-boxes: Need distribution shape for proper modeling
 # → Intervals: When only bounds matter for decisions
 
-# =============================================================================
+# =================================
 # 8. PERFORMANCE BENCHMARKS
-# =============================================================================
+# =================================
 
 # TYPICAL MUNICIPAL NETWORK (10,000 nodes):
 # - Fixed: ~1 second
@@ -188,9 +188,9 @@
 # - Intervals: 16 bytes per belief value
 # - P-boxes: ~1.6KB per belief value (200 discretization points)
 
-# =============================================================================
+# =================================
 # 9. VALIDATION STRATEGY
-# =============================================================================
+# =================================
 
 # CORRECTNESS VALIDATION:
 # 1. Deterministic cases: Interval and P-box should reduce to Fixed
