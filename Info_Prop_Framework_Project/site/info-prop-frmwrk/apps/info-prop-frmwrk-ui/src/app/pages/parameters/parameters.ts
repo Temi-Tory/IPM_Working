@@ -110,6 +110,10 @@ export class ParametersComponent {
   readonly nodeCount = computed(() => this.graphState.nodeCount());
   readonly edgeCount = computed(() => this.graphState.edgeCount());
   readonly hasDiamonds = computed(() => this.graphState.hasDiamonds());
+  
+  // Task 2.1: Add Stale Detection Properties
+  readonly isAnalysisStale = computed(() => this.graphState.isAnalysisStale());
+  readonly hasRunAnalysis = computed(() => this.graphState.lastAnalysisRun() !== null);
 
   constructor() {
     this.basicForm = this.fb.group({
@@ -126,6 +130,15 @@ export class ParametersComponent {
       monteCarloSamples: [10000, [Validators.min(1000), Validators.max(1000000)]]
     });
 
+    // Task 2.3: Add Form Change Listeners
+    this.basicForm.valueChanges.subscribe(() => {
+      this.graphState.markParametersChanged();
+    });
+
+    this.advancedForm.valueChanges.subscribe(() => {
+      this.graphState.markParametersChanged();
+    });
+
     // Initialize form values from loaded graph data
     this.initializeFromGraphData();
 
@@ -140,6 +153,19 @@ export class ParametersComponent {
         this.initializeFromGraphData();
       }
     });
+  }
+
+  // Task 2.2: Add Dynamic Button Text Method
+  getAnalysisButtonText(): string {
+    if (!this.hasRunAnalysis()) {
+      return 'Run Analysis';
+    }
+    
+    if (this.isAnalysisStale()) {
+      return 'Parameters Changed - Re-run Analysis';
+    }
+    
+    return 'Re-run Analysis';
   }
 
   applyPreset(preset: ParameterPreset): void {
@@ -194,6 +220,9 @@ export class ParametersComponent {
         
         // Sync current parameters to global state after successful analysis
         this.syncParametersToGlobalState();
+        
+        // Task 2.4: Reset stale state on successful completion
+        this.graphState.clearParametersChanged();
         
         this.snackBar.open('Analysis completed successfully!', 'View Results', {
           duration: 5000
@@ -373,6 +402,9 @@ export class ParametersComponent {
         ...overrides,
         [nodeId.toString()]: value
       }));
+      
+      // Task 2.3: Mark parameters as changed when individual overrides are updated
+      this.graphState.markParametersChanged();
     }
   }
 
@@ -382,10 +414,14 @@ export class ParametersComponent {
       delete updated[nodeId.toString()];
       return updated;
     });
+    
+    // Mark parameters as changed when overrides are cleared
+    this.graphState.markParametersChanged();
   }
 
   clearAllNodeOverrides(): void {
     this.nodeOverrides.set({});
+    this.graphState.markParametersChanged();
     this.snackBar.open('All node overrides cleared', 'Close', {
       duration: 2000
     });
@@ -425,6 +461,9 @@ export class ParametersComponent {
         ...overrides,
         [edgeKey]: value
       }));
+      
+      // Task 2.3: Mark parameters as changed when individual overrides are updated
+      this.graphState.markParametersChanged();
     }
   }
 
@@ -434,10 +473,14 @@ export class ParametersComponent {
       delete updated[edgeKey];
       return updated;
     });
+    
+    // Mark parameters as changed when overrides are cleared
+    this.graphState.markParametersChanged();
   }
 
   clearAllEdgeOverrides(): void {
     this.edgeOverrides.set({});
+    this.graphState.markParametersChanged();
     this.snackBar.open('All edge overrides cleared', 'Close', {
       duration: 2000
     });
