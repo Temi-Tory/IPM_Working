@@ -99,7 +99,27 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   customHighlights = signal<NodeHighlight[]>([]);
   highlightedPath = signal<number[]>([]);
   availableDiamonds = signal<(DiamondClassification & { diamondStructure?: DiamondStructureData })[]>([]);
-  selectedNodeInfo = signal<{nodeId: number; [key: string]: any} | null>(null);
+  selectedNodeInfo = signal<{
+    nodeId: number;
+    nodeType: string;
+    priorProbability?: number;
+    reachabilityValue?: number;
+    ancestors?: number[];
+    descendants?: number[];
+    diamondMemberships?: string[];
+    iterationSet?: number;
+    inDegree?: number;
+    outDegree?: number;
+    [key: string]: any;
+  } | null>(null);
+  
+  // Enhanced node interaction state
+  hoveredNodeInfo = signal<{
+    nodeId: number;
+    x: number;
+    y: number;
+    details: any;
+  } | null>(null);
   
   // Track rendering state
   private hasRenderedOnce = signal<boolean>(false);
@@ -199,6 +219,21 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   // For template compatibility (no longer used but kept for DOT download)
   readonly dotString = signal<string>('');
 
+  // Enhanced node details computed properties
+  readonly selectedNodeDetails = computed(() => {
+    const nodeInfo = this.selectedNodeInfo();
+    if (!nodeInfo) return null;
+    
+    return this.enrichNodeDetails(nodeInfo.nodeId);
+  });
+
+  readonly hoveredNodeDetails = computed(() => {
+    const hoverInfo = this.hoveredNodeInfo();
+    if (!hoverInfo) return null;
+    
+    return this.enrichNodeDetails(hoverInfo.nodeId);
+  });
+
   // Task 6.1: Check component initialization
   async ngAfterViewInit(): Promise<void> {
     if (!this.isVisualizationEnabled()) {
@@ -258,8 +293,9 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       // Clear container
       container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Preparing D3 visualization...</div>';
 
-      // Render with D3
+      // Render with D3 and setup node interaction handlers
       await this.rendererService.renderWithD3(container, structure, config);
+      this.setupNodeInteractionHandlers(container);
       
       this.hasRenderedOnce.set(true);
       
@@ -471,6 +507,75 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     // Navigate to diamond analysis and highlight diamonds containing this node
     console.log('Showing diamonds for node:', nodeId);
     // Implementation would depend on router navigation
+  }
+
+  // Enhanced node interaction methods
+  selectNode(nodeId: number): void {
+    const nodeDetails = this.enrichNodeDetails(nodeId);
+    this.selectedNodeInfo.set(nodeDetails);
+    
+    // Scroll to node details panel if it exists
+    const detailsPanel = document.querySelector('.node-details-panel');
+    if (detailsPanel) {
+      detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  showNodeTooltip(nodeId: number, x: number, y: number): void {
+    const nodeDetails = this.enrichNodeDetails(nodeId);
+    this.hoveredNodeInfo.set({
+      nodeId,
+      x,
+      y,
+      details: nodeDetails
+    });
+  }
+
+  hideNodeTooltip(): void {
+    this.hoveredNodeInfo.set(null);
+  }
+
+  clearNodeSelection(): void {
+    this.selectedNodeInfo.set(null);
+  }
+
+  highlightNodeRelationships(nodeId: number, type: 'ancestors' | 'descendants' | 'both'): void {
+    const structure = this.structure();
+    if (!structure) return;
+
+    const highlights: NodeHighlight[] = [];
+    
+    if (type === 'ancestors' || type === 'both') {
+      const ancestors = this.findAncestors(nodeId, structure);
+      ancestors.forEach(ancestorId => {
+        highlights.push({
+          nodeId: ancestorId,
+          type: 'diamond',
+          color: '#9C27B0' // Purple for ancestors
+        });
+      });
+    }
+    
+    if (type === 'descendants' || type === 'both') {
+      const descendants = this.findDescendants(nodeId, structure);
+      descendants.forEach(descendantId => {
+        highlights.push({
+          nodeId: descendantId,
+          type: 'diamond',
+          color: '#FF5722' // Orange for descendants
+        });
+      });
+    }
+    
+    // Highlight the selected node itself
+    highlights.push({
+      nodeId,
+      type: 'source',
+      color: '#4CAF50' // Green for selected node
+    });
+    
+    this.customHighlights.set(highlights);
+    this.triggerUpdate(`${type} highlighting for node ${nodeId}`);
   }
 
   // Trigger update with user feedback
@@ -891,6 +996,152 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     }
     
     return Array.from(descendants);
+  }
+
+  // Enhanced node details enrichment
+  private enrichNodeDetails(nodeId: number): any {
+    const structure = this.structure();
+    const lastResults = this.lastResults();
+    
+    if (!structure) return { nodeId, nodeType: 'unknown' };
+    
+    // Determine node type
+    let nodeType = 'regular';
+    if (structure.source_nodes?.includes(nodeId)) nodeType = 'source';
+    else if (structure.fork_nodes?.includes(nodeId)) nodeType = 'fork';
+    else if (structure.join_nodes?.includes(nodeId)) nodeType = 'join';
+    else if (this.findSinkNodes(structure).includes(nodeId)) nodeType = 'sink';
+    
+    // Get prior probability
+    const priorProbability = structure.node_priors?.[nodeId] || null;
+    
+    // Get reachability value from results
+    let reachabilityValue = null;
+    if (lastResults && Array.isArray(lastResults)) {
+      const result = lastResults.find(r => r.node === nodeId);
+      reachabilityValue = result?.probability || null;
+    }
+    
+    // Calculate in-degree and out-degree
+    let inDegree = 0;
+    let outDegree = 0;
+    structure.edgelist.forEach(([from, to]) => {
+      if (to === nodeId) inDegree++;
+      if (from === nodeId) outDegree++;
+    });
+    
+    // Find ancestors and descendants
+    const ancestors = this.findAncestors(nodeId, structure);
+    const descendants = this.findDescendants(nodeId, structure);
+    
+    // Find diamond memberships
+    const diamondMemberships: string[] = [];
+    if (structure.diamond_structures?.diamondStructures) {
+      Object.entries(structure.diamond_structures.diamondStructures).forEach(([joinNode, diamond]) => {
+        const diamondData = diamond as DiamondStructureData;
+        const isInDiamond = diamondData.diamond?.some((group: DiamondGroup) =>
+          group.relevant_nodes?.includes(nodeId)
+        ) || diamondData.join_node === nodeId;
+        
+        if (isInDiamond) {
+          diamondMemberships.push(`Diamond at Join ${joinNode}`);
+        }
+      });
+    }
+    
+    // Find iteration set
+    let iterationSet = null;
+    structure.iteration_sets?.forEach((set, index) => {
+      if (set.includes(nodeId)) {
+        iterationSet = index;
+      }
+    });
+    
+    return {
+      nodeId,
+      nodeType,
+      priorProbability,
+      reachabilityValue,
+      ancestors,
+      descendants,
+      diamondMemberships,
+      iterationSet,
+      inDegree,
+      outDegree,
+      // Additional computed properties
+      hasResults: reachabilityValue !== null,
+      isPriorAvailable: priorProbability !== null,
+      connectivityRatio: inDegree + outDegree > 0 ? outDegree / (inDegree + outDegree) : 0,
+      isHighlyConnected: inDegree + outDegree > 3,
+      isBottleneck: inDegree > 2 && outDegree > 2,
+      isTerminal: (inDegree === 0 && nodeType === 'source') || (outDegree === 0 && nodeType === 'sink')
+    };
+  }
+
+  // Setup interactive node handlers for D3 visualization
+  private setupNodeInteractionHandlers(container: HTMLElement): void {
+    // Find all node elements (circles or other shapes)
+    const nodeElements = container.querySelectorAll('.node, circle[data-node-id], g.node');
+    
+    nodeElements.forEach(nodeElement => {
+      const element = nodeElement as HTMLElement;
+      
+      // Extract node ID from various possible attributes
+      let nodeId: number | null = null;
+      if (element.dataset['nodeId']) {
+        nodeId = parseInt(element.dataset['nodeId']);
+      } else if (element.getAttribute('id')) {
+        const idMatch = element.getAttribute('id')?.match(/node-(\d+)/);
+        if (idMatch) nodeId = parseInt(idMatch[1]);
+      } else {
+        // Try to find node ID in child elements
+        const childWithId = element.querySelector('[data-node-id], [id*="node"]');
+        if (childWithId) {
+          const childId = childWithId.getAttribute('data-node-id') || childWithId.getAttribute('id');
+          const idMatch = childId?.match(/(\d+)/);
+          if (idMatch) nodeId = parseInt(idMatch[1]);
+        }
+      }
+      
+      if (nodeId === null) return;
+      
+      const finalNodeId = nodeId;
+      
+      // Mouse enter - show tooltip
+      element.addEventListener('mouseenter', (event) => {
+        const rect = element.getBoundingClientRect();
+        this.showNodeTooltip(finalNodeId, rect.left + rect.width / 2, rect.top);
+      });
+      
+      // Mouse leave - hide tooltip
+      element.addEventListener('mouseleave', () => {
+        this.hideNodeTooltip();
+      });
+      
+      // Click - select node and show details
+      element.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this.selectNode(finalNodeId);
+      });
+      
+      // Add visual feedback for hover
+      element.addEventListener('mouseenter', () => {
+        element.style.cursor = 'pointer';
+        element.style.opacity = '0.8';
+      });
+      
+      element.addEventListener('mouseleave', () => {
+        element.style.cursor = 'default';
+        element.style.opacity = '1';
+      });
+    });
+    
+    // Click outside to clear selection
+    container.addEventListener('click', (event) => {
+      if (event.target === container) {
+        this.clearNodeSelection();
+      }
+    });
   }
 
   // Private methods
