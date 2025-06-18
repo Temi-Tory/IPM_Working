@@ -400,3 +400,136 @@ mat-card-subtitle {
 .result-card.success {
   animation: uploadSuccess var(--transition-slow) ease-out;
 }
+
+// Enhanced Upload Progress Styles
+.upload-progress {
+  margin: 1.5rem 0;
+  text-align: center;
+  
+  p {
+    margin-top: 1rem;
+    color: var(--primary-purple);
+    font-weight: 500;
+  }
+  
+  .progress-details {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+}
+
+// Enhanced Validation Feedback Styles
+.validation-summary {
+  background: #f0f9ff;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  
+  .summary-stats {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    
+    .stat {
+      background: #e0f2fe;
+      color: #0891b2;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  }
+}
+
+.validation-details,
+.validation-errors {
+  margin-top: 12px;
+  
+  h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  ul {
+    margin: 0;
+    padding-left: 20px;
+    
+    li {
+      font-size: 0.875rem;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+  }
+}
+
+.validation-details {
+  h5 {
+    color: #f59e0b;
+  }
+  
+  ul li {
+    color: #d97706;
+  }
+}
+
+.validation-errors {
+  h5 {
+    color: #ef4444;
+  }
+  
+  ul li {
+    color: #dc2626;
+  }
+}
+
+.load-details {
+  margin-top: 12px;
+  background: #f0fdf4;
+  border-radius: 6px;
+  padding: 12px;
+  
+  ul {
+    margin: 0;
+    padding-left: 20px;
+    
+    li {
+      color: #166534;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+  }
+}
+
+// Enhanced progress bar styling
+mat-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  
+  &[mode="determinate"] {
+    .mdc-linear-progress__bar-inner {
+      border-radius: 3px;
+    }
+  }
+}
+
+// Enhanced next step actions
+.next-step-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #dcfce7;
+  
+  button {
+    min-width: 160px;
+    
+    mat-icon {
+      margin-right: 6px;
+    }
+  }
+}

@@ -1,6 +1,6 @@
-import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,11 +13,24 @@ import { GraphStateService } from '../../services/graph-state-service';
 interface UploadResult {
   success: boolean;
   message: string;
+  details?: string[];
 }
 
 interface LoadResult {
   success: boolean;
   message: string;
+  details?: string[];
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  summary: {
+    nodes: number;
+    edges: number;
+    matrixSize: number;
+  };
 }
 
 @Component({
@@ -39,6 +52,8 @@ interface LoadResult {
 export class UploadComponent {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
+  // Task 1.1: Add Router service injection
+  private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   readonly graphState = inject(GraphStateService);
 
@@ -50,6 +65,17 @@ export class UploadComponent {
   csvContent = signal<string>('');
   isLoadingGraph = signal(false);
   loadResult = signal<LoadResult | null>(null);
+
+  // Task 1.1: Add navigation state control
+  readonly isGraphLoaded = computed(() => this.graphState.isGraphLoaded());
+
+  // Task 1.2: Add detailed validation feedback
+  validationDetails = signal<string[]>([]);
+  validationSummary = signal<ValidationResult['summary'] | null>(null);
+
+  // Task 1.3: Add framework loading progress tracking
+  loadingStep = signal<string>('');
+  loadingProgress = signal<number>(0);
 
   // Drag and drop handlers
   onDragOver(event: DragEvent): void {
@@ -127,6 +153,12 @@ export class UploadComponent {
     this.csvContent.set('');
     this.isUploading.set(false);
     this.isLoadingGraph.set(false);
+    // Task 1.2: Reset validation details
+    this.validationDetails.set([]);
+    this.validationSummary.set(null);
+    // Task 1.3: Reset loading progress
+    this.loadingStep.set('');
+    this.loadingProgress.set(0);
   }
 
   // Upload functionality - just validate and store file content
@@ -142,30 +174,40 @@ export class UploadComponent {
       // Read file content
       const csvContent = await this.readFileContent(file);
       
-      // Validate CSV format
-      const isValid = this.validateCsvFormat(csvContent);
+      // Task 1.2: Enhanced validation with detailed feedback
+      const validationResult = this.validateCsvFormatEnhanced(csvContent);
       
-      if (!isValid) {
+      if (!validationResult.isValid) {
+        this.validationDetails.set([...validationResult.errors, ...validationResult.warnings]);
         this.uploadResult.set({
           success: false,
-          message: 'Invalid adjacency matrix format. Please ensure the file contains a square matrix with node priors in the first column and edge probabilities in the remaining columns.'
+          message: 'Invalid adjacency matrix format detected.',
+          details: validationResult.errors
         });
         return;
       }
 
-      // Store CSV content for later processing
+      // Store CSV content and validation summary
       this.csvContent.set(csvContent);
+      this.validationSummary.set(validationResult.summary);
+      this.validationDetails.set(validationResult.warnings); // Show warnings even on success
       
       const result = {
         success: true,
-        message: `File "${file.name}" validated successfully! Click "Load into Framework" to proceed.`
+        message: `File "${file.name}" validated successfully! Found ${validationResult.summary.nodes} nodes and ${validationResult.summary.edges} edges.`,
+        details: validationResult.warnings.length > 0 ? validationResult.warnings : undefined
       };
       
       this.uploadResult.set(result);
 
-      this.snackBar.open('File validated and ready to load!', 'Load Now', {
-        duration: 4000
-      }).onAction().subscribe(() => {
+      // Enhanced success feedback with auto-navigation option
+      const snackBarRef = this.snackBar.open(
+        'File validated and ready to load!', 
+        this.isGraphLoaded() ? 'Replace Graph' : 'Load Now', 
+        { duration: 5000 }
+      );
+      
+      snackBarRef.onAction().subscribe(() => {
         this.loadGraphIntoFramework();
       });
 
@@ -180,33 +222,74 @@ export class UploadComponent {
     }
   }
 
-  // Load graph into framework - separate step
+  // Task 1.3: Enhanced load graph with progress indicators
   async loadGraphIntoFramework(): Promise<void> {
     const csvContent = this.csvContent();
     if (!csvContent) return;
 
     this.isLoadingGraph.set(true);
     this.loadResult.set(null);
+    this.loadingProgress.set(0);
 
     try {
-      // Load graph using GraphStateService
+      // Step 1: Initial validation
+      this.loadingStep.set('Validating structure...');
+      this.loadingProgress.set(20);
+      await this.delay(500);
+
+      // Step 2: Loading into framework
+      this.loadingStep.set('Loading into framework...');
+      this.loadingProgress.set(50);
+      
       const result = await this.graphState.loadGraphFromCsv(csvContent, {
-        message: 'Loading and analyzing graph structure...',
+        message: 'Analyzing graph structure and detecting diamonds...',
         showCancelButton: true
       });
 
+      // Step 3: Finalizing
+      this.loadingStep.set('Finalizing...');
+      this.loadingProgress.set(90);
+      await this.delay(300);
+
       if (result.success) {
+        this.loadingStep.set('Complete!');
+        this.loadingProgress.set(100);
+        
+        const nodeCount = this.graphState.nodeCount();
+        const edgeCount = this.graphState.edgeCount();
+        const hasDiamonds = this.graphState.hasDiamonds();
+        
+        const details = [
+          `Successfully loaded ${nodeCount} nodes and ${edgeCount} edges`,
+          hasDiamonds ? 'Diamond structures detected' : 'No diamond structures found'
+        ];
+
         this.loadResult.set({
           success: true,
-          message: `Graph loaded into framework! Found ${this.graphState.nodeCount()} nodes and ${this.graphState.edgeCount()} edges.`
+          message: `Graph loaded into framework! Ready for analysis.`,
+          details
         });
 
-        // Show success message with action
-        this.snackBar.open('Graph loaded successfully!', 'Configure Parameters', {
-          duration: 5000
-        }).onAction().subscribe(() => {
-          // Navigation will be handled by the template button
+        // Task 1.1: Automatic navigation flow with enhanced feedback
+        const actionText = hasDiamonds ? 'Configure Parameters' : 'View Structure';
+        const nextRoute = hasDiamonds ? '/parameters' : '/network-structure';
+        
+        const snackBarRef = this.snackBar.open(
+          `Graph loaded successfully! ${details.join('. ')}`, 
+          actionText, 
+          { duration: 6000 }
+        );
+        
+        snackBarRef.onAction().subscribe(() => {
+          this.router.navigate([nextRoute]);
         });
+
+        // Auto-reset loading indicators after delay
+        setTimeout(() => {
+          this.loadingStep.set('');
+          this.loadingProgress.set(0);
+        }, 2000);
+
       } else {
         this.loadResult.set({
           success: false,
@@ -221,6 +304,11 @@ export class UploadComponent {
       });
     } finally {
       this.isLoadingGraph.set(false);
+      // Reset progress on error
+      if (!this.loadResult()?.success) {
+        this.loadingStep.set('');
+        this.loadingProgress.set(0);
+      }
     }
   }
 
@@ -260,52 +348,133 @@ export class UploadComponent {
     });
   }
 
-  private validateCsvFormat(content: string): boolean {
-    
-    const lines = content.trim().split('\n');
-    
-    // Must have at least 1 row for a valid adjacency matrix
-    if (lines.length < 1) {
-      return false;
-    }
-    
-    // Check first row to determine matrix dimensions
-    const firstRow = lines[0].trim();
-    const firstRowParts = firstRow.split(',');
-    
-    // Must have at least 2 columns (node prior + at least 1 adjacency column)
-    if (firstRowParts.length < 2) {
-      return false;
-    }
-    
-    const matrixSize = firstRowParts.length;
-    
-    // Validate that all rows have the same number of columns
-    for (let i = 0; i < lines.length; i++) {
-      const rowParts = lines[i].trim().split(',');
-      if (rowParts.length !== matrixSize) {
-        return false;
+  // Task 1.2: Enhanced validation with detailed feedback
+  private validateCsvFormatEnhanced(content: string): ValidationResult {
+    const result: ValidationResult = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      summary: {
+        nodes: 0,
+        edges: 0,
+        matrixSize: 0
+      }
+    };
+
+    try {
+      const lines = content.trim().split('\n');
+      
+      if (lines.length < 1) {
+        result.isValid = false;
+        result.errors.push('File is empty or contains no valid data');
+        return result;
       }
       
-      // Check if all values can be parsed as numbers
-      for (const part of rowParts) {
-        const value = parseFloat(part.trim());
-        if (isNaN(value)) {
-          return false;
+      // Check first row to determine matrix dimensions
+      const firstRow = lines[0].trim();
+      const firstRowParts = firstRow.split(',');
+      
+      if (firstRowParts.length < 2) {
+        result.isValid = false;
+        result.errors.push('Each row must have at least 2 columns (node prior + at least 1 adjacency column)');
+        return result;
+      }
+      
+      const matrixSize = firstRowParts.length;
+      result.summary.matrixSize = matrixSize;
+      
+      // For adjacency matrix: number of rows should equal number of nodes
+      const expectedRows = matrixSize - 1;
+      result.summary.nodes = expectedRows;
+      
+      if (lines.length !== expectedRows) {
+        result.isValid = false;
+        result.errors.push(`Expected ${expectedRows} rows for ${expectedRows} nodes, but found ${lines.length} rows`);
+        return result;
+      }
+      
+      let edgeCount = 0;
+      const nodeValues: number[] = [];
+      const edgeValues: number[] = [];
+      
+      // Validate each row
+      for (let i = 0; i < lines.length; i++) {
+        const rowParts = lines[i].trim().split(',');
+        
+        if (rowParts.length !== matrixSize) {
+          result.isValid = false;
+          result.errors.push(`Row ${i + 1} has ${rowParts.length} columns, expected ${matrixSize}`);
+          return result;
+        }
+        
+        // Check if all values can be parsed as numbers
+        for (let j = 0; j < rowParts.length; j++) {
+          const value = parseFloat(rowParts[j].trim());
+          if (isNaN(value)) {
+            result.isValid = false;
+            result.errors.push(`Invalid number "${rowParts[j].trim()}" at row ${i + 1}, column ${j + 1}`);
+            return result;
+          }
+          
+          if (j === 0) {
+            // Node prior
+            nodeValues.push(value);
+            if (value < 0 || value > 1) {
+              result.warnings.push(`Node prior ${value} at row ${i + 1} is outside typical range [0,1]`);
+            }
+          } else {
+            // Edge probability
+            edgeValues.push(value);
+            if (value > 0) {
+              edgeCount++;
+            }
+            if (value < 0 || value > 1) {
+              result.warnings.push(`Edge probability ${value} at row ${i + 1}, column ${j + 1} is outside typical range [0,1]`);
+            }
+          }
         }
       }
+      
+      result.summary.edges = edgeCount;
+      
+      // Additional validation warnings
+      if (edgeCount === 0) {
+        result.warnings.push('No edges detected (all edge probabilities are 0)');
+      }
+      
+      const nodeValueVariance = this.calculateVariance(nodeValues);
+      if (nodeValueVariance < 0.001) {
+        result.warnings.push('All node priors are identical - consider if this is intended');
+      }
+      
+      const avgEdgeProb = edgeValues.filter(v => v > 0).reduce((sum, v) => sum + v, 0) / edgeValues.filter(v => v > 0).length;
+      if (avgEdgeProb > 0.95) {
+        result.warnings.push('Very high average edge probabilities detected - ensure this reflects your network model');
+      }
+      
+      return result;
+      
+    } catch (error) {
+      result.isValid = false;
+      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return result;
     }
-    
-    // For adjacency matrix: number of rows should equal number of nodes
-    // The matrix columns are: [node_prior, adj_1, adj_2, ..., adj_n]
-    // So matrixSize = n + 1, and we should have n rows
-    const expectedRows = matrixSize - 1;
-    
-    if (lines.length !== expectedRows) {
-      return false;
-    }
-    
-    return true;
+  }
+
+  // Legacy method for compatibility - now delegates to enhanced version
+  private validateCsvFormat(content: string): boolean {
+    return this.validateCsvFormatEnhanced(content).isValid;
+  }
+
+  private calculateVariance(values: number[]): number {
+    if (values.length === 0) return 0;
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+    return squaredDiffs.reduce((sum, v) => sum + v, 0) / values.length;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // Sample data generation
@@ -318,7 +487,7 @@ export class UploadComponent {
 1,0,0,0,0,0,0,0,0,0
 1,0,0,0,0,0,0,0,0.9,0
 1,0,0,0,0,0.9,0,0,0,0
-1,0,0,0,0,0,0,0.9,0,0`;
+1,0,0,0,0,0,0.9,0,0`;
 
     const blob = new Blob([sampleCsv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

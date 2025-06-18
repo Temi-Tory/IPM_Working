@@ -113,15 +113,15 @@
           </div>
         </div>
 
-        <!-- Upload Progress -->
+        <!-- Enhanced Upload Progress -->
         @if (isUploading()) {
           <div class="upload-progress">
             <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <p>Loading and analyzing graph structure...</p>
+            <p>Validating file format and analyzing structure...</p>
           </div>
         }
 
-        <!-- Upload Results -->
+        <!-- Upload Results with Validation Details -->
         @if (uploadResult()) {
           <mat-card class="result-card" [class.success]="uploadResult()?.success" [class.error]="!uploadResult()?.success">
             <mat-card-content>
@@ -131,6 +131,29 @@
                   <div>
                     <h4>File uploaded successfully!</h4>
                     <p>{{ uploadResult()?.message }}</p>
+                    
+                    <!-- Show validation summary -->
+                    @if (validationSummary()) {
+                      <div class="validation-summary">
+                        <div class="summary-stats">
+                          <span class="stat">{{ validationSummary()!.nodes }} nodes</span>
+                          <span class="stat">{{ validationSummary()!.edges }} edges</span>
+                          <span class="stat">{{ validationSummary()!.matrixSize }}×{{ validationSummary()!.matrixSize }} matrix</span>
+                        </div>
+                      </div>
+                    }
+                    
+                    <!-- Show validation warnings if any -->
+                    @if (validationDetails().length > 0) {
+                      <div class="validation-details">
+                        <h5>Validation Notes:</h5>
+                        <ul>
+                          @for (detail of validationDetails(); track detail) {
+                            <li>{{ detail }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
                   </div>
                 </div>
               } @else {
@@ -139,6 +162,18 @@
                   <div>
                     <h4>Upload failed</h4>
                     <p>{{ uploadResult()?.message }}</p>
+                    
+                    <!-- Show validation errors -->
+                    @if (validationDetails().length > 0) {
+                      <div class="validation-errors">
+                        <h5>Validation Errors:</h5>
+                        <ul>
+                          @for (detail of validationDetails(); track detail) {
+                            <li>{{ detail }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
                   </div>
                 </div>
               }
@@ -146,15 +181,18 @@
           </mat-card>
         }
 
-        <!-- Load Progress -->
+        <!-- Enhanced Load Progress with Steps -->
         @if (isLoadingGraph()) {
           <div class="upload-progress">
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <p>Loading graph into framework...</p>
+            <mat-progress-bar mode="determinate" [value]="loadingProgress()"></mat-progress-bar>
+            <p>{{ loadingStep() }}</p>
+            <div class="progress-details">
+              <span>{{ loadingProgress() }}% complete</span>
+            </div>
           </div>
         }
 
-        <!-- Load Results -->
+        <!-- Enhanced Load Results -->
         @if (loadResult()) {
           <mat-card class="result-card" [class.success]="loadResult()?.success" [class.error]="!loadResult()?.success">
             <mat-card-content>
@@ -164,12 +202,27 @@
                   <div>
                     <h4>Graph loaded into framework!</h4>
                     <p>{{ loadResult()?.message }}</p>
+                    
+                    <!-- Show loading details -->
+                    @if (loadResult()?.details && loadResult()!.details!.length > 0) {
+                      <div class="load-details">
+                        <ul>
+                          @for (detail of loadResult()!.details!; track detail) {
+                            <li>{{ detail }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
                   </div>
                 </div>
                 <div class="next-step-actions">
                   <button mat-raised-button color="primary" routerLink="/parameters">
                     <mat-icon>tune</mat-icon>
                     Configure Parameters
+                  </button>
+                  <button mat-stroked-button routerLink="/network-structure">
+                    <mat-icon>account_tree</mat-icon>
+                    View Structure
                   </button>
                 </div>
               } @else {
