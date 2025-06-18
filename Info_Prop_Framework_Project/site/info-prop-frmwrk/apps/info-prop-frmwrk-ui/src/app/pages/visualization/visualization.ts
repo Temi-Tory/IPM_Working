@@ -27,12 +27,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { GraphStateService } from '../../services/graph-state-service';
+import { GraphStructure } from '../../shared/models/graph-structure-interface';
 import { HighlightService } from '../../services/vis/highlight.service';
 import { MainServerService } from '../../services/main-server-service';
 import { LayoutOption, HighlightOption, VisualizationConfig, NodeHighlight } from '../../shared/models/vis/vis-types';
 import { VisualizationRendererService } from '../../services/vis/vis-renderer-service';
 import { ZOOM_CONFIG, LAYOUT_OPTIONS, HIGHLIGHT_OPTIONS } from '../../shared/models/vis/vis-constants';
-import { DiamondClassification, DiamondAnalysisResponse, DiamondStructureData } from '../../shared/models/main-sever-interface';
+import { DiamondClassification, DiamondAnalysisResponse, DiamondStructureData, DiamondGroup } from '../../shared/models/main-sever-interface';
 
 @Component({
   selector: 'app-visualization',
@@ -98,21 +99,37 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   customHighlights = signal<NodeHighlight[]>([]);
   highlightedPath = signal<number[]>([]);
   availableDiamonds = signal<(DiamondClassification & { diamondStructure?: DiamondStructureData })[]>([]);
-  selectedNodeInfo = signal<any>(null);
+  selectedNodeInfo = signal<{nodeId: number; [key: string]: any} | null>(null);
   
   // Track rendering state
   private hasRenderedOnce = signal<boolean>(false);
   private isUpdating = signal<boolean>(false);
 
+  // Task 6.3: Enhanced highlight options with analysis-based modes
+  readonly enhancedHighlightOptions: HighlightOption[] = [
+    ...HIGHLIGHT_OPTIONS,
+    { value: 'structure-analysis', label: 'Structure Analysis Results' },
+    { value: 'diamond-analysis', label: 'Diamond Analysis Results' },
+    { value: 'reachability-analysis', label: 'Reachability Analysis Results' },
+    { value: 'prior-probabilities', label: 'Prior Probabilities (Heat Map)' },
+    { value: 'reachability-values', label: 'Reachability Values (Heat Map)' }
+  ];
+
   // Constants exposed to template
   readonly layoutOptions: LayoutOption[] = LAYOUT_OPTIONS;
-  readonly highlightOptions: HighlightOption[] = HIGHLIGHT_OPTIONS;
+  readonly highlightOptions: HighlightOption[] = this.enhancedHighlightOptions;
+
+  // Task 6.1: Add Structure Analysis Dependency
+  readonly hasStructureAnalysis = computed(() => this.graphState.lastAnalysisType() !== null);
+  readonly isVisualizationEnabled = computed(() => this.hasStructureAnalysis() && this.isGraphLoaded());
 
   // Computed properties
   readonly isGraphLoaded = computed(() => this.graphState.isGraphLoaded());
   readonly structure = computed(() => this.graphState.graphStructure());
   readonly nodeCount = computed(() => this.graphState.nodeCount());
   readonly edgeCount = computed(() => this.graphState.edgeCount());
+  readonly lastAnalysisType = computed(() => this.graphState.lastAnalysisType());
+  readonly lastResults = computed(() => this.graphState.lastResults());
 
   // Current visualization configuration
   readonly currentConfig = computed((): VisualizationConfig => ({
@@ -124,14 +141,21 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     highlights: this.nodeHighlights()
   }));
 
-  // Enhanced node highlights based on individual controls matching static version
+  // Task 6.2 & 6.3: Enhanced node highlights with analysis-based coloring
   readonly nodeHighlights = computed((): NodeHighlight[] => {
     const structure = this.structure();
     let highlights: NodeHighlight[] = [];
     
     if (!structure) return [];
     
-    // Individual node type highlights
+    // Analysis-based highlighting modes
+    const highlightMode = this.highlightMode();
+    if (highlightMode.includes('analysis') || highlightMode.includes('probabilities') || highlightMode.includes('values')) {
+      highlights = this.generateAnalysisBasedHighlights(highlightMode);
+      if (highlights.length > 0) return highlights;
+    }
+    
+    // Individual node type highlights (existing functionality)
     if (this.showSourceNodes()) {
       structure.source_nodes?.forEach(nodeId => {
         highlights.push({ nodeId, type: 'source', color: '#4CAF50' });
@@ -139,10 +163,10 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     }
     
     if (this.showSinkNodes()) {
-      // Assume sink nodes are nodes with no outgoing edges
+      // Find sink nodes (nodes with no outgoing edges)
       const sinkNodes = this.findSinkNodes(structure);
       sinkNodes.forEach(nodeId => {
-        highlights.push({ nodeId, type: 'sink', color: '#4CAF50' });
+        highlights.push({ nodeId, type: 'sink', color: '#FF5722' });
       });
     }
     
@@ -158,46 +182,16 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       });
     }
     
-    if (this.showDiamonds()) {
-      // Highlight all diamond structure nodes
-      const diamondNodes = this.getAllDiamondNodes();
-      diamondNodes.forEach(nodeId => {
-        highlights.push({ nodeId, type: 'diamond', color: '#E91E63' });
-      });
-    }
-    
     if (this.showIterations()) {
-      // Color by iteration sets with gradient
-      structure.iteration_sets?.forEach((iterationSet, index) => {
-        const hue = (index * 360) / (structure.iteration_sets?.length || 1);
-        const color = `hsl(${hue}, 70%, 60%)`;
-        iterationSet.forEach(nodeId => {
-          highlights.push({ nodeId, type: 'diamond', color });
-        });
-      });
+      highlights.push(...this.generateIterationHighlights(structure));
     }
     
-    // Add focused diamond highlights
-    const focusedDiamondId = this.focusedDiamond();
-    if (focusedDiamondId) {
-      const diamondHighlights = this.generateDiamondHighlights(focusedDiamondId);
-      highlights = [...highlights, ...diamondHighlights];
+    if (this.showDiamonds()) {
+      highlights.push(...this.generateDiamondHighlightsFromStructure(structure));
     }
     
     // Add custom highlights
-    const customHighlights = this.customHighlights();
-    highlights = [...highlights, ...customHighlights];
-    
-    // Add path highlights
-    const pathNodes = this.highlightedPath();
-    if (pathNodes.length > 0) {
-      const pathHighlights = pathNodes.map(nodeId => ({
-        nodeId,
-        type: 'diamond' as const,
-        color: '#00BCD4'
-      }));
-      highlights = [...highlights, ...pathHighlights];
-    }
+    highlights.push(...this.customHighlights());
     
     return highlights;
   });
@@ -205,8 +199,13 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   // For template compatibility (no longer used but kept for DOT download)
   readonly dotString = signal<string>('');
 
-  // Lifecycle hooks
+  // Task 6.1: Check component initialization
   async ngAfterViewInit(): Promise<void> {
+    if (!this.isVisualizationEnabled()) {
+      this.showError('Visualization requires structure analysis to be completed first');
+      return;
+    }
+    
     // Load available diamonds when graph is loaded
     if (this.isGraphLoaded()) {
       this.loadAvailableDiamonds();
@@ -220,8 +219,8 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       }
     });
     
-    // If graph is already loaded, generate visualization
-    if (this.isGraphLoaded()) {
+    // If graph is already loaded and analysis completed, generate visualization
+    if (this.isVisualizationEnabled()) {
       setTimeout(() => {
         this.generateVisualization();
       }, 200);
@@ -234,8 +233,8 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
 
   // Public methods
   async generateVisualization(): Promise<void> {
-    if (!this.isGraphLoaded()) {
-      this.showError('No graph loaded. Please upload a graph first.');
+    if (!this.isVisualizationEnabled()) {
+      this.showError('Visualization requires structure analysis to be completed first.');
       return;
     }
 
@@ -571,6 +570,189 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // Task 6.3: Generate analysis-based highlights
+  private generateAnalysisBasedHighlights(mode: string): NodeHighlight[] {
+    const structure = this.structure();
+    const lastResults = this.lastResults();
+    const lastAnalysisType = this.lastAnalysisType();
+    const highlights: NodeHighlight[] = [];
+
+    if (!structure) return highlights;
+
+    switch (mode) {
+      case 'structure-analysis':
+        if (lastAnalysisType === 'structure' || lastAnalysisType === 'full') {
+          highlights.push(...this.generateStructureAnalysisHighlights(structure));
+        }
+        break;
+
+      case 'diamond-analysis':
+        if (lastAnalysisType === 'diamond' || lastAnalysisType === 'full') {
+          highlights.push(...this.generateDiamondAnalysisHighlights(structure));
+        }
+        break;
+
+      case 'reachability-analysis':
+        if (lastAnalysisType === 'full' && lastResults) {
+          highlights.push(...this.generateReachabilityAnalysisHighlights(lastResults, structure));
+        }
+        break;
+
+      case 'prior-probabilities':
+        highlights.push(...this.generatePriorProbabilityHeatMap(structure));
+        break;
+
+      case 'reachability-values':
+        if (lastResults && lastAnalysisType === 'full') {
+          highlights.push(...this.generateReachabilityValueHeatMap(lastResults));
+        }
+        break;
+    }
+
+    return highlights;
+  }
+
+  private generateStructureAnalysisHighlights(structure: GraphStructure): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    // Highlight nodes based on structural role
+    structure.source_nodes?.forEach((nodeId: number) => {
+      highlights.push({ nodeId, type: 'source', color: '#4CAF50' });
+    });
+    
+    structure.fork_nodes?.forEach((nodeId: number) => {
+      highlights.push({ nodeId, type: 'fork', color: '#FF9800' });
+    });
+    
+    structure.join_nodes?.forEach((nodeId: number) => {
+      highlights.push({ nodeId, type: 'join', color: '#2196F3' });
+    });
+    
+    return highlights;
+  }
+
+  private generateDiamondAnalysisHighlights(structure: GraphStructure): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    if (structure.diamond_structures?.diamondStructures) {
+      let diamondIndex = 0;
+      Object.values(structure.diamond_structures.diamondStructures).forEach((diamond: DiamondStructureData) => {
+        const hue = (diamondIndex * 137.5) % 360; // Golden angle for color distribution
+        const color = `hsl(${hue}, 70%, 60%)`;
+        
+        diamond.diamond?.forEach((group: DiamondGroup) => {
+          group.relevant_nodes?.forEach((nodeId: number) => {
+            highlights.push({ nodeId, type: 'diamond', color });
+          });
+        });
+        
+        diamondIndex++;
+      });
+    }
+    
+    return highlights;
+  }
+
+  private generateReachabilityAnalysisHighlights(results: any, structure: GraphStructure): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    if (Array.isArray(results)) {
+      // Find min and max probabilities for color scaling
+      const probabilities = results.map(r => r.probability);
+      const minProb = Math.min(...probabilities);
+      const maxProb = Math.max(...probabilities);
+      
+      results.forEach(result => {
+        // Scale probability to color intensity (0-1)
+        const intensity = maxProb > minProb ?
+          (result.probability - minProb) / (maxProb - minProb) : 0.5;
+        
+        // Create heat map color (blue to red scale)
+        const hue = (1 - intensity) * 240; // Blue (240) to Red (0)
+        const color = `hsl(${hue}, 70%, ${50 + intensity * 30}%)`;
+        
+        highlights.push({
+          nodeId: result.node,
+          type: 'source',
+          color
+        });
+      });
+    }
+    
+    return highlights;
+  }
+
+  private generatePriorProbabilityHeatMap(structure: GraphStructure): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    if (structure.node_priors) {
+      const priors = Object.values(structure.node_priors) as number[];
+      const minPrior = Math.min(...priors);
+      const maxPrior = Math.max(...priors);
+      
+      Object.entries(structure.node_priors).forEach(([nodeId, prior]) => {
+        const intensity = maxPrior > minPrior ?
+          ((prior as number) - minPrior) / (maxPrior - minPrior) : 0.5;
+        
+        const hue = intensity * 120; // Green scale based on probability
+        const color = `hsl(${hue}, 70%, ${40 + intensity * 40}%)`;
+        
+        highlights.push({
+          nodeId: parseInt(nodeId),
+          type: 'source',
+          color
+        });
+      });
+    }
+    
+    return highlights;
+  }
+
+  private generateReachabilityValueHeatMap(results: any): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    if (Array.isArray(results)) {
+      const probabilities = results.map(r => r.probability);
+      const minProb = Math.min(...probabilities);
+      const maxProb = Math.max(...probabilities);
+      
+      results.forEach(result => {
+        const intensity = maxProb > minProb ?
+          (result.probability - minProb) / (maxProb - minProb) : 0.5;
+        
+        const hue = intensity * 60; // Yellow to red scale
+        const color = `hsl(${hue}, 80%, ${30 + intensity * 50}%)`;
+        
+        highlights.push({
+          nodeId: result.node,
+          type: 'source',
+          color
+        });
+      });
+    }
+    
+    return highlights;
+  }
+
+  private generateIterationHighlights(structure: GraphStructure): NodeHighlight[] {
+    const highlights: NodeHighlight[] = [];
+    
+    structure.iteration_sets?.forEach((set: number[], index: number) => {
+      const hue = (index * 60) % 360;
+      const color = `hsl(${hue}, 70%, 60%)`;
+      
+      set.forEach(nodeId => {
+        highlights.push({ nodeId, type: 'source', color });
+      });
+    });
+    
+    return highlights;
+  }
+
+  private generateDiamondHighlightsFromStructure(structure: GraphStructure): NodeHighlight[] {
+    return this.highlightService.generateHighlights(structure, 'diamond-structures');
+  }
+
   private async loadAvailableDiamonds(): Promise<void> {
     try {
       const csvContent = this.graphState.csvContent();
@@ -604,7 +786,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     const diamondNodes = new Set<number>();
     
     // Collect all diamond nodes
-    diamond.diamondStructure.diamond.forEach((group: any) => {
+    diamond.diamondStructure.diamond.forEach((group: DiamondGroup) => {
       group.relevant_nodes.forEach((node: number) => diamondNodes.add(node));
     });
     diamondNodes.add(diamond.diamondStructure.join_node);
@@ -621,7 +803,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     return highlights;
   }
 
-  private findSimplePath(from: number, to: number, structure: any): number[] {
+  private findSimplePath(from: number, to: number, structure: GraphStructure): number[] {
     // Simple BFS pathfinding - in production, use a more sophisticated algorithm
     const visited = new Set<number>();
     const queue: { node: number; path: number[] }[] = [{ node: from, path: [from] }];
@@ -647,7 +829,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     return []; // No path found
   }
 
-  private findSinkNodes(structure: any): number[] {
+  private findSinkNodes(structure: GraphStructure): number[] {
     const allNodes = new Set<number>();
     const hasOutgoing = new Set<number>();
     
@@ -665,7 +847,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     
     this.availableDiamonds().forEach(diamond => {
       if (diamond.diamondStructure) {
-        diamond.diamondStructure.diamond?.forEach((group: any) => {
+        diamond.diamondStructure.diamond?.forEach((group: DiamondGroup) => {
           group.relevant_nodes?.forEach((node: number) => diamondNodes.add(node));
         });
         diamondNodes.add(diamond.diamondStructure.join_node);
@@ -675,7 +857,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     return Array.from(diamondNodes);
   }
 
-  private findAncestors(nodeId: number, structure: any): number[] {
+  private findAncestors(nodeId: number, structure: GraphStructure): number[] {
     const ancestors = new Set<number>();
     const queue = [nodeId];
     
@@ -693,7 +875,7 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
     return Array.from(ancestors);
   }
 
-  private findDescendants(nodeId: number, structure: any): number[] {
+  private findDescendants(nodeId: number, structure: GraphStructure): number[] {
     const descendants = new Set<number>();
     const queue = [nodeId];
     
