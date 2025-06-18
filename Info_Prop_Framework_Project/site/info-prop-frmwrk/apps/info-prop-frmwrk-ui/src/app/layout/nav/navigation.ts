@@ -1,25 +1,29 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+// Angular Material imports using latest syntax
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatRippleModule } from '@angular/material/core';
 
 import { GraphStateService } from '../../services/graph-state-service';
 
 export interface NavItem {
-  label: string;
-  icon: string;
-  route?: string;
-  action?: () => void;
-  children?: NavItem[];
-  disabled?: boolean;
-  requiresGraph?: boolean;
-  requiresAnalysis?: boolean;
-  disabledReason?: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly route?: string;
+  readonly action?: () => void;
+  readonly children?: readonly NavItem[];
+  readonly disabled?: boolean;
+  readonly requiresGraph?: boolean;
+  readonly requiresAnalysis?: boolean;
+  readonly disabledReason?: string;
 }
 
 @Component({
@@ -32,16 +36,19 @@ export interface NavItem {
     MatIconModule,
     MatButtonModule,
     MatToolbarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatRippleModule
   ],
   templateUrl: './navigation.html',
   styleUrl: './navigation.scss',
 })
-export class Navigation {
-  // Inject graph state service
+export class Navigation implements OnInit {
+  // Dependency injection
   private readonly graphState = inject(GraphStateService);
+  private readonly destroyRef = inject(DestroyRef);
   
-  isExpanded = true;
+  // Component state using signals
+  readonly isExpanded = signal(true);
 
   // Computed properties for navigation state
   readonly isGraphLoaded = computed(() => this.graphState.isGraphLoaded());
@@ -49,8 +56,8 @@ export class Navigation {
   readonly lastAnalysisType = computed(() => this.graphState.lastAnalysisType());
   readonly hasDiamonds = computed(() => this.graphState.hasDiamonds());
 
-  // Base navigation items configuration
-  private readonly baseNavItems: Omit<NavItem, 'disabled' | 'disabledReason'>[] = [
+  // Base navigation items configuration - immutable data
+  private readonly baseNavItems: readonly Omit<NavItem, 'disabled' | 'disabledReason'>[] = [
     {
       label: 'Upload File',
       icon: 'cloud_upload',
@@ -59,7 +66,7 @@ export class Navigation {
     },
     {
       label: 'Modify Input Parameters',
-      icon: 'settings',
+      icon: 'tune',
       route: '/parameters',
       requiresGraph: true
     },
@@ -93,10 +100,10 @@ export class Navigation {
       route: '/critical-path',
       requiresGraph: true
     }
-  ];
+  ] as const;
 
   // Computed property for navigation items with state-based enabling/disabling
-  readonly navItems = computed((): NavItem[] => {
+  readonly navItems = computed((): readonly NavItem[] => {
     const isGraphLoaded = this.isGraphLoaded();
     const hasAnalysis = this.hasAnalysisResults();
     const analysisType = this.lastAnalysisType();
@@ -134,27 +141,48 @@ export class Navigation {
         ...item,
         disabled,
         disabledReason
-      };
+      } as NavItem;
     });
   });
 
-  toggleSidebar(): void {
-    this.isExpanded = !this.isExpanded;
+  ngOnInit(): void {
+    // Set up any subscriptions or initialization logic here
+    // Example: Listen to window resize events for responsive behavior
+    this.handleResponsiveDesign();
   }
 
+  /**
+   * Toggles the sidebar expanded/collapsed state
+   */
+  toggleSidebar(): void {
+    this.isExpanded.update(expanded => !expanded);
+  }
+
+  /**
+   * Handles navigation item clicks
+   * @param item - The navigation item that was clicked
+   */
   onNavItemClick(item: NavItem): void {
     // Prevent navigation if item is disabled
     if (item.disabled) {
       return;
     }
 
+    // Execute custom action if defined
     if (item.action) {
       item.action();
     }
+    
     // Navigation will be handled by routerLink in template
+    // We could add analytics tracking here if needed
+    this.trackNavigation(item);
   }
 
-  // Helper method to get tooltip text for nav items
+  /**
+   * Gets the appropriate tooltip text for a navigation item
+   * @param item - The navigation item
+   * @returns The tooltip text to display
+   */
   getTooltipText(item: NavItem): string {
     if (item.disabled && item.disabledReason) {
       return item.disabledReason;
@@ -162,8 +190,89 @@ export class Navigation {
     return item.label;
   }
 
-  // Helper method to check if item should show as disabled
+  /**
+   * Checks if a navigation item should be disabled
+   * @param item - The navigation item to check
+   * @returns True if the item should be disabled
+   */
   isItemDisabled(item: NavItem): boolean {
     return item.disabled || false;
+  }
+
+  /**
+   * Gets the ARIA label for a navigation item
+   * @param item - The navigation item
+   * @returns The ARIA label text
+   */
+  getAriaLabel(item: NavItem): string {
+    const baseLabel = item.label;
+    if (item.disabled && item.disabledReason) {
+      return `${baseLabel}, disabled: ${item.disabledReason}`;
+    }
+    return baseLabel;
+  }
+
+  /**
+   * Handles keyboard navigation
+   * @param event - The keyboard event
+   * @param item - The navigation item
+   */
+  onKeyDown(event: KeyboardEvent, item: NavItem): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onNavItemClick(item);
+    }
+  }
+
+  /**
+   * Private method to handle responsive design
+   */
+  private handleResponsiveDesign(): void {
+    // Check if we're on mobile and auto-collapse if needed
+    if (typeof window !== 'undefined') {
+      const checkWidth = () => {
+        if (window.innerWidth < 768) {
+          this.isExpanded.set(false);
+        }
+      };
+
+      // Initial check
+      checkWidth();
+
+      // Listen for resize events
+      window.addEventListener('resize', checkWidth);
+      
+      // Clean up listener on destroy
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('resize', checkWidth);
+      });
+    }
+  }
+
+  /**
+   * Private method to track navigation for analytics
+   * @param item - The navigation item that was clicked
+   */
+  private trackNavigation(item: NavItem): void {
+    // Add analytics tracking here if needed
+    console.debug('Navigation:', item.label, item.route);
+  }
+
+  /**
+   * Gets the router link for an item, ensuring disabled items don't navigate
+   * @param item - The navigation item
+   * @returns The router link or null if disabled
+   */
+  getRouterLink(item: NavItem): string | null {
+    return this.isItemDisabled(item) ? null : (item.route || null);
+  }
+
+  /**
+   * Gets the tab index for accessibility
+   * @param item - The navigation item
+   * @returns The appropriate tab index
+   */
+  getTabIndex(item: NavItem): number {
+    return this.isItemDisabled(item) ? -1 : 0;
   }
 }

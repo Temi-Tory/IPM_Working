@@ -1,597 +1,631 @@
-<div class="page-container">
-  <!-- No Graph Loaded Warning -->
+<!-- visualization.html - Modern Interactive Network Visualization -->
+<div class="visualization-workspace">
+
+  <!-- Header Section -->
+  <section class="viz-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1>
+          <mat-icon>scatter_plot</mat-icon>
+          Network Visualization
+        </h1>
+        <p class="subtitle">Interactive network graph with advanced highlighting and analysis tools</p>
+      </div>
+      
+      <!-- Quick Status Indicators -->
+      <div class="status-indicators">
+        @if (isGraphLoaded()) {
+          <mat-chip class="status-chip success">
+            <mat-icon>check_circle</mat-icon>
+            {{ nodeCount() }} nodes, {{ edgeCount() }} edges
+          </mat-chip>
+        }
+        
+        @if (lastAnalysisType()) {
+          <mat-chip class="status-chip info">
+            <mat-icon>analytics</mat-icon>
+            {{ lastAnalysisType() }} analysis available
+          </mat-chip>
+        }
+        
+        @if (isGeneratingDot()) {
+          <mat-chip class="status-chip loading">
+            <mat-spinner diameter="16"></mat-spinner>
+            Generating...
+          </mat-chip>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- No Graph Warning -->
   @if (!isGraphLoaded()) {
-    <mat-card class="page-card warning-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>warning</mat-icon>
-          No Graph Loaded
-        </mat-card-title>
-      </mat-card-header>
+    <mat-card class="state-card warning-state">
       <mat-card-content>
-        <p>Please upload a graph file first to visualize the network.</p>
+        <mat-icon>upload_file</mat-icon>
+        <h3>No Graph Data</h3>
+        <p>Upload a CSV file to begin network visualization</p>
         <button mat-raised-button color="primary" routerLink="/upload">
           <mat-icon>upload_file</mat-icon>
-          Upload Graph
+          Upload Graph Data
         </button>
       </mat-card-content>
     </mat-card>
-  } @else {
-    
-    <!-- Visualization Controls -->
-    <mat-card class="page-card controls-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>tune</mat-icon>
-          Visualization Controls
-        </mat-card-title>
-        <mat-card-subtitle>Configure layout, highlighting, and display options</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="controls-grid">
-          
-          <!-- Layout Selection -->
-          <div class="control-group">
-            <span class="control-label">Layout Algorithm</span>
-            <mat-select
-              [(value)]="selectedLayout"
-              (selectionChange)="onLayoutChange()"
-              class="layout-select">
-              @for (layout of layoutOptions; track layout.value) {
-                <mat-option [value]="layout.value" [matTooltip]="layout.description">
-                  {{ layout.label }}
-                </mat-option>
-              }
-            </mat-select>
-          </div>
+  }
 
-          <!-- Highlighting Mode -->
-          <div class="control-group">
-            <span class="control-label">Highlighting</span>
-            <mat-select
-              [(value)]="highlightMode"
-              (selectionChange)="onHighlightModeChange()"
-              class="highlight-select">
-              @for (option of highlightOptions; track option.value) {
-                <mat-option [value]="option.value">
-                  {{ option.label }}
-                </mat-option>
-              }
-            </mat-select>
-          </div>
+  <!-- Main Visualization Interface -->
+  @if (isGraphLoaded()) {
+    <div class="viz-main-layout">
 
-          <!-- Diamond Focus Controls -->
-          @if (availableDiamonds().length > 0) {
+      <!-- Control Panel Sidebar -->
+      <aside class="control-panel">
+        
+        <!-- Layout & Display Controls -->
+        <mat-card class="control-section">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>tune</mat-icon>
+              Layout & Display
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            
+            <!-- Layout Algorithm -->
             <div class="control-group">
-              <span class="control-label">Focus on Diamond</span>
-              <mat-select
-                [(value)]="focusedDiamond"
-                (selectionChange)="onDiamondFocusChange()"
-                class="diamond-select">
-                <mat-option value="">None</mat-option>
-                @for (diamond of availableDiamonds(); track diamond.join_node) {
-                  <mat-option [value]="diamond.join_node">
-                    Diamond {{ diamond.join_node }} ({{ diamond.subgraph_size }} nodes)
+              <label class="control-label" for="layout-select">Layout Algorithm</label>
+              <mat-select [(value)]="selectedLayout" 
+                          (selectionChange)="onLayoutChange()"
+                          class="full-width-select"
+                          id="layout-select">
+                @for (layout of layoutOptions; track layout.value) {
+                  <mat-option [value]="layout.value" [matTooltip]="layout.description">
+                    <div class="layout-option">
+                      <span class="layout-name">{{ layout.label }}</span>
+                      <small class="layout-desc">{{ layout.description }}</small>
+                    </div>
                   </mat-option>
                 }
               </mat-select>
             </div>
-          }
 
-          <!-- Subgraph Highlighting -->
-          <div class="control-group">
-            <span class="control-label">Subgraph Highlighting</span>
-            <div class="subgraph-controls">
-              <div class="node-input-group">
-                <mat-form-field appearance="outline" class="node-input">
-                  <mat-label>From Node</mat-label>
-                  <input matInput type="number" [(ngModel)]="fromNode" placeholder="Start node">
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="node-input">
-                  <mat-label>To Node</mat-label>
-                  <input matInput type="number" [(ngModel)]="toNode" placeholder="End node">
-                </mat-form-field>
-                <button mat-button (click)="highlightPath()" [disabled]="!fromNode || !toNode">
-                  <mat-icon>route</mat-icon>
-                  Highlight Path
+            <!-- Zoom Control -->
+            <div class="control-group">
+              <label class="control-label" for="zoom-slider">
+                Zoom Level
+                <span class="zoom-value">{{ zoomLevel() }}%</span>
+              </label>
+              <div class="zoom-controls">
+                <button mat-icon-button 
+                        (click)="zoomLevel.set(mathMax(25, zoomLevel() - 25)); onZoomChange(zoomLevel())"
+                        [disabled]="zoomLevel() <= 25">
+                  <mat-icon>zoom_out</mat-icon>
+                </button>
+                <mat-slider class="zoom-slider"
+                            id="zoom-slider"
+                            [min]="zoomConfigMin"
+                            [max]="zoomConfigMax"
+                            [step]="zoomConfigStep"
+                            [discrete]="true"
+                            [showTickMarks]="true">
+                  <input matSliderThumb 
+                         [value]="zoomLevel()"
+                         (input)="onZoomSliderChange($event)">
+                </mat-slider>
+                <button mat-icon-button 
+                        (click)="zoomLevel.set(mathMin(200, zoomLevel() + 25)); onZoomChange(zoomLevel())"
+                        [disabled]="zoomLevel() >= 200">
+                  <mat-icon>zoom_in</mat-icon>
                 </button>
               </div>
-              <div class="multi-node-group">
-                <mat-form-field appearance="outline" class="multi-node-input">
-                  <mat-label>Multiple Nodes</mat-label>
-                  <input matInput [(ngModel)]="multiNodeInput" placeholder="e.g., 1,5,10,15">
-                </mat-form-field>
-                <button mat-button (click)="highlightMultipleNodes()" [disabled]="!multiNodeInput">
-                  <mat-icon>scatter_plot</mat-icon>
-                  Highlight Nodes
-                </button>
+              <div class="zoom-presets">
+                <button mat-button size="small" (click)="zoomLevel.set(50); onZoomChange(50)" class="preset-btn">50%</button>
+                <button mat-button size="small" (click)="zoomLevel.set(100); onZoomChange(100)" class="preset-btn">100%</button>
+                <button mat-button size="small" (click)="zoomLevel.set(150); onZoomChange(150)" class="preset-btn">150%</button>
+                <button mat-button size="small" (click)="resetZoom()" class="preset-btn">Fit</button>
               </div>
-              <button mat-button (click)="clearCustomHighlights()" *ngIf="hasCustomHighlights()">
-                <mat-icon>clear</mat-icon>
-                Clear Custom Highlights
-              </button>
             </div>
-          </div>
 
-          <!-- Display Options -->
-          <div class="control-group">
-            <span class="control-label">Display Options</span>
-            <div class="checkbox-group">
-              <mat-chip-set>
-                <mat-chip
-                  [highlighted]="showNodeLabels()"
-                  (click)="showNodeLabels.set(!showNodeLabels()); onNodeLabelsChange()">
-                  <mat-icon>label</mat-icon>
-                  Node Labels
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showEdgeLabels()"
-                  (click)="showEdgeLabels.set(!showEdgeLabels()); onEdgeLabelsChange()">
-                  <mat-icon>linear_scale</mat-icon>
-                  Edge Labels
-                </mat-chip>
-              </mat-chip-set>
+            <!-- Label Controls -->
+            <div class="control-group">
+              <span class="control-label">Labels</span>
+              <div class="toggle-group">
+                <mat-slide-toggle [(ngModel)]="showNodeLabels"
+                                  (ngModelChange)="onNodeLabelsChange()"
+                                  color="primary">
+                  <span class="toggle-label">Node Labels</span>
+                </mat-slide-toggle>
+                <mat-slide-toggle [(ngModel)]="showEdgeLabels"
+                                  (ngModelChange)="onEdgeLabelsChange()"
+                                  color="primary">
+                  <span class="toggle-label">Edge Labels</span>
+                </mat-slide-toggle>
+              </div>
             </div>
-          </div>
 
-        </div>
+          </mat-card-content>
+        </mat-card>
 
-        <mat-divider></mat-divider>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="generateVisualization()"
-            [disabled]="isGeneratingDot()">
-            <ng-container>
-              @if (isGeneratingDot()) {
-                <mat-spinner diameter="20"></mat-spinner>
-                Generating...
-              } @else {
-                <mat-icon>refresh</mat-icon>
-                Generate Visualization
-              }
-            </ng-container>
-          </button>
-
-          <button 
-            mat-stroked-button 
-            (click)="downloadDotFile()"
-            [disabled]="!dotString()">
-            <mat-icon>download</mat-icon>
-            Download DOT
-          </button>
-
-          <button 
-            mat-stroked-button 
-            (click)="exportVisualization()"
-            [disabled]="!dotString()">
-            <mat-icon>image</mat-icon>
-            Export Image
-          </button>
-
-
-
-          <button 
-            mat-button 
-            (click)="resetView()">
-            <mat-icon>restore</mat-icon>
-            Reset View
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Network Information -->
-    <mat-card class="page-card info-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>info</mat-icon>
-          Network Information
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="network-info">
-          <div class="info-item">
-            <span class="info-label">Nodes:</span>
-            <span class="info-value">{{ nodeCount() }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Edges:</span>
-            <span class="info-value">{{ edgeCount() }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Layout:</span>
-            <span class="info-value">{{ selectedLayout() }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Highlighting:</span>
-            <span class="info-value">{{ highlightMode() }}</span>
-          </div>
-          @if (focusedDiamond()) {
-            <div class="info-item">
-              <span class="info-label">Focused Diamond:</span>
-              <span class="info-value">{{ focusedDiamond() }}</span>
-            </div>
-          }
-          @if (hasCustomHighlights()) {
-            <div class="info-item">
-              <span class="info-label">Custom Highlights:</span>
-              <span class="info-value">{{ getCustomHighlightCount() }} nodes</span>
-            </div>
-          }
-        </div>
-
-        <!-- Highlighting Legend -->
-        @if (highlightMode() !== 'none' && nodeHighlights().length > 0) {
-          <mat-divider></mat-divider>
-          <div class="highlight-legend">
-            <h4>Color Legend</h4>
-            <div class="legend-items">
-              @if (highlightMode() === 'node-types') {
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #4CAF50;"></div>
-                  <span>Source Nodes</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #FF9800;"></div>
-                  <span>Fork Nodes</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #2196F3;"></div>
-                  <span>Join Nodes</span>
-                </div>
-              }
-              @if (highlightMode() === 'diamond-structures') {
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #E91E63;"></div>
-                  <span>Diamond Structure Nodes</span>
-                </div>
-              }
-              @if (highlightMode() === 'iteration-levels') {
-                <div class="legend-item">
-                  <div class="legend-color gradient"></div>
-                  <span>Iteration Levels (Color Gradient)</span>
-                </div>
-              }
-              @if (focusedDiamond()) {
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #FF5722;"></div>
-                  <span>Focused Diamond {{ focusedDiamond() }}</span>
-                </div>
-              }
-              @if (hasCustomHighlights()) {
-                <div class="legend-item">
-                  <div class="legend-color" style="background-color: #9C27B0;"></div>
-                  <span>Custom Highlighted Nodes</span>
-                </div>
-                @if (highlightedPath().length > 0) {
-                  <div class="legend-item">
-                    <div class="legend-color" style="background-color: #00BCD4;"></div>
-                    <span>Path Highlighting</span>
-                  </div>
-                }
-              }
-            </div>
-          </div>
-        }
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Enhanced Visualization Display with Node Details -->
-    <div class="visualization-layout">
-      <!-- Main Visualization Card -->
-      <mat-card class="page-card visualization-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>scatter_plot</mat-icon>
-            Network Visualization
-          </mat-card-title>
-          <mat-card-subtitle>Interactive D3 network visualization - Click nodes for details</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <!-- Enhanced Visualization Controls -->
-          <div class="viz-toolbar">
-            <div class="viz-controls">
-              <mat-chip-set>
-                <mat-chip
-                  [highlighted]="showSourceNodes()"
-                  (click)="showSourceNodes.set(!showSourceNodes()); updateVisualization()">
-                  <mat-icon>radio_button_checked</mat-icon>
-                  Sources
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showSinkNodes()"
-                  (click)="showSinkNodes.set(!showSinkNodes()); updateVisualization()">
-                  <mat-icon>stop_circle</mat-icon>
-                  Sinks
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showForkNodes()"
-                  (click)="showForkNodes.set(!showForkNodes()); updateVisualization()">
-                  <mat-icon>call_split</mat-icon>
-                  Forks
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showJoinNodes()"
-                  (click)="showJoinNodes.set(!showJoinNodes()); updateVisualization()">
-                  <mat-icon>call_merge</mat-icon>
-                  Joins
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showIterations()"
-                  (click)="showIterations.set(!showIterations()); updateVisualization()">
-                  <mat-icon>layers</mat-icon>
-                  Iterations
-                </mat-chip>
-                <mat-chip
-                  [highlighted]="showDiamonds()"
-                  (click)="showDiamonds.set(!showDiamonds()); updateVisualization()">
-                  <mat-icon>diamond</mat-icon>
-                  Diamonds
-                </mat-chip>
-              </mat-chip-set>
-            </div>
+        <!-- Highlighting Controls -->
+        <mat-card class="control-section">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>palette</mat-icon>
+              Highlighting
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
             
-            <div class="zoom-controls">
-              <button mat-icon-button (click)="resetZoom()" matTooltip="Reset Zoom">
-                <mat-icon>zoom_out_map</mat-icon>
-              </button>
-              <button mat-icon-button (click)="fitToScreen()" matTooltip="Fit to Screen">
-                <mat-icon>fit_screen</mat-icon>
-              </button>
-              <mat-slider
-            class="zoom-slider"
-            [min]="0.1"
-            [max]="3.0"
-            [step]="0.1"
-            [(ngModel)]="zoomLevel"
-            (ngModelChange)="onZoomChange($event)"
-            matTooltip="Zoom Level">
-          </mat-slider>
-
-            </div>
-          </div>
-
-          <!-- Container is ALWAYS present, content changes based on state -->
-          <div class="visualization-container">
-            <div #dotContainer class="dot-container">
-              <!-- Content varies based on state -->
-              @if (isGeneratingDot()) {
-                <div class="loading-container">
-                  <mat-spinner></mat-spinner>
-                  <p>Generating visualization...</p>
-                </div>
-              } @else if (dotString()) {
-                <!-- Visualization will be rendered here by the service -->
-              } @else {
-                <div class="no-visualization">
-                  <mat-icon>scatter_plot</mat-icon>
-                  <h3>No Visualization Generated</h3>
-                  <p>Click "Generate Visualization" to create an interactive DOT graph of your network.</p>
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    (click)="generateVisualization()">
-                    <mat-icon>play_arrow</mat-icon>
-                    Generate Now
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Rich Node Details Panel -->
-      <mat-card class="page-card node-details-card" *ngIf="selectedNodeInfo()">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>info</mat-icon>
-            Node {{ selectedNodeInfo()?.nodeId }} Details
-          </mat-card-title>
-          <button mat-icon-button (click)="clearNodeSelection()" class="close-button">
-            <mat-icon>close</mat-icon>
-          </button>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="node-details-content">
-            <!-- Basic Node Information -->
-            <div class="detail-section">
-              <h4>Basic Information</h4>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Node ID:</span>
-                  <span class="detail-value node-id">{{ selectedNodeInfo()?.nodeId }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Type:</span>
-                  <mat-chip [class]="'node-type-' + selectedNodeInfo()?.nodeType">
-                    {{ selectedNodeInfo()?.nodeType | titlecase }}
-                  </mat-chip>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">In-Degree:</span>
-                  <span class="detail-value">{{ selectedNodeInfo()?.inDegree }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Out-Degree:</span>
-                  <span class="detail-value">{{ selectedNodeInfo()?.outDegree }}</span>
-                </div>
-              </div>
+            <!-- Highlight Mode -->
+            <div class="control-group">
+              <label class="control-label" for="highlight-select">Highlight Mode</label>
+              <mat-select [(value)]="highlightMode" 
+                          (selectionChange)="onHighlightModeChange()"
+                          class="full-width-select"
+                          id="highlight-select">
+                @for (option of highlightOptions; track option.value) {
+                  <mat-option [value]="option.value">
+                    <div class="highlight-option">
+                      <span class="option-name">{{ option.label }}</span>
+                      @if (option.value === 'node-types') {
+                        <div class="color-preview">
+                          <span class="color-dot source"></span>
+                          <span class="color-dot fork"></span>
+                          <span class="color-dot join"></span>
+                        </div>
+                      }
+                      @if (option.value === 'iteration-levels') {
+                        <div class="color-preview gradient-preview"></div>
+                      }
+                      @if (option.value === 'diamond-structures') {
+                        <span class="color-dot diamond"></span>
+                      }
+                    </div>
+                  </mat-option>
+                }
+              </mat-select>
             </div>
 
-            <!-- Probability Information -->
-            <div class="detail-section" *ngIf="selectedNodeInfo()?.['isPriorAvailable'] || selectedNodeInfo()?.['hasResults']">
-              <h4>Probability Values</h4>
-              <div class="detail-grid">
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['isPriorAvailable']">
-                  <span class="detail-label">Prior Probability:</span>
-                  <span class="detail-value probability-value">
-                    {{ selectedNodeInfo()?.priorProbability | number:'1.4-4' }}
-                  </span>
-                </div>
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['hasResults']">
-                  <span class="detail-label">Reachability Value:</span>
-                  <span class="detail-value probability-value highlight">
-                    {{ selectedNodeInfo()?.reachabilityValue | number:'1.4-4' }}
-                  </span>
-                </div>
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['hasResults'] && selectedNodeInfo()?. ['isPriorAvailable']">
-                  <span class="detail-label">Difference:</span>
-                  <span class="detail-value"
-                        [class]="(selectedNodeInfo()?.reachabilityValue! - selectedNodeInfo()?.priorProbability!) > 0 ? 'positive-diff' : 'negative-diff'">
-                    {{ (selectedNodeInfo()?.reachabilityValue! - selectedNodeInfo()?.priorProbability!) | number:'+1.4-4' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Network Position -->
-            <div class="detail-section">
-              <h4>Network Position</h4>
-              <div class="detail-grid">
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.iterationSet !== null">
-                  <span class="detail-label">Iteration Set:</span>
-                  <span class="detail-value">{{ selectedNodeInfo()?.iterationSet }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Connectivity Ratio:</span>
-                  <span class="detail-value">{{ selectedNodeInfo()?.['connectivityRatio'] | number:'1.2-2' }}</span>
-                </div>
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['isHighlyConnected']">
-                  <span class="detail-label">Status:</span>
-                  <mat-chip color="accent">Highly Connected</mat-chip>
-                </div>
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['isTerminal']">
-                  <span class="detail-label">Status:</span>
-                  <mat-chip color="warn">Potential Bottleneck</mat-chip>
-                </div>
-                <div class="detail-item" *ngIf="selectedNodeInfo()?.['isTerminal']">
-                  <span class="detail-label">Status:</span>
-                  <mat-chip>Terminal Node</mat-chip>
-                </div>
-              </div>
-            </div>
-
-            <!-- Diamond Memberships -->
-            <div class="detail-section" *ngIf="selectedNodeInfo()?.diamondMemberships && selectedNodeInfo()?.diamondMemberships!.length > 0">
-              <h4>Diamond Structures</h4>
-              <div class="diamond-memberships">
+            <!-- Node Type Toggles -->
+            <div class="control-group">
+              <span class="control-label">Node Types</span>
+              <div class="node-type-toggles">
                 <mat-chip-set>
-                  @for (membership of selectedNodeInfo()?.diamondMemberships; track membership) {
-                    <mat-chip>{{ membership }}</mat-chip>
-                  }
+                  <mat-chip [class.selected]="showSourceNodes()"
+                            (click)="showSourceNodes.set(!showSourceNodes()); updateVisualization()"
+                            class="node-type-chip source">
+                    <mat-icon>radio_button_checked</mat-icon>
+                    Sources
+                  </mat-chip>
+                  <mat-chip [class.selected]="showSinkNodes()"
+                            (click)="showSinkNodes.set(!showSinkNodes()); updateVisualization()"
+                            class="node-type-chip sink">
+                    <mat-icon>stop_circle</mat-icon>
+                    Sinks
+                  </mat-chip>
+                  <mat-chip [class.selected]="showForkNodes()"
+                            (click)="showForkNodes.set(!showForkNodes()); updateVisualization()"
+                            class="node-type-chip fork">
+                    <mat-icon>call_split</mat-icon>
+                    Forks
+                  </mat-chip>
+                  <mat-chip [class.selected]="showJoinNodes()"
+                            (click)="showJoinNodes.set(!showJoinNodes()); updateVisualization()"
+                            class="node-type-chip join">
+                    <mat-icon>call_merge</mat-icon>
+                    Joins
+                  </mat-chip>
                 </mat-chip-set>
               </div>
             </div>
 
-            <!-- Relationship Actions -->
-            <div class="detail-section">
-              <h4>Explore Relationships</h4>
-              <div class="relationship-actions">
-                <button mat-stroked-button
-                        (click)="highlightNodeRelationships(selectedNodeInfo()!.nodeId, 'ancestors')"
-                        [disabled]="!selectedNodeInfo()?.ancestors || selectedNodeInfo()?.ancestors!.length === 0">
-                  <mat-icon>arrow_upward</mat-icon>
-                  Highlight Ancestors ({{ selectedNodeInfo()?.ancestors?.length || 0 }})
-                </button>
-                <button mat-stroked-button
-                        (click)="highlightNodeRelationships(selectedNodeInfo()!.nodeId, 'descendants')"
-                        [disabled]="!selectedNodeInfo()?.descendants || selectedNodeInfo()?.descendants!.length === 0">
-                  <mat-icon>arrow_downward</mat-icon>
-                  Highlight Descendants ({{ selectedNodeInfo()?.descendants?.length || 0 }})
-                </button>
-                <button mat-stroked-button
-                        (click)="highlightNodeRelationships(selectedNodeInfo()!.nodeId, 'both')"
-                        [disabled]="(!selectedNodeInfo()?.ancestors || selectedNodeInfo()?.ancestors!.length === 0) &&
-                                   (!selectedNodeInfo()?.descendants || selectedNodeInfo()?.descendants!.length === 0)">
-                  <mat-icon>device_hub</mat-icon>
-                  Highlight Both
-                </button>
-                <button mat-button (click)="clearCustomHighlights()">
-                  <mat-icon>clear</mat-icon>
-                  Clear Highlights
-                </button>
+            <!-- Advanced Highlighting -->
+            <div class="control-group">
+              <span class="control-label">Advanced</span>
+              <div class="advanced-toggles">
+                <mat-slide-toggle [(ngModel)]="showIterations"
+                                  (ngModelChange)="updateVisualization()"
+                                  color="accent">
+                  <span class="toggle-label">Iteration Sets</span>
+                </mat-slide-toggle>
+                <mat-slide-toggle [(ngModel)]="showDiamonds"
+                                  (ngModelChange)="updateVisualization()"
+                                  color="accent">
+                  <span class="toggle-label">Diamond Structures</span>
+                </mat-slide-toggle>
               </div>
             </div>
+
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Diamond Focus -->
+        @if (availableDiamonds().length > 0) {
+          <mat-card class="control-section">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>diamond</mat-icon>
+                Diamond Focus
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <div class="control-group">
+                <label class="control-label" for="diamond-select">Focus on Diamond</label>
+                <mat-select [(value)]="focusedDiamond" 
+                            (selectionChange)="onDiamondFocusChange()"
+                            class="full-width-select"
+                            id="diamond-select">
+                  <mat-option [value]="null">All Diamonds</mat-option>
+                  @for (diamond of availableDiamonds(); track diamond.join_node) {
+                    <mat-option [value]="diamond.join_node">
+                      <div class="diamond-option">
+                        <span class="diamond-name">Diamond {{ diamond.join_node }}</span>
+                        <mat-chip class="complexity-indicator" 
+                                  [class]="getComplexityClass(diamond.complexity_score || 0)">
+                          {{ diamond.complexity_score }}
+                        </mat-chip>
+                      </div>
+                    </mat-option>
+                  }
+                </mat-select>
+              </div>
+
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Quick Actions -->
+        <mat-card class="control-section actions-section">
+          <mat-card-content>
+            <div class="action-buttons">
+              <button mat-raised-button 
+                      color="primary" 
+                      (click)="generateVisualization()"
+                      [disabled]="isGeneratingDot()">
+                @if (isGeneratingDot()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                } @else {
+                  <mat-icon>refresh</mat-icon>
+                }
+                Regenerate
+              </button>
+              
+              <button mat-stroked-button (click)="resetView()">
+                <mat-icon>restart_alt</mat-icon>
+                Reset View
+              </button>
+              
+              <button mat-stroked-button 
+                      (click)="exportVisualization()"
+                      [disabled]="!dotString()">
+                <mat-icon>download</mat-icon>
+                Export
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </aside>
+
+      <!-- Main Visualization Area -->
+      <main class="viz-main-area">
+        
+        <!-- Visualization Container -->
+        <mat-card class="viz-container-card">
+          <mat-card-header class="viz-header-bar">
+            <mat-card-title class="viz-title">
+              Interactive Network Graph
+            </mat-card-title>
+            <div class="viz-actions">
+              <button mat-icon-button 
+                      matTooltip="Fit to Screen"
+                      (click)="fitToScreen()">
+                <mat-icon>fullscreen</mat-icon>
+              </button>
+              <button mat-icon-button 
+                      matTooltip="Reset Zoom"
+                      (click)="resetZoom()">
+                <mat-icon>center_focus_strong</mat-icon>
+              </button>
+              <button mat-icon-button 
+                      matTooltip="Export SVG"
+                      (click)="exportVisualization()">
+                <mat-icon>camera_alt</mat-icon>
+              </button>
+            </div>
+          </mat-card-header>
+          
+          <mat-card-content class="viz-content">
+            
+            <!-- Loading State -->
+            @if (isGeneratingDot()) {
+              <div class="loading-overlay">
+                <div class="loading-content">
+                  <mat-spinner diameter="60"></mat-spinner>
+                  <h3>Generating Visualization</h3>
+                  <p>Processing {{ nodeCount() }} nodes and {{ edgeCount() }} edges...</p>
+                </div>
+              </div>
+            }
+
+            <!-- Visualization Canvas -->
+            <div class="visualization-canvas" 
+                 #dotContainer
+                 [class.loading]="isGeneratingDot()">
+              
+              <!-- Empty State -->
+              @if (!dotString() && !isGeneratingDot()) {
+                <div class="empty-viz-state">
+                  <mat-icon>scatter_plot</mat-icon>
+                  <h3>Ready to Visualize</h3>
+                  <p>Click "Generate Visualization" to create the network graph</p>
+                  <button mat-raised-button color="primary" (click)="generateVisualization()">
+                    <mat-icon>play_arrow</mat-icon>
+                    Generate Visualization
+                  </button>
+                </div>
+              }
+
+              <!-- Node Hover Tooltip -->
+              @if (hoveredNodeInfo()) {
+                <div class="node-tooltip" 
+                     [style.left.px]="hoveredNodeInfo()!.x + 10"
+                     [style.top.px]="hoveredNodeInfo()!.y - 10">
+                  <div class="tooltip-header">
+                    <strong>Node {{ hoveredNodeInfo()!.nodeId }}</strong>
+                    <mat-chip class="node-type-badge">{{ hoveredNodeInfo()!.details?.nodeType }}</mat-chip>
+                  </div>
+                  <div class="tooltip-content">
+                    @if (hoveredNodeInfo()!.details?.priorProbability) {
+                      <div class="tooltip-item">
+                        <span class="label">Prior:</span>
+                        <span class="value">{{ hoveredNodeInfo()!.details?.priorProbability | number:'1.3-3' }}</span>
+                      </div>
+                    }
+                    @if (hoveredNodeInfo()!.details?.reachabilityValue) {
+                      <div class="tooltip-item">
+                        <span class="label">Reachability:</span>
+                        <span class="value">{{ hoveredNodeInfo()!.details?.reachabilityValue | number:'1.3-3' }}</span>
+                      </div>
+                    }
+                    <div class="tooltip-item">
+                      <span class="label">Connections:</span>
+                      <span class="value">{{ hoveredNodeInfo()!.details?.inDegree }}→{{ hoveredNodeInfo()!.details?.outDegree }}</span>
+                    </div>
+                  </div>
+                  <div class="tooltip-footer">
+                    <small>Click for detailed analysis</small>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Color Legend -->
+            @if (dotString() && highlightMode() !== 'none') {
+              <div class="color-legend">
+                <div class="legend-header">
+                  <mat-icon>palette</mat-icon>
+                  <span>{{ highlightMode() | titlecase }} Legend</span>
+                </div>
+                <div class="legend-items">
+                  @if (highlightMode() === 'node-types') {
+                    <div class="legend-item">
+                      <div class="legend-color source"></div>
+                      <span>Source Nodes</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-color fork"></div>
+                      <span>Fork Nodes</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-color join"></div>
+                      <span>Join Nodes</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-color regular"></div>
+                      <span>Regular Nodes</span>
+                    </div>
+                  }
+                  @if (highlightMode() === 'diamond-structures') {
+                    <div class="legend-item">
+                      <div class="legend-color diamond"></div>
+                      <span>Diamond Structures</span>
+                    </div>
+                  }
+                  @if (highlightMode() === 'iteration-levels') {
+                    <div class="legend-item">
+                      <div class="legend-color gradient-bar"></div>
+                      <span>Iteration Levels (Color Gradient)</span>
+                    </div>
+                  }
+                  @if (focusedDiamond()) {
+                    <div class="legend-item">
+                      <div class="legend-color focused"></div>
+                      <span>Focused Diamond {{ focusedDiamond() }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Node Details Panel -->
+        @if (selectedNodeInfo()) {
+          <mat-card class="node-details-panel" [@slideInRight]>
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Node {{ selectedNodeInfo()!.nodeId }} Details
+              </mat-card-title>
+              <button mat-icon-button (click)="selectedNodeInfo.set(null)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <div class="node-details-grid">
+                <div class="detail-section">
+                  <h4>Basic Information</h4>
+                  <div class="detail-items">
+                    <div class="detail-item">
+                      <span class="label">Node ID:</span>
+                      <span class="value">{{ selectedNodeInfo()!.nodeId }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Type:</span>
+                      <mat-chip class="type-chip">{{ selectedNodeInfo()!.nodeType }}</mat-chip>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">In-Degree:</span>
+                      <span class="value">{{ selectedNodeInfo()!.inDegree || 0 }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Out-Degree:</span>
+                      <span class="value">{{ selectedNodeInfo()!.outDegree || 0 }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                @if (selectedNodeInfo()!.priorProbability || selectedNodeInfo()!.reachabilityValue) {
+                  <div class="detail-section">
+                    <h4>Analysis Results</h4>
+                    <div class="detail-items">
+                      @if (selectedNodeInfo()!.priorProbability) {
+                        <div class="detail-item">
+                          <span class="label">Prior Probability:</span>
+                          <span class="value highlight">{{ selectedNodeInfo()!.priorProbability | number:'1.3-3' }}</span>
+                        </div>
+                      }
+                      @if (selectedNodeInfo()!.reachabilityValue) {
+                        <div class="detail-item">
+                          <span class="label">Reachability:</span>
+                          <span class="value highlight">{{ selectedNodeInfo()!.reachabilityValue | number:'1.3-3' }}</span>
+                        </div>
+                      }
+                      @if (selectedNodeInfo()!.iterationSet !== undefined) {
+                        <div class="detail-item">
+                          <span class="label">Iteration Set:</span>
+                          <span class="value">{{ selectedNodeInfo()!.iterationSet }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (selectedNodeInfo()!.diamondMemberships?.length) {
+                  <div class="detail-section">
+                    <h4>Diamond Memberships</h4>
+                    <mat-chip-set>
+                      @for (membership of selectedNodeInfo()!.diamondMemberships; track membership) {
+                        <mat-chip class="membership-chip">{{ membership }}</mat-chip>
+                      }
+                    </mat-chip-set>
+                  </div>
+                }
+
+              </div>
+
+              <mat-card-actions>
+                <button mat-button color="primary" (click)="highlightNodeRelationships(selectedNodeInfo()!.nodeId, 'both')">
+                  <mat-icon>timeline</mat-icon>
+                  Show Paths
+                </button>
+                <button mat-button (click)="selectNode(selectedNodeInfo()!.nodeId)">
+                  <mat-icon>center_focus_strong</mat-icon>
+                  Focus Node
+                </button>
+              </mat-card-actions>
+
+            </mat-card-content>
+          </mat-card>
+        }
+
+      </main>
+
+    </div>
+
+    <!-- Network Information Footer -->
+    <section class="network-info-section">
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="network-stats">
+            <div class="stat-item">
+              <mat-icon>account_tree</mat-icon>
+              <div class="stat-content">
+                <span class="stat-value">{{ nodeCount() }}</span>
+                <span class="stat-label">Nodes</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <mat-icon>timeline</mat-icon>
+              <div class="stat-content">
+                <span class="stat-value">{{ edgeCount() }}</span>
+                <span class="stat-label">Edges</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <mat-icon>radio_button_checked</mat-icon>
+              <div class="stat-content">
+                <span class="stat-value">{{ sourceNodeCount() }}</span>
+                <span class="stat-label">Sources</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <mat-icon>call_split</mat-icon>
+              <div class="stat-content">
+                <span class="stat-value">{{ forkNodeCount() }}</span>
+                <span class="stat-label">Forks</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <mat-icon>call_merge</mat-icon>
+              <div class="stat-content">
+                <span class="stat-value">{{ joinNodeCount() }}</span>
+                <span class="stat-label">Joins</span>
+              </div>
+            </div>
+            @if (availableDiamonds().length > 0) {
+              <div class="stat-item">
+                <mat-icon>diamond</mat-icon>
+                <div class="stat-content">
+                  <span class="stat-value">{{ availableDiamonds().length }}</span>
+                  <span class="stat-label">Diamonds</span>
+                </div>
+              </div>
+            }
           </div>
         </mat-card-content>
       </mat-card>
-    </div>
+    </section>
 
-    <!-- Hover Tooltip -->
-    <div class="node-tooltip"
-         *ngIf="hoveredNodeInfo()"
-         [style.left.px]="hoveredNodeInfo()?.x"
-         [style.top.px]="hoveredNodeInfo()?.y">
-      <div class="tooltip-content">
-        <div class="tooltip-header">
-          <strong>Node {{ hoveredNodeInfo()?.nodeId }}</strong>
-          <span class="node-type-badge" [class]="'type-' + hoveredNodeInfo()?.details?.nodeType">
-            {{ hoveredNodeInfo()?.details?.nodeType }}
-          </span>
-        </div>
-        <div class="tooltip-body">
-          <div class="tooltip-item" *ngIf="hoveredNodeInfo()?.details?.isPriorAvailable">
-            <span>Prior: {{ hoveredNodeInfo()?.details?.priorProbability | number:'1.3-3' }}</span>
+    <!-- Quick Navigation -->
+    <section class="quick-nav-section">
+      <mat-card class="nav-card">
+        <mat-card-content>
+          <div class="nav-actions">
+            <button mat-stroked-button routerLink="/network-structure">
+              <mat-icon>account_tree</mat-icon>
+              Network Structure
+            </button>
+            <button mat-stroked-button routerLink="/diamond-analysis">
+              <mat-icon>diamond</mat-icon>
+              Diamond Analysis
+            </button>
+            <button mat-stroked-button routerLink="/reachability">
+              <mat-icon>analytics</mat-icon>
+              Reachability Analysis
+            </button>
+            <button mat-stroked-button routerLink="/parameters">
+              <mat-icon>tune</mat-icon>
+              Parameters
+            </button>
           </div>
-          <div class="tooltip-item" *ngIf="hoveredNodeInfo()?.details?.hasResults">
-            <span>Reachability: {{ hoveredNodeInfo()?.details?.reachabilityValue | number:'1.3-3' }}</span>
-          </div>
-          <div class="tooltip-item">
-            <span>Connections: {{ hoveredNodeInfo()?.details?.inDegree }}→{{ hoveredNodeInfo()?.details?.outDegree }}</span>
-          </div>
-        </div>
-        <div class="tooltip-footer">
-          <small>Click for detailed information</small>
-        </div>
-      </div>
-    </div>
-
-    <!-- Layout Information -->
-    <mat-card class="page-card help-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>help_outline</mat-icon>
-          Layout Algorithms Guide
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="layout-help">
-          @for (layout of layoutOptions; track layout.value) {
-            <div class="layout-info">
-              <h4>{{ layout.label }}</h4>
-              <p>{{ layout.description }}</p>
-            </div>
-          }
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Navigation Actions -->
-    <mat-card class="page-card actions-card">
-      <mat-card-content>
-        <div class="navigation-actions">
-          <button mat-stroked-button routerLink="/network-structure">
-            <mat-icon>account_tree</mat-icon>
-            Network Structure
-          </button>
-          
-          <button mat-stroked-button routerLink="/parameters">
-            <mat-icon>tune</mat-icon>
-            Configure Parameters
-          </button>
-          
-          <button mat-stroked-button routerLink="/diamond-analysis">
-            <mat-icon>diamond</mat-icon>
-            Diamond Analysis
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
+    </section>
 
   }
+
 </div>

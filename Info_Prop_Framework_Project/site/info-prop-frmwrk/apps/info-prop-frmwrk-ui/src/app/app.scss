@@ -1,9 +1,10 @@
-// app.scss - App component specific styles
+// app.scss - App component styles
+// Uses CSS custom properties from the design system
 @use '../variables' as *;
 
-// 
+//
 // APP ROOT COMPONENT
-// 
+//
 app-root {
   display: flex;
   width: 100%;
@@ -14,11 +15,68 @@ app-root {
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+  animation: appFadeIn var(--transition-slow) ease-out;
 }
 
-// 
-// APP LAYOUT STRUCTURE
-// 
+//
+// MAIN CONTAINER
+//
+.main-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+//
+// MAIN CONTENT AREA
+//
+.app-main-content {
+  flex: 1;
+  width: calc(100% - var(--nav-width));
+  margin-left: var(--nav-width);
+  background: var(--color-bg-base);
+  transition: width var(--transition-normal), margin-left var(--transition-normal);
+  min-height: 100vh;
+  position: relative;
+  
+  // When navigation is collapsed
+  .main-container:has(app-navigation .sidenav-collapsed) & {
+    width: calc(100% - var(--nav-collapsed-width));
+    margin-left: var(--nav-collapsed-width);
+  }
+  
+  .content-wrapper {
+    padding: var(--content-padding);
+    min-height: 100vh;
+    width: 100%;
+    
+    // Custom scrollbar styling
+    &::-webkit-scrollbar {
+      width: 12px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: var(--color-bg-surface-alt);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-tertiary);
+      border-radius: var(--radius-md);
+      border: 3px solid var(--color-bg-surface-alt);
+      
+      &:hover {
+        background: var(--color-tertiary-dark);
+      }
+    }
+  }
+}
+
+//
+// APP LAYOUT STRUCTURE (if needed for future expansion)
+//
 .app {
   &-container {
     display: flex;
@@ -70,9 +128,9 @@ app-root {
   }
 }
 
-// 
-// APP HEADER
-// 
+//
+// APP HEADER (for future use)
+//
 .app-header {
   position: sticky;
   top: 0;
@@ -114,9 +172,9 @@ app-root {
   }
 }
 
-// 
+//
 // APP LOADING STATES
-// 
+//
 .app-loading {
   position: fixed;
   top: 0;
@@ -143,9 +201,9 @@ app-root {
   }
 }
 
-// 
+//
 // APP ERROR STATES
-// 
+//
 .app-error {
   display: flex;
   align-items: center;
@@ -170,24 +228,27 @@ app-root {
     font-size: var(--font-size-2xl);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-semibold);
   }
   
   &-message {
     font-size: var(--font-size-lg);
     color: var(--color-text-secondary);
     margin-bottom: var(--spacing-xl);
+    line-height: var(--line-height-relaxed);
   }
   
   &-actions {
     display: flex;
     gap: var(--spacing-md);
     justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
-// 
+//
 // APP NOTIFICATIONS
-// 
+//
 .app-notification {
   position: fixed;
   top: var(--spacing-lg);
@@ -203,9 +264,9 @@ app-root {
   }
 }
 
-// 
-// APP FOOTER
-// 
+//
+// APP FOOTER (for future use)
+//
 .app-footer {
   background: var(--color-bg-surface);
   border-top: 1px solid var(--color-border-light);
@@ -241,28 +302,49 @@ app-root {
     a {
       color: var(--color-text-secondary);
       font-size: var(--font-size-sm);
+      text-decoration: none;
+      transition: var(--transition-color);
       
       &:hover {
         color: var(--color-primary);
+      }
+      
+      &:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
       }
     }
   }
 }
 
-// 
-// APP RESPONSIVE BEHAVIOR
-// 
+//
+// RESPONSIVE BEHAVIOR
+//
 @include mobile {
   .app {
     &-container {
       flex-direction: column;
     }
   }
+  
+  .main-container {
+    flex-direction: column;
+  }
+  
+  .app-main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    
+    .content-wrapper {
+      padding: var(--spacing-base);
+    }
+  }
 }
 
-// 
-// APP ANIMATIONS
-// 
+//
+// ANIMATIONS
+//
 @keyframes appFadeIn {
   from {
     opacity: 0;
@@ -272,20 +354,9 @@ app-root {
   }
 }
 
-.app-container {
-  animation: appFadeIn var(--transition-slow) ease-out;
-}
-
-// 
-// APP THEME TRANSITIONS
-// 
-app-root {
-  transition: background-color var(--transition-slow), color var(--transition-slow);
-}
-
-// 
-// APP PRINT STYLES
-// 
+//
+// PRINT STYLES
+//
 @media print {
   .app-header,
   .app-footer,
@@ -293,8 +364,84 @@ app-root {
     display: none !important;
   }
   
-  .app-content {
+  .app-content,
+  .main-container {
     margin: 0 !important;
     padding: 0 !important;
+  }
+  
+  app-root {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+//
+// GLOBAL CONTENT IMPROVEMENTS FOR MATERIAL COMPONENTS
+//
+// These styles improve Material components throughout the app
+.main-container {
+  // Enhanced Material Card styling
+  ::ng-deep mat-card {
+    @extend %card-base;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-light);
+    
+    mat-card-title {
+      color: var(--color-text-primary) !important;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    mat-card-subtitle {
+      color: var(--color-text-secondary) !important;
+    }
+
+    mat-card-content {
+      color: var(--color-text-primary) !important;
+      line-height: var(--line-height-relaxed);
+    }
+  }
+  
+  // Enhanced button styling
+  ::ng-deep .mat-mdc-button,
+  ::ng-deep .mat-mdc-raised-button,
+  ::ng-deep .mat-mdc-flat-button,
+  ::ng-deep .mat-mdc-stroked-button {
+    @extend %button-base;
+    border-radius: var(--radius-md);
+    font-weight: var(--font-weight-medium);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  
+  // Enhanced form field styling
+  ::ng-deep .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      border-radius: var(--radius-md);
+    }
+    
+    .mat-mdc-form-field-label {
+      color: var(--color-text-secondary);
+    }
+    
+    .mat-mdc-form-field-hint {
+      color: var(--color-text-muted);
+    }
+  }
+  
+  // Enhanced dialog styling
+  ::ng-deep .mat-mdc-dialog-container {
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    
+    .mat-mdc-dialog-title {
+      color: var(--color-text-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+    
+    .mat-mdc-dialog-content {
+      color: var(--color-text-primary);
+      line-height: var(--line-height-relaxed);
+    }
   }
 }

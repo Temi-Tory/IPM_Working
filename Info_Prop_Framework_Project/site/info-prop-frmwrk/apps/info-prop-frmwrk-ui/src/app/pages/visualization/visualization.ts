@@ -75,6 +75,13 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   private readonly mainServerService = inject(MainServerService);
   private readonly route = inject(ActivatedRoute);
 
+  readonly mathMax = Math.max;
+  readonly mathMin = Math.min;
+
+  readonly zoomConfigMin = ZOOM_CONFIG.MIN;
+  readonly zoomConfigMax = ZOOM_CONFIG.MAX;
+  readonly zoomConfigStep = ZOOM_CONFIG.STEP;
+
   // State signals
   isGeneratingDot = signal(false);
   selectedLayout = signal<string>('dot');
@@ -150,6 +157,10 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   readonly edgeCount = computed(() => this.graphState.edgeCount());
   readonly lastAnalysisType = computed(() => this.graphState.lastAnalysisType());
   readonly lastResults = computed(() => this.graphState.lastResults());
+  readonly forkNodeCount = computed(() => this.graphState.forkNodeCount());
+  readonly sourceNodeCount = computed(() => this.graphState.sourceNodeCount());
+  readonly joinNodeCount = computed(() => this.graphState.joinNodeCount());
+
 
   // Current visualization configuration
   readonly currentConfig = computed((): VisualizationConfig => ({
@@ -329,16 +340,6 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
   // Event handlers - each triggers immediate re-rendering
   onLayoutChange(): void {
     this.triggerUpdate('Layout');
-  }
-
-  onZoomChange(value: number): void {
-    this.zoomLevel.set(value);
-    
-    // Apply zoom immediately without full re-render for better UX
-    const container = this.getContainer();
-    if (container && this.hasRenderedOnce()) {
-      this.rendererService.applyZoom(value, container);
-    }
   }
 
   onHighlightModeChange(): void {
@@ -1192,5 +1193,163 @@ export class VisualizationComponent implements AfterViewInit, OnDestroy {
       duration: 1000,
       panelClass: ['info-snackbar']
     });
+  }
+
+  getComplexityClass(complexityScore: number): string {
+  if (complexityScore < 5) return 'low';
+  if (complexityScore < 10) return 'medium';
+  return 'high';
+}
+
+/**
+ * Check if visualization exists
+ */
+hasVisualization(): boolean {
+  return this.dotString() !== '' && this.dotString() !== null;
+}
+
+    /**
+   * Handle zoom change from slider
+   */
+  onZoomChange(value: number | null): void {
+    if (value !== null) {
+      this.zoomLevel.set(value);
+      
+      // Apply zoom immediately without full re-render for better UX
+      const container = this.getContainer();
+      if (container && this.hasRenderedOnce()) {
+        this.rendererService.applyZoom(value, container);
+      }
+    }
+  }
+
+  /**
+   * Handle zoom slider input event
+   */
+  onZoomSliderChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    if (target && target.value) {
+      const value = parseFloat(target.value);
+      this.onZoomChange(value);
+    }
+  }
+
+  /**
+   * Get legend title based on current highlight mode
+   */
+  getLegendTitle(): string {
+    switch (this.highlightMode()) {
+      case 'node-types': return 'Node Types';
+      case 'iteration-levels': return 'Iteration Levels';
+      case 'diamond-structures': return 'Diamond Structures';
+      case 'reachability-analysis': return 'Reachability Values';
+      case 'prior-probabilities': return 'Prior Probabilities';
+      default: return 'Highlights';
+    }
+  }
+
+  /**
+   * Toggle fullscreen mode
+   */
+  toggleFullscreen(): void {
+    const container = this.getContainer();
+    if (!container) return;
+    
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().catch(err => {
+        console.warn('Could not enter fullscreen:', err);
+        this.showError('Fullscreen not supported');
+      });
+    } else {
+      document.exitFullscreen().catch(err => {
+        console.warn('Could not exit fullscreen:', err);
+      });
+    }
+  }
+
+  /**
+   * Center the view
+   */
+  centerView(): void {
+    this.resetZoom();
+    this.fitToScreen();
+  }
+
+  /**
+   * Take screenshot of visualization
+   */
+  takeScreenshot(): void {
+    const container = this.getContainer();
+    if (!container) {
+      this.showError('Visualization container not available');
+      return;
+    }
+
+    const svg = container.querySelector('svg');
+    if (!svg) {
+      this.showError('No visualization to capture');
+      return;
+    }
+
+    try {
+      // Create canvas for screenshot
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // Download as PNG
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `network_screenshot_${Date.now()}.png`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            this.showSuccess('Screenshot saved successfully!');
+          }
+        });
+        
+        URL.revokeObjectURL(url);
+      };
+      
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        this.showError('Failed to capture screenshot');
+      };
+      
+      img.src = url;
+    } catch (error) {
+      console.error('Screenshot failed:', error);
+      this.showError('Failed to take screenshot');
+    }
+  }
+
+  /**
+   * Highlight node path (alias for relationship highlighting)
+   */
+  highlightNodePath(nodeId: number): void {
+    this.highlightNodeRelationships(nodeId, 'both');
+  }
+
+  /**
+   * Focus on specific node (alias for selectNode)
+   */
+  focusOnNode(nodeId: number): void {
+    this.selectNode(nodeId);
+    
+    // Also highlight the node's relationships
+    setTimeout(() => {
+      this.highlightNodeRelationships(nodeId, 'both');
+    }, 100);
   }
 }
