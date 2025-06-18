@@ -6,6 +6,12 @@
         <mat-icon>upload_file</mat-icon>
         Upload Network Data
       </mat-card-title>
+      
+                <button mat-stroked-button color="accent" type="button" (click)="loadSampleData()" 
+                        [disabled]="isUploading() || isLoadingGraph()">
+                  <mat-icon>science</mat-icon>
+                  Try with Sample Data
+                </button>
       <mat-card-subtitle>Upload CSV files containing network edge data</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
