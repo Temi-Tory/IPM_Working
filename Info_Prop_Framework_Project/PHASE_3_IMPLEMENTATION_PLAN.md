@@ -1,46 +1,7 @@
 
----
-
-## Component 3: Network Structure Page Enhancement
-**Files:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/network-structure/network-structure.ts an dits html and scss`
-
-### □ Task 3.1: Add Structure Analysis Button (30 minutes)
-- [ ] Add `isRunningStructureAnalysis = signal(false)` state (line ~61)
-- [ ] Add `structureAnalysisResult = signal<any>(null)` (line ~62)
-- [ ] Implement `runStructureAnalysis()` method using `graphState.runStructureAnalysis()`
-- [ ] Add analysis progress tracking
-- [ ] Test: Structure analysis button triggers dedicated analysis
-
-### □ Task 3.2: Add Re-run Functionality (20 minutes)
-- [ ] Add `getStructureAnalysisButtonText()` method with dynamic text:
-  - [ ] "Run Structure Analysis" (never run)
-  - [ ] "Re-run Structure Analysis" (previously run)
-  - [ ] "Structure Analysis Running..." (in progress)
-- [ ] Track last analysis timestamp
-- [ ] Test: Button text updates correctly based on analysis state
-
-### □ Task 3.3: Enable Visualization Capabilities (15 minutes)
-- [ ] Add `navigateToVisualization()` method with structure focus
-- [ ] Add "Visualize Structure" button that becomes available after analysis
-- [ ] Pass structure-specific highlighting to visualization page
-- [ ] Test: Visualization opens with structure-focused view
-
-### □ Task 3.4: Add Progress Indicators (15 minutes)
-- [ ] Add progress bar component for structure analysis
-- [ ] Show analysis steps: "Analyzing topology..." → "Computing metrics..." → "Complete!"
-- [ ] Display analysis completion time and results summary
-- [ ] Test: Progress indicators work during analysis
-
-**Success Criteria:**
-- [ ] Clear "Run Structure Analysis" button added
-- [ ] Re-run functionality with dynamic button text
-- [ ] Direct visualization access with structure focus
-- [ ] Comprehensive progress indicators
-
----
-
 ## Component 4: Diamond Analysis Page Enhancement
-**File:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/diamond-analysis/diamond-analysis.ts`
+**File:** `site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/diamond-analysis/diamond-analysis.tsan dits html and scss`
+`
 
 ### □ Task 4.1: Add Diamond Analysis Button (25 minutes)
 - [ ] Add `isRunningDiamondAnalysis = signal(false)` state (line ~54)

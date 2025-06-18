@@ -28,12 +28,103 @@
         </div>
       }
 
-      <!-- No Diamonds -->
-      @if (hasGraphData() && !hasDiamonds()) {
-        <div class="no-diamonds-message">
-          <mat-icon>info</mat-icon>
-          <p>No diamond structures found in the current graph.</p>
-        </div>
+      <!-- Task 4.1 & 4.2: Diamond Analysis Controls Card -->
+      @if (hasGraphData()) {
+        <mat-card class="analysis-controls-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>analytics</mat-icon>
+              Diamond Analysis Controls
+            </mat-card-title>
+            <mat-card-subtitle>Run dedicated diamond structure analysis</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="analysis-controls">
+              <!-- Analysis Button -->
+              <div class="control-buttons">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="runDiamondAnalysis()"
+                  [disabled]="!canRunDiamondAnalysis()"
+                  class="analysis-btn">
+                  @if (isRunningDiamondAnalysis()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    <mat-icon>diamond</mat-icon>
+                  }
+                  {{ getDiamondAnalysisButtonText() }}
+                </button>
+
+                <button
+                  mat-stroked-button
+                  color="accent"
+                  routerLink="/visualization"
+                  [queryParams]="{ highlightMode: 'diamond-structures' }"
+                  [disabled]="!hasDiamonds()">
+                  <mat-icon>visibility</mat-icon>
+                  Visualize Diamonds
+                </button>
+              </div>
+
+              <!-- Task 4.4: Progress Indicators -->
+              @if (isRunningDiamondAnalysis() || analysisProgress() > 0) {
+                <div class="analysis-progress">
+                  <div class="progress-info">
+                    <span class="progress-step">{{ analysisStep() }}</span>
+                    <span class="progress-percentage">{{ analysisProgress() }}%</span>
+                  </div>
+                  <mat-progress-bar
+                    mode="determinate"
+                    [value]="analysisProgress()"
+                    class="analysis-progress-bar">
+                  </mat-progress-bar>
+                </div>
+              }
+
+              <!-- Task 4.4: Analysis Results Summary -->
+              @if (analysisResultsSummary() && lastDiamondAnalysisTime()) {
+                <div class="analysis-summary diamond-analysis-results">
+                  <div class="summary-header">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>Diamond Analysis Complete</span>
+                    <small>{{ lastDiamondAnalysisTime()?.toLocaleTimeString() }}</small>
+                  </div>
+                  <div class="summary-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Diamonds Found:</span>
+                      <span class="stat-value">{{ analysisResultsSummary()!.totalDiamondsFound }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Confidence:</span>
+                      <span class="stat-value">{{ analysisResultsSummary()!.confidenceScore }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Completeness:</span>
+                      <span class="stat-value">{{ analysisResultsSummary()!.analysisCompleteness }}%</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Processing Time:</span>
+                      <span class="stat-value">{{ analysisResultsSummary()!.processingTime }}ms</span>
+                    </div>
+                  </div>
+
+                  <!-- Task 4.3: Complexity Distribution -->
+                  <div class="complexity-distribution">
+                    <h4>Complexity Distribution</h4>
+                    <div class="distribution-chips">
+                      @for (item of Object.entries(analysisResultsSummary()!.complexityDistribution); track item[0]) {
+                        <mat-chip [highlighted]="item[1] > 0">
+                          {{ item[0] }}: {{ item[1] }}
+                        </mat-chip>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
       }
 
       <!-- Diamond Analysis Content -->
@@ -44,6 +135,21 @@
             <!-- Enhanced Dashboard Summary -->
             <div class="dashboard-overview">
               <h3>📊 Diamond Analysis Dashboard</h3>
+              
+              <!-- Task 4.3: Show Analysis Status -->
+              @if (lastDiamondAnalysisTime()) {
+                <div class="analysis-status-banner">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Last Analysis: {{ lastDiamondAnalysisTime()?.toLocaleString() }}</span>
+                  @if (analysisMetadata()) {
+                    <span class="metadata">
+                      | Analyzed {{ analysisMetadata()!.nodeCount }} nodes, {{ analysisMetadata()!.edgeCount }} edges
+                      | Confidence: {{ analysisMetadata()!.confidenceScore }}%
+                    </span>
+                  }
+                </div>
+              }
+
               <div class="dashboard-summary-grid">
                 <div class="dashboard-card primary">
                   <div class="card-icon">💎</div>
@@ -124,9 +230,9 @@
               </div>
             </div>
 
-            <!-- Diamond Controls -->
+            <!-- Modern Dashboard Controls -->
             <div class="diamond-controls">
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Filter by Type</mat-label>
                 <mat-select [value]="typeFilter()" (selectionChange)="onTypeFilterChange($event.value)">
                   <mat-option value="all">All Types</mat-option>
@@ -137,7 +243,7 @@
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Filter by Fork Structure</mat-label>
                 <mat-select [value]="forkStructureFilter()" (selectionChange)="onForkStructureFilterChange($event.value)">
                   <mat-option value="all">All Structures</mat-option>
@@ -148,7 +254,7 @@
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>Sort by</mat-label>
                 <mat-select [value]="sortBy()" (selectionChange)="onSortChange($event.value)">
                   <mat-option value="complexity">Complexity</mat-option>
@@ -157,63 +263,141 @@
                   <mat-option value="pathCount">Path Count</mat-option>
                 </mat-select>
               </mat-form-field>
-            </div>
 
-            <!-- Diamond List -->
-            <div class="diamond-list">
-              @for (diamond of filteredDiamonds(); track diamond.join_node) {
-                <div class="diamond-card">
-                  <div class="diamond-header">
-                    <h4>Diamond at Join Node {{ diamond.join_node }}</h4>
-                    <div class="diamond-badges">
-                      <span class="badge" [ngClass]="'badge-' + getRiskBadgeColor(diamond.bottleneck_risk)">
-                        {{ diamond.bottleneck_risk }}
-                      </span>
-                      <span class="complexity-score" [style.color]="getComplexityColor(diamond.complexity_score)">
-                        {{ diamond.complexity_score }}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div class="diamond-details">
-                    <div class="detail-row">
-                      <span class="label">Type:</span>
-                      <span class="value">{{ diamond.internal_structure }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Fork Structure:</span>
-                      <span class="value">{{ diamond.fork_structure }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Size:</span>
-                      <span class="value">{{ diamond.subgraph_size }} nodes</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Paths:</span>
-                      <span class="value">{{ diamond.path_count }}</span>
-                    </div>
-                  </div>
-
-                  <div class="diamond-actions">
-                    <button mat-button (click)="viewDiamondDetails(diamond)">
-                      <mat-icon>info</mat-icon>
-                      Details
-                    </button>
-                    <button mat-button (click)="visualizeDiamond(diamond)">
-                      <mat-icon>visibility</mat-icon>
-                      Visualize
-                    </button>
-                    <button mat-button (click)="analyzeDiamondPath(diamond)">
-                      <mat-icon>analytics</mat-icon>
-                      Analyze
-                    </button>
-                  </div>
+              @if (filteredDiamonds().length !== diamondList().length) {
+                <div class="filter-summary">
+                  <mat-icon>filter_list</mat-icon>
+                  <span>{{ filteredDiamonds().length }} of {{ diamondList().length }} diamonds</span>
                 </div>
               }
+            </div>
+
+            <!-- Task 4.3: Scalable Diamond List for Large Networks -->
+            <div class="diamond-list">
+              <div class="diamond-list-header">
+                <h4>
+                  <mat-icon>diamond</mat-icon>
+                  Diamond Network Overview
+                </h4>
+                <div class="list-stats">
+                  <div class="stat">
+                    <mat-icon>analytics</mat-icon>
+                    <span class="stat-value">{{ filteredDiamonds().length }}</span>
+                    <span>diamonds shown</span>
+                  </div>
+                  @if (lastDiamondAnalysisTime()) {
+                    <div class="stat">
+                      <mat-icon>schedule</mat-icon>
+                      <span>Updated {{ lastDiamondAnalysisTime()?.toLocaleTimeString() }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+              
+              <div class="diamond-grid">
+                @for (diamond of filteredDiamonds(); track diamond.join_node) {
+                  <div class="diamond-grid-item" 
+                       [class.high-complexity]="diamond.complexity_score >= 10"
+                       [class.medium-complexity]="diamond.complexity_score >= 5 && diamond.complexity_score < 10"
+                       [class.low-complexity]="diamond.complexity_score < 5">
+                    
+                    <div class="diamond-compact-header">
+                      <h5 class="diamond-title">
+                        <span class="node-id">{{ diamond.join_node }}</span>
+                        Diamond Structure
+                      </h5>
+                      <div class="complexity-indicator">
+                        <span class="complexity-value" 
+                              [class.high]="diamond.complexity_score >= 10"
+                              [class.medium]="diamond.complexity_score >= 5 && diamond.complexity_score < 10"
+                              [class.low]="diamond.complexity_score < 5">
+                          {{ diamond.complexity_score }}
+                        </span>
+                        <div class="complexity-dots">
+                          @for (dot of [1,2,3,4,5]; track dot) {
+                            <div class="dot" 
+                                 [class.active]="dot <= Math.ceil(diamond.complexity_score / 2)">
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="diamond-compact-details">
+                      <div class="detail-item">
+                        <span class="label">Type:</span>
+                        <span class="value type">{{ diamond.internal_structure }}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="label">Fork:</span>
+                        <span class="value fork">{{ diamond.fork_structure }}</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="label">Size:</span>
+                        <span class="value">{{ diamond.subgraph_size }} nodes</span>
+                      </div>
+                      <div class="detail-item">
+                        <span class="label">Paths:</span>
+                        <span class="value">{{ diamond.path_count }}</span>
+                      </div>
+                    </div>
+                    
+                    <div class="diamond-compact-footer">
+                      <div class="badges">
+                        <span class="risk-badge" 
+                              [class.low]="getRiskBadgeColor(diamond.bottleneck_risk) === 'success'"
+                              [class.medium]="getRiskBadgeColor(diamond.bottleneck_risk) === 'warning'"
+                              [class.high]="getRiskBadgeColor(diamond.bottleneck_risk) === 'danger'">
+                          {{ diamond.bottleneck_risk }}
+                        </span>
+                        @if (lastDiamondAnalysisTime()) {
+                          <span class="fresh-indicator">
+                            <mat-icon>refresh</mat-icon>
+                            Fresh
+                          </span>
+                        }
+                      </div>
+                      
+                      <div class="diamond-actions">
+                        <button class="action-btn" 
+                                (click)="viewDiamondDetails(diamond)"
+                                matTooltip="View Details">
+                          <mat-icon>info</mat-icon>
+                        </button>
+                        <button class="action-btn" 
+                                (click)="visualizeDiamond(diamond)"
+                                matTooltip="Visualize">
+                          <mat-icon>visibility</mat-icon>
+                        </button>
+                        <button class="action-btn" 
+                                (click)="analyzeDiamondPath(diamond)"
+                                matTooltip="Analyze Paths">
+                          <mat-icon>analytics</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
             </div>
           </mat-tab>
 
         </mat-tab-group>
+      }
+
+      <!-- No Diamonds -->
+      @if (hasGraphData() && !hasDiamonds()) {
+        <div class="no-diamonds-message">
+          <mat-icon>info</mat-icon>
+          <p>No diamond structures found in the current graph.</p>
+          @if (!hasRunDiamondAnalysis()) {
+            <p>Try running a dedicated diamond analysis to ensure comprehensive detection.</p>
+            <button mat-raised-button color="primary" (click)="runDiamondAnalysis()">
+              <mat-icon>diamond</mat-icon>
+              Run Diamond Analysis
+            </button>
+          }
+        </div>
       }
     </mat-card-content>
   </mat-card>

@@ -36,84 +36,320 @@ mat-card-title {
   color: #c62828;
 }
 
-// Dashboard Overview Styling
-.dashboard-overview {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 15px;
-  padding: 30px;
-  margin-bottom: 30px;
-  border-left: 5px solid #667eea;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+// Task 4.1 & 4.2: Analysis Controls Card Styling
+.analysis-controls-card {
+  border-left: 4px solid #1976d2;
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  margin-bottom: 24px;
   
-  h3 {
-    margin: 0 0 25px 0;
-    color: #333;
-    font-weight: 600;
+  mat-card-title {
+    color: #1976d2;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 1.4rem;
+  }
+}
+
+.analysis-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  
+  .control-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    
+    .analysis-btn {
+      min-width: 250px;
+      height: 48px;
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      mat-spinner {
+        margin-right: 8px;
+      }
+      
+      &:disabled {
+        opacity: 0.7;
+      }
+      
+      // Task 4.2: Enhanced button styling for analysis state
+      &:not(:disabled) {
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 12px rgba(25, 118, 210, 0.3);
+        }
+      }
+    }
+  }
+}
+
+// Task 4.4: Progress Indicators Styling
+.analysis-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(25, 118, 210, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  animation: slideInFromTop 0.3s ease-out;
+  
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .progress-step {
+      font-weight: 500;
+      color: #1976d2;
+      font-size: 14px;
+    }
+    
+    .progress-percentage {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 14px;
+    }
+  }
+  
+  .analysis-progress-bar {
+    height: 6px;
+    border-radius: 3px;
+    
+    ::ng-deep {
+      .mdc-linear-progress__bar-inner {
+        border-color: #1976d2;
+      }
+    }
+  }
+}
+
+// Task 4.4: Analysis Summary Styling
+.analysis-summary {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  animation: summaryFadeIn 0.4s ease-out;
+  
+  .summary-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    
+    mat-icon {
+      color: #22c55e;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+    
+    span {
+      font-weight: 600;
+      color: #166534;
+      font-size: 16px;
+    }
+    
+    small {
+      color: #166534;
+      opacity: 0.8;
+      margin-left: auto;
+      font-size: 12px;
+    }
+  }
+  
+  .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+    
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(34, 197, 94, 0.1);
+      border-radius: 6px;
+      
+      .stat-label {
+        font-weight: 500;
+        color: #166534;
+        font-size: 13px;
+      }
+      
+      .stat-value {
+        font-weight: 600;
+        color: #166534;
+        font-size: 14px;
+      }
+    }
+  }
+  
+  // Task 4.3: Complexity Distribution Styling
+  .complexity-distribution {
+    margin-top: 16px;
+    
+    h4 {
+      margin: 0 0 8px 0;
+      color: #166534;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .distribution-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      
+      mat-chip {
+        font-size: 12px;
+        padding: 4px 8px;
+        
+        &[highlighted="true"] {
+          background: rgba(34, 197, 94, 0.3);
+          border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+      }
+    }
+  }
+}
+
+// Task 4.3: Analysis Status Banner
+.analysis-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #1e40af;
+  
+  mat-icon {
+    color: #3b82f6;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+  
+  .metadata {
+    opacity: 0.8;
+    font-size: 12px;
+  }
+}
+
+// Modern Dashboard Layout
+.dashboard-overview {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+  color: white;
+  
+  h3 {
+    margin: 0 0 28px 0;
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.8rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 }
 
 .dashboard-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
 }
 
 .dashboard-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 28px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  gap: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
-  border-left: 4px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+  }
   
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    
+    .card-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
   }
   
   &.primary {
-    border-left-color: #667eea;
-    
     .card-icon {
-      color: #667eea;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   }
   
   &.complexity {
-    border-left-color: #fd79a8;
-    
     .card-icon {
-      color: #fd79a8;
+      background: linear-gradient(135deg, #fd79a8, #ff6b9d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   }
   
   &.warning {
-    border-left-color: #ffc107;
-    
     .card-icon {
-      color: #ffc107;
+      background: linear-gradient(135deg, #ffc107, #ff9800);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   }
   
   &.paths {
-    border-left-color: #28a745;
-    
     .card-icon {
-      color: #28a745;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   }
   
   .card-icon {
-    font-size: 2.5rem;
-    opacity: 0.8;
+    font-size: 3rem;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
   }
   
   .card-content {
@@ -122,34 +358,44 @@ mat-card-title {
     flex: 1;
     
     .card-value {
-      font-size: 2.2rem;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 4px;
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #2d3748;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #2d3748, #4a5568);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     
     .card-label {
-      font-size: 1rem;
-      color: #666;
+      font-size: 1.1rem;
+      color: #4a5568;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       
       .info-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
         cursor: help;
         opacity: 0.7;
+        transition: opacity 0.2s ease;
+        
+        &:hover {
+          opacity: 1;
+        }
       }
     }
     
     .card-description {
-      font-size: 0.85rem;
-      color: #999;
-      line-height: 1.3;
+      font-size: 0.9rem;
+      color: #718096;
+      line-height: 1.4;
+      font-weight: 500;
     }
   }
 }
@@ -330,104 +576,292 @@ mat-card-title {
   }
 }
 
+// Scalable Diamond List for Large Networks
 .diamond-list {
-  display: grid;
-  gap: 16px;
-}
-
-.diamond-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
   background: white;
-  transition: box-shadow 0.2s;
-  
-  &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.diamond-header {
+.diamond-list-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
   
   h4 {
     margin: 0;
-    color: #333;
+    color: #2d3748;
+    font-weight: 700;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .list-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: #718096;
+    
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      
+      .stat-value {
+        font-weight: 600;
+        color: #4a5568;
+      }
+    }
   }
 }
 
-.diamond-badges {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  
-  &.badge-success {
-    background-color: #e8f5e8;
-    color: #2e7d32;
-  }
-  
-  &.badge-warning {
-    background-color: #fff3e0;
-    color: #f57c00;
-  }
-  
-  &.badge-danger {
-    background-color: #ffebee;
-    color: #c62828;
-  }
-  
-  &.badge-secondary {
-    background-color: #f5f5f5;
-    color: #666;
-  }
-}
-
-.complexity-score {
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.diamond-details {
+.diamond-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 8px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px;
+  background: rgba(0, 0, 0, 0.05);
+  max-height: 600px;
+  overflow-y: auto;
+  
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
+  }
 }
 
-.detail-row {
+.diamond-grid-item {
+  background: white;
+  padding: 16px;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  position: relative;
+  
+  &:hover {
+    background: #f8f9ff;
+    border-left-color: #667eea;
+    transform: translateX(2px);
+    
+    .diamond-actions {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  
+  &.high-complexity {
+    border-left-color: #e53e3e;
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  }
+  
+  &.medium-complexity {
+    border-left-color: #dd6b20;
+    background: linear-gradient(135deg, #fffaf0 0%, #fbd38d 100%);
+  }
+  
+  &.low-complexity {
+    border-left-color: #38a169;
+    background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+  }
+}
+
+.diamond-compact-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
   
-  .label {
-    font-weight: 500;
-    color: #666;
+  .diamond-title {
+    font-weight: 700;
+    color: #2d3748;
+    font-size: 1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    .node-id {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
   }
   
-  .value {
-    font-weight: 500;
-    color: #333;
+  .complexity-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    .complexity-value {
+      font-weight: 800;
+      font-size: 1.1rem;
+      
+      &.high { color: #e53e3e; }
+      &.medium { color: #dd6b20; }
+      &.low { color: #38a169; }
+    }
+    
+    .complexity-dots {
+      display: flex;
+      gap: 2px;
+      
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        
+        &.active {
+          background: currentColor;
+        }
+      }
+    }
   }
 }
 
-.diamond-actions {
-  display: flex;
+.diamond-compact-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  justify-content: flex-end;
+  margin-bottom: 12px;
   
-  button {
-    mat-icon {
-      margin-right: 4px;
+  .detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    
+    .label {
+      color: #718096;
+      font-weight: 500;
+    }
+    
+    .value {
+      color: #2d3748;
+      font-weight: 600;
+      
+      &.type {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+      }
+      
+      &.fork {
+        background: rgba(237, 137, 54, 0.1);
+        color: #ed8936;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+      }
+    }
+  }
+}
+
+.diamond-compact-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .badges {
+    display: flex;
+    gap: 6px;
+    
+    .risk-badge {
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      
+      &.low {
+        background: rgba(56, 161, 105, 0.1);
+        color: #38a169;
+      }
+      
+      &.medium {
+        background: rgba(221, 107, 32, 0.1);
+        color: #dd6b20;
+      }
+      
+      &.high {
+        background: rgba(229, 62, 62, 0.1);
+        color: #e53e3e;
+      }
+    }
+    
+    .fresh-indicator {
+      background: linear-gradient(45deg, #10b981, #059669);
+      color: white;
+      padding: 3px 6px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      
+      mat-icon {
+        font-size: 10px;
+        width: 10px;
+        height: 10px;
+        animation: refreshSpin 2s linear infinite;
+      }
+    }
+  }
+  
+  .diamond-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    
+    .action-btn {
+      padding: 6px;
+      border: none;
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        background: #667eea;
+        color: white;
+        transform: scale(1.1);
+      }
+      
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
     }
   }
 }
@@ -485,14 +919,65 @@ mat-card-title {
   }
 }
 
-// Responsive design
-@media (max-width: 768px) {
+// Animation keyframes
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes summaryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes refreshSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive design for modern dashboard
+@media (max-width: 1200px) {
   .dashboard-summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .classification-cards {
+  .diamond-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
+  }
+  
+  .dashboard-overview {
+    padding: 24px 20px;
+    
+    h3 {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .dashboard-summary-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .dashboard-card {
@@ -500,97 +985,193 @@ mat-card-title {
     
     .card-content {
       .card-value {
-        font-size: 1.8rem;
+        font-size: 2.2rem;
       }
     }
   }
   
-  .classification-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    
-    .type-chip {
-      min-width: unset;
-      width: 100%;
-      text-align: center;
-    }
-  }
-  
-  .diamond-summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
   .diamond-controls {
     flex-direction: column;
+    gap: 16px;
     
     mat-form-field {
       min-width: unset;
       width: 100%;
     }
-  }
-  
-  .diamond-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .diamond-details {
-    grid-template-columns: 1fr;
-  }
-  
-  .diamond-actions {
-    justify-content: center;
-  }
-  
-  .control-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
     
-    mat-checkbox {
-      min-width: unset;
+    .filter-summary {
+      align-self: center;
     }
+  }
+  
+  .classification-legend {
+    .legend-row {
+      flex-direction: column;
+      gap: 12px;
+      
+      .legend-group {
+        justify-content: center;
+      }
+    }
+  }
+  
+  .diamond-grid {
+    grid-template-columns: 1fr;
+    max-height: 400px;
+  }
+  
+  .diamond-grid-item {
+    .diamond-compact-details {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  // Analysis controls mobile
+  .analysis-controls {
+    .control-buttons {
+      flex-direction: column;
+      align-items: stretch;
+      
+      .analysis-btn {
+        width: 100%;
+        min-width: unset;
+        justify-content: center;
+      }
+    }
+  }
+  
+  .analysis-summary {
+    .summary-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .analysis-status-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     
-    mat-slider {
-      max-width: unset;
-      width: 100%;
+    .metadata {
+      font-size: 11px;
     }
   }
 }
 
 @media (max-width: 480px) {
-  .dashboard-summary-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .dashboard-overview,
-  .classification-guide {
-    padding: 20px;
+  .dashboard-overview {
+    padding: 20px 16px;
+    
+    h3 {
+      font-size: 1.3rem;
+      text-align: center;
+    }
   }
   
   .dashboard-card {
     flex-direction: column;
     text-align: center;
-    gap: 12px;
+    gap: 16px;
+    padding: 16px;
     
     .card-icon {
-      font-size: 2rem;
+      font-size: 2.5rem;
     }
     
     .card-content {
       .card-value {
-        font-size: 1.6rem;
+        font-size: 2rem;
+      }
+      
+      .card-label {
+        font-size: 1rem;
       }
     }
   }
   
-  .diamond-summary-grid {
-    grid-template-columns: 1fr;
+  .diamond-list-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    
+    .list-stats {
+      flex-direction: column;
+      gap: 8px;
+    }
   }
   
-  .page-container {
-    padding: 16px;
+  .diamond-compact-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    
+    .diamond-title {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+  
+  .diamond-compact-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    
+    .diamond-actions {
+      align-self: stretch;
+      justify-content: space-around;
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
+// Dark theme support for modern dashboard
+@media (prefers-color-scheme: dark) {
+  .dashboard-overview {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    
+    h3 {
+      color: #f7fafc !important;
+    }
+  }
+  
+  .dashboard-card {
+    background: rgba(45, 55, 72, 0.95) !important;
+    
+    .card-content {
+      .card-value,
+      .card-label,
+      .card-description {
+        color: #f7fafc !important;
+      }
+    }
+  }
+  
+  .diamond-list,
+  .diamond-controls,
+  .classification-legend {
+    background: #2d3748 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    
+    h4 {
+      color: #f7fafc !important;
+    }
+  }
+  
+  .diamond-grid-item {
+    background: #2d3748 !important;
+    
+    &:hover {
+      background: #4a5568 !important;
+    }
+    
+    .diamond-title,
+    .detail-item .label,
+    .detail-item .value {
+      color: #f7fafc !important;
+    }
+  }
+  
+  .analysis-controls-card {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%) !important;
   }
 }
