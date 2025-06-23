@@ -754,7 +754,7 @@ module GeneralizedCriticalPathModule
             # Slack as ratio: how many times larger could this value be?
             # Handle division by zero with exact error handling
             if value == zero(T)
-                throw(DivideError("Cannot calculate multiplicative slack: node $node has zero value"))
+                throw(DivideError())
             end
             slack[node] = Float64(result.critical_value) / Float64(value)
         end
