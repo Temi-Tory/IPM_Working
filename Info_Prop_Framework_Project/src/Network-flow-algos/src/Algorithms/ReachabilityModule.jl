@@ -1,3 +1,18 @@
+"""
+    # ReachabilityModule - Future Development Roadmap
+
+    ## Immediate Next Steps
+    - [ ] Multi-state extension (working/failed/in-repair) using thread-per-state decomposition
+    - [ ] Performance benchmarking suite for different network topologies
+    - [ ] Memory optimization for large diamond structures (streaming/chunked processing)
+
+    ## Parallelization Strategy (Hierarchical)
+    - [ ] Level 1: Threading for multi-state (coarse-grained, longest tasks)
+    - [ ] Level 2: Async tasks for iteration sets (medium-grained, node batches)  
+    - [ ] Level 3: Batched async for diamond states (fine-grained, prevent explosion)
+    - [ ] Dynamic resource management based on problem size
+    - [ ] Fallback mechanisms for different hardware constraintsmodule 
+ """
 module ReachabilityModule
 
     using Combinatorics

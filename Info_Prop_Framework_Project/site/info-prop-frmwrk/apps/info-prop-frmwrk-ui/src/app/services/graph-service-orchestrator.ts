@@ -67,9 +67,9 @@ export class GraphServiceOrchestrator implements OnDestroy {
     this.destroy$.complete();
   }
 
-  // ============================================================================
+  // 
   // BACKWARD COMPATIBILITY API - COMPUTED SIGNALS
-  // ============================================================================
+  // 
 
   // Core state properties
   readonly isGraphLoaded = computed(() => this.graphStateService.isGraphLoaded());
@@ -122,9 +122,9 @@ export class GraphServiceOrchestrator implements OnDestroy {
     return state.isInitialized && state.servicesOnline === state.totalServices;
   });
 
-  // ============================================================================
+  // 
   // BACKWARD COMPATIBILITY API - METHODS
-  // ============================================================================
+  // 
 
   /**
    * Load graph structure from CSV content
@@ -509,9 +509,9 @@ export class GraphServiceOrchestrator implements OnDestroy {
     return this.graphStateService.getCurrentState();
   }
 
-  // ============================================================================
+  // 
   // ORCHESTRATOR-SPECIFIC PUBLIC API
-  // ============================================================================
+  // 
 
   /**
    * Get comprehensive service health status
@@ -573,9 +573,9 @@ export class GraphServiceOrchestrator implements OnDestroy {
     }));
   }
 
-  // ============================================================================
+  // 
   // PRIVATE METHODS - SERVICE COORDINATION
-  // ============================================================================
+  // 
 
   private initializeServices(): void {
     // Services are automatically initialized via Angular DI

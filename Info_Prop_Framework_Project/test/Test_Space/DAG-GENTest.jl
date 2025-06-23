@@ -29,7 +29,7 @@ using Statistics
 
 #=
 INFRASTRUCTURE DAG GENERATOR
-===========================
+
 Complete implementation of infrastructure network generator with:
 - Hierarchical layer structure
 - Source/sink node management

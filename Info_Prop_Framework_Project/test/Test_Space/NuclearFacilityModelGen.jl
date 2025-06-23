@@ -2,9 +2,9 @@ module NuclearFacilityModel
 
 using Graphs
 
-#==============
+#====
 Constants
-==============#
+====#
 # Facility constants
 const MAX_VESSELS_EADR = 2
 const MAX_VESSELS_FGRR = 1
@@ -20,9 +20,9 @@ const SHIFTS_PER_DAY = 2
 # Weekend definition function
 weekend_days() = Set([6, 7])
 
-#==============
+#====
 Types
-==============#
+====#
 abstract type NodeType end
 
 # Process nodes
@@ -74,9 +74,9 @@ mutable struct NuclearFacilityNode
     properties::Dict{Symbol,Any}
 end
 
-#==============
+#====
 Core Functions
-==============#
+====#
 """
 Create sequence nodes for a single pin or batch operation
 """
@@ -208,9 +208,9 @@ function get_operation_duration(op_type::NodeType)
     return get(durations, typeof(op_type), 30)  # Default 30 minutes
 end
 
-#==============
+#====
 Network Generation
-==============#
+====#
 """
 Generate full nuclear facility network
 """
@@ -304,9 +304,9 @@ function add_staff_edges!(dag::SimpleDiGraph, nodes::Dict{Int,NuclearFacilityNod
     end
 end
 
-#==============
+#====
 Exports
-==============#
+====#
 export NuclearFacilityNode, NodeType, StaffRole,
        LoadingStart, LoadingEnd, PressureReading, GasSampling,
        VacuumDrying, ReboundTest, Storage,
