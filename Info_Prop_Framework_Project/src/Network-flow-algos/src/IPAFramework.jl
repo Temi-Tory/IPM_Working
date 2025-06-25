@@ -6,7 +6,7 @@ module IPAFramework
 #=     include("Active_Work_Algos/StateReliabilityModule.jl")  # NEW: Exact MTTF/MTTR module =#
     include("Algorithms/ComparisonModules.jl")
     include("Algorithms/VisualizeGraphsModule.jl")
-    include("Active_Work_Algos/GenerateGraphModule.jl")
+    include("Algorithms/GenerateGraphModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
     include("Algorithms/ReachabilityModule_Pbox.jl")
     include("Algorithms/ReachabilityModule_Interval.jl")
