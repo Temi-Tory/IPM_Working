@@ -8,6 +8,7 @@ module IPAFramework
     include("Algorithms/VisualizeGraphsModule.jl")
     include("Algorithms/GenerateGraphModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
+    include("Algorithms/DroneNetworkDagModule.jl")
     include("Algorithms/ReachabilityModule_Pbox.jl")
     include("Algorithms/ReachabilityModule_Interval.jl")
     include("Algorithms/DiamondClassificationModule.jl")
@@ -44,8 +45,15 @@ module IPAFramework
 
     using .GenerateGraphModule: InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities
 
-    using .UndirectedToDagModule: improved_undirected_to_dag, process_graph_from_csv, 
+    using .UndirectedToDagModule: improved_undirected_to_dag, process_graph_from_csv,
                                  analyze_generated_dag, validate_dag
+
+    using .DroneNetworkDagModule: NodeType, OperationalMode, DroneNetworkDAGConverter,
+                                 convert_drone_network_to_dag, establish_node_hierarchy,
+                                 apply_directional_heuristics, resolve_cycles_intelligently,
+                                 validate_dag_operational_viability,
+                                 HOSPITAL, AIRPORT, REGIONAL_HUB, LOCAL_HUB, GENERIC,
+                                 SUPPLY_DISTRIBUTION, EMERGENCY_RESPONSE, RESILIENCE_ANALYSIS
 
     using .CapacityAnalysisModule: CapacityParameters, CapacityResult,
            maximum_flow_capacity, bottleneck_capacity_analysis,
@@ -132,9 +140,17 @@ module IPAFramework
         # Undirected to DAG conversion
         improved_undirected_to_dag, process_graph_from_csv, analyze_generated_dag, validate_dag,
         
+        # Drone Network DAG conversion
+        NodeType, OperationalMode, DroneNetworkDAGConverter,
+        convert_drone_network_to_dag, establish_node_hierarchy,
+        apply_directional_heuristics, resolve_cycles_intelligently,
+        validate_dag_operational_viability,
+        HOSPITAL, AIRPORT, REGIONAL_HUB, LOCAL_HUB, GENERIC,
+        SUPPLY_DISTRIBUTION, EMERGENCY_RESPONSE, RESILIENCE_ANALYSIS,
+        
         # Exhaustive Diamond Classification
         DiamondClassification, classify_diamond_exhaustive,
-        ForkStructure, InternalStructure, PathTopology, JoinStructure, 
+        ForkStructure, InternalStructure, PathTopology, JoinStructure,
         ExternalConnectivity, DegenerateCases,
 
         CapacityParameters, CapacityResult,
