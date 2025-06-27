@@ -9,6 +9,7 @@ module IPAFramework
     include("Algorithms/GenerateGraphModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
     include("Algorithms/DroneNetworkDagModule.jl")
+    include("Algorithms/DroneInputProcessingModule.jl")
     include("Algorithms/ReachabilityModule_Pbox.jl")
     include("Algorithms/ReachabilityModule_Interval.jl")
     include("Algorithms/DiamondClassificationModule.jl")
@@ -54,6 +55,10 @@ module IPAFramework
                                  validate_dag_operational_viability,
                                  HOSPITAL, AIRPORT, REGIONAL_HUB, LOCAL_HUB, GENERIC,
                                  SUPPLY_DISTRIBUTION, EMERGENCY_RESPONSE, RESILIENCE_ANALYSIS
+
+    using .DroneInputProcessingModule: DroneNetworkData, save_drone_dag_results, load_drone_dag_results,
+                                      convert_to_ipa_format, validate_drone_data_integrity,
+                                      create_drone_metadata, extract_dag_matrices, save_real_drone_results
 
     using .CapacityAnalysisModule: CapacityParameters, CapacityResult,
            maximum_flow_capacity, bottleneck_capacity_analysis,
@@ -147,6 +152,11 @@ module IPAFramework
         validate_dag_operational_viability,
         HOSPITAL, AIRPORT, REGIONAL_HUB, LOCAL_HUB, GENERIC,
         SUPPLY_DISTRIBUTION, EMERGENCY_RESPONSE, RESILIENCE_ANALYSIS,
+        
+        # Drone Input Processing
+        DroneNetworkData, save_drone_dag_results, load_drone_dag_results,
+        convert_to_ipa_format, validate_drone_data_integrity,
+        create_drone_metadata, extract_dag_matrices, save_real_drone_results,
         
         # Exhaustive Diamond Classification
         DiamondClassification, classify_diamond_exhaustive,

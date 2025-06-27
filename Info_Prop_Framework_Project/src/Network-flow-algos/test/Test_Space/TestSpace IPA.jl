@@ -11,7 +11,8 @@ using .IPAFramework
 #user input from ui for eg 
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
+#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/munin/munin_dag.csv";
