@@ -1,21 +1,25 @@
-import Fontconfig 
-using DataFrames, DelimitedFiles, Distributions, 
-      DataStructures, SparseArrays, BenchmarkTools, 
+import Fontconfig
+using DataFrames, DelimitedFiles, Distributions,
+      DataStructures, SparseArrays, BenchmarkTools,
       Combinatorics
 
 
-# Import framework
+
+# Import framework - corrected path
+include("../../src/IPAFramework.jl")
 using .IPAFramework
+
 
 
 #user input from ui for eg 
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
+#filepathcsv = "csvfiles/KarlNetwork.csv";
+#filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
-#filepathcsv = "csvfiles/munin/munin_dag.csv";
+
 
 
 #THIS FILE IS GLOBAL TO THE ENTIRE USER SESSION UNLESS THEY UPLAD ANOTHER FILE 
@@ -100,5 +104,5 @@ Dict{Int64, Float64} with 23 entries:
   1  => 0.9
   ⋮  => ⋮
 
-#output[23] #0.5723938497157594 =#
-
+#output[21] =#
+#output[559]

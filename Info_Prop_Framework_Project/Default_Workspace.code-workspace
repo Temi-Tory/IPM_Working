@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "Info_Prop_Framework_Project",
+			"path": "."
+		}
+	],
+	"settings": {
+		"nxConsole.nxWorkspacePath": "site\\info-prop-frmwrk"
+	}
+}
