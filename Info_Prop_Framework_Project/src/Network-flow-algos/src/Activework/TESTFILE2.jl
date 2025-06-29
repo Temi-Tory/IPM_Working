@@ -92,3 +92,6 @@ output =  update_beliefs_iterative(
     join_nodes,
     fork_nodes
 ));
+
+
+#output[261]
