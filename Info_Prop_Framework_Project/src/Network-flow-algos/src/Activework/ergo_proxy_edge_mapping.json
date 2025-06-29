@@ -1,0 +1,290 @@
+{
+  "network_info": {
+    "name": "Ergo Proxy DAG Edge Mapping",
+    "total_edges": 6607,
+    "description": "Edge relationship types and metadata for visualization",
+    "created": "2025-06-28",
+    "version": "1.0"
+  },
+  "edge_types": {
+    "causal_direct": {
+      "probability_range": [0.8, 0.9],
+      "color": "#FF4444",
+      "description": "Direct cause-effect relationships",
+      "line_style": "solid",
+      "weight": 3,
+      "examples": [
+        "Pulse of Awakening → AutoReiv Awakening",
+        "Proxy Encounter → Identity Crisis",
+        "Memory Recovery → Truth Revelation"
+      ]
+    },
+    "causal_strong": {
+      "probability_range": [0.6, 0.8],
+      "color": "#FF8844",
+      "description": "Strong influence relationships",
+      "line_style": "solid",
+      "weight": 2,
+      "examples": [
+        "Character State → Decision Making",
+        "System Change → Population Response",
+        "Investigation → Evidence Discovery"
+      ]
+    },
+    "causal_medium": {
+      "probability_range": [0.4, 0.6],
+      "color": "#FFAA44",
+      "description": "Medium influence relationships",
+      "line_style": "dashed",
+      "weight": 2,
+      "examples": [
+        "Thematic Concept → Character Development",
+        "Environmental Factor → System Adaptation",
+        "Social Pressure → Behavioral Change"
+      ]
+    },
+    "causal_weak": {
+      "probability_range": [0.2, 0.4],
+      "color": "#FFCC88",
+      "description": "Weak correlation relationships",
+      "line_style": "dotted",
+      "weight": 1,
+      "examples": [
+        "Background Event → Subtle Influence",
+        "Indirect System Effect → Character Mood",
+        "Cultural Factor → Decision Bias"
+      ]
+    },
+    "temporal_progression": {
+      "probability_range": [0.7, 0.9],
+      "color": "#4444FF",
+      "description": "Sequential timeline progression",
+      "line_style": "solid",
+      "weight": 2,
+      "examples": [
+        "Episode N → Episode N+1",
+        "Character State → Next Character State",
+        "Memory Fragment → Revelation"
+      ]
+    },
+    "character_interaction": {
+      "probability_range": [0.3, 0.7],
+      "color": "#44FF44",
+      "description": "Inter-character relationship effects",
+      "line_style": "solid",
+      "weight": 2,
+      "examples": [
+        "Vincent State → Re-l Response",
+        "Pino Development → Group Dynamic",
+        "Character Bond → Mutual Influence"
+      ]
+    },
+    "system_dependency": {
+      "probability_range": [0.5, 0.8],
+      "color": "#8844FF",
+      "description": "Technological/social system dependencies",
+      "line_style": "solid",
+      "weight": 2,
+      "examples": [
+        "Proxy Network → Dome Function",
+        "AutoReiv System → Social Order",
+        "Administrative Change → Population Effect"
+      ]
+    },
+    "thematic_connection": {
+      "probability_range": [0.2, 0.5],
+      "color": "#FF44FF",
+      "description": "Philosophical and symbolic connections",
+      "line_style": "dashed",
+      "weight": 1,
+      "examples": [
+        "Identity Theme → Character Question",
+        "Existential Concept → Narrative Element",
+        "Symbolic Parallel → Plot Development"
+      ]
+    },
+    "revelation_cascade": {
+      "probability_range": [0.6, 0.9],
+      "color": "#FFFF44",
+      "description": "Truth revelation and understanding cascades",
+      "line_style": "solid",
+      "weight": 3,
+      "examples": [
+        "Memory Recovery → Identity Understanding",
+        "System Truth → Reality Acceptance",
+        "Character Revelation → Final Integration"
+      ]
+    }
+  },
+  "key_edge_patterns": {
+    "source_cascades": {
+      "global_ecological_disaster": {
+        "source_node": 701,
+        "description": "Ultimate root cause cascading to all systems",
+        "target_categories": ["system_components", "thematic_concepts", "revelation_nodes"],
+        "edge_type": "causal_direct",
+        "estimated_edges": 42
+      },
+      "pulse_of_awakening": {
+        "source_node": 1,
+        "description": "Present timeline catalyst affecting all domains",
+        "target_categories": ["plot_events", "character_states", "system_components"],
+        "edge_type": "causal_strong",
+        "estimated_edges": 50
+      },
+      "romdeau_foundation": {
+        "source_node": 351,
+        "description": "Civilization infrastructure enabling all social systems",
+        "target_categories": ["system_components", "character_states"],
+        "edge_type": "system_dependency",
+        "estimated_edges": 25
+      }
+    },
+    "character_progressions": {
+      "vincent_arc": {
+        "node_range": [201, 215],
+        "description": "Sequential psychological development with cross-character effects",
+        "internal_edges": "temporal_progression",
+        "external_edges": "character_interaction",
+        "estimated_internal": 28,
+        "estimated_external": 90
+      },
+      "rel_arc": {
+        "node_range": [231, 245],
+        "description": "Investigation progression with system interactions",
+        "internal_edges": "temporal_progression", 
+        "external_edges": "system_dependency",
+        "estimated_internal": 28,
+        "estimated_external": 120
+      },
+      "pino_arc": {
+        "node_range": [261, 275],
+        "description": "Consciousness development affecting all AutoReiv systems",
+        "internal_edges": "temporal_progression",
+        "external_edges": "system_dependency",
+        "estimated_internal": 28,
+        "estimated_external": 84
+      }
+    },
+    "system_networks": {
+      "proxy_network": {
+        "node_range": [401, 500],
+        "description": "Massive interconnected proxy system",
+        "internal_edges": "system_dependency",
+        "external_edges": "causal_strong",
+        "estimated_internal": 300,
+        "estimated_external": 1200
+      },
+      "romdeau_systems": {
+        "node_range": [351, 400],
+        "description": "Administrative and social infrastructure",
+        "internal_edges": "system_dependency",
+        "external_edges": "causal_medium",
+        "estimated_internal": 150,
+        "estimated_external": 500
+      }
+    },
+    "revelation_convergence": {
+      "identity_revelations": {
+        "node_range": [751, 770],
+        "description": "Character identity truth convergence",
+        "edge_type": "revelation_cascade",
+        "sources": ["character_states", "memory_fragments"],
+        "estimated_edges": 60
+      },
+      "system_revelations": {
+        "node_range": [771, 790],
+        "description": "System truth and conspiracy exposure",
+        "edge_type": "revelation_cascade",
+        "sources": ["system_components", "investigation_results"],
+        "estimated_edges": 80
+      },
+      "final_convergence": {
+        "node_range": [791, 800],
+        "description": "Ultimate truth synthesis",
+        "edge_type": "revelation_cascade",
+        "sources": ["all_revelation_nodes"],
+        "estimated_edges": 45
+      }
+    }
+  },
+  "visualization_guidelines": {
+    "node_styling": {
+      "plot_events": {
+        "shape": "circle",
+        "base_color": "#FF6B6B",
+        "size_factor": "prior_probability"
+      },
+      "character_states": {
+        "shape": "square", 
+        "base_color": "#4ECDC4",
+        "size_factor": "psychological_intensity"
+      },
+      "system_components": {
+        "shape": "diamond",
+        "base_color": "#45B7D1",
+        "size_factor": "system_importance"
+      },
+      "thematic_concepts": {
+        "shape": "triangle",
+        "base_color": "#F7DC6F",
+        "size_factor": "philosophical_weight"
+      },
+      "temporal_elements": {
+        "shape": "hexagon",
+        "base_color": "#BB8FCE",
+        "size_factor": "temporal_significance"
+      },
+      "revelation_nodes": {
+        "shape": "star",
+        "base_color": "#F8C471",
+        "size_factor": "revelation_impact"
+      }
+    },
+    "layout_suggestions": {
+      "hierarchical": {
+        "description": "Top-down layout respecting temporal causality",
+        "levels": [
+          "Global Ecological Disaster (top)",
+          "System Responses (level 2)",
+          "Present Timeline Events (level 3)",
+          "Character Development (level 4)",
+          "Revelation Convergence (bottom)"
+        ]
+      },
+      "circular": {
+        "description": "Circular layout with categories as sectors",
+        "center": "Final Truth Convergence (Node 800)",
+        "sectors": ["Plot", "Characters", "Systems", "Themes", "Temporal", "Revelations"]
+      },
+      "force_directed": {
+        "description": "Physics-based layout emphasizing connections",
+        "attraction": "Strong edges pull nodes together",
+        "repulsion": "Different categories repel",
+        "clustering": "Similar nodes form natural clusters"
+      }
+    }
+  },
+  "analysis_metrics": {
+    "centrality_measures": {
+      "betweenness_centrality": "Nodes that bridge different narrative domains",
+      "closeness_centrality": "Nodes with shortest paths to all others",
+      "degree_centrality": "Nodes with most connections",
+      "eigenvector_centrality": "Nodes connected to other important nodes"
+    },
+    "community_detection": {
+      "expected_communities": [
+        "Vincent-Re-l-Pino character cluster",
+        "Proxy network technological cluster", 
+        "Romdeau administrative cluster",
+        "Revelation convergence cluster",
+        "Temporal progression cluster"
+      ]
+    },
+    "path_analysis": {
+      "critical_paths": "Paths from ecological disaster to final truth",
+      "character_journeys": "Paths through character development arcs",
+      "revelation_paths": "Paths from evidence to understanding"
+    }
+  }
+}

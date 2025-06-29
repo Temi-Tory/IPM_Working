@@ -1,0 +1,218 @@
+{
+  "network_info": {
+    "name": "Ergo Proxy Narrative DAG Network",
+    "total_nodes": 800,
+    "total_edges": 6607,
+    "description": "Complete narrative dependency network for Ergo Proxy anime series",
+    "created": "2025-06-28",
+    "version": "1.0"
+  },
+  "node_categories": {
+    "plot_events": {
+      "range": [1, 200],
+      "description": "Major plot events, scenes, and dialogue moments",
+      "subcategories": {
+        "major_events": [1, 50],
+        "scene_events": [51, 150],
+        "dialogue_moments": [151, 200]
+      }
+    },
+    "character_states": {
+      "range": [201, 350],
+      "description": "Character psychological progression states",
+      "subcategories": {
+        "vincent_arc": [201, 230],
+        "rel_arc": [231, 260],
+        "pino_arc": [261, 280],
+        "secondary_characters": [281, 350]
+      }
+    },
+    "system_components": {
+      "range": [351, 550],
+      "description": "Technological and social infrastructure",
+      "subcategories": {
+        "romdeau_systems": [351, 400],
+        "proxy_network": [401, 500],
+        "autoreiv_systems": [501, 530],
+        "environmental": [531, 550]
+      }
+    },
+    "thematic_concepts": {
+      "range": [551, 650],
+      "description": "Philosophical and thematic elements",
+      "subcategories": {
+        "identity_themes": [551, 580],
+        "reality_themes": [581, 610],
+        "memory_themes": [611, 640],
+        "existence_themes": [641, 650]
+      }
+    },
+    "temporal_elements": {
+      "range": [651, 750],
+      "description": "Timeline management and progression",
+      "subcategories": {
+        "present_timeline": [651, 700],
+        "past_timeline": [701, 730],
+        "memory_fragments": [731, 750]
+      }
+    },
+    "revelation_nodes": {
+      "range": [751, 800],
+      "description": "Truth convergence and revelation points",
+      "subcategories": {
+        "identity_revelations": [751, 770],
+        "system_revelations": [771, 790],
+        "truth_convergence": [791, 800]
+      }
+    }
+  },
+  "key_nodes": {
+    "source_nodes": {
+      "1": {
+        "name": "Pulse of Awakening",
+        "description": "Primary trigger event in present timeline",
+        "category": "plot_events",
+        "prior_probability": 1.0,
+        "significance": "Master catalyst for all character and system changes"
+      },
+      "351": {
+        "name": "Romdeau Foundation",
+        "description": "Post-disaster civilization establishment",
+        "category": "system_components",
+        "prior_probability": 1.0,
+        "significance": "Foundation of dome city civilization"
+      },
+      "401": {
+        "name": "Proxy Project Origin",
+        "description": "Technological response to ecological disaster",
+        "category": "system_components",
+        "prior_probability": 1.0,
+        "significance": "Origin of all Proxy technology and consciousness"
+      },
+      "551": {
+        "name": "Existential Crisis Theme",
+        "description": "Philosophical consequence of disaster",
+        "category": "thematic_concepts",
+        "prior_probability": 1.0,
+        "significance": "Core existential questions driving narrative"
+      },
+      "651": {
+        "name": "Present Narrative State",
+        "description": "Current timeline starting point",
+        "category": "temporal_elements",
+        "prior_probability": 1.0,
+        "significance": "Anchor point for story progression"
+      },
+      "701": {
+        "name": "Global Ecological Disaster",
+        "description": "Ultimate root cause of all events",
+        "category": "temporal_elements",
+        "prior_probability": 1.0,
+        "significance": "Foundational catastrophe that necessitated all responses"
+      }
+    },
+    "character_progression": {
+      "vincent_arc": {
+        "201": "Compliant Immigrant - Starting state",
+        "202": "First Anomaly - Initial awakening signs",
+        "203": "Memory Gaps Noticed - Awareness of inconsistencies",
+        "204": "Anxiety Emergence - Psychological stress begins",
+        "205": "Proxy Encounter Fear - Direct confrontation with truth",
+        "206": "Identity Questioning - Active self-examination",
+        "207": "Suppressed Memories - Subconscious breakthrough",
+        "208": "Violent Tendencies - Ergo Proxy emergence",
+        "209": "Transformation Triggers - Critical threshold",
+        "210": "Ergo Proxy Emergence - Full manifestation",
+        "211": "Dual Consciousness - Awareness of both identities",
+        "212": "Memory Integration - Past and present merge",
+        "213": "Identity Acceptance - Self-recognition achieved",
+        "214": "Purpose Understanding - Mission clarity",
+        "215": "Final Integration - Complete unified identity"
+      },
+      "rel_arc": {
+        "231": "Elite Inspector - Professional authority",
+        "232": "Proxy Case Assignment - Investigation begins",
+        "233": "First Proxy Encounter - Reality confrontation",
+        "234": "Investigation Deepens - Truth pursuit",
+        "235": "Vincent Suspicion - Personal involvement",
+        "236": "Personal Investment - Emotional engagement",
+        "237": "System Questioning - Authority doubt",
+        "238": "Authority Defiance - Independence assertion",
+        "239": "Truth Pursuit - Commitment to reality",
+        "240": "Exile/Journey - System rejection",
+        "241": "Wasteland Adaptation - Survival mode",
+        "242": "Relationship Growth - Human connection",
+        "243": "Identity Evolution - Self-discovery",
+        "244": "Purpose Redefinition - New mission",
+        "245": "Final Understanding - Complete awareness"
+      },
+      "pino_arc": {
+        "261": "Standard AutoReiv - Machine baseline",
+        "262": "Cogito Infection - Consciousness spark",
+        "263": "First Questions - Curiosity emergence",
+        "264": "Emotional Responses - Feeling development",
+        "265": "Curiosity Development - Active exploration",
+        "266": "Attachment Formation - Relationship bonds",
+        "267": "Fear Understanding - Self-preservation",
+        "268": "Love Recognition - Deep emotional connection",
+        "269": "Moral Awareness - Ethics development",
+        "270": "Self-Identity - Individual recognition",
+        "271": "Protective Instincts - Altruistic behavior",
+        "272": "Sacrifice Willingness - Ultimate humanity test",
+        "273": "Humanity Achievement - Full consciousness",
+        "274": "Wisdom Development - Deep understanding",
+        "275": "Final Maturity - Transcendent awareness"
+      }
+    },
+    "system_hierarchy": {
+      "proxy_network": {
+        "401": "Proxy Project Origin",
+        "402": "Monad Proxy - Agent of Birth",
+        "403": "Ergo Proxy - Agent of Death", 
+        "404": "Senex Proxy - Wisdom keeper",
+        "405": "Kazkis Proxy - Senex's companion",
+        "410": "Proxy Network Hub - Central coordination",
+        "450": "Network Cascade Effects",
+        "460": "System Integration Protocols",
+        "470": "Final Network State"
+      },
+      "romdeau_systems": {
+        "351": "Romdeau Foundation",
+        "352": "Dome Civilization Infrastructure",
+        "353": "Administrative Hierarchy",
+        "354": "Social Stratification System",
+        "355": "WombSys Reproduction Network",
+        "360": "Security Protocols",
+        "370": "Resource Management",
+        "380": "Population Control",
+        "390": "System Maintenance"
+      }
+    },
+    "revelation_convergence": {
+      "751": "Identity Truth Revelation",
+      "760": "System Truth Exposure", 
+      "770": "Memory Integration Complete",
+      "780": "Purpose Clarity Achieved",
+      "790": "Reality Acceptance",
+      "800": "Final Truth Convergence - Ultimate understanding"
+    }
+  },
+  "episode_mapping": {
+    "episode_1": {
+      "nodes": [1, 2, 3, 201, 231, 261, 351, 651],
+      "description": "Pulse of Awakening, character introductions"
+    },
+    "episode_2": {
+      "nodes": [4, 5, 6, 202, 232, 262, 402],
+      "description": "Monad's rampage, investigation begins"
+    },
+    "episode_18": {
+      "nodes": [212, 731, 732, 751],
+      "description": "Memory vault revelations"
+    },
+    "episode_23": {
+      "nodes": [215, 245, 275, 800],
+      "description": "Final integration and truth convergence"
+    }
+  }
+}

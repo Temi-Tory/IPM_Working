@@ -16,6 +16,7 @@
 module ReachabilityModule
 
     using Combinatorics
+    using ..DiamondCutsetModule
     using ..NetworkDecompositionModule
     using ..InputProcessingModule  
 
@@ -302,16 +303,8 @@ module ReachabilityModule
             sub_incoming_index
         )
 
-        # Start with all fork nodes as conditioning nodes
-        conditioning_nodes = copy(fork_nodes)
+       conditioning_nodes = DiamondCutsetModule.find_diamond_breaking_cutset(diamond.edgelist, join_node)
 
-        # Add sources that are also fork nodes in one step
-        for source in fresh_sources
-            if source in sub_fork_nodes && source ∉ fork_nodes
-                push!(conditioning_nodes, source)
-            end
-        end
-        
         # Create sub_node_priors for the diamond nodes
         sub_node_priors = Dict{Int64, Float64}()
         for node in diamond.relevant_nodes
@@ -328,11 +321,13 @@ module ReachabilityModule
             end
         end
 
+        #validate no more diamond with conditioning nodes
+        validation_soruces = union(fresh_sources, conditioning_nodes)
         sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
             sub_join_nodes,
             sub_ancestors,
             sub_incoming_index,
-            fresh_sources,
+            validation_soruces,
             sub_fork_nodes,
             sub_iteration_sets,
             diamond.edgelist,
@@ -340,6 +335,10 @@ module ReachabilityModule
             sub_node_priors
         )
 
+        #validate empty sub_diamond_structures Dict returned
+        if !isempty(sub_diamond_structures)
+            throw(ErrorException("Diamonds were found in the subgraph with join node $join_node and conditioning nodes $conditioning_nodes. This should not happen after conditioning."))
+        end
         # NEW: Use multi-conditioning approach
         conditioning_nodes_list = collect(conditioning_nodes)
         
