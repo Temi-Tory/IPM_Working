@@ -16,7 +16,7 @@
 module ReachabilityModule
 
     using Combinatorics
-    using ..NetworkDecompositionModule
+    using ..DiamondProcessingModule
     using ..InputProcessingModule  
 
     
@@ -171,7 +171,7 @@ module ReachabilityModule
                     structure = diamond_structures[node]
                     
                     # Calculate beliefs from diamond groups
-                    group_beliefs = calculate_diamond_groups_belief(
+                    diamond_belief = calculate_diamond_groups_belief(
                         structure,
                         belief_dict,
                         link_probability,
@@ -179,11 +179,7 @@ module ReachabilityModule
                         cache
                     )
                     
-                    # Use inclusion-exclusion for diamond groups
-                    if !isempty(group_beliefs)
-                        diamond_belief = inclusion_exclusion(group_beliefs)
-                        push!(all_beliefs, diamond_belief)
-                    end
+                    push!(all_beliefs, diamond_belief)
                     
                     # Handle non-diamond parents within the structure
                     if !isempty(structure.non_diamond_parents)
@@ -354,15 +350,14 @@ module ReachabilityModule
             end
         end
 
-        sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
+        sub_diamond_structures = DiamondProcessingModule.identify_and_group_diamonds(
             sub_join_nodes,
-            sub_ancestors,
             sub_incoming_index,
+            sub_ancestors,
+            sub_descendants,
             fresh_sources,
             sub_fork_nodes,
-            sub_iteration_sets,
             diamond.edgelist,
-            sub_descendants,
             sub_node_priors
         )
 
@@ -435,11 +430,8 @@ module ReachabilityModule
             final_belief += join_belief * state_probability
         end
         
-        # Update belief dictionary with combined result
-        updated_belief_dict = copy(belief_dict)
-        updated_belief_dict[join_node] = final_belief
         
-        return updated_belief_dict
+        return final_belief
     end
 
     function calculate_diamond_groups_belief(
@@ -450,19 +442,15 @@ module ReachabilityModule
         cache::Dict{CacheKey, DiamondCacheEntry}
     )
         join_node = diamond_structure.join_node
-        group_combined_beliefs = Float64[]
-        for diamond  in diamond_structure.diamond
-            updated_belief_dict = updateDiamondJoin(
-                diamond.highest_nodes, 
+        group_combined_beliefs = updateDiamondJoin(
+                diamond_structure.diamond.highest_nodes, 
                 join_node,
-                diamond,
+                diamond_structure.diamond,
                 link_probability,
                 node_priors,
                 belief_dict,
                 cache
             )
-            push!(group_combined_beliefs, updated_belief_dict[join_node])
-        end
         return group_combined_beliefs
     end
 

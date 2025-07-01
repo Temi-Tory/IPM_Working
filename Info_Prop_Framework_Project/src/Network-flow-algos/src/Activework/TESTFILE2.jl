@@ -16,10 +16,10 @@ using .IPAFramework
 #user input from ui for eg 
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-#filepathcsv = "csvfiles/KarlNetwork.csv";
+filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
-#filepathcsv = "csvfiles/Power Distribution Network.csv"; IS 
+#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
+#filepathcsv = "csvfiles/Power Distribution Network.csv"; 
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
 
@@ -44,13 +44,12 @@ iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_
 
 diamond_structures= identify_and_group_diamonds(
     join_nodes,
-    ancestors,
     incoming_index,
+    ancestors,
+    descendants,
     source_nodes,
     fork_nodes,
-    iteration_sets,
     edgelist,
-    descendants,
     node_priors
 );
 
@@ -75,7 +74,7 @@ for (join_node, diamonds_at_node) in diamond_structures
     end
 end =#
 
-     diamond_cache = Dict{CacheKey, DiamondCacheEntry}()
+ 
 #rEACHABILITY ANALSYSIS TAB
 (
 output =  update_beliefs_iterative(
@@ -92,6 +91,59 @@ output =  update_beliefs_iterative(
     join_nodes,
     fork_nodes
 ));
+sorted_algo = OrderedDict(sort(collect(output)))
+#output[205]
+
+#= exact_results = ( path_enumeration_result(
+            outgoing_index,
+            incoming_index,
+            source_nodes,
+            node_priors,
+            edge_probabilities
+        ));
+
+    sorted_exact = OrderedDict(sort(collect(exact_results)));
+
+    # Create base DataFrame using the float values directly
+   df = DataFrame(
+    Node = collect(keys(sorted_algo)),
+    AlgoValue = collect(values(sorted_algo)),
+    ExactValue = collect(values(sorted_exact))
+)
+
+# Add absolute difference
+df.AbsDiff = abs.(df.AlgoValue .- df.ExactValue)
+
+# Add percentage error: (|algo - exact| / exact) * 100
+df.PercError = (df.AbsDiff ./ abs.(df.ExactValue)) .* 100
+
+    # Display sorted result (if you want to sort by the difference)
+    show(sort(df, :AbsDiff, rev=true), allrows=true) =#
+
+    
+mc_results = (MC_result(
+    edgelist,
+    outgoing_index,
+    incoming_index,
+    source_nodes,
+    node_priors,
+    edge_probabilities,
+    5_00_000,
+));
 
 
-#output[260]
+# Sort outputs
+sorted_algo = OrderedDict(sort(collect(output)));
+sorted_mc = OrderedDict(sort(collect(mc_results)));
+
+# Create base DataFrame using the float values directly
+df = DataFrame(
+  Node = collect(keys(sorted_algo)),
+  AlgoValue = collect(values(sorted_algo)),
+  MCValue = collect(values(sorted_mc))
+)
+
+# Add a difference column (if needed)
+df.Diff = abs.(df.AlgoValue .- df.MCValue)
+# Display sorted result (if you want to sort by the difference)
+show(sort(df, :Diff, rev=true), allrows=true)

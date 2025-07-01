@@ -1,8 +1,6 @@
 module ComparisonModules
 
 using Combinatorics
-using ..NetworkDecompositionModule
-using ..InputProcessingModule  
 
 
 
