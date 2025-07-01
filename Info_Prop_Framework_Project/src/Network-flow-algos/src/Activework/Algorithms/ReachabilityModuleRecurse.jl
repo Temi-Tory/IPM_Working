@@ -19,6 +19,29 @@ module ReachabilityModule
     using ..NetworkDecompositionModule
     using ..InputProcessingModule  
 
+    
+    # Cache entry - stores the three components you specified
+    struct DiamondCacheEntry
+        edgelist::Vector{Tuple{Int64,Int64}}
+        current_priors::Dict{Int64,Float64}
+        state_beliefs::Dict{Int64,Float64}
+    end
+
+    # Simplified cache key - just hash of edgelist + conditioning state
+    struct CacheKey
+        diamond_hash::UInt64          # Hash of edgelist
+        priors_hash::UInt64      # Hash of ALL current_priors, not just conditioning_state
+    end
+
+    Base.hash(k::CacheKey, h::UInt) = hash((k.diamond_hash, k.priors_hash), h)
+    Base.:(==)(a::CacheKey, b::CacheKey) = a.diamond_hash == b.diamond_hash && a.priors_hash == b.priors_hash
+
+    # Simplified key generation
+    function make_cache_key(edgelist, current_priors)
+        diamond_hash = hash(sort(edgelist))
+        priors_hash = hash(sort(collect(current_priors)))  # Use current_priors instead of conditioning_state
+        return CacheKey(diamond_hash, priors_hash)
+    end
 
     function validate_network_data(
         iteration_sets::Vector{Set{Int64}},
@@ -127,7 +150,8 @@ module ReachabilityModule
         ancestors::Dict{Int64, Set{Int64}},
         diamond_structures::Dict{Int64, DiamondsAtNode},
         join_nodes::Set{Int64},
-        fork_nodes::Set{Int64}
+        fork_nodes::Set{Int64},
+        cache::Dict{CacheKey, DiamondCacheEntry}= Dict{CacheKey, DiamondCacheEntry}()  # Default empty cache
     )
         validate_network_data(iteration_sets, outgoing_index, incoming_index, source_nodes, node_priors, link_probability)
         belief_dict = Dict{Int64, Float64}()
@@ -151,7 +175,8 @@ module ReachabilityModule
                         structure,
                         belief_dict,
                         link_probability,
-                        node_priors
+                        node_priors,
+                        cache
                     )
                     
                     # Use inclusion-exclusion for diamond groups
@@ -263,7 +288,8 @@ module ReachabilityModule
         diamond::Diamond,
         link_probability::Dict{Tuple{Int64,Int64},Float64},
         node_priors::Dict{Int64,Float64},
-        belief_dict::Dict{Int64,Float64}
+        belief_dict::Dict{Int64,Float64},
+        diamond_cache::Dict{CacheKey, DiamondCacheEntry}
     )
 
         
@@ -375,22 +401,35 @@ module ReachabilityModule
                 current_priors[node] = value
             end
             
-            # Run belief propagation with these nodes fixed
-            state_beliefs = update_beliefs_iterative(
-                diamond.edgelist,
-                sub_iteration_sets,
-                sub_outgoing_index,
-                sub_incoming_index,
-                fresh_sources,
-                current_priors,
-                sub_link_probability,
-                sub_descendants,
-                sub_ancestors,
-                sub_diamond_structures,
-                sub_join_nodes,
-                sub_fork_nodes
-            )
-            
+            #store diamond diamond.edgelist, current_priors, state_beliefs
+            # Generate cache key
+            cache_key = make_cache_key(diamond.edgelist, current_priors)
+
+            # Check cache first
+            if haskey(diamond_cache, cache_key)
+                # Use cached result
+                cached_entry = diamond_cache[cache_key]
+                state_beliefs = cached_entry.state_beliefs
+            else
+                state_beliefs = update_beliefs_iterative(
+                    diamond.edgelist,
+                    sub_iteration_sets,
+                    sub_outgoing_index,
+                    sub_incoming_index,
+                    fresh_sources,
+                    current_priors,
+                    sub_link_probability,
+                    sub_descendants,
+                    sub_ancestors,
+                    sub_diamond_structures,
+                    sub_join_nodes,
+                    sub_fork_nodes,
+                    diamond_cache
+                )
+                # Cache miss - store result after computation
+               diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
+            end
+
             # Weight the result by the probability of this state
             join_belief = state_beliefs[join_node]
             final_belief += join_belief * state_probability
@@ -407,7 +446,8 @@ module ReachabilityModule
         diamond_structure::DiamondsAtNode,
         belief_dict::Dict{Int64,Float64},
         link_probability::Dict{Tuple{Int64,Int64},Float64},
-        node_priors::Dict{Int64,Float64} 
+        node_priors::Dict{Int64,Float64},
+        cache::Dict{CacheKey, DiamondCacheEntry}
     )
         join_node = diamond_structure.join_node
         group_combined_beliefs = Float64[]
@@ -418,7 +458,8 @@ module ReachabilityModule
                 diamond,
                 link_probability,
                 node_priors,
-                belief_dict
+                belief_dict,
+                cache
             )
             push!(group_combined_beliefs, updated_belief_dict[join_node])
         end

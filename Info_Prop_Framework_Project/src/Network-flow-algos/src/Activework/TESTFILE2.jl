@@ -75,7 +75,7 @@ for (join_node, diamonds_at_node) in diamond_structures
     end
 end =#
 
-
+     diamond_cache = Dict{CacheKey, DiamondCacheEntry}()
 #rEACHABILITY ANALSYSIS TAB
 (
 output =  update_beliefs_iterative(
