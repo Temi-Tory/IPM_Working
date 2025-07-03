@@ -18,7 +18,7 @@ using .IPAFramework
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
+#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
 #filepathcsv = "csvfiles/Power Distribution Network.csv"; 
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
@@ -63,31 +63,39 @@ diamond_structures= identify_and_group_diamonds(
     source_nodes,
     fork_nodes,
     edgelist,
+    #iteration_sets,
     node_priors
 );
+
+
 #= 
 for key in keys(diamond_structures)
-    println("---------------------------------------------------")
-        println("--------------------old module diamond_structures-------------------------------")
-    println("---------------------------------------------------")
-    j_node = diamond_structures.join_node
-    println("Join node = $j_node")
+        println("---------------------------------------------------")
+            println("--------------------diamond_structures-------------------------------")
+        println("---------------------------------------------------")
+        j_node = diamond_structures[key].join_node
+        println("Join node = $j_node")
 
-    non_diamond_parents = diamond_structures.non_diamond_parents
-    println("non_diamond_parents = $non_diamond_parents")
+        non_diamond_parents = diamond_structures[key].non_diamond_parents
+        println("non_diamond_parents = $non_diamond_parents")
 
+        
+        diamond_edglist = diamond_structures[key].diamond.edgelist
+        println("diamond_edglist = $diamond_edglist")
+
+        diamond_relevant_nodes = diamond_structures[key].diamond.relevant_nodes
+        println("diamond_relevant_nodes = $diamond_relevant_nodes")
+
+        diamond_highest_nodes = diamond_structures[key].diamond.highest_nodes
+        println("diamond_highest_nodes = $diamond_highest_nodes")
+
+        println("---------------------------------------------------")
+    end  
     
-    diamond_edglist = diamond_structures.diamond.edgelist
-    println("diamond_edglist = $diamond_edglist")
+=#
 
-    diamond_relevant_nodes = diamond_structures.diamond[1].relevant_nodes
-    println("diamond_relevant_nodes = $diamond_relevant_nodes")
 
-    diamond_highest_nodes = diamond_structures.diamond[1].highest_nodes
-    println("diamond_highest_nodes = $diamond_highest_nodes")
 
-    println("---------------------------------------------------")
-end =#
 
 
 #= # Exhaustive classification for each diamond
@@ -129,8 +137,41 @@ output =  update_beliefs_iterative(
     fork_nodes
 ));
 sorted_algo = OrderedDict(sort(collect(output)))
-#output[23]
 
+# Write results to update AlgoValue df.AbsDiff, df.PercError and sort back by sorted_df = sort(df, :AbsDiff, rev=true)
+# File is currently sorted by sorted_df = sort(df, :AbsDiff, rev=true)
+
+# Read the existing CSV file
+using CSV, DataFrames
+df = CSV.read("KarlNetwork_0.9x0.9_1milruns.csv", DataFrame)
+
+# Update AlgoValue column with new results from output
+for (node, algo_value) in sorted_algo
+    # Find the row for this node and update AlgoValue
+    row_idx = findfirst(df.Node .== node)
+    if row_idx !== nothing
+        df.AlgoValue[row_idx] = algo_value
+        # Recalculate Diff and PercError
+        exact_val = df.MCValue[row_idx]
+        abs_diff = abs(algo_value - exact_val)
+        #perc_error = exact_val != 0 ? (abs_diff / abs(exact_val)) * 100 : 0.0
+        
+        df.Diff[row_idx] = abs_diff
+       # df.PercError[row_idx] = perc_error
+    end
+end
+
+# Sort by Diff in descending order
+sorted_df = sort(df, :Diff, rev=true)
+
+# Write back to CSV file
+CSV.write("KarlNetwork_0.9x0.9_1milruns.csv", sorted_df)
+
+println("Updated KarlNetwork_0.9x0.9_1milruns.csv with new algorithm results")
+println("File sorted by Diff in descending order")
+
+#output[7]
+#= 
 exact_results = ( path_enumeration_result(
             outgoing_index,
             incoming_index,
@@ -167,11 +208,11 @@ df.PercError = (df.AbsDiff ./ abs.(df.ExactValue)) .* 100
 sorted_df = sort(df, :AbsDiff, rev=true)
 
 # Save the sorted DataFrame as a CSV file
-CSV.write("GRID_0.9x0.9_ExactComp.csv", sorted_df)
+CSV.write("GRID_1.0x0.9_ExactComp.csv", sorted_df)
    
 
 
-
+ =#
 
 
 
@@ -185,7 +226,7 @@ mc_results = (MC_result(
     source_nodes,
     node_priors,
     edge_probabilities,
-    1_000_000,
+    10_000_000,
 ));
 
 
@@ -212,6 +253,6 @@ using CSV
 sorted_df = sort(df, :Diff, rev=true)
 
 # Save the sorted DataFrame as a CSV file
-CSV.write("KarlNetwork_0.9x0.9_1milruns.csv", sorted_df)
+CSV.write("GRID_1.0x0.9_10milruns.csv", sorted_df)
 
  =#

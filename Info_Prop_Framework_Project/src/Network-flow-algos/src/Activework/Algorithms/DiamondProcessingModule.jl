@@ -192,38 +192,50 @@ function identify_and_group_diamonds(
         recursion_depth = 0
         max_recursion_depth = 1000
         
-        while !isempty(nodes_added_in_step8) && recursion_depth < max_recursion_depth
+        # First, update all data structures with current state
+        # Re-identify diamond structure components with current edge list
+        targets_in_final = Set{Int64}()
+        for (_, target) in final_edgelist
+            push!(targets_in_final, target)
+        end
+        final_diamond_sourcenodes = setdiff(final_relevant_nodes_for_induced, targets_in_final)
+        final_highest_nodes = intersect(final_shared_fork_ancestors, final_diamond_sourcenodes)
+        
+        previous_shared_fork_ancestors = copy(final_shared_fork_ancestors)
+        
+        while recursion_depth < max_recursion_depth
             recursion_depth += 1
-            current_additional_nodes = copy(nodes_added_in_step8)
-            nodes_added_in_step8 = Set{Int64}()
             
-            # Check if additional nodes share fork ancestors
-            additional_node_fork_ancestors = Dict{Int64, Set{Int64}}()
-            for node in current_additional_nodes
+            # Check if ALL current diamond source nodes share fork ancestors
+            diamond_source_fork_ancestors = Dict{Int64, Set{Int64}}()
+            for node in final_diamond_sourcenodes
                 node_ancestors = get(ancestors, node, Set{Int64}())
                 # Filter out irrelevant sources and keep only fork nodes
                 fork_ancestors = intersect(setdiff(node_ancestors, irrelevant_sources), fork_nodes)
-                additional_node_fork_ancestors[node] = fork_ancestors
+                diamond_source_fork_ancestors[node] = fork_ancestors
             end
             
-            # Find fork ancestors shared by multiple additional nodes
-            additional_ancestor_to_nodes = Dict{Int64, Set{Int64}}()
-            for (node, fork_ancs) in additional_node_fork_ancestors
+            # Find fork ancestors shared by multiple diamond source nodes
+            source_ancestor_to_nodes = Dict{Int64, Set{Int64}}()
+            for (node, fork_ancs) in diamond_source_fork_ancestors
                 for ancestor in fork_ancs
-                    if !haskey(additional_ancestor_to_nodes, ancestor)
-                        additional_ancestor_to_nodes[ancestor] = Set{Int64}()
+                    if !haskey(source_ancestor_to_nodes, ancestor)
+                        source_ancestor_to_nodes[ancestor] = Set{Int64}()
                     end
-                    push!(additional_ancestor_to_nodes[ancestor], node)
+                    push!(source_ancestor_to_nodes[ancestor], node)
                 end
             end
             
-            # Keep only ancestors shared by 2+ additional nodes
+            # Keep only ancestors shared by 2+ diamond source nodes
             new_shared_fork_ancestors = Set{Int64}()
-            for (ancestor, influenced_nodes) in additional_ancestor_to_nodes
+            for (ancestor, influenced_nodes) in source_ancestor_to_nodes
                 if length(influenced_nodes) >= 2
                     push!(new_shared_fork_ancestors, ancestor)
                 end
             end
+            
+            # Remove ancestors we already have
+            new_shared_fork_ancestors = setdiff(new_shared_fork_ancestors, final_shared_fork_ancestors)
             
             # Skip if no new shared fork ancestors found
             isempty(new_shared_fork_ancestors) && break
@@ -231,16 +243,16 @@ function identify_and_group_diamonds(
             # Update shared fork ancestors
             union!(final_shared_fork_ancestors, new_shared_fork_ancestors)
             
-            # Extract paths from new shared ancestors to additional nodes
+            # Extract paths from new shared ancestors to diamond source nodes
             for shared_ancestor in new_shared_fork_ancestors
                 push!(final_relevant_nodes_for_induced, shared_ancestor)
                 shared_descendants = get(descendants, shared_ancestor, Set{Int64}())
                 
-                # For each additional node that this ancestor influences
-                for additional_node in current_additional_nodes
-                    if shared_ancestor in get(ancestors, additional_node, Set{Int64}())
-                        # Add intermediate nodes on path from shared_ancestor to additional_node
-                        path_intermediates = intersect(shared_descendants, get(ancestors, additional_node, Set{Int64}()))
+                # For each diamond source node that this ancestor influences
+                for source_node in final_diamond_sourcenodes
+                    if shared_ancestor in get(ancestors, source_node, Set{Int64}())
+                        # Add intermediate nodes on path from shared_ancestor to source_node
+                        path_intermediates = intersect(shared_descendants, get(ancestors, source_node, Set{Int64}()))
                         union!(final_relevant_nodes_for_induced, path_intermediates)
                     end
                 end
@@ -277,19 +289,13 @@ function identify_and_group_diamonds(
             
             # For new intermediate nodes, ensure ALL their incoming edges are included
             for intermediate_node in new_intermediate_nodes
-                # Only process if this is a newly identified intermediate node
-                if intermediate_node in current_additional_nodes || intermediate_node in new_shared_fork_ancestors
-                    incoming_edges = get(incoming_index, intermediate_node, Set{Int64}())
-                    for source_node in incoming_edges
-                        edge = (source_node, intermediate_node)
-                        if edge ∉ final_edgelist
-                            push!(final_edgelist, edge)
-                            # Only add to next iteration if it wasn't in original relevant_nodes_for_induced
-                            if source_node ∉ relevant_nodes_for_induced
-                                push!(nodes_added_in_step8, source_node)
-                            end
-                            push!(final_relevant_nodes_for_induced, source_node)
-                        end
+                # Process ALL new intermediate nodes to ensure complete diamond structure
+                incoming_edges = get(incoming_index, intermediate_node, Set{Int64}())
+                for source_node in incoming_edges
+                    edge = (source_node, intermediate_node)
+                    if edge ∉ final_edgelist
+                        push!(final_edgelist, edge)
+                        push!(final_relevant_nodes_for_induced, source_node)
                     end
                 end
             end

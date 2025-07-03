@@ -7,9 +7,10 @@ using DataFrames, DelimitedFiles, Distributions,
 using Pkg
 Pkg.activate("C:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project")
 
-# Include the IPAFramework.jl file with proper path
+# Import framework - corrected path
 include("IPAFramework.jl")
 using .IPAFramework
+
 
 
 
@@ -48,49 +49,115 @@ edge_probabilities =
     Dict((1, 2) => 0.9, (8, 12) => 0.9, (3, 7) => 0.9, (8, 4) => 0.9, (9, 10) => 0.9, (10, 11) => 0.9, (5, 9) => 0.9, (11, 12) => 0.9, (2, 6) => 0.9, (10, 6) => 0.9, (11, 15) => 0.9, (3, 2) => 0.9, (7, 8) => 0.9, (12, 16) => 0.9, (14, 15) => 0.9, (3, 4) => 0.9, (5, 6) => 0.9, (1, 5) => 0.9, (13, 14) => 0.9, (10, 14) => 0.9, (7, 11) => 0.9, (6, 7) => 0.9, (13, 9) => 0.9, (15, 16) => 0.9);
 
 node_priors = 
-    Dict(5 => 1.0, 16 => 1.0, 12 => 1.0, 8 => 1.0, 1 => 1.0, 6 => 1.0, 11 => 1.0, 9 => 1.0, 14 => 1.0, 3 => 1.0, 7 => 1.0, 4 => 1.0, 13 => 1.0, 15 => 1.0, 2 => 1.0, 10 => 1.0) ;
+    Dict(5 => 0.9, 16 => 0.9, 12 => 0.9, 8 => 0.9, 1 => 0.9, 6 => 0.9, 11 => 0.9, 9 => 0.9, 14 => 0.9, 3 => 0.9, 7 => 0.9, 4 => 0.9, 13 => 0.9, 15 => 0.9, 2 => 0.9, 10 => 0.9) ;
 
 
-diamond_structures = 
-    Dict{Int64, DiamondsAtNode}(6 => DiamondsAtNode(Diamond[Diamond(Set([5, 13, 6, 10, 9]), Set([5]), [(5, 6), (5, 9), (9, 10), (10, 6), (13, 9)])], Set([2]), 6), 16 => 
-        DiamondsAtNode(Diamond[Diamond(Set([5, 16, 7, 12, 8, 13, 15, 6, 11, 10, 2, 9, 14, 3]), Set([5]), [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 8), (7, 11), (8, 12), (9, 10), (10, 6), (10, 11), (10, 14), (11, 12), (11, 15), (12, 16), (13, 9), (13, 14), (14, 15), (15, 16)])], Set{Int64}(), 16), 11 => DiamondsAtNode(Diamond[Diamond(Set([5, 13, 6, 7, 11, 10, 2, 9, 3]), Set([5]), [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 11), (9, 10), (10, 6), (10, 11), (13, 9)])], Set{Int64}(), 11), 15 => DiamondsAtNode(Diamond[Diamond(Set([5, 7, 13, 15, 6, 11, 10, 2, 9, 14, 3]), Set([5]), [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 11), (9, 10), (10, 6), (10, 11), (10, 14), (11, 15), (13, 9), (13, 14), (14, 15)])], Set{Int64}(), 15), 12 => DiamondsAtNode(Diamond[Diamond(Set([5, 7, 12, 8, 13, 6, 11, 10, 2, 9, 3]), Set([5]), [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 8), (7, 11), (8, 12), (9, 10), (10, 6), (10, 11), (11, 12), (13, 9)])], Set{Int64}(), 12));
-
-
-#rEACHABILITY ANALSYSIS 
-(
-output =  update_beliefs_iterative(
-    edgelist,
-    iteration_sets, 
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors, 
-    edge_probabilities,
-    descendants,
-    ancestors, 
-    diamond_structures,
+    diamond_structures= identify_and_group_diamonds(
     join_nodes,
-    fork_nodes
-));
+    incoming_index,
+    ancestors,
+    descendants,
+    source_nodes,
+    fork_nodes,
+    edgelist,
+    #iteration_sets,
+    node_priors
+);
 
+     for key in keys(diamond_structures)
+        println("---------------------------------------------------")
+            println("--------------------diamond_structures-------------------------------")
+        println("---------------------------------------------------")
+        j_node = diamond_structures[key].join_node
+        println("Join node = $j_node")
 
+        non_diamond_parents = diamond_structures[key].non_diamond_parents
+        println("non_diamond_parents = $non_diamond_parents")
+
+        
+        diamond_edglist = diamond_structures[key].diamond.edgelist
+        println("diamond_edglist = $diamond_edglist")
+
+        diamond_relevant_nodes = diamond_structures[key].diamond.relevant_nodes
+        println("diamond_relevant_nodes = $diamond_relevant_nodes")
+
+        diamond_highest_nodes = diamond_structures[key].diamond.highest_nodes
+        println("diamond_highest_nodes = $diamond_highest_nodes")
+
+        println("---------------------------------------------------")
+    end 
 #= 
-| Node | Exact   | IPA     |
-|------|---------|---------|
-| 1    | 1.00000 | 1.00000 |
-| 2    | 0.99000 | 0.99000 |
-| 3    | 1.00000 | 1.00000 |
-| 4    | 0.98015 | 0.98015 |
-| 5    | 0.90000 | 0.90000 |
-| 6    | 0.99510 | 0.99510 |
-| 7    | 0.98956 | 0.98956 |
-| 8    | 0.89060 | 0.89060 |
-| 9    | 0.98100 | 0.98100 |
-| 10   | 0.88290 | 0.88290 |
-| 11   | 0.97734 | 0.97734 |
-| 12   | 0.97457 | 0.97457 |
-| 13   | 1.00000 | 1.00000 |
-| 14   | 0.97946 | 0.97946 |
-| 15   | 0.98498 | 0.98498 |
-| 16   | 0.98539 | 0.98539 |
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 4
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(1, 2), (2, 6), (3, 2), (3, 4), (3, 7), (5, 6), (6, 7), (7, 8), (8, 4), (10, 6), (1, 5), (5, 9), (9, 10), (13, 9)]
+diamond_relevant_nodes = Set([5, 7, 8, 1, 4, 6, 13, 2, 10, 9, 3])
+diamond_highest_nodes = Set([3, 1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 6
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(1, 2), (1, 5), (2, 6), (3, 2), (5, 6), (5, 9), (9, 10), (10, 6), (13, 9)]
+diamond_relevant_nodes = Set([5, 13, 6, 2, 10, 9, 3, 1])
+diamond_highest_nodes = Set([1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 7
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(1, 2), (2, 6), (3, 2), (3, 7), (5, 6), (6, 7), (10, 6), (1, 5), (5, 9), (9, 10), (13, 9)]
+diamond_relevant_nodes = Set([5, 7, 1, 13, 6, 2, 10, 9, 3])
+diamond_highest_nodes = Set([3, 1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 11
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(1, 2), (1, 5), (2, 6), (3, 2), (3, 7), (5, 6), (5, 9), (6, 7), (7, 11), (9, 10), (10, 6), (10, 11), (13, 9)]
+diamond_relevant_nodes = Set([5, 7, 1, 13, 6, 11, 10, 2, 9, 3])
+diamond_highest_nodes = Set([1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 16
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 8), (7, 11), (8, 12), (9, 10), (10, 6), (10, 11), (10, 14), (11, 12), (11, 15), (12, 16), (13, 
+9), (13, 14), (14, 15), (15, 16), (3, 2), (1, 2), (1, 5)]
+diamond_relevant_nodes = Set([5, 16, 12, 8, 1, 6, 11, 9, 14, 3, 7, 13, 15, 2, 10])
+diamond_highest_nodes = Set([13, 3, 1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 15
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 11), (9, 10), (10, 6), (10, 11), (10, 14), (11, 15), (13, 9), (13, 14), (14, 15), (3, 2), (1, 2), (1, 5)]
+diamond_relevant_nodes = Set([5, 7, 1, 13, 15, 6, 11, 10, 2, 9, 14, 3])
+diamond_highest_nodes = Set([13, 3, 1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 12
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(2, 6), (3, 7), (5, 6), (5, 9), (6, 7), (7, 8), (7, 11), (8, 12), (9, 10), (10, 6), (10, 11), (11, 12), (13, 9), (3, 2), (1, 2), (1, 5)]   
+diamond_relevant_nodes = Set([5, 7, 12, 8, 1, 13, 6, 11, 10, 2, 9, 3])
+diamond_highest_nodes = Set([13, 3, 1])
+---------------------------------------------------
+---------------------------------------------------
+--------------------diamond_structures-------------------------------
+---------------------------------------------------
+Join node = 14
+non_diamond_parents = Set{Int64}()
+diamond_edglist = [(5, 9), (9, 10), (10, 14), (13, 9), (13, 14)]
+diamond_relevant_nodes = Set([5, 13, 10, 9, 14])
+diamond_highest_nodes = Set([13])
+---------------------------------------------------
  =#
