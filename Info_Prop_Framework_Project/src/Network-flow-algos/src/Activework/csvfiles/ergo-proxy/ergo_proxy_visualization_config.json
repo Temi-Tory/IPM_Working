@@ -1,0 +1,224 @@
+{
+  "network_visualization_config": {
+    "name": "Ergo Proxy DAG Network Visualization",
+    "description": "Complete configuration for visualizing the Ergo Proxy narrative network",
+    "version": "1.0",
+    "created": "2025-06-28"
+  },
+  "data_files": {
+    "network_data": "ergo_proxy_dag_network.csv",
+    "node_mapping": "ergo_proxy_node_mapping.json",
+    "edge_mapping": "ergo_proxy_edge_mapping.json",
+    "architecture_docs": "Ergo_Proxy_DAG_Architecture.md"
+  },
+  "network_statistics": {
+    "nodes": 800,
+    "edges": 6607,
+    "density": 0.010336,
+    "source_nodes": 6,
+    "sink_nodes": 1,
+    "acyclic": true,
+    "topologically_sortable": true
+  },
+  "visualization_modes": {
+    "narrative_flow": {
+      "description": "Shows the main narrative progression from disaster to resolution",
+      "layout": "hierarchical",
+      "highlight_nodes": [701, 1, 351, 401, 551, 651, 800],
+      "highlight_paths": [
+        "701 → 351 → 1 → 201 → 751 → 800",
+        "701 → 401 → 402 → 210 → 751 → 800"
+      ],
+      "filter_edges": ["causal_direct", "causal_strong", "revelation_cascade"],
+      "color_scheme": "narrative_progression"
+    },
+    "character_development": {
+      "description": "Focuses on character psychological progression",
+      "layout": "force_directed",
+      "highlight_nodes": [201, 215, 231, 245, 261, 275],
+      "highlight_paths": [
+        "201 → 202 → ... → 215",
+        "231 → 232 → ... → 245", 
+        "261 → 262 → ... → 275"
+      ],
+      "filter_edges": ["temporal_progression", "character_interaction"],
+      "color_scheme": "character_arcs"
+    },
+    "system_architecture": {
+      "description": "Shows technological and social system dependencies",
+      "layout": "circular",
+      "highlight_nodes": [351, 401, 501, 351, 400, 500],
+      "highlight_paths": [
+        "351 → 352 → 353 → ...",
+        "401 → 402 → 410 → ..."
+      ],
+      "filter_edges": ["system_dependency", "causal_strong"],
+      "color_scheme": "system_types"
+    },
+    "revelation_convergence": {
+      "description": "Shows how all truths converge to final understanding",
+      "layout": "radial",
+      "center_node": 800,
+      "highlight_nodes": [751, 760, 770, 780, 790, 800],
+      "highlight_paths": "all_paths_to_800",
+      "filter_edges": ["revelation_cascade", "causal_direct"],
+      "color_scheme": "revelation_intensity"
+    },
+    "complete_network": {
+      "description": "Full network view with all connections",
+      "layout": "force_directed",
+      "highlight_nodes": "source_nodes",
+      "filter_edges": "all",
+      "color_scheme": "category_based",
+      "complexity_warning": "High complexity - may require performance optimization"
+    }
+  },
+  "color_schemes": {
+    "narrative_progression": {
+      "disaster_origin": "#8B0000",
+      "system_response": "#FF4500", 
+      "present_events": "#FFD700",
+      "character_growth": "#32CD32",
+      "revelation": "#4169E1",
+      "final_truth": "#9400D3"
+    },
+    "character_arcs": {
+      "vincent": "#FF6B6B",
+      "rel": "#4ECDC4", 
+      "pino": "#45B7D1",
+      "secondary": "#F7DC6F",
+      "interactions": "#BB8FCE"
+    },
+    "system_types": {
+      "romdeau": "#2E86AB",
+      "proxy": "#A23B72",
+      "autoreiv": "#F18F01",
+      "environmental": "#C73E1D"
+    },
+    "category_based": {
+      "plot_events": "#FF6B6B",
+      "character_states": "#4ECDC4",
+      "system_components": "#45B7D1", 
+      "thematic_concepts": "#F7DC6F",
+      "temporal_elements": "#BB8FCE",
+      "revelation_nodes": "#F8C471"
+    }
+  },
+  "interactive_features": {
+    "node_selection": {
+      "click_action": "show_node_details",
+      "hover_action": "highlight_connections",
+      "details_panel": {
+        "show_name": true,
+        "show_description": true,
+        "show_category": true,
+        "show_prior_probability": true,
+        "show_connections": true,
+        "show_episode_mapping": true
+      }
+    },
+    "edge_selection": {
+      "click_action": "show_edge_details",
+      "hover_action": "highlight_path",
+      "details_panel": {
+        "show_probability": true,
+        "show_type": true,
+        "show_description": true,
+        "show_source_target": true
+      }
+    },
+    "filtering": {
+      "by_category": "Enable/disable node categories",
+      "by_edge_type": "Enable/disable edge types",
+      "by_probability": "Filter edges by probability threshold",
+      "by_episode": "Show only nodes from specific episodes"
+    },
+    "search": {
+      "node_search": "Find nodes by name or description",
+      "path_search": "Find paths between specific nodes",
+      "pattern_search": "Find nodes matching specific patterns"
+    }
+  },
+  "analysis_tools": {
+    "centrality_analysis": {
+      "betweenness": "Identify bridge nodes between communities",
+      "closeness": "Find nodes with shortest average paths",
+      "degree": "Identify most connected nodes",
+      "eigenvector": "Find nodes connected to important nodes"
+    },
+    "path_analysis": {
+      "shortest_paths": "Find shortest paths between any two nodes",
+      "critical_paths": "Identify paths essential for narrative flow",
+      "character_journeys": "Trace character development paths",
+      "causal_chains": "Follow cause-effect sequences"
+    },
+    "community_detection": {
+      "modularity": "Detect natural communities in the network",
+      "clustering": "Group similar nodes together",
+      "hierarchy": "Show hierarchical community structure"
+    },
+    "temporal_analysis": {
+      "timeline_view": "Show network evolution over episodes",
+      "causality_flow": "Visualize how causes propagate through time",
+      "revelation_timing": "Track when truths are revealed"
+    }
+  },
+  "export_options": {
+    "formats": {
+      "svg": "Scalable vector graphics for publications",
+      "png": "High-resolution raster images",
+      "pdf": "Publication-ready documents",
+      "json": "Network data for other tools",
+      "graphml": "Standard graph format",
+      "gexf": "Gephi exchange format"
+    },
+    "subnetworks": {
+      "character_only": "Export just character progression networks",
+      "system_only": "Export just system dependency networks", 
+      "revelation_only": "Export just revelation convergence networks",
+      "episode_specific": "Export networks for specific episodes"
+    }
+  },
+  "performance_optimization": {
+    "large_network_handling": {
+      "level_of_detail": "Show simplified view when zoomed out",
+      "edge_bundling": "Bundle similar edges to reduce visual clutter",
+      "node_aggregation": "Combine similar nodes at low zoom levels",
+      "progressive_loading": "Load network in stages"
+    },
+    "rendering_options": {
+      "webgl_acceleration": "Use GPU acceleration for large networks",
+      "canvas_fallback": "Fallback to canvas for compatibility",
+      "svg_precision": "Use SVG for high-precision visualization"
+    }
+  },
+  "usage_examples": {
+    "narrative_analysis": {
+      "description": "Analyze how the ecological disaster cascades through all systems",
+      "steps": [
+        "Load complete network",
+        "Set visualization mode to 'narrative_flow'",
+        "Highlight path from node 701 to node 800",
+        "Use path analysis to identify critical narrative nodes"
+      ]
+    },
+    "character_study": {
+      "description": "Study Vincent's psychological development",
+      "steps": [
+        "Filter to character_development mode",
+        "Select Vincent arc nodes (201-215)",
+        "Trace progression path",
+        "Analyze cross-character influences"
+      ]
+    },
+    "system_impact": {
+      "description": "Understand how Proxy Project affects everything",
+      "steps": [
+        "Start from node 401 (Proxy Project Origin)",
+        "Use centrality analysis to find impact radius",
+        "Trace all outgoing paths",
+        "Analyze system dependencies"
+      ]
+    }
+  }
+}
