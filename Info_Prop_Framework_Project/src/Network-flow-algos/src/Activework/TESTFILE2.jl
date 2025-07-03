@@ -32,7 +32,7 @@ filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
 
 #CAN USE USER PORVIDE OR TWEAK MASS  OR TWEAK INDICUDLA AFTER EITHER OF THE THE WORK 
-map!(x -> 0.9,  values(node_priors));
+map!(x -> 1.0,  values(node_priors));
 map!(x -> 0.9, values(edge_probabilities));
 
 # Identify structure
@@ -66,24 +66,24 @@ diamond_structures= identify_and_group_diamonds(
     node_priors
 );
 #= 
-for key in keys(diamond_structures2)
+for key in keys(diamond_structures)
     println("---------------------------------------------------")
         println("--------------------old module diamond_structures-------------------------------")
     println("---------------------------------------------------")
-    j_node = diamond_structures2[key].join_node
+    j_node = diamond_structures.join_node
     println("Join node = $j_node")
 
-    non_diamond_parents = diamond_structures2[key].non_diamond_parents
+    non_diamond_parents = diamond_structures.non_diamond_parents
     println("non_diamond_parents = $non_diamond_parents")
 
     
-    diamond_edglist = diamond_structures2[key].diamond[1].edgelist
+    diamond_edglist = diamond_structures.diamond.edgelist
     println("diamond_edglist = $diamond_edglist")
 
-    diamond_relevant_nodes = diamond_structures2[key].diamond[1].relevant_nodes
+    diamond_relevant_nodes = diamond_structures.diamond[1].relevant_nodes
     println("diamond_relevant_nodes = $diamond_relevant_nodes")
 
-    diamond_highest_nodes = diamond_structures2[key].diamond[1].highest_nodes
+    diamond_highest_nodes = diamond_structures.diamond[1].highest_nodes
     println("diamond_highest_nodes = $diamond_highest_nodes")
 
     println("---------------------------------------------------")

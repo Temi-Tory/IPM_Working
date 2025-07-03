@@ -11,7 +11,7 @@ Pkg.activate("C:/Users/ohian/OneDrive - University of Strathclyde/Documents/Prog
 include("IPAFramework.jl")
 using .IPAFramework
 
-filepathcsv = "csvfiles/Power Distribution Network.csv"; 
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
 
 
@@ -57,4 +57,34 @@ for key in keys(diamond_structures)
     println("diamond_highest_nodes = $diamond_highest_nodes")
 
     println("---------------------------------------------------")
-end 
+end
+
+# RECURSIVE DIAMOND SIMULATION
+include("simulate_recursive_diamonds.jl")
+
+# Run the recursive simulation on all maximal diamonds
+recursive_results = add_recursive_simulation_to_diamond_test(
+    diamond_structures,
+    edge_probabilities,
+    node_priors
+)
+
+println("\n" * "="^100)
+println("SUMMARY OF RECURSIVE DIAMOND ANALYSIS")
+println("="^100)
+
+for (maximal_join_node, results) in recursive_results
+    println("\nMAXIMAL DIAMOND AT JOIN NODE $maximal_join_node:")
+    for result in results
+        level = result["level"]
+        level_name = result["level_name"]
+        inner_count = length(result["inner_diamonds"])
+        println("  Level $level ($level_name): Found $inner_count inner diamond(s)")
+        
+        if inner_count > 0
+            for inner in result["inner_diamonds"]
+                println("    └─ Inner diamond at join $(inner["inner_join_node"]) with highest nodes $(inner["inner_diamond_highest_nodes"])")
+            end
+        end
+    end
+end
