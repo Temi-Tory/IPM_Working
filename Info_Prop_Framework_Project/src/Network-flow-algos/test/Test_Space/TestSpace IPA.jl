@@ -16,10 +16,10 @@ using .IPAFramework
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
+filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
-filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
+#filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
 
 
 
@@ -30,7 +30,7 @@ filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
 
 #CAN USE USER PORVIDE OR TWEAK MASS  OR TWEAK INDICUDLA AFTER EITHER OF THE THE WORK 
-map!(x -> 1.0, values(node_priors));
+map!(x -> 0.9, values(node_priors));
 map!(x -> 0.9, values(edge_probabilities));
 
 # Identify structure
@@ -52,6 +52,32 @@ diamond_structures= identify_and_group_diamonds(
     node_priors
 );
 
+
+ for key in keys(diamond_structures)
+        println("---------------------------------------------------")
+            println("--------------------diamond_structures-------------------------------")
+        println("---------------------------------------------------")
+        j_node = diamond_structures[key].join_node
+        println("Join node = $j_node")
+
+        non_diamond_parents = diamond_structures[key].non_diamond_parents
+        println("non_diamond_parents = $non_diamond_parents")
+
+        
+        diamond_edglist = diamond_structures[key].diamond[1].edgelist
+        println("diamond_edglist = $diamond_edglist")
+
+        diamond_relevant_nodes = diamond_structures[key].diamond[1].relevant_nodes
+        println("diamond_relevant_nodes = $diamond_relevant_nodes")
+
+        diamond_highest_nodes = diamond_structures[key].diamond[1].highest_nodes
+        println("diamond_highest_nodes = $diamond_highest_nodes")
+
+        println("---------------------------------------------------")
+    end 
+
+
+    
 #= # Exhaustive classification for each diamond
 for (join_node, diamonds_at_node) in diamond_structures
     for (i, diamond) in enumerate(diamonds_at_node.diamond)

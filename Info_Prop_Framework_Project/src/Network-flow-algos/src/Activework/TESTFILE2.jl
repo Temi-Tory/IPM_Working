@@ -17,7 +17,7 @@ using .IPAFramework
 
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
-#filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
+filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
 #filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv"; # 4 by 4 grid
 #filepathcsv = "csvfiles/Power Distribution Network.csv"; 
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
@@ -138,37 +138,6 @@ output =  update_beliefs_iterative(
 ));
 sorted_algo = OrderedDict(sort(collect(output)))
 
-# Write results to update AlgoValue df.AbsDiff, df.PercError and sort back by sorted_df = sort(df, :AbsDiff, rev=true)
-# File is currently sorted by sorted_df = sort(df, :AbsDiff, rev=true)
-
-# Read the existing CSV file
-using CSV, DataFrames
-df = CSV.read("KarlNetwork_0.9x0.9_1milruns.csv", DataFrame)
-
-# Update AlgoValue column with new results from output
-for (node, algo_value) in sorted_algo
-    # Find the row for this node and update AlgoValue
-    row_idx = findfirst(df.Node .== node)
-    if row_idx !== nothing
-        df.AlgoValue[row_idx] = algo_value
-        # Recalculate Diff and PercError
-        exact_val = df.MCValue[row_idx]
-        abs_diff = abs(algo_value - exact_val)
-        #perc_error = exact_val != 0 ? (abs_diff / abs(exact_val)) * 100 : 0.0
-        
-        df.Diff[row_idx] = abs_diff
-       # df.PercError[row_idx] = perc_error
-    end
-end
-
-# Sort by Diff in descending order
-sorted_df = sort(df, :Diff, rev=true)
-
-# Write back to CSV file
-CSV.write("KarlNetwork_0.9x0.9_1milruns.csv", sorted_df)
-
-println("Updated KarlNetwork_0.9x0.9_1milruns.csv with new algorithm results")
-println("File sorted by Diff in descending order")
 
 #output[7]
 #= 
