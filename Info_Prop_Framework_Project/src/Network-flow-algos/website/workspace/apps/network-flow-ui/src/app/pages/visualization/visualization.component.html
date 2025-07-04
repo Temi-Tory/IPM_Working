@@ -1,0 +1,89 @@
+<div class="visualization-page">
+  <div class="page-header">
+    <h1>Network Visualization</h1>
+    <p class="subtitle">Interactive analysis and exploration of your information propagation network</p>
+  </div>
+
+  <div class="visualization-layout">
+    <div class="controls-panel">
+      <div class="card">
+        <h3>🎛️ Visualization Controls</h3>
+        
+        <div class="control-group">
+          <label for="layoutAlgorithm">Layout Algorithm</label>
+          <select id="layoutAlgorithm">
+            <option>Hierarchical (Dagre)</option>
+            <option>Force Directed</option>
+            <option>Circle</option>
+            <option>Grid</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label for="nodeSize">Node Size</label>
+          <input id="nodeSize" type="range" min="10" max="50" value="25" />
+        </div>
+        
+        <div class="control-group">
+          <label for="edgeThickness">Edge Thickness</label>
+          <input id="edgeThickness" type="range" min="1" max="10" value="3" />
+        </div>
+        
+        <div class="control-group">
+          <label for="showLabels">Show Labels</label>
+          <input id="showLabels" type="checkbox" checked />
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 Analysis Results</h3>
+        
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value">--</span>
+            <span class="stat-label">Total Nodes</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-value">--</span>
+            <span class="stat-label">Total Edges</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-value">--</span>
+            <span class="stat-label">Diamonds Found</span>
+          </div>
+          
+          <div class="stat-item">
+            <span class="stat-value">--</span>
+            <span class="stat-label">Max Probability</span>
+          </div>
+        </div>
+        
+        <button class="btn-primary">Run Analysis</button>
+      </div>
+    </div>
+
+    <div class="visualization-container">
+      <div class="card visualization-card">
+        <div class="visualization-header">
+          <h3>Network Graph</h3>
+          <div class="zoom-controls">
+            <button class="zoom-btn">🔍+</button>
+            <button class="zoom-btn">🔍-</button>
+            <button class="zoom-btn">⌂</button>
+          </div>
+        </div>
+        
+        <div class="cytoscape-container" id="cy">
+          <div class="placeholder">
+            <div class="placeholder-icon">🕸️</div>
+            <h4>No Network Data</h4>
+            <p>Upload network data in the Network Setup page to begin visualization</p>
+            <a routerLink="/network-setup" class="btn-secondary">Go to Network Setup</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

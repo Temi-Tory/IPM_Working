@@ -1,0 +1,72 @@
+<div class="network-setup-page">
+  <div class="page-header">
+    <h1>Information Propagation Framework</h1>
+    <p class="subtitle">Upload and configure your network data for analysis</p>
+  </div>
+
+  <div class="setup-cards">
+    <div class="card">
+      <h2>📁 Network Data Upload</h2>
+      <p>Upload your DAG structure, node probabilities, and edge probabilities</p>
+      
+      <div class="upload-section">
+        <div class="upload-item">
+          <label for="dag-file">DAG Structure (CSV/TXT)</label>
+          <input type="file" id="dag-file" accept=".csv,.txt" />
+          <small>Upload your directed acyclic graph structure</small>
+        </div>
+        
+        <div class="upload-item">
+          <label for="node-prob-file">Node Probabilities (CSV/JSON)</label>
+          <input type="file" id="node-prob-file" accept=".csv,.json" />
+          <small>Optional: Custom node probability values</small>
+        </div>
+        
+        <div class="upload-item">
+          <label for="edge-prob-file">Edge Probabilities (CSV/JSON)</label>
+          <input type="file" id="edge-prob-file" accept=".csv,.json" />
+          <small>Optional: Custom edge probability values</small>
+        </div>
+      </div>
+      
+      <button class="btn-primary" disabled>Process Network Data</button>
+    </div>
+
+    <div class="card">
+      <h2>🧪 Test Networks</h2>
+      <p>Try the framework with pre-configured test networks</p>
+      
+      <div class="test-networks">
+        <button class="btn-secondary">Small Test Network (10 nodes)</button>
+        <button class="btn-secondary">Medium Test Network (50 nodes)</button>
+        <button class="btn-secondary">Large Test Network (100 nodes)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Analysis Configuration</h2>
+      <p>Configure parameters for information propagation analysis</p>
+      
+      <div class="config-section">
+        <div class="config-item">
+          <label for="default-node-prior">Default Node Prior</label>
+          <input id="default-node-prior" type="number" value="0.5" min="0" max="1" step="0.01" />
+        </div>
+        
+        <div class="config-item">
+          <label for="default-edge-prob">Default Edge Probability</label>
+          <input id="default-edge-prob" type="number" value="0.7" min="0" max="1" step="0.01" />
+        </div>
+        
+        <div class="config-item">
+          <label for="analysis-type">Analysis Type</label>
+          <select id="analysis-type">
+            <option>Reachability Analysis</option>
+            <option>Diamond Structure Analysis</option>
+            <option>Monte Carlo Simulation</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -263,7 +263,7 @@ module DroneInputProcessingModule
         # Convert any matrices or complex types to JSON-serializable formats
         function convert_for_json(obj)
             if isa(obj, Matrix)
-                return [obj[i, :] for i in 1:size(obj, 1)]
+                return [obj[i, :] for i in axes(obj, 1)]
             elseif isa(obj, Dict)
                 return Dict(string(k) => convert_for_json(v) for (k, v) in obj)
             elseif isa(obj, Vector) && !isempty(obj) && isa(obj[1], Matrix)

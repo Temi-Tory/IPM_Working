@@ -1,2 +1,15 @@
-<app-nx-welcome></app-nx-welcome>
-<router-outlet></router-outlet>
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-content">
+      <h1 class="app-title">Information Propagation Framework</h1>
+      <nav class="main-nav">
+        <a routerLink="/network-setup" routerLinkActive="active">Network Setup</a>
+        <a routerLink="/visualization" routerLinkActive="active">Visualization</a>
+      </nav>
+    </div>
+  </header>
+  
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+</div>

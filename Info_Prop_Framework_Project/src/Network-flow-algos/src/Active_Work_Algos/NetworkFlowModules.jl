@@ -443,7 +443,7 @@ module NetworkFlowModule
     # SPECIALIZED ANALYSIS FUNCTIONS
     # 
     
-    function critical_path_analysis(network_data, task_durations, dependency_delays)
+   #=  function critical_path_analysis(network_data, task_durations, dependency_delays)
         params = FlowParameters(
             Dict{Int64,Float64}(), Dict{Tuple{Int64,Int64},Float64}(),  # unused reliability params
             task_durations, dependency_delays,
@@ -462,9 +462,9 @@ module NetworkFlowModule
             # ... other unused parameters
         )
         return analyze_network_flow(network_data..., params, CapacityFlow())
-    end
+    end =#
 
-    function multi_resource_optimization(network_data, resource_requirements, resource_availability)
+   #=  function multi_resource_optimization(network_data, resource_requirements, resource_availability)
         params = FlowParameters(
             # ... set up all required parameters
         )
@@ -476,6 +476,6 @@ module NetworkFlowModule
             # ... combine time and capacity parameters
         )
         return analyze_network_flow(network_data..., params, ThroughputFlow())
-    end
+    end =#
 
 end
