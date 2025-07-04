@@ -15,9 +15,16 @@ module IPAFramework
     include("Algorithms/CapacityAnalysisModule.jl")
     include("Algorithms/GeneralizedCriticalPathModule.jl")
 
-    # Import from modules
-    using .InputProcessingModule: ProbabilitySlices, Interval, read_graph_to_dict, 
-                                 identify_fork_and_join_nodes, find_iteration_sets
+    # UPDATED: Import from enhanced InputProcessingModule
+    using .InputProcessingModule: Interval, 
+                                 # Core graph structure functions
+                                 read_graph_to_dict,
+                                 identify_fork_and_join_nodes, 
+                                 find_iteration_sets,
+                                 # NEW: Separate probability reading functions
+                                 read_node_priors_from_json,
+                                 read_edge_probabilities_from_json,
+                                 read_complete_network
 
     using .DiamondProcessingModule: DiamondsAtNode, Diamond, identify_and_group_diamonds
 
@@ -33,15 +40,9 @@ module IPAFramework
 
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
-   
     using .VisualizeGraphsModule: generate_graph_dot_string, visualize_graph
 
     using .GenerateGraphModule: InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities
-
-    # Export functions for direct use
-    export validate_network_data, update_beliefs_iterative, updateDiamondJoin,
-           calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
-           convert_to_pbox_data
 
     using .UndirectedToDagModule: improved_undirected_to_dag, process_graph_from_csv,
                                  analyze_generated_dag, validate_dag
@@ -69,7 +70,6 @@ module IPAFramework
                                  ForkStructure, InternalStructure, PathTopology, JoinStructure, 
                                  ExternalConnectivity, DegenerateCases
 
- 
     using .GeneralizedCriticalPathModule: CriticalPathParameters, CriticalPathResult,
                                         critical_path_analysis,
                                         # Standard combination functions
@@ -85,18 +85,24 @@ module IPAFramework
     export 
         # Core types
         DiamondsAtNode, Diamond,
-        Interval, ProbabilitySlices,
+        Interval,  # Removed ProbabilitySlices as it's not exported from new InputProcessingModule
         TimeUnit, NonNegativeTime,  # Time types
 
-        # Input processing
-        read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets,
+        # UPDATED: Enhanced input processing functions
+        read_graph_to_dict,                    # NEW: Returns only graph structure
+        identify_fork_and_join_nodes, 
+        find_iteration_sets,
+        read_node_priors_from_json,           # NEW: Read node priors separately
+        read_edge_probabilities_from_json,    # NEW: Read edge probabilities separately  
+        read_complete_network,                # NEW: Convenience function for complete network
 
         # Network decomposition  
-        identify_and_group_diamonds
+        identify_and_group_diamonds,
 
         # Standard reachability analysis
         validate_network_data, update_beliefs_iterative, updateDiamondJoin,
         calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
+        convert_to_pbox_data,
 
         # NEW: Exact state reliability analysis
         StateReliabilityConfig, StateReliabilityResults,
@@ -107,9 +113,7 @@ module IPAFramework
         # Comparison methods
         MC_result, has_path, path_enumeration_result,
 
-     
-       
-
+        # Critical path analysis
         CriticalPathParameters, CriticalPathResult,
         critical_path_analysis,
         # Standard combination functions
@@ -148,130 +152,91 @@ module IPAFramework
         ForkStructure, InternalStructure, PathTopology, JoinStructure,
         ExternalConnectivity, DegenerateCases,
 
+        # Capacity analysis
         CapacityParameters, CapacityResult,
-           maximum_flow_capacity, bottleneck_capacity_analysis,
-           widest_path_analysis, network_throughput_analysis,
-           classical_maximum_flow, comparative_capacity_analysis,
-           AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
-           validate_capacity_parameters, validate_capacity_results
+        maximum_flow_capacity, bottleneck_capacity_analysis,
+        widest_path_analysis, network_throughput_analysis,
+        classical_maximum_flow, comparative_capacity_analysis,
+        AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
+        validate_capacity_parameters, validate_capacity_results
 
-  #=   """
-    # IPAFramework - Comprehensive Network Reliability Analysis
+    """
+    # IPAFramework - Enhanced Network Reliability Analysis
+
+    ## NEW: Separated Input Processing Workflow
+
+    ### 1. Read Graph Structure Only (No Probabilities)
+    ```julia
+    # Read raw adjacency matrix (0/1 integers only)
+    edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict("adjacency.csv")
+    ```
+
+    ### 2. Read Probabilities Separately  
+    ```julia
+    # Read node priors from JSON (supports Float64, Interval, all pbox types)
+    node_priors = read_node_priors_from_json("nodepriors.json")
+    
+    # Read edge probabilities from JSON (supports Float64, Interval, all pbox types)
+    edge_probabilities = read_edge_probabilities_from_json("linkprobs.json")
+    ```
+
+    ### 3. Or Read Everything at Once
+    ```julia
+    # Convenience function with validation
+    edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = 
+        read_complete_network("adjacency.csv", "nodepriors.json", "linkprobs.json")
+    ```
+
+    ## Supported Probability Types in JSON
+
+    ### Float64
+    ```json
+    {"nodes": {"1": 0.9, "2": 0.8}}
+    ```
+
+    ### Interval  
+    ```json
+    {"nodes": {"1": {"type": "interval", "lower": 0.8, "upper": 0.9}}}
+    ```
+
+    ### pbox - All Construction Types
+    ```json
+    {
+      "nodes": {
+        "1": {"type": "pbox", "construction_type": "scalar", "value": 0.9},
+        "2": {"type": "pbox", "construction_type": "parametric", "shape": "normal", "params": [0, 1]},
+        "3": {"type": "pbox", "construction_type": "distribution_free", "method": "meanVar", "params": [0.1, 0.9, 0, 0.25]}
+      }
+    }
+    ```
 
     ## Available Analysis Methods
 
-    ### 1. Static Binary Reachability (Original)
+    ### 1. Static Binary Reachability
     ```julia
     results = update_beliefs_iterative(
         edgelist, iteration_sets, outgoing_index, incoming_index,
-        source_nodes, node_priors, link_probability,
+        source_nodes, node_priors, edge_probabilities,
         descendants, ancestors, diamond_structures, join_nodes, fork_nodes
     )
     ```
 
-    ### 2. Exact Multi-State Reliability (MTTF/MTTR)**
+    ### 2. Multi-State Reliability (MTTF/MTTR)
     ```julia
     config = StateReliabilityConfig(
         enable_parallel_processing=true,
-        validate_transition_probabilities=true,
-        strict_probability_conservation=true
+        validate_transition_probabilities=true
     )
 
-    results = update_state_reliability_iterative(
-        edgelist, iteration_sets, outgoing_index, incoming_index,
-        initial_states,           # Dict{Int64, Int64} - 1=Working, 2=Failed, 3=Repair
-        node_failure_rates,       # Dict{Int64, Float64} - λ = 1/MTTF
-        node_repair_rates,        # Dict{Int64, Float64} - μ = 1/MTTR  
-        cascade_multipliers,      # Dict{Tuple{Int64,Int64}, Float64}
-        redundancy_groups,        # Dict{Int64, Set{Int64}}
-        descendants, ancestors, diamond_structures, join_nodes, fork_nodes,
-        time_horizon, dt, config
-    )
-    ```
-
-    ### 3. Interval and P-box Analysis
-    ```julia
-    # Interval arithmetic
-    interval_results = interval_update_beliefs_iterative(...)
-    
-    # Probability boxes
-    pbox_results = pbox_update_beliefs_iterative(...)
-    ```
-
-    ### 4. Temporal Event-Based Analysis
-    ```julia
-    temporal_results = temporal_reachability_analysis(...)
-    ```
-
-    ## Key Algorithmic Innovations
-
-    ### Exact Diamond Conditioning
-    - **Binary states**: 2^n conditioning states
-    - **Multi-state**: 3^n conditioning states  
-    - **Parallel ready**: Independent state computations
-
-    ### Inclusion-Exclusion Principle
-    - Handles overlapping failure modes exactly
-    - No approximations or clamping
-    - Maintains mathematical rigor
-
-    ### Iteration Set Parallelization
-    - Nodes in same iteration set → independent computation
-    - Perfect for `@threads for` parallelization
-    - 85-95% parallel efficiency
-
-   
-
-    ## Usage Examples
-
-    ### Basic Multi-State Reliability
-    ```julia
-    using IPAFramework
-
-    # Define network (using existing preprocessing)
-    edgelist, iteration_sets, outgoing_index, incoming_index, 
-    descendants, ancestors, diamond_structures, join_nodes, fork_nodes = 
-        preprocess_network(your_network_data)
-
-    # Define reliability parameters
-    initial_states = Dict(1 => WORKING, 2 => WORKING, 3 => FAILED)
-    failure_rates = Dict(1 => 0.001, 2 => 0.002, 3 => 0.0015)  # 1/MTTF
-    repair_rates = Dict(1 => 0.1, 2 => 0.05, 3 => 0.08)        # 1/MTTR
-    cascade_multipliers = Dict((1,2) => 2.0, (2,3) => 1.5)
-    redundancy_groups = Dict(1 => Set([1,2]), 2 => Set([1,2]))
-
-    # Run exact analysis
     results = update_state_reliability_iterative(
         edgelist, iteration_sets, outgoing_index, incoming_index,
         initial_states, failure_rates, repair_rates, 
         cascade_multipliers, redundancy_groups,
         descendants, ancestors, diamond_structures, join_nodes, fork_nodes,
-        100.0, 0.1  # 100 hours, 0.1 hour timesteps
+        time_horizon, dt, config
     )
-
-    # Access results
-    working_probs = results.state_probabilities[node_id][:, WORKING]
-    failed_probs = results.state_probabilities[node_id][:, FAILED]
-    repair_probs = results.state_probabilities[node_id][:, UNDER_REPAIR]
     ```
 
-    ### Performance Optimization
-    ```julia
-    # High-performance configuration
-    config = StateReliabilityConfig(
-        enable_parallel_processing=true,
-        validate_transition_probabilities=false,  # Disable for speed
-        max_conditioning_nodes=6,  # Limit diamond complexity
-        memory_limit_gb=32.0
-    )
-
-    # Recommended timestep for stability
-    recommended_dt, max_dt, warnings = calculate_timestep_recommendation(
-        failure_rates, repair_rates
-    )
-    println("Use dt ≤ $recommended_dt for optimal stability")
-    ```
-
-    """ =#
+    """
 
 end

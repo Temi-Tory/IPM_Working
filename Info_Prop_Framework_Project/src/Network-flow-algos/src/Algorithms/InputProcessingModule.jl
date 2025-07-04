@@ -1,9 +1,20 @@
 module InputProcessingModule
     using Random, DataFrames, DelimitedFiles, Distributions, JSON,
         DataStructures, SparseArrays, Combinatorics
+    
+    # Import ProbabilityBoundsAnalysis for pbox construction
+    import ProbabilityBoundsAnalysis
+    const PBA = ProbabilityBoundsAnalysis
+    const pbox = ProbabilityBoundsAnalysis.pbox
 
-    #export ProbabilitySlices, read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets, Interval
-    export Interval
+    export Interval, read_graph_to_dict, 
+           # Generic functions (auto-detect type)
+           read_node_priors_from_json, read_edge_probabilities_from_json,
+           # Type-specific functions (guaranteed return types)
+           read_node_priors_from_json_pbox, read_edge_probabilities_from_json_pbox,
+           read_node_priors_from_json_interval, read_edge_probabilities_from_json_interval,
+           read_node_priors_from_json_float64, read_edge_probabilities_from_json_float64,
+           identify_fork_and_join_nodes, find_iteration_sets, read_complete_network
 
     # Basic interval type
     struct Interval
@@ -20,103 +31,55 @@ module InputProcessingModule
 
     # Constructor for creating interval from single value (deterministic case)
     Interval(value::Float64) = Interval(value, value)
-    """
-        struct ProbabilitySlices
 
-        A structure to hold probability values and their corresponding weights.
-        The weights are used to sample from the values.
-
-        Fields:
-        - values: Vector of probability values
-        - weights: Vector of weights corresponding to the values
-
-        Constructor:
-        - ProbabilitySlices(values::Vector{Float64}, weights::Vector{Float64})
-    """
-    struct ProbabilitySlices
-        values::Vector{Float64}
-        weights::Vector{Float64}
-        
-        # Constructor with validation
-        function ProbabilitySlices(values::Vector{Float64}, weights::Vector{Float64})
-            if length(values) != length(weights)
-                throw(ArgumentError("Values and weights must have same length"))
-            end
-            if !all(0 .<= values .<= 1)
-                throw(ArgumentError("Values must be probabilities between 0 and 1"))
-            end
-            if abs(sum(weights) - 1.0) > 1e-10
-                throw(ArgumentError("Weights must sum to 1.0"))
-            end
-            new(values, weights)
-        end
-    end
     """
         read_graph_to_dict(filename::String)
 
-        Reads a directed graph from a file where each line represents a node and its outgoing edges.
-        Returns a tuple containing:
-        - edgelist: Vector of (source, target) pairs
-        - outgoing_index: Dict mapping nodes to their outgoing neighbors
-        - incoming_index: Dict mapping nodes to their incoming neighbors
-        - source_nodes: Set of nodes with no incoming edges
-
-        Throws:
-            SystemError if file cannot be opened
-            ArgumentError if file format is invalid
+        Reads a raw adjacency matrix from CSV file (integers 0/1 only).
     """  
-    function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}, Dict{Int64, Float64}, Dict{Tuple{Int64,Int64}, Float64}}
+    function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        # Read adjacency matrix (integers only)
+        adj_matrix = readdlm(filename, ',', Int)
+        
+        # Validate square matrix
+        n_rows, n_cols = size(adj_matrix)
+        if n_rows != n_cols
+            throw(ArgumentError("Adjacency matrix must be square, got $(n_rows)x$(n_cols)"))
+        end
+        
+        # Validate values are 0 or 1 only
+        if !all(x -> x in [0, 1], adj_matrix)
+            throw(ArgumentError("Adjacency matrix must contain only 0 and 1 values"))
+        end
+        
         edgelist = Vector{Tuple{Int64,Int64}}()
         outgoing_index = Dict{Int64,Set{Int64}}()
         incoming_index = Dict{Int64,Set{Int64}}()
-        all_nodes = Set{Int64}()
-        node_priors = Dict{Int64, Float64}()
-        edge_probabilities = Dict{Tuple{Int64,Int64}, Float64}()
+        all_nodes = Set{Int64}(1:n_rows)
         
-        isfile(filename) || throw(SystemError("File not found: $filename"))
-        open(filename, "r") do file
-            for (source, line) in enumerate(eachline(file))
-                values = parse.(Float64, split(line, ','))
-                
-                # Validate number of columns
-                length(values) >= 2 || throw(ArgumentError("Line $source: Invalid format - need at least 2 columns"))
-                
-                # Extract and validate node prior
-                prior = values[1]
-                if !(0 ≤ prior ≤ 1)
-                    throw(ArgumentError("Line $source: Node prior $prior not in range [0,1]"))
+        # Build graph structure from adjacency matrix
+        for i in 1:n_rows, j in 1:n_cols
+            if adj_matrix[i, j] == 1
+                # Check for self-loops
+                if i == j
+                    throw(ArgumentError("Self-loop detected at node $i"))
                 end
-                node_priors[source] = prior
                 
-                # Process edge probabilities (skip first column which is the prior)
-                edge_probs = values[2:end]
-                push!(all_nodes, source)
+                push!(edgelist, (i, j))
                 
-                for (target, prob) in enumerate(edge_probs)
-                    # Validate edge probability
-                    if prob != 0 && !(0 < prob ≤ 1)
-                        throw(ArgumentError("Line $source: Edge probability $prob to node $target not in range (0,1]"))
-                    end
-                    
-                    if prob > 0
-                        # Check for self-loops
-                        if source == target
-                            throw(ArgumentError("Line $source: Self-loop detected"))
-                        end
-                        
-                        push!(edgelist, (source, target))
-                        if !haskey(outgoing_index, source)
-                            outgoing_index[source] = Set{Int64}()
-                        end
-                        push!(outgoing_index[source], target)
-                        if !haskey(incoming_index, target)
-                            incoming_index[target] = Set{Int64}()
-                        end
-                        push!(incoming_index[target], source)
-                        edge_probabilities[(source, target)] = prob
-                        push!(all_nodes, target)
-                    end
+                # Update outgoing index
+                if !haskey(outgoing_index, i)
+                    outgoing_index[i] = Set{Int64}()
                 end
+                push!(outgoing_index[i], j)
+                
+                # Update incoming index
+                if !haskey(incoming_index, j)
+                    incoming_index[j] = Set{Int64}()
+                end
+                push!(incoming_index[j], i)
             end
         end
     
@@ -159,274 +122,599 @@ module InputProcessingModule
             throw(ArgumentError("Graph contains cycles - must be a DAG"))
         end
     
+        # Find source nodes (nodes with no incoming edges)
         source_nodes = setdiff(all_nodes, keys(incoming_index))
-        # Add empty set for nodes that have no incoming edges
+        
+        # Initialize incoming index for source nodes
         for node in source_nodes
             incoming_index[node] = Set{Int64}()
         end
         
-        return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
+        return edgelist, outgoing_index, incoming_index, source_nodes
     end
 
     """
-        read_graph_to_dict(io::IOBuffer)
+        deserialize_probability_value(data::Any)
 
-        Reads a directed graph from an IOBuffer containing CSV data where each line represents
-        a node and its outgoing edges. This is an overload for the String version to support
-        in-memory data processing.
-
-        Returns a tuple containing:
-        - edgelist: Vector of (source, target) pairs
-        - outgoing_index: Dict mapping nodes to their outgoing neighbors
-        - incoming_index: Dict mapping nodes to their incoming neighbors
-        - source_nodes: Set of nodes with no incoming edges
-        - node_priors: Dict mapping nodes to their prior probabilities
-        - edge_probabilities: Dict mapping (source,target) pairs to their probabilities
-
-        Throws:
-            ArgumentError if data format is invalid
+        Deserialize probability values from JSON, returning actual pbox objects.
+        Supports all ProbabilityBoundsAnalysis constructors.
     """
-    function read_graph_to_dict(io::IOBuffer)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}, Dict{Int64, Float64}, Dict{Tuple{Int64,Int64}, Float64}}
-        edgelist = Vector{Tuple{Int64,Int64}}()
-        outgoing_index = Dict{Int64,Set{Int64}}()
-        incoming_index = Dict{Int64,Set{Int64}}()
-        all_nodes = Set{Int64}()
-        node_priors = Dict{Int64, Float64}()
-        edge_probabilities = Dict{Tuple{Int64,Int64}, Float64}()
+    function deserialize_probability_value(data::Any)
+        # Handle simple numeric values
+        if isa(data, Real)
+            return Float64(data)
+        end
         
-        # Reset IOBuffer position to start
-        seekstart(io)
+        # Handle Dict (complex types)
+        if !isa(data, Dict)
+            throw(ArgumentError("Invalid probability data format: $(typeof(data))"))
+        end
         
-        source = 0
-        for line in eachline(io)
-            source += 1
-            values = parse.(Float64, split(line, ','))
+        if data["type"] == "interval"
+            return Interval(Float64(data["lower"]), Float64(data["upper"]))
             
-            # Validate number of columns
-            length(values) >= 2 || throw(ArgumentError("Line $source: Invalid format - need at least 2 columns"))
+        elseif data["type"] == "pbox"
+            construction_type = data["construction_type"]
             
-            # Extract and validate node prior
-            prior = values[1]
-            if !(0 ≤ prior ≤ 1)
-                throw(ArgumentError("Line $source: Node prior $prior not in range [0,1]"))
-            end
-            node_priors[source] = prior
-            
-            # Process edge probabilities (skip first column which is the prior)
-            edge_probs = values[2:end]
-            push!(all_nodes, source)
-            
-            for (target, prob) in enumerate(edge_probs)
-                # Validate edge probability
-                if prob != 0 && !(0 < prob ≤ 1)
-                    throw(ArgumentError("Line $source: Edge probability $prob to node $target not in range (0,1]"))
-                end
+            if construction_type == "scalar"
+                # pbox(value) -> Create precise pbox using makepbox(interval(value, value))
+                value = Float64(data["value"])
+                return PBA.makepbox(PBA.interval(value, value))
                 
-                if prob > 0
-                    # Check for self-loops
-                    if source == target
-                        throw(ArgumentError("Line $source: Self-loop detected"))
-                    end
-                    
-                    push!(edgelist, (source, target))
-                    if !haskey(outgoing_index, source)
-                        outgoing_index[source] = Set{Int64}()
-                    end
-                    push!(outgoing_index[source], target)
-                    if !haskey(incoming_index, target)
-                        incoming_index[target] = Set{Int64}()
-                    end
-                    push!(incoming_index[target], source)
-                    edge_probabilities[(source, target)] = prob
-                    push!(all_nodes, target)
-                end
-            end
-        end
-    
-        # Validate DAG property using the same function as the String version
-        function has_cycle(graph::Dict{Int64,Set{Int64}})
-            visited = Set{Int64}()
-            temp_visited = Set{Int64}()
-            
-            function dfs(node::Int64)
-                if node in temp_visited
-                    return true  # Cycle detected
-                end
-                if node in visited
-                    return false
-                end
-                push!(temp_visited, node)
+            elseif construction_type == "interval"
+                # pbox(lower, upper) -> Create interval pbox
+                lower = Float64(data["lower"])
+                upper = Float64(data["upper"])
+                return PBA.makepbox(PBA.interval(lower, upper))
                 
-                if haskey(graph, node)
-                    for neighbor in graph[node]
-                        if dfs(neighbor)
-                            return true
-                        end
-                    end
-                end
+            elseif construction_type == "parametric"
+                # normal(mean, std), uniform(a, b), etc.
+                return create_parametric_pbox(data)
                 
-                delete!(temp_visited, node)
-                push!(visited, node)
-                return false
+            elseif construction_type == "parametric_interval"
+                # normal(interval(0,1), 1), uniform(interval(0,1), interval(2,3))
+                return create_parametric_interval_pbox(data)
+                
+            elseif construction_type == "envelope"
+                # env(d1, d2, ...)
+                return create_envelope_pbox(data)
+                
+            elseif construction_type == "distribution_free"
+                # meanVar(ml, mh, vl, vh), meanMin(ml, mh, min_val), etc.
+                return create_distribution_free_pbox(data)
+                
+            elseif construction_type == "complex"
+                # Fallback - create using moments
+                ml = get(data, "ml", 0.0)
+                mh = get(data, "mh", 1.0) 
+                vl = get(data, "vl", 0.0)
+                vh = get(data, "vh", 1.0)
+                return PBA.meanVar(ml, mh, vl, vh)
+                
+            else
+                throw(ArgumentError("Unknown pbox construction type: $construction_type"))
             end
             
-            for node in keys(graph)
-                if dfs(node)
-                    return true
-                end
-            end
-            return false
-        end
-        
-        if has_cycle(outgoing_index)
-            throw(ArgumentError("Graph contains cycles - must be a DAG"))
-        end
-    
-        source_nodes = setdiff(all_nodes, keys(incoming_index))
-        # Add empty set for nodes that have no incoming edges
-        for node in source_nodes
-            incoming_index[node] = Set{Int64}()
-        end
-        
-        return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
-    end
-
-    """
-        read_graph_to_dict(adj_matrix_file::String, probabilities_file::String)
-
-        Reads a directed graph from:
-        - An adjacency matrix file (CSV) defining graph structure
-        - A JSON file containing probability slices for nodes and edges
-
-        Returns a tuple containing:
-        - edgelist: Vector of (source, target) pairs
-        - outgoing_index: Dict mapping nodes to their outgoing neighbors
-        - incoming_index: Dict mapping nodes to their incoming neighbors
-        - source_nodes: Set of nodes with no incoming edges
-        - node_priors: Dict mapping nodes to their ProbabilitySlices
-        - edge_probabilities: Dict mapping (source,target) pairs to ProbabilitySlices
-
-        Throws:
-            SystemError if files cannot be opened
-            ArgumentError if file formats are invalid
-    """
-    function read_graph_to_dict(adj_matrix_file::String, probabilities_file::String
-        )::Union{
-        Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, 
-                Set{Int64}, Dict{Int64, ProbabilitySlices}, Dict{Tuple{Int64,Int64}, ProbabilitySlices}},
-        Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, 
-                Set{Int64}, Dict{Int64, Interval}, Dict{Tuple{Int64,Int64}, Interval}}
-     }
-    
-        isfile(adj_matrix_file) || throw(SystemError("File not found: $adj_matrix_file"))
-        isfile(probabilities_file) || throw(SystemError("File not found: $probabilities_file"))
-        
-        adj_matrix = readdlm(adj_matrix_file, ',', Int)
-        prob_data = JSON.parsefile(probabilities_file)
-        
-        edgelist = Vector{Tuple{Int64,Int64}}()
-        outgoing_index = Dict{Int64,Set{Int64}}()
-        incoming_index = Dict{Int64,Set{Int64}}()
-        all_nodes = Set{Int64}()
-        
-        # Detect format from first node
-        first_node = first(prob_data["nodes"])
-        is_interval = haskey(last(first_node), "lower")
-        
-        # Initialize based on detected format
-        if is_interval
-            node_priors = Dict{Int64, Interval}()
-            edge_probabilities = Dict{Tuple{Int64,Int64}, Interval}()
-            
-            for (node_str, node_data) in prob_data["nodes"]
-                node = parse(Int, node_str)
-                node_priors[node] = Interval(
-                    Float64(node_data["lower"]),
-                    Float64(node_data["upper"])
-                )
-                push!(all_nodes, node)
-            end
         else
-            node_priors = Dict{Int64, ProbabilitySlices}()
-            edge_probabilities = Dict{Tuple{Int64,Int64}, ProbabilitySlices}()
-            
-            for (node_str, node_data) in prob_data["nodes"]
-                node = parse(Int, node_str)
-                node_priors[node] = ProbabilitySlices(
-                    Float64.(node_data["values"]),
-                    Float64.(node_data["weights"])
-                )
-                push!(all_nodes, node)
-            end
+            throw(ArgumentError("Unknown probability type: $(data["type"])"))
         end
-        
-        # Process graph structure
-        n_nodes = size(adj_matrix, 1)
-        for i in 1:n_nodes, j in 1:n_nodes
-            if adj_matrix[i,j] == 1
-                push!(edgelist, (i,j))
-                push!(get!(outgoing_index, i, Set{Int64}()), j)
-                push!(get!(incoming_index, j, Set{Int64}()), i)
-        
-                edge_key = "($i,$j)"
-                if !haskey(prob_data["edges"], edge_key)
-                    throw(ArgumentError("Missing probability data for edge $edge_key"))
-                end
-                
-                edge_data = prob_data["edges"][edge_key]
-                if is_interval
-                    edge_probabilities[(i,j)] = Interval(
-                        Float64(edge_data["lower"]),
-                        Float64(edge_data["upper"])
-                    )
-                else
-                    edge_probabilities[(i,j)] = ProbabilitySlices(
-                        Float64.(edge_data["values"]),
-                        Float64.(edge_data["weights"])
-                    )
-                end
-            end
-    end
-    
-    # Validate DAG property
-    function has_cycle(graph::Dict{Int64,Set{Int64}})
-        visited = Set{Int64}()
-        temp_visited = Set{Int64}()
-        
-        function dfs(node::Int64)
-            node in temp_visited && return true
-            node in visited && return false
-            
-            push!(temp_visited, node)
-            if haskey(graph, node)
-                for neighbor in graph[node]
-                    dfs(neighbor) && return true
-                end
-            end
-            delete!(temp_visited, node)
-            push!(visited, node)
-            return false
-        end
-        
-        return any(dfs(node) for node in keys(graph))
-    end
-    
-    has_cycle(outgoing_index) && throw(ArgumentError("Graph contains cycles - must be a DAG"))
-    
-    # Handle source nodes
-    source_nodes = setdiff(all_nodes, keys(incoming_index))
-    for node in source_nodes
-        incoming_index[node] = Set{Int64}()
-    end
-    
-    return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
     end
 
+    """
+        create_parametric_pbox(data::Dict)
+
+        Create parametric pbox using PBA constructors: normal(mean, std), uniform(a, b), etc.
+    """
+    function create_parametric_pbox(data::Dict)
+        shape = data["shape"]
+        params = data["params"]
+        
+        try
+            if shape == "normal"
+                if length(params) >= 2
+                    return PBA.normal(params[1], params[2])
+                else
+                    return PBA.normal(params[1], 1.0)  # Default std = 1
+                end
+                
+            elseif shape == "uniform"
+                if length(params) >= 2
+                    return PBA.uniform(params[1], params[2])
+                else
+                    return PBA.uniform(0.0, params[1])  # Default min = 0
+                end
+                
+            elseif shape == "beta"
+                if length(params) >= 2
+                    return PBA.beta(params[1], params[2])
+                else
+                    return PBA.beta(params[1], 1.0)
+                end
+                
+            elseif shape == "exponential"
+                return PBA.exponential(params[1])
+                
+            elseif shape == "erlang"
+                if length(params) >= 2
+                    return PBA.erlang(Int(params[1]), params[2])
+                else
+                    return PBA.erlang(Int(params[1]), 1.0)
+                end
+                
+            elseif shape == "cauchy"
+                if length(params) >= 2
+                    return PBA.cauchy(params[1], params[2])
+                else
+                    return PBA.cauchy(params[1], 1.0)
+                end
+                
+            elseif shape == "chi"
+                return PBA.chi(Int(params[1]))
+                
+            elseif shape == "chisq"
+                return PBA.chisq(Int(params[1]))
+                
+            elseif shape == "cosine"
+                if length(params) >= 2
+                    return PBA.cosine(params[1], params[2])
+                else
+                    return PBA.cosine(params[1], 1.0)
+                end
+                
+            # Add more distributions as needed
+            else
+                @warn "Unknown parametric distribution: $shape, creating normal with mean $(params[1])"
+                return PBA.normal(params[1], length(params) >= 2 ? params[2] : 1.0)
+            end
+            
+        catch e
+            @warn "Error creating $shape pbox: $e, falling back to interval"
+            if length(params) >= 2
+                return PBA.makepbox(PBA.interval(params[1], params[2]))
+            else
+                val = params[1]
+                return PBA.makepbox(PBA.interval(val, val))
+            end
+        end
+    end
+
+    """
+        create_parametric_interval_pbox(data::Dict)
+
+        Create parametric pbox with interval parameters: normal(interval(0,1), 1)
+    """
+    function create_parametric_interval_pbox(data::Dict)
+        shape = data["shape"]
+        params = data["params"]  # Array of parameter specifications
+        
+        try
+            if shape == "normal"
+                # params could be [{"type": "interval", "lower": 0, "upper": 1}, 1.0]
+                mean_param = params[1]
+                std_param = length(params) >= 2 ? params[2] : 1.0
+                
+                if isa(mean_param, Dict) && mean_param["type"] == "interval"
+                    mean_interval = PBA.interval(mean_param["lower"], mean_param["upper"])
+                    if isa(std_param, Dict) && std_param["type"] == "interval"
+                        std_interval = PBA.interval(std_param["lower"], std_param["upper"])
+                        return PBA.normal(mean_interval, std_interval)
+                    else
+                        return PBA.normal(mean_interval, std_param)
+                    end
+                else
+                    return PBA.normal(mean_param, std_param)
+                end
+                
+            elseif shape == "uniform"
+                a_param = params[1]
+                b_param = length(params) >= 2 ? params[2] : 1.0
+                
+                if isa(a_param, Dict) && a_param["type"] == "interval"
+                    a_interval = PBA.interval(a_param["lower"], a_param["upper"])
+                    if isa(b_param, Dict) && b_param["type"] == "interval"
+                        b_interval = PBA.interval(b_param["lower"], b_param["upper"])
+                        return PBA.uniform(a_interval, b_interval)
+                    else
+                        return PBA.uniform(a_interval, b_param)
+                    end
+                else
+                    return PBA.uniform(a_param, b_param)
+                end
+                
+            # Add more interval-parametric distributions as needed
+            else
+                @warn "Unknown interval-parametric distribution: $shape"
+                return create_parametric_pbox(data)  # Fallback to regular parametric
+            end
+            
+        catch e
+            @warn "Error creating interval-parametric $shape pbox: $e"
+            return create_parametric_pbox(data)  # Fallback
+        end
+    end
+
+    """
+        create_envelope_pbox(data::Dict)
+
+        Create envelope pbox: env(d1, d2, ...)
+    """
+    function create_envelope_pbox(data::Dict)
+        components = data["components"]
+        
+        try
+            # Recursively deserialize each component
+            pbox_components = []
+            for component in components
+                push!(pbox_components, deserialize_probability_value(component))
+            end
+            
+            # Create envelope
+            if length(pbox_components) >= 2
+                result = pbox_components[1]
+                for i in 2:length(pbox_components)
+                    result = PBA.env(result, pbox_components[i])
+                end
+                return result
+            else
+                return pbox_components[1]
+            end
+            
+        catch e
+            @warn "Error creating envelope pbox: $e"
+            # Fallback to simple interval
+            return PBA.makepbox(PBA.interval(0.0, 1.0))
+        end
+    end
+
+    """
+        create_distribution_free_pbox(data::Dict)
+
+        Create distribution-free pbox: meanVar(ml, mh, vl, vh), etc.
+    """
+    function create_distribution_free_pbox(data::Dict)
+        method = data["method"]
+        params = data["params"]
+        
+        try
+            if method == "meanVar"
+                if length(params) >= 4
+                    return PBA.meanVar(params[1], params[2], params[3], params[4])
+                else
+                    @warn "meanVar requires 4 parameters, got $(length(params))"
+                    return PBA.meanVar(params[1], params[2], 0.0, 1.0)
+                end
+                
+            elseif method == "meanMin"
+                if length(params) >= 3
+                    return PBA.meanMin(params[1], params[2], params[3])
+                else
+                    return PBA.meanMin(params[1], params[2], 0.0)
+                end
+                
+            elseif method == "meanMax"
+                if length(params) >= 3
+                    return PBA.meanMax(params[1], params[2], params[3])
+                else
+                    return PBA.meanMax(params[1], params[2], 1.0)
+                end
+                
+            elseif method == "meanMinMax"
+                if length(params) >= 4
+                    return PBA.meanMinMax(params[1], params[2], params[3], params[4])
+                else
+                    @warn "meanMinMax requires 4 parameters"
+                    return PBA.meanMinMax(params[1], params[2], 0.0, 1.0)
+                end
+                
+            elseif method == "minMaxMeanVar"
+                if length(params) >= 4
+                    return PBA.minMaxMeanVar(params[1], params[2], params[3], params[4])
+                else
+                    @warn "minMaxMeanVar requires 4 parameters"
+                    return PBA.minMaxMeanVar(0.0, 1.0, params[1], params[2])
+                end
+                
+            else
+                @warn "Unknown distribution-free method: $method"
+                return PBA.meanVar(params[1], params[2], 0.0, 1.0)
+            end
+            
+        catch e
+            @warn "Error creating distribution-free pbox ($method): $e"
+            # Fallback
+            return PBA.makepbox(PBA.interval(params[1], params[2]))
+        end
+    end
+
+    """
+        deserialize_pbox_value(data::Any)
+
+        Deserialize probability values from JSON, returning only pbox objects.
+        Throws ArgumentError for non-pbox compatible data.
+    """
+    function deserialize_pbox_value(data::Any)::pbox
+        # Handle Dict (pbox types only)
+        if !isa(data, Dict)
+            throw(ArgumentError("pbox deserializer requires Dict format, got $(typeof(data))"))
+        end
+        
+        if !haskey(data, "type") || data["type"] != "pbox"
+            throw(ArgumentError("pbox deserializer requires type='pbox', got type='$(get(data, "type", "missing"))'"))
+        end
+        
+        construction_type = data["construction_type"]
+        
+        if construction_type == "scalar"
+            # pbox(value) -> Create precise pbox using makepbox(interval(value, value))
+            value = Float64(data["value"])
+            return PBA.makepbox(PBA.interval(value, value))
+            
+        elseif construction_type == "interval"
+            # pbox(lower, upper) -> Create interval pbox
+            lower = Float64(data["lower"])
+            upper = Float64(data["upper"])
+            return PBA.makepbox(PBA.interval(lower, upper))
+            
+        elseif construction_type == "parametric"
+            # normal(mean, std), uniform(a, b), etc.
+            return create_parametric_pbox(data)
+            
+        elseif construction_type == "parametric_interval"
+            # normal(interval(0,1), 1), uniform(interval(0,1), interval(2,3))
+            return create_parametric_interval_pbox(data)
+            
+        elseif construction_type == "envelope"
+            # env(d1, d2, ...)
+            return create_envelope_pbox(data)
+            
+        elseif construction_type == "distribution_free"
+            # meanVar(ml, mh, vl, vh), meanMin(ml, mh, min_val), etc.
+            return create_distribution_free_pbox(data)
+            
+        elseif construction_type == "complex"
+            # Fallback - create using moments
+            ml = get(data, "ml", 0.0)
+            mh = get(data, "mh", 1.0)
+            vl = get(data, "vl", 0.0)
+            vh = get(data, "vh", 1.0)
+            return PBA.meanVar(ml, mh, vl, vh)
+            
+        else
+            throw(ArgumentError("Unknown pbox construction type: $construction_type"))
+        end
+    end
+
+    """
+        read_node_priors_from_json_pbox(filename::String)
+        
+        Read pbox node priors from JSON file. Returns Dict{Int64, pbox}.
+    """
+    function read_node_priors_from_json_pbox(filename::String)::Dict{Int64, pbox}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "nodes")
+            throw(ArgumentError("JSON file must contain 'nodes' key"))
+        end
+        
+        result = Dict{Int64, pbox}()
+        for (node_str, node_data) in data["nodes"]
+            node_id = parse(Int, node_str)
+            result[node_id] = deserialize_pbox_value(node_data)
+        end
+        return result
+    end
+
+    """
+        read_edge_probabilities_from_json_pbox(filename::String)
+        
+        Read pbox edge probabilities from JSON file. Returns Dict{Tuple{Int64, Int64}, pbox}.
+    """
+    function read_edge_probabilities_from_json_pbox(filename::String)::Dict{Tuple{Int64, Int64}, pbox}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "links")
+            throw(ArgumentError("JSON file must contain 'links' key"))
+        end
+        
+        result = Dict{Tuple{Int64, Int64}, pbox}()
+        for (edge_str, edge_data) in data["links"]
+            edge_match = match(r"\((\d+),(\d+)\)", edge_str)
+            if edge_match !== nothing
+                source = parse(Int, edge_match.captures[1])
+                target = parse(Int, edge_match.captures[2])
+                result[(source, target)] = deserialize_pbox_value(edge_data)
+            end
+        end
+        return result
+    end
+
+    """
+        read_node_priors_from_json_interval(filename::String)
+        
+        Read Interval node priors from JSON file. Returns Dict{Int64, Interval}.
+    """
+    function read_node_priors_from_json_interval(filename::String)::Dict{Int64, Interval}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "nodes")
+            throw(ArgumentError("JSON file must contain 'nodes' key"))
+        end
+        
+        result = Dict{Int64, Interval}()
+        for (node_str, node_data) in data["nodes"]
+            node_id = parse(Int, node_str)
+            result[node_id] = deserialize_probability_value(node_data)::Interval
+        end
+        return result
+    end
+
+    """
+        read_edge_probabilities_from_json_interval(filename::String)
+        
+        Read Interval edge probabilities from JSON file. Returns Dict{Tuple{Int64, Int64}, Interval}.
+    """
+    function read_edge_probabilities_from_json_interval(filename::String)::Dict{Tuple{Int64, Int64}, Interval}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "links")
+            throw(ArgumentError("JSON file must contain 'links' key"))
+        end
+        
+        result = Dict{Tuple{Int64, Int64}, Interval}()
+        for (edge_str, edge_data) in data["links"]
+            edge_match = match(r"\((\d+),(\d+)\)", edge_str)
+            if edge_match !== nothing
+                source = parse(Int, edge_match.captures[1])
+                target = parse(Int, edge_match.captures[2])
+                result[(source, target)] = deserialize_probability_value(edge_data)::Interval
+            end
+        end
+        return result
+    end
+
+    """
+        read_node_priors_from_json_float64(filename::String)
+        
+        Read Float64 node priors from JSON file. Returns Dict{Int64, Float64}.
+    """
+    function read_node_priors_from_json_float64(filename::String)::Dict{Int64, Float64}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "nodes")
+            throw(ArgumentError("JSON file must contain 'nodes' key"))
+        end
+        
+        result = Dict{Int64, Float64}()
+        for (node_str, node_data) in data["nodes"]
+            node_id = parse(Int, node_str)
+            result[node_id] = Float64(node_data)
+        end
+        return result
+    end
+
+    """
+        read_edge_probabilities_from_json_float64(filename::String)
+        
+        Read Float64 edge probabilities from JSON file. Returns Dict{Tuple{Int64, Int64}, Float64}.
+    """
+    function read_edge_probabilities_from_json_float64(filename::String)::Dict{Tuple{Int64, Int64}, Float64}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        if !haskey(data, "links")
+            throw(ArgumentError("JSON file must contain 'links' key"))
+        end
+        
+        result = Dict{Tuple{Int64, Int64}, Float64}()
+        for (edge_str, edge_data) in data["links"]
+            edge_match = match(r"\((\d+),(\d+)\)", edge_str)
+            if edge_match !== nothing
+                source = parse(Int, edge_match.captures[1])
+                target = parse(Int, edge_match.captures[2])
+                result[(source, target)] = Float64(edge_data)
+            end
+        end
+        return result
+    end
+
+    """
+        read_node_priors_from_json(filename::String)
+
+        Generic function that auto-detects type and calls the appropriate specific function.
+        Returns properly typed dictionaries based on JSON data_type field.
+    """
+    function read_node_priors_from_json(filename::String)
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        data_type = get(data, "data_type", "Float64")
+        
+        if data_type == "Float64"
+            return read_node_priors_from_json_float64(filename)::Dict{Int64, Float64}
+        elseif data_type == "Interval"
+            return read_node_priors_from_json_interval(filename)::Dict{Int64, Interval}
+        elseif data_type == "pbox" || data_type == "ProbabilityBoundsAnalysis.pbox"
+            return read_node_priors_from_json_pbox(filename)::Dict{Int64, pbox}
+        else
+            throw(ArgumentError("Unknown data_type: $data_type. Expected 'Float64', 'Interval', or 'pbox'"))
+        end
+    end
+
+    """
+        read_edge_probabilities_from_json(filename::String)
+
+        Generic function that auto-detects type and calls the appropriate specific function.
+        For guaranteed return types, use the type-specific functions directly.
+    """
+    function read_edge_probabilities_from_json(filename::String)
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        data = JSON.parsefile(filename)
+        data_type = get(data, "data_type", "Float64")
+        
+        if data_type == "Float64"
+            return read_edge_probabilities_from_json_float64(filename)
+        elseif data_type == "Interval"
+            return read_edge_probabilities_from_json_interval(filename)
+        elseif data_type == "pbox" || data_type == "ProbabilityBoundsAnalysis.pbox"
+            return read_edge_probabilities_from_json_pbox(filename)
+        else
+            # Generic fallback
+            if !haskey(data, "links")
+                throw(ArgumentError("JSON file must contain 'links' key"))
+            end
+            result = Dict{Tuple{Int64, Int64}, Any}()
+            for (edge_str, edge_data) in data["links"]
+                edge_match = match(r"\((\d+),(\d+)\)", edge_str)
+                if edge_match !== nothing
+                    source = parse(Int, edge_match.captures[1])
+                    target = parse(Int, edge_match.captures[2])
+                    result[(source, target)] = deserialize_probability_value(edge_data)
+                end
+            end
+            return result
+        end
+    end
+
+    """
+        read_complete_network(adj_matrix_file::String, node_priors_file::String, edge_probs_file::String)
+
+        Convenience function to read complete network from separate files.
+    """
+    function read_complete_network(adj_matrix_file::String, node_priors_file::String, edge_probs_file::String)
+        # Read graph structure
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(adj_matrix_file)
+        
+        # Read probabilities
+        node_priors = read_node_priors_from_json(node_priors_file)
+        edge_probabilities = read_edge_probabilities_from_json(edge_probs_file)
+        
+        # Validate that all edges in graph have corresponding probabilities
+        for (source, target) in edgelist
+            if !haskey(edge_probabilities, (source, target))
+                throw(ArgumentError("Missing probability data for edge ($source,$target)"))
+            end
+        end
+        
+        # Validate that all nodes have prior probabilities
+        all_nodes = union(Set(first.(edgelist)), Set(last.(edgelist)))
+        for node in all_nodes
+            if !haskey(node_priors, node)
+                throw(ArgumentError("Missing prior probability for node $node"))
+            end
+        end
+        
+        return edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities
+    end
+
+    # Include other functions (identify_fork_and_join_nodes, find_iteration_sets) as before...
     """
         identify_fork_and_join_nodes(outgoing_index, incoming_index)
-
-        Identifies fork nodes (nodes with multiple outgoing edges) and join nodes (nodes with multiple incoming edges).
-        Returns a tuple of (fork_nodes, join_nodes).
     """
     function identify_fork_and_join_nodes(
         outgoing_index::Dict{Int64,Set{Int64}},
@@ -454,17 +742,7 @@ module InputProcessingModule
     end
     
     """
-        find_iteration_sets(edgelist, outgoing_index, incoming_index, fork_nodes, join_nodes, source_nodes)
-
-        Performs a topological sort while tracking ancestor-descendant relationships and diamond patterns.
-        Returns:
-        - iteration_sets: Vector of node sets that can be processed in parallel
-        - ancestors: Dict mapping each node to its ancestor set
-        - descendants: Dict mapping each node to its descendant set
-        - common_ancestors_dict: Dict mapping join nodes to their diamond structures
-
-        Throws:
-            ArgumentError if graph contains cycles
+        find_iteration_sets(edgelist, outgoing_index, incoming_index)
     """
     function find_iteration_sets(
         edgelist::Vector{Tuple{Int64,Int64}},
@@ -472,7 +750,7 @@ module InputProcessingModule
         incoming_index::Dict{Int64,Set{Int64}}
         )::Tuple{Vector{Set{Int64}}, Dict{Int64, Set{Int64}}, Dict{Int64, Set{Int64}}}
         
-        isempty(edgelist) && return (Vector{Set{Int64}}(), Dict{Int64,Set{Int64}}(), Dict{Int64,Set{Int64}}(), Dict{Int64,DiamondStructure}())
+        isempty(edgelist) && return (Vector{Set{Int64}}(), Dict{Int64,Set{Int64}}(), Dict{Int64,Set{Int64}}())
         
         # Find the maximum node id
         n = maximum(max(first(edge), last(edge)) for edge in edgelist)
@@ -505,8 +783,6 @@ module InputProcessingModule
             level_size = length(queue)
             for _ in 1:level_size
                 node = dequeue!(queue)
-    
-    
                 push!(current_set, node)
                 
                 # Process outgoing edges
@@ -548,7 +824,5 @@ module InputProcessingModule
         
         return (iteration_sets, ancestors, descendants)
     end
-        
 
-   
 end

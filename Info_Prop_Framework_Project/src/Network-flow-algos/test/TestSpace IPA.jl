@@ -4,9 +4,8 @@ using DataFrames, DelimitedFiles, Distributions,
       Combinatorics
 
 # Include the IPAFramework module
-include("../../src/IPAFramework.jl")
+include("../src/IPAFramework.jl")
 using .IPAFramework
-
 
 
 #user input from ui for eg 
@@ -14,22 +13,30 @@ using .IPAFramework
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-filepathcsv = joinpath("Info_Prop_Framework_Project/csvfiles/16 NodeNetwork Adjacency matrix.csv"); # 4 by 4 grid
+filepathcsv = joinpath("csvfiles/16 NodeNetwork Adjacency matrix.csv"); # 4 by 4 grid
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
 
+filepath_node_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_float-nodepriors.json");
+filepath_edge_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_float-linkprobabilities.json");
 
+#= filepath_node_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_interval-nodepriors.json");
+filepath_edge_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_interval-linkprobabilities.json");
+ =#
+#= filepath_node_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_pbox-nodepriors.json");
+filepath_edge_json = joinpath("jsonfiles/16 NodeNetwork Adjacency matrix_pbox-linkprobabilities.json");
+ =#
 
-#THIS FILE IS GLOBAL TO THE ENTIRE USER SESSION UNLESS THEY UPLAD ANOTHER FILE 
-# THE STRUCTURAL DETAIL TAB SHOWS THE STRUCTURE OF THE GRAPH
-#THE vISUALIZATION tAB  SHOWS RAPH IN DOT FORMAT INTERCTIVE 
-#fork_nodes, join_nodes , edgelist, outgoing_index, incoming_index, source_nodes, iteration_sets, ancestors, descendant
-edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
+# Option 1: Separate calls
+edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepathcsv)
+node_priors = read_node_priors_from_json(filepath_node_json)
+edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
 
-#CAN USE USER PORVIDE OR TWEAK MASS  OR TWEAK INDICUDLA AFTER EITHER OF THE THE WORK 
-map!(x -> 0.9, values(node_priors));
-map!(x -> 0.9, values(edge_probabilities));
+# Option 2: Convenience function  
+edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = 
+    read_complete_network(filepathcsv, filepath_node_json, filepath_edge_json)
+
 
 # Identify structure
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index);
@@ -65,3 +72,5 @@ output = IPAFramework.update_beliefs_iterative(
     join_nodes,
     fork_nodes
 );
+
+output[16]

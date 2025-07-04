@@ -513,7 +513,7 @@ module ReachabilityModule_Pbox
         
         return result
     end
-    # Helper function to convert from original Float64 data to p-box data 
+    #= # Helper function to convert from original Float64 data to p-box data 
     function convert_to_pbox_data(
         node_priors::Dict{Int64, Float64},
         link_probability::Dict{Tuple{Int64, Int64}, Float64};
@@ -568,6 +568,6 @@ module ReachabilityModule_Pbox
         end
         
         return pbox_node_priors, pbox_link_probability
-    end
+    end =#
 
 end # module

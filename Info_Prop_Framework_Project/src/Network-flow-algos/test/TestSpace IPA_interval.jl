@@ -4,7 +4,7 @@ using DataFrames, DelimitedFiles, Distributions,
       Combinatorics
 
 # Include the IPAFramework module
-include("../../src/IPAFramework.jl")
+include("../src/IPAFramework.jl")
 using .IPAFramework
 
 
@@ -14,7 +14,7 @@ using .IPAFramework
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
 #filepathcsv = "csvfiles/KarlNetwork.csv";
 #filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
-filepathcsv = joinpath("Info_Prop_Framework_Project/csvfiles/16 NodeNetwork Adjacency matrix.csv"); # 4 by 4 grid
+filepathcsv = joinpath("csvfiles/16 NodeNetwork Adjacency matrix.csv"); # 4 by 4 grid
 #filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
 #filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
