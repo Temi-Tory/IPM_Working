@@ -73,4 +73,4 @@ output = IPAFramework.update_beliefs_iterative(
     fork_nodes
 );
 
-output[16]
+#output[16]
