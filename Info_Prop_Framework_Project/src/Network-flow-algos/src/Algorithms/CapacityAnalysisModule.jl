@@ -1,5 +1,5 @@
 module CapacityAnalysisModule
-    using ..NetworkDecompositionModule
+    using ..DiamondProcessingModule
     using ..InputProcessingModule
 
     export CapacityParameters, CapacityResult,

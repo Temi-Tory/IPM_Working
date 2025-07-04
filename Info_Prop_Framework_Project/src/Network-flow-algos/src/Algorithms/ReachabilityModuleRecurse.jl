@@ -79,14 +79,25 @@ module ReachabilityModule
 
     using Combinatorics
     using ..DiamondProcessingModule
-    using ..InputProcessingModule  
-
+    using ..InputProcessingModule
+    import ..InputProcessingModule: Interval
+    import ProbabilityBoundsAnalysis
     
+    # Create aliases to avoid ambiguity
+    const PBA = ProbabilityBoundsAnalysis
+    const pbox = ProbabilityBoundsAnalysis.pbox
+
+    # Export main functions
+    export update_beliefs_iterative, validate_network_data,
+           calculate_regular_belief, inclusion_exclusion,
+           updateDiamondJoin, calculate_diamond_groups_belief,
+           DiamondCacheEntry, CacheKey, make_cache_key
+
     # Cache entry - stores the three components you specified
-    struct DiamondCacheEntry
+    struct DiamondCacheEntry{T}
         edgelist::Vector{Tuple{Int64,Int64}}
-        current_priors::Dict{Int64,Float64}
-        state_beliefs::Dict{Int64,Float64}
+        current_priors::Dict{Int64,T}
+        state_beliefs::Dict{Int64,T}
     end
 
     # Simplified cache key - just hash of edgelist + conditioning state
@@ -98,11 +109,129 @@ module ReachabilityModule
     Base.hash(k::CacheKey, h::UInt) = hash((k.diamond_hash, k.priors_hash), h)
     Base.:(==)(a::CacheKey, b::CacheKey) = a.diamond_hash == b.diamond_hash && a.priors_hash == b.priors_hash
 
-    # Simplified key generation
+    # Simplified key generation with type-aware hashing
     function make_cache_key(edgelist, current_priors)
         diamond_hash = hash(sort(edgelist))
-        priors_hash = hash(sort(collect(current_priors)))  # Use current_priors instead of conditioning_state
+        
+        # Create a hashable representation of priors based on type
+        priors_for_hash = []
+        for (node, value) in current_priors
+            if isa(value, Float64)
+                push!(priors_for_hash, (node, value))
+            elseif isa(value, pbox)
+                # For pbox, use numeric bounds for hashing
+                # Access the actual bounds from the pbox structure
+                min_val = minimum(value.u)  # minimum of left bounds
+                max_val = maximum(value.d)  # maximum of right bounds
+                push!(priors_for_hash, (node, (min_val, max_val)))
+            elseif isa(value, Interval)
+                # For Interval, use bounds for hashing
+                push!(priors_for_hash, (node, (value.lower, value.upper)))
+            else
+                # Fallback: convert to string
+                push!(priors_for_hash, (node, string(value)))
+            end
+        end
+        
+        priors_hash = hash(sort(priors_for_hash))
         return CacheKey(diamond_hash, priors_hash)
+    end
+
+    # Helper functions for type-specific operations
+    # Zero and one values for different types
+    zero_value(::Type{Float64}) = 0.0
+    one_value(::Type{Float64}) = 1.0
+    zero_value(::Type{Interval}) = Interval(0.0, 0.0)
+    one_value(::Type{Interval}) = Interval(1.0, 1.0)
+    zero_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.0, 0.0))
+    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))
+
+    # Type-specific probability validation
+    is_valid_probability(value::Float64) = 0.0 <= value <= 1.0
+
+    function is_valid_probability(value::Interval)
+        return value.lower >= 0.0 && value.upper <= 1.0
+    end
+
+    function is_valid_probability(value::pbox)
+        min_value = PBA.minimum(value)
+        max_value = PBA.maximum(value)
+        
+        # Handle the case where min/max might return intervals
+        min_bound = isa(min_value, PBA.Interval) ? min_value.lo : min_value
+        max_bound = isa(max_value, PBA.Interval) ? max_value.hi : max_value
+        
+        return min_bound >= 0.0 && max_bound <= 1.0
+    end
+
+    # Type-specific arithmetic operations
+    # Addition
+    add_values(a::Float64, b::Float64) = a + b
+    add_values(a::Interval, b::Interval) = Interval(a.lower + b.lower, a.upper + b.upper)
+    add_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = +)
+
+    # Multiplication
+    multiply_values(a::Float64, b::Float64) = a * b
+    function multiply_values(a::Interval, b::Interval)
+        products = [a.lower * b.lower, a.lower * b.upper, a.upper * b.lower, a.upper * b.upper]
+        return Interval(minimum(products), maximum(products))
+    end
+    multiply_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = *)
+
+    # Complement (1 - value)
+    complement_value(a::Float64) = 1.0 - a
+    complement_value(a::Interval) = Interval(1.0 - a.upper, 1.0 - a.lower)
+    complement_value(a::pbox) = PBA.convIndep(one_value(pbox), a, op = -)
+
+    # Subtraction
+    subtract_values(a::Float64, b::Float64) = a - b
+    subtract_values(a::Interval, b::Interval) = Interval(a.lower - b.upper, a.upper - b.lower)
+    subtract_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = -)
+
+    # Sum of vector
+    sum_values(values::Vector{Float64}) = sum(values)
+    function sum_values(values::Vector{Interval})
+        if isempty(values)
+            return zero_value(Interval)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = add_values(result, values[i])
+        end
+        return result
+    end
+    function sum_values(values::Vector{pbox})
+        if isempty(values)
+            return zero_value(pbox)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = add_values(result, values[i])
+        end
+        return result
+    end
+
+    # Product of vector
+    prod_values(values::Vector{Float64}) = prod(values)
+    function prod_values(values::Vector{Interval})
+        if isempty(values)
+            return one_value(Interval)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = multiply_values(result, values[i])
+        end
+        return result
+    end
+    function prod_values(values::Vector{pbox})
+        if isempty(values)
+            return one_value(pbox)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = multiply_values(result, values[i])
+        end
+        return result
     end
 
     function validate_network_data(
@@ -110,9 +239,9 @@ module ReachabilityModule
         outgoing_index::Dict{Int64, Set{Int64}},
         incoming_index::Dict{Int64, Set{Int64}},
         source_nodes::Set{Int64},
-        node_priors::Dict{Int64, Float64},
-        link_probability::Dict{Tuple{Int64, Int64}, Float64},
-    )
+        node_priors::Dict{Int64, T},
+        link_probability::Dict{Tuple{Int64, Int64}, T},
+    ) where {T <: Union{Float64, pbox, Interval}}
         # Collect all nodes from iteration sets
         all_nodes = reduce(union, iteration_sets, init = Set{Int64}())
 
@@ -166,13 +295,13 @@ module ReachabilityModule
         end
 
         # 6. Validate all prior probabilities are between 0 and 1
-        invalid_priors = [(node, prior) for (node, prior) in node_priors if prior < 0 || prior > 1]
+        invalid_priors = [(node, prior) for (node, prior) in node_priors if !is_valid_probability(prior)]
         if !isempty(invalid_priors)
             throw(ErrorException("The following nodes have invalid prior probabilities (must be between 0 and 1): $invalid_priors"))
         end
 
         # 7. Validate all probability values are between 0 and 1
-        invalid_probabilities = [(edge, rel) for (edge, rel) in link_probability if rel < 0 || rel > 1]
+        invalid_probabilities = [(edge, rel) for (edge, rel) in link_probability if !is_valid_probability(rel)]
         if !isempty(invalid_probabilities)
             throw(ErrorException("The following edges have invalid probability values (must be between 0 and 1): $invalid_probabilities"))
         end
@@ -201,22 +330,22 @@ module ReachabilityModule
     end
 
     function update_beliefs_iterative(
-        edgelist::Vector{Tuple{Int64,Int64}},  
+        edgelist::Vector{Tuple{Int64,Int64}},
         iteration_sets::Vector{Set{Int64}},
         outgoing_index::Dict{Int64,Set{Int64}},
         incoming_index::Dict{Int64,Set{Int64}},
         source_nodes::Set{Int64},
-        node_priors::Dict{Int64,Float64},
-        link_probability::Dict{Tuple{Int64,Int64},Float64},
-        descendants::Dict{Int64, Set{Int64}}, 
+        node_priors::Dict{Int64,T},
+        link_probability::Dict{Tuple{Int64,Int64},T},
+        descendants::Dict{Int64, Set{Int64}},
         ancestors::Dict{Int64, Set{Int64}},
         diamond_structures::Dict{Int64, DiamondsAtNode},
         join_nodes::Set{Int64},
         fork_nodes::Set{Int64},
-        cache::Dict{CacheKey, DiamondCacheEntry}= Dict{CacheKey, DiamondCacheEntry}()  # Default empty cache
-    )
+        cache::Dict{CacheKey, DiamondCacheEntry{T}} = Dict{CacheKey, DiamondCacheEntry{T}}()  # Default empty cache
+    ) where {T <: Union{Float64, pbox, Interval}}
         validate_network_data(iteration_sets, outgoing_index, incoming_index, source_nodes, node_priors, link_probability)
-        belief_dict = Dict{Int64, Float64}()
+        belief_dict = Dict{Int64, T}()
 
         for node_set in iteration_sets
             for node in node_set
@@ -226,7 +355,7 @@ module ReachabilityModule
                 end
 
                 # Collect all sources of belief for this node
-                all_beliefs = Float64[]
+                all_beliefs = T[]
                 
                 # Process diamond structures if they exist
                 if haskey(diamond_structures, node)
@@ -254,7 +383,7 @@ module ReachabilityModule
                         
                         # For simple tree paths, just take the sum
                         if !(node in join_nodes) || length(intersect(ancestors[node], source_nodes)) <= 1
-                            push!(all_beliefs, sum(non_diamond_beliefs))
+                            push!(all_beliefs, sum_values(non_diamond_beliefs))
                         else
                             # For join nodes with multiple paths, use inclusion-exclusion
                             append!(all_beliefs, non_diamond_beliefs)
@@ -276,17 +405,17 @@ module ReachabilityModule
                         append!(all_beliefs, probability_from_parents)
                     else
                         # For simple tree paths, just take the sum
-                        push!(all_beliefs, sum(probability_from_parents))
+                        push!(all_beliefs, sum_values(probability_from_parents))
                     end
                 end
                 
                 # Final combination of all belief sources
                 if length(all_beliefs) == 1
                     _preprior = all_beliefs[1]
-                    belief_dict[node] = node_priors[node] * _preprior
+                    belief_dict[node] = multiply_values(node_priors[node], _preprior)
                 else
                     _preprior = inclusion_exclusion(all_beliefs)
-                    belief_dict[node] = node_priors[node] * _preprior
+                    belief_dict[node] = multiply_values(node_priors[node], _preprior)
                 end
             end
         end
@@ -297,10 +426,10 @@ module ReachabilityModule
     function calculate_regular_belief(
         parents::Set{Int64},
         node::Int64,
-        belief_dict::Dict{Int64, Float64},
-        link_probability::Dict{Tuple{Int64, Int64}, Float64},
-    )
-        combined_probability_from_parents = Float64[]
+        belief_dict::Dict{Int64, T},
+        link_probability::Dict{Tuple{Int64, Int64}, T},
+    ) where {T <: Union{Float64, pbox, Interval}}
+        combined_probability_from_parents = T[]
         for parent in parents
             if !haskey(belief_dict, parent)
                 throw(ErrorException("Parent node $parent of node $node has no belief value. This indicates a processing order error."))
@@ -312,14 +441,14 @@ module ReachabilityModule
             end
             link_rel = link_probability[(parent, node)]
 
-            push!(combined_probability_from_parents, parent_belief * link_rel)
+            push!(combined_probability_from_parents, multiply_values(parent_belief, link_rel))
         end
 
         return combined_probability_from_parents
     end
 
-    function inclusion_exclusion(belief_values::Vector{Float64})
-        combined_belief = 0.0
+    function inclusion_exclusion(belief_values::Vector{T}) where {T <: Union{Float64, pbox, Interval}}
+        combined_belief = zero_value(T)
         num_beliefs = length(belief_values)
         
 
@@ -327,13 +456,13 @@ module ReachabilityModule
             # Iterate through all possible combinations of belief values
             for combination in combinations(belief_values, i)
                 # Calculate the intersection probability of the current combination
-                intersection_probability = prod(combination)
+                intersection_probability = prod_values(collect(combination))
 
                 # Add or subtract the intersection probability based on the number of beliefs in the combination
                 if isodd(i)
-                    combined_belief += intersection_probability
+                    combined_belief = add_values(combined_belief, intersection_probability)
                 else
-                    combined_belief -= intersection_probability
+                    combined_belief = subtract_values(combined_belief, intersection_probability)
                 end
             end
         end
@@ -341,18 +470,18 @@ module ReachabilityModule
     end
 
     function updateDiamondJoin(
-        conditioning_nodes::Set{Int64},  
-        join_node::Int64, 
+        conditioning_nodes::Set{Int64},
+        join_node::Int64,
         diamond::Diamond,
-        link_probability::Dict{Tuple{Int64,Int64},Float64},
-        node_priors::Dict{Int64,Float64},
-        belief_dict::Dict{Int64,Float64},
-        diamond_cache::Dict{CacheKey, DiamondCacheEntry}
-    )
+        link_probability::Dict{Tuple{Int64,Int64},T},
+        node_priors::Dict{Int64,T},
+        belief_dict::Dict{Int64,T},
+        diamond_cache::Dict{CacheKey, DiamondCacheEntry{T}}
+    ) where {T <: Union{Float64, pbox, Interval}}
 
         
         # Create sub_link_probability just for the diamond edges
-        sub_link_probability = Dict{Tuple{Int64, Int64}, Float64}()
+        sub_link_probability = Dict{Tuple{Int64, Int64}, T}()
         for edge in diamond.edgelist
             sub_link_probability[edge] = link_probability[edge]
         end
@@ -397,18 +526,18 @@ module ReachabilityModule
         end =#
         
         # Create sub_node_priors for the diamond nodes
-        sub_node_priors = Dict{Int64, Float64}()
+        sub_node_priors = Dict{Int64, T}()
         for node in diamond.relevant_nodes
             if node ∉ fresh_sources
                 sub_node_priors[node] = node_priors[node]
                 if node == join_node
                     # If the node is the join node, set its prior to 1.0
-                    sub_node_priors[node] = 1.0                
+                    sub_node_priors[node] = one_value(T)
                 end
-            elseif node ∉ conditioning_nodes 
+            elseif node ∉ conditioning_nodes
                 sub_node_priors[node] = belief_dict[node]
-            elseif node ∈ conditioning_nodes 
-                sub_node_priors[node] =  1.0    ## Set conditioning nodes to 1.0 so that diamonds identifcation works
+            elseif node ∈ conditioning_nodes
+                sub_node_priors[node] = one_value(T)    ## Set conditioning nodes to 1.0 so that diamonds identifcation works
             end
         end
 
@@ -428,13 +557,13 @@ module ReachabilityModule
         
         
         # Generate all possible states of conditioning nodes (0 or 1)
-        final_belief = 0.0
+        final_belief = zero_value(T)
         
         # Use binary representation for efficiency
         for state_idx in 0:(2^length(conditioning_nodes_list) - 1)
             # Calculate state probability
-            state_probability = 1.0
-            conditioning_state = Dict{Int64, Float64}()
+            state_probability = one_value(T)
+            conditioning_state = Dict{Int64, T}()
             
             for (i, node) in enumerate(conditioning_nodes_list)
                 # Store original belief for this node
@@ -442,11 +571,11 @@ module ReachabilityModule
                 
                 # Check if the i-th bit is set
                 if (state_idx & (1 << (i-1))) != 0
-                    conditioning_state[node] = 1.0
-                    state_probability *= original_belief
+                    conditioning_state[node] = one_value(T)
+                    state_probability = multiply_values(state_probability, original_belief)
                 else
-                    conditioning_state[node] = 0.0
-                    state_probability *= (1.0 - original_belief)
+                    conditioning_state[node] = zero_value(T)
+                    state_probability = multiply_values(state_probability, complement_value(original_belief))
                 end
             end
             
@@ -489,7 +618,7 @@ module ReachabilityModule
 
             # Weight the result by the probability of this state
             join_belief = state_beliefs[join_node]
-            final_belief += join_belief * state_probability
+            final_belief = add_values(final_belief, multiply_values(join_belief, state_probability))
         end
         
         
@@ -498,11 +627,11 @@ module ReachabilityModule
 
     function calculate_diamond_groups_belief(
         diamond_structure::DiamondsAtNode,
-        belief_dict::Dict{Int64,Float64},
-        link_probability::Dict{Tuple{Int64,Int64},Float64},
-        node_priors::Dict{Int64,Float64},
-        cache::Dict{CacheKey, DiamondCacheEntry}
-    )
+        belief_dict::Dict{Int64,T},
+        link_probability::Dict{Tuple{Int64,Int64},T},
+        node_priors::Dict{Int64,T},
+        cache::Dict{CacheKey, DiamondCacheEntry{T}}
+    ) where {T <: Union{Float64, pbox, Interval}}
         join_node = diamond_structure.join_node
         group_combined_beliefs = updateDiamondJoin(
                 diamond_structure.diamond.highest_nodes, 
@@ -516,4 +645,60 @@ module ReachabilityModule
         return group_combined_beliefs
     end
 
+     # Helper function to convert from original Float64 data to p-box data 
+    function convert_to_pbox_data(
+        node_priors::Dict{Int64, Float64},
+        link_probability::Dict{Tuple{Int64, Int64}, Float64};
+        uncertainty_type::Symbol = :none,  # Options: :none, :interval, :normal
+        uncertainty_value::Float64 = 0.0
+    )
+        # Convert node priors
+        pbox_node_priors = Dict{Int64, pbox}()
+        for (node, value) in node_priors
+            if uncertainty_type == :interval && uncertainty_value > 0.0
+                # Create interval p-box with fixed width uncertainty
+                min_val = max(0.0, value - uncertainty_value)
+                max_val = min(1.0, value + uncertainty_value)
+                pbox_node_priors[node] = PBA.makepbox(PBA.interval(min_val, max_val))
+            elseif uncertainty_type == :normal && uncertainty_value > 0.0
+                # Create normal distribution with mean value and std of uncertainty_value
+                # Truncate at 0 and 1 since these are probabilities
+                pbox_node_priors[node] = PBA.normal(value, uncertainty_value)
+                # Truncate to valid probability range if needed
+                if PBA.minimum(pbox_node_priors[node]) < 0 || PBA.maximum(pbox_node_priors[node]) > 1
+                    left_bound = max(0.0, PBA.minimum(pbox_node_priors[node]))
+                    right_bound = min(1.0, PBA.maximum(pbox_node_priors[node]))
+                    pbox_node_priors[node] = PBA.makepbox(PBA.interval(left_bound, right_bound))
+                end
+            else
+                # Create precise p-box (default)
+                pbox_node_priors[node] = PBA.makepbox(PBA.interval(value, value))
+            end
+        end
+        
+        # Convert link probabilities
+        pbox_link_probability = Dict{Tuple{Int64, Int64}, pbox}()
+        for (edge, value) in link_probability
+            if uncertainty_type == :interval && uncertainty_value > 0.0
+                # Create interval with uncertainty
+                min_val = max(0.0, value - uncertainty_value)
+                max_val = min(1.0, value + uncertainty_value)
+                pbox_link_probability[edge] = PBA.makepbox(PBA.interval(min_val, max_val))
+            elseif uncertainty_type == :normal && uncertainty_value > 0.0
+                # Create normal distribution with mean value and std of uncertainty_value
+                pbox_link_probability[edge] = PBA.normal(value, uncertainty_value)
+                # Truncate to valid probability range if needed
+                if PBA.minimum(pbox_link_probability[edge]) < 0 || PBA.maximum(pbox_link_probability[edge]) > 1
+                    left_bound = max(0.0, PBA.minimum(pbox_link_probability[edge]))
+                    right_bound = min(1.0, PBA.maximum(pbox_link_probability[edge]))
+                    pbox_link_probability[edge] = PBA.makepbox(PBA.interval(left_bound, right_bound))
+                end
+            else
+                # Create precise p-box
+                pbox_link_probability[edge] = PBA.makepbox(PBA.interval(value, value))
+            end
+        end
+        
+        return pbox_node_priors, pbox_link_probability
+    end
 end

@@ -1,7 +1,7 @@
 module ReachabilityModule_Interval
 
     using Combinatorics
-    using ..NetworkDecompositionModule
+    using ..DiamondProcessingModule
     using ..InputProcessingModule
     import ..InputProcessingModule: Interval
 
@@ -283,15 +283,15 @@ module ReachabilityModule_Interval
             end
         end
 
-        sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
+        
+        sub_diamond_structures = DiamondProcessingModule.identify_and_group_diamonds(
             sub_join_nodes,
-            sub_ancestors,
             sub_incoming_index,
-            fresh_sources,  #  Use fresh_sources instead of subgraph.sources
-            sub_fork_nodes,
-            sub_iteration_sets,
-            diamond.edgelist,  #  Use diamond.edgelist
+            sub_ancestors,
             sub_descendants,
+            fresh_sources,
+            sub_fork_nodes,
+            diamond.edgelist,
             sub_node_priors
         )
 

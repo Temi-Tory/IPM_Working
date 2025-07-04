@@ -1,5 +1,5 @@
 module DiamondClassificationModule
-    using ..NetworkDecompositionModule: Diamond, DiamondsAtNode
+    using ..DiamondProcessingModule: Diamond, DiamondsAtNode
     
     export DiamondClassification, classify_diamond_exhaustive,
            ForkStructure, InternalStructure, PathTopology, JoinStructure, ExternalConnectivity, DegenerateCases

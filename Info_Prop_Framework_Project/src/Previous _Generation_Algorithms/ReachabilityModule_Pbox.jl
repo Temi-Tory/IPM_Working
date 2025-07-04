@@ -7,7 +7,7 @@ module ReachabilityModule_Pbox
     # Import with explicit aliases to avoid name conflicts
     import ProbabilityBoundsAnalysis
     import IntervalArithmetic
-    using ..NetworkDecompositionModule
+    using ..DiamondProcessingModule
     using ..InputProcessingModule
 
     # Create aliases to avoid ambiguity
@@ -381,17 +381,19 @@ module ReachabilityModule_Pbox
             end
         end
 
-        sub_diamond_structures = NetworkDecompositionModule.identify_and_group_diamonds(
+        
+       
+        sub_diamond_structures = DiamondProcessingModule.identify_and_group_diamonds(
             sub_join_nodes,
-            sub_ancestors,
             sub_incoming_index,
-            fresh_sources,  #  Use fresh_sources
-            sub_fork_nodes,
-            sub_iteration_sets,
-            diamond.edgelist,  #  Use diamond.edgelist
+            sub_ancestors,
             sub_descendants,
+            fresh_sources,
+            sub_fork_nodes,
+            diamond.edgelist,
             sub_node_priors
         )
+
 
         # NEW: Use multi-conditioning approach with p-box arithmetic
         conditioning_nodes_list = collect(conditioning_nodes)

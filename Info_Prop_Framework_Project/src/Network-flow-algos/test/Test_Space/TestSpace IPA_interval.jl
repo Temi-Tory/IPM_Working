@@ -1,18 +1,24 @@
-using Fontconfig: Fontconfig
+import Fontconfig
 using DataFrames, DelimitedFiles, Distributions,
-    DataStructures, SparseArrays, BenchmarkTools,
-    Combinatorics
+      DataStructures, SparseArrays, BenchmarkTools,
+      Combinatorics
 
-# Import framework
+# Include the IPAFramework module
+include("../../src/IPAFramework.jl")
 using .IPAFramework
 
 
 
+#user input from ui for eg 
+
 #filepathcsv = "csvfiles/layereddiamond_3.csv";
-#filepathcsv = "csvfiles/16 NodeNetwork Adjacency matrix.csv";
-filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
+#filepathcsv = "csvfiles/KarlNetwork.csv";
+#filepathcsv = "csvfiles/real_drone_network_integrated_adjacency.csv";
+filepathcsv = joinpath("Info_Prop_Framework_Project/csvfiles/16 NodeNetwork Adjacency matrix.csv"); # 4 by 4 grid
+#filepathcsv = "csvfiles/Pacific Gas and Electric (Ostrom 2004) simplified Power Distribution Network.csv";
 #filepathcsv = "csvfiles/metro_directed_dag_for_ipm.csv";
-#filepathcsv = "csvfiles/munin/munin_dag.csv";
+#filepathcsv = "csvfiles/ergo_proxy_dag_network.csv";
+
 
 edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = read_graph_to_dict(filepathcsv);
 # Identify structure
@@ -24,55 +30,34 @@ node_priors = Dict(k => IPAFramework.Interval(0.9) for (k, v) in node_priors);
 edge_probabilities = Dict(k => IPAFramework.Interval(0.9) for (k, v) in edge_probabilities);
 
 
-diamond_structures= #= @run  =# identify_and_group_diamonds(
+
+diamond_structures= identify_and_group_diamonds(
     join_nodes,
-    ancestors,
     incoming_index,
+    ancestors,
+    descendants,
     source_nodes,
     fork_nodes,
-    iteration_sets,
     edgelist,
-    descendants,
+    #iteration_sets,
     node_priors
 );
 
-#= # Exhaustive classification for each diamond
-for (join_node, diamonds_at_node) in diamond_structures
-    for (i, diamond) in enumerate(diamonds_at_node.diamond)
-        classification = classify_diamond_exhaustive(
-            diamond, join_node,
-            edgelist, outgoing_index, incoming_index, source_nodes,
-            fork_nodes, join_nodes, iteration_sets, ancestors, descendants
-        )
-        
-        println("Join Node $join_node, Diamond $i:")
-        println("  Fork Structure: $(classification.fork_structure)")
-        println("  Internal Structure: $(classification.internal_structure)")
-        println("  Path Topology: $(classification.path_topology)")
-        println("  Join Structure: $(classification.join_structure)")
-        println("  External Connectivity: $(classification.external_connectivity)")
-        println("  Forks: $(classification.fork_count), Size: $(classification.subgraph_size)")
-        println("  Optimization: $(classification.optimization_potential)")
-        println()
-    end
-end =#
 
-(
-output =  interval_update_beliefs_iterative(
+output = IPAFramework.update_beliefs_iterative(
     edgelist,
-    iteration_sets, 
+    iteration_sets,
     outgoing_index,
     incoming_index,
     source_nodes,
-    node_priors, 
+    node_priors,
     edge_probabilities,
     descendants,
-    ancestors, 
+    ancestors,
     diamond_structures,
     join_nodes,
     fork_nodes
-));
-
+);
 #sorted_algo = OrderedDict(sort(collect(output)));
 
 #= output for Pacific Gas and Electric node priors and edge probabilities = 0.9        

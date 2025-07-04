@@ -1,5 +1,5 @@
 module GeneralizedCriticalPathModule
-    using ..NetworkDecompositionModule
+    using ..DiamondProcessingModule
     using ..InputProcessingModule
 
     export CriticalPathParameters, CriticalPathResult,

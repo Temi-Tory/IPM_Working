@@ -1,17 +1,15 @@
 # src/IPAFramework.jl
 module IPAFramework
     include("Algorithms/InputProcessingModule.jl")
-    include("Algorithms/NetworkDecompositionModule.jl")
-    include("Algorithms/ReachabilityModule.jl")
-#=     include("Active_Work_Algos/StateReliabilityModule.jl")  # NEW: Exact MTTF/MTTR module =#
+    include("Algorithms/DiamondProcessingModule.jl")
+    include("Algorithms/ReachabilityModuleRecurse.jl")
+    #=     include("Active_Work_Algos/StateReliabilityModule.jl")  # NEW: Exact MTTF/MTTR module =#
     include("Algorithms/ComparisonModules.jl")
     include("Algorithms/VisualizeGraphsModule.jl")
     include("Algorithms/GenerateGraphModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
     include("Algorithms/DroneNetworkDagModule.jl")
     include("Algorithms/DroneInputProcessingModule.jl")
-    include("Algorithms/ReachabilityModule_Pbox.jl")
-    include("Algorithms/ReachabilityModule_Interval.jl")
     include("Algorithms/DiamondClassificationModule.jl")
     include("Active_Work_Algos/TemporalReachabilityModule.jl")
     include("Algorithms/CapacityAnalysisModule.jl")
@@ -21,10 +19,11 @@ module IPAFramework
     using .InputProcessingModule: ProbabilitySlices, Interval, read_graph_to_dict, 
                                  identify_fork_and_join_nodes, find_iteration_sets
 
-    using .NetworkDecompositionModule: DiamondsAtNode, Diamond, identify_and_group_diamonds
+    using .DiamondProcessingModule: DiamondsAtNode, Diamond, identify_and_group_diamonds
 
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
-                              calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion
+                              calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
+                              convert_to_pbox_data
 
     # NEW: Import exact state reliability functions
     using .StateReliabilityModule: StateReliabilityConfig, StateReliabilityResults,
@@ -34,17 +33,15 @@ module IPAFramework
 
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
-    using .ReachabilityModule_Pbox: pbox_validate_network_data, pbox_update_beliefs_iterative,
-                                   pbox_updateDiamondJoin, pbox_calculate_diamond_groups_belief,
-                                   pbox_calculate_regular_belief, pbox_inclusion_exclusion, convert_to_pbox_data
-
-    using .ReachabilityModule_Interval: interval_update_beliefs_iterative, interval_updateDiamondJoin,
-                                       interval_calculate_diamond_groups_belief, interval_calculate_regular_belief,
-                                       interval_inclusion_exclusion
-
+   
     using .VisualizeGraphsModule: generate_graph_dot_string, visualize_graph
 
     using .GenerateGraphModule: InfraProperties, generate_infra_dag, analyze_ranked_dag, generate_dag_probabilities
+
+    # Export functions for direct use
+    export validate_network_data, update_beliefs_iterative, updateDiamondJoin,
+           calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
+           convert_to_pbox_data
 
     using .UndirectedToDagModule: improved_undirected_to_dag, process_graph_from_csv,
                                  analyze_generated_dag, validate_dag
@@ -95,7 +92,7 @@ module IPAFramework
         read_graph_to_dict, identify_fork_and_join_nodes, find_iteration_sets,
 
         # Network decomposition  
-        identify_and_group_diamonds, find_highest_iteration_nodes,
+        identify_and_group_diamonds
 
         # Standard reachability analysis
         validate_network_data, update_beliefs_iterative, updateDiamondJoin,
@@ -110,20 +107,8 @@ module IPAFramework
         # Comparison methods
         MC_result, has_path, path_enumeration_result,
 
-        # P-box reachability analysis
-        pbox_validate_network_data, pbox_update_beliefs_iterative, pbox_updateDiamondJoin,
-        pbox_calculate_diamond_groups_belief, pbox_calculate_regular_belief, 
-        pbox_inclusion_exclusion, convert_to_pbox_data,
-
-        # Interval reachability analysis  
-        interval_update_beliefs_iterative, interval_updateDiamondJoin,
-        interval_calculate_diamond_groups_belief, interval_calculate_regular_belief,
-        interval_inclusion_exclusion,
-
-        # TIME ANALYSIS EXPORTS - Complete set
-        TimeFlowParameters, time_update_beliefs_iterative,
-        get_project_duration, get_critical_path_nodes, format_results,
-        to_hours, from_hours, validate_time_parameters,
+     
+       
 
         CriticalPathParameters, CriticalPathResult,
         critical_path_analysis,

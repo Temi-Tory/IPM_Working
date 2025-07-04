@@ -69,7 +69,7 @@ This module extends the existing exact reachability framework:
 
 using Combinatorics
 using Base.Threads
-using ..NetworkDecompositionModule
+using ..DiamondProcessingModule
 using ..InputProcessingModule
 
 # State constants - DO NOT CHANGE THESE VALUES
