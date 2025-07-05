@@ -1,212 +1,379 @@
-# 🚀 Information Propagation Framework - Project Roadmap
+# 🗺️ Angular 20 Diamond Analysis Platform - Project Roadmap
 
-## 📋 Project Overview
+## 📋 Executive Summary
 
-Building a sophisticated Angular 20 Information Propagation Framework with:
-- **Native Angular 20 Signals** for reactive state management
-- **Angular Material** with custom muted purple/pink theming
-- **Cytoscape.js** for interactive network visualization
-- **Nx workspace** with reusable libraries
-- **Desktop-first responsive design** for network analysis work
+This roadmap outlines the strategic development path for transforming the current Angular 20 network analysis application into a comprehensive diamond structure analysis platform. The roadmap builds upon the existing solid foundation of Angular 20 Native Signals, D3.js visualization, and modular architecture to deliver cutting-edge diamond analysis capabilities.
+
+### Vision Statement
+Create a PhD-level, professional diamond analysis platform that demonstrates mastery of modern Angular 20 capabilities while providing comprehensive diamond structure detection, classification, and multi-level analysis for information propagation networks.
 
 ---
 
-## ✅ COMPLETED TASKS
+## ✅ COMPLETED FOUNDATION
 
-### Phase 1: Foundation Setup ✅
-- [x] **Clean Angular 20 setup** - No NgRx dependency conflicts
-- [x] **Essential dependencies installed** - Angular Material, Cytoscape.js, utilities
-- [x] **Nx workspace structure** - Three libraries (ui-components, network-core, visualization)
-- [x] **SCSS configuration** - Workspace-wide SCSS defaults
-- [x] **Development server** - Running at http://localhost:4200/
+### Phase 0: Foundation Complete (100% ✅)
+**Timeline**: Already Completed
+**Status**: Production Ready
 
-### Phase 2: Core UI Structure ✅
-- [x] **Professional header** - "Information Propagation Framework" branding
-- [x] **Muted purple/pink theme** - Sophisticated color palette
-- [x] **Working navigation** - Between Network Setup and Visualization
-- [x] **Responsive layout** - Desktop-first with mobile support
-- [x] **Lazy-loaded routing** - Efficient component loading
+#### Technical Foundation ✅
+- **Angular 20 + Native Signals**: Complete reactive state management system
+- **D3.js + GraphViz Visualization**: Functional interactive network visualization with multiple layout algorithms
+- **Nx Workspace Architecture**: Modular structure with 3 libraries (network-core, ui-components, visualization)
+- **Professional UI/UX**: Muted purple/pink theme, responsive design, professional styling
+- **Signal-Based Services**: 5 comprehensive services with reactive state management
 
-### Phase 3: Page Foundations ✅
-- [x] **Network Setup page** - File upload interface, test networks, configuration
-- [x] **Visualization page** - Controls panel, stats display, Cytoscape placeholder
-- [x] **Professional styling** - Cards, forms, buttons with consistent design
-- [x] **Route structure** - Automatic redirect and proper navigation
+#### Current Capabilities ✅
+- **Network Setup**: File upload, validation, sample networks
+- **Interactive Visualization**: D3.js with GraphViz layouts (DOT, Circo, FDP, Neato)
+- **Real-time Controls**: Layout switching, node sizing, edge styling, zoom controls
+- **State Management**: Comprehensive signal-based reactive architecture
+- **API Ready**: Service layer prepared for Julia backend integration
 
----
-
-## 🎯 CURRENT PHASE: Core Functionality
-
-### Phase 4: Signal-Based State Management
-- [ ] **Network State Service** - Signal-based network data management
-- [ ] **Analysis State Service** - Signal-based analysis results
-- [ ] **UI State Service** - Application state (loading, errors, selections)
-- [ ] **File Handler Service** - Upload, validation, parsing
-- [ ] **API Service** - Julia backend integration
-
-### Phase 5: File Upload & Processing
-- [ ] **Drag & drop file upload** - DAG, node probabilities, edge probabilities
-- [ ] **File validation** - Type checking, structure validation
-- [ ] **CSV/JSON parsing** - Network data processing
-- [ ] **Test network loader** - Pre-configured sample networks
-- [ ] **Upload progress indicators** - User feedback during processing
-
-### Phase 6: Network Visualization
-- [ ] **Cytoscape.js integration** - Interactive network graphs
-- [ ] **Layout algorithms** - Hierarchical, force-directed, circle, grid
-- [ ] **Node/edge styling** - Probability-based visual encoding
-- [ ] **Zoom and pan controls** - Navigation within large networks
-- [ ] **Selection and highlighting** - Interactive node/edge selection
-
-### Phase 7: Analysis Integration
-- [ ] **Julia API client** - HTTP service for backend communication
-- [ ] **Reachability analysis** - Core information propagation calculations
-- [ ] **Diamond structure detection** - Network pattern analysis
-- [ ] **Monte Carlo simulation** - Probabilistic analysis
-- [ ] **Results visualization** - Analysis output display
-
-### Phase 8: Advanced Features
-- [ ] **Multi-level analysis** - Global, subgraph, local modes
-- [ ] **Tab management system** - Multiple analysis contexts
-- [ ] **Parameter overrides** - Dynamic analysis configuration
-- [ ] **Session persistence** - Save/load analysis sessions
-- [ ] **Export functionality** - Results export (JSON, CSV, PDF)
+#### Quality Metrics ✅
+- **Modern Architecture**: Angular 20 standalone components, function-based injection
+- **Performance**: Smooth 60fps visualization, efficient state updates
+- **Code Quality**: TypeScript strict mode, comprehensive interfaces
+- **User Experience**: Intuitive navigation, responsive design, professional aesthetics
 
 ---
 
-## 🎨 Design System Specifications
+## 🎯 CURRENT PHASE: Diamond Analysis Implementation
 
-### Color Palette (Implemented ✅)
-```scss
-$primary-purple: #6B5B95;        // Muted purple
-$secondary-pink: #D4A5A5;        // Dusty pink
-$accent-lavender: #B8A9C9;       // Soft lavender
-$background-primary: #FAFAFA;     // Warm white
-$surface-primary: #FFFFFF;        // Pure white
-$text-primary: #2C2C2C;          // Charcoal
-```
+### Phase 1: Diamond Detection Foundation (Weeks 1-2)
+**Priority**: Critical
+**Dependencies**: Julia backend diamond endpoints
+**Risk Level**: Low
 
-### Typography (Implemented ✅)
-- **Font Family**: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
-- **Headers**: Clean, modern sans-serif with proper weight hierarchy
-- **Body**: Readable, professional font with good line height
+#### Deliverables
+- [ ] **Diamond Data Models** (Week 1)
+  - Complete TypeScript interfaces for diamond structures
+  - Classification types and analysis levels
+  - API request/response models
+  - **Success Criteria**: All models type-safe and serializable
 
-### Icon Guidelines (Design Standard ✅)
-- **NO user emojis** in HTML, TS, or any code files
-- **Material Icons** preferred for UI elements
-- **Google Icons/Fonts** for additional iconography
-- **Professional consistency** - avoid decorative emojis in production code
+- [ ] **Diamond State Service** (Week 1-2)
+  - Signal-based diamond state management
+  - Integration with existing NetworkStateService
+  - Progress tracking and error handling
+  - **Success Criteria**: Reactive diamond state with computed signals
 
-### Responsive Breakpoints (Implemented ✅)
-- **Desktop**: 1200px+ (primary target)
-- **Small Desktop**: 992px-1199px
-- **Tablet**: 768px-991px
-- **Mobile**: < 768px (minimal support)
+- [ ] **Julia API Integration** (Week 2)
+  - Diamond detection endpoints
+  - Classification API calls
+  - Multi-level analysis endpoints
+  - **Success Criteria**: Successful API communication with error handling
 
----
+#### Success Metrics
+- Diamond detection API response time < 2 seconds
+- State service integration with zero breaking changes
+- 100% TypeScript type coverage for diamond models
 
-## 🏗️ Architecture Decisions
+### Phase 2: Visualization Enhancement (Weeks 3-4)
+**Priority**: High
+**Dependencies**: Phase 1 completion
+**Risk Level**: Medium
 
-### State Management: Angular 20 Native Signals ✅
-```typescript
-// Example signal-based service structure
-@Injectable({ providedIn: 'root' })
-export class NetworkStateService {
-  // Private signals for internal state
-  private _networkData = signal<NetworkData | null>(null);
-  private _isLoading = signal(false);
-  private _error = signal<string | null>(null);
-  
-  // Public readonly signals
-  readonly networkData = this._networkData.asReadonly();
-  readonly isLoading = this._isLoading.asReadonly();
-  readonly error = this._error.asReadonly();
-  
-  // Computed signals
-  readonly isNetworkLoaded = computed(() => this._networkData() !== null);
-  readonly nodeCount = computed(() => this._networkData()?.nodes.length ?? 0);
-  readonly canAnalyze = computed(() => this.isNetworkLoaded() && !this.isLoading());
-}
-```
+#### Deliverables
+- [ ] **Diamond Visualization Service** (Week 3)
+  - D3.js enhancement for diamond highlighting
+  - GraphViz DOT generation with diamond clusters
+  - Interactive diamond selection and highlighting
+  - **Success Criteria**: Visual diamond distinction in network graphs
 
-### Component Architecture: Standalone Components ✅
-- **Lazy-loaded pages** for optimal performance
-- **Shared libraries** for reusable components
-- **Signal-based reactivity** throughout the application
+- [ ] **Enhanced Visualization Component** (Week 3-4)
+  - Diamond detection controls integration
+  - Real-time diamond highlighting
+  - Performance optimization for multiple diamonds
+  - **Success Criteria**: Smooth visualization updates with diamond overlays
 
-### API Integration: RESTful Julia Backend
-- **HTTP client** with proper error handling
-- **Type-safe interfaces** for all API communications
-- **Retry logic** for robust network communication
+- [ ] **Diamond-Specific Interactions** (Week 4)
+  - Click-to-explore diamond functionality
+  - Hover effects for diamond structures
+  - Context menus for diamond operations
+  - **Success Criteria**: Intuitive diamond interaction patterns
 
----
+#### Success Metrics
+- Visualization performance maintained at 60fps with diamonds
+- Diamond highlighting response time < 100ms
+- Support for 50+ simultaneous diamond structures
 
-## 📁 Current Project Structure ✅
+### Phase 3: Analysis Dashboard (Weeks 5-6)
+**Priority**: High
+**Dependencies**: Phase 2 completion
+**Risk Level**: Low
 
-```
-website/workspace/
-├── apps/
-│   └── network-flow-ui/                    # Main Angular Application ✅
-│       ├── src/app/
-│       │   ├── pages/                      # Feature Pages ✅
-│       │   │   ├── network-setup/          # Network Setup Page ✅
-│       │   │   └── visualization/          # Visualization Page ✅
-│       │   ├── app.html                    # Main Layout ✅
-│       │   ├── app.scss                    # Global Styles ✅
-│       │   └── app.routes.ts               # Routing Configuration ✅
-├── libs/                                   # Shared Libraries ✅
-│   ├── ui-components/                      # Shared UI Components ✅
-│   ├── network-core/                       # Data Models & Services ✅
-│   └── visualization/                      # Cytoscape Components ✅
-```
+#### Deliverables
+- [ ] **Diamond Analysis Page** (Week 5)
+  - Dedicated analysis interface
+  - Analysis level selection (global, subgraph, local, nested)
+  - Classification summary displays
+  - **Success Criteria**: Comprehensive analysis control interface
 
----
+- [ ] **Diamond Card Components** (Week 5-6)
+  - Individual diamond information cards
+  - Classification confidence display
+  - Action buttons for exploration
+  - **Success Criteria**: Clear diamond information presentation
 
-## 🚀 Next Implementation Steps
+- [ ] **Analysis Results Integration** (Week 6)
+  - Results grid with filtering
+  - Export capabilities
+  - Analysis history tracking
+  - **Success Criteria**: Professional results presentation and management
 
-### Immediate Priority (Next Session)
-1. **Create NetworkStateService** with signals for network data management
-2. **Implement file upload functionality** with drag & drop support
-3. **Add basic Cytoscape.js integration** for network visualization
-4. **Create test network loader** for immediate functionality
-
-### Success Criteria for Next Phase
-- [ ] Users can upload network files and see them processed
-- [ ] Basic network visualization displays uploaded data
-- [ ] File validation provides clear feedback
-- [ ] Test networks load and display correctly
+#### Success Metrics
+- Analysis dashboard loads < 1 second
+- Support for 100+ diamond results display
+- Intuitive user workflow completion rate > 95%
 
 ---
 
-## 🎯 Long-term Vision
+## 🚀 UPCOMING PHASES
 
-### PhD-Level Quality Goals
-- **Professional UI/UX** - Sophisticated, academic-appropriate design
-- **Cutting-edge technology** - Angular 20 signals, modern patterns
-- **Robust architecture** - Scalable, maintainable codebase
-- **Comprehensive functionality** - Full information propagation analysis suite
-- **Performance optimized** - Efficient for large network datasets
+### Phase 4: Multi-Level Analysis (Weeks 7-8)
+**Priority**: Critical for PhD-level quality
+**Dependencies**: Phase 3 completion
+**Risk Level**: High
 
-### Integration with Julia Backend
-- **Seamless API communication** - Type-safe, error-handled
-- **Real-time analysis** - Responsive feedback during processing
-- **Advanced algorithms** - Diamond detection, Monte Carlo, reachability
-- **Flexible parameters** - Dynamic analysis configuration
+#### Strategic Objectives
+- Implement hierarchical diamond analysis
+- Global → Subgraph → Local → Nested analysis flow
+- Cross-level relationship mapping
+- Advanced propagation calculations
+
+#### Key Deliverables
+- [ ] **Multi-Level Analysis Service**
+  - Coordinated analysis across all levels
+  - Progress tracking for complex operations
+  - Results integration and correlation
+  - **Success Criteria**: Seamless multi-level analysis execution
+
+- [ ] **Diamond Explorer Interface**
+  - Detailed individual diamond exploration
+  - Hierarchical navigation between levels
+  - Propagation path visualization
+  - **Success Criteria**: Comprehensive diamond exploration capabilities
+
+- [ ] **Relationship Mapping**
+  - Parent-child diamond relationships
+  - Cross-level dependency visualization
+  - Impact analysis between levels
+  - **Success Criteria**: Clear hierarchical relationship understanding
+
+#### Success Metrics
+- Multi-level analysis completion < 30 seconds for typical networks
+- Hierarchical relationship accuracy > 98%
+- User comprehension of multi-level results > 90%
+
+### Phase 5: Advanced Features (Weeks 9-10)
+**Priority**: High for competitive advantage
+**Dependencies**: Phase 4 completion
+**Risk Level**: Medium
+
+#### Strategic Objectives
+- Professional-grade analysis tools
+- Comprehensive export capabilities
+- Performance optimization for large networks
+- Advanced visualization features
+
+#### Key Deliverables
+- [ ] **Diamond Comparison Tool**
+  - Side-by-side diamond analysis
+  - Difference highlighting
+  - Comparative metrics
+  - **Success Criteria**: Effective diamond comparison workflows
+
+- [ ] **Session Management**
+  - Save/load analysis sessions
+  - Analysis history with metadata
+  - Collaborative sharing capabilities
+  - **Success Criteria**: Persistent analysis workflow support
+
+- [ ] **Export & Reporting**
+  - PDF report generation
+  - CSV data export
+  - Interactive result sharing
+  - **Success Criteria**: Professional-quality output formats
+
+#### Success Metrics
+- Export generation time < 5 seconds
+- Session save/load time < 2 seconds
+- Support for networks up to 10,000 nodes
 
 ---
 
-## 📊 Progress Tracking
+## 📊 LONG-TERM VISION (Months 3-6)
 
+### Phase 6: Research Integration (Month 3)
+**Priority**: PhD Research Alignment
+**Dependencies**: Core platform completion
+
+#### Objectives
+- Integration with academic research workflows
+- Advanced algorithm implementation
+- Publication-quality visualizations
+- Research data management
+
+#### Deliverables
+- [ ] **Research Mode Interface**
+- [ ] **Algorithm Comparison Framework**
+- [ ] **Publication Export Tools**
+- [ ] **Data Provenance Tracking**
+
+### Phase 7: Performance & Scalability (Month 4)
+**Priority**: Production Readiness
+**Dependencies**: Feature completion
+
+#### Objectives
+- Large network optimization
+- Real-time analysis capabilities
+- Cloud deployment preparation
+- Performance monitoring
+
+#### Deliverables
+- [ ] **Web Workers Integration**
+- [ ] **Streaming Analysis**
+- [ ] **Cloud API Integration**
+- [ ] **Performance Dashboard**
+
+### Phase 8: Advanced Analytics (Months 5-6)
+**Priority**: Competitive Differentiation
+**Dependencies**: Platform maturity
+
+#### Objectives
+- Machine learning integration
+- Predictive analysis capabilities
+- Advanced pattern recognition
+- Automated insights generation
+
+#### Deliverables
+- [ ] **ML Model Integration**
+- [ ] **Predictive Analytics**
+- [ ] **Pattern Recognition**
+- [ ] **Automated Reporting**
+
+---
+
+## 🎯 SUCCESS CRITERIA & MILESTONES
+
+### Technical Excellence Milestones
+- [ ] **Week 2**: Diamond detection functional with Julia backend
+- [ ] **Week 4**: Interactive diamond visualization complete
+- [ ] **Week 6**: Comprehensive analysis dashboard operational
+- [ ] **Week 8**: Multi-level analysis fully implemented
+- [ ] **Week 10**: Advanced features and optimization complete
+
+### Quality Assurance Milestones
+- [ ] **Week 3**: >90% test coverage for diamond services
+- [ ] **Week 5**: Performance benchmarks met for visualization
+- [ ] **Week 7**: User acceptance testing for analysis workflows
+- [ ] **Week 9**: Cross-browser compatibility verified
+- [ ] **Week 10**: Accessibility compliance achieved
+
+### Research Impact Milestones
+- [ ] **Month 2**: PhD-level technical demonstration ready
+- [ ] **Month 3**: Research integration capabilities complete
+- [ ] **Month 4**: Publication-quality outputs available
+- [ ] **Month 6**: Advanced analytics platform operational
+
+---
+
+## ⚠️ RISK MANAGEMENT
+
+### Technical Risks
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|-------------------|
+| Julia API Performance | Medium | High | Implement caching, async processing, fallback algorithms |
+| D3.js Visualization Complexity | Low | Medium | Incremental enhancement, performance monitoring |
+| Large Network Scalability | Medium | High | Web Workers, streaming, progressive loading |
+| Browser Compatibility | Low | Medium | Comprehensive testing, polyfills |
+
+### Project Risks
+| Risk | Probability | Impact | Mitigation Strategy |
+|------|-------------|--------|-------------------|
+| Scope Creep | Medium | Medium | Clear phase boundaries, stakeholder alignment |
+| Timeline Pressure | Low | High | Agile methodology, MVP approach |
+| Resource Availability | Low | Medium | Cross-training, documentation |
+| Technology Changes | Low | Low | Modern, stable technology stack |
+
+### Mitigation Strategies
+- **Incremental Development**: Each phase delivers working functionality
+- **Continuous Testing**: Automated testing throughout development
+- **Performance Monitoring**: Regular performance benchmarking
+- **Stakeholder Communication**: Weekly progress updates and demos
+
+---
+
+## 📈 PROGRESS TRACKING
+
+### Current Status (Week 0)
 **Overall Progress**: 30% Complete
 
-- ✅ **Foundation (100%)** - Angular 20, Nx, dependencies, SCSS
-- ✅ **UI Structure (100%)** - Navigation, pages, theming, responsive design
-- ⏳ **Core Functionality (0%)** - State management, file upload, visualization
-- ⏳ **Analysis Integration (0%)** - Julia API, algorithms, results
-- ⏳ **Advanced Features (0%)** - Multi-level analysis, sessions, export
+- ✅ **Foundation (100%)**: Angular 20, D3.js, Nx, signals, UI/UX
+- ⏳ **Diamond Detection (0%)**: Models, services, API integration
+- ⏳ **Visualization Enhancement (0%)**: Diamond highlighting, interactions
+- ⏳ **Analysis Dashboard (0%)**: Analysis interface, results display
+- ⏳ **Multi-Level Analysis (0%)**: Hierarchical analysis, exploration
+- ⏳ **Advanced Features (0%)**: Comparison, export, optimization
 
-**Current Status**: Professional foundation complete, ready for core functionality implementation.
+### Key Performance Indicators (KPIs)
+- **Development Velocity**: Target 2 major deliverables per week
+- **Code Quality**: Maintain >90% test coverage
+- **Performance**: Sub-second response times for core operations
+- **User Experience**: >95% task completion rate in user testing
+
+### Weekly Reporting
+- **Monday**: Sprint planning and task assignment
+- **Wednesday**: Mid-week progress review and blocker resolution
+- **Friday**: Sprint demo and retrospective
+- **Metrics**: Velocity, quality, performance, user feedback
 
 ---
 
-*This roadmap will be updated as tasks are completed. Completed sections will be marked with ✅ and removed from active tracking.*
+## 🎓 PhD-LEVEL QUALITY ASSURANCE
+
+### Academic Standards
+- **Technical Innovation**: Cutting-edge Angular 20 signals implementation
+- **Research Rigor**: Comprehensive diamond analysis algorithms
+- **Documentation Quality**: Publication-level technical documentation
+- **Code Excellence**: Industry best practices and patterns
+
+### Professional Presentation
+- **UI/UX Design**: Sophisticated, academic-appropriate interface
+- **Performance**: Production-grade optimization and scalability
+- **Reliability**: Robust error handling and recovery
+- **Maintainability**: Clean architecture and comprehensive testing
+
+### Competitive Advantages
+- **Modern Technology**: Latest Angular 20 features and patterns
+- **Comprehensive Analysis**: Multi-level diamond analysis capabilities
+- **Interactive Visualization**: Advanced D3.js with GraphViz integration
+- **Research Integration**: Academic workflow and publication support
+
+---
+
+## 🎯 NEXT IMMEDIATE ACTIONS
+
+### Week 1 Priorities
+1. **Diamond Models Implementation** (Days 1-2)
+   - Create comprehensive TypeScript interfaces
+   - Implement data validation and serialization
+   - Update barrel exports and documentation
+
+2. **Diamond State Service** (Days 3-5)
+   - Implement signal-based state management
+   - Integrate with existing NetworkStateService
+   - Add progress tracking and error handling
+
+3. **API Service Enhancement** (Days 4-5)
+   - Add diamond detection endpoints
+   - Implement retry logic and error handling
+   - Create mock responses for development
+
+### Success Validation
+- [ ] Diamond models compile without errors
+- [ ] State service integrates seamlessly with existing architecture
+- [ ] API endpoints return properly typed responses
+- [ ] All existing functionality remains unaffected
+
+This roadmap provides a clear, strategic path forward while building upon the excellent foundation already established. The focus on diamond analysis capabilities, combined with the modern Angular 20 architecture, positions this project as a cutting-edge, PhD-level technical demonstration.

@@ -1,527 +1,845 @@
-# 🚀 Network Analysis Application Implementation Plan
+# 🚀 Angular 20 Diamond Analysis Implementation Plan
 
 ## 📋 Project Overview
 
-Building a sophisticated Angular network analysis application with:
-- **NgRx** for robust state management
-- **Angular Material** with custom muted purple/pink theming
-- **Cytoscape.js** for interactive network visualization
-- **Nx workspace** with reusable libraries
-- **Desktop-first responsive design** (network analysis is primarily desktop work)
+This implementation plan transforms the current Angular 20 application with D3.js visualization into a comprehensive diamond analysis platform. The plan focuses on actionable implementation steps organized into independent, deliverable phases that build upon the existing signal-based architecture.
 
-## 🎯 Implementation Phases
+### Current Foundation ✅
+- **Angular 20 + Native Signals**: Complete state management system
+- **D3.js + GraphViz Visualization**: Functional interactive network visualization
+- **Professional UI**: Working network setup and visualization pages
+- **Modular Architecture**: Nx workspace with 3 libraries (network-core, ui-components, visualization)
+- **Julia API Ready**: Service layer prepared for backend integration
 
-### Phase 1: Foundation Setup (Week 1)
+---
 
-#### 1.1 Dependencies Installation
-```bash
-# Navigate to workspace
-cd website/workspace
+## 🎯 Implementation Strategy
 
-# Install core dependencies
-npm install @ngrx/store @ngrx/effects @ngrx/store-devtools @ngrx/router-store
-npm install @angular/material @angular/cdk @angular/animations
-npm install cytoscape @types/cytoscape
-npm install rxjs
+### Development Approach
+- **Incremental Enhancement**: Build upon existing working components
+- **Signal-First**: Leverage Angular 20 native signals throughout
+- **API-Driven**: Integrate Julia backend for diamond analysis
+- **Visualization-Enhanced**: Extend D3.js with diamond-specific features
+- **Test-Driven**: Comprehensive testing for each deliverable
 
-# Install additional utilities
-npm install lodash @types/lodash
-npm install uuid @types/uuid
-```
+### Success Metrics
+- Diamond detection accuracy > 95%
+- Visualization performance: 60fps for networks < 1000 nodes
+- Analysis response time < 2 seconds for typical networks
+- User interaction responsiveness < 100ms
 
-#### 1.2 Nx Libraries Creation
-```bash
-# Generate shared libraries
-nx generate @nx/angular:library ui-components --directory=libs/ui-components --importPath=@network-analysis/ui-components
-nx generate @nx/angular:library network-core --directory=libs/network-core --importPath=@network-analysis/network-core
-nx generate @nx/angular:library visualization --directory=libs/visualization --importPath=@network-analysis/visualization
-```
+---
 
-#### 1.3 Angular Material Setup
-```bash
-# Add Angular Material to main app
-nx generate @angular/material:ng-add --project=network-flow-ui
-```
+## 📅 Implementation Phases
 
-### Phase 2: Core Architecture (Week 2)
+## Phase 1: Diamond Detection Foundation (Week 1-2)
 
-#### 2.1 NgRx Store Foundation
-```bash
-# Generate NgRx feature stores
-nx generate @ngrx/schematics:feature --name=network --project=network-flow-ui --module=app.module.ts
-nx generate @ngrx/schematics:feature --name=ui --project=network-flow-ui --module=app.module.ts
-```
+### 1.1 Diamond Models & Types
+**Deliverable**: Complete diamond data models and TypeScript interfaces
 
-#### 2.2 Main Layout Components
-```bash
-# Generate layout components
-nx generate @nx/angular:component main-layout --project=network-flow-ui --style=scss
-nx generate @nx/angular:component header --project=network-flow-ui --style=scss
-nx generate @nx/angular:component sidebar --project=network-flow-ui --style=scss
-```
+**Files to Create/Modify**:
+- `libs/network-core/src/lib/models/diamond.models.ts`
+- `libs/network-core/src/lib/models/api.models.ts` (extend)
 
-#### 2.3 Shared UI Components Library
-```bash
-# Generate shared components
-nx generate @nx/angular:component button --project=ui-components --export
-nx generate @nx/angular:component card --project=ui-components --export
-nx generate @nx/angular:component loading-spinner --project=ui-components --export
-nx generate @nx/angular:component file-upload --project=ui-components --export
-```
-
-### Phase 3: Core Features (Week 3-4)
-
-#### 3.1 Network Setup Module
-```bash
-# Generate network setup feature
-nx generate @nx/angular:component network-setup --project=network-flow-ui --style=scss
-nx generate @nx/angular:component network-preview --project=network-flow-ui --style=scss
-nx generate @nx/angular:service network-setup --project=network-flow-ui
-```
-
-#### 3.2 Visualization Module
-```bash
-# Generate visualization components in lib
-nx generate @nx/angular:component network-viewer --project=visualization --export
-nx generate @nx/angular:component layout-controls --project=visualization --export
-nx generate @nx/angular:service cytoscape --project=visualization
-```
-
-#### 3.3 API Integration
-```bash
-# Generate API services
-nx generate @nx/angular:service api --project=network-flow-ui
-nx generate @nx/angular:service file-handler --project=network-flow-ui
-```
-
-## 🎨 Design System Specifications
-
-### Color Palette (Muted & Professional)
-```scss
-// Primary Colors
-$primary-purple: #6B5B95;        // Muted purple
-$secondary-pink: #D4A5A5;        // Dusty pink
-$accent-lavender: #B8A9C9;       // Soft lavender
-
-// Neutral Colors
-$background-primary: #FAFAFA;     // Warm white
-$background-secondary: #F5F5F5;   // Light gray
-$surface-primary: #FFFFFF;        // Pure white
-$surface-secondary: #F8F8F8;      // Off white
-
-// Text Colors
-$text-primary: #2C2C2C;          // Charcoal
-$text-secondary: #5A5A5A;        // Medium gray
-$text-disabled: #9E9E9E;         // Light gray
-
-// Status Colors
-$success: #7CB342;               // Muted green
-$warning: #FFB74D;               // Muted orange
-$error: #E57373;                 // Muted red
-$info: #64B5F6;                  // Muted blue
-```
-
-### Typography Scale
-```scss
-// Font Families
-$font-primary: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-$font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-
-// Font Sizes (Desktop-first)
-$font-size-h1: 2.5rem;    // 40px
-$font-size-h2: 2rem;      // 32px
-$font-size-h3: 1.5rem;    // 24px
-$font-size-h4: 1.25rem;   // 20px
-$font-size-body: 1rem;    // 16px
-$font-size-small: 0.875rem; // 14px
-$font-size-caption: 0.75rem; // 12px
-```
-
-### Responsive Breakpoints (Desktop-first)
-```scss
-// Desktop-first breakpoints
-$breakpoint-xl: 1440px;   // Large desktop
-$breakpoint-lg: 1200px;   // Desktop
-$breakpoint-md: 992px;    // Small desktop/large tablet
-$breakpoint-sm: 768px;    // Tablet
-$breakpoint-xs: 576px;    // Large mobile
-```
-
-## 🏗️ Architecture Structure
-
-### Nx Workspace Structure
-```
-website/workspace/
-├── apps/
-│   └── network-flow-ui/           # Main Angular application
-├── libs/
-│   ├── ui-components/             # Shared UI components
-│   │   ├── src/lib/
-│   │   │   ├── button/
-│   │   │   ├── card/
-│   │   │   ├── loading-spinner/
-│   │   │   ├── file-upload/
-│   │   │   └── index.ts
-│   ├── network-core/              # Data models and business logic
-│   │   ├── src/lib/
-│   │   │   ├── models/
-│   │   │   │   ├── network.models.ts
-│   │   │   │   ├── analysis.models.ts
-│   │   │   │   └── api.models.ts
-│   │   │   ├── interfaces/
-│   │   │   ├── types/
-│   │   │   └── index.ts
-│   └── visualization/             # Cytoscape components
-│       ├── src/lib/
-│       │   ├── network-viewer/
-│       │   ├── layout-controls/
-│       │   ├── services/
-│       │   │   └── cytoscape.service.ts
-│       │   └── index.ts
-```
-
-### NgRx State Architecture
+**Implementation Tasks**:
 ```typescript
-interface AppState {
-  network: NetworkState;
-  ui: UIState;
-  router: RouterReducerState;
+// Diamond structure interfaces
+export interface DiamondStructure {
+  id: string;
+  nodes: number[];
+  sourceNode: number;
+  forkNodes: number[];
+  joinNodes: number[];
+  sinkNode: number;
+  level: number;
+  parentDiamondId?: string;
+  childDiamondIds: string[];
+  
+  // Analysis properties
+  propagationProbability: number;
+  criticalPath: number[];
+  redundancyFactor: number;
+  
+  // Geometric properties
+  depth: number;
+  width: number;
+  complexity: DiamondComplexity;
 }
 
-interface NetworkState {
-  // Core network data
-  data: NetworkData | null;
-  adjacencyMatrix: number[][];
-  edgeList: Edge[];
-  nodeList: Node[];
+export interface DiamondClassification {
+  diamondId: string;
+  type: DiamondType;
+  subtype: DiamondSubtype;
+  confidence: number;
+  characteristics: DiamondCharacteristics;
+}
+
+export type DiamondType = 'simple' | 'nested' | 'overlapping' | 'cascade' | 'parallel';
+export type AnalysisLevel = 'global' | 'subgraph' | 'local' | 'nested';
+```
+
+**Acceptance Criteria**:
+- [ ] All diamond interfaces defined with proper TypeScript types
+- [ ] Export barrel updated in `libs/network-core/src/index.ts`
+- [ ] Models support serialization/deserialization
+- [ ] Unit tests for model validation
+
+### 1.2 Diamond State Service
+**Deliverable**: Signal-based diamond state management service
+
+**Files to Create**:
+- `libs/network-core/src/lib/services/diamond-state.service.ts`
+
+**Implementation**:
+```typescript
+@Injectable({ providedIn: 'root' })
+export class DiamondStateService {
+  // Private signals
+  private _diamondStructures = signal<DiamondStructure[]>([]);
+  private _classifications = signal<DiamondClassification[]>([]);
+  private _analysisLevel = signal<AnalysisLevel>('global');
+  private _isAnalyzing = signal(false);
+  private _analysisProgress = signal(0);
   
-  // File management
-  uploadedFiles: {
-    dag?: File;
-    nodeProbabilities?: File;
-    edgeProbabilities?: File;
+  // Public readonly signals
+  readonly diamondStructures = this._diamondStructures.asReadonly();
+  readonly classifications = this._classifications.asReadonly();
+  readonly analysisLevel = this._analysisLevel.asReadonly();
+  readonly isAnalyzing = this._isAnalyzing.asReadonly();
+  readonly analysisProgress = this._analysisProgress.asReadonly();
+  
+  // Computed signals
+  readonly diamondCount = computed(() => this._diamondStructures().length);
+  readonly classificationSummary = computed(() => 
+    this._classifications().reduce((acc, c) => {
+      acc[c.type] = (acc[c.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>)
+  );
+  
+  readonly canAnalyze = computed(() => 
+    !this._isAnalyzing() && this.networkState.isNetworkLoaded()
+  );
+  
+  constructor(private networkState: NetworkStateService) {
+    // Effects for coordination
+    effect(() => {
+      const structures = this._diamondStructures();
+      if (structures.length > 0) {
+        this.notifyVisualizationUpdate(structures);
+      }
+    });
+  }
+  
+  // State mutation methods
+  async detectDiamonds(): Promise<void> {
+    if (!this.canAnalyze()) return;
+    
+    this._isAnalyzing.set(true);
+    this._analysisProgress.set(0);
+    
+    try {
+      const networkData = this.networkState.networkData();
+      if (!networkData) throw new Error('No network data available');
+      
+      // Call Julia API for diamond detection
+      const diamonds = await this.apiService.detectDiamonds(networkData);
+      this._diamondStructures.set(diamonds);
+      this._analysisProgress.set(100);
+      
+    } catch (error) {
+      console.error('Diamond detection failed:', error);
+      this.uiState.showError('Diamond Detection Failed', error.message);
+    } finally {
+      this._isAnalyzing.set(false);
+    }
+  }
+}
+```
+
+**Acceptance Criteria**:
+- [ ] Service integrates with existing NetworkStateService
+- [ ] All signals properly typed and reactive
+- [ ] Error handling with UI notifications
+- [ ] Progress tracking for long-running operations
+- [ ] Service exported in barrel file
+
+### 1.3 Julia API Integration
+**Deliverable**: Diamond-specific API endpoints integration
+
+**Files to Modify**:
+- `libs/network-core/src/lib/services/api.service.ts`
+
+**Implementation Tasks**:
+```typescript
+// Add to existing ApiService
+export class ApiService {
+  // ... existing methods ...
+  
+  // Diamond detection endpoints
+  detectDiamonds(networkData: NetworkData): Observable<DiamondStructure[]> {
+    return this.http.post<DiamondStructure[]>(`${this.baseUrl}/diamonds/detect`, {
+      adjacency_matrix: networkData.adjacencyMatrix,
+      node_probabilities: networkData.nodeProbabilities,
+      edge_probabilities: networkData.edgeProbabilities
+    }).pipe(
+      timeout(30000), // 30 second timeout
+      retry(2),
+      catchError(this.handleError)
+    );
+  }
+  
+  classifyDiamonds(diamonds: DiamondStructure[]): Observable<DiamondClassification[]> {
+    return this.http.post<DiamondClassification[]>(`${this.baseUrl}/diamonds/classify`, {
+      diamond_structures: diamonds
+    }).pipe(
+      timeout(15000),
+      retry(2),
+      catchError(this.handleError)
+    );
+  }
+  
+  performMultiLevelAnalysis(
+    networkData: NetworkData, 
+    level: AnalysisLevel
+  ): Observable<MultiLevelAnalysis> {
+    return this.http.post<MultiLevelAnalysis>(`${this.baseUrl}/diamonds/multi-level`, {
+      network_data: networkData,
+      analysis_level: level,
+      include_nested: true,
+      include_propagation: true
+    }).pipe(
+      timeout(60000), // Longer timeout for complex analysis
+      retry(1),
+      catchError(this.handleError)
+    );
+  }
+}
+```
+
+**Acceptance Criteria**:
+- [ ] All diamond API endpoints implemented
+- [ ] Proper error handling and retry logic
+- [ ] Request/response type safety
+- [ ] Timeout handling for long operations
+- [ ] Integration tests with mock responses
+
+---
+
+## Phase 2: Visualization Enhancement (Week 3-4)
+
+### 2.1 Diamond Visualization Service
+**Deliverable**: Diamond-specific visualization enhancements for D3.js
+
+**Files to Create**:
+- `libs/visualization/src/lib/services/diamond-visualization.service.ts`
+
+**Implementation**:
+```typescript
+@Injectable({ providedIn: 'root' })
+export class DiamondVisualizationService {
+  private readonly visualizationState = inject(VisualizationStateService);
+  
+  // Diamond color palette
+  private readonly diamondColors = {
+    simple: '#4CAF50',
+    nested: '#2196F3', 
+    overlapping: '#FF9800',
+    cascade: '#9C27B0',
+    parallel: '#F44336'
   };
   
-  // Processing state
-  isLoading: boolean;
-  isProcessing: boolean;
-  error: string | null;
-  
-  // Analysis results
-  analysisResults: AnalysisResults | null;
-  analysisHistory: AnalysisHistoryItem[];
-}
-
-interface UIState {
-  // Layout state
-  sidenavOpen: boolean;
-  sidenavMode: 'over' | 'side';
-  
-  // Theme and preferences
-  theme: 'light' | 'dark';
-  compactMode: boolean;
-  
-  // Navigation
-  currentRoute: string;
-  breadcrumbs: BreadcrumbItem[];
-  
-  // Loading states
-  globalLoading: boolean;
-  loadingMessage: string;
-}
-```
-
-### Component Hierarchy
-```
-AppComponent
-├── MainLayoutComponent
-│   ├── HeaderComponent
-│   │   ├── LogoComponent (ui-components)
-│   │   ├── NavigationComponent
-│   │   └── UserMenuComponent (ui-components)
-│   ├── SidebarComponent
-│   │   ├── NavigationMenuComponent
-│   │   └── QuickActionsComponent
-│   └── MainContentComponent
-│       └── RouterOutlet
-│           ├── NetworkSetupComponent
-│           │   ├── FileUploadComponent (ui-components)
-│           │   ├── NetworkPreviewComponent
-│           │   └── UploadProgressComponent (ui-components)
-│           └── VisualizationComponent
-│               ├── NetworkViewerComponent (visualization)
-│               ├── LayoutControlsComponent (visualization)
-│               ├── ZoomControlsComponent (visualization)
-│               └── NetworkStatsComponent
-```
-
-## 📱 Responsive Design Strategy (Desktop-first)
-
-### Layout Approach
-- **Primary Target**: Desktop users (1200px+) for network analysis
-- **Secondary**: Tablet landscape (992px+) for review and presentation
-- **Minimal**: Mobile support for basic viewing only
-
-### Navigation Strategy
-```scss
-// Desktop (1200px+)
-.sidebar {
-  width: 280px;
-  position: fixed;
-  left: 0;
-}
-
-.main-content {
-  margin-left: 280px;
-  padding: 24px;
-}
-
-// Tablet (768px - 1199px)
-@media (max-width: 1199px) {
-  .sidebar {
-    width: 240px;
+  highlightDiamondStructures(diamonds: DiamondStructure[]): void {
+    diamonds.forEach((diamond, index) => {
+      const color = this.diamondColors[diamond.type] || '#666';
+      
+      // Highlight diamond nodes with specific styling
+      this.visualizationState.highlightNodes(diamond.nodes, color);
+      
+      // Highlight diamond edges
+      const diamondEdges = this.getDiamondEdges(diamond);
+      this.visualizationState.highlightEdges(diamondEdges, color);
+    });
   }
   
-  .main-content {
-    margin-left: 240px;
-    padding: 16px;
-  }
-}
-
-// Mobile (< 768px)
-@media (max-width: 767px) {
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+  generateDiamondEnhancedDot(
+    networkData: NetworkData, 
+    diamonds: DiamondStructure[]
+  ): string {
+    let dot = `digraph G {\n`;
+    dot += `  layout=dot;\n`;
+    dot += `  rankdir=TB;\n`;
+    dot += `  compound=true;\n\n`;
     
-    &.open {
-      transform: translateX(0);
+    // Create subgraphs for each diamond
+    diamonds.forEach((diamond, index) => {
+      dot += `  subgraph cluster_diamond_${index} {\n`;
+      dot += `    label="Diamond ${index + 1} (${diamond.type})";\n`;
+      dot += `    style=filled;\n`;
+      dot += `    fillcolor="${this.diamondColors[diamond.type]}";\n`;
+      dot += `    alpha=0.2;\n`;
+      
+      diamond.nodes.forEach(nodeId => {
+        const node = networkData.nodes.find(n => n.id === nodeId);
+        if (node) {
+          dot += `    "${nodeId}" [${this.getDiamondNodeStyle(node, diamond)}];\n`;
+        }
+      });
+      
+      dot += `  }\n\n`;
+    });
+    
+    // Add remaining nodes and edges
+    this.addRegularNodesAndEdges(dot, networkData, diamonds);
+    
+    dot += '}\n';
+    return dot;
+  }
+  
+  private getDiamondNodeStyle(node: any, diamond: DiamondStructure): string {
+    let style = 'style=filled, ';
+    
+    if (node.id === diamond.sourceNode) {
+      style += 'shape=triangle, fillcolor=lightgreen';
+    } else if (node.id === diamond.sinkNode) {
+      style += 'shape=invtriangle, fillcolor=lightcoral';
+    } else if (diamond.forkNodes.includes(node.id)) {
+      style += 'shape=diamond, fillcolor=orange';
+    } else if (diamond.joinNodes.includes(node.id)) {
+      style += 'shape=pentagon, fillcolor=plum';
+    } else {
+      style += 'fillcolor=lightblue';
+    }
+    
+    return style;
+  }
+}
+```
+
+**Acceptance Criteria**:
+- [ ] Diamond structures visually highlighted in D3.js
+- [ ] Different diamond types have distinct colors
+- [ ] Node shapes indicate diamond roles (source, fork, join, sink)
+- [ ] Smooth transitions when highlighting changes
+- [ ] Performance optimized for multiple diamonds
+
+### 2.2 Enhanced Visualization Component
+**Deliverable**: Update existing visualization component with diamond features
+
+**Files to Modify**:
+- `apps/network-flow-ui/src/app/pages/visualization/visualization.component.ts`
+- `apps/network-flow-ui/src/app/pages/visualization/visualization.component.html`
+
+**Key Enhancements**:
+```typescript
+export class VisualizationComponent {
+  // Add diamond-specific services
+  private readonly diamondState = inject(DiamondStateService);
+  private readonly diamondViz = inject(DiamondVisualizationService);
+  
+  // Add diamond-specific signals
+  readonly diamondStructures = this.diamondState.diamondStructures;
+  readonly diamondCount = this.diamondState.diamondCount;
+  readonly isAnalyzingDiamonds = this.diamondState.isAnalyzing;
+  
+  constructor() {
+    // ... existing effects ...
+    
+    // Effect: Update visualization when diamonds change
+    effect(() => {
+      const diamonds = this.diamondStructures();
+      if (diamonds.length > 0 && this.graphvizRenderer) {
+        this.renderNetworkWithDiamonds(diamonds);
+      }
+    });
+  }
+  
+  private renderNetworkWithDiamonds(diamonds: DiamondStructure[]): void {
+    if (!this.graphvizRenderer) return;
+    
+    const networkData = this.networkData();
+    if (!networkData) return;
+    
+    try {
+      const enhancedDot = this.diamondViz.generateDiamondEnhancedDot(
+        networkData, 
+        diamonds
+      );
+      this.graphvizRenderer.renderDot(enhancedDot);
+      
+      // Add interactive diamond features
+      this.setupDiamondInteractions(diamonds);
+      
+    } catch (error) {
+      console.error('Failed to render diamonds:', error);
     }
   }
   
-  .main-content {
-    margin-left: 0;
-    padding: 12px;
+  // Diamond-specific control methods
+  async detectDiamonds(): Promise<void> {
+    await this.diamondState.detectDiamonds();
+  }
+  
+  toggleDiamondHighlights(): void {
+    const diamonds = this.diamondStructures();
+    if (diamonds.length > 0) {
+      this.diamondViz.highlightDiamondStructures(diamonds);
+    }
   }
 }
 ```
 
-### Visualization Responsiveness
+**Template Enhancements**:
+```html
+<!-- Add to existing controls panel -->
+<div class="card">
+  <h3>💎 Diamond Analysis</h3>
+  
+  <div class="diamond-stats">
+    <div class="stat-item">
+      <span class="stat-value">{{ diamondCount() }}</span>
+      <span class="stat-label">Diamonds Found</span>
+    </div>
+  </div>
+  
+  <div class="diamond-controls">
+    <button
+      class="btn-primary"
+      [disabled]="isAnalyzingDiamonds() || !isNetworkLoaded()"
+      (click)="detectDiamonds()">
+      @if (isAnalyzingDiamonds()) {
+        🔄 Detecting Diamonds...
+      } @else {
+        💎 Detect Diamonds
+      }
+    </button>
+    
+    @if (diamondCount() > 0) {
+      <button
+        class="btn-secondary"
+        (click)="toggleDiamondHighlights()">
+        🎨 Toggle Highlights
+      </button>
+    }
+  </div>
+</div>
+```
+
+**Acceptance Criteria**:
+- [ ] Diamond detection button integrated into UI
+- [ ] Diamond count displayed in statistics
+- [ ] Diamond highlighting toggle functionality
+- [ ] Progress indication during analysis
+- [ ] Responsive design maintained
+
+---
+
+## Phase 3: Diamond Analysis Dashboard (Week 5-6)
+
+### 3.1 Diamond Analysis Page
+**Deliverable**: Dedicated page for comprehensive diamond analysis
+
+**Files to Create**:
+- `apps/network-flow-ui/src/app/pages/diamond-analysis/`
+  - `diamond-analysis.component.ts`
+  - `diamond-analysis.component.html`
+  - `diamond-analysis.component.scss`
+
+**Implementation**:
 ```typescript
-// Cytoscape responsive configuration
-const cytoscapeConfig = {
-  desktop: {
-    minZoom: 0.1,
-    maxZoom: 3,
-    wheelSensitivity: 0.1,
-    panningEnabled: true,
-    boxSelectionEnabled: true
-  },
-  tablet: {
-    minZoom: 0.2,
-    maxZoom: 2,
-    wheelSensitivity: 0.2,
-    panningEnabled: true,
-    boxSelectionEnabled: false
-  },
-  mobile: {
-    minZoom: 0.3,
-    maxZoom: 1.5,
-    wheelSensitivity: 0.3,
-    panningEnabled: true,
-    boxSelectionEnabled: false,
-    touchTapThreshold: 8,
-    desktopTapThreshold: 4
+@Component({
+  selector: 'app-diamond-analysis',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule],
+  template: `
+    <div class="diamond-analysis-page">
+      <div class="page-header">
+        <h1>💎 Diamond Structure Analysis</h1>
+        <p class="subtitle">Comprehensive analysis and classification of network diamond structures</p>
+      </div>
+      
+      <div class="analysis-layout">
+        <div class="analysis-controls">
+          <!-- Analysis level selection -->
+          <div class="card">
+            <h3>Analysis Configuration</h3>
+            
+            <div class="control-group">
+              <label>Analysis Level</label>
+              <select [value]="selectedLevel()" (change)="onLevelChange($event)">
+                <option value="global">Global Analysis</option>
+                <option value="subgraph">Subgraph Analysis</option>
+                <option value="local">Local Analysis</option>
+                <option value="nested">Nested Analysis</option>
+              </select>
+            </div>
+            
+            <button 
+              class="btn-primary"
+              [disabled]="!canRunAnalysis()"
+              (click)="runComprehensiveAnalysis()">
+              🚀 Run Analysis
+            </button>
+          </div>
+          
+          <!-- Classification summary -->
+          @if (classificationSummary(); as summary) {
+            <div class="card">
+              <h3>Classification Summary</h3>
+              
+              @for (item of summary | keyvalue; track item.key) {
+                <div class="classification-item">
+                  <span class="type">{{ item.key | titlecase }}</span>
+                  <span class="count">{{ item.value }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+        
+        <div class="analysis-results">
+          @if (isAnalyzing()) {
+            <div class="analysis-progress">
+              <app-progress-indicator 
+                [progress]="analysisProgress()"
+                [message]="'Analyzing diamond structures...'" />
+            </div>
+          }
+          
+          @if (diamondStructures().length > 0) {
+            <div class="diamond-grid">
+              @for (diamond of diamondStructures(); track diamond.id) {
+                <app-diamond-card 
+                  [diamond]="diamond"
+                  [classification]="getClassification(diamond.id)"
+                  (explore)="exploreDiamond($event)"
+                  (highlight)="highlightDiamond($event)" />
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  `
+})
+export class DiamondAnalysisComponent {
+  protected readonly diamondState = inject(DiamondStateService);
+  protected readonly analysisState = inject(AnalysisStateService);
+  
+  // Component signals
+  readonly selectedLevel = signal<AnalysisLevel>('global');
+  
+  // Computed signals
+  readonly diamondStructures = this.diamondState.diamondStructures;
+  readonly classifications = this.diamondState.classifications;
+  readonly isAnalyzing = this.diamondState.isAnalyzing;
+  readonly analysisProgress = this.diamondState.analysisProgress;
+  
+  readonly classificationSummary = this.diamondState.classificationSummary;
+  readonly canRunAnalysis = this.diamondState.canAnalyze;
+  
+  // Methods
+  async runComprehensiveAnalysis(): Promise<void> {
+    await this.diamondState.performMultiLevelAnalysis(this.selectedLevel());
   }
-};
+  
+  onLevelChange(event: Event): void {
+    const level = (event.target as HTMLSelectElement).value as AnalysisLevel;
+    this.selectedLevel.set(level);
+    this.diamondState.setAnalysisLevel(level);
+  }
+  
+  getClassification(diamondId: string): DiamondClassification | undefined {
+    return this.classifications().find(c => c.diamondId === diamondId);
+  }
+  
+  exploreDiamond(diamond: DiamondStructure): void {
+    // Navigate to detailed diamond exploration
+    this.router.navigate(['/diamond-explorer', diamond.id]);
+  }
+  
+  highlightDiamond(diamond: DiamondStructure): void {
+    // Highlight specific diamond in visualization
+    this.diamondViz.highlightSingleDiamond(diamond);
+  }
+}
 ```
 
-## 🔧 Technical Implementation Details
+**Acceptance Criteria**:
+- [ ] Dedicated diamond analysis page created
+- [ ] Analysis level selection functionality
+- [ ] Classification summary display
+- [ ] Diamond grid with individual cards
+- [ ] Navigation integration with routing
 
-### Angular Material Theme Configuration
-```scss
-// apps/network-flow-ui/src/styles.scss
-@use '@angular/material' as mat;
+### 3.2 Diamond Card Component
+**Deliverable**: Reusable component for displaying diamond information
 
-// Define custom palettes
-$custom-purple: (
-  50: #f3f1f7,
-  100: #e1dceb,
-  200: #cdc4dd,
-  300: #b8abcf,
-  400: #a898c5,
-  500: #9885bb,  // Base purple
-  600: #8f7db5,
-  700: #8472ac,
-  800: #7a68a4,
-  900: #6b5b95,  // Primary purple
-  A100: #ffffff,
-  A200: #f5f3ff,
-  A400: #d1c7ff,
-  A700: #beb1ff,
-  contrast: (
-    50: rgba(black, 0.87),
-    100: rgba(black, 0.87),
-    200: rgba(black, 0.87),
-    300: rgba(black, 0.87),
-    400: rgba(black, 0.87),
-    500: white,
-    600: white,
-    700: white,
-    800: white,
-    900: white,
-    A100: rgba(black, 0.87),
-    A200: rgba(black, 0.87),
-    A400: rgba(black, 0.87),
-    A700: white,
-  )
-);
+**Files to Create**:
+- `libs/ui-components/src/lib/diamond-card/diamond-card.component.ts`
 
-$custom-pink: (
-  50: #faf7f7,
-  100: #f2ebeb,
-  200: #eadddd,
-  300: #e1cfcf,
-  400: #dac5c5,
-  500: #d4a5a5,  // Base pink
-  600: #cf9d9d,
-  700: #c99393,
-  800: #c38a8a,
-  900: #b97979,
-  A100: #ffffff,
-  A200: #ffffff,
-  A400: #ffd6d6,
-  A700: #ffbdbd,
-  contrast: (
-    50: rgba(black, 0.87),
-    100: rgba(black, 0.87),
-    200: rgba(black, 0.87),
-    300: rgba(black, 0.87),
-    400: rgba(black, 0.87),
-    500: rgba(black, 0.87),
-    600: rgba(black, 0.87),
-    700: rgba(black, 0.87),
-    800: rgba(black, 0.87),
-    900: rgba(black, 0.87),
-    A100: rgba(black, 0.87),
-    A200: rgba(black, 0.87),
-    A400: rgba(black, 0.87),
-    A700: rgba(black, 0.87),
-  )
-);
-
-// Create theme
-$primary: mat.define-palette($custom-purple, 900);
-$accent: mat.define-palette($custom-pink, 500);
-$warn: mat.define-palette(mat.$red-palette);
-
-$theme: mat.define-light-theme((
-  color: (
-    primary: $primary,
-    accent: $accent,
-    warn: $warn,
-  ),
-  typography: mat.define-typography-config(
-    $font-family: 'Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-  ),
-  density: 0,
-));
-
-@include mat.all-component-themes($theme);
-```
-
-### NgRx Store Configuration
+**Implementation**:
 ```typescript
-// apps/network-flow-ui/src/app/app.config.ts
-import { ApplicationConfig } from '@angular/core';
-import { provideStore } from '@ngrx/store';
-import { provideEffects } from '@ngrx/effects';
-import { provideStoreDevtools } from '@ngrx/store-devtools';
-import { provideRouterStore } from '@ngrx/router-store';
-
-import { networkReducer } from './store/network/network.reducer';
-import { uiReducer } from './store/ui/ui.reducer';
-import { NetworkEffects } from './store/network/network.effects';
-
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideStore({
-      network: networkReducer,
-      ui: uiReducer,
-    }),
-    provideEffects([NetworkEffects]),
-    provideStoreDevtools({
-      maxAge: 25,
-      logOnly: false,
-      autoPause: true,
-    }),
-    provideRouterStore(),
-    // ... other providers
-  ],
-};
+@Component({
+  selector: 'app-diamond-card',
+  standalone: true,
+  template: `
+    <div class="diamond-card" [class]="'diamond-' + diamond.type">
+      <div class="diamond-header">
+        <h4>Diamond {{ diamond.id }}</h4>
+        <span class="diamond-type">{{ diamond.type | titlecase }}</span>
+      </div>
+      
+      <div class="diamond-stats">
+        <div class="stat">
+          <label>Nodes:</label>
+          <span>{{ diamond.nodes.length }}</span>
+        </div>
+        <div class="stat">
+          <label>Depth:</label>
+          <span>{{ diamond.depth }}</span>
+        </div>
+        <div class="stat">
+          <label>Probability:</label>
+          <span>{{ diamond.propagationProbability | percent:'1.2-2' }}</span>
+        </div>
+      </div>
+      
+      @if (classification) {
+        <div class="classification-info">
+          <span class="subtype">{{ classification.subtype | titlecase }}</span>
+          <span class="confidence">{{ classification.confidence | percent:'1.1-1' }}</span>
+        </div>
+      }
+      
+      <div class="diamond-actions">
+        <button class="btn-small" (click)="explore.emit(diamond)">
+          🔍 Explore
+        </button>
+        <button class="btn-small" (click)="highlight.emit(diamond)">
+          🎨 Highlight
+        </button>
+      </div>
+    </div>
+  `
+})
+export class DiamondCardComponent {
+  @Input({ required: true }) diamond!: DiamondStructure;
+  @Input() classification?: DiamondClassification;
+  
+  @Output() explore = new EventEmitter<DiamondStructure>();
+  @Output() highlight = new EventEmitter<DiamondStructure>();
+}
 ```
 
-## 🚀 Implementation Timeline
+**Acceptance Criteria**:
+- [ ] Diamond information clearly displayed
+- [ ] Classification data integration
+- [ ] Action buttons for explore/highlight
+- [ ] Responsive card design
+- [ ] Type-specific styling
 
-### Week 1: Foundation
-- [ ] Install all dependencies
-- [ ] Create Nx libraries structure
-- [ ] Set up Angular Material theming
-- [ ] Configure NgRx store foundation
-- [ ] Create basic routing structure
+---
 
-### Week 2: Core Architecture
-- [ ] Implement main layout components
-- [ ] Create shared UI components library
-- [ ] Set up responsive navigation
-- [ ] Implement basic state management
-- [ ] Create service layer foundation
+## Phase 4: Multi-Level Analysis (Week 7-8)
 
-### Week 3: Network Setup
-- [ ] Build file upload functionality
-- [ ] Implement network data parsing
-- [ ] Create network preview component
-- [ ] Add validation and error handling
-- [ ] Integrate with Julia API endpoints
+### 4.1 Multi-Level Analysis Service
+**Deliverable**: Comprehensive multi-level diamond analysis
 
-### Week 4: Visualization
-- [ ] Integrate Cytoscape.js
-- [ ] Create network viewer component
-- [ ] Implement layout controls
-- [ ] Add zoom and pan functionality
-- [ ] Create responsive visualization
+**Files to Create**:
+- `libs/network-core/src/lib/services/multi-level-analysis.service.ts`
 
-### Week 5: Polish & Testing
-- [ ] Implement loading states
-- [ ] Add error boundaries
-- [ ] Create comprehensive tests
-- [ ] Optimize performance
-- [ ] Final UI/UX refinements
+**Implementation**:
+```typescript
+@Injectable({ providedIn: 'root' })
+export class MultiLevelAnalysisService {
+  private readonly diamondState = inject(DiamondStateService);
+  private readonly apiService = inject(ApiService);
+  private readonly networkState = inject(NetworkStateService);
+  
+  async performComprehensiveAnalysis(
+    level: AnalysisLevel
+  ): Promise<MultiLevelAnalysis> {
+    const networkData = this.networkState.networkData();
+    if (!networkData) throw new Error('No network data available');
+    
+    this.diamondState.setAnalyzing(true);
+    this.diamondState.setProgress(0);
+    
+    try {
+      // Phase 1: Global Analysis (25%)
+      const globalResults = await this.performGlobalAnalysis(networkData);
+      this.diamondState.setProgress(25);
+      
+      // Phase 2: Subgraph Analysis (50%)
+      const subgraphResults = await this.performSubgraphAnalysis(
+        networkData, 
+        globalResults.diamonds
+      );
+      this.diamondState.setProgress(50);
+      
+      // Phase 3: Local Analysis (75%)
+      const localResults = await this.performLocalAnalysis(
+        networkData,
+        globalResults.diamonds
+      );
+      this.diamondState.setProgress(75);
+      
+      // Phase 4: Nested Analysis (100%)
+      const nestedResults = await this.performNestedAnalysis(
+        globalResults.diamonds,
+        subgraphResults
+      );
+      this.diamondState.setProgress(100);
+      
+      // Integration
+      const integratedResults = this.integrateResults({
+        global: globalResults,
+        subgraph: subgraphResults,
+        local: localResults,
+        nested: nestedResults
+      });
+      
+      // Update state
+      this.diamondState.setDiamondStructures(integratedResults.allDiamonds);
+      this.diamondState.setClassifications(integratedResults.allClassifications);
+      
+      return integratedResults;
+      
+    } finally {
+      this.diamondState.setAnalyzing(false);
+    }
+  }
+  
+  private async performGlobalAnalysis(
+    networkData: NetworkData
+  ): Promise<GlobalAnalysisResults> {
+    const diamonds = await firstValueFrom(
+      this.apiService.detectDiamonds(networkData)
+    );
+    
+    const classifications = await firstValueFrom(
+      this.apiService.classifyDiamonds(diamonds)
+    );
+    
+    return { diamonds, classifications };
+  }
+  
+  private async performSubgraphAnalysis(
+    networkData: NetworkData,
+    globalDiamonds: DiamondStructure[]
+  ): Promise<SubgraphAnalysisResults[]> {
+    // Decompose network into subgraphs based on global diamonds
+    const subgraphs = this.decomposeIntoSubgraphs(networkData, globalDiamonds);
+    
+    // Analyze each subgraph independently
+    const results = await Promise.all(
+      subgraphs.map(async (subgraph) => {
+        const diamonds = await firstValueFrom(
+          this.apiService.detectDiamonds(subgraph.networkData)
+        );
+        
+        const classifications = await firstValueFrom(
+          this.apiService.classifyDiamonds(diamonds)
+        );
+        
+        return {
+          subgraphId: subgraph.id,
+          diamonds,
+          classifications,
+          parentDiamonds: subgraph.parentDiamonds
+        };
+      })
+    );
+    
+    return results;
+  }
+}
+```
 
-## 🎯 Success Criteria
+**Acceptance Criteria**:
+- [ ] Multi-phase analysis with progress tracking
+- [ ] Global, subgraph, local, and nested analysis
+- [ ] Results integration and state updates
+- [ ] Error handling and recovery
+- [ ] Performance optimization for large networks
+
+### 4.2 Diamond Explorer Page
+**Deliverable**: Detailed exploration interface for individual diamonds
+
+**Files to Create**:
+- `apps/network-flow-ui/src/app/pages/diamond-explorer/`
+
+**Key Features**:
+- Detailed diamond structure visualization
+- Hierarchical relationship display
+- Propagation path analysis
+- Interactive node/edge exploration
+- Export capabilities
+
+**Acceptance Criteria**:
+- [ ] Individual diamond detailed view
+- [ ] Hierarchical navigation
+- [ ] Propagation visualization
+- [ ] Export functionality
+- [ ] Responsive design
+
+---
+
+## Phase 5: Advanced Features (Week 9-10)
+
+### 5.1 Diamond Comparison Tool
+**Deliverable**: Side-by-side diamond comparison interface
+
+### 5.2 Analysis History & Sessions
+**Deliverable**: Save/load analysis sessions with results
+
+### 5.3 Export & Reporting
+**Deliverable**: Comprehensive export capabilities (JSON, CSV, PDF reports)
+
+### 5.4 Performance Optimization
+**Deliverable**: Optimization for large networks and complex analyses
+
+---
+
+## 🧪 Testing Strategy
+
+### Unit Testing
+- **Services**: All signal-based services with comprehensive test coverage
+- **Components**: Component logic and signal integration
+- **Models**: Data model validation and serialization
+
+### Integration Testing
+- **API Integration**: Mock Julia backend responses
+- **Visualization**: D3.js rendering with diamond enhancements
+- **State Management**: Cross-service signal coordination
+
+### E2E Testing
+- **User Workflows**: Complete diamond analysis workflows
+- **Performance**: Large network handling
+- **Error Scenarios**: Network failures and recovery
+
+---
+
+## 📊 Success Criteria
 
 ### Functional Requirements
-- ✅ Professional desktop-first responsive design
-- ✅ Muted purple/pink theme with sophisticated styling
-- ✅ File upload with drag & drop support
-- ✅ Interactive network visualization with Cytoscape.js
-- ✅ NgRx state management for complex data flows
-- ✅ Modular Nx library structure for reusability
-- ✅ Integration with Julia backend API
+- [ ] Diamond detection with >95% accuracy
+- [ ] Multi-level analysis (global, subgraph, local, nested)
+- [ ] Interactive visualization with diamond highlighting
+- [ ] Classification system with confidence metrics
+- [ ] Export capabilities for analysis results
 
-### Technical Requirements
-- ✅ TypeScript strict mode compliance
-- ✅ Angular best practices and style guide
-- ✅ Responsive design with smooth animations
-- ✅ Accessibility (WCAG 2.1 AA compliance)
-- ✅ Performance optimization (< 3s load time)
-- ✅ Comprehensive error handling
+### Performance Requirements
+- [ ] Analysis completion <2 seconds for networks <1000 nodes
+- [ ] Visualization rendering at 60fps
+- [ ] Memory usage <500MB for typical sessions
+- [ ] Responsive UI interactions <100ms
 
-### User Experience Requirements
-- ✅ Intuitive navigation and workflow
-- ✅ Professional, academic-appropriate design
-- ✅ Smooth, non-jarring animations
-- ✅ Clear visual hierarchy and typography
-- ✅ Consistent interaction patterns
+### Quality Requirements
+- [ ] >90% test coverage for core functionality
+- [ ] Zero critical accessibility issues
+- [ ] Cross-browser compatibility (Chrome, Firefox, Safari)
+- [ ] Mobile-friendly responsive design
 
-This implementation plan provides a solid foundation for building your sophisticated network analysis application with the professional quality required for PhD-level work.
+This implementation plan provides clear, actionable steps to transform the existing Angular 20 application into a comprehensive diamond analysis platform while maintaining the modern signal-based architecture and building upon the existing D3.js visualization system.
