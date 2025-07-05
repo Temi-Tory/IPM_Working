@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { NetworkStateService } from './network-state.service';
-import { DiamondStructure } from '../models/api.models';
+import type { DiamondStructure } from '../models/diamond.models';
 
 // Analysis types and interfaces
 export interface AnalysisResults {
@@ -416,15 +416,19 @@ export class AnalysisStateService {
       {
         id: 'diamond-1',
         nodes: [1, 2, 3, 4],
-        edges: [
-          { source: 1, target: 2 },
-          { source: 1, target: 3 },
-          { source: 2, target: 4 },
-          { source: 3, target: 4 }
+        source: 1,
+        sink: 4,
+        forks: [1],
+        joins: [4],
+        paths: [
+          [1, 2, 4],
+          [1, 3, 4]
         ],
-        type: 'simple',
-        size: 4,
-        depth: 2
+        metadata: {
+          type: 'simple',
+          size: 4,
+          depth: 2
+        }
       }
     ];
   }

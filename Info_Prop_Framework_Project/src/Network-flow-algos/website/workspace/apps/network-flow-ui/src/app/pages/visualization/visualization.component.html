@@ -51,6 +51,79 @@
             [checked]="showLabels()"
             (change)="onToggleLabels()" />
         </div>
+
+        <div class="control-group">
+          <label for="interactivity">Enable Interactivity</label>
+          <input
+            id="interactivity"
+            type="checkbox"
+            [checked]="interactivityEnabled()"
+            (change)="onToggleInteractivity()" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💎 Diamond Analysis</h3>
+        
+        <div class="control-group">
+          <label for="diamondMode">Diamond Mode</label>
+          <input
+            id="diamondMode"
+            type="checkbox"
+            [checked]="diamondMode()"
+            (change)="onToggleDiamondMode()" />
+        </div>
+
+        @if (diamondMode()) {
+          <div class="control-group">
+            <label for="diamondType">Diamond Type Filter</label>
+            <select
+              id="diamondType"
+              [value]="selectedDiamondType()"
+              (change)="onDiamondTypeChange($any($event.target).value)">
+              @for (option of diamondTypeOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label for="showDiamondPaths">Show Diamond Paths</label>
+            <input
+              id="showDiamondPaths"
+              type="checkbox"
+              [checked]="showDiamondPaths()"
+              (change)="onToggleDiamondPaths()" />
+          </div>
+
+          <div class="control-group">
+            <label for="animateDiamonds">Animate Diamonds</label>
+            <input
+              id="animateDiamonds"
+              type="checkbox"
+              [checked]="animateDiamonds()"
+              (change)="onToggleDiamondAnimation()" />
+          </div>
+
+          <button
+            class="btn-primary"
+            [disabled]="!canAnalyzeDiamonds()"
+            (click)="runDiamondAnalysis()">
+            @if (diamondAnalysisStatus().isInProgress) {
+              🔄 Analyzing Diamonds...
+            } @else {
+              💎 Detect Diamonds
+            }
+          </button>
+
+          @if (selectedDiamonds().length > 0) {
+            <button
+              class="btn-secondary"
+              (click)="clearDiamondSelection()">
+              Clear Selection
+            </button>
+          }
+        }
       </div>
 
       <div class="card">
@@ -68,13 +141,7 @@
           </div>
           
           <div class="stat-item">
-            <span class="stat-value">
-              @if (analysisResults()?.results?.diamondStructures) {
-                {{ analysisResults()!.results.diamondStructures!.length }}
-              } @else {
-                --
-              }
-            </span>
+            <span class="stat-value">{{ diamondCount() }}</span>
             <span class="stat-label">Diamonds Found</span>
           </div>
           
@@ -102,7 +169,58 @@
         </button>
       </div>
 
-      @if (selectionState().selectedNodes.length > 0 || selectionState().selectedEdges.length > 0) {
+      @if (diamondMode() && diamondCount() > 0) {
+        <div class="card">
+          <h3>💎 Diamond Statistics</h3>
+          
+          <div class="diamond-stats">
+            <div class="stat-row">
+              <span class="stat-label">Total Diamonds:</span>
+              <span class="stat-value">{{ diamondStatistics().totalDiamonds }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Average Complexity:</span>
+              <span class="stat-value">{{ diamondStatistics().averageComplexity | number:'1.1-1' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Average Depth:</span>
+              <span class="stat-value">{{ diamondStatistics().averageDepth | number:'1.1-1' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Max Path Count:</span>
+              <span class="stat-value">{{ diamondStatistics().maxPathCount }}</span>
+            </div>
+          </div>
+
+          <div class="diamond-type-distribution">
+            <h4>Type Distribution</h4>
+            <div class="type-stats">
+              <div class="type-stat">
+                <span class="type-label">Simple:</span>
+                <span class="type-count">{{ diamondStatistics().typeDistribution.simple || 0 }}</span>
+              </div>
+              <div class="type-stat">
+                <span class="type-label">Nested:</span>
+                <span class="type-count">{{ diamondStatistics().typeDistribution.nested || 0 }}</span>
+              </div>
+              <div class="type-stat">
+                <span class="type-label">Overlapping:</span>
+                <span class="type-count">{{ diamondStatistics().typeDistribution.overlapping || 0 }}</span>
+              </div>
+              <div class="type-stat">
+                <span class="type-label">Cascade:</span>
+                <span class="type-count">{{ diamondStatistics().typeDistribution.cascade || 0 }}</span>
+              </div>
+              <div class="type-stat">
+                <span class="type-label">Parallel:</span>
+                <span class="type-count">{{ diamondStatistics().typeDistribution.parallel || 0 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (selectionState().selectedNodes.length > 0 || selectionState().selectedEdges.length > 0 || selectedDiamonds().length > 0) {
         <div class="card">
           <h3>🎯 Selection Info</h3>
           
@@ -127,6 +245,26 @@
               </div>
             </div>
           }
+
+          @if (selectedDiamonds().length > 0) {
+            <div class="selection-info">
+              <strong>Selected Diamonds:</strong>
+              <div class="selected-items">
+                @for (diamondId of selectedDiamonds(); track diamondId) {
+                  <span class="selected-item diamond-item">💎 {{ diamondId }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          @if (hoveredDiamond()) {
+            <div class="selection-info">
+              <strong>Hovered Diamond:</strong>
+              <div class="selected-items">
+                <span class="selected-item diamond-item hovered">💎 {{ hoveredDiamond() }}</span>
+              </div>
+            </div>
+          }
         </div>
       }
     </div>
@@ -135,28 +273,49 @@
       <div class="card visualization-card">
         <div class="visualization-header">
           <h3>Network Graph</h3>
-          <div class="zoom-controls">
-            <button
-              class="zoom-btn"
-              (click)="zoomIn()"
-              [disabled]="!isInitialized()"
-              title="Zoom In">
-              🔍+
-            </button>
-            <button
-              class="zoom-btn"
-              (click)="zoomOut()"
-              [disabled]="!isInitialized()"
-              title="Zoom Out">
-              🔍-
-            </button>
-            <button
-              class="zoom-btn"
-              (click)="fitToView()"
-              [disabled]="!isInitialized()"
-              title="Fit to View">
-              ⌂
-            </button>
+          <div class="visualization-controls">
+            <div class="interaction-status">
+              @if (interactivityEnabled()) {
+                <span class="status-indicator active">✨ Interactive</span>
+              } @else {
+                <span class="status-indicator inactive">⚪ Static</span>
+              }
+              
+              @if (diamondMode()) {
+                <span class="status-indicator diamond-mode">💎 Diamond Mode</span>
+              }
+            </div>
+            
+            <div class="zoom-controls">
+              <button
+                class="zoom-btn"
+                (click)="zoomIn()"
+                [disabled]="!isInitialized()"
+                title="Zoom In">
+                🔍+
+              </button>
+              <button
+                class="zoom-btn"
+                (click)="zoomOut()"
+                [disabled]="!isInitialized()"
+                title="Zoom Out">
+                🔍-
+              </button>
+              <button
+                class="zoom-btn"
+                (click)="fitToView()"
+                [disabled]="!isInitialized()"
+                title="Fit to View">
+                ⌂
+              </button>
+              <button
+                class="zoom-btn"
+                (click)="resetView()"
+                [disabled]="!isInitialized()"
+                title="Reset View">
+                🔄
+              </button>
+            </div>
           </div>
         </div>
         

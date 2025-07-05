@@ -154,6 +154,40 @@
   }
 }
 
+.visualization-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.interaction-status {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.status-indicator {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  
+  &.active {
+    background: #E8F5E8;
+    color: #2E7D32;
+  }
+  
+  &.inactive {
+    background: #F5F5F5;
+    color: #757575;
+  }
+  
+  &.diamond-mode {
+    background: #E3F2FD;
+    color: #1976D2;
+  }
+}
+
 .zoom-controls {
   display: flex;
   gap: 0.5rem;
@@ -284,6 +318,20 @@
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
+  
+  &.diamond-item {
+    background: #2196F3;
+    
+    &.hovered {
+      background: #1976D2;
+      animation: pulse 1s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 // Disabled button styles
@@ -326,5 +374,242 @@
   
   .selected-items {
     flex-direction: column;
+  }
+}
+
+// ============================================================================
+// DIAMOND VISUALIZATION STYLES
+// ============================================================================
+
+.diamond-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(107, 91, 149, 0.1);
+  
+  .stat-label {
+    font-size: 0.875rem;
+    color: #5A5A5A;
+  }
+  
+  .stat-value {
+    font-weight: 600;
+    color: #2C2C2C;
+  }
+}
+
+.diamond-type-distribution {
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2C2C2C;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.type-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.type-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: #FAFAFA;
+  border-radius: 6px;
+  border: 1px solid rgba(107, 91, 149, 0.1);
+  
+  .type-label {
+    font-size: 0.75rem;
+    color: #5A5A5A;
+    text-transform: capitalize;
+  }
+  
+  .type-count {
+    font-weight: 600;
+    color: #6B5B95;
+    font-size: 0.875rem;
+  }
+}
+
+// ============================================================================
+// INTERACTIVE VISUALIZATION STYLES
+// ============================================================================
+
+// SVG element styles for interactivity
+:host ::ng-deep {
+  .graphviz-graph svg {
+    cursor: grab;
+    
+    &:active {
+      cursor: grabbing;
+    }
+    
+    // Node interaction styles
+    .node {
+      transition: all 0.2s ease;
+      
+      &:hover {
+        filter: brightness(1.1);
+      }
+      
+      &.diamond-highlight {
+        filter: drop-shadow(0 0 6px rgba(33, 150, 243, 0.6));
+      }
+      
+      &.diamond-selected {
+        filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.8));
+      }
+      
+      &.diamond-hovered {
+        filter: drop-shadow(0 0 10px rgba(33, 150, 243, 1));
+        animation: diamondPulse 1s infinite;
+      }
+    }
+    
+    // Edge interaction styles
+    .edge {
+      transition: all 0.2s ease;
+      
+      &:hover path {
+        stroke-width: 3px !important;
+        filter: drop-shadow(0 0 3px rgba(107, 91, 149, 0.5));
+      }
+      
+      &.diamond-highlight path {
+        filter: drop-shadow(0 0 4px rgba(33, 150, 243, 0.6));
+      }
+    }
+    
+    // Text labels
+    text {
+      pointer-events: none;
+      user-select: none;
+    }
+    
+    // Tooltip styles are handled in component
+  }
+}
+
+@keyframes diamondPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(33, 150, 243, 1));
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(33, 150, 243, 0.7));
+  }
+}
+
+// ============================================================================
+// TOOLTIP STYLES (Global)
+// ============================================================================
+
+:host ::ng-deep .visualization-tooltip {
+  .tooltip-header {
+    font-weight: 600;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .tooltip-content {
+    div {
+      margin-bottom: 2px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    strong {
+      font-weight: 500;
+    }
+  }
+}
+
+// ============================================================================
+// ENHANCED BUTTON STYLES
+// ============================================================================
+
+.btn-secondary {
+  background: #D4A5A5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  
+  &:hover {
+    background: #C89595;
+    transform: translateY(-1px);
+    color: white;
+    text-decoration: none;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    
+    &:hover {
+      transform: none !important;
+      background: #D4A5A5;
+    }
+  }
+}
+
+// ============================================================================
+// RESPONSIVE ENHANCEMENTS
+// ============================================================================
+
+@media (max-width: 768px) {
+  .visualization-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .interaction-status {
+    order: 2;
+  }
+  
+  .zoom-controls {
+    order: 1;
+  }
+  
+  .type-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .diamond-stats {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .zoom-controls {
+    flex-wrap: wrap;
+  }
+  
+  .zoom-btn {
+    flex: 1;
+    min-width: 60px;
   }
 }

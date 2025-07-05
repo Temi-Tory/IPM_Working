@@ -9,6 +9,12 @@ import {
   EnhancedNetworkData,
   NodeAnalysisResult
 } from './network.models';
+import type {
+  DiamondStructure,
+  DiamondClassification,
+  DiamondDetectionResult,
+  DiamondAnalysisConfig
+} from './diamond.models';
 
 // ===== BASE API TYPES =====
 
@@ -288,22 +294,6 @@ export interface DiamondProcessingRequest {
   };
 }
 
-/**
- * Diamond structure data
- */
-export interface DiamondStructure {
-  id: string;
-  nodes: number[];
-  edges: Array<{ source: number; target: number; probability?: ProbabilityValue }>;
-  type: string;
-  size: number;
-  depth: number;
-  probabilityFlow?: {
-    inputProbability: ProbabilityValue;
-    outputProbability: ProbabilityValue;
-    flowEfficiency: number;
-  };
-}
 
 /**
  * Enhanced Diamond Processing Response
@@ -496,24 +486,6 @@ export interface DiamondClassificationRequest {
   };
 }
 
-/**
- * Diamond classification data
- */
-export interface DiamondClassification {
-  diamondId: string;
-  class: string;
-  confidence: number;
-  features: {
-    size: number;
-    depth: number;
-    topology: string;
-    probabilityMetrics?: {
-      avgProbability: ProbabilityValue;
-      probabilityVariance: number;
-      criticalityScore: number;
-    };
-  };
-}
 
 /**
  * Diamond Classification Response
@@ -539,27 +511,136 @@ export interface DiamondClassificationResponse extends BaseApiResponse {
 
 // ===== UTILITY TYPES AND FUNCTIONS =====
 
+// ===== NEW DIAMOND DETECTION API INTERFACES =====
+
+/**
+ * Diamond Detection Request
+ */
+export interface DiamondDetectionRequest {
+  csvContent?: string;
+  jsonData?: NetworkJsonInput;
+  networkData?: NetworkJsonInput;
+  config?: DiamondAnalysisConfig;
+  options?: {
+    includeProgress?: boolean;
+    validateInput?: boolean;
+    timeout?: number;
+  };
+}
+
+/**
+ * Diamond Detection Response
+ */
+export interface DiamondDetectionResponse extends BaseApiResponse {
+  data?: DiamondDetectionResult;
+}
+
+/**
+ * Diamond Classification Request (for classify endpoint)
+ */
+export interface DiamondClassifyRequest {
+  diamonds: DiamondStructure[];
+  config?: DiamondAnalysisConfig;
+  options?: {
+    includeProgress?: boolean;
+    confidenceThreshold?: number;
+    timeout?: number;
+  };
+}
+
+/**
+ * Diamond Classification Response (for classify endpoint)
+ */
+export interface DiamondClassifyResponse extends BaseApiResponse {
+  data?: {
+    classifications: DiamondClassification[];
+    summary: {
+      totalDiamonds: number;
+      classifiedCount: number;
+      averageConfidence: number;
+      typeDistribution: Record<string, number>;
+      processingTime: string;
+    };
+  };
+}
+
+/**
+ * Multi-Level Diamond Analysis Request
+ */
+export interface MultiLevelDiamondRequest {
+  csvContent?: string;
+  jsonData?: NetworkJsonInput;
+  networkData?: NetworkJsonInput;
+  config?: DiamondAnalysisConfig & Record<string, unknown>;
+  options?: {
+    includeProgress?: boolean;
+    validateInput?: boolean;
+    timeout?: number;
+    parallelProcessing?: boolean;
+  };
+}
+
+/**
+ * Multi-Level Diamond Analysis Response
+ */
+export interface MultiLevelDiamondResponse extends BaseApiResponse {
+  data?: {
+    levels: Array<{
+      level: number;
+      diamonds: DiamondStructure[];
+      classifications: DiamondClassification[];
+      statistics: {
+        diamondCount: number;
+        averageComplexity: number;
+        typeDistribution: Record<string, number>;
+      };
+    }>;
+    crossLevelAnalysis?: {
+      interactions: Array<{
+        level1: number;
+        level2: number;
+        interactionType: string;
+        strength: number;
+      }>;
+      hierarchicalStructure: Record<string, unknown>;
+    };
+    summary: {
+      totalLevels: number;
+      totalDiamonds: number;
+      maxDepth: number;
+      analysisComplexity: number;
+      processingTime: string;
+    };
+  };
+}
+
 /**
  * Union type for all API request types
  */
-export type ApiRequest = 
+export type ApiRequest =
   | ProcessInputRequest
   | ReachabilityRequest
   | DiamondProcessingRequest
   | MonteCarloRequest
   | PathEnumerationRequest
-  | DiamondClassificationRequest;
+  | DiamondClassificationRequest
+  | DiamondDetectionRequest
+  | DiamondClassifyRequest
+  | MultiLevelDiamondRequest;
 
 /**
  * Union type for all API response types
  */
-export type ApiResponse = 
+export type ApiResponse =
   | ProcessInputResponse
   | ReachabilityResponse
   | DiamondProcessingResponse
   | MonteCarloResponse
   | PathEnumerationResponse
-  | DiamondClassificationResponse;
+  | DiamondClassificationResponse
+  | DiamondDetectionResponse
+  | DiamondClassifyResponse
+  | MultiLevelDiamondResponse;
 
 /**
  * API endpoint configuration

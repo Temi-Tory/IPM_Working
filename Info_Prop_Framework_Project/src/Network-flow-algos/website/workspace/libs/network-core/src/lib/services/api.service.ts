@@ -14,6 +14,154 @@ import {
   MonteCarloResponse
 } from '../models/api.models';
 
+// Import diamond models for new endpoints
+import {
+  DiamondStructure,
+  DiamondDetectionResult,
+  DiamondAnalysisConfig,
+  DiamondAnalysisProgress,
+  DiamondClassification as DiamondClassificationModel
+} from '../models/diamond.models';
+
+import { NetworkJsonInput } from '../models/network.models';
+
+// ===== NEW DIAMOND DETECTION API INTERFACES =====
+
+/**
+ * Diamond Detection Request
+ */
+export interface DiamondDetectionRequest {
+  // Input data
+  csvContent?: string;
+  jsonData?: NetworkJsonInput;
+  networkData?: NetworkJsonInput; // For processed network data
+  
+  // Detection configuration
+  config?: DiamondAnalysisConfig;
+  
+  // Processing options
+  options?: {
+    includeProgress?: boolean;
+    validateInput?: boolean;
+    timeout?: number;
+  };
+}
+
+/**
+ * Diamond Detection Response
+ */
+export interface DiamondDetectionResponse {
+  success: boolean;
+  data?: DiamondDetectionResult;
+  error?: string;
+  message?: string;
+  timestamp?: string;
+  processingTime?: string;
+}
+
+/**
+ * Diamond Classification Request (for classify endpoint)
+ */
+export interface DiamondClassifyRequest {
+  // Input diamonds to classify
+  diamonds: DiamondStructure[];
+  
+  // Classification configuration
+  config?: DiamondAnalysisConfig;
+  
+  // Processing options
+  options?: {
+    includeProgress?: boolean;
+    confidenceThreshold?: number;
+    timeout?: number;
+  };
+}
+
+/**
+ * Diamond Classification Response (for classify endpoint)
+ */
+export interface DiamondClassifyResponse {
+  success: boolean;
+  data?: {
+    classifications: DiamondClassificationModel[];
+    summary: {
+      totalDiamonds: number;
+      classifiedCount: number;
+      averageConfidence: number;
+      typeDistribution: Record<string, number>;
+      processingTime: string;
+    };
+  };
+  error?: string;
+  message?: string;
+  timestamp?: string;
+  processingTime?: string;
+}
+
+/**
+ * Multi-Level Diamond Analysis Request
+ */
+export interface MultiLevelDiamondRequest {
+  // Input data
+  csvContent?: string;
+  jsonData?: NetworkJsonInput;
+  networkData?: NetworkJsonInput; // For processed network data
+  
+  // Multi-level analysis configuration
+  config?: DiamondAnalysisConfig & {
+    maxLevels?: number;
+    levelAnalysisDepth?: number;
+    crossLevelAnalysis?: boolean;
+  };
+  
+  // Processing options
+  options?: {
+    includeProgress?: boolean;
+    validateInput?: boolean;
+    timeout?: number;
+    parallelProcessing?: boolean;
+  };
+}
+
+/**
+ * Multi-Level Diamond Analysis Response
+ */
+export interface MultiLevelDiamondResponse {
+  success: boolean;
+  data?: {
+    levels: Array<{
+      level: number;
+      diamonds: DiamondStructure[];
+      classifications: DiamondClassificationModel[];
+      statistics: {
+        diamondCount: number;
+        averageComplexity: number;
+        typeDistribution: Record<string, number>;
+      };
+    }>;
+    crossLevelAnalysis?: {
+      interactions: Array<{
+        level1: number;
+        level2: number;
+        interactionType: string;
+        strength: number;
+      }>;
+      hierarchicalStructure: Record<string, unknown>;
+    };
+    summary: {
+      totalLevels: number;
+      totalDiamonds: number;
+      maxDepth: number;
+      analysisComplexity: number;
+      processingTime: string;
+    };
+  };
+  error?: string;
+  message?: string;
+  timestamp?: string;
+  processingTime?: string;
+}
+
 // All interfaces now imported from models
 
 /**
@@ -90,6 +238,99 @@ export class ApiService {
       );
   }
 
+  // ===== NEW DIAMOND DETECTION API METHODS =====
+
+  /**
+   * Detect diamonds in network data
+   * Calls the /diamonds/detect endpoint for diamond detection
+   */
+  detectDiamonds(networkData: NetworkJsonInput, config?: DiamondAnalysisConfig): Observable<DiamondDetectionResponse> {
+    const request: DiamondDetectionRequest = {
+      networkData,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 60000
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Detecting diamonds:', request);
+
+    return this.http.post<DiamondDetectionResponse>(`${this.baseUrl}/diamonds/detect`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 60000), // Configurable timeout for complex detection
+        retry(2), // Fewer retries for analysis operations
+        catchError(this.handleError<DiamondDetectionResponse>('detectDiamonds'))
+      );
+  }
+
+  /**
+   * Classify detected diamonds
+   * Calls the /diamonds/classify endpoint for diamond classification
+   */
+  classifyDiamonds(diamonds: DiamondStructure[], config?: DiamondAnalysisConfig): Observable<DiamondClassifyResponse> {
+    const request: DiamondClassifyRequest = {
+      diamonds,
+      config,
+      options: {
+        includeProgress: true,
+        confidenceThreshold: config?.confidenceThreshold || 0.7,
+        timeout: config?.timeout || 45000
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Classifying diamonds:', request);
+
+    return this.http.post<DiamondClassifyResponse>(`${this.baseUrl}/diamonds/classify`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 45000), // Configurable timeout for classification
+        retry(2), // Fewer retries for analysis operations
+        catchError(this.handleError<DiamondClassifyResponse>('classifyDiamonds'))
+      );
+  }
+
+  /**
+   * Analyze multi-level diamonds in network data
+   * Calls the /diamonds/multi-level endpoint for comprehensive diamond analysis
+   */
+  analyzeMultiLevelDiamonds(networkData: NetworkJsonInput, config?: DiamondAnalysisConfig & { maxLevels?: number; levelAnalysisDepth?: number; crossLevelAnalysis?: boolean }): Observable<MultiLevelDiamondResponse> {
+    const request: MultiLevelDiamondRequest = {
+      networkData,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 90000,
+        parallelProcessing: true
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Analyzing multi-level diamonds:', request);
+
+    return this.http.post<MultiLevelDiamondResponse>(`${this.baseUrl}/diamonds/multi-level`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 90000), // Longer timeout for complex multi-level analysis
+        retry(1), // Single retry for long-running analysis
+        catchError(this.handleError<MultiLevelDiamondResponse>('analyzeMultiLevelDiamonds'))
+      );
+  }
+
   /**
    * Test server connectivity
    */
@@ -98,6 +339,231 @@ export class ApiService {
       .pipe(
         timeout(5000), // Short timeout for health check
         catchError(this.handleError<{ status: string; timestamp: string }>('testConnection'))
+      );
+  }
+
+  // ===== OVERLOADED METHODS FOR DIFFERENT INPUT FORMATS =====
+
+  /**
+   * Detect diamonds from CSV content
+   */
+  detectDiamondsFromCsv(csvContent: string, config?: DiamondAnalysisConfig): Observable<DiamondDetectionResponse> {
+    const request: DiamondDetectionRequest = {
+      csvContent,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 60000
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Detecting diamonds from CSV:', { csvLength: csvContent.length, config });
+
+    return this.http.post<DiamondDetectionResponse>(`${this.baseUrl}/diamonds/detect`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 60000),
+        retry(2),
+        catchError(this.handleError<DiamondDetectionResponse>('detectDiamondsFromCsv'))
+      );
+  }
+
+  /**
+   * Detect diamonds from JSON network data
+   */
+  detectDiamondsFromJson(jsonData: NetworkJsonInput, config?: DiamondAnalysisConfig): Observable<DiamondDetectionResponse> {
+    const request: DiamondDetectionRequest = {
+      jsonData,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 60000
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Detecting diamonds from JSON:', { edgeCount: jsonData.edges?.length, hasNodePriors: !!jsonData.nodePriors, config });
+
+    return this.http.post<DiamondDetectionResponse>(`${this.baseUrl}/diamonds/detect`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 60000),
+        retry(2),
+        catchError(this.handleError<DiamondDetectionResponse>('detectDiamondsFromJson'))
+      );
+  }
+
+  /**
+   * Analyze multi-level diamonds from CSV content
+   */
+  analyzeMultiLevelDiamondsFromCsv(csvContent: string, config?: DiamondAnalysisConfig & { maxLevels?: number; levelAnalysisDepth?: number; crossLevelAnalysis?: boolean }): Observable<MultiLevelDiamondResponse> {
+    const request: MultiLevelDiamondRequest = {
+      csvContent,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 90000,
+        parallelProcessing: true
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Analyzing multi-level diamonds from CSV:', { csvLength: csvContent.length, config });
+
+    return this.http.post<MultiLevelDiamondResponse>(`${this.baseUrl}/diamonds/multi-level`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 90000),
+        retry(1),
+        catchError(this.handleError<MultiLevelDiamondResponse>('analyzeMultiLevelDiamondsFromCsv'))
+      );
+  }
+
+  /**
+   * Analyze multi-level diamonds from JSON network data
+   */
+  analyzeMultiLevelDiamondsFromJson(jsonData: NetworkJsonInput, config?: DiamondAnalysisConfig & { maxLevels?: number; levelAnalysisDepth?: number; crossLevelAnalysis?: boolean }): Observable<MultiLevelDiamondResponse> {
+    const request: MultiLevelDiamondRequest = {
+      jsonData,
+      config,
+      options: {
+        includeProgress: true,
+        validateInput: true,
+        timeout: config?.timeout || 90000,
+        parallelProcessing: true
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+
+    console.log('🔧 API SERVICE: Analyzing multi-level diamonds from JSON:', { edgeCount: jsonData.edges?.length, hasNodePriors: !!jsonData.nodePriors, config });
+
+    return this.http.post<MultiLevelDiamondResponse>(`${this.baseUrl}/diamonds/multi-level`, request, { headers })
+      .pipe(
+        timeout(config?.timeout || 90000),
+        retry(1),
+        catchError(this.handleError<MultiLevelDiamondResponse>('analyzeMultiLevelDiamondsFromJson'))
+      );
+  }
+
+  // ===== DIAMOND ANALYSIS UTILITY METHODS =====
+
+  /**
+   * Validate diamond analysis configuration
+   */
+  validateDiamondConfig(config: DiamondAnalysisConfig): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (config.maxDepth !== undefined && config.maxDepth < 0) {
+      errors.push('maxDepth must be non-negative');
+    }
+
+    if (config.minNodes !== undefined && config.minNodes < 2) {
+      errors.push('minNodes must be at least 2');
+    }
+
+    if (config.maxNodes !== undefined && config.minNodes !== undefined && config.maxNodes < config.minNodes) {
+      errors.push('maxNodes must be greater than or equal to minNodes');
+    }
+
+    if (config.confidenceThreshold !== undefined && (config.confidenceThreshold < 0 || config.confidenceThreshold > 1)) {
+      errors.push('confidenceThreshold must be between 0 and 1');
+    }
+
+    if (config.timeout !== undefined && config.timeout < 1000) {
+      errors.push('timeout must be at least 1000ms');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Create default diamond analysis configuration
+   */
+  createDefaultDiamondConfig(): DiamondAnalysisConfig {
+    return {
+      maxDepth: 5,
+      minNodes: 4,
+      maxNodes: 50,
+      detectOverlapping: true,
+      performClassification: true,
+      confidenceThreshold: 0.7,
+      includePathAnalysis: true,
+      timeout: 60000
+    };
+  }
+
+  /**
+   * Validate diamond structures before classification
+   */
+  validateDiamondStructures(diamonds: DiamondStructure[]): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (!diamonds || diamonds.length === 0) {
+      errors.push('No diamonds provided for classification');
+      return { isValid: false, errors };
+    }
+
+    diamonds.forEach((diamond, index) => {
+      if (!diamond.id) {
+        errors.push(`Diamond at index ${index} missing required id`);
+      }
+
+      if (!diamond.nodes || diamond.nodes.length < 2) {
+        errors.push(`Diamond ${diamond.id || index} must have at least 2 nodes`);
+      }
+
+      if (!diamond.source) {
+        errors.push(`Diamond ${diamond.id || index} missing required source node`);
+      }
+
+      if (!diamond.sink) {
+        errors.push(`Diamond ${diamond.id || index} missing required sink node`);
+      }
+
+      if (!diamond.paths || diamond.paths.length === 0) {
+        errors.push(`Diamond ${diamond.id || index} must have at least one path`);
+      }
+    });
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Get progress tracking for long-running diamond analysis
+   */
+  getDiamondAnalysisProgress(analysisId: string): Observable<DiamondAnalysisProgress> {
+    return this.http.get<DiamondAnalysisProgress>(`${this.baseUrl}/diamonds/progress/${analysisId}`)
+      .pipe(
+        timeout(5000),
+        catchError(this.handleError<DiamondAnalysisProgress>('getDiamondAnalysisProgress'))
+      );
+  }
+
+  /**
+   * Cancel a running diamond analysis operation
+   */
+  cancelDiamondAnalysis(analysisId: string): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<{ success: boolean; message: string }>(`${this.baseUrl}/diamonds/analysis/${analysisId}`)
+      .pipe(
+        timeout(5000),
+        catchError(this.handleError<{ success: boolean; message: string }>('cancelDiamondAnalysis'))
       );
   }
 
@@ -150,12 +616,12 @@ export class ApiService {
   /**
    * Get server configuration and status
    */
-  getServerInfo(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/api/info`)
+  getServerInfo(): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/api/info`)
       .pipe(
         timeout(5000),
         catchError(this.handleError('getServerInfo'))
-      );
+      ) as Observable<Record<string, unknown>>;
   }
 
   /**
