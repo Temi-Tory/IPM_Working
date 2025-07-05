@@ -11,7 +11,8 @@ $text-primary: #2C2C2C;
 $text-secondary: #5A5A5A;
 
 .app-container {
-  min-height: 100vh;
+  max-height: 100%;
+  width: 90%;
   background-color: $background-primary;
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
