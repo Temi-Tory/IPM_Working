@@ -2,71 +2,280 @@
   <div class="page-header">
     <h1>Information Propagation Framework</h1>
     <p class="subtitle">Upload and configure your network data for analysis</p>
+    
+    <!-- Global loading indicator -->
+    @if (appState.loadingState().isLoading) {
+      <div class="loading-banner">
+        <div class="loading-spinner"></div>
+        <span>{{ appState.loadingState().message }}</span>
+        @if (appState.loadingState().progress; as progress) {
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="progress"></div>
+          </div>
+        }
+      </div>
+    }
   </div>
 
+  <!-- Network Status Summary -->
+  @if (networkState.isNetworkLoaded()) {
+    <div class="network-status card success">
+      <h3>✅ Network Loaded</h3>
+      <div class="status-grid">
+        <div class="status-item">
+          <strong>{{ networkState.nodeCount() }}</strong>
+          <span>Nodes</span>
+        </div>
+        <div class="status-item">
+          <strong>{{ networkState.edgeCount() }}</strong>
+          <span>Edges</span>
+        </div>
+        <div class="status-item">
+          <strong>{{ networkState.hasUploadedFiles() ? 'Yes' : 'No' }}</strong>
+          <span>Custom Files</span>
+        </div>
+      </div>
+      
+      <div class="status-actions">
+        <button
+          class="btn-primary"
+          (click)="startAnalysis()"
+          [disabled]="!networkState.canAnalyze() || analysisState.isRunning()">
+          @if (analysisState.isRunning()) {
+            <span>Running Analysis... {{ analysisState.progress() }}%</span>
+          } @else {
+            <span>Start Analysis</span>
+          }
+        </button>
+        <button class="btn-secondary" (click)="clearNetwork()">Clear Network</button>
+      </div>
+    </div>
+  }
+
+  <!-- Error Display -->
+  @if (networkState.error(); as error) {
+    <div class="error-banner card error">
+      <h3>❌ Network Error</h3>
+      <p>{{ error }}</p>
+      <button class="btn-secondary" (click)="clearNetwork()">Clear and Retry</button>
+    </div>
+  }
+
   <div class="setup-cards">
+    <!-- File Upload Card -->
     <div class="card">
       <h2>📁 Network Data Upload</h2>
       <p>Upload your DAG structure, node probabilities, and edge probabilities</p>
       
-      <div class="upload-section">
-        <div class="upload-item">
-          <label for="dag-file">DAG Structure (CSV/TXT)</label>
-          <input type="file" id="dag-file" accept=".csv,.txt" />
-          <small>Upload your directed acyclic graph structure</small>
-        </div>
+      <!-- Drag & Drop Zone -->
+      <div
+        class="drag-drop-zone"
+        [class.drag-over]="false"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
         
-        <div class="upload-item">
-          <label for="node-prob-file">Node Probabilities (CSV/JSON)</label>
-          <input type="file" id="node-prob-file" accept=".csv,.json" />
-          <small>Optional: Custom node probability values</small>
-        </div>
-        
-        <div class="upload-item">
-          <label for="edge-prob-file">Edge Probabilities (CSV/JSON)</label>
-          <input type="file" id="edge-prob-file" accept=".csv,.json" />
-          <small>Optional: Custom edge probability values</small>
+        <div class="drag-drop-content">
+          <div class="upload-icon">📁</div>
+          <p>Drag & drop files here or click to browse</p>
+          <input
+            type="file"
+            #fileInput
+            accept=".csv,.txt,.json"
+            (change)="onFileSelected($event)"
+            style="display: none;" />
+          <button
+            class="btn-secondary"
+            (click)="fileInput.click()"
+            [disabled]="networkState.isLoading()">
+            Choose Files
+          </button>
         </div>
       </div>
       
-      <button class="btn-primary" disabled>Process Network Data</button>
+      <!-- Uploaded Files Display -->
+      @if (networkState.hasUploadedFiles()) {
+        <div class="uploaded-files">
+          <h4>Uploaded Files:</h4>
+          @for (fileItem of uploadedFilesArray(); track fileItem.type) {
+            <div class="file-item">
+              <span class="file-type">{{ fileItem.type }}</span>
+              <span class="file-name">{{ fileItem.file.name }}</span>
+              <span class="file-size">({{ (fileItem.file.size / 1024) | number:'1.0-1' }} KB)</span>
+            </div>
+          }
+        </div>
+      }
     </div>
 
+    <!-- Test Networks Card -->
     <div class="card">
       <h2>🧪 Test Networks</h2>
       <p>Try the framework with pre-configured test networks</p>
       
       <div class="test-networks">
-        <button class="btn-secondary">Small Test Network (10 nodes)</button>
-        <button class="btn-secondary">Medium Test Network (50 nodes)</button>
-        <button class="btn-secondary">Large Test Network (100 nodes)</button>
+        <button
+          class="btn-secondary"
+          (click)="loadSampleNetwork('simple')"
+          [disabled]="networkState.isLoading()">
+          Simple Network (4 nodes)
+        </button>
+        <button
+          class="btn-secondary"
+          (click)="loadSampleNetwork('complex')"
+          [disabled]="networkState.isLoading()">
+          Complex Network (8 nodes)
+        </button>
+        <button
+          class="btn-secondary"
+          (click)="loadSampleNetwork('large')"
+          [disabled]="networkState.isLoading()">
+          Large Network (20 nodes)
+        </button>
+      </div>
+      
+      <div class="test-network-info">
+        <small>Test networks include pre-configured probabilities and diamond structures</small>
       </div>
     </div>
 
+    <!-- Analysis Configuration Card -->
     <div class="card">
       <h2>⚙️ Analysis Configuration</h2>
       <p>Configure parameters for information propagation analysis</p>
       
       <div class="config-section">
         <div class="config-item">
-          <label for="default-node-prior">Default Node Prior</label>
-          <input id="default-node-prior" type="number" value="0.5" min="0" max="1" step="0.01" />
-        </div>
-        
-        <div class="config-item">
-          <label for="default-edge-prob">Default Edge Probability</label>
-          <input id="default-edge-prob" type="number" value="0.7" min="0" max="1" step="0.01" />
-        </div>
-        
-        <div class="config-item">
           <label for="analysis-type">Analysis Type</label>
-          <select id="analysis-type">
-            <option>Reachability Analysis</option>
-            <option>Diamond Structure Analysis</option>
-            <option>Monte Carlo Simulation</option>
+          <select
+            id="analysis-type"
+            [value]="analysisState.parameters().analysisType"
+            (change)="analysisState.setParameters({ analysisType: $any($event.target).value })">
+            <option value="reachability">Reachability Analysis</option>
+            <option value="diamond-detection">Diamond Structure Analysis</option>
+            <option value="monte-carlo">Monte Carlo Simulation</option>
+            <option value="critical-path">Critical Path Analysis</option>
           </select>
         </div>
+        
+        <div class="config-item">
+          <label for="iterations">Monte Carlo Iterations</label>
+          <input
+            id="iterations"
+            type="number"
+            [value]="analysisState.parameters().iterations || 10000"
+            (input)="analysisState.setParameters({ iterations: +$any($event.target).value })"
+            min="1000"
+            max="100000"
+            step="1000" />
+        </div>
+        
+        <div class="config-item">
+          <label for="confidence-level">Confidence Level</label>
+          <input
+            id="confidence-level"
+            type="number"
+            [value]="analysisState.parameters().confidenceLevel || 0.95"
+            (input)="analysisState.setParameters({ confidenceLevel: +$any($event.target).value })"
+            min="0.8"
+            max="0.99"
+            step="0.01" />
+        </div>
+      </div>
+      
+      <!-- Parameter Overrides Section -->
+      <div class="overrides-section">
+        <h4>Parameter Overrides</h4>
+        <div class="override-controls">
+          <div class="config-item">
+            <label>
+              <input
+                type="checkbox"
+                [checked]="analysisState.parameterOverrides().global.overrideNodePrior"
+                (change)="analysisState.setGlobalOverrides(
+                  $any($event.target).checked ? 0.5 : undefined,
+                  analysisState.parameterOverrides().global.edgeProb
+                )" />
+              Override Node Prior
+            </label>
+            @if (analysisState.parameterOverrides().global.overrideNodePrior) {
+              <input
+                type="number"
+                [value]="analysisState.parameterOverrides().global.nodePrior || 0.5"
+                (input)="analysisState.setGlobalOverrides(
+                  +$any($event.target).value,
+                  analysisState.parameterOverrides().global.edgeProb
+                )"
+                min="0"
+                max="1"
+                step="0.01" />
+            }
+          </div>
+          
+          <div class="config-item">
+            <label>
+              <input
+                type="checkbox"
+                [checked]="analysisState.parameterOverrides().global.overrideEdgeProb"
+                (change)="analysisState.setGlobalOverrides(
+                  analysisState.parameterOverrides().global.nodePrior,
+                  $any($event.target).checked ? 0.7 : undefined
+                )" />
+              Override Edge Probability
+            </label>
+            @if (analysisState.parameterOverrides().global.overrideEdgeProb) {
+              <input
+                type="number"
+                [value]="analysisState.parameterOverrides().global.edgeProb || 0.7"
+                (input)="analysisState.setGlobalOverrides(
+                  analysisState.parameterOverrides().global.nodePrior,
+                  +$any($event.target).value
+                )"
+                min="0"
+                max="1"
+                step="0.01" />
+            }
+          </div>
+        </div>
+        
+        @if (analysisState.hasGlobalOverrides() || analysisState.hasIndividualOverrides()) {
+          <button
+            class="btn-warning btn-small"
+            (click)="analysisState.clearAllOverrides()">
+            Clear All Overrides
+          </button>
+        }
       </div>
     </div>
+
+    <!-- Analysis Results Preview -->
+    @if (analysisState.hasResults()) {
+      <div class="card">
+        <h2>📊 Analysis Results</h2>
+        <div class="results-summary">
+          <div class="result-item">
+            <strong>Analysis Type:</strong>
+            <span>{{ analysisState.currentAnalysis()?.type }}</span>
+          </div>
+          <div class="result-item">
+            <strong>Execution Time:</strong>
+            <span>{{ analysisState.currentAnalysis()?.executionTime | number:'1.2-2' }}ms</span>
+          </div>
+          <div class="result-item">
+            <strong>Completed:</strong>
+            <span>{{ analysisState.currentAnalysis()?.timestamp | date:'short' }}</span>
+          </div>
+        </div>
+        
+        <div class="results-actions">
+          <button class="btn-primary" routerLink="/visualization">
+            View Full Results
+          </button>
+          <button class="btn-secondary" (click)="analysisState.runAnalysis()">
+            Re-run Analysis
+          </button>
+        </div>
+      </div>
+    }
   </div>
 </div>
