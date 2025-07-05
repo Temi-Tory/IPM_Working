@@ -8,7 +8,7 @@ module ValidationService
 
 using JSON
 
-export validate_csv_content, validate_edge_list, validate_node_priors_json, validate_edge_probabilities_json, validate_request_data, ValidationResult, ValidationError
+export validate_csv_content, validate_edge_list, validate_node_priors_json, validate_edge_probabilities_json, validate_request_data, ValidationResult, ValidationError, format_validation_errors
 
 # Strict type definitions for validation results
 struct ValidationError

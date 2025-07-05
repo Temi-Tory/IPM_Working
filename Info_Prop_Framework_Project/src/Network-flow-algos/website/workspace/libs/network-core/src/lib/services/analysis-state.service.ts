@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { NetworkStateService } from './network-state.service';
+import { DiamondStructure } from '../models/api.models';
 
 // Analysis types and interfaces
 export interface AnalysisResults {
@@ -39,13 +40,7 @@ export interface AnalysisHistoryItem {
   networkSnapshot: string; // JSON snapshot of network at time of analysis
 }
 
-export interface DiamondStructure {
-  id: string;
-  forkNode: number;
-  joinNode: number;
-  paths: Path[];
-  classification: 'simple' | 'complex' | 'nested';
-}
+// DiamondStructure is now imported from models
 
 export interface Path {
   id: string;
@@ -420,13 +415,16 @@ export class AnalysisStateService {
     return [
       {
         id: 'diamond-1',
-        forkNode: 1,
-        joinNode: 4,
-        paths: [
-          { id: 'path-1', nodes: [1, 2, 4], edges: ['1-2', '2-4'], probability: 0.6 },
-          { id: 'path-2', nodes: [1, 3, 4], edges: ['1-3', '3-4'], probability: 0.4 }
+        nodes: [1, 2, 3, 4],
+        edges: [
+          { source: 1, target: 2 },
+          { source: 1, target: 3 },
+          { source: 2, target: 4 },
+          { source: 3, target: 4 }
         ],
-        classification: 'simple'
+        type: 'simple',
+        size: 4,
+        depth: 2
       }
     ];
   }

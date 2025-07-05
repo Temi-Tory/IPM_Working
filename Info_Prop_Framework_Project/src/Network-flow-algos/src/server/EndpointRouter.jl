@@ -88,53 +88,98 @@ Route POST requests to specific endpoint handlers based on the target path.
 function route_post_request(req::HTTP.Request)::HTTP.Response
     target = req.target
     
+    # Debug: Log request body info
+    println("🔍 ROUTER DEBUG - POST Request Body Analysis:")
+    println("  - req.body type: $(typeof(req.body))")
+    println("  - req.body length: $(length(req.body))")
+    println("  - isempty(req.body): $(isempty(req.body))")
+    
+    # Try different ways to read the body
+    body_str = ""
+    try
+        # Method 1: Direct String conversion
+        body_str = String(req.body)
+        println("  - Method 1 - String(req.body) length: $(length(body_str))")
+        
+        # Method 2: Try reading as UTF-8
+        if isempty(strip(body_str))
+            body_str = String(copy(req.body))
+            println("  - Method 2 - String(copy(req.body)) length: $(length(body_str))")
+        end
+        
+        # Method 3: Try reading from IOBuffer
+        if isempty(strip(body_str))
+            io = IOBuffer(req.body)
+            body_str = read(io, String)
+            println("  - Method 3 - IOBuffer read length: $(length(body_str))")
+        end
+        
+    catch e
+        println("  - Error reading body: $e")
+        body_str = ""
+    end
+    
+    println("  - Final body string length: $(length(body_str))")
+    println("  - Body content preview: $(body_str[1:min(100, length(body_str))])")
+    println("  - First 20 bytes as hex: $(bytes2hex(req.body[1:min(20, length(req.body))]))")
+    
     # Validate request has body for POST requests
-    if isempty(req.body)
+    if isempty(body_str) || strip(body_str) == ""
+        println("❌ ROUTER: Request body is empty or contains no data!")
         return server_error_handler("POST request body cannot be empty", 400)
     end
     
+    println("✅ ROUTER: Request body successfully read with $(length(body_str)) characters")
+    
     # Validate JSON format
+    local parsed_json
     try
-        JSON.parse(String(req.body))
+        parsed_json = JSON.parse(body_str)
+        println("✅ ROUTER: JSON parsing successful")
     catch e
+        println("❌ ROUTER: JSON parsing failed: $e")
         return server_error_handler("Invalid JSON in request body: $(string(e))", 400)
     end
     
+    # Create a new request object with the parsed JSON in the body
+    # This is a workaround since we can't modify req.body directly
+    modified_req = HTTP.Request(req.method, req.target, req.headers, JSON.json(parsed_json))
+    
     # Route to specific endpoints
     if target == "/api/processinput"
-        return handle_process_input(req)
+        return handle_process_input(modified_req)
         
     elseif target == "/api/diamondprocessing"
-        return handle_diamond_processing(req)
+        return handle_diamond_processing(modified_req)
         
     elseif target == "/api/diamondclassification"
-        return handle_diamond_classification(req)
+        return handle_diamond_classification(modified_req)
         
     elseif target == "/api/reachabilitymodule"
-        return handle_reachability_analysis(req)
+        return handle_reachability_analysis(modified_req)
         
     elseif target == "/api/pathenum"
-        return handle_path_enumeration(req)
+        return handle_path_enumeration(modified_req)
         
     elseif target == "/api/montecarlo"
-        return handle_monte_carlo_analysis(req)
+        return handle_monte_carlo_analysis(modified_req)
         
     # Legacy endpoint support (for backward compatibility)
     elseif target == "/api/analyze"
         println("⚠️ Legacy endpoint /api/analyze called - redirecting to /api/reachabilitymodule")
-        return handle_reachability_analysis(req)
+        return handle_reachability_analysis(modified_req)
         
     elseif target == "/api/analyze-enhanced"
         println("⚠️ Legacy endpoint /api/analyze-enhanced called - redirecting to /api/reachabilitymodule")
-        return handle_reachability_analysis(req)
+        return handle_reachability_analysis(modified_req)
         
     elseif target == "/api/parse-structure"
         println("⚠️ Legacy endpoint /api/parse-structure called - redirecting to /api/processinput")
-        return handle_process_input(req)
+        return handle_process_input(modified_req)
         
     elseif target == "/api/analyze-diamond"
         println("⚠️ Legacy endpoint /api/analyze-diamond called - redirecting to /api/diamondprocessing")
-        return handle_diamond_processing(req)
+        return handle_diamond_processing(modified_req)
         
     else
         return not_found_handler(req)

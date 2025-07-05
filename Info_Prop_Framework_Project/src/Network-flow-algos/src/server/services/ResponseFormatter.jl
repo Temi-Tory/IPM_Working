@@ -96,6 +96,7 @@ function format_network_data(
     return Dict{String, Any}(
         "nodes" => collect(all_nodes),
         "edges" => [(edge[1], edge[2]) for edge in edgelist],
+        "edgelist" => [(edge[1], edge[2]) for edge in edgelist],  # Add this for Angular compatibility
         "sourceNodes" => collect(source_nodes),
         "sinkNodes" => sink_nodes,
         "forkNodes" => collect(fork_nodes),

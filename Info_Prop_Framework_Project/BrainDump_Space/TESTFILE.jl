@@ -1,4 +1,4 @@
-import Fontconfig
+#= import Fontconfig
 using DataFrames, DelimitedFiles, Distributions,
       DataStructures, SparseArrays, BenchmarkTools,
       Combinatorics
@@ -160,4 +160,4 @@ diamond_edglist = [(5, 9), (9, 10), (10, 14), (13, 9), (13, 14)]
 diamond_relevant_nodes = Set([5, 13, 10, 9, 14])
 diamond_highest_nodes = Set([13])
 ---------------------------------------------------
- =#
+ =# =#

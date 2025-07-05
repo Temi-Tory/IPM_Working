@@ -2,191 +2,19 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, retry, catchError, timeout } from 'rxjs';
 
-// API Request/Response Interfaces
-export interface ProcessInputRequest {
-  csvContent: string;
-}
+// Import the new API interfaces
+import {
+  ProcessInputRequest,
+  ProcessInputResponse,
+  ReachabilityRequest,
+  ReachabilityResponse,
+  DiamondProcessingRequest,
+  DiamondProcessingResponse,
+  MonteCarloRequest,
+  MonteCarloResponse
+} from '../models/api.models';
 
-export interface ProcessInputResponse {
-  success: boolean;
-  data: {
-    networkData: {
-      edgelist: number[][];
-      outgoingIndex: Record<string, number[]>;
-      incomingIndex: Record<string, number[]>;
-      sourceNodes: number[];
-      nodePriors: Record<string, number>;
-      edgeProbabilities: Record<string, number>;
-      forkNodes: number[];
-      joinNodes: number[];
-      iterationSets: number[][];
-      ancestors: Record<string, number[]>;
-      descendants: Record<string, number[]>;
-      nodeCount: number;
-      edgeCount: number;
-      graphDensity: number;
-      maxIterationDepth: number;
-    };
-    statistics: {
-      basic: {
-        nodes: number;
-        edges: number;
-        density: number;
-        maxDepth: number;
-      };
-      nodeTypes: Record<string, number>;
-      structural: {
-        isolatedNodes: number;
-        highDegreeNodes: number;
-        iterationSets: number;
-      };
-      connectivity: {
-        stronglyConnectedComponents: number;
-        avgPathLength: number;
-        hasIsolatedNodes: boolean;
-      };
-    };
-    summary: {
-      analysisType: string;
-      nodes: number;
-      edges: number;
-      sources: number;
-      sinks: number;
-      forks: number;
-      joins: number;
-      density: number;
-      maxDepth: number;
-      processingTime: string;
-    };
-  };
-  message?: string;
-  error?: string;
-}
-
-export interface ReachabilityRequest {
-  csvContent: string;
-  nodePrior?: number;
-  edgeProb?: number;
-  overrideNodePrior?: boolean;
-  overrideEdgeProb?: boolean;
-  useIndividualOverrides?: boolean;
-  individualNodePriors?: Record<string, number>;
-  individualEdgeProbabilities?: Record<string, number>;
-}
-
-export interface ReachabilityResponse {
-  success: boolean;
-  data: {
-    results: Array<{ node: number; probability: number }>;
-    networkData: any;
-    originalParameters: {
-      nodePriors: Record<string, number>;
-      edgeProbabilities: Record<string, number>;
-    };
-    parameterModifications: {
-      appliedNodeOverrides: Record<string, number>;
-      appliedEdgeOverrides: Record<string, number>;
-      globalModifications: {
-        nodeOverride: boolean;
-        edgeOverride: boolean;
-      };
-    };
-    resultStatistics: {
-      totalNodes: number;
-      probabilityDistribution: Record<string, number>;
-      nodeTypeAnalysis: any;
-      reachabilityMetrics: {
-        overallMean: number;
-        overallMin: number;
-        overallMax: number;
-        standardDeviation: number;
-        highReachabilityNodes: number;
-        lowReachabilityNodes: number;
-        perfectReachabilityNodes: number;
-        unreachableNodes: number;
-      };
-      insights: string[];
-    };
-    summary: {
-      analysisType: string;
-      nodes: number;
-      edges: number;
-      diamonds: number;
-      resultsGenerated: number;
-      parametersModified: boolean;
-      maxIterationDepth: number;
-      processingTime: string;
-    };
-  };
-  message?: string;
-  error?: string;
-}
-
-export interface DiamondProcessingRequest {
-  csvContent: string;
-}
-
-export interface DiamondProcessingResponse {
-  success: boolean;
-  data: {
-    diamondStructures: Array<{
-      id: string;
-      nodes: number[];
-      edges: Array<{ source: number; target: number }>;
-      type: string;
-      size: number;
-      depth: number;
-    }>;
-    statistics: {
-      totalDiamonds: number;
-      averageSize: number;
-      maxDepth: number;
-      typeDistribution: Record<string, number>;
-    };
-    summary: {
-      analysisType: string;
-      diamonds: number;
-      avgSize: number;
-      maxDepth: number;
-      processingTime: string;
-    };
-  };
-  message?: string;
-  error?: string;
-}
-
-export interface MonteCarloRequest {
-  csvContent: string;
-  iterations?: number;
-  nodePrior?: number;
-  edgeProb?: number;
-  overrideNodePrior?: boolean;
-  overrideEdgeProb?: boolean;
-  useIndividualOverrides?: boolean;
-  individualNodePriors?: Record<string, number>;
-  individualEdgeProbabilities?: Record<string, number>;
-}
-
-export interface MonteCarloResponse {
-  success: boolean;
-  data: {
-    results: Array<{ node: number; probability: number; confidence: number }>;
-    simulationMetrics: {
-      iterations: number;
-      convergence: boolean;
-      executionTime: number;
-    };
-    summary: {
-      analysisType: string;
-      iterations: number;
-      nodes: number;
-      converged: boolean;
-      processingTime: string;
-    };
-  };
-  message?: string;
-  error?: string;
-}
+// All interfaces now imported from models
 
 /**
  * API Service for Julia Backend Integration
@@ -202,10 +30,23 @@ export class ApiService {
   private readonly maxRetries = 3;
 
   /**
-   * Process network input - converts CSV to network structure
+   * Process network input - supports both CSV and JSON formats
    */
   processInput(request: ProcessInputRequest): Observable<ProcessInputResponse> {
-    return this.http.post<ProcessInputResponse>(`${this.baseUrl}/api/processinput`, request)
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    // Debug: Log the request being sent
+    console.log('🔧 API SERVICE: Sending request to Julia server:', request);
+    
+    // Manually stringify the JSON to ensure proper serialization
+    const requestBody = JSON.stringify(request);
+    console.log('🔧 API SERVICE: Stringified request body:', requestBody);
+    console.log('🔧 API SERVICE: Request body length:', requestBody.length);
+    
+    return this.http.post<ProcessInputResponse>(`${this.baseUrl}/api/processinput`, requestBody, { headers })
       .pipe(
         timeout(this.defaultTimeout),
         retry(this.maxRetries),

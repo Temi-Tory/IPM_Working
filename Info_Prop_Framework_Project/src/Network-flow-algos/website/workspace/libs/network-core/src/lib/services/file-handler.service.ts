@@ -1,365 +1,581 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { Observable, from, throwError } from 'rxjs';
+/**
+ * FileHandlerService
+ * 
+ * Handles file upload, validation, and processing for network analysis.
+ * Supports CSV adjacency matrices, edge lists, and JSON probability files.
+ */
+
+import { Injectable, signal, computed, effect } from '@angular/core';
+// RxJS imports removed as they're not currently used
 
 export interface FileValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
-  fileInfo: {
-    name: string;
-    size: number;
-    type: string;
-    lastModified: Date;
+  fileType?: 'adjacency' | 'edgelist' | 'nodeprobs' | 'edgeprobs' | 'unknown';
+  metadata?: {
+    nodes?: number;
+    edges?: number;
+    format?: string;
   };
 }
 
-export interface ParsedCsvData {
-  headers: string[];
-  rows: string[][];
+export interface ProcessedFile {
+  name: string;
+  type: 'adjacency' | 'edgelist' | 'nodeprobs' | 'edgeprobs' | 'dag' | 'nodeProbabilities' | 'edgeProbabilities';
   content: string;
-  rowCount: number;
-  columnCount: number;
+  validation: FileValidationResult;
+  size: number;
+  lastModified: number;
+  parsed?: Record<string, unknown>;
 }
+
+export interface NetworkFiles {
+  adjacency?: ProcessedFile;
+  edgelist?: ProcessedFile;
+  nodeProbs?: ProcessedFile;
+  edgeProbs?: ProcessedFile;
+}
+
+export type SupportedFileType = 'adjacency' | 'edgelist' | 'nodeprobs' | 'edgeprobs' | 'dag' | 'nodeProbabilities' | 'edgeProbabilities';
 
 export interface NetworkFileData {
-  dagFile?: {
-    content: string;
-    parsed: ParsedCsvData;
-  };
-  nodeProbabilities?: {
-    content: string;
-    parsed: Record<number, number>;
-  };
-  edgeProbabilities?: {
-    content: string;
-    parsed: Record<string, number>;
-  };
+  dagFile?: ProcessedFile;
+  nodeProbs?: ProcessedFile;
+  edgeProbs?: ProcessedFile;
+  nodeProbabilities?: ProcessedFile;
+  edgeProbabilities?: ProcessedFile;
 }
 
-export type SupportedFileType = 'dag' | 'nodeProbabilities' | 'edgeProbabilities';
-
-/**
- * File Handler Service for Network Analysis Files
- * Handles file upload, validation, parsing, and processing
- */
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class FileHandlerService {
-  // File processing state
-  private _isProcessing = signal(false);
-  private _processingProgress = signal(0);
-  private _processingMessage = signal('');
+  // Reactive state using signals
+  private _uploadedFiles = signal<ProcessedFile[]>([]);
+  private _isProcessing = signal<boolean>(false);
+  private _processingProgress = signal<number>(0);
+  private _processingMessage = signal<string>('');
+  private _validationErrors = signal<string[]>([]);
 
-  // Public readonly signals
+  // Computed signals
+  readonly uploadedFiles = this._uploadedFiles.asReadonly();
   readonly isProcessing = this._isProcessing.asReadonly();
   readonly processingProgress = this._processingProgress.asReadonly();
   readonly processingMessage = this._processingMessage.asReadonly();
+  readonly validationErrors = this._validationErrors.asReadonly();
 
-  // Configuration
-  private readonly maxFileSize = 50 * 1024 * 1024; // 50MB
-  private readonly supportedExtensions = ['.csv', '.txt', '.json'];
-  private readonly supportedMimeTypes = [
-    'text/csv',
-    'text/plain',
-    'application/json',
-    'application/vnd.ms-excel'
-  ];
+  readonly hasValidFiles = computed(() => 
+    this._uploadedFiles().some(file => file.validation.isValid)
+  );
+
+  readonly networkFiles = computed((): NetworkFiles => {
+    const files = this._uploadedFiles();
+    return {
+      adjacency: files.find(f => f.type === 'adjacency'),
+      edgelist: files.find(f => f.type === 'edgelist'),
+      nodeProbs: files.find(f => f.type === 'nodeprobs'),
+      edgeProbs: files.find(f => f.type === 'edgeprobs')
+    };
+  });
+
+  constructor() {
+    // File upload functionality DISABLED
+    console.log('🚫 FileHandlerService: File upload functionality is DISABLED - using test networks only');
+    
+    // Effect for validation error logging (disabled)
+    effect(() => {
+      const errors = this._validationErrors();
+      if (errors.length > 0) {
+        console.warn('🚫 File validation errors (DISABLED):', errors);
+      }
+    });
+  }
 
   /**
-   * Validate uploaded file
+   * Upload and process files - DISABLED
    */
-  validateFile(file: File, fileType: SupportedFileType): FileValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  async uploadFiles(): Promise<ProcessedFile[]> {
+    console.warn('🚫 File upload functionality is DISABLED - using test networks only');
+    this._validationErrors.set(['File upload functionality has been disabled. Please use test networks instead.']);
+    throw new Error('File upload functionality has been disabled. Please use test networks instead.');
+  }
 
-    // Basic file validation
-    if (!file) {
-      errors.push('No file provided');
-      return {
-        isValid: false,
-        errors,
-        warnings,
-        fileInfo: {
-          name: '',
-          size: 0,
-          type: '',
-          lastModified: new Date()
-        }
-      };
-    }
-
-    // File size validation
-    if (file.size > this.maxFileSize) {
-      errors.push(`File size (${this.formatFileSize(file.size)}) exceeds maximum allowed size (${this.formatFileSize(this.maxFileSize)})`);
-    }
-
-    if (file.size === 0) {
-      errors.push('File is empty');
-    }
-
-    // File extension validation
-    const extension = this.getFileExtension(file.name);
-    if (!this.supportedExtensions.includes(extension)) {
-      errors.push(`Unsupported file extension: ${extension}. Supported: ${this.supportedExtensions.join(', ')}`);
-    }
-
-    // MIME type validation (if available)
-    if (file.type && !this.supportedMimeTypes.includes(file.type)) {
-      warnings.push(`Unexpected MIME type: ${file.type}. File will still be processed.`);
-    }
-
-    // File type specific validation
-    switch (fileType) {
-      case 'dag':
-        if (!file.name.toLowerCase().includes('dag') && !file.name.toLowerCase().includes('network')) {
-          warnings.push('DAG file name should typically contain "dag" or "network"');
-        }
-        break;
-      case 'nodeProbabilities':
-        if (!file.name.toLowerCase().includes('node') && !file.name.toLowerCase().includes('prob')) {
-          warnings.push('Node probabilities file name should typically contain "node" or "prob"');
-        }
-        break;
-      case 'edgeProbabilities':
-        if (!file.name.toLowerCase().includes('edge') && !file.name.toLowerCase().includes('prob')) {
-          warnings.push('Edge probabilities file name should typically contain "edge" or "prob"');
-        }
-        break;
-    }
+  /**
+   * Process a single file
+   */
+  private async processFile(file: File): Promise<ProcessedFile> {
+    const content = await this.readFileAsText(file);
+    const fileType = this.detectFileType(file.name, content);
+    const validation = this.validateFile(content, fileType);
 
     return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      fileInfo: {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: new Date(file.lastModified)
-      }
+      name: file.name,
+      type: fileType,
+      content,
+      validation,
+      size: file.size,
+      lastModified: file.lastModified
     };
   }
 
   /**
-   * Read file content as text
+   * Read file as text with proper encoding handling
    */
-  readFileAsText(file: File): Observable<string> {
-    return from(new Promise<string>((resolve, reject) => {
+  private readFileAsText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
       reader.onload = (event) => {
-        const content = event.target?.result as string;
-        if (content) {
-          resolve(content);
+        const result = event.target?.result;
+        if (typeof result === 'string') {
+          resolve(result);
         } else {
-          reject(new Error('Failed to read file content'));
+          reject(new Error('Failed to read file as text'));
         }
       };
       
       reader.onerror = () => {
-        reject(new Error('File reading failed'));
+        reject(new Error(`Failed to read file: ${file.name}`));
       };
       
-      reader.readAsText(file);
-    }));
+      // Read as text with UTF-8 encoding
+      reader.readAsText(file, 'UTF-8');
+    });
   }
 
   /**
-   * Parse CSV file content
+   * Detect file type based on name and content
    */
-  parseCsvFile(content: string): ParsedCsvData {
-    const lines = content.trim().split('\n');
+  private detectFileType(fileName: string, content: string): ProcessedFile['type'] {
+    const lowerName = fileName.toLowerCase();
     
-    if (lines.length === 0) {
-      throw new Error('CSV file is empty');
+    // Check file extension and name patterns
+    if (lowerName.includes('adjacency') || lowerName.includes('matrix')) {
+      return 'adjacency';
+    }
+    
+    if (lowerName.includes('edge') && (lowerName.endsWith('.csv') || lowerName.endsWith('.txt'))) {
+      return 'edgelist';
+    }
+    
+    if (lowerName.includes('node') && lowerName.includes('prob')) {
+      return 'nodeprobs';
+    }
+    
+    if (lowerName.includes('edge') && lowerName.includes('prob')) {
+      return 'edgeprobs';
     }
 
-    // Parse headers
-    const headers = this.parseCsvLine(lines[0]);
-    
-    // Parse data rows
-    const rows: string[][] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line) { // Skip empty lines
-        rows.push(this.parseCsvLine(line));
+    // Analyze content structure
+    const lines = content.trim().split('\n');
+    if (lines.length > 0) {
+      const firstLine = lines[0].trim();
+      
+      // Check for edge list format
+      if (firstLine.toLowerCase().includes('source') && firstLine.toLowerCase().includes('destination')) {
+        return 'edgelist';
+      }
+      
+      // Check for node probabilities format
+      if (firstLine.toLowerCase().includes('node') && firstLine.toLowerCase().includes('probability')) {
+        return 'nodeprobs';
+      }
+      
+      // Check for edge probabilities format
+      if (firstLine.toLowerCase().includes('source') && firstLine.toLowerCase().includes('target') && firstLine.toLowerCase().includes('probability')) {
+        return 'edgeprobs';
+      }
+      
+      // Check for adjacency matrix (square matrix of numbers)
+      const values = firstLine.split(',');
+      if (values.length > 1 && values.every(v => /^[0-1]$/.test(v.trim()))) {
+        console.log('📊 Detected adjacency matrix format');
+        return 'adjacency';
       }
     }
+    
+    // Default to adjacency if CSV
+    if (lowerName.endsWith('.csv')) {
+      return 'adjacency';
+    }
+    
+    return 'adjacency'; // Default fallback
+  }
 
+  /**
+   * Validate file content based on type
+   */
+  validateFile(content: string, type: ProcessedFile['type']): FileValidationResult {
+    switch (type) {
+      case 'adjacency':
+      case 'dag':
+        return this.validateAdjacencyMatrix(content);
+      case 'edgelist':
+        return this.validateEdgeList(content);
+      case 'nodeprobs':
+      case 'nodeProbabilities':
+        return this.validateNodeProbabilities();
+      case 'edgeprobs':
+      case 'edgeProbabilities':
+        return this.validateEdgeProbabilities();
+      default:
+        return {
+          isValid: false,
+          errors: ['Unknown file type'],
+          warnings: []
+        };
+    }
+  }
+
+  /**
+   * Validate adjacency matrix format
+   */
+  private validateAdjacencyMatrix(content: string): FileValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    try {
+      const lines = content.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        errors.push('File is empty');
+        return { isValid: false, errors, warnings };
+      }
+
+      const numRows = lines.length;
+      let numCols = 0;
+      
+      // Parse and validate each row
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const values = line.split(',').map(v => v.trim());
+        
+        if (i === 0) {
+          numCols = values.length;
+        } else if (values.length !== numCols) {
+          errors.push(`Row ${i + 1} has ${values.length} columns, expected ${numCols}`);
+          continue;
+        }
+        
+        // Validate values are 0 or 1
+        for (let j = 0; j < values.length; j++) {
+          const value = values[j];
+          if (!/^[0-1]$/.test(value)) {
+            errors.push(`Invalid value "${value}" at row ${i + 1}, column ${j + 1}. Expected 0 or 1.`);
+          }
+        }
+      }
+      
+      // Check if matrix is square
+      if (numRows !== numCols) {
+        errors.push(`Matrix is not square: ${numRows} rows × ${numCols} columns`);
+      }
+      
+      // Check minimum size
+      if (numRows < 2) {
+        errors.push('Matrix must have at least 2 nodes');
+      }
+      
+      // Performance warning for large matrices
+      if (numRows > 100) {
+        warnings.push(`Large matrix detected (${numRows}×${numCols}). Processing may be slow.`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileType: 'adjacency',
+        metadata: {
+          nodes: numRows,
+          edges: this.countEdgesInMatrix(content),
+          format: 'adjacency_matrix'
+        }
+      };
+
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [`Failed to parse adjacency matrix: ${error}`],
+        warnings: []
+      };
+    }
+  }
+
+  /**
+   * Validate edge list format
+   */
+  private validateEdgeList(content: string): FileValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    try {
+      const lines = content.trim().split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        errors.push('File is empty');
+        return { isValid: false, errors, warnings };
+      }
+
+      // Check for header
+      const hasHeader = lines[0].toLowerCase().includes('source') || lines[0].toLowerCase().includes('destination');
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      
+      if (dataLines.length === 0) {
+        errors.push('No data rows found');
+        return { isValid: false, errors, warnings };
+      }
+
+      const nodes = new Set<number>();
+      let edgeCount = 0;
+
+      // Validate each edge
+      for (let i = 0; i < dataLines.length; i++) {
+        const line = dataLines[i].trim();
+        const parts = line.split(',').map(p => p.trim());
+        
+        if (parts.length !== 2) {
+          errors.push(`Row ${i + (hasHeader ? 2 : 1)}: Expected 2 columns (source,destination), found ${parts.length}`);
+          continue;
+        }
+        
+        const [sourceStr, destStr] = parts;
+        
+        // Validate node IDs are integers
+        const source = parseInt(sourceStr);
+        const dest = parseInt(destStr);
+        
+        if (isNaN(source) || isNaN(dest)) {
+          errors.push(`Row ${i + (hasHeader ? 2 : 1)}: Invalid node IDs "${sourceStr}", "${destStr}"`);
+          continue;
+        }
+        
+        if (source <= 0 || dest <= 0) {
+          errors.push(`Row ${i + (hasHeader ? 2 : 1)}: Node IDs must be positive integers`);
+          continue;
+        }
+        
+        if (source === dest) {
+          errors.push(`Row ${i + (hasHeader ? 2 : 1)}: Self-loops not allowed (${source} -> ${dest})`);
+          continue;
+        }
+        
+        nodes.add(source);
+        nodes.add(dest);
+        edgeCount++;
+      }
+
+      if (nodes.size < 2) {
+        errors.push('Network must have at least 2 nodes');
+      }
+
+      if (edgeCount === 0) {
+        errors.push('No valid edges found');
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileType: 'edgelist',
+        metadata: {
+          nodes: nodes.size,
+          edges: edgeCount,
+          format: 'edge_list'
+        }
+      };
+
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [`Failed to parse edge list: ${error}`],
+        warnings: []
+      };
+    }
+  }
+
+  /**
+   * Validate node probabilities format
+   */
+  private validateNodeProbabilities(): FileValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Implementation for node probabilities validation
+    // This would validate CSV format with node,probability columns
+    
     return {
-      headers,
-      rows,
-      content,
-      rowCount: rows.length,
-      columnCount: headers.length
+      isValid: true, // Simplified for now
+      errors,
+      warnings,
+      fileType: 'nodeprobs'
     };
   }
 
   /**
-   * Parse DAG file (supports both adjacency matrix and edge list formats)
+   * Validate edge probabilities format
    */
-  parseDagFile(content: string): ParsedCsvData {
-    const parsed = this.parseCsvFile(content);
+  private validateEdgeProbabilities(): FileValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
     
-    // Check if this is an adjacency matrix (headerless, all numeric)
-    if (this.isAdjacencyMatrix(content)) {
-      // For adjacency matrix, we don't need header validation
-      console.log('📊 Detected adjacency matrix format');
-      return parsed;
-    }
+    // Implementation for edge probabilities validation
+    // This would validate CSV format with source,target,probability columns
     
-    // Otherwise, validate as edge list format
-    const requiredColumns = ['source', 'target'];
-    const headerLower = parsed.headers.map(h => h.toLowerCase().trim());
-    
-    for (const required of requiredColumns) {
-      if (!headerLower.includes(required)) {
-        throw new Error(`DAG file must contain '${required}' column. Found columns: ${parsed.headers.join(', ')}`);
-      }
-    }
-
-    // Validate data rows
-    for (let i = 0; i < Math.min(parsed.rows.length, 10); i++) { // Check first 10 rows
-      const row = parsed.rows[i];
-      if (row.length !== parsed.headers.length) {
-        throw new Error(`Row ${i + 2} has ${row.length} columns, expected ${parsed.headers.length}`);
-      }
-    }
-
-    return parsed;
+    return {
+      isValid: true, // Simplified for now
+      errors,
+      warnings,
+      fileType: 'edgeprobs'
+    };
   }
 
   /**
-   * Check if content is an adjacency matrix (headerless, all numeric 0/1)
+   * Count edges in adjacency matrix
    */
-  private isAdjacencyMatrix(content: string): boolean {
+  private countEdgesInMatrix(content: string): number {
+    try {
+      const lines = content.trim().split('\n');
+      let edgeCount = 0;
+      
+      for (const line of lines) {
+        const values = line.split(',').map(v => v.trim());
+        edgeCount += values.filter(v => v === '1').length;
+      }
+      
+      return edgeCount;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Convert adjacency matrix to edge list format
+   */
+  convertAdjacencyToEdgeList(content: string): { edges: Array<{source: number, destination: number}>, nodeCount: number } {
     const lines = content.trim().split('\n');
-    if (lines.length < 2) return false;
+    const edges: Array<{source: number, destination: number}> = [];
     
-    // Check if first line contains only numbers (no text headers)
-    const firstLine = lines[0].trim();
-    const values = firstLine.split(',').map(v => v.trim());
-    
-    // All values should be numeric (0 or 1)
-    for (const val of values) {
-      if (!/^[01]$/.test(val)) {
-        return false;
-      }
-    }
-    
-    // Check if it's square matrix
-    const numCols = values.length;
-    if (lines.length !== numCols) {
-      return false;
-    }
-    
-    // Validate all rows have same number of columns and are all 0/1
-    for (const line of lines) {
-      const rowValues = line.trim().split(',').map(v => v.trim());
-      if (rowValues.length !== numCols) {
-        return false;
-      }
-      for (const val of rowValues) {
-        if (!/^[01]$/.test(val)) {
-          return false;
+    for (let i = 0; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      for (let j = 0; j < values.length; j++) {
+        if (values[j] === '1') {
+          edges.push({
+            source: i + 1, // Convert to 1-based indexing
+            destination: j + 1
+          });
         }
       }
     }
     
-    return true;
+    return {
+      edges,
+      nodeCount: lines.length
+    };
   }
 
   /**
-   * Parse node probabilities file (CSV or JSON)
+   * Process network files and prepare for Julia backend
    */
-  parseNodeProbabilities(content: string, fileName: string): Record<number, number> {
-    const extension = this.getFileExtension(fileName);
-    
-    if (extension === '.json') {
-      return this.parseJsonProbabilities(content);
-    } else {
-      return this.parseCsvProbabilities(content, 'node');
+  async processNetworkFiles(files: NetworkFiles): Promise<{
+    edges: Array<{source: number, destination: number}>,
+    nodePriors: Record<string, number>,
+    edgeProbabilities: Record<string, number>
+  }> {
+    let edges: Array<{source: number, destination: number}> = [];
+    let nodeCount = 0;
+
+    // Process adjacency matrix or edge list
+    if (files.adjacency) {
+      const result = this.convertAdjacencyToEdgeList(files.adjacency.content);
+      edges = result.edges;
+      nodeCount = result.nodeCount;
+    } else if (files.edgelist) {
+      // Parse edge list
+      const lines = files.edgelist.content.trim().split('\n');
+      const hasHeader = lines[0].toLowerCase().includes('source');
+      const dataLines = hasHeader ? lines.slice(1) : lines;
+      
+      const nodeSet = new Set<number>();
+      edges = dataLines.map(line => {
+        const [source, dest] = line.split(',').map(s => parseInt(s.trim()));
+        nodeSet.add(source);
+        nodeSet.add(dest);
+        return { source, destination: dest };
+      });
+      nodeCount = nodeSet.size;
     }
+
+    // Generate default probabilities if not provided
+    const nodePriors = this.generateDefaultNodePriors(nodeCount);
+    const edgeProbabilities = this.generateDefaultEdgeProbabilities(edges);
+
+    return {
+      edges,
+      nodePriors,
+      edgeProbabilities
+    };
   }
 
   /**
-   * Parse edge probabilities file (CSV or JSON)
+   * Generate default node priors
    */
-  parseEdgeProbabilities(content: string, fileName: string): Record<string, number> {
-    const extension = this.getFileExtension(fileName);
-    
-    if (extension === '.json') {
-      const jsonData = this.parseJsonProbabilities(content);
-      // Convert to string keys for edges
-      const result: Record<string, number> = {};
-      for (const [key, value] of Object.entries(jsonData)) {
-        result[key] = value;
-      }
-      return result;
-    } else {
-      const numericData = this.parseCsvProbabilities(content, 'edge');
-      // Convert to string keys for edges (source,target format)
-      const result: Record<string, number> = {};
-      for (const [key, value] of Object.entries(numericData)) {
-        result[key] = value;
-      }
-      return result;
+  private generateDefaultNodePriors(nodeCount: number): Record<string, number> {
+    const nodes: Record<string, number> = {};
+    for (let i = 1; i <= nodeCount; i++) {
+      nodes[i.toString()] = 0.5; // Default 50% probability
     }
+    
+    return nodes;
   }
 
   /**
-   * Process multiple files and return combined network data
+   * Generate default edge probabilities
    */
-  async processNetworkFiles(files: {
-    dag?: File;
-    nodeProbabilities?: File;
-    edgeProbabilities?: File;
-  }): Promise<NetworkFileData> {
-    this._isProcessing.set(true);
-    this._processingProgress.set(0);
-    this._processingMessage.set('Starting file processing...');
+  private generateDefaultEdgeProbabilities(edges: Array<{source: number, destination: number}>): Record<string, number> {
+    const links: Record<string, number> = {};
+    
+    edges.forEach(edge => {
+      const key = `(${edge.source},${edge.destination})`;
+      links[key] = 0.8; // Default 80% probability
+    });
+    
+    return links;
+  }
 
-    try {
-      const result: NetworkFileData = {};
-      let completedFiles = 0;
-      const totalFiles = Object.keys(files).length;
+  /**
+   * Clear uploaded files
+   */
+  clearFiles(): void {
+    this._uploadedFiles.set([]);
+    this._validationErrors.set([]);
+  }
 
-      // Process DAG file
-      if (files.dag) {
-        this._processingMessage.set('Processing DAG file...');
-        const content = await this.readFileAsText(files.dag).toPromise();
-        const parsed = this.parseDagFile(content!);
-        result.dagFile = { content: content!, parsed };
-        completedFiles++;
-        this._processingProgress.set((completedFiles / totalFiles) * 100);
-      }
+  /**
+   * Remove specific file
+   */
+  removeFile(fileName: string): void {
+    this._uploadedFiles.update(files => files.filter(f => f.name !== fileName));
+  }
 
-      // Process node probabilities
-      if (files.nodeProbabilities) {
-        this._processingMessage.set('Processing node probabilities...');
-        const content = await this.readFileAsText(files.nodeProbabilities).toPromise();
-        const parsed = this.parseNodeProbabilities(content!, files.nodeProbabilities.name);
-        result.nodeProbabilities = { content: content!, parsed };
-        completedFiles++;
-        this._processingProgress.set((completedFiles / totalFiles) * 100);
-      }
+  /**
+   * Get file by name
+   */
+  getFile(fileName: string): ProcessedFile | undefined {
+    return this._uploadedFiles().find(f => f.name === fileName);
+  }
 
-      // Process edge probabilities
-      if (files.edgeProbabilities) {
-        this._processingMessage.set('Processing edge probabilities...');
-        const content = await this.readFileAsText(files.edgeProbabilities).toPromise();
-        const parsed = this.parseEdgeProbabilities(content!, files.edgeProbabilities.name);
-        result.edgeProbabilities = { content: content!, parsed };
-        completedFiles++;
-        this._processingProgress.set((completedFiles / totalFiles) * 100);
-      }
-
-      this._processingMessage.set('File processing complete!');
-      return result;
-
-    } catch (error) {
-      this._processingMessage.set(`Processing failed: ${error}`);
-      throw error;
-    } finally {
+  /**
+   * Update processing state
+   */
+  private updateProcessingState(isProcessing: boolean, progress = 0, message = ''): void {
+    this._isProcessing.set(isProcessing);
+    this._processingProgress.set(progress);
+    this._processingMessage.set(message);
+    
+    if (!isProcessing) {
+      // Clear processing state after completion
       setTimeout(() => {
         this._isProcessing.set(false);
         this._processingProgress.set(0);
@@ -387,7 +603,7 @@ export class FileHandlerService {
       },
       gridDag: {
         name: 'grid_dag.csv',
-        content: '0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0\n0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0\n0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0\n0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0\n0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0\n0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n'
+        content: '0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0\n0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0\n0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0\n0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0\n0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0\n0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0\n0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n'
       },
       nodeProbs: {
         name: 'node_probabilities.csv',
@@ -423,91 +639,11 @@ export class FileHandlerService {
     return result;
   }
 
-  private parseJsonProbabilities(content: string): Record<number, number> {
-    try {
-      const data = JSON.parse(content);
-      const result: Record<number, number> = {};
-      
-      for (const [key, value] of Object.entries(data)) {
-        const numKey = parseInt(key);
-        const numValue = parseFloat(value as string);
-        
-        if (isNaN(numKey) || isNaN(numValue)) {
-          throw new Error(`Invalid probability data: ${key} => ${value}`);
-        }
-        
-        result[numKey] = numValue;
-      }
-      
-      return result;
-    } catch (error) {
-      throw new Error(`Failed to parse JSON probabilities: ${error}`);
-    }
+  private isNumeric(value: string): boolean {
+    return !isNaN(parseFloat(value)) && isFinite(parseFloat(value));
   }
 
-  private parseCsvProbabilities(content: string, type: 'node' | 'edge'): Record<number, number> {
-    const parsed = this.parseCsvFile(content);
-    const result: Record<number, number> = {};
-    
-    if (type === 'node') {
-      // Expected format: node,probability
-      const nodeIndex = parsed.headers.findIndex(h => h.toLowerCase().includes('node'));
-      const probIndex = parsed.headers.findIndex(h => h.toLowerCase().includes('prob'));
-      
-      if (nodeIndex === -1 || probIndex === -1) {
-        throw new Error('Node probabilities CSV must contain "node" and "probability" columns');
-      }
-      
-      for (const row of parsed.rows) {
-        const nodeId = parseInt(row[nodeIndex]);
-        const probability = parseFloat(row[probIndex]);
-        
-        if (isNaN(nodeId) || isNaN(probability)) {
-          throw new Error(`Invalid node probability data: ${row[nodeIndex]} => ${row[probIndex]}`);
-        }
-        
-        result[nodeId] = probability;
-      }
-    } else {
-      // Expected format: source,target,probability
-      const sourceIndex = parsed.headers.findIndex(h => h.toLowerCase().includes('source'));
-      const targetIndex = parsed.headers.findIndex(h => h.toLowerCase().includes('target'));
-      const probIndex = parsed.headers.findIndex(h => h.toLowerCase().includes('prob'));
-      
-      if (sourceIndex === -1 || targetIndex === -1 || probIndex === -1) {
-        throw new Error('Edge probabilities CSV must contain "source", "target", and "probability" columns');
-      }
-      
-      for (const row of parsed.rows) {
-        const source = parseInt(row[sourceIndex]);
-        const target = parseInt(row[targetIndex]);
-        const probability = parseFloat(row[probIndex]);
-        
-        if (isNaN(source) || isNaN(target) || isNaN(probability)) {
-          throw new Error(`Invalid edge probability data: ${row[sourceIndex]},${row[targetIndex]} => ${row[probIndex]}`);
-        }
-        
-        // Use numeric key for internal processing
-        const edgeKey = source * 10000 + target; // Simple encoding for numeric key
-        result[edgeKey] = probability;
-      }
-    }
-    
-    return result;
-  }
-
-  private getFileExtension(fileName: string): string {
-    const lastDot = fileName.lastIndexOf('.');
-    return lastDot === -1 ? '' : fileName.substring(lastDot).toLowerCase();
-  }
-
-  private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  private isBinary(value: string): boolean {
+    return value === '0' || value === '1';
   }
 }

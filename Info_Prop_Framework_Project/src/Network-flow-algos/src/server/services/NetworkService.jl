@@ -52,58 +52,117 @@ struct PathEnumerationResult
 end
 
 """
-    perform_network_analysis(csv_content, include_framework = true) -> NetworkAnalysisResult
+    perform_network_analysis(edges, node_priors_json, edge_probs_json, include_framework = true) -> NetworkAnalysisResult
 
 Perform complete network structure analysis including IPAFramework processing.
+UPDATED: Now accepts JSON input directly, no temporary files needed.
 """
 function perform_network_analysis(
-    csv_content::String, 
+    edges::Vector{Dict{String, Any}},
+    node_priors_json::Dict{String, Any},
+    edge_probs_json::Dict{String, Any},
     include_framework::Bool = true
 )::NetworkAnalysisResult
     
-    println("🔄 Starting network analysis...")
+    println("🔄 Starting network analysis with JSON input...")
+    println("📊 Input format: $(length(edges)) edges, $(length(get(node_priors_json, "nodes", Dict()))) node priors, $(length(get(edge_probs_json, "links", Dict()))) edge probabilities")
     
-    # Create temporary file for CSV processing
-    temp_file = tempname() * ".csv"
-    write(temp_file, csv_content)
+    # Convert JSON edge array to edgelist format
+    edgelist = Vector{Tuple{Int64,Int64}}()
+    for edge in edges
+        source = Int64(edge["source"])
+        destination = Int64(edge["destination"])
+        push!(edgelist, (source, destination))
+    end
     
-    try
-        # Use IPAFramework to read and process the network
-        # Note: This assumes IPAFramework is included in the calling scope
-        edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities = 
-            Main.IPAFramework.read_graph_to_dict(temp_file)
-        
-        println("📊 Network loaded: $(length(union(keys(outgoing_index), keys(incoming_index)))) nodes, $(length(edgelist)) edges")
-        
-        # Identify network structure
-        fork_nodes, join_nodes = Main.IPAFramework.identify_fork_and_join_nodes(outgoing_index, incoming_index)
-        iteration_sets, ancestors, descendants = Main.IPAFramework.find_iteration_sets(edgelist, outgoing_index, incoming_index)
-        
-        println("🔍 Structure identified: $(length(fork_nodes)) forks, $(length(join_nodes)) joins, $(length(iteration_sets)) iteration sets")
-        
-        # Initialize diamond structures
-        diamond_structures = Dict()
-        
-        if include_framework
-            # Identify diamond structures
-            diamond_structures = Main.IPAFramework.identify_and_group_diamonds(
-                join_nodes, ancestors, incoming_index, source_nodes,
-                fork_nodes, iteration_sets, edgelist, descendants, node_priors
-            )
-            
-            println("💎 Diamond analysis: $(length(diamond_structures)) diamond structures found")
+    # Build outgoing and incoming indices from edgelist
+    outgoing_index = Dict{Int64,Set{Int64}}()
+    incoming_index = Dict{Int64,Set{Int64}}()
+    
+    for (source, dest) in edgelist
+        # Outgoing index
+        if !haskey(outgoing_index, source)
+            outgoing_index[source] = Set{Int64}()
         end
+        push!(outgoing_index[source], dest)
         
-        return NetworkAnalysisResult(
-            edgelist, outgoing_index, incoming_index, source_nodes,
-            node_priors, edge_probabilities, fork_nodes, join_nodes,
-            iteration_sets, ancestors, descendants, diamond_structures
+        # Incoming index
+        if !haskey(incoming_index, dest)
+            incoming_index[dest] = Set{Int64}()
+        end
+        push!(incoming_index[dest], source)
+    end
+    
+    # Find source nodes (nodes with no incoming edges)
+    all_nodes = union(keys(outgoing_index), keys(incoming_index))
+    source_nodes = Set{Int64}()
+    for node in all_nodes
+        if !haskey(incoming_index, node) || isempty(incoming_index[node])
+            push!(source_nodes, node)
+        end
+    end
+    
+    # Parse node priors from JSON - direct processing instead of IPAFramework
+    println("🔄 Parsing node priors from JSON...")
+    println("  Node priors structure: $(keys(node_priors_json))")
+    
+    node_priors = Dict{Int64, Float64}()
+    if haskey(node_priors_json, "nodes")
+        for (node_key, value) in node_priors_json["nodes"]
+            node_id = parse(Int64, node_key)
+            prob_value = isa(value, Number) ? Float64(value) : 0.5
+            node_priors[node_id] = prob_value
+        end
+    end
+    
+    # Parse edge probabilities from JSON - direct processing instead of IPAFramework
+    println("🔄 Parsing edge probabilities from JSON...")
+    println("  Edge probs structure: $(keys(edge_probs_json))")
+    
+    edge_probabilities = Dict{Tuple{Int64,Int64}, Float64}()
+    if haskey(edge_probs_json, "links")
+        for (edge_key, value) in edge_probs_json["links"]
+            # Parse edge key like "(1,2)" to tuple (1,2)
+            if startswith(edge_key, "(") && endswith(edge_key, ")")
+                inner = edge_key[2:end-1]
+                parts = split(inner, ",")
+                if length(parts) == 2
+                    source = parse(Int64, strip(parts[1]))
+                    target = parse(Int64, strip(parts[2]))
+                    prob_value = isa(value, Number) ? Float64(value) : 0.8
+                    edge_probabilities[(source, target)] = prob_value
+                end
+            end
+        end
+    end
+    
+    println("📊 Network loaded: $(length(all_nodes)) nodes, $(length(edgelist)) edges")
+    println("🎯 Direct JSON processing - no temporary files needed!")
+    
+    # Identify network structure
+    fork_nodes, join_nodes = Main.IPAFramework.identify_fork_and_join_nodes(outgoing_index, incoming_index)
+    iteration_sets, ancestors, descendants = Main.IPAFramework.find_iteration_sets(edgelist, outgoing_index, incoming_index)
+    
+    println("🔍 Structure identified: $(length(fork_nodes)) forks, $(length(join_nodes)) joins, $(length(iteration_sets)) iteration sets")
+    
+    # Initialize diamond structures
+    diamond_structures = Dict()
+    
+    if include_framework
+        # Identify diamond structures
+        diamond_structures = Main.IPAFramework.identify_and_group_diamonds(
+            join_nodes, incoming_index, ancestors, descendants,
+            source_nodes, fork_nodes, edgelist, node_priors
         )
         
-    finally
-        # Clean up temporary file
-        rm(temp_file, force=true)
+        println("💎 Diamond analysis: $(length(diamond_structures)) diamond structures found")
     end
+    
+    return NetworkAnalysisResult(
+        edgelist, outgoing_index, incoming_index, source_nodes,
+        node_priors, edge_probabilities, fork_nodes, join_nodes,
+        iteration_sets, ancestors, descendants, diamond_structures
+    )
 end
 
 """

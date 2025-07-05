@@ -84,51 +84,7 @@
   }
 
   <div class="setup-cards">
-    <!-- File Upload Card -->
-    <div class="card">
-      <h2>📁 Network Data Upload</h2>
-      <p>Upload your DAG structure, node probabilities, and edge probabilities</p>
-      
-      <!-- Drag & Drop Zone -->
-      <div
-        class="drag-drop-zone"
-        [class.drag-over]="false"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave($event)"
-        (drop)="onDrop($event)">
-        
-        <div class="drag-drop-content">
-          <div class="upload-icon">📁</div>
-          <p>Drag & drop files here or click to browse</p>
-          <input
-            type="file"
-            #fileInput
-            accept=".csv,.txt,.json"
-            (change)="onFileSelected($event)"
-            style="display: none;" />
-          <button
-            class="btn-secondary"
-            (click)="fileInput.click()"
-            [disabled]="networkState.isLoading()">
-            Choose Files
-          </button>
-        </div>
-      </div>
-      
-      <!-- Uploaded Files Display -->
-      @if (networkState.hasUploadedFiles()) {
-        <div class="uploaded-files">
-          <h4>Uploaded Files:</h4>
-          @for (fileItem of uploadedFilesArray(); track fileItem.type) {
-            <div class="file-item">
-              <span class="file-type">{{ fileItem.type }}</span>
-              <span class="file-name">{{ fileItem.file.name }}</span>
-              <span class="file-size">({{ (fileItem.file.size / 1024) | number:'1.0-1' }} KB)</span>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    <!-- File Upload Functionality REMOVED - Using Test Networks Only -->
 
     <!-- Test Networks Card -->
     <div class="card">

@@ -1,4 +1,4 @@
-using GLMakie, GraphMakie, Graphs, Colors, Statistics, Dates
+#= using GLMakie, GraphMakie, Graphs, Colors, Statistics, Dates
 using CSV, DataFrames, DelimitedFiles
 
 # Include the existing drone analysis functions
@@ -293,4 +293,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("🚀 Starting interactive Makie drone network visualization...")
     plots_and_analysis = safe_create_makie_plots()
     println("🎉 Makie visualization complete! Drag nodes around to see edges follow!")
-end
+end =#

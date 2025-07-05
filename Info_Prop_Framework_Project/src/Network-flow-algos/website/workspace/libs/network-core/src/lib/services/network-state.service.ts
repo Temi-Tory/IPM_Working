@@ -1,7 +1,8 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ApiService, ProcessInputRequest, ProcessInputResponse } from './api.service';
-import { FileHandlerService, NetworkFileData, FileValidationResult, SupportedFileType } from './file-handler.service';
+import { ApiService } from './api.service';
+import { FileHandlerService, NetworkFileData, FileValidationResult } from './file-handler.service';
+import { ProcessInputResponse } from '../models/api.models';
 
 // Types and interfaces
 export interface NetworkData {
@@ -48,9 +49,13 @@ export interface UploadedFiles {
   dag?: File;
   nodeProbabilities?: File;
   edgeProbabilities?: File;
+  adjacency?: File;
+  edgelist?: File;
+  nodeprobs?: File;
+  edgeprobs?: File;
 }
 
-export type FileType = 'dag' | 'nodeProbabilities' | 'edgeProbabilities';
+export type FileType = 'dag' | 'nodeProbabilities' | 'edgeProbabilities' | 'adjacency' | 'edgelist' | 'nodeprobs' | 'edgeprobs';
 
 export interface NetworkProcessingResult {
   networkData: NetworkData;
@@ -61,6 +66,7 @@ export interface NetworkProcessingResult {
 /**
  * Network State Service using Angular 20 Native Signals
  * Manages all network-related state with reactive signals
+ * FILE UPLOAD FUNCTIONALITY DISABLED - Test networks only
  */
 @Injectable({ providedIn: 'root' })
 export class NetworkStateService {
@@ -86,7 +92,7 @@ export class NetworkStateService {
   readonly lastProcessingResult = this._lastProcessingResult.asReadonly();
   readonly fileValidationResults = this._fileValidationResults.asReadonly();
   
-  // File handler signals
+  // File handler signals (disabled)
   readonly fileProcessingProgress = this.fileHandler.processingProgress;
   readonly fileProcessingMessage = this.fileHandler.processingMessage;
   readonly isFileProcessing = this.fileHandler.isProcessing;
@@ -95,100 +101,46 @@ export class NetworkStateService {
   readonly isNetworkLoaded = computed(() => this._networkData() !== null);
   readonly nodeCount = computed(() => this._networkData()?.nodes.length ?? 0);
   readonly edgeCount = computed(() => this._networkData()?.edges.length ?? 0);
-  readonly hasUploadedFiles = computed(() => 
-    Object.keys(this._uploadedFiles()).length > 0
-  );
-  readonly canAnalyze = computed(() => 
-    this.isNetworkLoaded() && 
-    !this.isLoading() && 
-    !this.isProcessing() && 
-    !this.error()
-  );
-  readonly networkSummary = computed(() => {
-    const data = this._networkData();
-    if (!data) return null;
-    
-    return {
-      nodeCount: data.nodes.length,
-      edgeCount: data.edges.length,
-      sourceCount: data.sourceNodes.length,
-      forkCount: data.forkNodes.length,
-      joinCount: data.joinNodes.length,
-      hasNodeProbabilities: data.nodes.some(n => n.probability !== undefined),
-      hasEdgeProbabilities: data.edges.some(e => e.probability !== undefined)
-    };
-  });
+  readonly hasUploadedFiles = computed(() => Object.keys(this._uploadedFiles()).length > 0);
+  readonly canAnalyze = computed(() => this.isNetworkLoaded() && !this._isLoading() && !this._error());
 
   constructor() {
-    // Effect for auto-saving network data to localStorage
+    console.log('🚫 NetworkStateService: File upload functionality DISABLED - using test networks only');
+    
+    // Load any saved network data from localStorage
+    this.loadFromLocalStorage();
+    
+    // Effect for auto-saving network data
     effect(() => {
       const data = this._networkData();
       if (data) {
         this.saveToLocalStorage(data);
       }
     });
-
-    // Effect for error logging
-    effect(() => {
-      const error = this._error();
-      if (error) {
-        console.error('Network State Error:', error);
-      }
-    });
-
-    // Effect for loading state management
-    effect(() => {
-      const isLoading = this._isLoading();
-      const isProcessing = this._isProcessing();
-      
-      if (isLoading || isProcessing) {
-        // Clear any existing errors when starting new operations
-        this._error.set(null);
-      }
-    });
-
-    // Load saved network data on initialization
-    this.loadFromLocalStorage();
   }
 
-  // State mutation methods
-  loadNetwork(data: NetworkData): void {
-    this._networkData.set(data);
-    this._error.set(null);
-    console.log('Network loaded:', {
-      nodes: data.nodes.length,
-      edges: data.edges.length
-    });
-  }
-
+  // State management methods
   setLoading(loading: boolean): void {
     this._isLoading.set(loading);
+  }
+
+  setError(error: string | null): void {
+    this._error.set(error);
   }
 
   setProcessing(processing: boolean): void {
     this._isProcessing.set(processing);
   }
 
-  setError(error: string): void {
-    this._error.set(error);
-    this._isLoading.set(false);
-    this._isProcessing.set(false);
+  addUploadedFile(): void {
+    console.warn('🚫 File upload functionality is DISABLED - using test networks only');
+    // File upload disabled - do nothing
   }
 
-  addUploadedFile(type: FileType, file: File): void {
-    this._uploadedFiles.update(files => ({
-      ...files,
-      [type]: file
-    }));
-    console.log(`File uploaded: ${type}`, file.name);
-  }
-
-  removeUploadedFile(type: FileType): void {
-    this._uploadedFiles.update(files => {
-      const updated = { ...files };
-      delete updated[type];
-      return updated;
-    });
+  loadNetwork(networkData: NetworkData): void {
+    this._networkData.set(networkData);
+    this._error.set(null);
+    console.log('Network loaded directly:', networkData);
   }
 
   clearNetwork(): void {
@@ -249,6 +201,219 @@ export class NetworkStateService {
     return data.outgoingIndex[nodeId] || [];
   }
 
+  // FILE UPLOAD METHODS - DISABLED
+  async validateAndUploadFile(): Promise<void> {
+    console.warn('🚫 File upload functionality is DISABLED - using test networks only');
+    throw new Error('File upload functionality has been disabled. Please use test networks instead.');
+  }
+
+  async processUploadedFiles(): Promise<NetworkProcessingResult> {
+    console.warn('🚫 File processing functionality is DISABLED - using test networks only');
+    throw new Error('File processing functionality has been disabled. Please use test networks instead.');
+  }
+
+  // TEST NETWORK METHODS - ENABLED
+  async loadSampleNetwork(sampleName: string): Promise<void> {
+    this.setLoading(true);
+    this._error.set(null);
+    
+    try {
+      const samples = this.fileHandler.generateSampleFiles();
+      const sample = samples[sampleName];
+      
+      if (!sample) {
+        throw new Error(`Sample network '${sampleName}' not found`);
+      }
+
+      // Create a test network directly without file processing
+      const testNetworkData = this.createTestNetworkData(sampleName);
+      this._networkData.set(testNetworkData);
+      
+      console.log(`Sample network '${sampleName}' loaded successfully`);
+    } catch (error) {
+      this.setError(`Failed to load sample network: ${error}`);
+      throw error;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  async testBackendConnection(): Promise<boolean> {
+    try {
+      await firstValueFrom(this.apiService.testConnection());
+      return true;
+    } catch (error) {
+      console.warn('Backend connection failed:', error);
+      return false;
+    }
+  }
+
+  getAvailableSampleNetworks(): Array<{ key: string; name: string; description: string }> {
+    return [
+      { key: 'simpleDag', name: 'Simple Network', description: '5 nodes, basic structure' },
+      { key: 'complexDag', name: 'Complex Network', description: '9 nodes, multiple paths' },
+      { key: 'diamondDag', name: 'Diamond Network', description: '8 nodes, diamond structure' },
+      { key: 'gridDag', name: 'Grid Network', description: '16 nodes, grid layout' }
+    ];
+  }
+
+  // Create test network data without file processing
+  private createTestNetworkData(sampleName: string): NetworkData {
+    const networks = {
+      simpleDag: {
+        nodes: [
+          { id: 1, label: 'Node 1', probability: 0.8, type: 'source' as const },
+          { id: 2, label: 'Node 2', probability: 0.7, type: 'regular' as const },
+          { id: 3, label: 'Node 3', probability: 0.6, type: 'regular' as const },
+          { id: 4, label: 'Node 4', probability: 0.5, type: 'regular' as const },
+          { id: 5, label: 'Node 5', probability: 0.9, type: 'sink' as const }
+        ],
+        edges: [
+          { id: '1-2', source: 1, target: 2, probability: 0.8 },
+          { id: '1-3', source: 1, target: 3, probability: 0.7 },
+          { id: '2-4', source: 2, target: 4, probability: 0.6 },
+          { id: '3-4', source: 3, target: 4, probability: 0.5 },
+          { id: '4-5', source: 4, target: 5, probability: 0.9 }
+        ]
+      },
+      complexDag: {
+        nodes: Array.from({ length: 9 }, (_, i) => ({
+          id: i + 1,
+          label: `Node ${i + 1}`,
+          probability: 0.5 + (i * 0.05),
+          type: i === 0 ? 'source' as const : i === 8 ? 'sink' as const : 'regular' as const
+        })),
+        edges: [
+          { id: '1-2', source: 1, target: 2, probability: 0.8 },
+          { id: '1-3', source: 1, target: 3, probability: 0.7 },
+          { id: '2-4', source: 2, target: 4, probability: 0.6 },
+          { id: '2-5', source: 2, target: 5, probability: 0.5 },
+          { id: '3-5', source: 3, target: 5, probability: 0.7 },
+          { id: '3-6', source: 3, target: 6, probability: 0.6 },
+          { id: '4-7', source: 4, target: 7, probability: 0.8 },
+          { id: '5-7', source: 5, target: 7, probability: 0.7 },
+          { id: '5-8', source: 5, target: 8, probability: 0.6 },
+          { id: '6-8', source: 6, target: 8, probability: 0.5 },
+          { id: '7-9', source: 7, target: 9, probability: 0.9 },
+          { id: '8-9', source: 8, target: 9, probability: 0.8 }
+        ]
+      },
+      diamondDag: {
+        nodes: Array.from({ length: 8 }, (_, i) => ({
+          id: i + 1,
+          label: `Node ${i + 1}`,
+          probability: 0.6 + (i * 0.03),
+          type: i === 0 ? 'source' as const : i === 7 ? 'sink' as const : 'regular' as const
+        })),
+        edges: [
+          { id: '1-2', source: 1, target: 2, probability: 0.8 },
+          { id: '1-3', source: 1, target: 3, probability: 0.7 },
+          { id: '2-4', source: 2, target: 4, probability: 0.6 },
+          { id: '2-5', source: 2, target: 5, probability: 0.5 },
+          { id: '3-5', source: 3, target: 5, probability: 0.7 },
+          { id: '3-6', source: 3, target: 6, probability: 0.6 },
+          { id: '4-7', source: 4, target: 7, probability: 0.8 },
+          { id: '5-7', source: 5, target: 7, probability: 0.7 },
+          { id: '6-8', source: 6, target: 8, probability: 0.9 },
+          { id: '7-8', source: 7, target: 8, probability: 0.8 }
+        ]
+      },
+      gridDag: {
+        nodes: Array.from({ length: 16 }, (_, i) => ({
+          id: i + 1,
+          label: `Node ${i + 1}`,
+          probability: 0.5 + ((i % 4) * 0.1),
+          type: i === 0 ? 'source' as const : i === 15 ? 'sink' as const : 'regular' as const
+        })),
+        edges: [
+          // Grid connections (4x4 grid)
+          { id: '1-2', source: 1, target: 2, probability: 0.7 },
+          { id: '1-5', source: 1, target: 5, probability: 0.6 },
+          { id: '2-3', source: 2, target: 3, probability: 0.8 },
+          { id: '2-6', source: 2, target: 6, probability: 0.5 },
+          { id: '3-4', source: 3, target: 4, probability: 0.7 },
+          { id: '3-7', source: 3, target: 7, probability: 0.6 },
+          { id: '4-8', source: 4, target: 8, probability: 0.8 },
+          { id: '5-6', source: 5, target: 6, probability: 0.7 },
+          { id: '5-9', source: 5, target: 9, probability: 0.6 },
+          { id: '6-7', source: 6, target: 7, probability: 0.8 },
+          { id: '6-10', source: 6, target: 10, probability: 0.5 },
+          { id: '7-8', source: 7, target: 8, probability: 0.7 },
+          { id: '7-11', source: 7, target: 11, probability: 0.6 },
+          { id: '8-12', source: 8, target: 12, probability: 0.8 },
+          { id: '9-10', source: 9, target: 10, probability: 0.7 },
+          { id: '9-13', source: 9, target: 13, probability: 0.6 },
+          { id: '10-11', source: 10, target: 11, probability: 0.8 },
+          { id: '10-14', source: 10, target: 14, probability: 0.5 },
+          { id: '11-12', source: 11, target: 12, probability: 0.7 },
+          { id: '11-15', source: 11, target: 15, probability: 0.6 },
+          { id: '12-16', source: 12, target: 16, probability: 0.8 },
+          { id: '13-14', source: 13, target: 14, probability: 0.7 },
+          { id: '14-15', source: 14, target: 15, probability: 0.8 },
+          { id: '15-16', source: 15, target: 16, probability: 0.9 }
+        ]
+      }
+    };
+
+    const selectedNetwork = networks[sampleName as keyof typeof networks] || networks.simpleDag;
+    
+    // Create adjacency matrix
+    const nodeCount = selectedNetwork.nodes.length;
+    const adjacencyMatrix = Array(nodeCount).fill(null).map(() => Array(nodeCount).fill(0));
+    
+    // Build indices
+    const outgoingIndex: Record<number, number[]> = {};
+    const incomingIndex: Record<number, number[]> = {};
+    
+    selectedNetwork.edges.forEach(edge => {
+      const sourceIdx = edge.source - 1;
+      const targetIdx = edge.target - 1;
+      
+      adjacencyMatrix[sourceIdx][targetIdx] = 1;
+      
+      if (!outgoingIndex[edge.source]) outgoingIndex[edge.source] = [];
+      if (!incomingIndex[edge.target]) incomingIndex[edge.target] = [];
+      
+      outgoingIndex[edge.source].push(edge.target);
+      incomingIndex[edge.target].push(edge.source);
+    });
+
+    // Identify node types
+    const sourceNodes = selectedNetwork.nodes.filter(n => n.type === 'source').map(n => n.id);
+    const forkNodes = selectedNetwork.nodes.filter(n => (outgoingIndex[n.id]?.length || 0) > 1).map(n => n.id);
+    const joinNodes = selectedNetwork.nodes.filter(n => (incomingIndex[n.id]?.length || 0) > 1).map(n => n.id);
+
+    return {
+      nodes: selectedNetwork.nodes,
+      edges: selectedNetwork.edges,
+      adjacencyMatrix,
+      sourceNodes,
+      forkNodes,
+      joinNodes,
+      outgoingIndex,
+      incomingIndex,
+      statistics: {
+        basic: {
+          nodes: nodeCount,
+          edges: selectedNetwork.edges.length,
+          density: (selectedNetwork.edges.length * 2) / (nodeCount * (nodeCount - 1)),
+          maxDepth: Math.ceil(Math.sqrt(nodeCount))
+        },
+        nodeTypes: {
+          source: sourceNodes.length,
+          fork: forkNodes.length,
+          join: joinNodes.length,
+          regular: nodeCount - sourceNodes.length - forkNodes.length - joinNodes.length
+        },
+        structural: {
+          isolatedNodes: 0,
+          highDegreeNodes: forkNodes.length + joinNodes.length,
+          iterationSets: Math.ceil(nodeCount / 4)
+        }
+      }
+    };
+  }
+
   // Persistence methods
   private saveToLocalStorage(data: NetworkData): void {
     try {
@@ -291,255 +456,7 @@ export class NetworkStateService {
       typeof data === 'object' &&
       Array.isArray((data as Record<string, unknown>)['nodes']) &&
       Array.isArray((data as Record<string, unknown>)['edges']) &&
-      Array.isArray((data as Record<string, unknown>)['adjacencyMatrix']) &&
-      Array.isArray((data as Record<string, unknown>)['sourceNodes'])
+      Array.isArray((data as Record<string, unknown>)['adjacencyMatrix'])
     );
-  }
-
-  // ===== NEW API INTEGRATION METHODS =====
-
-  /**
-   * Validate and upload a file
-   */
-  async validateAndUploadFile(file: File, fileType: SupportedFileType): Promise<void> {
-    try {
-      // Validate file
-      const validation = this.fileHandler.validateFile(file, fileType);
-      
-      // Update validation results
-      this._fileValidationResults.update(results => ({
-        ...results,
-        [fileType]: validation
-      }));
-
-      if (!validation.isValid) {
-        throw new Error(`File validation failed: ${validation.errors.join(', ')}`);
-      }
-
-      // Show warnings if any
-      if (validation.warnings.length > 0) {
-        console.warn(`File warnings for ${fileType}:`, validation.warnings);
-      }
-
-      // Add to uploaded files
-      this.addUploadedFile(fileType, file);
-      
-      console.log(`File ${fileType} validated and uploaded successfully`);
-    } catch (error) {
-      this.setError(`File upload failed: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Process uploaded files and send to Julia backend
-   */
-  async processUploadedFiles(): Promise<NetworkProcessingResult> {
-    const files = this._uploadedFiles();
-    
-    if (!files.dag) {
-      throw new Error('DAG file is required for processing');
-    }
-
-    this.setProcessing(true);
-    this._error.set(null);
-
-    try {
-      // Process files using file handler
-      const processedFiles = await this.fileHandler.processNetworkFiles(files);
-      
-      if (!processedFiles.dagFile) {
-        throw new Error('Failed to process DAG file');
-      }
-
-      // Prepare API request
-      const apiRequest: ProcessInputRequest = {
-        csvContent: processedFiles.dagFile.content
-      };
-
-      // Validate CSV content
-      const csvValidation = this.apiService.validateCsvContent(apiRequest.csvContent);
-      if (!csvValidation.isValid) {
-        throw new Error(`Invalid CSV content: ${csvValidation.errors.join(', ')}`);
-      }
-
-      // Send to Julia backend
-      const apiResponse = await firstValueFrom(this.apiService.processInput(apiRequest));
-
-      if (!apiResponse.success) {
-        throw new Error(apiResponse.error || 'API processing failed');
-      }
-
-      // Convert API response to NetworkData
-      const networkData = this.convertApiResponseToNetworkData(apiResponse, processedFiles);
-      
-      // Update state
-      this._networkData.set(networkData);
-      
-      const result: NetworkProcessingResult = {
-        networkData,
-        processedFiles,
-        apiResponse
-      };
-      
-      this._lastProcessingResult.set(result);
-      
-      console.log('Network processing completed successfully:', {
-        nodes: networkData.nodes.length,
-        edges: networkData.edges.length
-      });
-
-      return result;
-
-    } catch (error) {
-      const errorMessage = `Network processing failed: ${error}`;
-      this.setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      this.setProcessing(false);
-    }
-  }
-
-  /**
-   * Load a sample network for testing
-   */
-  async loadSampleNetwork(sampleName: string): Promise<void> {
-    this.setLoading(true);
-    this._error.set(null);
-
-    try {
-      const samples = this.fileHandler.generateSampleFiles();
-      const sample = samples[sampleName];
-      
-      if (!sample) {
-        throw new Error(`Sample network '${sampleName}' not found`);
-      }
-
-      // Create a File object from sample content
-      const blob = new Blob([sample.content], { type: 'text/csv' });
-      const file = new File([blob], sample.name, { type: 'text/csv' });
-
-      // Process as DAG file
-      await this.validateAndUploadFile(file, 'dag');
-      await this.processUploadedFiles();
-
-      console.log(`Sample network '${sampleName}' loaded successfully`);
-    } catch (error) {
-      this.setError(`Failed to load sample network: ${error}`);
-      throw error;
-    } finally {
-      this.setLoading(false);
-    }
-  }
-
-  /**
-   * Test connection to Julia backend
-   */
-  async testBackendConnection(): Promise<boolean> {
-    try {
-      await firstValueFrom(this.apiService.testConnection());
-      return true;
-    } catch (error) {
-      console.error('Backend connection test failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get available sample networks
-   */
-  getAvailableSampleNetworks(): Array<{ key: string; name: string; description: string }> {
-    return [
-      {
-        key: 'simpleDag',
-        name: 'Simple DAG',
-        description: 'A basic 5-node directed acyclic graph for testing'
-      },
-      {
-        key: 'complexDag',
-        name: 'Complex DAG',
-        description: 'A more complex 9-node network with multiple paths'
-      },
-      {
-        key: 'diamondDag',
-        name: 'Diamond DAG',
-        description: 'A network containing diamond structures for advanced analysis'
-      }
-    ];
-  }
-
-  /**
-   * Convert API response to internal NetworkData format
-   */
-  private convertApiResponseToNetworkData(
-    apiResponse: ProcessInputResponse,
-    processedFiles: NetworkFileData
-  ): NetworkData {
-    const apiData = apiResponse.data.networkData;
-    
-    // Convert edges from API format to internal format
-    const edges: Edge[] = apiData.edgelist.map(([source, target], index) => ({
-      id: `${source}-${target}`,
-      source,
-      target,
-      probability: apiData.edgeProbabilities[`${source},${target}`] ||
-                   apiData.edgeProbabilities[`(${source},${target})`] ||
-                   undefined
-    }));
-
-    // Convert nodes from API format to internal format
-    const allNodeIds = new Set<number>();
-    apiData.edgelist.forEach(([source, target]) => {
-      allNodeIds.add(source);
-      allNodeIds.add(target);
-    });
-
-    const nodes: Node[] = Array.from(allNodeIds).map(id => {
-      let type: Node['type'] = 'regular';
-      
-      if (apiData.sourceNodes.includes(id)) type = 'source';
-      else if (apiData.forkNodes.includes(id)) type = 'fork';
-      else if (apiData.joinNodes.includes(id)) type = 'join';
-      // Note: sink nodes would need to be calculated from the graph structure
-      
-      return {
-        id,
-        label: `Node ${id}`,
-        probability: apiData.nodePriors[id.toString()] || apiData.nodePriors[id] || undefined,
-        type
-      };
-    });
-
-    // Convert indices from string keys to number keys
-    const outgoingIndex: Record<number, number[]> = {};
-    const incomingIndex: Record<number, number[]> = {};
-    
-    Object.entries(apiData.outgoingIndex).forEach(([key, value]) => {
-      outgoingIndex[parseInt(key)] = value;
-    });
-    
-    Object.entries(apiData.incomingIndex).forEach(([key, value]) => {
-      incomingIndex[parseInt(key)] = value;
-    });
-
-    // Create adjacency matrix
-    const maxNode = Math.max(...Array.from(allNodeIds));
-    const adjacencyMatrix: number[][] = Array(maxNode + 1).fill(null).map(() => Array(maxNode + 1).fill(0));
-    
-    apiData.edgelist.forEach(([source, target]) => {
-      adjacencyMatrix[source][target] = 1;
-    });
-
-    return {
-      nodes,
-      edges,
-      adjacencyMatrix,
-      sourceNodes: apiData.sourceNodes,
-      forkNodes: apiData.forkNodes,
-      joinNodes: apiData.joinNodes,
-      outgoingIndex,
-      incomingIndex,
-      statistics: apiResponse.data.statistics
-    };
   }
 }
