@@ -1,8 +1,9 @@
 """
 ProcessInputEndpoint.jl
 
-Endpoint for processing CSV input and returning network structure data.
+Endpoint for processing edge list input with JSON probabilities and returning network structure data.
 Maps to the required 'processinput' endpoint.
+Updated to accept edge list format instead of CSV adjacency matrices.
 """
 module ProcessInputEndpoint
 
@@ -21,10 +22,11 @@ export handle_process_input
     handle_process_input(req::HTTP.Request) -> HTTP.Response
 
 Handle POST /api/processinput endpoint.
-Takes CSV file content and returns complete network structure data:
-- edgelist, outgoing_index, incoming_index, source_nodes
-- node_priors, edge_probabilities, fork_nodes, join_nodes
-- iteration_sets, ancestors, descendants
+Takes edge list and JSON probability data and returns complete network structure data:
+- edges: Array of {source, destination} objects
+- nodePriors: JSON object with node prior probabilities
+- edgeProbabilities: JSON object with edge probabilities
+Returns: edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities, fork_nodes, join_nodes, iteration_sets, ancestors, descendants
 """
 function handle_process_input(req::HTTP.Request)::HTTP.Response
     try
@@ -54,11 +56,13 @@ function handle_process_input(req::HTTP.Request)::HTTP.Response
             end
         end
         
-        # Extract CSV content
-        csv_content = request_data["csvContent"]
+        # Extract edge list and JSON data
+        edges = request_data["edges"]
+        node_priors_json = request_data["nodePriors"]
+        edge_probs_json = request_data["edgeProbabilities"]
         
         # Perform network analysis (structure only, no complex processing)
-        network_result = perform_network_analysis(csv_content, false)  # false = no diamond processing
+        network_result = perform_network_analysis(edges, node_priors_json, edge_probs_json, false)  # false = no diamond processing
         
         # Format network data for response
         network_data = format_network_data(

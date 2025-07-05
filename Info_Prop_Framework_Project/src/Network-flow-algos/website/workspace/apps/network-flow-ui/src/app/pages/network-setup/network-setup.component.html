@@ -3,6 +3,28 @@
     <h1>Information Propagation Framework</h1>
     <p class="subtitle">Upload and configure your network data for analysis</p>
     
+    <!-- Backend Connection Status -->
+    <div class="connection-status" [class]="backendConnected ? 'connected' : 'disconnected'">
+      @if (checkingConnection) {
+        <div class="status-indicator checking">
+          <div class="loading-spinner small"></div>
+          <span>Checking Julia server connection...</span>
+        </div>
+      } @else if (backendConnected) {
+        <div class="status-indicator connected">
+          <span class="status-dot connected"></span>
+          <span>Julia Server Connected (Port 9090)</span>
+          <button class="btn-link" (click)="checkBackendConnection()">Refresh</button>
+        </div>
+      } @else {
+        <div class="status-indicator disconnected">
+          <span class="status-dot disconnected"></span>
+          <span>Julia Server Disconnected</span>
+          <button class="btn-link" (click)="checkBackendConnection()">Retry Connection</button>
+        </div>
+      }
+    </div>
+    
     <!-- Global loading indicator -->
     @if (appState.loadingState().isLoading) {
       <div class="loading-banner">
@@ -116,21 +138,27 @@
       <div class="test-networks">
         <button
           class="btn-secondary"
-          (click)="loadSampleNetwork('simple')"
+          (click)="loadSampleNetwork('simpleDag')"
           [disabled]="networkState.isLoading()">
-          Simple Network (4 nodes)
+          Simple Network (5 nodes)
         </button>
         <button
           class="btn-secondary"
-          (click)="loadSampleNetwork('complex')"
+          (click)="loadSampleNetwork('complexDag')"
           [disabled]="networkState.isLoading()">
-          Complex Network (8 nodes)
+          Complex Network (9 nodes)
         </button>
         <button
           class="btn-secondary"
-          (click)="loadSampleNetwork('large')"
+          (click)="loadSampleNetwork('diamondDag')"
           [disabled]="networkState.isLoading()">
-          Large Network (20 nodes)
+          Diamond Network (8 nodes)
+        </button>
+        <button
+          class="btn-secondary"
+          (click)="loadSampleNetwork('gridDag')"
+          [disabled]="networkState.isLoading()">
+          Grid Network (16 nodes)
         </button>
       </div>
       

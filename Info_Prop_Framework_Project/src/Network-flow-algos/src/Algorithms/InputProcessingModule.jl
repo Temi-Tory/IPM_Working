@@ -35,9 +35,146 @@ module InputProcessingModule
     """
         read_graph_to_dict(filename::String)
 
-        Reads a raw adjacency matrix from CSV file (integers 0/1 only).
+        Reads a graph from either CSV adjacency matrix (integers 0/1) or edge list file (.edge).
+        Auto-detects format based on file extension and content.
     """  
     function read_graph_to_dict(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        # Determine file type by extension or content
+        if endswith(filename, ".edge")
+            return read_graph_from_edgelist(filename)
+        else
+            # Try to detect if it's an edge list by reading first few lines
+            try
+                lines = readlines(filename)
+                if length(lines) >= 2
+                    header = strip(lines[1])
+                    # Check if first line looks like edge list header
+                    if occursin("source", lowercase(header)) && occursin("destination", lowercase(header))
+                        return read_graph_from_edgelist(filename)
+                    end
+                    
+                    # Check if second line has comma-separated integers (edge list format)
+                    second_line = strip(lines[2])
+                    if occursin(',', second_line) && !occursin(' ', second_line)
+                        parts = split(second_line, ',')
+                        if length(parts) == 2
+                            try
+                                parse(Int, parts[1])
+                                parse(Int, parts[2])
+                                return read_graph_from_edgelist(filename)
+                            catch
+                                # Not edge list format, continue to adjacency matrix
+                            end
+                        end
+                    end
+                end
+            catch
+                # If reading fails, fall back to adjacency matrix
+            end
+            
+            # Default to adjacency matrix
+            return read_graph_from_adjacency_matrix(filename)
+        end
+    end
+
+    """
+        read_graph_from_edgelist(filename::String)
+
+        Reads a graph from edge list file with format:
+        source,destination
+        1,2
+        1,3
+        2,4
+    """
+    function read_graph_from_edgelist(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+        
+        edgelist = Vector{Tuple{Int64,Int64}}()
+        outgoing_index = Dict{Int64,Set{Int64}}()
+        incoming_index = Dict{Int64,Set{Int64}}()
+        all_nodes = Set{Int64}()
+        
+        open(filename, "r") do file
+            lines = readlines(file)
+            
+            # Skip header if present
+            start_line = 1
+            if length(lines) > 0
+                header = strip(lines[1])
+                if occursin("source", lowercase(header)) || occursin("destination", lowercase(header))
+                    start_line = 2
+                end
+            end
+            
+            # Process edge data
+            for i in start_line:length(lines)
+                line = strip(lines[i])
+                isempty(line) && continue
+                
+                # Parse edge
+                parts = split(line, ',')
+                if length(parts) != 2
+                    throw(ArgumentError("Invalid edge format at line $i: '$line'. Expected 'source,destination'"))
+                end
+                
+                try
+                    source = parse(Int64, strip(parts[1]))
+                    target = parse(Int64, strip(parts[2]))
+                    
+                    # Check for self-loops
+                    if source == target
+                        throw(ArgumentError("Self-loop detected at node $source (line $i)"))
+                    end
+                    
+                    # Add to edge list
+                    push!(edgelist, (source, target))
+                    
+                    # Track all nodes
+                    push!(all_nodes, source, target)
+                    
+                    # Update outgoing index
+                    if !haskey(outgoing_index, source)
+                        outgoing_index[source] = Set{Int64}()
+                    end
+                    push!(outgoing_index[source], target)
+                    
+                    # Update incoming index
+                    if !haskey(incoming_index, target)
+                        incoming_index[target] = Set{Int64}()
+                    end
+                    push!(incoming_index[target], source)
+                    
+                catch e
+                    throw(ArgumentError("Invalid integer format at line $i: '$line'. Error: $e"))
+                end
+            end
+        end
+        
+        # Validate DAG property
+        if has_cycle(outgoing_index)
+            throw(ArgumentError("Graph contains cycles - must be a DAG"))
+        end
+
+        # Find source nodes (nodes with no incoming edges)
+        source_nodes = setdiff(all_nodes, keys(incoming_index))
+        
+        # Initialize incoming index for source nodes
+        for node in source_nodes
+            incoming_index[node] = Set{Int64}()
+        end
+        
+        return edgelist, outgoing_index, incoming_index, source_nodes
+    end
+
+    """
+        read_graph_from_adjacency_matrix(filename::String)
+
+        Reads a graph from adjacency matrix CSV file (integers 0/1 only).
+        This is the original functionality.
+    """
+    function read_graph_from_adjacency_matrix(filename::String)::Tuple{Vector{Tuple{Int64,Int64}}, Dict{Int64,Set{Int64}}, Dict{Int64,Set{Int64}}, Set{Int64}}
         isfile(filename) || throw(SystemError("File not found: $filename"))
         
         # Read adjacency matrix (integers only)
@@ -82,46 +219,12 @@ module InputProcessingModule
                 push!(incoming_index[j], i)
             end
         end
-    
+
         # Validate DAG property
-        function has_cycle(graph::Dict{Int64,Set{Int64}})
-            visited = Set{Int64}()
-            temp_visited = Set{Int64}()
-            
-            function dfs(node::Int64)
-                if node in temp_visited
-                    return true  # Cycle detected
-                end
-                if node in visited
-                    return false
-                end
-                push!(temp_visited, node)
-                
-                if haskey(graph, node)
-                    for neighbor in graph[node]
-                        if dfs(neighbor)
-                            return true
-                        end
-                    end
-                end
-                
-                delete!(temp_visited, node)
-                push!(visited, node)
-                return false
-            end
-            
-            for node in keys(graph)
-                if dfs(node)
-                    return true
-                end
-            end
-            return false
-        end
-        
         if has_cycle(outgoing_index)
             throw(ArgumentError("Graph contains cycles - must be a DAG"))
         end
-    
+
         # Find source nodes (nodes with no incoming edges)
         source_nodes = setdiff(all_nodes, keys(incoming_index))
         
@@ -131,6 +234,45 @@ module InputProcessingModule
         end
         
         return edgelist, outgoing_index, incoming_index, source_nodes
+    end
+
+    """
+        has_cycle(graph::Dict{Int64,Set{Int64}})
+
+        Helper function to detect cycles in the graph using DFS.
+    """
+    function has_cycle(graph::Dict{Int64,Set{Int64}})
+        visited = Set{Int64}()
+        temp_visited = Set{Int64}()
+        
+        function dfs(node::Int64)
+            if node in temp_visited
+                return true  # Cycle detected
+            end
+            if node in visited
+                return false
+            end
+            push!(temp_visited, node)
+            
+            if haskey(graph, node)
+                for neighbor in graph[node]
+                    if dfs(neighbor)
+                        return true
+                    end
+                end
+            end
+            
+            delete!(temp_visited, node)
+            push!(visited, node)
+            return false
+        end
+        
+        for node in keys(graph)
+            if dfs(node)
+                return true
+            end
+        end
+        return false
     end
 
     """

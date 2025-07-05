@@ -140,13 +140,6 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(1,8)": {
-      "name": "",
-      "shape": "",
-      "construction_type": "scalar",
-      "value": 0.9,
-      "type": "pbox"
-    },
     "(1,5)": {
       "name": "",
       "shape": "",
@@ -154,7 +147,7 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(1,16)": {
+    "(1,8)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
@@ -162,6 +155,13 @@
       "type": "pbox"
     },
     "(7,15)": {
+      "name": "",
+      "shape": "",
+      "construction_type": "scalar",
+      "value": 0.9,
+      "type": "pbox"
+    },
+    "(1,16)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
@@ -238,14 +238,14 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(1,13)": {
+    "(21,1)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
       "value": 0.9,
       "type": "pbox"
     },
-    "(21,1)": {
+    "(1,13)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
@@ -322,14 +322,14 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(15,26)": {
+    "(17,25)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
       "value": 0.9,
       "type": "pbox"
     },
-    "(17,25)": {
+    "(15,26)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
@@ -448,14 +448,14 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(17,20)": {
+    "(21,18)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
       "value": 0.9,
       "type": "pbox"
     },
-    "(21,18)": {
+    "(17,20)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",

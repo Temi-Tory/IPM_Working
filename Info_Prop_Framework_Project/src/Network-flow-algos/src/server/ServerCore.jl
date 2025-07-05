@@ -94,7 +94,7 @@ function not_found_handler(req::HTTP.Request)::HTTP.Response
             "code" => 404,
             "availableEndpoints" => [
                 "GET  / - Health check",
-                "POST /api/processinput - Process CSV input and return network structure",
+                "POST /api/processinput - Process edge list input with JSON probabilities and return network structure",
                 "POST /api/diamondprocessing - Identify diamond structures",
                 "POST /api/diamondclassification - Classify diamond structures",
                 "POST /api/reachabilitymodule - Perform reachability analysis",
@@ -169,7 +169,7 @@ function start_server(host::String = "127.0.0.1", port::Int = 9090)
     println("   • Diamond Structure Classification")
     println("")
     println("📊 Available Endpoints:")
-    println("   • POST /api/processinput        - Network structure processing")
+    println("   • POST /api/processinput        - Edge list and JSON probability processing")
     println("   • POST /api/diamondprocessing   - Diamond structure identification")
     println("   • POST /api/diamondclassification - Diamond classification analysis")
     println("   • POST /api/reachabilitymodule  - Reachability analysis with belief propagation")

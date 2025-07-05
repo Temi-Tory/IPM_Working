@@ -21,14 +21,14 @@
       "value": 0.9,
       "type": "pbox"
     },
-    "(5,6)": {
+    "(3,6)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",
       "value": 0.9,
       "type": "pbox"
     },
-    "(3,6)": {
+    "(5,6)": {
       "name": "",
       "shape": "",
       "construction_type": "scalar",

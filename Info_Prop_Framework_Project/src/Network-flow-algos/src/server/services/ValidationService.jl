@@ -8,7 +8,7 @@ module ValidationService
 
 using JSON
 
-export validate_csv_content, validate_request_data, ValidationResult, ValidationError
+export validate_csv_content, validate_edge_list, validate_node_priors_json, validate_edge_probabilities_json, validate_request_data, ValidationResult, ValidationError
 
 # Strict type definitions for validation results
 struct ValidationError
@@ -106,14 +106,32 @@ function validate_request_data(request_data::Dict, endpoint_type::String)::Valid
     warnings = Vector{String}()
     
     try
-        # Common validations for all endpoints
-        if !haskey(request_data, "csvContent")
-            push!(errors, ValidationError("csvContent", "CSV content is required", "MISSING_CSV"))
+        # Common validations for all endpoints - now expecting edge list format
+        if !haskey(request_data, "edges")
+            push!(errors, ValidationError("edges", "Edge list is required", "MISSING_EDGES"))
         else
-            # Validate CSV content
-            csv_validation = validate_csv_content(request_data["csvContent"])
-            append!(errors, csv_validation.errors)
-            append!(warnings, csv_validation.warnings)
+            # Validate edge list content
+            edge_validation = validate_edge_list(request_data["edges"])
+            append!(errors, edge_validation.errors)
+            append!(warnings, edge_validation.warnings)
+        end
+        
+        # Validate node priors JSON
+        if !haskey(request_data, "nodePriors")
+            push!(errors, ValidationError("nodePriors", "Node priors JSON is required", "MISSING_NODE_PRIORS"))
+        else
+            node_priors_validation = validate_node_priors_json(request_data["nodePriors"])
+            append!(errors, node_priors_validation.errors)
+            append!(warnings, node_priors_validation.warnings)
+        end
+        
+        # Validate edge probabilities JSON
+        if !haskey(request_data, "edgeProbabilities")
+            push!(errors, ValidationError("edgeProbabilities", "Edge probabilities JSON is required", "MISSING_EDGE_PROBS"))
+        else
+            edge_probs_validation = validate_edge_probabilities_json(request_data["edgeProbabilities"])
+            append!(errors, edge_probs_validation.errors)
+            append!(warnings, edge_probs_validation.warnings)
         end
         
         # Endpoint-specific validations
@@ -302,6 +320,205 @@ function validate_json_structure(json_str::String, required_fields::Vector{Strin
         
     catch e
         push!(errors, ValidationError("json", "Invalid JSON format: $(string(e))", "INVALID_JSON"))
+    end
+    
+    return ValidationResult(isempty(errors), errors, warnings)
+end
+
+"""
+    validate_edge_list(edges) -> ValidationResult
+
+Validate edge list format for network structure.
+Expected format: [{"source": 1, "destination": 2}, ...]
+"""
+function validate_edge_list(edges::Any)::ValidationResult
+    errors = Vector{ValidationError}()
+    warnings = Vector{String}()
+    
+    try
+        if !isa(edges, Vector)
+            push!(errors, ValidationError("edges", "Edge list must be an array", "INVALID_EDGE_FORMAT"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        if isempty(edges)
+            push!(errors, ValidationError("edges", "Edge list cannot be empty", "EMPTY_EDGES"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        nodes = Set{Int64}()
+        
+        for (i, edge) in enumerate(edges)
+            if !isa(edge, Dict)
+                push!(errors, ValidationError("edges", "Edge $i must be an object with 'source' and 'destination'", "INVALID_EDGE_OBJECT"))
+                continue
+            end
+            
+            if !haskey(edge, "source") || !haskey(edge, "destination")
+                push!(errors, ValidationError("edges", "Edge $i missing 'source' or 'destination' field", "MISSING_EDGE_FIELDS"))
+                continue
+            end
+            
+            try
+                source = Int64(edge["source"])
+                destination = Int64(edge["destination"])
+                
+                if source <= 0 || destination <= 0
+                    push!(errors, ValidationError("edges", "Edge $i: node IDs must be positive integers", "INVALID_NODE_ID"))
+                    continue
+                end
+                
+                if source == destination
+                    push!(errors, ValidationError("edges", "Edge $i: self-loops not allowed (source == destination)", "SELF_LOOP"))
+                    continue
+                end
+                
+                push!(nodes, source, destination)
+                
+            catch
+                push!(errors, ValidationError("edges", "Edge $i: invalid node ID format", "INVALID_NODE_FORMAT"))
+            end
+        end
+        
+        if length(nodes) < 2
+            push!(errors, ValidationError("edges", "Network must have at least 2 nodes", "INSUFFICIENT_NODES"))
+        end
+        
+        if length(nodes) > 1000
+            push!(warnings, "Large network detected ($(length(nodes)) nodes). Processing may be slow.")
+        end
+        
+        println("📊 Edge list validation: $(length(edges)) edges, $(length(nodes)) nodes, $(length(errors)) errors, $(length(warnings)) warnings")
+        
+    catch e
+        push!(errors, ValidationError("edges", "Failed to parse edge list: $(string(e))", "PARSE_ERROR"))
+    end
+    
+    return ValidationResult(isempty(errors), errors, warnings)
+end
+
+"""
+    validate_node_priors_json(node_priors) -> ValidationResult
+
+Validate node priors JSON format.
+Expected format: {"nodes": {"1": 0.9, "2": 0.8, ...}, "data_type": "Float64"}
+"""
+function validate_node_priors_json(node_priors::Any)::ValidationResult
+    errors = Vector{ValidationError}()
+    warnings = Vector{String}()
+    
+    try
+        if !isa(node_priors, Dict)
+            push!(errors, ValidationError("nodePriors", "Node priors must be a JSON object", "INVALID_JSON_TYPE"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        if !haskey(node_priors, "nodes")
+            push!(errors, ValidationError("nodePriors", "Missing 'nodes' field in node priors", "MISSING_NODES_FIELD"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        nodes_data = node_priors["nodes"]
+        if !isa(nodes_data, Dict)
+            push!(errors, ValidationError("nodePriors", "'nodes' field must be an object", "INVALID_NODES_TYPE"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        if isempty(nodes_data)
+            push!(errors, ValidationError("nodePriors", "Node priors cannot be empty", "EMPTY_NODE_PRIORS"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        # Validate data type
+        data_type = get(node_priors, "data_type", "Float64")
+        if !(data_type in ["Float64", "Interval", "pbox", "ProbabilityBoundsAnalysis.pbox"])
+            push!(warnings, "Unknown data_type '$data_type', assuming Float64")
+        end
+        
+        # Validate node prior values
+        for (node_key, value) in nodes_data
+            try
+                node_id = parse(Int64, node_key)
+                if node_id <= 0
+                    push!(errors, ValidationError("nodePriors", "Invalid node ID: $node_key (must be positive)", "INVALID_NODE_ID"))
+                end
+            catch
+                push!(errors, ValidationError("nodePriors", "Invalid node ID format: $node_key", "INVALID_NODE_FORMAT"))
+            end
+            
+            # Basic value validation (more complex for pbox/interval types)
+            if data_type == "Float64"
+                if !isa(value, Number) || value < 0 || value > 1
+                    push!(errors, ValidationError("nodePriors", "Invalid prior value for node $node_key: $value (must be 0-1)", "INVALID_PRIOR_VALUE"))
+                end
+            end
+        end
+        
+        println("📊 Node priors validation: $(length(nodes_data)) nodes, data_type=$data_type, $(length(errors)) errors")
+        
+    catch e
+        push!(errors, ValidationError("nodePriors", "Failed to parse node priors: $(string(e))", "PARSE_ERROR"))
+    end
+    
+    return ValidationResult(isempty(errors), errors, warnings)
+end
+
+"""
+    validate_edge_probabilities_json(edge_probs) -> ValidationResult
+
+Validate edge probabilities JSON format.
+Expected format: {"links": {"(1,2)": 0.9, "(2,3)": 0.8, ...}, "data_type": "Float64"}
+"""
+function validate_edge_probabilities_json(edge_probs::Any)::ValidationResult
+    errors = Vector{ValidationError}()
+    warnings = Vector{String}()
+    
+    try
+        if !isa(edge_probs, Dict)
+            push!(errors, ValidationError("edgeProbabilities", "Edge probabilities must be a JSON object", "INVALID_JSON_TYPE"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        if !haskey(edge_probs, "links")
+            push!(errors, ValidationError("edgeProbabilities", "Missing 'links' field in edge probabilities", "MISSING_LINKS_FIELD"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        links_data = edge_probs["links"]
+        if !isa(links_data, Dict)
+            push!(errors, ValidationError("edgeProbabilities", "'links' field must be an object", "INVALID_LINKS_TYPE"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        if isempty(links_data)
+            push!(errors, ValidationError("edgeProbabilities", "Edge probabilities cannot be empty", "EMPTY_EDGE_PROBS"))
+            return ValidationResult(false, errors, warnings)
+        end
+        
+        # Validate data type
+        data_type = get(edge_probs, "data_type", "Float64")
+        if !(data_type in ["Float64", "Interval", "pbox", "ProbabilityBoundsAnalysis.pbox"])
+            push!(warnings, "Unknown data_type '$data_type', assuming Float64")
+        end
+        
+        # Validate edge probability values
+        for (edge_key, value) in links_data
+            if !validate_edge_key(edge_key)
+                push!(errors, ValidationError("edgeProbabilities", "Invalid edge key format: $edge_key (expected '(src,dst)')", "INVALID_EDGE_KEY"))
+            end
+            
+            # Basic value validation (more complex for pbox/interval types)
+            if data_type == "Float64"
+                if !isa(value, Number) || value < 0 || value > 1
+                    push!(errors, ValidationError("edgeProbabilities", "Invalid probability value for edge $edge_key: $value (must be 0-1)", "INVALID_PROB_VALUE"))
+                end
+            end
+        end
+        
+        println("📊 Edge probabilities validation: $(length(links_data)) edges, data_type=$data_type, $(length(errors)) errors")
+        
+    catch e
+        push!(errors, ValidationError("edgeProbabilities", "Failed to parse edge probabilities: $(string(e))", "PARSE_ERROR"))
     end
     
     return ValidationResult(isempty(errors), errors, warnings)
