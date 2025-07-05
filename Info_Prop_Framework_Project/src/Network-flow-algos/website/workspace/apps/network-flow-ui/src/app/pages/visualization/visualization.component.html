@@ -321,7 +321,39 @@
         
         <div class="graphviz-container">
           @if (isNetworkLoaded()) {
-            <div #graphvizContainer class="graphviz-graph"></div>
+            <div #graphvizContainer class="graphviz-graph">
+              <!-- Floating zoom controls overlay -->
+              <div class="zoom-overlay">
+                <button
+                  (click)="zoomIn()"
+                  [disabled]="!isInitialized()"
+                  title="Zoom In"
+                  class="zoom-control">
+                  ➕
+                </button>
+                <button
+                  (click)="zoomOut()"
+                  [disabled]="!isInitialized()"
+                  title="Zoom Out"
+                  class="zoom-control">
+                  ➖
+                </button>
+                <button
+                  (click)="fitToView()"
+                  [disabled]="!isInitialized()"
+                  title="Fit to View"
+                  class="zoom-control">
+                  ⌂
+                </button>
+                <button
+                  (click)="resetView()"
+                  [disabled]="!isInitialized()"
+                  title="Reset View"
+                  class="zoom-control">
+                  🔄
+                </button>
+              </div>
+            </div>
           } @else {
             <div class="placeholder">
               <div class="placeholder-icon">🕸️</div>

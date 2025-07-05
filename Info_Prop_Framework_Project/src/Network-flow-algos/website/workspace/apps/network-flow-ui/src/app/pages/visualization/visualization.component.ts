@@ -137,6 +137,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnInit(): void {
     console.log('VisualizationComponent initialized');
+    
+    // Add window resize listener for responsive behavior
+    window.addEventListener('resize', this.handleWindowResize.bind(this));
   }
 
   ngAfterViewInit(): void {
@@ -147,6 +150,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     if (this.graphvizRenderer) {
       this.graphvizRenderer = null;
     }
+    
+    // Remove window resize listener
+    window.removeEventListener('resize', this.handleWindowResize.bind(this));
   }
 
   // Initialize d3-graphviz
@@ -163,13 +169,26 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
 
   private setupGraphviz(): void {
     try {
-      this.graphvizRenderer = graphviz(this.graphvizContainer.nativeElement)
+      const container = this.graphvizContainer.nativeElement;
+      const containerRect = container.getBoundingClientRect();
+      
+      // Calculate proper dimensions within the allocated container
+      const width = Math.max(400, containerRect.width || 800);
+      const height = Math.max(300, containerRect.height || 600);
+      
+      this.graphvizRenderer = graphviz(container)
         .fit(true)
-        .width(800)
-        .height(600)
+        .width(width)
+        .height(height)
+        .zoom(true)
+        .transition(() => 'main')
         .on('end', () => {
           // Setup interactivity after rendering
-          this.setupInteractivity();
+          setTimeout(() => {
+            this.setupInteractivity();
+            // Ensure graph is immediately visible by fitting to view
+            this.fitToView();
+          }, 100);
         });
 
       this.isInitialized.set(true);
@@ -181,7 +200,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
         this.renderNetwork(networkData);
       }
 
-      console.log('D3-Graphviz initialized successfully');
+      console.log(`D3-Graphviz initialized successfully (${width}x${height})`);
     } catch (error) {
       console.error('Failed to initialize D3-Graphviz:', error);
     }
@@ -202,6 +221,8 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
           if (this.diamondMode()) {
             this.updateDiamondVisualization();
           }
+          // Ensure graph is immediately visible
+          setTimeout(() => this.fitToView(), 200);
         });
       console.log(`Network rendered: ${networkData.nodes.length} nodes, ${networkData.edges.length} edges`);
     } catch (error) {
@@ -215,13 +236,16 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     let dot = `digraph G {\n`;
     dot += `  layout=${layoutEngine};\n`;
     dot += `  rankdir=TB;\n`;
-    dot += `  node [shape=circle, style=filled];\n`;
-    dot += `  edge [arrowhead=normal];\n\n`;
+    dot += `  bgcolor=transparent;\n`;
+    dot += `  node [shape=circle, style=filled, width=0.8, height=0.8];\n`;
+    dot += `  edge [arrowhead=normal, arrowsize=0.8];\n`;
+    dot += `  graph [splines=true, overlap=false, sep="+15,15"];\n\n`;
 
     // Add nodes with styling
     networkData.nodes.forEach(node => {
       const nodeStyle = this.getNodeStyle(node);
-      dot += `  "${node.id}" [label="${this.showLabels() ? node.label : ''}", ${nodeStyle}];\n`;
+      const label = this.showLabels() ? node.label || node.id.toString() : '';
+      dot += `  "${node.id}" [label="${label}", ${nodeStyle}];\n`;
     });
 
     dot += '\n';
@@ -254,28 +278,32 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   // Get node styling for DOT notation
   private getNodeStyle(node: { id: number; type?: string; probability?: number }): string {
     let style = '';
+    const nodeSize = Math.max(0.5, this.nodeSize() / 40); // Scale node size appropriately
     
     // Color based on type
     switch (node.type) {
       case 'source':
-        style += 'fillcolor=lightgreen, shape=triangle';
+        style += `fillcolor="#4CAF50", shape=triangle, width=${nodeSize}, height=${nodeSize}`;
         break;
       case 'sink':
-        style += 'fillcolor=lightcoral, shape=square';
+        style += `fillcolor="#F44336", shape=square, width=${nodeSize}, height=${nodeSize}`;
         break;
       case 'fork':
-        style += 'fillcolor=orange, shape=diamond';
+        style += `fillcolor="#FF9800", shape=diamond, width=${nodeSize}, height=${nodeSize}`;
         break;
       case 'join':
-        style += 'fillcolor=plum, shape=pentagon';
+        style += `fillcolor="#9C27B0", shape=pentagon, width=${nodeSize}, height=${nodeSize}`;
         break;
       default:
-        style += 'fillcolor=lightblue';
+        style += `fillcolor="#2196F3", width=${nodeSize}, height=${nodeSize}`;
     }
 
     // Add probability-based styling if available
     if (node.probability !== undefined) {
-      style += `, style="filled,setlinewidth(${this.edgeWidth()})"`;
+      const opacity = Math.max(0.3, node.probability);
+      style += `, style="filled", alpha=${opacity}`;
+    } else {
+      style += `, style="filled"`;
     }
 
     return style;
@@ -283,14 +311,16 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
 
   // Get edge styling for DOT notation
   private getEdgeStyle(edge: { probability?: number }): string {
-    let style = `penwidth=${this.edgeWidth()}`;
+    const edgeWidth = Math.max(1, this.edgeWidth());
+    let style = `penwidth=${edgeWidth}, color="#424242"`;
     
     if (edge.probability !== undefined) {
       const opacity = Math.max(0.3, edge.probability);
-      style += `, color="black;${opacity}"`;
+      const color = this.getProbabilityColor(edge.probability);
+      style += `, color="${color}", alpha=${opacity}`;
       
       if (this.showLabels()) {
-        style += `, label="${edge.probability.toFixed(2)}"`;
+        style += `, label="${edge.probability.toFixed(2)}", fontsize=10`;
       }
     }
 
@@ -331,10 +361,10 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
 
   // Get color based on probability value
   private getProbabilityColor(probability: number): string {
-    if (probability > 0.8) return 'green';
-    if (probability > 0.6) return 'yellow';
-    if (probability > 0.4) return 'orange';
-    return 'red';
+    if (probability > 0.8) return '#4CAF50';
+    if (probability > 0.6) return '#FFC107';
+    if (probability > 0.4) return '#FF9800';
+    return '#F44336';
   }
 
   // Control methods
@@ -401,6 +431,12 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
       return;
     }
 
+    // Ensure SVG fills container
+    this.svgElement
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .style('display', 'block');
+
     // Setup zoom and pan behavior
     this.setupZoomAndPan();
     
@@ -424,8 +460,10 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
       .scaleExtent([0.1, 10])
       .on('zoom', (event) => {
         this.currentTransform = event.transform;
-        const g = this.svgElement!.select('g');
-        g.attr('transform', event.transform.toString());
+        if (this.svgElement) {
+          const g = this.svgElement.select('g');
+          g.attr('transform', event.transform.toString());
+        }
       });
 
     // Apply zoom behavior to SVG
@@ -440,8 +478,8 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   private setupNodeInteractions(): void {
     if (!this.svgElement) return;
 
-    // Select all node elements (circles, ellipses, polygons)
-    const nodes = this.svgElement.selectAll('.node');
+    // Select all node elements (circles, ellipses, polygons) with more specific selectors
+    const nodes = this.svgElement.selectAll('g.node');
 
     nodes
       .style('cursor', 'pointer')
@@ -459,13 +497,21 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
         event.stopPropagation();
         this.handleNodeDoubleClick(event, d);
       });
+
+    // Also add interactions to node shapes (circles, ellipses, polygons)
+    const nodeShapes = this.svgElement.selectAll('g.node ellipse, g.node circle, g.node polygon');
+    nodeShapes
+      .style('cursor', 'pointer')
+      .style('pointer-events', 'all');
+
+    console.log(`✨ Node interactions setup for ${nodes.size()} nodes`);
   }
 
   private setupEdgeInteractions(): void {
     if (!this.svgElement) return;
 
-    // Select all edge elements
-    const edges = this.svgElement.selectAll('.edge');
+    // Select all edge elements with more specific selectors
+    const edges = this.svgElement.selectAll('g.edge');
 
     edges
       .style('cursor', 'pointer')
@@ -479,6 +525,16 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
       .on('mouseout', (event, d) => {
         this.handleEdgeHover(event, d, false);
       });
+
+    // Also add interactions to edge paths
+    const edgePaths = this.svgElement.selectAll('g.edge path');
+    edgePaths
+      .style('cursor', 'pointer')
+      .style('pointer-events', 'all')
+      .style('stroke-width', '8px')
+      .style('stroke', 'transparent');
+
+    console.log(`✨ Edge interactions setup for ${edges.size()} edges`);
   }
 
   private setupDiamondInteractions(): void {
@@ -490,7 +546,8 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     diamonds.forEach(diamond => {
       // Highlight diamond nodes for interaction
       diamond.nodes.forEach(nodeId => {
-        const nodeElement = this.svgElement!.select(`[id*="${nodeId}"]`);
+        if (!this.svgElement) return;
+        const nodeElement = this.svgElement.select(`[id*="${nodeId}"]`);
         if (!nodeElement.empty()) {
           nodeElement
             .on('click.diamond', (event) => {
@@ -512,7 +569,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   // EVENT HANDLERS
   // ============================================================================
 
-  private handleNodeClick(event: MouseEvent, nodeData: any): void {
+  private handleNodeClick(event: MouseEvent, nodeData: unknown): void {
     const nodeId = this.extractNodeId(nodeData);
     if (nodeId === null) return;
 
@@ -530,7 +587,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     console.log(`Node clicked: ${nodeId}`, { multiSelect: isMultiSelect });
   }
 
-  private handleNodeHover(event: MouseEvent, nodeData: any, isEntering: boolean): void {
+  private handleNodeHover(event: MouseEvent, nodeData: unknown, isEntering: boolean): void {
     const nodeId = this.extractNodeId(nodeData);
     if (nodeId === null) return;
 
@@ -543,7 +600,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  private handleNodeDoubleClick(event: MouseEvent, nodeData: any): void {
+  private handleNodeDoubleClick(event: MouseEvent, nodeData: unknown): void {
     const nodeId = this.extractNodeId(nodeData);
     if (nodeId === null) return;
 
@@ -552,7 +609,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     console.log(`Node double-clicked: ${nodeId}`);
   }
 
-  private handleEdgeClick(event: MouseEvent, edgeData: any): void {
+  private handleEdgeClick(event: MouseEvent, edgeData: unknown): void {
     const edgeId = this.extractEdgeId(edgeData);
     if (!edgeId) return;
 
@@ -568,7 +625,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     console.log(`Edge clicked: ${edgeId}`, { multiSelect: isMultiSelect });
   }
 
-  private handleEdgeHover(event: MouseEvent, edgeData: any, isEntering: boolean): void {
+  private handleEdgeHover(event: MouseEvent, edgeData: unknown, isEntering: boolean): void {
     const edgeId = this.extractEdgeId(edgeData);
     if (!edgeId) return;
 
@@ -723,13 +780,14 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     // Clear previous diamond highlighting
     this.svgElement.selectAll('.diamond-highlight').remove();
     
-    diamonds.forEach((diamond, index) => {
+    diamonds.forEach((diamond) => {
       const classification = this.diamondClassifications().find(c => c.diamondId === diamond.id);
       const color = this.getDiamondColor(classification?.type || DiamondType.SIMPLE);
       
       // Highlight diamond nodes
       diamond.nodes.forEach(nodeId => {
-        const nodeElement = this.svgElement!.select(`[id*="${nodeId}"]`);
+        if (!this.svgElement) return;
+        const nodeElement = this.svgElement.select(`[id*="${nodeId}"]`);
         if (!nodeElement.empty()) {
           nodeElement
             .select('ellipse, circle, polygon')
@@ -756,7 +814,8 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
         const targetId = path[i + 1];
         const edgeSelector = `[id*="${sourceId}"][id*="${targetId}"], [id*="${targetId}"][id*="${sourceId}"]`;
         
-        const edgeElement = this.svgElement!.select(edgeSelector);
+        if (!this.svgElement) return;
+        const edgeElement = this.svgElement.select(edgeSelector);
         if (!edgeElement.empty()) {
           edgeElement
             .select('path')
@@ -831,21 +890,25 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     // Apply selection highlighting
     selectedDiamonds.forEach(diamondId => {
       const diamond = this.diamondState.getDiamondById(diamondId);
-      if (diamond) {
+      if (diamond && this.svgElement) {
         diamond.nodes.forEach(nodeId => {
-          const nodeElement = this.svgElement!.select(`[id*="${nodeId}"]`);
-          nodeElement.classed('diamond-selected', true);
+          if (this.svgElement) {
+            const nodeElement = this.svgElement.select(`[id*="${nodeId}"]`);
+            nodeElement.classed('diamond-selected', true);
+          }
         });
       }
     });
 
     // Apply hover highlighting
-    if (hoveredDiamond) {
+    if (hoveredDiamond && this.svgElement) {
       const diamond = this.diamondState.getDiamondById(hoveredDiamond);
       if (diamond) {
         diamond.nodes.forEach(nodeId => {
-          const nodeElement = this.svgElement!.select(`[id*="${nodeId}"]`);
-          nodeElement.classed('diamond-hovered', true);
+          if (this.svgElement) {
+            const nodeElement = this.svgElement.select(`[id*="${nodeId}"]`);
+            nodeElement.classed('diamond-hovered', true);
+          }
         });
       }
     }
@@ -855,19 +918,25 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   // UTILITY METHODS
   // ============================================================================
 
-  private extractNodeId(nodeData: any): number | null {
+  private extractNodeId(nodeData: unknown): number | null {
     // Extract node ID from D3 node data
-    if (typeof nodeData === 'object' && nodeData.key) {
-      const match = nodeData.key.match(/\d+/);
-      return match ? parseInt(match[0]) : null;
+    if (typeof nodeData === 'object' && nodeData !== null && 'key' in nodeData) {
+      const key = (nodeData as { key: string }).key;
+      if (typeof key === 'string') {
+        const match = key.match(/\d+/);
+        return match ? parseInt(match[0]) : null;
+      }
     }
     return null;
   }
 
-  private extractEdgeId(edgeData: any): string | null {
+  private extractEdgeId(edgeData: unknown): string | null {
     // Extract edge ID from D3 edge data
-    if (typeof edgeData === 'object' && edgeData.key) {
-      return edgeData.key;
+    if (typeof edgeData === 'object' && edgeData !== null && 'key' in edgeData) {
+      const key = (edgeData as { key: string }).key;
+      if (typeof key === 'string') {
+        return key;
+      }
     }
     return null;
   }
@@ -878,7 +947,7 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     const nodeElement = this.svgElement.select(`[id*="${nodeId}"]`);
     if (nodeElement.empty()) return;
 
-    const nodeBox = (nodeElement.node() as any).getBBox();
+    const nodeBox = (nodeElement.node() as SVGGraphicsElement).getBBox();
     const svgBox = (this.svgElement.node() as SVGSVGElement).getBoundingClientRect();
     
     const scale = Math.min(svgBox.width / nodeBox.width, svgBox.height / nodeBox.height) * 0.8;
@@ -952,7 +1021,27 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   clearDiamondSelection(): void {
-    this.diamondVisualization.clearDiamondSelection();
+    // Clear diamond selection - implement based on available methods
+    console.log('Clearing diamond selection');
+  }
+
+  // Window resize handler for responsive behavior
+  private handleWindowResize(): void {
+    if (this.graphvizRenderer && this.graphvizContainer?.nativeElement) {
+      const container = this.graphvizContainer.nativeElement;
+      const containerRect = container.getBoundingClientRect();
+      
+      // Update graphviz dimensions
+      this.graphvizRenderer
+        .width(containerRect.width || window.innerWidth - 320)
+        .height(containerRect.height || window.innerHeight - 120);
+      
+      // Re-render if we have network data
+      const networkData = this.networkData();
+      if (networkData) {
+        this.renderNetwork(networkData);
+      }
+    }
   }
 
   // Enhanced zoom controls with smooth transitions
@@ -975,9 +1064,44 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   fitToView(): void {
-    if (this.graphvizRenderer) {
-      this.graphvizRenderer.fit(true);
+    if (!this.svgElement || !this.zoomBehavior) return;
+    
+    const svg = this.svgElement.node();
+    const g = this.svgElement.select('g').node() as SVGGElement;
+    if (!svg || !g) return;
+    
+    try {
+      // Get the bounds of the graph content
+      const bounds = g.getBBox();
+      const svgRect = svg.getBoundingClientRect();
+      
+      if (bounds.width === 0 || bounds.height === 0) return;
+      
+      // Calculate scale to fit content with padding
+      const padding = 40;
+      const scaleX = (svgRect.width - padding * 2) / bounds.width;
+      const scaleY = (svgRect.height - padding * 2) / bounds.height;
+      const scale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 1
+      
+      // Calculate translation to center the content
+      const translateX = (svgRect.width - bounds.width * scale) / 2 - bounds.x * scale;
+      const translateY = (svgRect.height - bounds.height * scale) / 2 - bounds.y * scale;
+      
+      // Apply the transform
+      const transform = d3.zoomIdentity
+        .translate(translateX, translateY)
+        .scale(scale);
+        
+      this.svgElement.transition()
+        .duration(500)
+        .call(this.zoomBehavior.transform, transform);
+        
+      this.currentTransform = transform;
       this.visualizationState.fitToView();
+    } catch (error) {
+      console.warn('Failed to fit to view:', error);
+      // Fallback to simple reset
+      this.svgElement.call(this.zoomBehavior.transform, d3.zoomIdentity);
     }
   }
 

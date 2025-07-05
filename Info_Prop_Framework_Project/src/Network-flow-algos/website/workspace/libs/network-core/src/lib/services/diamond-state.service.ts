@@ -151,15 +151,25 @@ export class DiamondStateService {
     });
 
     // Effect to react to network changes and trigger diamond re-analysis
+    // Use allowSignalWrites to prevent infinite loops and add debouncing
     effect(() => {
       const networkData = this.networkStateService.networkData();
-      const canAnalyze = this.canAnalyze();
+      const isNetworkLoaded = this.networkStateService.isNetworkLoaded();
+      const isAnalyzing = this._isAnalyzing();
       
-      if (networkData && canAnalyze) {
-        console.log('💎 Network data changed, triggering diamond re-analysis');
-        this.detectDiamonds();
+      // Only trigger analysis if network is loaded, not currently analyzing, and we don't have results yet
+      if (networkData && isNetworkLoaded && !isAnalyzing && this._diamonds().length === 0) {
+        console.log('💎 Network data loaded, triggering initial diamond analysis');
+        // Use setTimeout to break the effect cycle and prevent infinite loops
+        setTimeout(() => {
+          if (!this._isAnalyzing() && this._diamonds().length === 0) {
+            this.detectDiamonds().catch(error => {
+              console.error('💎 Diamond detection failed:', error);
+            });
+          }
+        }, 100);
       }
-    });
+    }, { allowSignalWrites: true });
 
     // Effect to update analysis progress
     effect(() => {
