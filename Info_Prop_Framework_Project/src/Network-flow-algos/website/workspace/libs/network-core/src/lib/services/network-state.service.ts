@@ -253,7 +253,8 @@ export class NetworkStateService {
       { key: 'simpleDag', name: 'Simple Network', description: '5 nodes, basic structure' },
       { key: 'complexDag', name: 'Complex Network', description: '9 nodes, multiple paths' },
       { key: 'diamondDag', name: 'Diamond Network', description: '8 nodes, diamond structure' },
-      { key: 'gridDag', name: 'Grid Network', description: '16 nodes, grid layout' }
+      { key: 'gridDag', name: 'Grid Network', description: '16 nodes, grid layout' },
+      { key: 'powerDistributionDag', name: 'Power Distribution Network', description: '23 nodes, power grid structure' }
     ];
   }
 
@@ -351,6 +352,43 @@ export class NetworkStateService {
           { id: '13-14', source: 13, target: 14, probability: 0.7 },
           { id: '14-15', source: 14, target: 15, probability: 0.8 },
           { id: '15-16', source: 15, target: 16, probability: 0.9 }
+        ]
+      },
+      powerDistributionDag: {
+        nodes: Array.from({ length: 23 }, (_, i) => ({
+          id: i + 1,
+          label: `Node ${i + 1}`,
+          probability: 0.8 + ((i % 3) * 0.05), // Alternating probabilities: 0.8, 0.85, 0.9
+          type: i === 0 ? 'source' as const : i === 22 ? 'sink' as const : 'regular' as const
+        })),
+        edges: [
+          // Power Distribution Network edges based on the adjacency matrix
+          { id: '1-2', source: 1, target: 2, probability: 0.9 },
+          { id: '2-3', source: 2, target: 3, probability: 0.85 },
+          { id: '2-6', source: 2, target: 6, probability: 0.85 },
+          { id: '2-10', source: 2, target: 10, probability: 0.85 },
+          { id: '3-4', source: 3, target: 4, probability: 0.9 },
+          { id: '4-5', source: 4, target: 5, probability: 0.85 },
+          { id: '5-13', source: 5, target: 13, probability: 0.8 },
+          { id: '6-5', source: 6, target: 5, probability: 0.85 },
+          { id: '7-8', source: 7, target: 8, probability: 0.9 },
+          { id: '8-9', source: 8, target: 9, probability: 0.85 },
+          { id: '8-12', source: 8, target: 12, probability: 0.85 },
+          { id: '9-10', source: 9, target: 10, probability: 0.9 },
+          { id: '11-19', source: 11, target: 19, probability: 0.8 },
+          { id: '12-11', source: 12, target: 11, probability: 0.85 },
+          { id: '13-14', source: 13, target: 14, probability: 0.9 },
+          { id: '14-21', source: 14, target: 21, probability: 0.85 },
+          { id: '15-13', source: 15, target: 13, probability: 0.8 },
+          { id: '16-15', source: 16, target: 15, probability: 0.85 },
+          { id: '16-17', source: 16, target: 17, probability: 0.85 },
+          { id: '17-14', source: 17, target: 14, probability: 0.9 },
+          { id: '18-16', source: 18, target: 16, probability: 0.85 },
+          { id: '19-20', source: 19, target: 20, probability: 0.9 },
+          { id: '19-22', source: 19, target: 22, probability: 0.85 },
+          { id: '20-21', source: 20, target: 21, probability: 0.85 },
+          { id: '21-22', source: 21, target: 22, probability: 0.9 },
+          { id: '22-23', source: 22, target: 23, probability: 0.85 }
         ]
       }
     };

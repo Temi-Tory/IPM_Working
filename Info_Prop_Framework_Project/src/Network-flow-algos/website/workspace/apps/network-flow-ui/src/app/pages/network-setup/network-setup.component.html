@@ -116,6 +116,12 @@
           [disabled]="networkState.isLoading()">
           Grid Network (16 nodes)
         </button>
+        <button
+          class="btn-secondary"
+          (click)="loadSampleNetwork('powerDistributionDag')"
+          [disabled]="networkState.isLoading()">
+          Power Distribution Network (23 nodes)
+        </button>
       </div>
       
       <div class="test-network-info">

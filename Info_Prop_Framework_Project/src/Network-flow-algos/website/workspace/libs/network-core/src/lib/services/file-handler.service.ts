@@ -605,10 +605,66 @@ export class FileHandlerService {
         name: 'grid_dag.csv',
         content: '0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0\n0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0\n0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0\n0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0\n0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0\n0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0\n0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n'
       },
+      powerDistributionDag: {
+        name: 'power_distribution_network.csv',
+        content: '0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1\n0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n'
+      },
+      // Simple DAG node probabilities (5 nodes)
+      simpleDagNodeProbs: {
+        name: 'simple_dag_node_probabilities.csv',
+        content: 'node,probability\n1,0.9\n2,0.8\n3,0.7\n4,0.85\n5,0.75\n'
+      },
+      // Simple DAG edge probabilities (edges: 1->2, 1->3, 2->4, 3->4, 4->5)
+      simpleDagEdgeProbs: {
+        name: 'simple_dag_edge_probabilities.csv',
+        content: 'source,target,probability\n1,2,0.9\n1,3,0.8\n2,4,0.85\n3,4,0.9\n4,5,0.95\n'
+      },
+      // Complex DAG node probabilities (9 nodes)
+      complexDagNodeProbs: {
+        name: 'complex_dag_node_probabilities.csv',
+        content: 'node,probability\n1,0.9\n2,0.85\n3,0.8\n4,0.85\n5,0.8\n6,0.85\n7,0.9\n8,0.85\n9,0.8\n'
+      },
+      // Complex DAG edge probabilities (edges: 1->2, 1->3, 2->4, 2->5, 3->5, 3->6, 4->7, 5->7, 5->8, 6->8, 7->9, 8->9)
+      complexDagEdgeProbs: {
+        name: 'complex_dag_edge_probabilities.csv',
+        content: 'source,target,probability\n1,2,0.9\n1,3,0.85\n2,4,0.8\n2,5,0.85\n3,5,0.9\n3,6,0.8\n4,7,0.85\n5,7,0.9\n5,8,0.85\n6,8,0.8\n7,9,0.9\n8,9,0.85\n'
+      },
+      // Diamond DAG node probabilities (8 nodes)
+      diamondDagNodeProbs: {
+        name: 'diamond_dag_node_probabilities.csv',
+        content: 'node,probability\n1,0.9\n2,0.85\n3,0.8\n4,0.85\n5,0.8\n6,0.85\n7,0.9\n8,0.8\n'
+      },
+      // Diamond DAG edge probabilities (edges: 1->2, 1->3, 2->4, 3->4, 4->5, 4->6, 5->7, 6->7, 7->8)
+      diamondDagEdgeProbs: {
+        name: 'diamond_dag_edge_probabilities.csv',
+        content: 'source,target,probability\n1,2,0.9\n1,3,0.85\n2,4,0.8\n3,4,0.85\n4,5,0.9\n4,6,0.85\n5,7,0.8\n6,7,0.85\n7,8,0.9\n'
+      },
+      // Grid DAG node probabilities (16 nodes)
+      gridDagNodeProbs: {
+        name: 'grid_dag_node_probabilities.csv',
+        content: 'node,probability\n1,0.9\n2,0.85\n3,0.8\n4,0.85\n5,0.8\n6,0.85\n7,0.8\n8,0.85\n9,0.8\n10,0.85\n11,0.8\n12,0.85\n13,0.8\n14,0.85\n15,0.8\n16,0.85\n'
+      },
+      // Grid DAG edge probabilities (edges from 4x4 grid: 1->2, 1->5, 2->3, 2->6, 3->4, 3->7, 4->8, 5->6, 5->9, 6->7, 6->10, 7->8, 7->11, 8->12, 9->10, 9->13, 10->11, 10->14, 11->12, 11->15, 12->16, 13->14, 14->15, 15->16)
+      gridDagEdgeProbs: {
+        name: 'grid_dag_edge_probabilities.csv',
+        content: 'source,target,probability\n1,2,0.9\n1,5,0.85\n2,3,0.8\n2,6,0.85\n3,4,0.9\n3,7,0.8\n4,8,0.85\n5,6,0.9\n5,9,0.8\n6,7,0.85\n6,10,0.9\n7,8,0.8\n7,11,0.85\n8,12,0.9\n9,10,0.85\n9,13,0.8\n10,11,0.85\n10,14,0.9\n11,12,0.8\n11,15,0.85\n12,16,0.9\n13,14,0.85\n14,15,0.8\n15,16,0.85\n'
+      },
+      // Power Distribution DAG node probabilities (23 nodes)
+      powerDistributionDagNodeProbs: {
+        name: 'power_distribution_dag_node_probabilities.csv',
+        content: 'node,probability\n1,0.9\n2,0.85\n3,0.8\n4,0.85\n5,0.8\n6,0.85\n7,0.8\n8,0.85\n9,0.8\n10,0.85\n11,0.8\n12,0.85\n13,0.8\n14,0.85\n15,0.8\n16,0.85\n17,0.8\n18,0.85\n19,0.8\n20,0.85\n21,0.8\n22,0.85\n23,0.8\n'
+      },
+      // Power Distribution DAG edge probabilities (26 edges)
+      powerDistributionDagEdgeProbs: {
+        name: 'power_distribution_dag_edge_probabilities.csv',
+        content: 'source,target,probability\n1,2,0.9\n2,3,0.85\n2,6,0.85\n2,10,0.85\n3,4,0.9\n4,5,0.85\n5,13,0.8\n6,5,0.85\n7,8,0.9\n8,9,0.85\n8,12,0.85\n9,10,0.9\n11,19,0.8\n12,11,0.85\n13,14,0.9\n14,21,0.85\n15,13,0.8\n16,15,0.85\n16,17,0.85\n17,14,0.9\n18,16,0.85\n19,20,0.9\n19,22,0.85\n20,21,0.85\n21,22,0.9\n22,23,0.85\n'
+      },
+      // Generic node probabilities (for backward compatibility)
       nodeProbs: {
         name: 'node_probabilities.csv',
         content: 'node,probability\n1,0.9\n2,0.8\n3,0.7\n4,0.85\n5,0.75\n'
       },
+      // Generic edge probabilities (for backward compatibility)
       edgeProbs: {
         name: 'edge_probabilities.csv',
         content: 'source,target,probability\n1,2,0.9\n1,3,0.8\n2,4,0.85\n3,4,0.9\n4,5,0.95\n'
