@@ -1,3 +1,4 @@
 {
-    "nxConsole.nxWorkspacePath": "website\\workspace"
+    "nxConsole.nxWorkspacePath": "website\\workspace",
+    "julia.environmentPath": "c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project"
 }
