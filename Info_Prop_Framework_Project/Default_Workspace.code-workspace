@@ -6,6 +6,6 @@
 		}
 	],
 	"settings": {
-		"nxConsole.nxWorkspacePath": "site\\info-prop-frmwrk"
+		"nxConsole.nxWorkspacePath": "src\\Network-flow-algos\\website"
 	}
 }
