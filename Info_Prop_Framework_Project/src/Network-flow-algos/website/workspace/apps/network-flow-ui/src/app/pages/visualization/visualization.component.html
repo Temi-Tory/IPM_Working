@@ -11,57 +11,124 @@
         
         <div class="control-group">
           <label for="layoutAlgorithm">Layout Algorithm</label>
-          <select id="layoutAlgorithm">
-            <option>Hierarchical (Dagre)</option>
-            <option>Force Directed</option>
-            <option>Circle</option>
-            <option>Grid</option>
+          <select
+            id="layoutAlgorithm"
+            [value]="selectedLayout()"
+            (change)="onLayoutChange($any($event.target).value)">
+            @for (option of layoutOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
           </select>
         </div>
         
         <div class="control-group">
-          <label for="nodeSize">Node Size</label>
-          <input id="nodeSize" type="range" min="10" max="50" value="25" />
+          <label for="nodeSize">Node Size: {{ nodeSize() }}</label>
+          <input
+            id="nodeSize"
+            type="range"
+            min="10"
+            max="80"
+            [value]="nodeSize()"
+            (input)="onNodeSizeChange(+$any($event.target).value)" />
         </div>
         
         <div class="control-group">
-          <label for="edgeThickness">Edge Thickness</label>
-          <input id="edgeThickness" type="range" min="1" max="10" value="3" />
+          <label for="edgeThickness">Edge Thickness: {{ edgeWidth() }}</label>
+          <input
+            id="edgeThickness"
+            type="range"
+            min="1"
+            max="10"
+            [value]="edgeWidth()"
+            (input)="onEdgeWidthChange(+$any($event.target).value)" />
         </div>
         
         <div class="control-group">
           <label for="showLabels">Show Labels</label>
-          <input id="showLabels" type="checkbox" checked />
+          <input
+            id="showLabels"
+            type="checkbox"
+            [checked]="showLabels()"
+            (change)="onToggleLabels()" />
         </div>
       </div>
 
       <div class="card">
-        <h3>📊 Analysis Results</h3>
+        <h3>📊 Network Statistics</h3>
         
         <div class="stats-grid">
           <div class="stat-item">
-            <span class="stat-value">--</span>
+            <span class="stat-value">{{ nodeCount() }}</span>
             <span class="stat-label">Total Nodes</span>
           </div>
           
           <div class="stat-item">
-            <span class="stat-value">--</span>
+            <span class="stat-value">{{ edgeCount() }}</span>
             <span class="stat-label">Total Edges</span>
           </div>
           
           <div class="stat-item">
-            <span class="stat-value">--</span>
+            <span class="stat-value">
+              @if (analysisResults()?.results?.diamondStructures) {
+                {{ analysisResults()!.results.diamondStructures!.length }}
+              } @else {
+                --
+              }
+            </span>
             <span class="stat-label">Diamonds Found</span>
           </div>
           
           <div class="stat-item">
-            <span class="stat-value">--</span>
+            <span class="stat-value">
+              @if (analysisResults()?.results?.reachabilityProbabilities) {
+                {{ getMaxProbability() | number:'1.2-2' }}
+              } @else {
+                --
+              }
+            </span>
             <span class="stat-label">Max Probability</span>
           </div>
         </div>
         
-        <button class="btn-primary">Run Analysis</button>
+        <button
+          class="btn-primary"
+          [disabled]="isAnalysisRunning() || !isNetworkLoaded()"
+          (click)="runAnalysis()">
+          @if (isAnalysisRunning()) {
+            🔄 Running Analysis...
+          } @else {
+            🚀 Run Analysis
+          }
+        </button>
       </div>
+
+      @if (selectionState().selectedNodes.length > 0 || selectionState().selectedEdges.length > 0) {
+        <div class="card">
+          <h3>🎯 Selection Info</h3>
+          
+          @if (selectionState().selectedNodes.length > 0) {
+            <div class="selection-info">
+              <strong>Selected Nodes:</strong>
+              <div class="selected-items">
+                @for (nodeId of selectionState().selectedNodes; track nodeId) {
+                  <span class="selected-item">Node {{ nodeId }}</span>
+                }
+              </div>
+            </div>
+          }
+          
+          @if (selectionState().selectedEdges.length > 0) {
+            <div class="selection-info">
+              <strong>Selected Edges:</strong>
+              <div class="selected-items">
+                @for (edgeId of selectionState().selectedEdges; track edgeId) {
+                  <span class="selected-item">{{ edgeId }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
     </div>
 
     <div class="visualization-container">
@@ -69,19 +136,41 @@
         <div class="visualization-header">
           <h3>Network Graph</h3>
           <div class="zoom-controls">
-            <button class="zoom-btn">🔍+</button>
-            <button class="zoom-btn">🔍-</button>
-            <button class="zoom-btn">⌂</button>
+            <button
+              class="zoom-btn"
+              (click)="zoomIn()"
+              [disabled]="!isInitialized()"
+              title="Zoom In">
+              🔍+
+            </button>
+            <button
+              class="zoom-btn"
+              (click)="zoomOut()"
+              [disabled]="!isInitialized()"
+              title="Zoom Out">
+              🔍-
+            </button>
+            <button
+              class="zoom-btn"
+              (click)="fitToView()"
+              [disabled]="!isInitialized()"
+              title="Fit to View">
+              ⌂
+            </button>
           </div>
         </div>
         
-        <div class="cytoscape-container" id="cy">
-          <div class="placeholder">
-            <div class="placeholder-icon">🕸️</div>
-            <h4>No Network Data</h4>
-            <p>Upload network data in the Network Setup page to begin visualization</p>
-            <a routerLink="/network-setup" class="btn-secondary">Go to Network Setup</a>
-          </div>
+        <div class="graphviz-container">
+          @if (isNetworkLoaded()) {
+            <div #graphvizContainer class="graphviz-graph"></div>
+          } @else {
+            <div class="placeholder">
+              <div class="placeholder-icon">🕸️</div>
+              <h4>No Network Data</h4>
+              <p>Load a sample network or upload network data in the Network Setup page to begin visualization</p>
+              <a routerLink="/network-setup" class="btn-secondary">Go to Network Setup</a>
+            </div>
+          }
         </div>
       </div>
     </div>
