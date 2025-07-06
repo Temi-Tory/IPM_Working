@@ -9,6 +9,6 @@ import { RouterModule } from "@angular/router";
   templateUrl: './network-details.component.html',
   styleUrl: './network-details.component.scss'
 })
-export class NetworkSetupComponent {
-    
+export class NetworkDetailsComponent {
+    // will display graph strcture detaisl form api here
 }
