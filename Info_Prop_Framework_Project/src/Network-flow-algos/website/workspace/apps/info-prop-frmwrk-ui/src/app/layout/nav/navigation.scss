@@ -1,0 +1,446 @@
+// navigation.scss - Navigation component styles
+// Uses CSS custom properties from the design system
+@use '../../../variables' as *;
+
+//
+// NAVIGATION LAYOUT STRUCTURE
+//
+.sidenav {
+  // Main sidenav styling - must come before nested rules
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--nav-width);
+  height: 100vh;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border-right: 1px solid var(--color-border-light);
+  transition: width var(--transition-normal);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-index-sidebar);
+
+  &-collapsed {
+    width: var(--nav-collapsed-width);
+  }
+}
+
+//
+// NAVIGATION HEADER SECTION
+//
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-base);
+  border-bottom: 1px solid var(--color-border-light);
+  min-height: var(--header-height);
+  background: var(--color-bg-surface);
+}
+
+.logo {
+  &-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+
+    &.collapsed {
+      justify-content: center;
+    }
+  }
+
+  &-icon {
+    color: var(--color-primary);
+    font-size: 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    transition: var(--transition-color);
+  }
+
+  &-text {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    transition: var(--transition-color);
+  }
+}
+
+.toggle-btn {
+  color: var(--color-text-secondary);
+  transition: var(--transition-color);
+  border-radius: var(--radius-md);
+
+  &:hover {
+    color: var(--color-primary);
+    background-color: var(--color-primary-subtle);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+//
+// NAVIGATION LIST STYLES
+//
+.nav {
+  &-list {
+    padding: var(--spacing-sm) 0;
+  }
+
+  &-item {
+    position: relative;
+    margin: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-md);
+    transition: var(--transition-all);
+    cursor: pointer;
+    color: var(--color-text-primary);
+
+    // Interactive states
+    &:hover:not(.nav-item-disabled) {
+      background-color: var(--color-primary-subtle);
+      color: var(--color-primary);
+      transform: translateX(var(--spacing-xs));
+    }
+
+    &.active:not(.nav-item-disabled) {
+      background-color: var(--color-primary);
+      color: var(--color-text-on-primary);
+      box-shadow: var(--shadow-sm);
+
+      .nav-icon {
+        color: var(--color-text-on-primary);
+      }
+
+      .nav-label {
+        color: var(--color-text-on-primary);
+        font-weight: var(--font-weight-semibold);
+      }
+    }
+
+    // Disabled state
+    &-disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      background-color: transparent;
+
+      &:hover {
+        background-color: var(--color-bg-surface-alt);
+        transform: none;
+      }
+    }
+  }
+
+  &-icon {
+    color: var(--color-text-secondary);
+    margin-right: var(--spacing-base);
+    transition: var(--transition-color);
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+
+    &-disabled {
+      color: var(--color-text-muted);
+    }
+  }
+
+  &-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    color: var(--color-text-primary);
+    transition: var(--transition-color);
+
+    &-disabled {
+      color: var(--color-text-muted);
+    }
+  }
+
+  // Tooltip for collapsed state
+  &-tooltip {
+    position: absolute;
+    left: var(--nav-collapsed-width);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition-all);
+    z-index: var(--z-index-tooltip);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border-light);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 4px solid transparent;
+      border-right-color: var(--color-bg-elevated);
+    }
+  }
+}
+
+// Show tooltip in collapsed state
+.sidenav-collapsed .nav-item:hover .nav-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+//
+// DISABLED INDICATOR
+//
+.disabled-indicator {
+  position: absolute;
+  right: var(--spacing-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-warning);
+  opacity: 0.8;
+}
+
+//
+// STATUS SECTION
+//
+.sidenav-status {
+  position: absolute;
+  bottom: calc(var(--header-height) + var(--spacing-base));
+  left: 0;
+  right: 0;
+  padding: var(--spacing-base);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-surface-alt);
+}
+
+.status {
+  &-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  &-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-base);
+    transition: var(--transition-all);
+    border: 1px solid transparent;
+
+    &.status-loaded {
+      background-color: rgba(122, 155, 139, 0.1); // Using success color with opacity
+      border-color: var(--color-success);
+
+      .status-icon {
+        color: var(--color-success);
+      }
+
+      .status-text {
+        color: var(--color-success-dark);
+        font-weight: var(--font-weight-medium);
+      }
+    }
+
+    &:not(.status-loaded) {
+      background-color: var(--color-bg-surface);
+      border-color: var(--color-border-medium);
+
+      .status-icon {
+        color: var(--color-text-muted);
+      }
+
+      .status-text {
+        color: var(--color-text-muted);
+      }
+    }
+
+    // Animation for status changes
+    animation: statusUpdate var(--transition-normal) ease-in-out;
+  }
+
+  &-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    transition: var(--transition-color);
+  }
+
+  &-text {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-color);
+  }
+}
+
+//
+// FOOTER SECTION
+//
+.sidenav-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-base);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-surface);
+}
+
+.footer {
+  &-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+  }
+
+  &-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+
+//
+// MATERIAL DESIGN OVERRIDES
+//
+.mat-mdc-list-item {
+  --mdc-list-list-item-container-height: 3rem; // 48px
+
+  .mdc-list-item__content {
+    padding: 0 var(--spacing-base);
+  }
+}
+
+.mat-mdc-nav-list .mat-mdc-list-item {
+  color: inherit;
+
+  &:hover:not(.nav-item-disabled) {
+    background-color: transparent; // We handle hover states ourselves
+  }
+
+  &.nav-item-disabled .mdc-list-item__content {
+    pointer-events: none;
+  }
+}
+
+//
+// RESPONSIVE DESIGN
+//
+@include mobile {
+  .sidenav {
+    width: 280px; // Fixed width for better mobile UX
+    position: fixed;
+    z-index: var(--z-index-modal);
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    box-shadow: var(--shadow-xl); // Enhanced shadow for mobile overlay
+
+    // Show navigation when NOT collapsed (inverted logic for mobile)
+    &:not(.sidenav-collapsed) {
+      transform: translateX(0);
+    }
+
+    // Hide navigation when collapsed
+    &-collapsed {
+      transform: translateX(-280px); // Match the width for proper hiding
+    }
+
+    &-status {
+      bottom: calc(var(--spacing-xl) + var(--spacing-sm));
+      padding: var(--spacing-md);
+    }
+  }
+
+  // Add overlay background for mobile navigation
+  .sidenav:not(.sidenav-collapsed)::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 280px; // Start after the navigation
+    width: calc(100vw - 280px);
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    pointer-events: auto;
+  }
+
+  .status {
+    &-item {
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    &-text {
+      font-size: var(--font-size-xs);
+    }
+  }
+}
+
+//
+// ACCESSIBILITY ENHANCEMENTS
+//
+.nav-item {
+  &[aria-disabled="true"] {
+    outline: none;
+
+    &:focus {
+      outline: 2px solid var(--color-border-dark);
+      outline-offset: 2px;
+    }
+  }
+
+  &:not([aria-disabled="true"]):focus {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+//
+// CUSTOM SCROLLBAR
+//
+.sidenav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidenav::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+.sidenav::-webkit-scrollbar-thumb {
+  background: var(--color-border-medium);
+  border-radius: 2px;
+  transition: var(--transition-color);
+
+  &:hover {
+    background: var(--color-border-dark);
+  }
+}
+
+//
+// ANIMATIONS
+//
+@keyframes statusUpdate {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

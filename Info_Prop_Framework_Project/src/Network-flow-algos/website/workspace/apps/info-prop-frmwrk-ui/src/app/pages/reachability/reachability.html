@@ -1,0 +1,457 @@
+<!-- site/info-prop-frmwrk/apps/info-prop-frmwrk-ui/src/app/pages/reachability/reachability.html -->
+
+<div class="page-container">
+  <!-- Always show the main analysis card with conditional content -->
+  <mat-card class="analysis-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>timeline</mat-icon>
+        Reachability Analysis
+      </mat-card-title>
+      <mat-card-subtitle>
+        Analyze network reachability probabilities and node connectivity
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Show different content based on graph state -->
+      @if (!isGraphLoaded()) {
+        <!-- No Graph Loaded State -->
+        <div class="empty-state">
+          <mat-icon class="empty-state-icon">upload_file</mat-icon>
+          <h3>No Graph Loaded</h3>
+          <p>Please upload and load a graph file to perform reachability analysis.</p>
+          <button mat-raised-button color="primary" routerLink="/upload">
+            <mat-icon>cloud_upload</mat-icon>
+            Upload Graph
+          </button>
+        </div>
+      } @else {
+        <!-- Analysis Controls Section -->
+        <div class="analysis-controls">
+          
+          <!-- Task 5.3: Monte Carlo Options Section -->
+          <mat-card class="options-card">
+            <mat-card-header>
+              <mat-card-title>Analysis Options</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- Monte Carlo Validation Toggle -->
+              <div class="monte-carlo-section">
+                <mat-checkbox 
+                  [(ngModel)]="enableMonteCarlo" 
+                  [disabled]="isRunningReachabilityAnalysis()"
+                  color="primary">
+                  Enable Monte Carlo Validation
+                </mat-checkbox>
+                
+                <!-- Monte Carlo Samples Input -->
+                @if (enableMonteCarlo()) {
+                  <mat-form-field appearance="outline" class="samples-input">
+                    <mat-label>Monte Carlo Samples</mat-label>
+                    <input matInput 
+                           type="number" 
+                           [(ngModel)]="monteCarloSamples" 
+                           [disabled]="isRunningReachabilityAnalysis()"
+                           min="1000" 
+                           max="1000000" 
+                           step="1000">
+                    <mat-hint>Number of samples for validation (1,000 - 1,000,000)</mat-hint>
+                  </mat-form-field>
+                }
+              </div>
+
+              <!-- Analysis Button -->
+              <div class="analysis-button-section">
+                <button mat-raised-button
+                        color="primary"
+                        [disabled]="!canRunAnalysis()"
+                        (click)="runReachabilityAnalysis()"
+                        class="analysis-button big-button">
+                  @if (isRunningReachabilityAnalysis()) {
+                    <mat-icon>hourglass_empty</mat-icon>
+                  } @else {
+                    <mat-icon>play_arrow</mat-icon>
+                  }
+                  {{ reachabilityButtonText() }}
+                </button>
+
+                @if (!isGraphLoaded()) {
+                  <div class="warning-text">
+                    <mat-icon>warning</mat-icon>
+                    Please upload and load a graph first
+                  </div>
+                } @else if (!hasDiamonds()) {
+                  <div class="warning-text">
+                    <mat-icon>info</mat-icon>
+                    Please run Diamond Analysis first to enable Reachability Analysis
+                  </div>
+                } @else if (isAnalysisStale()) {
+                  <div class="info-text">
+                    <mat-icon>update</mat-icon>
+                    Parameters have changed since last analysis
+                  </div>
+                }
+              </div>
+
+              <!-- Progress Indicator -->
+              @if (isRunningReachabilityAnalysis()) {
+                <div class="progress-section">
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="analysisProgress()">
+                  </mat-progress-bar>
+                  <div class="progress-text">
+                    {{ analysisStep() }} ({{ analysisProgress() }}%)
+                  </div>
+                </div>
+              }
+
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Graph Information -->
+          @if (isGraphLoaded()) {
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>Network Information</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <mat-icon>hub</mat-icon>
+                    <span class="info-label">Nodes:</span>
+                    <span class="info-value">{{ nodeCount() }}</span>
+                  </div>
+                  <div class="info-item">
+                    <mat-icon>timeline</mat-icon>
+                    <span class="info-label">Edges:</span>
+                    <span class="info-value">{{ edgeCount() }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+        </div>
+
+        <!-- Results Section -->
+        @if (hasResults()) {
+          <mat-divider class="section-divider"></mat-divider>
+          
+          <!-- Task 5.4: Results Display -->
+          <div class="results-section">
+            
+            <!-- Results Header with Actions -->
+            <div class="results-header">
+              <h3>
+                <mat-icon>assessment</mat-icon>
+                Reachability Results
+                @if (showMonteCarloValidation()) {
+                  <mat-chip-set>
+                    <mat-chip color="accent" highlighted>
+                      <mat-icon>verified</mat-icon>
+                      Monte Carlo Validated
+                    </mat-chip>
+                  </mat-chip-set>
+                }
+              </h3>
+
+              <div class="results-actions">
+                <!-- Task 5.5: Comparison Actions -->
+                <button mat-stroked-button (click)="saveCurrentAnalysis()">
+                  <mat-icon>save</mat-icon>
+                  Save Analysis
+                </button>
+                
+                <button mat-stroked-button (click)="toggleComparisonMode()">
+                  <mat-icon>compare</mat-icon>
+                  {{ comparisonMode() ? 'Exit Compare' : 'Compare Mode' }}
+                </button>
+
+                <button mat-stroked-button (click)="exportResults()">
+                  <mat-icon>download</mat-icon>
+                  Export CSV
+                </button>
+
+                @if (showMonteCarloValidation()) {
+                  <button mat-stroked-button (click)="validateMonteCarlo()">
+                    <mat-icon>fact_check</mat-icon>
+                    Validation Stats
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="results-summary">
+              <mat-card class="summary-card">
+                <mat-card-content>
+                  <div class="summary-grid">
+                    <div class="summary-item">
+                      <span class="summary-label">Total Nodes Analyzed:</span>
+                      <span class="summary-value">{{ processedResults().length }}</span>
+                    </div>
+                    @if (showMonteCarloValidation()) {
+                      <div class="summary-item">
+                        <span class="summary-label">Monte Carlo Validated:</span>
+                        <span class="summary-value">{{ monteCarloResultsCount() }}</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Average Difference:</span>
+                        <span class="summary-value">{{ formatDifference(averageDifference()) }}</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="summary-label">Max Difference:</span>
+                        <span class="summary-value">{{ formatDifference(maxDifference()) }}</span>
+                      </div>
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+
+            <!-- Results Table -->
+            <mat-card class="results-table-card">
+              <mat-card-content>
+                <table mat-table [dataSource]="processedResults()" matSort class="results-table">
+                  
+                  <!-- Node Column -->
+                  <ng-container matColumnDef="node">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Node ID</th>
+                    <td mat-cell *matCellDef="let result">
+                      <mat-chip-set>
+                        <mat-chip 
+                          [highlighted]="result.nodeType === 'Source'"
+                          [color]="result.nodeType === 'Source' ? 'primary' : 'default'">
+                          {{ result.node }}
+                        </mat-chip>
+                      </mat-chip-set>
+                    </td>
+                  </ng-container>
+
+                  <!-- Probability Column -->
+                  <ng-container matColumnDef="probability">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Reachability Probability</th>
+                    <td mat-cell *matCellDef="let result">
+                      <div class="probability-cell">
+                        <span class="probability-value">{{ formatPercentage(result.probability) }}</span>
+                        <mat-progress-bar 
+                          mode="determinate" 
+                          [value]="result.probability * 100"
+                          class="probability-bar">
+                        </mat-progress-bar>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <!-- Monte Carlo Column -->
+                  <ng-container matColumnDef="monteCarlo">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Monte Carlo</th>
+                    <td mat-cell *matCellDef="let result">
+                      @if (result.monteCarloValue !== undefined) {
+                        <span class="monte-carlo-value">{{ formatPercentage(result.monteCarloValue) }}</span>
+                      } @else {
+                        <span class="na-value">N/A</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <!-- Difference Column -->
+                  <ng-container matColumnDef="difference">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Difference</th>
+                    <td mat-cell *matCellDef="let result">
+                      @if (result.difference !== undefined) {
+                        <span 
+                          class="difference-value"
+                          [class.high-difference]="result.difference > 0.01"
+                          [class.medium-difference]="result.difference > 0.005 && result.difference <= 0.01"
+                          [class.low-difference]="result.difference <= 0.005">
+                          {{ formatDifference(result.difference) }}
+                        </span>
+                      } @else {
+                        <span class="na-value">N/A</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <!-- Actions Column -->
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let result">
+                      <div class="action-buttons">
+                        <button 
+                          mat-icon-button 
+                          (click)="showNodeDetails(result.node)"
+                          [matTooltip]="'View node details'">
+                          <mat-icon>info</mat-icon>
+                        </button>
+                        <button 
+                          mat-icon-button 
+                          (click)="redirectToSensitivityAnalysis([result.node])"
+                          [matTooltip]="'Sensitivity analysis'">
+                          <mat-icon>tune</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                </table>
+
+                <!-- Paginator -->
+                <mat-paginator 
+                  [pageSizeOptions]="[10, 25, 50, 100]"
+                  showFirstLastButtons
+                  aria-label="Select page of reachability results">
+                </mat-paginator>
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+        }
+
+        <!-- Task 5.4: Node Details Panel -->
+        @if (selectedNodeDetails()) {
+          <mat-card class="node-details-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Node {{ selectedNodeDetails()!.nodeId }} Details
+              </mat-card-title>
+              <button mat-icon-button (click)="clearNodeDetails()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="node-details-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Prior Probability:</span>
+                  <span class="detail-value">{{ formatPercentage(selectedNodeDetails()!.priorProbability) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Reachability Value:</span>
+                  <span class="detail-value">{{ formatPercentage(selectedNodeDetails()!.reachabilityValue) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Node Type:</span>
+                  <span class="detail-value">{{ selectedNodeDetails()!.nodeType }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Incoming Connections:</span>
+                  <span class="detail-value">{{ selectedNodeDetails()!.incomingEdges.length }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Outgoing Connections:</span>
+                  <span class="detail-value">{{ selectedNodeDetails()!.outgoingEdges.length }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Task 5.5: Comparison Section -->
+        @if (savedComparisons().length > 0) {
+          <mat-divider class="section-divider"></mat-divider>
+          
+          <div class="comparison-section">
+            <mat-card class="comparison-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>compare</mat-icon>
+                  Saved Analyses ({{ savedComparisons().length }})
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                
+                @if (comparisonMode()) {
+                  <div class="comparison-controls">
+                    <p>Select analyses to compare:</p>
+                    <button 
+                      mat-raised-button 
+                      color="primary"
+                      [disabled]="selectedComparisons().length < 2"
+                      (click)="compareSelectedAnalyses()">
+                      <mat-icon>analytics</mat-icon>
+                      Compare Selected ({{ selectedComparisons().length }})
+                    </button>
+                  </div>
+                }
+
+                <div class="saved-analyses">
+                  @for (comparison of savedComparisons(); track comparison.analysisName) {
+                    <mat-card class="analysis-item">
+                      <mat-card-content>
+                        <div class="analysis-item-header">
+                          @if (comparisonMode()) {
+                            <mat-checkbox 
+                              [checked]="selectedComparisons().includes(comparison.analysisName)"
+                              (change)="toggleComparisonSelection(comparison.analysisName)">
+                            </mat-checkbox>
+                          }
+                          
+                          <div class="analysis-info">
+                            <h4>{{ comparison.analysisName }}</h4>
+                            <span class="analysis-date">{{ comparison.timestamp | date:'medium' }}</span>
+                          </div>
+
+                          <div class="analysis-actions">
+                            <button 
+                              mat-icon-button 
+                              color="warn"
+                              (click)="deleteComparison(comparison.analysisName)"
+                              (keydown.enter)="deleteComparison(comparison.analysisName)"
+                              (keydown.space)="deleteComparison(comparison.analysisName)"
+                              [attr.aria-label]="'Delete analysis ' + comparison.analysisName"
+                              [matTooltip]="'Delete analysis'">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="analysis-parameters">
+                          <div class="param-item">
+                            <span>Node Prior: {{ formatPercentage(comparison.parameters.nodePrior) }}</span>
+                          </div>
+                          <div class="param-item">
+                            <span>Edge Prob: {{ formatPercentage(comparison.parameters.edgeProb) }}</span>
+                          </div>
+                          @if (comparison.parameters.enableMonteCarlo) {
+                            <div class="param-item">
+                              <span>Monte Carlo: {{ formatLargeNumber(comparison.parameters.monteCarloSamples) }} samples</span>
+                            </div>
+                          }
+                          <div class="param-item">
+                            <span>Results: {{ Object.keys(comparison.results).length }} nodes</span>
+                          </div>
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        }
+      }
+
+      <!-- Card Actions -->
+      <div class="card-actions" style="margin-top: 24px; text-align: right;">
+        <button mat-button (click)="goToParameters()">
+          <mat-icon>settings</mat-icon>
+          Modify Parameters
+        </button>
+        <button mat-button (click)="goToVisualization()">
+          <mat-icon>visibility</mat-icon>
+          Visualize Network
+        </button>
+        <button mat-button (click)="goToDiamondAnalysis()">
+          <mat-icon>diamond</mat-icon>
+          Diamond Analysis
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

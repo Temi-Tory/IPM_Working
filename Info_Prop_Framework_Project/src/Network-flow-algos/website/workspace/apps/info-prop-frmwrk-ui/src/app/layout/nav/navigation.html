@@ -1,0 +1,138 @@
+<!-- Side Navigation -->
+<nav
+  class="sidenav"
+  [class.sidenav-collapsed]="!isExpanded()"
+  role="navigation"
+  aria-label="Main navigation">
+  
+  <!-- Header -->
+  <div class="sidenav-header">
+    <div class="logo-container" [class.collapsed]="!isExpanded()">
+      <mat-icon class="logo-icon" aria-hidden="true">analytics</mat-icon>
+      @if (isExpanded()) {
+        <span class="logo-text">Info Prop Framework</span>
+      }
+    </div>
+    <button
+      mat-icon-button
+      class="toggle-btn"
+      (click)="toggleSidebar()"
+      [attr.aria-label]="isExpanded() ? 'Collapse sidebar' : 'Expand sidebar'"
+      [attr.aria-expanded]="isExpanded()">
+      <mat-icon>{{ isExpanded() ? 'chevron_left' : 'chevron_right' }}</mat-icon>
+    </button>
+  </div>
+
+  <!-- Navigation Items -->
+  <mat-nav-list class="nav-list" role="list">
+    @for (item of navItems(); track item.route) {
+      <mat-list-item
+        class="nav-item"
+        [class.nav-item-disabled]="isItemDisabled(item)"
+        [routerLink]="getRouterLink(item)"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+        (click)="onNavItemClick(item)"
+        (keydown)="onKeyDown($event, item)"
+        [matTooltip]="getTooltipText(item)"
+        [matTooltipDisabled]="!isItemDisabled(item) || !isExpanded()"
+        matTooltipPosition="right"
+        [attr.aria-label]="getAriaLabel(item)"
+        [attr.aria-disabled]="isItemDisabled(item)"
+        [attr.tabindex]="getTabIndex(item)"
+        role="listitem"
+        matRipple
+        [matRippleDisabled]="isItemDisabled(item)">
+        
+        <mat-icon
+          matListItemIcon
+          class="nav-icon"
+          [class.nav-icon-disabled]="isItemDisabled(item)"
+          aria-hidden="true">
+          {{ item.icon }}
+        </mat-icon>
+        
+        @if (isExpanded()) {
+          <span
+            matListItemTitle
+            class="nav-label"
+            [class.nav-label-disabled]="isItemDisabled(item)">
+            {{ item.label }}
+          </span>
+        }
+        
+        <!-- Tooltip for collapsed state -->
+        @if (!isExpanded()) {
+          <div class="nav-tooltip" role="tooltip">
+            {{ getTooltipText(item) }}
+          </div>
+        }
+
+        <!-- Disabled indicator -->
+        @if (isItemDisabled(item) && isExpanded()) {
+          <mat-icon
+            class="disabled-indicator"
+            [matTooltip]="item.disabledReason!"
+            aria-hidden="true">
+            lock
+          </mat-icon>
+        }
+      </mat-list-item>
+    }
+  </mat-nav-list>
+
+  <!-- Graph Status Indicator -->
+  @if (isExpanded()) {
+    <div class="sidenav-status" role="status" aria-label="System status">
+      <div class="status-content">
+        <div class="status-item"
+             [class.status-loaded]="isGraphLoaded()"
+             role="status"
+             [attr.aria-label]="isGraphLoaded() ? 'Graph loaded successfully' : 'No graph loaded'">
+          <mat-icon class="status-icon" aria-hidden="true">
+            {{ isGraphLoaded() ? 'check_circle' : 'radio_button_unchecked' }}
+          </mat-icon>
+          <span class="status-text">
+            {{ isGraphLoaded() ? 'Graph Loaded' : 'No Graph' }}
+          </span>
+        </div>
+        
+        @if (isGraphLoaded()) {
+          <div class="status-item"
+               [class.status-loaded]="hasAnalysisResults()"
+               role="status"
+               [attr.aria-label]="hasAnalysisResults() ? 'Analysis completed' : 'Analysis pending'">
+            <mat-icon class="status-icon" aria-hidden="true">
+              {{ hasAnalysisResults() ? 'analytics' : 'pending_actions' }}
+            </mat-icon>
+            <span class="status-text">
+              {{ hasAnalysisResults() ? 'Analysis Complete' : 'Analysis Pending' }}
+            </span>
+          </div>
+
+          <div class="status-item"
+               [class.status-loaded]="hasDiamonds()"
+               role="status"
+               [attr.aria-label]="hasDiamonds() ? 'Diamond structures found' : 'No diamond structures found'">
+            <mat-icon class="status-icon" aria-hidden="true">
+              {{ hasDiamonds() ? 'diamond' : 'crop_square' }}
+            </mat-icon>
+            <span class="status-text">
+              {{ hasDiamonds() ? 'Diamonds Found' : 'No Diamonds' }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Footer -->
+  @if (isExpanded()) {
+    <div class="sidenav-footer">
+      <div class="footer-content">
+        <mat-icon class="footer-icon" aria-hidden="true">info</mat-icon>
+        <span class="footer-text">v1.0.0</span>
+      </div>
+    </div>
+  }
+</nav>

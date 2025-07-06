@@ -1,0 +1,423 @@
+<div class="page-container">
+  <!-- No Graph Loaded Warning -->
+  @if (!isGraphLoaded()) {
+    <mat-card class="page-card warning-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>warning</mat-icon>
+          No Graph Loaded
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Please upload a graph file first to view network structure analysis.</p>
+        <button mat-raised-button color="primary" routerLink="/upload">
+          <mat-icon>upload_file</mat-icon>
+          Upload Graph
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+
+    <!-- Task 3.1 & 3.2: Structure Analysis Controls Card -->
+    <mat-card class="page-card analysis-controls-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>analytics</mat-icon>
+          Structure Analysis Controls
+        </mat-card-title>
+        <mat-card-subtitle>Run dedicated structure analysis and access visualization tools</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="analysis-controls">
+          <!-- Task 3.1: Structure Analysis Button -->
+          <div class="control-buttons">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="runStructureAnalysis()"
+              [disabled]="isRunningStructureAnalysis()"
+              class="analysis-btn">
+              @if (isRunningStructureAnalysis()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>hub</mat-icon>
+              }
+              {{ getStructureAnalysisButtonText() }}
+            </button>
+
+            <!-- Task 3.3: Visualize Structure Button -->
+            <button
+              mat-stroked-button
+              color="accent"
+              (click)="navigateToVisualization()"
+              [disabled]="!canVisualizeStructure()"
+              class="visualize-btn">
+              <mat-icon>scatter_plot</mat-icon>
+              Visualize Structure
+            </button>
+          </div>
+
+          <!-- Task 3.4: Progress Indicators -->
+          @if (isRunningStructureAnalysis() || analysisProgress() > 0) {
+            <div class="analysis-progress">
+              <div class="progress-info">
+                <span class="progress-step">{{ analysisStep() }}</span>
+                <span class="progress-percentage">{{ analysisProgress() }}%</span>
+              </div>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="analysisProgress()"
+                class="analysis-progress-bar">
+              </mat-progress-bar>
+            </div>
+          }
+
+          <!-- Task 3.4: Analysis Results Summary -->
+          @if (structureAnalysisResult() && lastStructureAnalysisTime()) {
+            <div class="analysis-summary">
+              <div class="summary-header">
+                <mat-icon>check_circle</mat-icon>
+                <span>Structure Analysis Complete</span>
+                <small>{{ lastStructureAnalysisTime()?.toLocaleTimeString() }}</small>
+              </div>
+              <div class="summary-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Nodes Analyzed:</span>
+                  <span class="stat-value">{{ nodeCount() }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Edges Analyzed:</span>
+                  <span class="stat-value">{{ edgeCount() }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Network Density:</span>
+                  <span class="stat-value">{{ networkMetrics()?.density?.toFixed(2) || '0.00' }}%</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+    
+    <!-- Network Overview -->
+    <mat-card class="page-card overview-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>account_tree</mat-icon>
+          Network Structure Overview
+        </mat-card-title>
+        <mat-card-subtitle>Comprehensive structural analysis of your network</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <mat-icon>radio_button_unchecked</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ nodeCount() }}</span>
+              <span class="metric-label">Nodes</span>
+            </div>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon>trending_flat</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ edgeCount() }}</span>
+              <span class="metric-label">Edges</span>
+            </div>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon>layers</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ networkMetrics()?.maxIterationDepth || 0 }}</span>
+              <span class="metric-label">Iteration Depth</span>
+            </div>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon>diamond</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ networkMetrics()?.diamondCount || 0 }}</span>
+              <span class="metric-label">Diamond Structures</span>
+            </div>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon>scatter_plot</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ networkMetrics()?.density?.toFixed(2) || '0.00' }}%</span>
+              <span class="metric-label">Network Density</span>
+            </div>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon>hub</mat-icon>
+            <div class="metric-content">
+              <span class="metric-value">{{ networkMetrics()?.avgInDegree || 0 }}</span>
+              <span class="metric-label">Avg In-Degree</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Detailed Analysis Tabs -->
+    <mat-card class="page-card analysis-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>analytics</mat-icon>
+          Detailed Structural Analysis
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group>
+          
+          <!-- Node Analysis Tab -->
+          <mat-tab label="Node Analysis">
+            <div class="tab-content">
+              <div class="node-type-summary">
+                <h3>Node Type Distribution</h3>
+                <div class="node-types-grid">
+                  <mat-chip-set>
+                    <mat-chip [color]="getNodeTypeColor('Source')" [highlighted]="sourceNodeCount() > 0">
+                      <mat-icon>{{ getNodeTypeIcon('Source') }}</mat-icon>
+                      Source: {{ sourceNodeCount() }}
+                    </mat-chip>
+                    <mat-chip [color]="getNodeTypeColor('Fork')" [highlighted]="forkNodeCount() > 0">
+                      <mat-icon>{{ getNodeTypeIcon('Fork') }}</mat-icon>
+                      Fork: {{ forkNodeCount() }}
+                    </mat-chip>
+                    <mat-chip [color]="getNodeTypeColor('Join')" [highlighted]="joinNodeCount() > 0">
+                      <mat-icon>{{ getNodeTypeIcon('Join') }}</mat-icon>
+                      Join: {{ joinNodeCount() }}
+                    </mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+
+              <mat-divider></mat-divider>
+
+              <div class="nodes-table-container">
+                <h3>Node Details</h3>
+                <table mat-table [dataSource]="nodeAnalysis()" class="nodes-table">
+                  <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef>Node ID</th>
+                    <td mat-cell *matCellDef="let node">{{ node.id }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let node">
+                      <mat-chip [color]="getNodeTypeColor(node.type)">
+                        <mat-icon>{{ getNodeTypeIcon(node.type) }}</mat-icon>
+                        {{ node.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="inDegree">
+                    <th mat-header-cell *matHeaderCellDef>In-Degree</th>
+                    <td mat-cell *matCellDef="let node">{{ node.inDegree }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="outDegree">
+                    <th mat-header-cell *matHeaderCellDef>Out-Degree</th>
+                    <td mat-cell *matCellDef="let node">{{ node.outDegree }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="iterationLevel">
+                    <th mat-header-cell *matHeaderCellDef>Iteration Level</th>
+                    <td mat-cell *matCellDef="let node">
+                      @if (node.iterationLevel) {
+                        <mat-chip color="accent">{{ node.iterationLevel }}</mat-chip>
+                      } @else {
+                        <span class="muted">-</span>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="nodeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: nodeColumns;"></tr>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Edge Analysis Tab -->
+          <mat-tab label="Edge Analysis">
+            <div class="tab-content">
+              <div class="edge-summary">
+                <h3>Edge Statistics</h3>
+                <div class="edge-stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Total Edges:</span>
+                    <span class="stat-value">{{ edgeCount() }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Average Out-Degree:</span>
+                    <span class="stat-value">{{ networkMetrics()?.avgOutDegree || 0 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <mat-divider></mat-divider>
+
+              <div class="edges-table-container">
+                <h3>Edge Details</h3>
+                <table mat-table [dataSource]="edgeAnalysis()" class="edges-table">
+                  <ng-container matColumnDef="from">
+                    <th mat-header-cell *matHeaderCellDef>From Node</th>
+                    <td mat-cell *matCellDef="let edge">{{ edge.from }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="to">
+                    <th mat-header-cell *matHeaderCellDef>To Node</th>
+                    <td mat-cell *matCellDef="let edge">{{ edge.to }}</td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="probability">
+                    <th mat-header-cell *matHeaderCellDef>Probability</th>
+                    <td mat-cell *matCellDef="let edge">
+                      <div class="probability-cell">
+                        <span>{{ (edge.probability * 100).toFixed(1) }}%</span>
+                        <mat-progress-bar 
+                          mode="determinate" 
+                          [value]="edge.probability * 100"
+                          class="probability-bar">
+                        </mat-progress-bar>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="edgeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: edgeColumns;"></tr>
+                </table>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Iteration Sets Tab -->
+          <mat-tab label="Iteration Sets">
+            <div class="tab-content">
+              <div class="iteration-summary">
+                <h3>Network Iteration Structure</h3>
+                <p>The network is organized into {{ iterationSetsAnalysis().length }} iteration levels, representing the topological ordering of nodes.</p>
+              </div>
+
+              <div class="iteration-sets">
+                @for (iterationSet of iterationSetsAnalysis(); track iterationSet.level) {
+                  <mat-expansion-panel class="iteration-panel">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>layers</mat-icon>
+                        Iteration Level {{ iterationSet.level }}
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        {{ iterationSet.nodeCount }} nodes
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    
+                    <div class="iteration-content">
+                      <div class="nodes-in-iteration">
+                        <mat-chip-set>
+                          @for (nodeId of iterationSet.nodes; track nodeId) {
+                            <mat-chip>Node {{ nodeId }}</mat-chip>
+                          }
+                        </mat-chip-set>
+                      </div>
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Diamond Structures Tab -->
+          <mat-tab label="Diamond Structures">
+            <div class="tab-content">
+              @if (hasDiamonds()) {
+                <div class="diamond-summary">
+                  <h3>Diamond Structure Analysis</h3>
+                  <p>{{ diamondAnalysis().length }} diamond structures detected in the network.</p>
+                </div>
+
+                <div class="diamonds-table-container">
+                  <table mat-table [dataSource]="diamondAnalysis()" class="diamonds-table">
+                    <ng-container matColumnDef="joinNode">
+                      <th mat-header-cell *matHeaderCellDef>Join Node</th>
+                      <td mat-cell *matCellDef="let diamond">{{ diamond.joinNode }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="diamondCount">
+                      <th mat-header-cell *matHeaderCellDef>Diamond Count</th>
+                      <td mat-cell *matCellDef="let diamond">
+                        <mat-chip [matBadge]="diamond.diamondCount" matBadgeOverlap="false">
+                          <mat-icon>diamond</mat-icon>
+                        </mat-chip>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="totalNodes">
+                      <th mat-header-cell *matHeaderCellDef>Total Nodes</th>
+                      <td mat-cell *matCellDef="let diamond">{{ diamond.totalNodes }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="complexity">
+                      <th mat-header-cell *matHeaderCellDef>Complexity</th>
+                      <td mat-cell *matCellDef="let diamond">
+                        <mat-chip [color]="getDiamondComplexityColor(diamond.complexity)">
+                          {{ diamond.complexity }}
+                        </mat-chip>
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="diamondColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: diamondColumns;"></tr>
+                  </table>
+                </div>
+              } @else {
+                <div class="no-diamonds">
+                  <mat-icon>info</mat-icon>
+                  <h3>No Diamond Structures</h3>
+                  <p>This network does not contain any diamond structures. Diamond structures occur when multiple paths converge at a join node.</p>
+                </div>
+              }
+            </div>
+          </mat-tab>
+
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Actions -->
+    <mat-card class="page-card actions-card">
+      <mat-card-content>
+        <div class="actions-container">
+          <div class="action-buttons">
+            <!-- Task 3.3: Enhanced visualization button -->
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="navigateToVisualization()"
+              [disabled]="!canVisualizeStructure()">
+              <mat-icon>scatter_plot</mat-icon>
+              Visualize Network Structure
+            </button>
+            
+            <button mat-stroked-button routerLink="/parameters">
+              <mat-icon>tune</mat-icon>
+              Configure Parameters
+            </button>
+            
+            <button mat-stroked-button routerLink="/diamond-analysis">
+              <mat-icon>diamond</mat-icon>
+              Diamond Analysis
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  }
+</div>
