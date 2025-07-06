@@ -111,17 +111,6 @@ function handle_upload_network_structure(req::HTTP.Request)::HTTP.Response
         # Parse multipart form data
         form_data = parse_multipart_form_data(req)
         
-        # Debug: Print all form data keys
-        println("🔍 DEBUG: Form data keys: $(keys(form_data))")
-        for (key, value) in form_data
-            if key == "session_id"
-                println("🔍 DEBUG: session_id value: '$(value)' (type: $(typeof(value)))")
-            elseif key == "file_content"
-                println("🔍 DEBUG: file_content length: $(length(value))")
-            else
-                println("🔍 DEBUG: $key: $(value)")
-            end
-        end
         
         # Validate required fields
         if !haskey(form_data, "file_content")
@@ -136,9 +125,6 @@ function handle_upload_network_structure(req::HTTP.Request)::HTTP.Response
         file_content = String(form_data["file_content"])  # Convert to String to handle SubString
         filename = String(get(form_data, "filename", "network_structure.edge"))  # Convert to String
         
-        println("🔍 DEBUG: Extracted session_id: '$session_id'")
-        println("🔍 DEBUG: Available sessions: $(keys(SessionManager.SESSIONS))")
-        println("🔍 DEBUG: file_content type: $(typeof(file_content))")
         
         # Validate file extension
         if !endswith(lowercase(filename), ".edge") && !endswith(lowercase(filename), ".EDGE")
@@ -199,17 +185,6 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         # Parse multipart form data
         form_data = parse_multipart_form_data(req)
         
-        # Debug: Print all form data keys
-        println("🔍 DEBUG: Form data keys: $(keys(form_data))")
-        for (key, value) in form_data
-            if key == "session_id"
-                println("🔍 DEBUG: session_id value: '$(value)' (type: $(typeof(value)))")
-            elseif key == "file_content"
-                println("🔍 DEBUG: file_content length: $(length(value))")
-            else
-                println("🔍 DEBUG: $key: $(value)")
-            end
-        end
         
         # Validate required fields
         if !haskey(form_data, "file_content")
@@ -224,9 +199,6 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         file_content = String(form_data["file_content"])  # Convert to String to handle SubString
         filename = String(get(form_data, "filename", "nodepriors.json"))  # Convert to String
         
-        println("🔍 DEBUG: Extracted session_id: '$session_id'")
-        println("🔍 DEBUG: Available sessions: $(keys(SessionManager.SESSIONS))")
-        println("🔍 DEBUG: file_content type: $(typeof(file_content))")
         
         # Validate file extension
         if !endswith(lowercase(filename), ".json")
@@ -243,10 +215,7 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         # Validate session exists
         session_data = SessionManager.get_session(session_id)
         if session_data === nothing
-            println("❌ DEBUG: Session validation failed for '$session_id'")
             return ResponseFormatter.format_error_response("Invalid session_id", 400)
-        else
-            println("✅ DEBUG: Session found for '$session_id'")
         end
         
         # Update session with file
