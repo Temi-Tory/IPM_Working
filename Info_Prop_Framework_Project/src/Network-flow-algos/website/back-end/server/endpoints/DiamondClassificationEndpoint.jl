@@ -51,11 +51,8 @@ function handle_diamond_classification(req::HTTP.Request)::HTTP.Response
             end
         end
         
-        # Extract CSV content
-        csv_content = request_data["csvContent"]
-        
-        # Perform network analysis with diamond processing
-        network_result = perform_network_analysis(csv_content, true)  # true = include diamond processing
+        # Perform flexible network analysis (supports both csvContent and edges formats)
+        network_result = perform_flexible_network_analysis(request_data)
         
         # Perform diamond analysis WITH classification
         diamond_result = perform_diamond_analysis(network_result, true)  # true = include classification
@@ -168,7 +165,12 @@ function calculate_classification_statistics(diamond_classifications::Union{Vect
         topology_types[path_topology] = get(topology_types, path_topology, 0) + 1
         
         # Complexity distribution
-        complexity_score = get(classification, "complexityScore", 0.0)
+        complexity_score_raw = get(classification, "complexityScore", 0.0)
+        complexity_score = try
+            Float64(complexity_score_raw)
+        catch
+            0.0  # Default if conversion fails
+        end
         push!(complexity_scores, complexity_score)
         
         complexity_level = if complexity_score < 0.3
@@ -181,7 +183,12 @@ function calculate_classification_statistics(diamond_classifications::Union{Vect
         complexity_distribution[complexity_level] = get(complexity_distribution, complexity_level, 0) + 1
         
         # Risk assessment
-        bottleneck_risk = get(classification, "bottleneckRisk", 0.0)
+        bottleneck_risk_raw = get(classification, "bottleneckRisk", 0.0)
+        bottleneck_risk = try
+            Float64(bottleneck_risk_raw)
+        catch
+            0.0  # Default if conversion fails
+        end
         push!(bottleneck_risks, bottleneck_risk)
         
         risk_level = if bottleneck_risk < 0.3
@@ -194,7 +201,12 @@ function calculate_classification_statistics(diamond_classifications::Union{Vect
         risk_assessment[risk_level] += 1
         
         # Optimization potential
-        opt_potential = get(classification, "optimizationPotential", 0.0)
+        opt_potential_raw = get(classification, "optimizationPotential", 0.0)
+        opt_potential = try
+            Float64(opt_potential_raw)
+        catch
+            0.0  # Default if conversion fails
+        end
         push!(optimization_potentials, opt_potential)
         
         opt_level = if opt_potential < 0.3

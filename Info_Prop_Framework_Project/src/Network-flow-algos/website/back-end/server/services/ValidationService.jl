@@ -30,7 +30,8 @@ end
 """
     validate_csv_content(csv_content) -> ValidationResult
 
-Validate CSV content for network adjacency matrix format.
+Validate CSV content for network edge list format.
+Expected format: source,destination (with optional header)
 """
 function validate_csv_content(csv_content::String)::ValidationResult
     errors = Vector{ValidationError}()
@@ -42,56 +43,72 @@ function validate_csv_content(csv_content::String)::ValidationResult
             return ValidationResult(false, errors, warnings)
         end
         
-        # Parse CSV content to validate format
+        # Parse CSV content to validate edge list format
         lines = split(strip(csv_content), '\n')
         if length(lines) < 2
-            push!(errors, ValidationError("csvContent", "CSV must have at least 2 rows", "INSUFFICIENT_ROWS"))
+            push!(errors, ValidationError("csvContent", "CSV must have at least 2 rows (header + data)", "INSUFFICIENT_ROWS"))
             return ValidationResult(false, errors, warnings)
         end
         
-        # Check if it's a square matrix
-        n_rows = length(lines)
-        n_cols = 0
+        # Skip header line and validate data lines
+        data_lines = lines[2:end]  # Skip first line (header)
+        nodes = Set{Int64}()
+        edge_count = 0
         
-        for (i, line) in enumerate(lines)
-            values = split(strip(line), ',')
-            if i == 1
-                n_cols = length(values)
-            elseif length(values) != n_cols
-                push!(errors, ValidationError("csvContent", "All rows must have the same number of columns", "INCONSISTENT_COLUMNS"))
-                return ValidationResult(false, errors, warnings)
+        for (i, line) in enumerate(data_lines)
+            line_trimmed = strip(line)
+            if isempty(line_trimmed)
+                continue  # Skip empty lines
             end
             
-            # Validate that values are numeric (0 or 1 for adjacency matrix)
-            for (j, val) in enumerate(values)
-                val_trimmed = strip(val)
-                try
-                    parsed_val = parse(Int, val_trimmed)
-                    if parsed_val != 0 && parsed_val != 1
-                        push!(warnings, "Non-binary value at row $i, col $j: $parsed_val (expected 0 or 1)")
-                    end
-                catch
-                    push!(errors, ValidationError("csvContent", "Invalid numeric value at row $i, col $j: '$val_trimmed'", "INVALID_NUMERIC"))
+            values = split(line_trimmed, ',')
+            if length(values) < 2
+                push!(errors, ValidationError("csvContent", "Row $(i+1): Must have at least 2 columns (source,destination)", "INSUFFICIENT_COLUMNS"))
+                continue
+            end
+            
+            # Validate source and destination nodes
+            try
+                source = parse(Int64, strip(values[1]))
+                destination = parse(Int64, strip(values[2]))
+                
+                if source <= 0 || destination <= 0
+                    push!(errors, ValidationError("csvContent", "Row $(i+1): Node IDs must be positive integers", "INVALID_NODE_ID"))
+                    continue
                 end
+                
+                if source == destination
+                    push!(warnings, "Row $(i+1): Self-loop detected (source == destination)")
+                end
+                
+                push!(nodes, source, destination)
+                edge_count += 1
+                
+            catch e
+                push!(errors, ValidationError("csvContent", "Row $(i+1): Invalid node ID format - $(string(e))", "INVALID_NODE_FORMAT"))
             end
         end
         
-        # Check if matrix is square
-        if n_rows != n_cols
-            push!(errors, ValidationError("csvContent", "Adjacency matrix must be square ($n_rows x $n_cols)", "NON_SQUARE_MATRIX"))
+        # Minimum network size checks
+        if edge_count == 0
+            push!(errors, ValidationError("csvContent", "No valid edges found in CSV", "NO_EDGES"))
+            return ValidationResult(false, errors, warnings)
         end
         
-        # Minimum size check
-        if n_rows < 2
+        if length(nodes) < 2
             push!(errors, ValidationError("csvContent", "Network must have at least 2 nodes", "INSUFFICIENT_NODES"))
         end
         
-        # Maximum size check (prevent memory issues)
-        if n_rows > 1000
-            push!(warnings, "Large network detected ($n_rows nodes). Processing may be slow.")
+        # Performance warnings for large networks
+        if length(nodes) > 1000
+            push!(warnings, "Large network detected ($(length(nodes)) nodes). Processing may be slow.")
         end
         
-        println("📊 CSV validation: $n_rows x $n_cols matrix, $(length(errors)) errors, $(length(warnings)) warnings")
+        if edge_count > 10000
+            push!(warnings, "Large number of edges ($edge_count). Consider using streaming for better performance.")
+        end
+        
+        println("📊 CSV validation: $edge_count edges, $(length(nodes)) nodes, $(length(errors)) errors, $(length(warnings)) warnings")
         
     catch e
         push!(errors, ValidationError("csvContent", "Failed to parse CSV: $(string(e))", "PARSE_ERROR"))
@@ -110,32 +127,57 @@ function validate_request_data(request_data::Dict, endpoint_type::String)::Valid
     warnings = Vector{String}()
     
     try
-        # Common validations for all endpoints - now expecting edge list format
-        if !haskey(request_data, "edges")
-            push!(errors, ValidationError("edges", "Edge list is required", "MISSING_EDGES"))
-        else
+        # Check for csvContent parameter (primary format for endpoints)
+        if haskey(request_data, "csvContent")
+            # Validate CSV content
+            csv_validation = validate_csv_content(request_data["csvContent"])
+            append!(errors, csv_validation.errors)
+            append!(warnings, csv_validation.warnings)
+            
+            # Validate node priors JSON
+            if !haskey(request_data, "nodePriors")
+                push!(errors, ValidationError("nodePriors", "Node priors JSON is required", "MISSING_NODE_PRIORS"))
+            else
+                node_priors_validation = validate_node_priors_json(request_data["nodePriors"])
+                append!(errors, node_priors_validation.errors)
+                append!(warnings, node_priors_validation.warnings)
+            end
+            
+            # Validate edge probabilities JSON
+            if !haskey(request_data, "edgeProbabilities")
+                push!(errors, ValidationError("edgeProbabilities", "Edge probabilities JSON is required", "MISSING_EDGE_PROBS"))
+            else
+                edge_probs_validation = validate_edge_probabilities_json(request_data["edgeProbabilities"])
+                append!(errors, edge_probs_validation.errors)
+                append!(warnings, edge_probs_validation.warnings)
+            end
+            
+        # Fallback to edge list format for backward compatibility
+        elseif haskey(request_data, "edges")
             # Validate edge list content
             edge_validation = validate_edge_list(request_data["edges"])
             append!(errors, edge_validation.errors)
             append!(warnings, edge_validation.warnings)
-        end
-        
-        # Validate node priors JSON
-        if !haskey(request_data, "nodePriors")
-            push!(errors, ValidationError("nodePriors", "Node priors JSON is required", "MISSING_NODE_PRIORS"))
+            
+            # Validate node priors JSON
+            if !haskey(request_data, "nodePriors")
+                push!(errors, ValidationError("nodePriors", "Node priors JSON is required", "MISSING_NODE_PRIORS"))
+            else
+                node_priors_validation = validate_node_priors_json(request_data["nodePriors"])
+                append!(errors, node_priors_validation.errors)
+                append!(warnings, node_priors_validation.warnings)
+            end
+            
+            # Validate edge probabilities JSON
+            if !haskey(request_data, "edgeProbabilities")
+                push!(errors, ValidationError("edgeProbabilities", "Edge probabilities JSON is required", "MISSING_EDGE_PROBS"))
+            else
+                edge_probs_validation = validate_edge_probabilities_json(request_data["edgeProbabilities"])
+                append!(errors, edge_probs_validation.errors)
+                append!(warnings, edge_probs_validation.warnings)
+            end
         else
-            node_priors_validation = validate_node_priors_json(request_data["nodePriors"])
-            append!(errors, node_priors_validation.errors)
-            append!(warnings, node_priors_validation.warnings)
-        end
-        
-        # Validate edge probabilities JSON
-        if !haskey(request_data, "edgeProbabilities")
-            push!(errors, ValidationError("edgeProbabilities", "Edge probabilities JSON is required", "MISSING_EDGE_PROBS"))
-        else
-            edge_probs_validation = validate_edge_probabilities_json(request_data["edgeProbabilities"])
-            append!(errors, edge_probs_validation.errors)
-            append!(warnings, edge_probs_validation.warnings)
+            push!(errors, ValidationError("csvContent", "Either 'csvContent' or 'edges' parameter is required", "MISSING_NETWORK_DATA"))
         end
         
         # Endpoint-specific validations

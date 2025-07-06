@@ -20,7 +20,7 @@ using .ProbabilityTypeService
 export NetworkAnalysisResult, perform_network_analysis, perform_diamond_analysis,
        perform_reachability_analysis, perform_monte_carlo_analysis, perform_path_enumeration,
        DiamondAnalysisResult, ReachabilityResult, MonteCarloResult, PathEnumerationResult,
-       perform_csv_network_analysis, perform_file_based_analysis
+       perform_csv_network_analysis, perform_file_based_analysis, perform_flexible_network_analysis
 
 # Strict type definitions for network analysis results
 struct NetworkAnalysisResult
@@ -194,14 +194,33 @@ function perform_diamond_analysis(
         diamond_classifications = Vector{Dict{String, Any}}()
         
         for (join_node, diamonds_at_node) in network_result.diamond_structures
-            for (i, diamond) in enumerate(diamonds_at_node.diamond)
+            # Handle different diamond structure formats
+            diamonds_to_process = []
+            
+            if hasfield(typeof(diamonds_at_node), :diamond)
+                # Check if .diamond is iterable (collection) or single object
+                try
+                    # Try to iterate - if it works, it's a collection
+                    for d in diamonds_at_node.diamond
+                        push!(diamonds_to_process, d)
+                    end
+                catch MethodError
+                    # If iteration fails, it's a single Diamond object
+                    push!(diamonds_to_process, diamonds_at_node.diamond)
+                end
+            else
+                # diamonds_at_node is itself a Diamond object
+                push!(diamonds_to_process, diamonds_at_node)
+            end
+            
+            for (i, diamond) in enumerate(diamonds_to_process)
                 try
                     classification = Main.IPAFramework.classify_diamond_exhaustive(
                         diamond, join_node,
-                        network_result.edgelist, network_result.outgoing_index, 
+                        network_result.edgelist, network_result.outgoing_index,
                         network_result.incoming_index, network_result.source_nodes,
-                        network_result.fork_nodes, network_result.join_nodes, 
-                        network_result.iteration_sets, network_result.ancestors, 
+                        network_result.fork_nodes, network_result.join_nodes,
+                        network_result.iteration_sets, network_result.ancestors,
                         network_result.descendants
                     )
                     
@@ -555,38 +574,437 @@ end
 """
     perform_csv_network_analysis(csv_content::String) -> NetworkAnalysisResult
 
-Perform network analysis directly from CSV adjacency matrix content using InputProcessingModule.
+Perform network analysis directly from CSV content (supports both adjacency matrix and edge list formats).
 """
 function perform_csv_network_analysis(csv_content::String)::NetworkAnalysisResult
     try
-        println("🔄 Starting CSV network analysis with InputProcessingModule...")
+        println("🔄 Starting CSV network analysis...")
         
-        # Process CSV using InputProcessingIntegration
-        processing_result = process_csv_adjacency_matrix(csv_content)
-        
-        if !processing_result.success
-            throw(ErrorException(processing_result.error_message))
+        # Detect CSV format (adjacency matrix vs edge list)
+        lines = split(strip(csv_content), '\n')
+        if length(lines) < 2
+            throw(ErrorException("CSV must have at least 2 lines"))
         end
         
-        # Convert to NetworkAnalysisResult format
-        return NetworkAnalysisResult(
-            processing_result.edgelist,
-            processing_result.outgoing_index,
-            processing_result.incoming_index,
-            processing_result.source_nodes,
-            processing_result.node_priors,
-            processing_result.edge_probabilities,
-            processing_result.fork_nodes,
-            processing_result.join_nodes,
-            processing_result.iteration_sets,
-            processing_result.ancestors,
-            processing_result.descendants,
-            Dict{String, Any}()  # Empty diamond structures initially
-        )
+        # Check if it's an edge list format (2 columns) or adjacency matrix (square)
+        first_data_line = strip(lines[2])  # Skip header
+        values = split(first_data_line, ',')
+        
+        if length(values) == 2
+            # Edge list format: source,destination
+            println("📊 Detected edge list format")
+            return perform_edge_list_csv_analysis(csv_content)
+        else
+            # Adjacency matrix format
+            println("📊 Detected adjacency matrix format")
+            # Process CSV using InputProcessingIntegration
+            processing_result = process_csv_adjacency_matrix(csv_content)
+            
+            if !processing_result.success
+                throw(ErrorException(processing_result.error_message))
+            end
+            
+            # Convert to NetworkAnalysisResult format with diamond processing
+            network_result = NetworkAnalysisResult(
+                processing_result.edgelist,
+                processing_result.outgoing_index,
+                processing_result.incoming_index,
+                processing_result.source_nodes,
+                processing_result.node_priors,
+                processing_result.edge_probabilities,
+                processing_result.fork_nodes,
+                processing_result.join_nodes,
+                processing_result.iteration_sets,
+                processing_result.ancestors,
+                processing_result.descendants,
+                Dict{String, Any}()  # Will be populated with diamonds if available
+            )
+            
+            # Process diamonds if we have proper network structure
+            if !isempty(processing_result.node_priors) && isdefined(Main, :IPAFramework)
+                try
+                    diamond_structures = Main.IPAFramework.identify_and_group_diamonds(
+                        network_result.join_nodes, network_result.incoming_index,
+                        network_result.ancestors, network_result.descendants,
+                        network_result.source_nodes, network_result.fork_nodes,
+                        network_result.edgelist, network_result.node_priors
+                    )
+                    
+                    return NetworkAnalysisResult(
+                        network_result.edgelist, network_result.outgoing_index, network_result.incoming_index,
+                        network_result.source_nodes, network_result.node_priors, network_result.edge_probabilities,
+                        network_result.fork_nodes, network_result.join_nodes, network_result.iteration_sets,
+                        network_result.ancestors, network_result.descendants, diamond_structures
+                    )
+                catch e
+                    println("⚠️ Warning: Diamond processing failed: $e")
+                end
+            end
+            
+            return network_result
+        end
         
     catch e
         println("❌ Error in CSV network analysis: $e")
         throw(e)
+    end
+end
+
+"""
+    perform_edge_list_csv_analysis(csv_content::String) -> NetworkAnalysisResult
+
+Perform network analysis from edge list CSV format.
+"""
+function perform_edge_list_csv_analysis(csv_content::String)::NetworkAnalysisResult
+    try
+        println("🔄 Processing edge list CSV...")
+        
+        # Parse edge list from CSV
+        lines = split(strip(csv_content), '\n')
+        data_lines = lines[2:end]  # Skip header
+        
+        edgelist = Vector{Tuple{Int64,Int64}}()
+        nodes = Set{Int64}()
+        
+        for line in data_lines
+            line_trimmed = strip(line)
+            if isempty(line_trimmed)
+                continue
+            end
+            
+            values = split(line_trimmed, ',')
+            if length(values) >= 2
+                source = parse(Int64, strip(values[1]))
+                destination = parse(Int64, strip(values[2]))
+                push!(edgelist, (source, destination))
+                push!(nodes, source, destination)
+            end
+        end
+        
+        println("📊 Parsed $(length(edgelist)) edges, $(length(nodes)) nodes")
+        
+        # Build indices
+        outgoing_index = Dict{Int64,Set{Int64}}()
+        incoming_index = Dict{Int64,Set{Int64}}()
+        
+        for (source, dest) in edgelist
+            # Outgoing index
+            if !haskey(outgoing_index, source)
+                outgoing_index[source] = Set{Int64}()
+            end
+            push!(outgoing_index[source], dest)
+            
+            # Incoming index
+            if !haskey(incoming_index, dest)
+                incoming_index[dest] = Set{Int64}()
+            end
+            push!(incoming_index[dest], source)
+        end
+        
+        # Identify source nodes (no incoming edges)
+        source_nodes = Set{Int64}()
+        for node in nodes
+            if !haskey(incoming_index, node) || isempty(incoming_index[node])
+                push!(source_nodes, node)
+            end
+        end
+        
+        # Initialize default probabilities
+        node_priors = Dict{Int64, Float64}()
+        edge_probabilities = Dict{Tuple{Int64,Int64}, Float64}()
+        
+        for node in nodes
+            node_priors[node] = 0.9  # Default prior
+        end
+        
+        for edge in edgelist
+            edge_probabilities[edge] = 0.9  # Default probability
+        end
+        
+        # Identify fork and join nodes
+        fork_nodes = Set{Int64}()
+        join_nodes = Set{Int64}()
+        
+        for node in nodes
+            outgoing_count = haskey(outgoing_index, node) ? length(outgoing_index[node]) : 0
+            incoming_count = haskey(incoming_index, node) ? length(incoming_index[node]) : 0
+            
+            if outgoing_count > 1
+                push!(fork_nodes, node)
+            end
+            if incoming_count > 1
+                push!(join_nodes, node)
+            end
+        end
+        
+        # Create basic iteration sets (simplified)
+        iteration_sets = Vector{Set{Int64}}()
+        push!(iteration_sets, Set(nodes))
+        
+        # Create ancestor/descendant maps (simplified)
+        ancestors = Dict{Int64, Set{Int64}}()
+        descendants = Dict{Int64, Set{Int64}}()
+        
+        for node in nodes
+            ancestors[node] = Set{Int64}()
+            descendants[node] = Set{Int64}()
+        end
+        
+        # Create network result with proper diamond processing
+        network_result = NetworkAnalysisResult(
+            edgelist,
+            outgoing_index,
+            incoming_index,
+            source_nodes,
+            node_priors,
+            edge_probabilities,
+            fork_nodes,
+            join_nodes,
+            iteration_sets,
+            ancestors,
+            descendants,
+            Dict{String, Any}()  # Will be populated with diamonds if available
+        )
+        
+        # Process diamonds if we have proper network structure and IPAFramework
+        if !isempty(node_priors) && isdefined(Main, :IPAFramework)
+            try
+                # Build proper ancestor/descendant maps for diamond detection
+                proper_fork_nodes, proper_join_nodes = Main.IPAFramework.identify_fork_and_join_nodes(outgoing_index, incoming_index)
+                proper_iteration_sets, proper_ancestors, proper_descendants = Main.IPAFramework.find_iteration_sets(edgelist, outgoing_index, incoming_index)
+                
+                diamond_structures = Main.IPAFramework.identify_and_group_diamonds(
+                    proper_join_nodes, incoming_index, proper_ancestors, proper_descendants,
+                    source_nodes, proper_fork_nodes, edgelist, node_priors
+                )
+                
+                return NetworkAnalysisResult(
+                    edgelist, outgoing_index, incoming_index, source_nodes,
+                    node_priors, edge_probabilities, proper_fork_nodes, proper_join_nodes,
+                    proper_iteration_sets, proper_ancestors, proper_descendants, diamond_structures
+                )
+            catch e
+                println("⚠️ Warning: Diamond processing failed: $e")
+            end
+        end
+        
+        return network_result
+        
+    catch e
+        println("❌ Error in edge list CSV analysis: $e")
+        throw(e)
+    end
+end
+
+"""
+    perform_flexible_network_analysis(request_data::Dict) -> NetworkAnalysisResult
+
+Flexible network analysis that supports both input formats:
+1. csvContent + nodePriors + edgeProbabilities (direct analysis)
+2. edges + nodePriors + edgeProbabilities (step-by-step workflow)
+"""
+function perform_flexible_network_analysis(request_data::Dict)::NetworkAnalysisResult
+    try
+        println("🔄 Starting flexible network analysis...")
+        
+        # Check input format and route accordingly
+        if haskey(request_data, "csvContent")
+            # Format 1: CSV content with probability files (direct analysis)
+            println("📊 Using CSV content + probability files format")
+            
+            csv_content = request_data["csvContent"]
+            node_priors_json = request_data["nodePriors"]
+            edge_probs_json = request_data["edgeProbabilities"]
+            
+            # Get base network structure from CSV
+            base_network = perform_csv_network_analysis(csv_content)
+            
+            # Override probabilities with provided JSON data
+            merged_network = merge_network_with_probabilities(base_network, node_priors_json, edge_probs_json)
+            
+            # Process diamonds if node priors are provided
+            if node_priors_json !== nothing && !isempty(node_priors_json)
+                try
+                    diamond_structures = Main.IPAFramework.identify_and_group_diamonds(
+                        merged_network.join_nodes, merged_network.incoming_index,
+                        merged_network.ancestors, merged_network.descendants,
+                        merged_network.source_nodes, merged_network.fork_nodes,
+                        merged_network.edgelist, merged_network.node_priors
+                    )
+                    
+                    return NetworkAnalysisResult(
+                        merged_network.edgelist, merged_network.outgoing_index, merged_network.incoming_index,
+                        merged_network.source_nodes, merged_network.node_priors, merged_network.edge_probabilities,
+                        merged_network.fork_nodes, merged_network.join_nodes, merged_network.iteration_sets,
+                        merged_network.ancestors, merged_network.descendants, diamond_structures
+                    )
+                catch e
+                    println("⚠️ Warning: Diamond processing failed: $e")
+                end
+            end
+            
+            return merged_network
+            
+        elseif haskey(request_data, "edges")
+            # Format 2: Edge array with probability files (step-by-step workflow)
+            println("📊 Using edge array + probability files format")
+            
+            edges = request_data["edges"]
+            node_priors_json = request_data["nodePriors"]
+            edge_probs_json = request_data["edgeProbabilities"]
+            
+            # Use existing function for edge array format
+            return perform_network_analysis(edges, node_priors_json, edge_probs_json, true)
+            
+        else
+            throw(ErrorException("Invalid input format: must provide either 'csvContent' or 'edges'"))
+        end
+        
+    catch e
+        println("❌ Error in flexible network analysis: $e")
+        throw(e)
+    end
+end
+
+"""
+    merge_network_with_probabilities(base_network::NetworkAnalysisResult,
+                                   node_priors_json::Dict, edge_probs_json::Dict) -> NetworkAnalysisResult
+
+Merge base network structure with custom probability data.
+"""
+function merge_network_with_probabilities(
+    base_network::NetworkAnalysisResult,
+    node_priors_json::Dict,
+    edge_probs_json::Dict
+)::NetworkAnalysisResult
+    try
+        println("🔄 Merging network with custom probabilities...")
+        
+        # Extract probability data
+        custom_node_priors = Dict{Int64, Float64}()
+        custom_edge_probs = Dict{Tuple{Int64,Int64}, Float64}()
+        
+        # Process node priors
+        if haskey(node_priors_json, "nodes")
+            nodes_data = node_priors_json["nodes"]
+            for (node_key, value) in nodes_data
+                node_id = parse(Int64, node_key)
+                # Handle different probability types (Float64, Interval, pbox)
+                prob_value = extract_probability_value(value, get(node_priors_json, "data_type", "Float64"))
+                custom_node_priors[node_id] = prob_value
+            end
+        end
+        
+        # Process edge probabilities
+        if haskey(edge_probs_json, "links")
+            links_data = edge_probs_json["links"]
+            for (edge_key, value) in links_data
+                # Parse edge key "(src,dst)"
+                edge_tuple = parse_edge_key(edge_key)
+                if edge_tuple !== nothing
+                    # Handle different probability types
+                    prob_value = extract_probability_value(value, get(edge_probs_json, "data_type", "Float64"))
+                    custom_edge_probs[edge_tuple] = prob_value
+                end
+            end
+        end
+        
+        println("📊 Merged $(length(custom_node_priors)) node priors, $(length(custom_edge_probs)) edge probabilities")
+        
+        # Build proper ancestor/descendant maps if they're empty (from CSV processing)
+        ancestors = base_network.ancestors
+        descendants = base_network.descendants
+        iteration_sets = base_network.iteration_sets
+        
+        if isempty(ancestors) || isempty(descendants)
+            fork_nodes, join_nodes = Main.IPAFramework.identify_fork_and_join_nodes(base_network.outgoing_index, base_network.incoming_index)
+            iteration_sets, ancestors, descendants = Main.IPAFramework.find_iteration_sets(base_network.edgelist, base_network.outgoing_index, base_network.incoming_index)
+        end
+        
+        # Create new NetworkAnalysisResult with merged probabilities and proper structures
+        return NetworkAnalysisResult(
+            base_network.edgelist,
+            base_network.outgoing_index,
+            base_network.incoming_index,
+            base_network.source_nodes,
+            custom_node_priors,  # Use custom probabilities
+            custom_edge_probs,   # Use custom probabilities
+            base_network.fork_nodes,
+            base_network.join_nodes,
+            iteration_sets,
+            ancestors,
+            descendants,
+            base_network.diamond_structures
+        )
+        
+    catch e
+        println("❌ Error merging probabilities: $e")
+        throw(e)
+    end
+end
+
+"""
+    extract_probability_value(value, data_type::String) -> Float64
+
+Extract probability value from different data types (Float64, Interval, pbox).
+"""
+function extract_probability_value(value, data_type::String)::Float64
+    try
+        if data_type == "Float64"
+            return Float64(value)
+        elseif data_type == "Interval" || data_type == "interval"
+            # For intervals, use the midpoint
+            if isa(value, Dict)
+                if haskey(value, "lower") && haskey(value, "upper")
+                    return (Float64(value["lower"]) + Float64(value["upper"])) / 2.0
+                elseif haskey(value, "lo") && haskey(value, "hi")
+                    return (Float64(value["lo"]) + Float64(value["hi"])) / 2.0
+                end
+            end
+            return Float64(value)  # Fallback
+        elseif data_type in ["pbox", "ProbabilityBoundsAnalysis.pbox"]
+            # For pbox, use the mean or midpoint of bounds
+            if isa(value, Dict)
+                if haskey(value, "value")
+                    # Handle scalar pbox with "value" field
+                    return Float64(value["value"])
+                elseif haskey(value, "mean")
+                    return Float64(value["mean"])
+                elseif haskey(value, "lower") && haskey(value, "upper")
+                    return (Float64(value["lower"]) + Float64(value["upper"])) / 2.0
+                elseif haskey(value, "lo") && haskey(value, "hi")
+                    return (Float64(value["lo"]) + Float64(value["hi"])) / 2.0
+                end
+            end
+            return Float64(value)  # Fallback
+        else
+            return Float64(value)  # Default fallback
+        end
+    catch e
+        println("⚠️ Warning: Could not extract probability value from $value (type: $data_type), using 0.5")
+        return 0.5  # Safe fallback
+    end
+end
+
+"""
+    parse_edge_key(edge_key::String) -> Union{Tuple{Int64,Int64}, Nothing}
+
+Parse edge key string "(src,dst)" into tuple.
+"""
+function parse_edge_key(edge_key::String)::Union{Tuple{Int64,Int64}, Nothing}
+    try
+        if startswith(edge_key, "(") && endswith(edge_key, ")")
+            inner = edge_key[2:end-1]
+            parts = split(inner, ",")
+            if length(parts) == 2
+                src = parse(Int64, strip(parts[1]))
+                dst = parse(Int64, strip(parts[2]))
+                return (src, dst)
+            end
+        end
+        return nothing
+    catch
+        return nothing
     end
 end
 

@@ -53,11 +53,29 @@ function handle_reachability_analysis(req::HTTP.Request)::HTTP.Response
             end
         end
         
-        # Extract CSV content
-        csv_content = request_data["csvContent"]
+        # Perform flexible network analysis (supports both csvContent and edges formats)
+        network_result = perform_flexible_network_analysis(request_data)
         
-        # Perform network analysis with diamond processing
-        network_result = perform_network_analysis(csv_content, true)  # true = include diamond processing
+        # Add diamond processing if not already included
+        if isempty(network_result.diamond_structures)
+            # Perform diamond analysis
+            diamond_result = perform_diamond_analysis(network_result, false)  # false = no classification for speed
+            # Update network result with diamond structures
+            network_result = NetworkAnalysisResult(
+                network_result.edgelist,
+                network_result.outgoing_index,
+                network_result.incoming_index,
+                network_result.source_nodes,
+                network_result.node_priors,
+                network_result.edge_probabilities,
+                network_result.fork_nodes,
+                network_result.join_nodes,
+                network_result.iteration_sets,
+                network_result.ancestors,
+                network_result.descendants,
+                diamond_result.diamond_structures
+            )
+        end
         
         # Store original parameters for comparison
         original_node_priors = copy(network_result.node_priors)

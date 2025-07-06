@@ -63,28 +63,8 @@ function handle_process_input(req::HTTP.Request)::HTTP.Response
             end
         end
         
-        # Extract edge list and JSON data from Angular app format
-        edges_raw = request_data["edges"]
-        node_priors_wrapper = request_data["nodePriors"]
-        edge_probs_wrapper = request_data["edgeProbabilities"]
-        
-        # Ensure edges is properly typed as Vector{Dict{String, Any}}
-        edges = Vector{Dict{String, Any}}(edges_raw)
-        
-        # Pass the full wrapper objects that the NetworkService expects
-        node_priors_json = Dict{String, Any}(node_priors_wrapper)
-        edge_probs_json = Dict{String, Any}(edge_probs_wrapper)
-        
-        println("🔍 ANGULAR APP DATA FORMAT RECEIVED:")
-        println("  - Edges: $(length(edges)) edge objects")
-        println("  - Node priors wrapper: $(keys(node_priors_wrapper))")
-        println("  - Edge probs wrapper: $(keys(edge_probs_wrapper))")
-        println("  - Sample edge: $(edges[1])")
-        println("  - Node priors inner dict: $(length(node_priors_json)) nodes")
-        println("  - Edge probs inner dict: $(length(edge_probs_json)) edges")
-        
-        # Perform network analysis using new JSON-direct processing
-        network_result = NetworkService.perform_network_analysis(edges, node_priors_json, edge_probs_json, false)  # false = no diamond processing
+        # Perform flexible network analysis (supports both csvContent and edges formats)
+        network_result = NetworkService.perform_flexible_network_analysis(request_data)
         
         # Format network data for response
         network_data = format_network_data(

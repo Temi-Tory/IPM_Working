@@ -51,11 +51,8 @@ function handle_diamond_processing(req::HTTP.Request)::HTTP.Response
             end
         end
         
-        # Extract CSV content
-        csv_content = request_data["csvContent"]
-        
-        # Perform network analysis with diamond processing
-        network_result = perform_network_analysis(csv_content, true)  # true = include diamond processing
+        # Perform flexible network analysis (supports both csvContent and edges formats)
+        network_result = perform_flexible_network_analysis(request_data)
         
         # Perform diamond analysis (without classification to keep it fast)
         diamond_result = perform_diamond_analysis(network_result, false)  # false = no classification
@@ -146,23 +143,68 @@ function calculate_diamond_statistics(diamond_structures::Dict)::Dict{String, An
     nested_diamonds = 0
     
     for (join_node, structure) in diamond_structures
-        num_diamonds_at_join = length(structure.diamond)
-        total_diamonds += num_diamonds_at_join
-        
-        for diamond in structure.diamond
-            diamond_size = length(diamond.relevant_nodes)
-            push!(diamond_sizes, diamond_size)
+        # Handle different diamond structure formats
+        if hasfield(typeof(structure), :diamond)
+            # Handle both single Diamond objects and collections
+            diamonds_to_process = []
             
-            # Classify diamond complexity
-            if diamond_size <= 4
-                simple_diamonds += 1
-            else
-                complex_diamonds += 1
+            try
+                # Try to iterate - if it works, it's a collection
+                for d in structure.diamond
+                    push!(diamonds_to_process, d)
+                end
+            catch MethodError
+                # If iteration fails, it's a single Diamond object
+                push!(diamonds_to_process, structure.diamond)
             end
             
-            # Check for nested structure (simplified heuristic)
-            if length(diamond.highest_nodes) > 2
-                nested_diamonds += 1
+            total_diamonds += length(diamonds_to_process)
+            
+            for diamond in diamonds_to_process
+                try
+                    diamond_size = length(diamond.relevant_nodes)
+                    push!(diamond_sizes, diamond_size)
+                    
+                    # Classify diamond complexity
+                    if diamond_size <= 4
+                        simple_diamonds += 1
+                    else
+                        complex_diamonds += 1
+                    end
+                    
+                    # Check for nested structure (simplified heuristic)
+                    if length(diamond.highest_nodes) > 2
+                        nested_diamonds += 1
+                    end
+                catch e
+                    println("⚠️ Warning: Could not process diamond structure: $e")
+                    # Count as unknown diamond
+                    total_diamonds += 1
+                    push!(diamond_sizes, 0)
+                end
+            end
+        else
+            # Handle direct Diamond objects
+            if hasfield(typeof(structure), :relevant_nodes)
+                total_diamonds += 1
+                diamond_size = length(structure.relevant_nodes)
+                push!(diamond_sizes, diamond_size)
+                
+                # Classify diamond complexity
+                if diamond_size <= 4
+                    simple_diamonds += 1
+                else
+                    complex_diamonds += 1
+                end
+                
+                # Check for nested structure (simplified heuristic)
+                if length(structure.highest_nodes) > 2
+                    nested_diamonds += 1
+                end
+            else
+                # Unknown format, count as 1 diamond
+                total_diamonds += 1
+                push!(diamond_sizes, 0)  # Unknown size
             end
         end
     end

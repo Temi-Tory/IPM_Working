@@ -93,6 +93,12 @@ function format_network_data(
         descendants_serializable[string(node)] = collect(descendant_set)
     end
     
+    # Calculate graph density
+    num_nodes = length(all_nodes)
+    num_edges = length(edgelist)
+    max_possible_edges = num_nodes * (num_nodes - 1)  # For directed graph
+    graph_density = max_possible_edges > 0 ? num_edges / max_possible_edges : 0.0
+    
     return Dict{String, Any}(
         "nodes" => collect(all_nodes),
         "edges" => [(edge[1], edge[2]) for edge in edgelist],
@@ -101,15 +107,15 @@ function format_network_data(
         "sinkNodes" => sink_nodes,
         "forkNodes" => collect(fork_nodes),
         "joinNodes" => collect(join_nodes),
-        "iterationSets" => [collect(set) for set in iteration_sets],
+        "nodePriors" => node_priors,
+        "edgeProbabilities" => edge_probs_serializable,
+        "iterationSets" => [collect(iter_set) for iter_set in iteration_sets],
         "ancestors" => ancestors_serializable,
         "descendants" => descendants_serializable,
         "nodeCount" => length(all_nodes),
         "edgeCount" => length(edgelist),
         "maxIterationDepth" => length(iteration_sets),
-        "graphDensity" => calculate_graph_density(all_nodes, edgelist),
-        "nodePriors" => node_priors,
-        "edgeProbabilities" => edge_probs_serializable
+        "graphDensity" => graph_density
     )
 end
 
@@ -126,17 +132,73 @@ function format_diamond_data(
     # Convert diamond structures to serializable format
     serializable_structures = Dict{String, Any}()
     for (join_node, structure) in diamond_structures
-        serializable_structures[string(join_node)] = Dict{String, Any}(
-            "joinNode" => join_node,
-            "nonDiamondParents" => collect(structure.non_diamond_parents),
-            "diamonds" => [
-                Dict{String, Any}(
-                    "relevantNodes" => collect(diamond.relevant_nodes),
-                    "highestNodes" => collect(diamond.highest_nodes),
-                    "edgeList" => diamond.edgelist
-                ) for diamond in structure.diamond
-            ]
-        )
+        # Handle different diamond structure formats
+        if hasfield(typeof(structure), :diamond) && hasfield(typeof(structure), :non_diamond_parents)
+            # Handle both single Diamond objects and collections
+            diamonds_array = []
+            
+            try
+                # Try to iterate - if it works, it's a collection
+                for diamond in structure.diamond
+                    push!(diamonds_array, Dict{String, Any}(
+                        "relevantNodes" => collect(diamond.relevant_nodes),
+                        "highestNodes" => collect(diamond.highest_nodes),
+                        "edgeList" => diamond.edgelist
+                    ))
+                end
+            catch
+                # If iteration fails, treat as a single Diamond object
+                try
+                    diamond = structure.diamond
+                    push!(diamonds_array, Dict{String, Any}(
+                        "relevantNodes" => collect(diamond.relevant_nodes),
+                        "highestNodes" => collect(diamond.highest_nodes),
+                        "edgeList" => diamond.edgelist
+                    ))
+                catch
+                    println("⚠️ Warning: Could not process diamond structure")
+                    push!(diamonds_array, Dict{String, Any}("error" => "Processing failed"))
+                end
+            end
+            
+            serializable_structures[string(join_node)] = Dict{String, Any}(
+                "joinNode" => join_node,
+                "nonDiamondParents" => collect(structure.non_diamond_parents),
+                "diamonds" => diamonds_array
+            )
+        else
+            # Handle direct Diamond objects or other formats
+            try
+                if hasfield(typeof(structure), :relevant_nodes)
+                    # Single Diamond object
+                    serializable_structures[string(join_node)] = Dict{String, Any}(
+                        "joinNode" => join_node,
+                        "nonDiamondParents" => [],
+                        "diamonds" => [
+                            Dict{String, Any}(
+                                "relevantNodes" => collect(structure.relevant_nodes),
+                                "highestNodes" => collect(structure.highest_nodes),
+                                "edgeList" => structure.edgelist
+                            )
+                        ]
+                    )
+                else
+                    # Fallback: convert to string representation
+                    serializable_structures[string(join_node)] = Dict{String, Any}(
+                        "joinNode" => join_node,
+                        "nonDiamondParents" => [],
+                        "diamonds" => [Dict{String, Any}("structure" => string(structure))]
+                    )
+                end
+            catch e
+                println("⚠️ Warning: Could not serialize diamond structure for join node $join_node: $e")
+                serializable_structures[string(join_node)] = Dict{String, Any}(
+                    "joinNode" => join_node,
+                    "nonDiamondParents" => [],
+                    "diamonds" => [Dict{String, Any}("error" => "Serialization failed")]
+                )
+            end
+        end
     end
     
     result = Dict{String, Any}(
@@ -162,60 +224,54 @@ function format_monte_carlo_results(
     iterations::Int
 )::MonteCarloResults
     
-    results = Vector{Dict{String, Any}}()
+    comparison_results = Vector{Dict{String, Any}}()
     
-    for (node, algo_prob) in algorithm_results
-        mc_prob = get(monte_carlo_results, node, 0.0)
-        push!(results, Dict{String, Any}(
-            "node" => node,
-            "algorithmValue" => algo_prob,
-            "monteCarloValue" => mc_prob,
-            "difference" => abs(algo_prob - mc_prob),
-            "relativeError" => algo_prob > 0 ? abs(algo_prob - mc_prob) / algo_prob : 0.0
+    for node in keys(algorithm_results)
+        algorithm_prob = get(algorithm_results, node, 0.0)
+        monte_carlo_prob = get(monte_carlo_results, node, 0.0)
+        
+        difference = abs(algorithm_prob - monte_carlo_prob)
+        relative_error = algorithm_prob > 0 ? difference / algorithm_prob : 0.0
+        
+        push!(comparison_results, Dict{String, Any}(
+            "nodeId" => node,
+            "algorithmProbability" => algorithm_prob,
+            "monteCarloProbability" => monte_carlo_prob,
+            "absoluteDifference" => difference,
+            "relativeError" => relative_error,
+            "withinTolerance" => relative_error < 0.05  # 5% tolerance
         ))
     end
     
-    # Sort by difference (largest discrepancies first)
-    sort!(results, by = x -> x["difference"], rev = true)
-    
-    return results
+    return comparison_results
 end
 
 """
-    format_parameter_modifications(nodes_modified, edges_modified, use_individual_overrides) -> ParameterModifications
+    format_parameter_modifications(nodes_individual, edges_individual, nodes_global, edges_global, use_individual) -> ParameterModifications
 
-Format parameter modification summary with camelCase keys.
+Format parameter modification data with camelCase keys.
 """
 function format_parameter_modifications(
-    nodes_individually_modified::Int,
-    edges_individually_modified::Int,
-    nodes_globally_modified::Int,
-    edges_globally_modified::Int,
-    use_individual_overrides::Bool
+    nodes_individual::Int,
+    edges_individual::Int,
+    nodes_global::Int,
+    edges_global::Int,
+    use_individual::Bool
 )::ParameterModifications
-    
     return Dict{String, Any}(
-        "nodesIndividuallyModified" => nodes_individually_modified,
-        "edgesIndividuallyModified" => edges_individually_modified,
-        "nodesGloballyModified" => nodes_globally_modified,
-        "edgesGloballyModified" => edges_globally_modified,
-        "totalNodesModified" => nodes_individually_modified + nodes_globally_modified,
-        "totalEdgesModified" => edges_individually_modified + edges_globally_modified,
-        "useIndividualOverrides" => use_individual_overrides
+        "nodeModifications" => Dict{String, Any}(
+            "individual" => nodes_individual,
+            "global" => nodes_global,
+            "total" => nodes_individual + nodes_global
+        ),
+        "edgeModifications" => Dict{String, Any}(
+            "individual" => edges_individual,
+            "global" => edges_global,
+            "total" => edges_individual + edges_global
+        ),
+        "totalModifications" => nodes_individual + edges_individual + nodes_global + edges_global,
+        "useIndividualOverrides" => use_individual
     )
-end
-
-"""
-    calculate_graph_density(nodes, edges) -> Float64
-
-Calculate graph density for network statistics.
-"""
-function calculate_graph_density(nodes::Union{Set, Vector}, edges::Vector)::Float64
-    n_nodes = length(nodes)
-    n_edges = length(edges)
-    max_possible_edges = n_nodes * (n_nodes - 1)
-    
-    return max_possible_edges > 0 ? n_edges / max_possible_edges : 0.0
 end
 
 end # module ResponseFormatter
