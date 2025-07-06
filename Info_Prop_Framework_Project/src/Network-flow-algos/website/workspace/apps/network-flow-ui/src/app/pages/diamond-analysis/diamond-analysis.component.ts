@@ -4,9 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 // Import types directly from the models file
-import { 
-  DiamondAnalysisResult, 
-  DiamondNode 
+import {
+  DiamondAnalysisResult,
+  DiamondNode,
+  DiamondStructure
 } from '../../../../../../libs/network-core/src/lib/models/network.models';
 
 // Import services directly
@@ -14,7 +15,7 @@ import { GlobalStateService } from '../../../../../../libs/network-core/src/lib/
 import { NetworkAnalysisService } from '../../../../../../libs/network-core/src/lib/services/network-analysis.service';
 
 interface DiamondFilter {
-  classification: 'all' | 'source' | 'sink' | 'intermediate' | 'isolated';
+  classification: 'all' | 'source' | 'sink' | 'intermediate' | 'isolated' | 'join';
   minInDegree: number;
   maxInDegree: number;
   minOutDegree: number;
@@ -95,166 +96,38 @@ interface DiamondFilter {
       <!-- Analysis Results -->
       @if (diamondAnalysis() && !isLoading()) {
         <div class="analysis-results">
-          <!-- Summary Statistics -->
-          <div class="summary-section">
-            <h2>Analysis Summary</h2>
-            <div class="stats-grid">
-              <div class="stat-card source">
-                <div class="stat-value">{{ diamondAnalysis()!.summary.sourceCount }}</div>
-                <div class="stat-label">Source Nodes</div>
-              </div>
-              <div class="stat-card sink">
-                <div class="stat-value">{{ diamondAnalysis()!.summary.sinkCount }}</div>
-                <div class="stat-label">Sink Nodes</div>
-              </div>
-              <div class="stat-card intermediate">
-                <div class="stat-value">{{ diamondAnalysis()!.summary.intermediateCount }}</div>
-                <div class="stat-label">Intermediate Nodes</div>
-              </div>
-              <div class="stat-card isolated">
-                <div class="stat-value">{{ diamondAnalysis()!.summary.isolatedCount }}</div>
-                <div class="stat-label">Isolated Nodes</div>
-              </div>
-            </div>
-            <div class="processing-time">
-              Processing completed in {{ diamondAnalysis()!.processingTime.toFixed(2) }}ms
-            </div>
-          </div>
-
-          <!-- Filters Section -->
-          <div class="filters-section">
-            <h3>Filter Diamond Nodes</h3>
-            <div class="filters-grid">
-              <div class="filter-group">
-                <label>Classification</label>
-                <select [(ngModel)]="filters.classification" (ngModelChange)="applyFilters()">
-                  <option value="all">All Types</option>
-                  <option value="source">Source Nodes</option>
-                  <option value="sink">Sink Nodes</option>
-                  <option value="intermediate">Intermediate Nodes</option>
-                  <option value="isolated">Isolated Nodes</option>
-                </select>
-              </div>
-              
-              <div class="filter-group">
-                <label>Search Nodes</label>
-                <input 
-                  type="text" 
-                  [(ngModel)]="filters.searchTerm" 
-                  (ngModelChange)="applyFilters()"
-                  placeholder="Search by node ID..."
-                  class="search-input">
-              </div>
-            </div>
-            
-            <div class="filter-actions">
-              <button class="btn btn-outline" (click)="resetFilters()">
-                Reset Filters
-              </button>
-              <span class="results-count">
-                Showing {{ filteredNodes().length }} of {{ diamondAnalysis()!.nodes.length }} nodes
-              </span>
+          
+          <!-- Diamond Structures Overview -->
+          <div class="diamond-structures-section">
+            <h3>Diamond Structures Overview</h3>
+            <div class="structures-grid">
+              @for (structure of diamondAnalysis()!.diamondStructures; track structure.joinNodeId; let i = $index) {
+                <div class="structure-card">
+                  <div class="structure-header">
+                    <h4>Diamond {{ i + 1 }}</h4>
+                    <span class="join-node-badge">Join Node: {{ structure.joinNodeId }}</span>
+                  </div>
+                  <div class="structure-details">
+                    <div class="detail-item">
+                      <span class="label">Diamond Nodes:</span>
+                      <span class="value">{{ structure.diamondNodes.length }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <span class="label">Diamond Edges:</span>
+                      <span class="value">{{ structure.diamondEdges.length }}</span>
+                    </div>
+                    @if (structure.diamondNodes.length <= 8) {
+                      <div class="detail-item">
+                        <span class="label">Nodes:</span>
+                        <span class="value">{{ structure.diamondNodes.join(', ') }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
             </div>
           </div>
 
-          <!-- Diamond Nodes Table -->
-          <div class="nodes-section">
-            <h3>Diamond Node Details</h3>
-            <div class="table-container">
-              <table class="diamond-table">
-                <thead>
-                  <tr>
-                    <th>Node ID</th>
-                    <th>Classification</th>
-                    <th>In-Degree</th>
-                    <th>Out-Degree</th>
-                    <th>Reachable Nodes</th>
-                    <th>Reaching Nodes</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (node of paginatedNodes(); track node.nodeId) {
-                    <tr [class]="'node-' + node.classification">
-                      <td class="node-id">{{ node.nodeId }}</td>
-                      <td>
-                        <span class="classification-badge" [class]="node.classification">
-                          {{ node.classification | titlecase }}
-                        </span>
-                      </td>
-                      <td class="degree-value">{{ node.inDegree }}</td>
-                      <td class="degree-value">{{ node.outDegree }}</td>
-                      <td class="connections">
-                        <span class="connection-count">{{ node.reachableNodes.length }}</span>
-                      </td>
-                      <td class="connections">
-                        <span class="connection-count">{{ node.reachingNodes.length }}</span>
-                      </td>
-                      <td class="actions">
-                        <button 
-                          class="btn btn-sm btn-outline"
-                          (click)="selectForReachability(node.nodeId)">
-                          Use in Reachability
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination -->
-            @if (totalPages() > 1) {
-              <div class="pagination">
-                <button 
-                  class="btn btn-outline"
-                  [disabled]="currentPage() === 1"
-                  (click)="setPage(currentPage() - 1)">
-                  Previous
-                </button>
-                
-                @for (page of getPageNumbers(); track page) {
-                  <button 
-                    class="btn"
-                    [class.btn-primary]="page === currentPage()"
-                    [class.btn-outline]="page !== currentPage()"
-                    (click)="setPage(page)">
-                    {{ page }}
-                  </button>
-                }
-                
-                <button 
-                  class="btn btn-outline"
-                  [disabled]="currentPage() === totalPages()"
-                  (click)="setPage(currentPage() + 1)">
-                  Next
-                </button>
-              </div>
-            }
-          </div>
-
-          <!-- Selected Nodes for Reachability -->
-          @if (selectedNodes().length > 0) {
-            <div class="selected-section">
-              <h3>Selected for Reachability Analysis</h3>
-              <div class="selected-nodes">
-                @for (nodeId of selectedNodes(); track nodeId) {
-                  <span class="selected-node">
-                    {{ nodeId }}
-                    <button (click)="removeFromSelection(nodeId)">×</button>
-                  </span>
-                }
-              </div>
-              <div class="selected-actions">
-                <button class="btn btn-outline" (click)="clearSelection()">
-                  Clear Selection
-                </button>
-                <button class="btn btn-primary" (click)="proceedToReachabilityWithSelection()">
-                  Analyze Reachability
-                </button>
-              </div>
-            </div>
-          }
         </div>
       }
 
@@ -362,6 +235,16 @@ interface DiamondFilter {
       color: white;
     }
 
+    .btn-info {
+      background: linear-gradient(135deg, #17a2b8, #138496);
+      color: white;
+    }
+
+    .btn-info:hover:not(:disabled) {
+      background: linear-gradient(135deg, #138496, #0f6674);
+      transform: translateY(-2px);
+    }
+
     .btn-outline {
       background: transparent;
       border: 2px solid #bdc3c7;
@@ -448,6 +331,72 @@ interface DiamondFilter {
     .stat-card.sink { border-left-color: #e74c3c; }
     .stat-card.intermediate { border-left-color: #f39c12; }
     .stat-card.isolated { border-left-color: #95a5a6; }
+    .stat-card.join { border-left-color: #9b59b6; }
+    .stat-card.diamond { border-left-color: #3498db; }
+
+    .diamond-structures-section {
+      margin: 2rem 0;
+    }
+
+    .structures-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .structure-card {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border: 1px solid #dee2e6;
+      border-radius: 12px;
+      padding: 1rem;
+      border-left: 4px solid #3498db;
+    }
+
+    .structure-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .structure-header h4 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 1.1rem;
+    }
+
+    .join-node-badge {
+      background: #9b59b6;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .structure-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detail-item .label {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .detail-item .value {
+      color: #2c3e50;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
 
     .stat-value {
       font-size: 2rem;
@@ -916,6 +865,33 @@ export class DiamondAnalysisComponent implements OnInit {
   removeFromSelection(nodeId: string): void {
     const current = this._selectedNodes();
     this._selectedNodes.set(current.filter(id => id !== nodeId));
+  }
+
+  showDiamondDetails(node: DiamondNode): void {
+    // For now, just log the diamond details - could be expanded to show a modal
+    console.log('Diamond details for node', node.nodeId, ':', node.diamondStructures);
+    
+    // Create detailed info about the diamonds
+    const diamondCount = node.diamondStructures?.length || 0;
+    const joinNodeInfo = node.isJoinNode ? ' (Join Node)' : '';
+    
+    let details = `Node ${node.nodeId}${joinNodeInfo} participates in ${diamondCount} diamond structure(s).\n\n`;
+    
+    if (node.diamondStructures && node.diamondStructures.length > 0) {
+      node.diamondStructures.forEach((diamond, index) => {
+        details += `Diamond ${index + 1}:\n`;
+        details += `  - Join Node: ${diamond.joinNodeId}\n`;
+        details += `  - Diamond Nodes: ${diamond.diamondNodes.length} nodes\n`;
+        details += `  - Diamond Edges: ${diamond.diamondEdges.length} edges\n`;
+        if (diamond.diamondNodes.length <= 10) {
+          details += `  - Nodes: ${diamond.diamondNodes.join(', ')}\n`;
+        }
+        details += '\n';
+      });
+    }
+    
+    details += 'Check console for full details.';
+    alert(details);
   }
 
   clearSelection(): void {

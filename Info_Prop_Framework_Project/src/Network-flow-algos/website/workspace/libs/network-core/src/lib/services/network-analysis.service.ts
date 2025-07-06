@@ -9,6 +9,7 @@ import {
   NetworkEdge,
   DiamondAnalysisResult,
   DiamondNode,
+  DiamondStructure,
   ReachabilityQuery,
   ReachabilityResult,
   MonteCarloConfig,
@@ -417,23 +418,100 @@ export class NetworkAnalysisService {
    */
   private transformDiamondResponse(juliaResponse: any, sessionId: string): DiamondAnalysisResult {
     // Julia returns: { success, endpointType, data: { diamondData, networkData, summary, ... }, timestamp }
-    // Angular expects: { sessionId, networkId, nodes, summary, processingTime }
     
     const diamondData = juliaResponse.data?.diamondData;
     const networkData = juliaResponse.data?.networkData;
+    const diamondStructures = diamondData?.diamondStructures || {};
+    const diamondCount = diamondData?.diamondCount || 0;
     
-    // Transform diamond structures to DiamondNode format
+    // Transform Julia diamond structures (1-indexed) to Angular format (0-indexed)
+    const transformedDiamondStructures: DiamondStructure[] = [];
+    const joinNodeIds = new Set<string>();
+    const allDiamondNodeIds = new Set<string>();
+    
+    Object.keys(diamondStructures).forEach(joinNodeId => {
+      const diamondInfo = diamondStructures[joinNodeId];
+      
+      // Convert Julia 1-indexed node ID to 0-indexed (subtract 1)
+      const zeroIndexedJoinNodeId = (parseInt(joinNodeId) - 1).toString();
+      joinNodeIds.add(zeroIndexedJoinNodeId);
+      
+      // Extract diamond nodes and edges from the diamonds array
+      const diamondNodes: string[] = [];
+      const diamondEdges: any[] = [];
+      
+      if (diamondInfo.diamonds && Array.isArray(diamondInfo.diamonds)) {
+        diamondInfo.diamonds.forEach((diamond: any) => {
+          // Extract relevant nodes (convert from 1-indexed to 0-indexed)
+          if (diamond.relevantNodes && Array.isArray(diamond.relevantNodes)) {
+            diamond.relevantNodes.forEach((nodeId: number) => {
+              const zeroIndexedNodeId = (nodeId - 1).toString();
+              diamondNodes.push(zeroIndexedNodeId);
+              allDiamondNodeIds.add(zeroIndexedNodeId);
+            });
+          }
+          
+          // Extract edge list (convert from 1-indexed to 0-indexed)
+          if (diamond.edgeList && Array.isArray(diamond.edgeList)) {
+            diamond.edgeList.forEach((edge: any) => {
+              if (Array.isArray(edge) && edge.length >= 2) {
+                diamondEdges.push([edge[0] - 1, edge[1] - 1]); // Convert to 0-indexed
+              }
+            });
+          }
+        });
+      }
+      
+      transformedDiamondStructures.push({
+        joinNodeId: zeroIndexedJoinNodeId,
+        diamonds: diamondInfo.diamonds || [],
+        nonDiamondParents: diamondInfo.nonDiamondParents || [],
+        diamondNodes: [...new Set(diamondNodes)], // Remove duplicates
+        diamondEdges
+      });
+    });
+    
+    // Create DiamondNode objects for all nodes in the network
     const nodes: DiamondNode[] = [];
-    if (diamondData?.diamondStructures) {
-      // This is a simplified transformation - you may need to adjust based on actual Julia response structure
-      Object.keys(networkData?.nodes || {}).forEach(nodeId => {
+    const sourceNodes = networkData?.sourceNodes || [];
+    const sinkNodes = networkData?.sinkNodes || [];
+    const joinNodes = networkData?.joinNodes || [];
+    
+    // Process all nodes in the network
+    if (networkData?.nodes) {
+      Object.keys(networkData.nodes).forEach(nodeId => {
+        // Convert Julia 1-indexed to 0-indexed
+        const zeroIndexedNodeId = (parseInt(nodeId) - 1).toString();
+        
+        // Determine node classification
+        let classification: 'source' | 'sink' | 'intermediate' | 'isolated' | 'join' = 'intermediate';
+        const isJoinNode = joinNodeIds.has(zeroIndexedNodeId);
+        const isDiamondNode = allDiamondNodeIds.has(zeroIndexedNodeId);
+        
+        if (sourceNodes.includes(parseInt(nodeId))) {
+          classification = 'source';
+        } else if (sinkNodes.includes(parseInt(nodeId))) {
+          classification = 'sink';
+        } else if (isJoinNode) {
+          classification = 'join';
+        }
+        // Note: Diamond nodes can have any classification (source, sink, intermediate, join)
+        // The diamond participation is tracked separately
+        
+        // Find diamond structures this node participates in (either as join node or diamond node)
+        const nodeDiamondStructures = transformedDiamondStructures.filter(
+          ds => ds.joinNodeId === zeroIndexedNodeId || ds.diamondNodes.includes(zeroIndexedNodeId)
+        );
+        
         nodes.push({
-          nodeId,
-          classification: 'intermediate', // Default classification
-          inDegree: 0, // Would need to calculate from actual data
-          outDegree: 0, // Would need to calculate from actual data
+          nodeId: zeroIndexedNodeId,
+          classification,
+          inDegree: 0, // Would need to calculate from edges
+          outDegree: 0, // Would need to calculate from edges
           reachableNodes: [],
-          reachingNodes: []
+          reachingNodes: [],
+          isJoinNode,
+          diamondStructures: nodeDiamondStructures
         });
       });
     }
@@ -442,11 +520,14 @@ export class NetworkAnalysisService {
       sessionId,
       networkId: `network_${Date.now()}`,
       nodes,
+      diamondStructures: transformedDiamondStructures,
       summary: {
-        sourceCount: networkData?.sourceNodes?.length || 0,
-        sinkCount: networkData?.sinkNodes?.length || 0,
-        intermediateCount: nodes.length - (networkData?.sourceNodes?.length || 0) - (networkData?.sinkNodes?.length || 0),
-        isolatedCount: 0
+        sourceCount: sourceNodes.length,
+        sinkCount: sinkNodes.length,
+        intermediateCount: nodes.filter(n => n.classification === 'intermediate').length,
+        isolatedCount: nodes.filter(n => n.classification === 'isolated').length,
+        joinNodeCount: joinNodeIds.size,
+        diamondCount
       },
       processingTime: 0 // Julia doesn't provide this
     };

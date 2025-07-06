@@ -62,6 +62,54 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
                     println("   Diamond data keys: $(collect(keys(diamond_data)))")
                     diamond_count = get(diamond_data, "diamondCount", 0)
                     println("   Diamond count: $diamond_count")
+                    
+                    # Print detailed diamond structure info
+                    if haskey(diamond_data, "diamondStructures") && diamond_count > 0
+                        structures = diamond_data["diamondStructures"]
+                        println("   Diamond structures type: $(typeof(structures))")
+                        if isa(structures, Dict)
+                            println("   Diamond structure keys (join nodes): $(collect(keys(structures)))")
+                            
+                            # Print first few diamonds as examples
+                            for (i, join_node_key) in enumerate(collect(keys(structures))[1:min(3, length(structures))])
+                                diamond_info = structures[join_node_key]
+                                println("\n   === Diamond for Join Node $join_node_key ===")
+                                println("   Keys in this diamond: $(collect(keys(diamond_info)))")
+                                
+                                if haskey(diamond_info, "joinNode")
+                                    println("   Join node: $(diamond_info["joinNode"])")
+                                end
+                                
+                                if haskey(diamond_info, "nonDiamondParents")
+                                    non_diamond_parents = diamond_info["nonDiamondParents"]
+                                    println("   Non-diamond parents: $(non_diamond_parents)")
+                                    println("   Non-diamond parents type: $(typeof(non_diamond_parents))")
+                                end
+                                
+                                if haskey(diamond_info, "diamonds")
+                                    diamonds = diamond_info["diamonds"]
+                                    println("   Diamonds field type: $(typeof(diamonds))")
+                                    println("   Number of diamonds: $(length(diamonds))")
+                                    
+                                    if length(diamonds) > 0
+                                        first_diamond = diamonds[1]
+                                        println("   First diamond type: $(typeof(first_diamond))")
+                                        if isa(first_diamond, Dict)
+                                            println("   First diamond keys: $(collect(keys(first_diamond)))")
+                                            for key in keys(first_diamond)
+                                                value = first_diamond[key]
+                                                println("     $key: $(value) (type: $(typeof(value)))")
+                                            end
+                                        else
+                                            println("   First diamond content: $(first_diamond)")
+                                        end
+                                    end
+                                end
+                                
+                                if i >= 3 break end
+                            end
+                        end
+                    end
                 end
                 
                 if haskey(data_section, "diamondClassifications")

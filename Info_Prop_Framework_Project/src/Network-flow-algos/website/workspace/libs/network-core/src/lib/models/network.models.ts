@@ -69,24 +69,37 @@ export interface NetworkUploadResponse {
 }
 
 // Diamond analysis interfaces
+export interface DiamondStructure {
+  joinNodeId: string;  // The join node (1-indexed from Julia, converted to 0-indexed)
+  diamonds: any[];     // The actual diamond structures from Julia
+  nonDiamondParents: any[];  // Non-diamond parent nodes
+  diamondNodes: string[];    // Subset of nodes that form this diamond
+  diamondEdges: any[];       // Subset of edges that form this diamond
+}
+
 export interface DiamondNode {
   nodeId: string;
-  classification: 'source' | 'sink' | 'intermediate' | 'isolated';
+  classification: 'source' | 'sink' | 'intermediate' | 'isolated' | 'join';
   inDegree: number;
   outDegree: number;
   reachableNodes: string[];
   reachingNodes: string[];
+  isJoinNode: boolean;
+  diamondStructures: DiamondStructure[];  // Diamonds this node participates in
 }
 
 export interface DiamondAnalysisResult {
   sessionId: string;
   networkId: string;
   nodes: DiamondNode[];
+  diamondStructures: DiamondStructure[];  // All diamond structures found
   summary: {
     sourceCount: number;
     sinkCount: number;
     intermediateCount: number;
     isolatedCount: number;
+    joinNodeCount: number;
+    diamondCount: number;
   };
   processingTime: number;
 }
