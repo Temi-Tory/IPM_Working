@@ -114,9 +114,9 @@ export class NetworkAnalysisService {
     }
     
     return this.http.post<any>(`${this.baseUrl}/diamondprocessing`, juliaData).pipe(
-      map(response => this.transformDiamondResponse(response, sessionId)),
-      tap(result => {
-        this.globalState.setDiamondAnalysis(result);
+      tap(response => {
+        // Store the raw response for the component to process
+        this.globalState.setDiamondAnalysis(response as any);
         this.globalState.setLoading(false);
       }),
       catchError(error => {
@@ -142,9 +142,9 @@ export class NetworkAnalysisService {
     }
     
     return this.http.post<any>(`${this.baseUrl}/diamondclassification`, juliaData).pipe(
-      map(response => this.transformDiamondResponse(response, sessionId)),
-      tap(result => {
-        this.globalState.setDiamondAnalysis(result);
+      tap(response => {
+        // Store the raw response for the component to process
+        this.globalState.setDiamondAnalysis(response as any);
         this.globalState.setLoading(false);
       }),
       catchError(error => {
