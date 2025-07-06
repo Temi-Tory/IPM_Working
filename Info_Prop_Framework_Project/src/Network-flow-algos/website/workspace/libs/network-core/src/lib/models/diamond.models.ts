@@ -5,9 +5,9 @@
  * classification, and analysis in network flow systems.
  */
 
-// ============================================================================
+
 // ENUMS
-// ============================================================================
+
 
 /**
  * Enumeration of diamond structure types
@@ -31,9 +31,9 @@ export enum DiamondAnalysisStatus {
   ERROR = 'error'
 }
 
-// ============================================================================
+
 // TYPE DEFINITIONS
-// ============================================================================
+
 
 /**
  * Node identifier type for diamond structures
@@ -65,9 +65,9 @@ export type DiamondCharacteristics = DiamondCharacteristic[];
  */
 export type DiamondMetadata = Record<string, unknown>;
 
-// ============================================================================
+
 // CORE INTERFACES
-// ============================================================================
+
 
 /**
  * Core diamond structure definition
@@ -130,9 +130,9 @@ export interface DiamondClassification {
   classifiedAt?: Date;
 }
 
-// ============================================================================
+
 // DETECTION AND ANALYSIS INTERFACES
-// ============================================================================
+
 
 /**
  * Result of diamond detection operation
@@ -207,9 +207,9 @@ export interface DiamondAnalysisConfig {
   options?: DiamondMetadata;
 }
 
-// ============================================================================
+
 // UTILITY INTERFACES
-// ============================================================================
+
 
 /**
  * Diamond analysis progress tracking
@@ -271,9 +271,9 @@ export interface DiamondComparisonResult {
   overlapping: boolean;
 }
 
-// ============================================================================
+
 // EXPORT COLLECTIONS
-// ============================================================================
+
 
 /**
  * Collection of all diamond-related types for easy importing

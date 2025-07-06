@@ -8,9 +8,9 @@ import {
 } from '@network-analysis/network-core';
 import { VisualizationStateService } from './visualization-state.service';
 
-// ============================================================================
+
 // INTERFACES AND TYPES
-// ============================================================================
+
 
 /**
  * Diamond visualization configuration
@@ -115,9 +115,9 @@ export interface DiamondPathAnimation {
   status: 'running' | 'paused' | 'completed';
 }
 
-// ============================================================================
+
 // DIAMOND VISUALIZATION SERVICE
-// ============================================================================
+
 
 /**
  * Diamond Visualization Integration Service
@@ -324,9 +324,9 @@ export class DiamondVisualizationService {
     });
   }
 
-  // ============================================================================
+  
   // CONFIGURATION METHODS
-  // ============================================================================
+  
 
   updateConfig(partial: Partial<DiamondVisualizationConfig>): void {
     this._config.update(current => ({
@@ -357,9 +357,9 @@ export class DiamondVisualizationService {
     }));
   }
 
-  // ============================================================================
+  
   // DIAMOND SELECTION AND INTERACTION
-  // ============================================================================
+  
 
   selectDiamond(diamondId: string, addToSelection = false): void {
     this._selectedDiamonds.update(selected => {
@@ -414,9 +414,9 @@ export class DiamondVisualizationService {
     }
   }
 
-  // ============================================================================
+  
   // DIAMOND HIGHLIGHTING METHODS
-  // ============================================================================
+  
 
   highlightDiamond(diamondId: string, temporary = false): void {
     const diamond = this.diamondStateService.getDiamondById(diamondId);
@@ -473,9 +473,9 @@ export class DiamondVisualizationService {
     this.visualizationStateService.clearHighlights();
   }
 
-  // ============================================================================
+  
   // DIAMOND PATH ANIMATION
-  // ============================================================================
+  
 
   animateDiamondPath(diamondId: string, pathIndex = 0): void {
     const diamond = this.diamondStateService.getDiamondById(diamondId);
@@ -513,9 +513,9 @@ export class DiamondVisualizationService {
     this._activeAnimations.set([]);
   }
 
-  // ============================================================================
+  
   // GRAPHVIZ DOT GENERATION
-  // ============================================================================
+  
 
   async generateDiamondDot(options: Partial<DotGenerationOptions> = {}): Promise<string> {
     const fullOptions: DotGenerationOptions = {
@@ -576,9 +576,9 @@ export class DiamondVisualizationService {
     console.log(`💎🎨 Diamond DOT exported as ${filename}`);
   }
 
-  // ============================================================================
+  
   // PRIVATE HELPER METHODS
-  // ============================================================================
+  
 
   private applyDiamondHighlighting(highlightData: Array<{
     diamond: DiamondStructure;

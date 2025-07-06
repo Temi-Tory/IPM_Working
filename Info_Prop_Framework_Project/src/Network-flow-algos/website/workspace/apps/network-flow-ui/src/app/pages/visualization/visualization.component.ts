@@ -416,9 +416,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  // ============================================================================
+  
   // INTERACTIVITY METHODS
-  // ============================================================================
+  
 
   private setupInteractivity(): void {
     if (!this.interactivityEnabled()) return;
@@ -565,9 +565,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
-  // ============================================================================
+  
   // EVENT HANDLERS
-  // ============================================================================
+  
 
   private handleNodeClick(event: MouseEvent, nodeData: unknown): void {
     const nodeId = this.extractNodeId(nodeData);
@@ -647,9 +647,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     console.log(`Diamond node clicked: ${diamond.id} (node: ${nodeId})`);
   }
 
-  // ============================================================================
+  
   // TOOLTIP METHODS
-  // ============================================================================
+  
 
   private showNodeTooltip(event: MouseEvent, nodeId: number): void {
     const networkData = this.networkData();
@@ -747,9 +747,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  // ============================================================================
+  
   // DIAMOND VISUALIZATION METHODS
-  // ============================================================================
+  
 
   private updateDiamondVisualization(): void {
     if (!this.svgElement || !this.diamondMode()) return;
@@ -914,9 +914,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     }
   }
 
-  // ============================================================================
+  
   // UTILITY METHODS
-  // ============================================================================
+  
 
   private extractNodeId(nodeData: unknown): number | null {
     // Extract node ID from D3 node data
@@ -969,9 +969,9 @@ export class VisualizationComponent implements OnInit, AfterViewInit, OnDestroy 
     return colors[type] || colors[DiamondType.SIMPLE];
   }
 
-  // ============================================================================
+  
   // ENHANCED CONTROL METHODS
-  // ============================================================================
+  
 
   onToggleInteractivity(): void {
     this.interactivityEnabled.update(current => !current);
