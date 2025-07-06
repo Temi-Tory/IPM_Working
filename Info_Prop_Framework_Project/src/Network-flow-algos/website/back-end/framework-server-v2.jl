@@ -30,8 +30,8 @@ using DataFrames, DelimitedFiles, Distributions,
     DataStructures, SparseArrays, BenchmarkTools, 
     Combinatorics, Random
 
-# Include IPAFramework (must be available in global scope for service modules)
-include("IPAFramework.jl")
+# Include IPAFramework
+include("../../src/IPAFramework.jl")
 using .IPAFramework
 using Graphs
 
