@@ -66,11 +66,16 @@
           @if (analysisState.isRunning()) {
             <span>Running Analysis... {{ analysisState.progress() }}%</span>
           } @else {
-            <span>Start Analysis</span>
+            @if (analysisState.hasResults()) {
+              <span>Re-run Analysis</span>
+            } @else {
+              <span>Start Analysis</span>
+            }
           }
         </button>
         <button class="btn-secondary" (click)="clearNetwork()">Clear Network</button>
       </div>
+
     </div>
   }
 

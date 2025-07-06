@@ -9,9 +9,5 @@ export const appRoutes: Route[] = [
   {
     path: 'network-setup',
     loadComponent: () => import('./pages/network-setup/network-setup.component').then(m => m.NetworkSetupComponent)
-  },
-  {
-    path: 'visualization',
-    loadComponent: () => import('./pages/visualization/visualization.component').then(m => m.VisualizationComponent)
   }
 ];

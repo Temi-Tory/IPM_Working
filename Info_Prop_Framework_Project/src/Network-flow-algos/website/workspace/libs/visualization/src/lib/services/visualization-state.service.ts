@@ -50,14 +50,15 @@ export interface Path {
   color?: string;
 }
 
-export type LayoutType = 
-  | 'dagre' 
-  | 'hierarchical' 
-  | 'force-directed' 
-  | 'circular' 
-  | 'grid' 
-  | 'breadthfirst' 
-  | 'concentric';
+export type LayoutType =
+  | 'dagre'
+  | 'hierarchical'
+  | 'force-directed'
+  | 'circular'
+  | 'grid'
+  | 'breadthfirst'
+  | 'concentric'
+  | 'random';
 
 export type ColorScheme = 
   | 'default' 

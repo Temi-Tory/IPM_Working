@@ -151,7 +151,6 @@ export class DiamondStateService {
     });
 
     // Effect to react to network changes and trigger diamond re-analysis
-    // Use allowSignalWrites to prevent infinite loops and add debouncing
     effect(() => {
       const networkData = this.networkStateService.networkData();
       const isNetworkLoaded = this.networkStateService.isNetworkLoaded();
@@ -169,7 +168,7 @@ export class DiamondStateService {
           }
         }, 100);
       }
-    }, { allowSignalWrites: true });
+    });
 
     // Effect to update analysis progress
     effect(() => {
