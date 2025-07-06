@@ -42,10 +42,13 @@
     <nav class="sidebar-nav">
       <ul class="nav-list">
         <li *ngFor="let item of navigationItems" class="nav-item">
-          <a 
-            [routerLink]="item.path" 
+          <a
+            [routerLink]="item.path"
             routerLinkActive="active"
             class="nav-link"
+            [class.completed]="workflowState().completedSteps.includes(getWorkflowStep(item.path))"
+            [class.accessible]="workflowState().isStepAccessible(getWorkflowStep(item.path))"
+            [class.disabled]="!workflowState().isStepAccessible(getWorkflowStep(item.path))"
             [attr.title]="isSidebarCollapsed ? item.label : null"
             (click)="isMobile && closeMobileMenu()">
             
@@ -53,11 +56,20 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path [attr.d]="item.icon"/>
               </svg>
+              <!-- Completion indicator -->
+              <div *ngIf="workflowState().completedSteps.includes(getWorkflowStep(item.path))" class="completion-indicator">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20,6 9,17 4,12"/>
+                </svg>
+              </div>
             </div>
             
             <div class="nav-content" *ngIf="!isSidebarCollapsed || isMobile">
               <span class="nav-label">{{ item.label }}</span>
               <span class="nav-description">{{ item.description }}</span>
+              <div *ngIf="workflowState().currentStep === getWorkflowStep(item.path)" class="current-indicator">
+                Current Step
+              </div>
             </div>
           </a>
         </li>
@@ -86,6 +98,48 @@
       </button>
       <h1 class="mobile-title">{{ title }}</h1>
     </header>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs" *ngIf="!isMobile && breadcrumbs().length > 1">
+      <nav class="breadcrumb-nav">
+        <ol class="breadcrumb-list">
+          <li *ngFor="let crumb of breadcrumbs(); let last = last" class="breadcrumb-item">
+            <a *ngIf="!last" [routerLink]="crumb.path" class="breadcrumb-link">
+              {{ crumb.label }}
+            </a>
+            <span *ngIf="last" class="breadcrumb-current">
+              {{ crumb.label }}
+            </span>
+            <svg *ngIf="!last" class="breadcrumb-separator" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,18 15,12 9,6"/>
+            </svg>
+          </li>
+        </ol>
+      </nav>
+    </div>
+
+    <!-- Global Loading Indicator -->
+    <div *ngIf="isLoading()" class="global-loading">
+      <div class="loading-bar"></div>
+    </div>
+
+    <!-- Global Error Message -->
+    <div *ngIf="error()" class="global-error">
+      <div class="error-content">
+        <svg class="error-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span class="error-text">{{ error() }}</span>
+        <button class="error-dismiss" (click)="clearError()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
 
     <!-- Content Container -->
     <div class="content-container">

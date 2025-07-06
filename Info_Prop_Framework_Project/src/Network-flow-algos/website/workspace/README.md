@@ -1,101 +1,299 @@
-# Workspace
+# Network Flow Analysis Application
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A comprehensive Angular 20 application for network analysis, featuring advanced algorithms for reachability analysis, diamond classification, and Monte Carlo simulations on directed acyclic graphs (DAGs).
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## 🚀 Features
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+### Core Functionality
+- **Network Upload & Validation**: Support for various network file formats with comprehensive validation
+- **Interactive Network Visualization**: Powered by Sigma.js for high-performance graph rendering
+- **Diamond Node Classification**: Automatic classification of nodes as sources, sinks, intermediates, or isolated
+- **Reachability Analysis**: Path enumeration and probability calculations between node sets
+- **Monte Carlo Simulation**: Statistical validation of network analysis results
+- **Multi-format Probability Support**: Float, interval, and P-box probability representations
 
-## Run tasks
+### Technical Features
+- **Angular 20**: Latest Angular framework with standalone components
+- **NX Workspace**: Monorepo structure with shared libraries
+- **TypeScript**: Full type safety and modern JavaScript features
+- **Reactive Architecture**: RxJS-based state management
+- **Material Design**: Angular Material UI components
+- **Chart.js Integration**: Advanced data visualization capabilities
+- **Session Management**: Persistent workflow state across browser sessions
 
-To run the dev server for your app, use:
+## 📋 Prerequisites
 
-```sh
-npx nx serve network-flow-ui
+- **Node.js**: Version 18.x or higher
+- **npm**: Version 9.x or higher
+- **Julia**: Version 1.9+ (for backend server)
+
+## 🛠️ Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd network-flow-analysis
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Build the shared library**
+   ```bash
+   npm run build:lib
+   ```
+
+## 🚀 Development Workflow
+
+### Starting the Development Server
+
+```bash
+# Start the Angular development server
+npm start
+
+# Or with specific configuration
+npm run dev
 ```
 
-To create a production bundle:
+The application will be available at `http://localhost:4200`
 
-```sh
-npx nx build network-flow-ui
+### Building for Production
+
+```bash
+# Production build
+npm run build:prod
+
+# Serve static files
+npm run serve:static
 ```
 
-To see all available targets to run for a project, run:
+### Linting and Code Quality
 
-```sh
-npx nx show project network-flow-ui
+```bash
+# Run ESLint
+npm run lint
+
+# Format code with Prettier
+npx prettier --write .
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 🏗️ Project Architecture
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Workspace Structure
 
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/angular:app demo
+```
+workspace/
+├── apps/
+│   └── network-flow-ui/          # Main Angular application
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── pages/         # Feature pages/components
+│       │   │   ├── app.config.ts  # Application configuration
+│       │   │   └── app.routes.ts  # Routing configuration
+│       │   └── main.ts            # Application bootstrap
+│       └── project.json           # NX project configuration
+├── libs/
+│   └── network-core/              # Shared library
+│       ├── src/
+│       │   ├── lib/
+│       │   │   ├── components/    # Reusable UI components
+│       │   │   ├── services/      # Business logic services
+│       │   │   ├── models/        # TypeScript interfaces
+│       │   │   ├── guards/        # Route guards
+│       │   │   ├── utils/         # Utility functions
+│       │   │   └── pipes/         # Custom pipes
+│       │   └── index.ts           # Public API exports
+│       └── project.json
+└── package.json                   # Root package configuration
 ```
 
-To generate a new library, use:
+### Component Architecture
 
-```sh
-npx nx g @nx/angular:lib mylib
+#### Core Components
+- **LoadingSpinnerComponent**: Reusable loading indicator with overlay support
+- **ErrorDisplayComponent**: Comprehensive error display with retry functionality
+- **ChartComponent**: Chart.js wrapper for data visualization
+
+#### Page Components
+- **NetworkUploadComponent**: File upload and network configuration
+- **NetworkDetailsComponent**: Network structure visualization and statistics
+- **DiamondAnalysisComponent**: Node classification results
+- **ReachabilityAnalysisComponent**: Path analysis and probability calculations
+- **MonteCarloComponent**: Simulation configuration and results
+- **ResultsComponent**: Comprehensive analysis summary
+
+### Services Architecture
+
+#### Core Services
+- **GlobalStateService**: Application-wide state management
+- **NetworkAnalysisService**: API communication and data processing
+- **SessionStorageService**: Persistent session management
+
+#### Workflow Management
+- **WorkflowGuard**: Route protection based on workflow completion
+- **WorkflowState**: Step-by-step process validation
+
+## 🔌 API Integration
+
+### Backend Server
+
+The application communicates with a Julia-based backend server that provides:
+
+- **Network Processing**: File upload and graph construction
+- **Diamond Classification**: Node categorization algorithms
+- **Reachability Analysis**: Path enumeration and probability calculation
+- **Monte Carlo Simulation**: Statistical validation methods
+
+### API Endpoints
+
+```typescript
+// Network upload
+POST /api/upload-network
+Content-Type: multipart/form-data
+
+// Diamond analysis
+POST /api/diamond-analysis
+GET /api/diamond-analysis/:sessionId
+
+// Reachability analysis
+POST /api/reachability-analysis
+GET /api/reachability-results/:sessionId
+
+// Monte Carlo simulation
+POST /api/monte-carlo
+GET /api/monte-carlo-results/:sessionId
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+### Data Models
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+The application uses comprehensive TypeScript interfaces for type safety:
 
-## Set up CI!
+- **NetworkGraph**: Core network structure
+- **DiamondAnalysisResult**: Node classification results
+- **ReachabilityResult**: Path analysis outcomes
+- **MonteCarloResult**: Simulation statistics
 
-### Step 1
+## 🎯 Usage Guide
 
-To connect to Nx Cloud, run the following command:
+### 1. Network Upload
+1. Navigate to the Network Setup page
+2. Select your network file (.edge format)
+3. Choose probability type (float, interval, or P-box)
+4. Upload optional node priors and link probabilities
+5. Submit for processing
 
-```sh
-npx nx connect
+### 2. Network Structure Review
+1. View the uploaded network visualization
+2. Examine network statistics and properties
+3. Verify node and edge counts
+4. Proceed to analysis steps
+
+### 3. Diamond Analysis
+1. Run automatic node classification
+2. Review source, sink, intermediate, and isolated nodes
+3. Examine connectivity patterns
+4. Export classification results
+
+### 4. Reachability Analysis
+1. Select source and target node sets
+2. Configure analysis parameters
+3. Run path enumeration
+4. Review probability calculations and path details
+
+### 5. Monte Carlo Validation
+1. Configure simulation parameters
+2. Set iteration count and convergence criteria
+3. Run statistical validation
+4. Compare with analytical results
+
+### 6. Results Summary
+1. View comprehensive analysis summary
+2. Export results in various formats
+3. Generate analysis reports
+4. Save session for future reference
+
+## 🧪 Testing
+
+### Unit Testing
+```bash
+# Run unit tests (when configured)
+npm test
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+### End-to-End Testing
+```bash
+# Run e2e tests (when configured)
+npm run e2e
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 📦 Dependencies
 
-## Install Nx Console
+### Core Dependencies
+- **@angular/core**: ^20.0.0 - Angular framework
+- **@angular/material**: ^20.0.5 - Material Design components
+- **sigma**: ^3.0.2 - Network visualization
+- **chart.js**: ^4.4.1 - Data visualization
+- **d3**: ^7.9.0 - Data manipulation and visualization
+- **rxjs**: ~7.8.0 - Reactive programming
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+### Development Dependencies
+- **@nx/angular**: 21.2.2 - NX Angular support
+- **typescript**: ~5.8.2 - TypeScript compiler
+- **eslint**: ^9.8.0 - Code linting
+- **prettier**: ^2.6.2 - Code formatting
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🚀 Deployment
 
-## Useful links
+### Production Build
+```bash
+npm run build:prod
+```
 
-Learn more:
+### Docker Deployment (Optional)
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist/ ./dist/
+EXPOSE 4200
+CMD ["npm", "run", "serve:static"]
+```
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/tutorials/angular-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🤝 Contributing
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+- Follow Angular style guide
+- Use TypeScript strict mode
+- Maintain test coverage
+- Document public APIs
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Check the documentation
+- Review the API integration guide
+
+## 🔄 Version History
+
+- **v1.0.0**: Initial release with core functionality
+- **v1.1.0**: Enhanced visualization and performance improvements
+- **v1.2.0**: Added Monte Carlo simulation support
+- **v2.0.0**: Angular 20 upgrade and architecture improvements
+
+---
+
+Built with ❤️ using Angular 20 and modern web technologies.

@@ -23,6 +23,7 @@
     "graphology-layout-noverlap": "^0.4.2",
     "rxjs": "~7.8.0",
     "sigma": "^3.0.2",
+    "chart.js": "^4.4.1",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
@@ -44,6 +45,7 @@
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
     "@types/d3-graphviz": "^2.6.10",
+    "@types/chart.js": "^2.9.41",
     "@typescript-eslint/utils": "^8.29.0",
     "angular-eslint": "^20.0.0",
     "eslint": "^9.8.0",
