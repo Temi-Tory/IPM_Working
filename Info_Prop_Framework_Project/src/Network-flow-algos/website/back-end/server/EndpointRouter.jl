@@ -15,6 +15,8 @@ include(joinpath(@__DIR__, "endpoints", "DiamondClassificationEndpoint.jl"))
 include(joinpath(@__DIR__, "endpoints", "ReachabilityEndpoint.jl"))
 include(joinpath(@__DIR__, "endpoints", "PathEnumEndpoint.jl"))
 include(joinpath(@__DIR__, "endpoints", "MonteCarloEndpoint.jl"))
+include(joinpath(@__DIR__, "endpoints", "FileUploadEndpoints.jl"))
+include(joinpath(@__DIR__, "endpoints", "CompleteNetworkEndpoint.jl"))
 
 using .ProcessInputEndpoint
 using .DiamondProcessingEndpoint
@@ -22,6 +24,8 @@ using .DiamondClassificationEndpoint
 using .ReachabilityEndpoint
 using .PathEnumEndpoint
 using .MonteCarloEndpoint
+using .FileUploadEndpoints
+using .CompleteNetworkEndpoint
 
 # Import server core utilities
 include("ServerCore.jl")
@@ -49,6 +53,8 @@ function route_handler(req::HTTP.Request)::HTTP.Response
         if req.method == "GET"
             if req.target == "/" || req.target == "/health"
                 return health_check_handler(req)
+            elseif startswith(req.target, "/api/upload/session-status")
+                return handle_session_status(req)
             end
         end
         
@@ -84,68 +90,49 @@ end
     route_post_request(req::HTTP.Request) -> HTTP.Response
 
 Route POST requests to specific endpoint handlers based on the target path.
+Handles both JSON and multipart/form-data requests.
 """
 function route_post_request(req::HTTP.Request)::HTTP.Response
     target = req.target
     
-    # Debug: Log request body info
-    println("🔍 ROUTER DEBUG - POST Request Body Analysis:")
-    println("  - req.body type: $(typeof(req.body))")
-    println("  - req.body length: $(length(req.body))")
-    println("  - isempty(req.body): $(isempty(req.body))")
-    
-    # Try different ways to read the body
-    body_str = ""
-    try
-        # Method 1: Direct String conversion
-        body_str = String(req.body)
-        println("  - Method 1 - String(req.body) length: $(length(body_str))")
-        
-        # Method 2: Try reading as UTF-8
-        if isempty(strip(body_str))
-            body_str = String(copy(req.body))
-            println("  - Method 2 - String(copy(req.body)) length: $(length(body_str))")
+    # Check if this is a file upload endpoint (multipart/form-data)
+    content_type = ""
+    for (name, value) in req.headers
+        if lowercase(name) == "content-type"
+            content_type = value
+            break
         end
-        
-        # Method 3: Try reading from IOBuffer
-        if isempty(strip(body_str))
-            io = IOBuffer(req.body)
-            body_str = read(io, String)
-            println("  - Method 3 - IOBuffer read length: $(length(body_str))")
-        end
-        
-    catch e
-        println("  - Error reading body: $e")
-        body_str = ""
     end
     
-    println("  - Final body string length: $(length(body_str))")
-    println("  - Body content preview: $(body_str[1:min(100, length(body_str))])")
-    println("  - First 20 bytes as hex: $(bytes2hex(req.body[1:min(20, length(req.body))]))")
-    
-    # Validate request has body for POST requests
-    if isempty(body_str) || strip(body_str) == ""
-        println("❌ ROUTER: Request body is empty or contains no data!")
-        return server_error_handler("POST request body cannot be empty", 400)
+    # Handle file upload endpoints (multipart/form-data)
+    if startswith(content_type, "multipart/form-data")
+        if target == "/api/upload/network-structure"
+            return handle_upload_network_structure(req)
+        elseif target == "/api/upload/node-priors"
+            return handle_upload_node_priors(req)
+        elseif target == "/api/upload/link-probabilities"
+            return handle_upload_link_probabilities(req)
+        else
+            return server_error_handler("Unknown file upload endpoint: $target", 404)
+        end
     end
     
-    println("✅ ROUTER: Request body successfully read with $(length(body_str)) characters")
-    
-    # Validate JSON format
+    # Handle JSON endpoints
     local parsed_json
     try
+        body_str = String(req.body)
+        if isempty(strip(body_str))
+            return server_error_handler("POST request body cannot be empty", 400)
+        end
         parsed_json = JSON.parse(body_str)
-        println("✅ ROUTER: JSON parsing successful")
     catch e
-        println("❌ ROUTER: JSON parsing failed: $e")
         return server_error_handler("Invalid JSON in request body: $(string(e))", 400)
     end
     
-    # Create a new request object with the parsed JSON in the body
-    # This is a workaround since we can't modify req.body directly
+    # Create request with parsed JSON body
     modified_req = HTTP.Request(req.method, req.target, req.headers, JSON.json(parsed_json))
     
-    # Route to specific endpoints
+    # Route to specific JSON endpoints
     if target == "/api/processinput"
         return handle_process_input(modified_req)
         
@@ -164,22 +151,12 @@ function route_post_request(req::HTTP.Request)::HTTP.Response
     elseif target == "/api/montecarlo"
         return handle_monte_carlo_analysis(modified_req)
         
-    # Legacy endpoint support (for backward compatibility)
-    elseif target == "/api/analyze"
-        println("⚠️ Legacy endpoint /api/analyze called - redirecting to /api/reachabilitymodule")
-        return handle_reachability_analysis(modified_req)
+    # New three-file network endpoints
+    elseif target == "/api/upload/create-session"
+        return handle_create_session(modified_req)
         
-    elseif target == "/api/analyze-enhanced"
-        println("⚠️ Legacy endpoint /api/analyze-enhanced called - redirecting to /api/reachabilitymodule")
-        return handle_reachability_analysis(modified_req)
-        
-    elseif target == "/api/parse-structure"
-        println("⚠️ Legacy endpoint /api/parse-structure called - redirecting to /api/processinput")
-        return handle_process_input(modified_req)
-        
-    elseif target == "/api/analyze-diamond"
-        println("⚠️ Legacy endpoint /api/analyze-diamond called - redirecting to /api/diamondprocessing")
-        return handle_diamond_processing(modified_req)
+    elseif target == "/api/process-complete-network"
+        return handle_process_complete_network(modified_req)
         
     else
         return not_found_handler(req)

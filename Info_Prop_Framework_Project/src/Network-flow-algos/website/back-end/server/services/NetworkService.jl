@@ -3,15 +3,24 @@ NetworkService.jl
 
 Core network analysis service that orchestrates IPAFramework operations.
 Handles network structure analysis, diamond processing, and belief propagation.
+Enhanced with CSV adjacency matrix support and InputProcessingModule integration.
 """
 module NetworkService
 
 # Import IPAFramework - assuming it's available in the parent scope
 using DataFrames, DelimitedFiles, Distributions, DataStructures, SparseArrays, Combinatorics
 
+# Import integration services
+include("InputProcessingIntegration.jl")
+include("ProbabilityTypeService.jl")
+
+using .InputProcessingIntegration
+using .ProbabilityTypeService
+
 export NetworkAnalysisResult, perform_network_analysis, perform_diamond_analysis,
        perform_reachability_analysis, perform_monte_carlo_analysis, perform_path_enumeration,
-       DiamondAnalysisResult, ReachabilityResult, MonteCarloResult, PathEnumerationResult
+       DiamondAnalysisResult, ReachabilityResult, MonteCarloResult, PathEnumerationResult,
+       perform_csv_network_analysis, perform_file_based_analysis
 
 # Strict type definitions for network analysis results
 struct NetworkAnalysisResult
@@ -541,6 +550,147 @@ function calculate_path_probability(
     end
     
     return prob
+end
+
+"""
+    perform_csv_network_analysis(csv_content::String) -> NetworkAnalysisResult
+
+Perform network analysis directly from CSV adjacency matrix content using InputProcessingModule.
+"""
+function perform_csv_network_analysis(csv_content::String)::NetworkAnalysisResult
+    try
+        println("🔄 Starting CSV network analysis with InputProcessingModule...")
+        
+        # Process CSV using InputProcessingIntegration
+        processing_result = process_csv_adjacency_matrix(csv_content)
+        
+        if !processing_result.success
+            throw(ErrorException(processing_result.error_message))
+        end
+        
+        # Convert to NetworkAnalysisResult format
+        return NetworkAnalysisResult(
+            processing_result.edgelist,
+            processing_result.outgoing_index,
+            processing_result.incoming_index,
+            processing_result.source_nodes,
+            processing_result.node_priors,
+            processing_result.edge_probabilities,
+            processing_result.fork_nodes,
+            processing_result.join_nodes,
+            processing_result.iteration_sets,
+            processing_result.ancestors,
+            processing_result.descendants,
+            Dict{String, Any}()  # Empty diamond structures initially
+        )
+        
+    catch e
+        println("❌ Error in CSV network analysis: $e")
+        throw(e)
+    end
+end
+
+"""
+    perform_file_based_analysis(csv_content::String, node_priors_json::Union{String, Nothing},
+                               edge_probabilities_json::Union{String, Nothing},
+                               probability_type::String = "float64") -> NetworkAnalysisResult
+
+Perform comprehensive file-based network analysis with custom probability data.
+"""
+function perform_file_based_analysis(
+    csv_content::String,
+    node_priors_json::Union{String, Nothing} = nothing,
+    edge_probabilities_json::Union{String, Nothing} = nothing,
+    probability_type::String = "float64"
+)::NetworkAnalysisResult
+    try
+        println("🔄 Starting file-based network analysis...")
+        println("📊 Probability type: $probability_type")
+        
+        # Convert probability type string to enum
+        prob_type = if probability_type == "float64"
+            FLOAT64_TYPE
+        elseif probability_type == "interval"
+            INTERVAL_TYPE
+        elseif probability_type == "pbox"
+            PBOX_TYPE
+        else
+            throw(ArgumentError("Unsupported probability type: $probability_type"))
+        end
+        
+        # Process network with custom probabilities
+        processing_result = process_network_with_probabilities(
+            csv_content,
+            node_priors_json,
+            edge_probabilities_json,
+            prob_type
+        )
+        
+        if !processing_result.success
+            throw(ErrorException(processing_result.error_message))
+        end
+        
+        # Convert to NetworkAnalysisResult format
+        network_result = NetworkAnalysisResult(
+            processing_result.edgelist,
+            processing_result.outgoing_index,
+            processing_result.incoming_index,
+            processing_result.source_nodes,
+            processing_result.node_priors,
+            processing_result.edge_probabilities,
+            processing_result.fork_nodes,
+            processing_result.join_nodes,
+            processing_result.iteration_sets,
+            processing_result.ancestors,
+            processing_result.descendants,
+            Dict{String, Any}()  # Empty diamond structures initially
+        )
+        
+        # Process diamond structures if IPAFramework is available
+        try
+            if isdefined(Main, :IPAFramework)
+                println("🔄 Processing diamond structures...")
+                diamond_structures = Main.IPAFramework.identify_diamond_structures(
+                    network_result.edgelist,
+                    network_result.outgoing_index,
+                    network_result.incoming_index,
+                    network_result.source_nodes,
+                    network_result.fork_nodes,
+                    network_result.join_nodes,
+                    network_result.iteration_sets,
+                    network_result.ancestors,
+                    network_result.descendants
+                )
+                
+                # Update network result with diamond structures
+                network_result = NetworkAnalysisResult(
+                    network_result.edgelist,
+                    network_result.outgoing_index,
+                    network_result.incoming_index,
+                    network_result.source_nodes,
+                    network_result.node_priors,
+                    network_result.edge_probabilities,
+                    network_result.fork_nodes,
+                    network_result.join_nodes,
+                    network_result.iteration_sets,
+                    network_result.ancestors,
+                    network_result.descendants,
+                    diamond_structures
+                )
+                
+                println("✅ Diamond structures processed: $(length(diamond_structures)) diamonds found")
+            end
+        catch e
+            println("⚠️ Warning: Could not process diamond structures: $e")
+        end
+        
+        println("✅ File-based network analysis complete")
+        return network_result
+        
+    catch e
+        println("❌ Error in file-based network analysis: $e")
+        throw(e)
+    end
 end
 
 end # module NetworkService

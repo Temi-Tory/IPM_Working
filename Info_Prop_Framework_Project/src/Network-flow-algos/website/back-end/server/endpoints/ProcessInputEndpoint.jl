@@ -1,9 +1,9 @@
 """
 ProcessInputEndpoint.jl
 
-Endpoint for processing edge list input with JSON probabilities and returning network structure data.
-Maps to the required 'processinput' endpoint.
-Updated to accept edge list format instead of CSV adjacency matrices.
+Endpoint for processing input and returning network structure data.
+Enhanced to support both edge list format and CSV adjacency matrix file uploads.
+Maps to the required 'processinput' endpoint with backward compatibility.
 """
 module ProcessInputEndpoint
 
@@ -11,12 +11,14 @@ using HTTP, JSON
 include(joinpath(@__DIR__, "..", "services", "ValidationService.jl"))
 include(joinpath(@__DIR__, "..", "services", "NetworkService.jl"))
 include(joinpath(@__DIR__, "..", "services", "ResponseFormatter.jl"))
+include(joinpath(@__DIR__, "..", "services", "InputProcessingIntegration.jl"))
 
 using .ValidationService
 using .NetworkService
 using .ResponseFormatter
+using .InputProcessingIntegration
 
-export handle_process_input
+export handle_process_input, handle_process_csv_content
 
 """
     handle_process_input(req::HTTP.Request) -> HTTP.Response
@@ -192,6 +194,91 @@ function handle_process_input(req::HTTP.Request)::HTTP.Response
             ["Content-Type" => "application/json; charset=utf-8", "Access-Control-Allow-Origin" => "*"],
             error_response
         )
+    end
+end
+
+"""
+    handle_process_csv_content(req::HTTP.Request) -> HTTP.Response
+
+Handle CSV content processing without session complexity.
+Simple CSV adjacency matrix processing for direct content input.
+
+Expected request body:
+{
+    "csvContent": "0,1,0\n1,0,1\n0,1,0"
+}
+"""
+function handle_process_csv_content(req::HTTP.Request)::HTTP.Response
+    try
+        println("🔄 Processing CSV content...")
+        
+        # Parse request data
+        request_data = JSON.parse(String(req.body))
+        
+        # Validate required csvContent field
+        if !haskey(request_data, "csvContent")
+            return format_error_response("Missing required field: csvContent", 400, "process_csv")
+        end
+        
+        csv_content = request_data["csvContent"]
+        if !isa(csv_content, String) || isempty(strip(csv_content))
+            return format_error_response("csvContent must be a non-empty string", 400, "process_csv")
+        end
+        
+        println("📥 Processing CSV content ($(length(csv_content)) characters)")
+        
+        # Validate CSV content
+        csv_validation = validate_csv_adjacency_matrix(csv_content)
+        if !csv_validation.is_valid
+            error_response = Dict{String, Any}(
+                "success" => false,
+                "error" => "CSV validation failed",
+                "validationErrors" => [Dict("field" => error.field, "message" => error.message, "code" => error.error_code) for error in csv_validation.errors],
+                "warnings" => csv_validation.warnings
+            )
+            return format_error_response(JSON.json(error_response), 400, "process_csv")
+        end
+        
+        # Perform simple CSV-based network analysis
+        network_result = perform_file_based_analysis(csv_content, nothing, nothing, "float64")
+        
+        # Format network data for response
+        network_data = format_network_data(
+            network_result.edgelist,
+            network_result.outgoing_index,
+            network_result.incoming_index,
+            network_result.source_nodes,
+            network_result.node_priors,
+            network_result.edge_probabilities,
+            network_result.fork_nodes,
+            network_result.join_nodes,
+            network_result.iteration_sets,
+            network_result.ancestors,
+            network_result.descendants
+        )
+        
+        # Calculate network statistics
+        all_nodes = union(keys(network_result.outgoing_index), keys(network_result.incoming_index))
+        
+        # Create response
+        response_data = Dict{String, Any}(
+            "networkStructure" => network_data,
+            "statistics" => Dict{String, Any}(
+                "totalNodes" => length(all_nodes),
+                "totalEdges" => length(network_result.edgelist),
+                "sourceNodes" => length(network_result.source_nodes),
+                "forkNodes" => length(network_result.fork_nodes),
+                "joinNodes" => length(network_result.join_nodes)
+            )
+        )
+        
+        println("✅ CSV processing complete: $(length(all_nodes)) nodes, $(length(network_result.edgelist)) edges")
+        
+        return format_success_response(response_data, "process_csv")
+        
+    catch e
+        println("❌ Error in CSV processing: $e")
+        return format_error_response("CSV processing failed: $(string(e))", 500, "process_csv")
     end
 end
 
