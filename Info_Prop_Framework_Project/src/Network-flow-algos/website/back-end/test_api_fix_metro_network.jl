@@ -9,15 +9,20 @@ using HTTP, JSON
 # Load the actual metro network data
 function load_metro_data(prob_type::String)
     # Read edge file
-    edge_content = read("dag_ntwrk_files/metro_directed_dag_for_ipm/metro_directed_dag_for_ipm.edge", String)
+    edge_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/metro_directed_dag_for_ipm.edge", String)
     
     # Read node priors
-    node_priors_content = read("dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-nodepriors.json", String)
+    node_priors_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-nodepriors.json", String)
     node_priors = JSON.parse(node_priors_content)
     
-    # Read edge probabilities  
-    edge_probs_content = read("dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-linkprobabilities.json", String)
+    # Read edge probabilities
+    edge_probs_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-linkprobabilities.json", String)
     edge_probs = JSON.parse(edge_probs_content)
+    
+    println("📁 Loaded data for $prob_type:")
+    println("   Edge file size: $(length(edge_content)) characters")
+    println("   Node priors keys: $(collect(keys(node_priors)))")
+    println("   Edge probabilities keys: $(collect(keys(edge_probs)))")
     
     return Dict(
         "csvContent" => edge_content,
@@ -28,6 +33,8 @@ end
 
 function test_endpoint(endpoint::String, data::Dict, prob_type::String)
     println("🧪 Testing $endpoint with $prob_type data...")
+    println("   Request URL: http://localhost:9090/api/$endpoint")
+    println("   Request data keys: $(collect(keys(data)))")
     
     try
         response = HTTP.post(
@@ -41,22 +48,51 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
             result = JSON.parse(String(response.body))
             println("✅ $endpoint ($prob_type) successful!")
             
+            # Print full response structure for analysis
+            println("📋 Full Response Structure:")
+            println("   Top-level keys: $(collect(keys(result)))")
+            
             # Extract key metrics
             if haskey(result, "data")
                 data_section = result["data"]
+                println("   Data section keys: $(collect(keys(data_section)))")
+                
                 if haskey(data_section, "diamondData")
-                    diamond_count = get(data_section["diamondData"], "diamondCount", 0)
+                    diamond_data = data_section["diamondData"]
+                    println("   Diamond data keys: $(collect(keys(diamond_data)))")
+                    diamond_count = get(diamond_data, "diamondCount", 0)
                     println("   Diamond count: $diamond_count")
                 end
+                
                 if haskey(data_section, "diamondClassifications")
-                    class_count = length(get(data_section, "diamondClassifications", []))
-                    println("   Classifications: $class_count")
+                    classifications = get(data_section, "diamondClassifications", [])
+                    class_count = length(classifications)
+                    println("   Classifications count: $class_count")
+                    if class_count > 0
+                        println("   First classification keys: $(collect(keys(classifications[1])))")
+                    end
                 end
+                
                 if haskey(data_section, "networkData")
                     net_data = data_section["networkData"]
+                    println("   Network data keys: $(collect(keys(net_data)))")
                     println("   Nodes: $(get(net_data, "nodeCount", 0)), Edges: $(get(net_data, "edgeCount", 0))")
                 end
+                
+                if haskey(data_section, "reachabilityResults")
+                    reach_data = data_section["reachabilityResults"]
+                    println("   Reachability results keys: $(collect(keys(reach_data)))")
+                end
             end
+            
+            if haskey(result, "message")
+                println("   Message: $(result["message"])")
+            end
+            
+            if haskey(result, "status")
+                println("   Status: $(result["status"])")
+            end
+            
             return true
         else
             println("❌ $endpoint ($prob_type) failed with status: $(response.status)")
@@ -66,6 +102,9 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
         
     catch e
         println("❌ Error testing $endpoint ($prob_type): $e")
+        if isa(e, HTTP.ConnectError)
+            println("   💡 Make sure the Julia server is running on localhost:9090")
+        end
         return false
     end
 end

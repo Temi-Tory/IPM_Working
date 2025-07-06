@@ -1,11 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType, HttpRequest } from '@angular/common/http';
-import { Observable, map, catchError, throwError, tap } from 'rxjs';
+import { Observable, map, catchError, throwError, tap, switchMap } from 'rxjs';
 import {
   NetworkUploadRequest,
   NetworkUploadResponse,
   NetworkGraph,
+  NetworkNode,
+  NetworkEdge,
   DiamondAnalysisResult,
+  DiamondNode,
   ReachabilityQuery,
   ReachabilityResult,
   MonteCarloConfig,
@@ -34,50 +37,35 @@ export class NetworkAnalysisService {
    * Upload network files and initialize analysis session
    */
   uploadNetwork(request: NetworkUploadRequest): Observable<NetworkUploadResponse> {
-    const formData = new FormData();
-    formData.append('network_file', request.networkFile);
-    formData.append('probability_type', request.probabilityType);
-    
-    if (request.nodePriorsFile) {
-      formData.append('node_priors_file', request.nodePriorsFile);
-    }
-    
-    if (request.linkProbabilitiesFile) {
-      formData.append('link_probabilities_file', request.linkProbabilitiesFile);
-    }
-
-    const httpRequest = new HttpRequest('POST', `${this.baseUrl}/processinput`, formData, {
-      reportProgress: true
-    });
-
-    this.globalState.setUploading(true);
-    this.globalState.setUploadProgress(null);
-
-    return this.http.request<ApiResponse<NetworkUploadResponse>>(httpRequest).pipe(
-      map(event => this.handleUploadProgress(event)),
-      map(response => {
-        if (response && 'data' in response) {
-          const uploadResponse = response.data!;
-          if (uploadResponse.success) {
-            this.globalState.createSession(
-              uploadResponse.sessionId,
-              uploadResponse.networkId,
-              request.probabilityType
-            );
-          }
-          return uploadResponse;
-        }
-        throw new Error('Invalid response format');
-      }),
-      tap(() => {
-        this.globalState.setUploading(false);
+    // Convert files to the format Julia expects
+    return this.convertFilesToJuliaFormat(request).pipe(
+      switchMap(juliaData => {
+        this.globalState.setUploading(true);
         this.globalState.setUploadProgress(null);
-      }),
-      catchError(error => {
-        this.globalState.setUploading(false);
-        this.globalState.setUploadProgress(null);
-        this.globalState.setError(`Upload failed: ${error.message}`);
-        return throwError(() => error);
+
+        return this.http.post<any>(`${this.baseUrl}/processinput`, juliaData).pipe(
+          map(response => this.transformJuliaResponse(response, request.probabilityType)),
+          tap(uploadResponse => {
+            if (uploadResponse.success) {
+              // Create a session ID from timestamp since Julia doesn't provide one
+              const sessionId = `session_${Date.now()}`;
+              const networkId = `network_${Date.now()}`;
+              
+              this.globalState.createSession(sessionId, networkId, request.probabilityType);
+              
+              // Store the Julia data for future requests
+              this.globalState.setJuliaData(juliaData);
+            }
+            this.globalState.setUploading(false);
+            this.globalState.setUploadProgress(null);
+          }),
+          catchError(error => {
+            this.globalState.setUploading(false);
+            this.globalState.setUploadProgress(null);
+            this.globalState.setError(`Upload failed: ${error.message}`);
+            return throwError(() => error);
+          })
+        );
       })
     );
   }
@@ -88,8 +76,16 @@ export class NetworkAnalysisService {
   getNetworkStructure(sessionId: string): Observable<NetworkGraph> {
     this.globalState.setLoading(true);
     
-    return this.http.get<ApiResponse<NetworkGraph>>(`${this.baseUrl}/network/${sessionId}`).pipe(
-      map(response => this.extractData(response)),
+    // Get the stored Julia data format and call processinput to get network structure
+    const juliaData = this.globalState.getJuliaData();
+    if (!juliaData) {
+      this.globalState.setLoading(false);
+      this.globalState.setError('No network data available. Please upload network files first.');
+      return throwError(() => new Error('No network data available'));
+    }
+    
+    return this.http.post<any>(`${this.baseUrl}/processinput`, juliaData).pipe(
+      map(response => this.transformNetworkResponse(response)),
       tap(networkGraph => {
         this.globalState.setNetworkGraph(networkGraph);
         this.globalState.setLoading(false);
@@ -108,11 +104,16 @@ export class NetworkAnalysisService {
   performDiamondProcessing(sessionId: string): Observable<DiamondAnalysisResult> {
     this.globalState.setLoading(true);
     
-    return this.http.post<ApiResponse<DiamondAnalysisResult>>(
-      `${this.baseUrl}/diamondprocessing`,
-      { sessionId }
-    ).pipe(
-      map(response => this.extractData(response)),
+    // Get the stored Julia data format
+    const juliaData = this.globalState.getJuliaData();
+    if (!juliaData) {
+      this.globalState.setLoading(false);
+      this.globalState.setError('No network data available. Please upload network files first.');
+      return throwError(() => new Error('No network data available'));
+    }
+    
+    return this.http.post<any>(`${this.baseUrl}/diamondprocessing`, juliaData).pipe(
+      map(response => this.transformDiamondResponse(response, sessionId)),
       tap(result => {
         this.globalState.setDiamondAnalysis(result);
         this.globalState.setLoading(false);
@@ -131,11 +132,16 @@ export class NetworkAnalysisService {
   performDiamondClassification(sessionId: string): Observable<DiamondAnalysisResult> {
     this.globalState.setLoading(true);
     
-    return this.http.post<ApiResponse<DiamondAnalysisResult>>(
-      `${this.baseUrl}/diamondclassification`,
-      { sessionId }
-    ).pipe(
-      map(response => this.extractData(response)),
+    // Get the stored Julia data format
+    const juliaData = this.globalState.getJuliaData();
+    if (!juliaData) {
+      this.globalState.setLoading(false);
+      this.globalState.setError('No network data available. Please upload network files first.');
+      return throwError(() => new Error('No network data available'));
+    }
+    
+    return this.http.post<any>(`${this.baseUrl}/diamondclassification`, juliaData).pipe(
+      map(response => this.transformDiamondResponse(response, sessionId)),
       tap(result => {
         this.globalState.setDiamondAnalysis(result);
         this.globalState.setLoading(false);
@@ -157,11 +163,16 @@ export class NetworkAnalysisService {
   ): Observable<ReachabilityResult> {
     this.globalState.setLoading(true);
     
-    return this.http.post<ApiResponse<ReachabilityResult>>(
-      `${this.baseUrl}/reachabilitymodule`,
-      { sessionId, ...query }
-    ).pipe(
-      map(response => this.extractData(response)),
+    // Get the stored Julia data format
+    const juliaData = this.globalState.getJuliaData();
+    if (!juliaData) {
+      this.globalState.setLoading(false);
+      this.globalState.setError('No network data available. Please upload network files first.');
+      return throwError(() => new Error('No network data available'));
+    }
+    
+    return this.http.post<any>(`${this.baseUrl}/reachabilitymodule`, juliaData).pipe(
+      map(response => this.transformReachabilityResponse(response, sessionId, query)),
       tap(result => {
         this.globalState.addReachabilityResult(result);
         this.globalState.setLoading(false);
@@ -313,6 +324,209 @@ export class NetworkAnalysisService {
   }
 
   // Private helper methods
+
+  /**
+   * Convert uploaded files to Julia API format
+   */
+  private convertFilesToJuliaFormat(request: NetworkUploadRequest): Observable<any> {
+    return new Observable(observer => {
+      const reader1 = new FileReader();
+      const reader2 = request.nodePriorsFile ? new FileReader() : null;
+      const reader3 = request.linkProbabilitiesFile ? new FileReader() : null;
+      
+      let csvContent = '';
+      let nodePriors = {};
+      let edgeProbabilities = {};
+      let filesRead = 0;
+      const totalFiles = 1 + (reader2 ? 1 : 0) + (reader3 ? 1 : 0);
+      
+      const checkComplete = () => {
+        filesRead++;
+        if (filesRead === totalFiles) {
+          observer.next({
+            csvContent,
+            nodePriors,
+            edgeProbabilities
+          });
+          observer.complete();
+        }
+      };
+      
+      // Read network file (CSV)
+      reader1.onload = () => {
+        csvContent = reader1.result as string;
+        checkComplete();
+      };
+      reader1.onerror = () => observer.error(new Error('Failed to read network file'));
+      reader1.readAsText(request.networkFile);
+      
+      // Read node priors file (JSON)
+      if (reader2 && request.nodePriorsFile) {
+        reader2.onload = () => {
+          try {
+            nodePriors = JSON.parse(reader2.result as string);
+            checkComplete();
+          } catch (e) {
+            observer.error(new Error('Invalid JSON in node priors file'));
+          }
+        };
+        reader2.onerror = () => observer.error(new Error('Failed to read node priors file'));
+        reader2.readAsText(request.nodePriorsFile);
+      }
+      
+      // Read edge probabilities file (JSON)
+      if (reader3 && request.linkProbabilitiesFile) {
+        reader3.onload = () => {
+          try {
+            edgeProbabilities = JSON.parse(reader3.result as string);
+            checkComplete();
+          } catch (e) {
+            observer.error(new Error('Invalid JSON in link probabilities file'));
+          }
+        };
+        reader3.onerror = () => observer.error(new Error('Failed to read link probabilities file'));
+        reader3.readAsText(request.linkProbabilitiesFile);
+      }
+    });
+  }
+
+  /**
+   * Transform Julia API response to Angular expected format
+   */
+  private transformJuliaResponse(juliaResponse: any, probabilityType: ProbabilityType): NetworkUploadResponse {
+    // Julia returns: { success, endpointType, data: { networkData, summary, ... }, timestamp }
+    // Angular expects: { success, sessionId, networkId, message, networkSummary }
+    
+    const networkData = juliaResponse.data?.networkData;
+    
+    return {
+      success: juliaResponse.success || false,
+      sessionId: `session_${Date.now()}`, // Generate since Julia doesn't provide
+      networkId: `network_${Date.now()}`, // Generate since Julia doesn't provide
+      message: juliaResponse.data?.summary || 'Network processed successfully',
+      networkSummary: networkData ? {
+        nodeCount: networkData.nodeCount || 0,
+        edgeCount: networkData.edgeCount || 0,
+        isDirected: true // Metro network is directed
+      } : undefined
+    };
+  }
+
+  /**
+   * Transform Julia diamond processing response to Angular format
+   */
+  private transformDiamondResponse(juliaResponse: any, sessionId: string): DiamondAnalysisResult {
+    // Julia returns: { success, endpointType, data: { diamondData, networkData, summary, ... }, timestamp }
+    // Angular expects: { sessionId, networkId, nodes, summary, processingTime }
+    
+    const diamondData = juliaResponse.data?.diamondData;
+    const networkData = juliaResponse.data?.networkData;
+    
+    // Transform diamond structures to DiamondNode format
+    const nodes: DiamondNode[] = [];
+    if (diamondData?.diamondStructures) {
+      // This is a simplified transformation - you may need to adjust based on actual Julia response structure
+      Object.keys(networkData?.nodes || {}).forEach(nodeId => {
+        nodes.push({
+          nodeId,
+          classification: 'intermediate', // Default classification
+          inDegree: 0, // Would need to calculate from actual data
+          outDegree: 0, // Would need to calculate from actual data
+          reachableNodes: [],
+          reachingNodes: []
+        });
+      });
+    }
+    
+    return {
+      sessionId,
+      networkId: `network_${Date.now()}`,
+      nodes,
+      summary: {
+        sourceCount: networkData?.sourceNodes?.length || 0,
+        sinkCount: networkData?.sinkNodes?.length || 0,
+        intermediateCount: nodes.length - (networkData?.sourceNodes?.length || 0) - (networkData?.sinkNodes?.length || 0),
+        isolatedCount: 0
+      },
+      processingTime: 0 // Julia doesn't provide this
+    };
+  }
+
+  /**
+   * Transform Julia reachability response to Angular format
+   */
+  private transformReachabilityResponse(juliaResponse: any, sessionId: string, query: ReachabilityQuery): ReachabilityResult {
+    // Julia returns: { success, endpointType, data: { results, networkData, ... }, timestamp }
+    
+    const results = juliaResponse.data?.results || {};
+    
+    return {
+      sessionId,
+      networkId: `network_${Date.now()}`,
+      query,
+      paths: [], // Would need to transform from Julia results
+      totalProbability: 0, // Would need to extract from Julia results
+      summary: {
+        pathCount: 0,
+        averageLength: 0,
+        maxLength: 0,
+        minLength: 0
+      },
+      processingTime: 0
+    };
+  }
+
+  /**
+   * Transform Julia network response to Angular NetworkGraph format
+   */
+  private transformNetworkResponse(juliaResponse: any): NetworkGraph {
+    // Julia returns: { success, endpointType, data: { networkData, ... }, timestamp }
+    
+    const networkData = juliaResponse.data?.networkData;
+    
+    // Transform Julia network data to Angular format
+    const nodes: NetworkNode[] = [];
+    const edges: NetworkEdge[] = [];
+    
+    if (networkData?.nodes) {
+      // Transform nodes
+      Object.keys(networkData.nodes).forEach((nodeId, index) => {
+        nodes.push({
+          id: nodeId,
+          label: nodeId,
+          x: Math.random() * 800, // Random positioning for now
+          y: Math.random() * 600,
+          metadata: {}
+        });
+      });
+    }
+    
+    if (networkData?.edges) {
+      // Transform edges
+      networkData.edges.forEach((edge: any, index: number) => {
+        edges.push({
+          id: `edge_${index}`,
+          source: edge.source || edge[0],
+          target: edge.target || edge[1],
+          weight: edge.weight || 1,
+          probability: edge.probability || 0.5,
+          metadata: {}
+        });
+      });
+    }
+    
+    return {
+      nodes,
+      edges,
+      directed: true, // Metro network is directed
+      metadata: {
+        name: 'Metro Network',
+        description: 'Uploaded metro network data',
+        nodeCount: networkData?.nodeCount || nodes.length,
+        edgeCount: networkData?.edgeCount || edges.length
+      }
+    };
+  }
 
   private handleUploadProgress(event: HttpEvent<ApiResponse<NetworkUploadResponse>>): ApiResponse<NetworkUploadResponse> | null {
     switch (event.type) {

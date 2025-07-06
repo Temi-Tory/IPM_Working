@@ -40,6 +40,9 @@ export class GlobalStateService {
   // File upload state
   private readonly _uploadProgress = signal<FileUploadProgress | null>(null);
   private readonly _isUploading = signal<boolean>(false);
+  
+  // Julia API data storage
+  private readonly _juliaData = signal<any>(null);
 
   // Public readonly signals
   readonly currentSession = this._currentSession.asReadonly();
@@ -54,6 +57,7 @@ export class GlobalStateService {
   readonly monteCarloResults = this._monteCarloResults.asReadonly();
   readonly uploadProgress = this._uploadProgress.asReadonly();
   readonly isUploading = this._isUploading.asReadonly();
+  readonly juliaData = this._juliaData.asReadonly();
 
   // Computed signals for derived state
   readonly hasNetworkData = computed(() => this._networkGraph() !== null);
@@ -238,6 +242,15 @@ export class GlobalStateService {
 
   setUploading(uploading: boolean): void {
     this._isUploading.set(uploading);
+  }
+
+  // Julia data methods
+  setJuliaData(data: any): void {
+    this._juliaData.set(data);
+  }
+
+  getJuliaData(): any {
+    return this._juliaData();
   }
 
   // Private helper methods
