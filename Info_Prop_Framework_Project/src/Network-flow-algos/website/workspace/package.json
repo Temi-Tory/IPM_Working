@@ -17,7 +17,12 @@
     "@types/d3": "^7.4.3",
     "d3": "^7.9.0",
     "d3-graphviz": "^5.6.0",
+    "graphology": "^0.26.0",
+    "graphology-layout": "^0.6.1",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "graphology-layout-noverlap": "^0.4.2",
     "rxjs": "~7.8.0",
+    "sigma": "^3.0.2",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
