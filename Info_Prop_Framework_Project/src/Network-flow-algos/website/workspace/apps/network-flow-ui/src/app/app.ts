@@ -49,11 +49,11 @@ export class App {
       icon: 'M4 7v10c0 2.21 3.79 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.79 4 8 4s8-1.79 8-4M4 7c0-2.21 3.79-4 8-4s8 1.79 8 4',
       description: 'Configure and upload network data'
     },
-    {
-      path: '/visualization',
-      label: 'Visualization',
-      icon: 'M3 3v18h18M7 16l4-4 4 4 6-6',
-      description: 'Analyze network flow patterns'
+        {
+      path: '/network-details',
+      label: 'Network Details',
+      icon: 'M11 2a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM21 21l-4.35-4.35',
+      description: 'View Graph Structure Details'
     }
   ];
 }

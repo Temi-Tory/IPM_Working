@@ -15,9 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@network-analysis/network-core": ["libs/network-core/src/index.ts"],
-      "@network-analysis/ui-components": ["libs/ui-components/src/index.ts"],
-      "@network-analysis/visualization": ["libs/visualization/src/index.ts"]
+      "@network-analysis/network-core": ["libs/network-core/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
