@@ -7,11 +7,10 @@ Each endpoint handles a single file upload via HTTP multipart/form-data.
 module FileUploadEndpoints
 
 using HTTP, JSON, Dates
-include(joinpath(@__DIR__, "..", "services", "SessionManager.jl"))
-include(joinpath(@__DIR__, "..", "services", "ResponseFormatter.jl"))
-
-using .SessionManager
-using .ResponseFormatter
+# SessionManager and ResponseFormatter are now included at the router level
+# Access them through the parent module
+using ..SessionManager
+using ..ResponseFormatter
 
 export handle_upload_network_structure, handle_upload_node_priors, handle_upload_link_probabilities,
        handle_session_status, handle_process_complete_network, parse_multipart_form_data
@@ -85,6 +84,10 @@ function parse_multipart_form_data(req::HTTP.Request)::Dict{String, Any}
                         result["filename"] = filename_match.captures[1]
                     end
                     result["file_content"] = content
+                elseif field_name == "filename"
+                    result["filename"] = strip(content)
+                elseif field_name == "file_content"
+                    result["file_content"] = content
                 elseif field_name == "session_id"
                     result["session_id"] = strip(content)
                 end
@@ -108,6 +111,18 @@ function handle_upload_network_structure(req::HTTP.Request)::HTTP.Response
         # Parse multipart form data
         form_data = parse_multipart_form_data(req)
         
+        # Debug: Print all form data keys
+        println("🔍 DEBUG: Form data keys: $(keys(form_data))")
+        for (key, value) in form_data
+            if key == "session_id"
+                println("🔍 DEBUG: session_id value: '$(value)' (type: $(typeof(value)))")
+            elseif key == "file_content"
+                println("🔍 DEBUG: file_content length: $(length(value))")
+            else
+                println("🔍 DEBUG: $key: $(value)")
+            end
+        end
+        
         # Validate required fields
         if !haskey(form_data, "file_content")
             return ResponseFormatter.format_error_response("No file uploaded", 400)
@@ -118,8 +133,12 @@ function handle_upload_network_structure(req::HTTP.Request)::HTTP.Response
         end
         
         session_id = String(form_data["session_id"])  # Convert to String to handle SubString
-        file_content = form_data["file_content"]
-        filename = get(form_data, "filename", "network_structure.edge")
+        file_content = String(form_data["file_content"])  # Convert to String to handle SubString
+        filename = String(get(form_data, "filename", "network_structure.edge"))  # Convert to String
+        
+        println("🔍 DEBUG: Extracted session_id: '$session_id'")
+        println("🔍 DEBUG: Available sessions: $(keys(SessionManager.SESSIONS))")
+        println("🔍 DEBUG: file_content type: $(typeof(file_content))")
         
         # Validate file extension
         if !endswith(lowercase(filename), ".edge") && !endswith(lowercase(filename), ".EDGE")
@@ -127,8 +146,12 @@ function handle_upload_network_structure(req::HTTP.Request)::HTTP.Response
         end
         
         # Validate session exists
-        if SessionManager.get_session(session_id) === nothing
+        session_data = SessionManager.get_session(session_id)
+        if session_data === nothing
+            println("❌ DEBUG: Session validation failed for '$session_id'")
             return ResponseFormatter.format_error_response("Invalid session_id", 400)
+        else
+            println("✅ DEBUG: Session found for '$session_id'")
         end
         
         # Update session with file
@@ -176,6 +199,18 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         # Parse multipart form data
         form_data = parse_multipart_form_data(req)
         
+        # Debug: Print all form data keys
+        println("🔍 DEBUG: Form data keys: $(keys(form_data))")
+        for (key, value) in form_data
+            if key == "session_id"
+                println("🔍 DEBUG: session_id value: '$(value)' (type: $(typeof(value)))")
+            elseif key == "file_content"
+                println("🔍 DEBUG: file_content length: $(length(value))")
+            else
+                println("🔍 DEBUG: $key: $(value)")
+            end
+        end
+        
         # Validate required fields
         if !haskey(form_data, "file_content")
             return ResponseFormatter.format_error_response("No file uploaded", 400)
@@ -186,8 +221,12 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         end
         
         session_id = String(form_data["session_id"])
-        file_content = form_data["file_content"]
-        filename = get(form_data, "filename", "nodepriors.json")
+        file_content = String(form_data["file_content"])  # Convert to String to handle SubString
+        filename = String(get(form_data, "filename", "nodepriors.json"))  # Convert to String
+        
+        println("🔍 DEBUG: Extracted session_id: '$session_id'")
+        println("🔍 DEBUG: Available sessions: $(keys(SessionManager.SESSIONS))")
+        println("🔍 DEBUG: file_content type: $(typeof(file_content))")
         
         # Validate file extension
         if !endswith(lowercase(filename), ".json")
@@ -202,8 +241,12 @@ function handle_upload_node_priors(req::HTTP.Request)::HTTP.Response
         end
         
         # Validate session exists
-        if SessionManager.get_session(session_id) === nothing
+        session_data = SessionManager.get_session(session_id)
+        if session_data === nothing
+            println("❌ DEBUG: Session validation failed for '$session_id'")
             return ResponseFormatter.format_error_response("Invalid session_id", 400)
+        else
+            println("✅ DEBUG: Session found for '$session_id'")
         end
         
         # Update session with file
@@ -263,8 +306,8 @@ function handle_upload_link_probabilities(req::HTTP.Request)::HTTP.Response
         end
         
         session_id = String(form_data["session_id"])
-        file_content = form_data["file_content"]
-        filename = get(form_data, "filename", "linkprobabilities.json")
+        file_content = String(form_data["file_content"])  # Convert to String to handle SubString
+        filename = String(get(form_data, "filename", "linkprobabilities.json"))  # Convert to String
         
         # Validate file extension
         if !endswith(lowercase(filename), ".json")

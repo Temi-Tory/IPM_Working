@@ -8,6 +8,17 @@ module EndpointRouter
 
 using HTTP, JSON, Dates
 
+# Import shared services first to ensure single instances
+include(joinpath(@__DIR__, "services", "SessionManager.jl"))
+include(joinpath(@__DIR__, "services", "ResponseFormatter.jl"))
+include(joinpath(@__DIR__, "services", "InputProcessingIntegration.jl"))
+include(joinpath(@__DIR__, "services", "NetworkService.jl"))
+
+using .SessionManager
+using .ResponseFormatter
+using .InputProcessingIntegration
+using .NetworkService
+
 # Import all endpoint handlers
 include(joinpath(@__DIR__, "endpoints", "ProcessInputEndpoint.jl"))
 include(joinpath(@__DIR__, "endpoints", "DiamondProcessingEndpoint.jl"))

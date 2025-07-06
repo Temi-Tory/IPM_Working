@@ -167,12 +167,36 @@ function delete_session(session_id::String)::Bool
     end
     
     try
-        # Clean up temporary directory
+        # Clean up temporary directory with Windows-compatible approach
         if isdir(session.temp_dir)
-            rm(session.temp_dir, recursive=true)
+            # First, try to remove individual files
+            try
+                for file in readdir(session.temp_dir)
+                    file_path = joinpath(session.temp_dir, file)
+                    if isfile(file_path)
+                        rm(file_path, force=true)
+                    end
+                end
+                # Then remove the directory
+                rm(session.temp_dir, recursive=true, force=true)
+            catch dir_error
+                # If directory removal fails, try alternative approach
+                println("⚠️ Standard cleanup failed, trying alternative approach: $dir_error")
+                try
+                    # Use system command as fallback for Windows
+                    if Sys.iswindows()
+                        run(`cmd /c rmdir /s /q $(session.temp_dir)`)
+                    else
+                        run(`rm -rf $(session.temp_dir)`)
+                    end
+                catch sys_error
+                    println("⚠️ System cleanup also failed: $sys_error")
+                    # Continue anyway - session will be removed from memory
+                end
+            end
         end
         
-        # Remove from sessions
+        # Remove from sessions (always do this even if file cleanup fails)
         delete!(SESSIONS, session_id)
         
         println("🗑️ Deleted session: $session_id")
@@ -180,6 +204,8 @@ function delete_session(session_id::String)::Bool
         
     catch e
         println("❌ Error deleting session $session_id: $e")
+        # Still remove from memory even if file cleanup failed
+        delete!(SESSIONS, session_id)
         return false
     end
 end

@@ -7,15 +7,12 @@ Uses InputProcessingModule's read_complete_network function.
 module CompleteNetworkEndpoint
 
 using HTTP, JSON, Dates
-include(joinpath(@__DIR__, "..", "services", "SessionManager.jl"))
-include(joinpath(@__DIR__, "..", "services", "InputProcessingIntegration.jl"))
-include(joinpath(@__DIR__, "..", "services", "ResponseFormatter.jl"))
-include(joinpath(@__DIR__, "..", "services", "NetworkService.jl"))
-
-using .SessionManager
-using .InputProcessingIntegration
-using .ResponseFormatter
-using .NetworkService
+# All services are now included at the router level
+# Access them through the parent module
+using ..SessionManager
+using ..InputProcessingIntegration
+using ..ResponseFormatter
+using ..NetworkService
 
 export handle_process_complete_network, handle_create_session
 
