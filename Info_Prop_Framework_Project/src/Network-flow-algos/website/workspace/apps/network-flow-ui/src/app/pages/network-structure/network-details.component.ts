@@ -9,11 +9,12 @@ import {
   NetworkEdge
 } from '../../../../../../libs/network-core/src';
 
-// Sigma.js types (we'll add this as a dependency)
+// Sigma.js and Graphology types
 declare global {
   interface Window {
     Sigma: any;
     Graph: any;
+    graphology: any;
   }
 }
 
@@ -143,14 +144,24 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
       this.destroyVisualization();
 
       // Check if Sigma is available
-      if (typeof window !== 'undefined' && window.Sigma && window.Graph) {
+      console.log('🔍 Checking library availability:', {
+        windowDefined: typeof window !== 'undefined',
+        Sigma: typeof window.Sigma,
+        Graph: typeof window.Graph,
+        graphology: typeof window.graphology
+      });
+
+      if (typeof window !== 'undefined' && window.Sigma && (window.Graph || window.graphology)) {
+        console.log('✅ Libraries already loaded, creating visualization');
         this.createSigmaVisualization();
       } else {
+        console.log('📦 Loading libraries dynamically...');
         // Load Sigma.js dynamically
         this.loadSigmaJS().then(() => {
+          console.log('✅ Libraries loaded successfully, creating visualization');
           this.createSigmaVisualization();
         }).catch(error => {
-          console.error('Failed to load Sigma.js:', error);
+          console.error('❌ Failed to load Sigma.js:', error);
           this.error.set('Failed to load visualization library');
         });
       }
@@ -162,12 +173,32 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
 
   private async loadSigmaJS(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Load Sigma.js from CDN
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/sigma@2.4.0/build/sigma.min.js';
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load Sigma.js'));
-      document.head.appendChild(script);
+      // Load Graphology first (required for Sigma.js v2.x)
+      const graphologyScript = document.createElement('script');
+      graphologyScript.src = 'https://unpkg.com/graphology@0.25.1/dist/graphology.umd.min.js';
+      graphologyScript.onload = () => {
+        console.log('✅ Graphology loaded successfully');
+        console.log('Available on window:', {
+          graphology: typeof window.graphology,
+          Graph: typeof (window as any).graphology?.Graph
+        });
+        
+        // Load Sigma.js after Graphology
+        const sigmaScript = document.createElement('script');
+        sigmaScript.src = 'https://unpkg.com/sigma@2.4.0/build/sigma.min.js';
+        sigmaScript.onload = () => {
+          console.log('✅ Sigma.js loaded successfully');
+          console.log('Available on window:', {
+            Sigma: typeof window.Sigma,
+            Graph: typeof window.Graph
+          });
+          resolve();
+        };
+        sigmaScript.onerror = () => reject(new Error('Failed to load Sigma.js'));
+        document.head.appendChild(sigmaScript);
+      };
+      graphologyScript.onerror = () => reject(new Error('Failed to load Graphology'));
+      document.head.appendChild(graphologyScript);
     });
   }
 
@@ -175,8 +206,29 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
     const networkData = this.networkGraph();
     if (!networkData || !this.sigmaContainer?.nativeElement) return;
 
-    // Create graph instance
-    this.graphInstance = new window.Graph();
+    console.log('🔍 Creating Sigma visualization...');
+    console.log('Available globals:', {
+      Sigma: typeof window.Sigma,
+      Graph: typeof window.Graph,
+      graphology: typeof window.graphology,
+      graphologyGraph: typeof (window as any).graphology?.Graph
+    });
+
+    // Create graph instance using correct API
+    try {
+      if (window.graphology && (window as any).graphology.Graph) {
+        console.log('✅ Using Graphology.Graph constructor');
+        this.graphInstance = new (window as any).graphology.Graph();
+      } else if (window.Graph) {
+        console.log('⚠️ Falling back to window.Graph constructor');
+        this.graphInstance = new window.Graph();
+      } else {
+        throw new Error('No Graph constructor available');
+      }
+    } catch (error) {
+      console.error('❌ Failed to create graph instance:', error);
+      throw error;
+    }
 
     // Add nodes
     networkData.nodes.forEach(node => {
@@ -189,12 +241,18 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
       });
     });
 
-    // Add edges
+    // Add edges - using correct Graphology API
     networkData.edges.forEach(edge => {
-      this.graphInstance.addEdge(edge.id, edge.source, edge.target, {
-        size: edge.weight ? Math.max(1, edge.weight * 5) : 2,
-        color: this.getEdgeColor(edge)
-      });
+      try {
+        this.graphInstance.addEdge(edge.source, edge.target, {
+          key: edge.id,  // Edge ID goes in attributes for Graphology
+          size: edge.weight ? Math.max(1, edge.weight * 5) : 2,
+          color: this.getEdgeColor(edge),
+          weight: edge.weight || 1
+        });
+      } catch (error) {
+        console.warn(`Failed to add edge ${edge.id}:`, error);
+      }
     });
 
     // Create Sigma instance
@@ -246,12 +304,21 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   private destroyVisualization(): void {
-    if (this.sigmaInstance) {
-      this.sigmaInstance.kill();
+    try {
+      if (this.sigmaInstance) {
+        console.log('🧹 Destroying Sigma instance');
+        this.sigmaInstance.kill();
+        this.sigmaInstance = null;
+      }
+      if (this.graphInstance) {
+        console.log('🧹 Clearing graph instance');
+        this.graphInstance.clear();
+        this.graphInstance = null;
+      }
+    } catch (error) {
+      console.warn('Error during visualization cleanup:', error);
+      // Force cleanup even if there are errors
       this.sigmaInstance = null;
-    }
-    if (this.graphInstance) {
-      this.graphInstance.clear();
       this.graphInstance = null;
     }
   }
@@ -308,61 +375,75 @@ export class NetworkDetailsComponent implements OnInit, OnDestroy, AfterViewInit
         const node1 = nodes[i];
         const node2 = nodes[j];
         
-        const x1 = this.graphInstance.getNodeAttribute(node1.id, 'x');
-        const y1 = this.graphInstance.getNodeAttribute(node1.id, 'y');
-        const x2 = this.graphInstance.getNodeAttribute(node2.id, 'x');
-        const y2 = this.graphInstance.getNodeAttribute(node2.id, 'y');
-        
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
-        
-        const force = 10 / (distance * distance);
-        const fx = (dx / distance) * force;
-        const fy = (dy / distance) * force;
-        
-        const force1 = forces.get(node1.id)!;
-        const force2 = forces.get(node2.id)!;
-        
-        force1.x -= fx;
-        force1.y -= fy;
-        force2.x += fx;
-        force2.y += fy;
+        try {
+          const x1 = this.graphInstance.getNodeAttribute(node1.id, 'x') || 0;
+          const y1 = this.graphInstance.getNodeAttribute(node1.id, 'y') || 0;
+          const x2 = this.graphInstance.getNodeAttribute(node2.id, 'x') || 0;
+          const y2 = this.graphInstance.getNodeAttribute(node2.id, 'y') || 0;
+          
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          
+          const force = 10 / (distance * distance);
+          const fx = (dx / distance) * force;
+          const fy = (dy / distance) * force;
+          
+          const force1 = forces.get(node1.id)!;
+          const force2 = forces.get(node2.id)!;
+          
+          force1.x -= fx;
+          force1.y -= fy;
+          force2.x += fx;
+          force2.y += fy;
+        } catch (error) {
+          console.warn(`Error calculating forces for nodes ${node1.id}, ${node2.id}:`, error);
+        }
       }
     }
 
     // Attractive forces for connected nodes
     edges.forEach(edge => {
-      const x1 = this.graphInstance.getNodeAttribute(edge.source, 'x');
-      const y1 = this.graphInstance.getNodeAttribute(edge.source, 'y');
-      const x2 = this.graphInstance.getNodeAttribute(edge.target, 'x');
-      const y2 = this.graphInstance.getNodeAttribute(edge.target, 'y');
-      
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
-      
-      const force = distance * 0.01;
-      const fx = (dx / distance) * force;
-      const fy = (dy / distance) * force;
-      
-      const force1 = forces.get(edge.source)!;
-      const force2 = forces.get(edge.target)!;
-      
-      force1.x += fx;
-      force1.y += fy;
-      force2.x -= fx;
-      force2.y -= fy;
+      try {
+        const x1 = this.graphInstance.getNodeAttribute(edge.source, 'x') || 0;
+        const y1 = this.graphInstance.getNodeAttribute(edge.source, 'y') || 0;
+        const x2 = this.graphInstance.getNodeAttribute(edge.target, 'x') || 0;
+        const y2 = this.graphInstance.getNodeAttribute(edge.target, 'y') || 0;
+        
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const distance = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        
+        const force = distance * 0.01;
+        const fx = (dx / distance) * force;
+        const fy = (dy / distance) * force;
+        
+        const force1 = forces.get(edge.source)!;
+        const force2 = forces.get(edge.target)!;
+        
+        if (force1 && force2) {
+          force1.x += fx;
+          force1.y += fy;
+          force2.x -= fx;
+          force2.y -= fy;
+        }
+      } catch (error) {
+        console.warn(`Error calculating forces for edge ${edge.id}:`, error);
+      }
     });
 
     // Apply forces
     nodes.forEach(node => {
-      const force = forces.get(node.id)!;
-      const currentX = this.graphInstance.getNodeAttribute(node.id, 'x');
-      const currentY = this.graphInstance.getNodeAttribute(node.id, 'y');
-      
-      this.graphInstance.setNodeAttribute(node.id, 'x', currentX + force.x * 0.1);
-      this.graphInstance.setNodeAttribute(node.id, 'y', currentY + force.y * 0.1);
+      try {
+        const force = forces.get(node.id)!;
+        const currentX = this.graphInstance.getNodeAttribute(node.id, 'x') || 0;
+        const currentY = this.graphInstance.getNodeAttribute(node.id, 'y') || 0;
+        
+        this.graphInstance.setNodeAttribute(node.id, 'x', currentX + force.x * 0.1);
+        this.graphInstance.setNodeAttribute(node.id, 'y', currentY + force.y * 0.1);
+      } catch (error) {
+        console.warn(`Error applying forces to node ${node.id}:`, error);
+      }
     });
   }
 
