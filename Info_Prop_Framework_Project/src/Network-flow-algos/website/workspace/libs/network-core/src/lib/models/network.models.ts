@@ -88,11 +88,19 @@ export interface DiamondNode {
   diamondStructures: DiamondStructure[];  // Diamonds this node participates in
 }
 
+export interface DiamondClassification {
+  joinNode: number;
+  internalStructure: 'SEQUENTIAL' | 'INTERCONNECTED' | 'NESTED';
+  pathTopology?: string;
+  complexityScore?: number;
+}
+
 export interface DiamondAnalysisResult {
   sessionId: string;
   networkId: string;
   nodes: DiamondNode[];
   diamondStructures: DiamondStructure[];  // All diamond structures found
+  diamondClassifications?: DiamondClassification[];  // Classification results from API
   summary: {
     sourceCount: number;
     sinkCount: number;

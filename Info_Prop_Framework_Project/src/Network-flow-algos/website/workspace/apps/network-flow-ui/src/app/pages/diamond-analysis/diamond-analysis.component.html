@@ -80,6 +80,97 @@
     <!-- Analysis Results -->
     @if (diamondAnalysis() && !isLoading()) {
       
+      <!-- User Data Utilization Status -->
+      @if (userDataStatus()) {
+        <div class="user-data-section">
+          <h2>📊 Data Utilization Status</h2>
+          <div class="data-status-grid">
+            <div class="status-card" [class.active]="userDataStatus()!.networkUploaded">
+              <div class="status-icon">🌐</div>
+              <div class="status-label">Network Data</div>
+              <div class="status-value">{{ userDataStatus()!.networkUploaded ? 'Loaded' : 'Missing' }}</div>
+            </div>
+            <div class="status-card" [class.active]="userDataStatus()!.hasNodePriors">
+              <div class="status-icon">🎯</div>
+              <div class="status-label">Node Priors</div>
+              <div class="status-value">{{ userDataStatus()!.hasNodePriors ? 'Applied' : 'Not Applied' }}</div>
+            </div>
+            <div class="status-card" [class.active]="userDataStatus()!.hasEdgeProbabilities">
+              <div class="status-icon">🔗</div>
+              <div class="status-label">Edge Probabilities</div>
+              <div class="status-value">{{ userDataStatus()!.hasEdgeProbabilities ? 'Applied' : 'Not Applied' }}</div>
+            </div>
+            <div class="status-card" [class.active]="userDataStatus()!.analysisComplete">
+              <div class="status-icon">✅</div>
+              <div class="status-label">Analysis</div>
+              <div class="status-value">{{ userDataStatus()!.analysisComplete ? 'Complete' : 'Pending' }}</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Diamond Classifications (SEQUENTIAL, INTERCONNECTED, NESTED) -->
+      @if (diamondClassifications()) {
+        <div class="diamond-types-section">
+          <h2>💎 Diamond Structure Classifications</h2>
+          <div class="diamond-types-grid">
+            <div class="type-card sequential">
+              <div class="type-header">
+                <h3>Sequential Diamonds</h3>
+                <span class="type-count">{{ diamondClassifications()!.SEQUENTIAL.length }}</span>
+              </div>
+              <p class="type-description">Simple linear diamond structures with single convergence points</p>
+              @if (diamondClassifications()!.SEQUENTIAL.length > 0) {
+                <div class="type-nodes">
+                  @for (nodeId of diamondClassifications()!.SEQUENTIAL.slice(0, 5); track nodeId) {
+                    <span class="node-chip sequential">{{ nodeId }}</span>
+                  }
+                  @if (diamondClassifications()!.SEQUENTIAL.length > 5) {
+                    <span class="more-nodes">+{{ diamondClassifications()!.SEQUENTIAL.length - 5 }} more</span>
+                  }
+                </div>
+              }
+            </div>
+            
+            <div class="type-card interconnected">
+              <div class="type-header">
+                <h3>Interconnected Diamonds</h3>
+                <span class="type-count">{{ diamondClassifications()!.INTERCONNECTED.length }}</span>
+              </div>
+              <p class="type-description">Complex diamond structures with multiple interconnected paths</p>
+              @if (diamondClassifications()!.INTERCONNECTED.length > 0) {
+                <div class="type-nodes">
+                  @for (nodeId of diamondClassifications()!.INTERCONNECTED.slice(0, 5); track nodeId) {
+                    <span class="node-chip interconnected">{{ nodeId }}</span>
+                  }
+                  @if (diamondClassifications()!.INTERCONNECTED.length > 5) {
+                    <span class="more-nodes">+{{ diamondClassifications()!.INTERCONNECTED.length - 5 }} more</span>
+                  }
+                </div>
+              }
+            </div>
+            
+            <div class="type-card nested">
+              <div class="type-header">
+                <h3>Nested Diamonds</h3>
+                <span class="type-count">{{ diamondClassifications()!.NESTED.length }}</span>
+              </div>
+              <p class="type-description">Hierarchical diamond structures with embedded sub-diamonds</p>
+              @if (diamondClassifications()!.NESTED.length > 0) {
+                <div class="type-nodes">
+                  @for (nodeId of diamondClassifications()!.NESTED.slice(0, 5); track nodeId) {
+                    <span class="node-chip nested">{{ nodeId }}</span>
+                  }
+                  @if (diamondClassifications()!.NESTED.length > 5) {
+                    <span class="more-nodes">+{{ diamondClassifications()!.NESTED.length - 5 }} more</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+      
       <!-- Diamond Statistics Overview -->
       <div class="statistics-section">
         <h2>Diamond Analysis Overview</h2>
@@ -225,6 +316,11 @@
                 <h4>Join Node {{ diamond.joinNodeId }}</h4>
                 <div class="diamond-badges">
                   <span class="badge diamond-count">{{ diamond.diamondCount }} Diamond{{ diamond.diamondCount !== 1 ? 's' : '' }}</span>
+                  @if (getDiamondClassification(diamond.joinNodeId)) {
+                    <span class="badge classification-badge-small" [class]="getDiamondClassification(diamond.joinNodeId)!.toLowerCase()">
+                      {{ getDiamondClassification(diamond.joinNodeId) }}
+                    </span>
+                  }
                 </div>
               </div>
               
@@ -393,7 +489,15 @@
   <div class="modal-overlay" (click)="closeDiamondDetails()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Diamond Details - Join Node {{ selectedDiamond()!.joinNodeId }}</h3>
+        <div class="modal-title-section">
+          <h3>Diamond Details - Join Node {{ selectedDiamond()!.joinNodeId }}</h3>
+          @if (getDiamondClassification(selectedDiamond()!.joinNodeId)) {
+            <div class="classification-badge" [class]="getDiamondClassification(selectedDiamond()!.joinNodeId)!.toLowerCase()">
+              <span class="classification-icon">💎</span>
+              <span class="classification-text">{{ getDiamondClassification(selectedDiamond()!.joinNodeId) }}</span>
+            </div>
+          }
+        </div>
         <button class="modal-close" (click)="closeDiamondDetails()">×</button>
       </div>
       
@@ -417,6 +521,23 @@
               <span class="value join-node">{{ selectedDiamond()!.joinNodeId }}</span>
             </div>
           </div>
+
+          <!-- Diamond Classification Information -->
+          @if (getDiamondClassification(selectedDiamond()!.joinNodeId)) {
+            <div class="classification-section">
+              <h4>🏷️ Diamond Classification</h4>
+              <div class="classification-details">
+                <div class="classification-type">
+                  <span class="type-badge" [class]="getDiamondClassification(selectedDiamond()!.joinNodeId)!.toLowerCase()">
+                    {{ getDiamondClassification(selectedDiamond()!.joinNodeId) }}
+                  </span>
+                </div>
+                <div class="classification-description">
+                  <p>{{ getClassificationDescription(getDiamondClassification(selectedDiamond()!.joinNodeId)!) }}</p>
+                </div>
+              </div>
+            </div>
+          }
           
           <!-- Graph Structure Information -->
           <div class="graph-structure-section">

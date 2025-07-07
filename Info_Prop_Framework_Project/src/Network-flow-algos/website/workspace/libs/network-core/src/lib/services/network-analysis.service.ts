@@ -10,8 +10,10 @@ import {
   DiamondAnalysisResult,
   DiamondNode,
   DiamondStructure,
+  DiamondClassification,
   ReachabilityQuery,
   ReachabilityResult,
+  ReachabilityPath,
   MonteCarloConfig,
   MonteCarloResult,
   ApiResponse,
@@ -44,6 +46,9 @@ export class NetworkAnalysisService {
         this.globalState.setUploading(true);
         this.globalState.setUploadProgress(null);
 
+        // Log validation data being sent to verify user data is included
+        this.logDataValidation('Network Upload', juliaData);
+
         return this.http.post<any>(`${this.baseUrl}/processinput`, juliaData).pipe(
           map(response => this.transformJuliaResponse(response, request.probabilityType)),
           tap(uploadResponse => {
@@ -51,6 +56,13 @@ export class NetworkAnalysisService {
               // Create a session ID from timestamp since Julia doesn't provide one
               const sessionId = `session_${Date.now()}`;
               const networkId = `network_${Date.now()}`;
+              
+              console.log('✅ Network upload completed:', {
+                sessionId,
+                networkId,
+                probabilityType: request.probabilityType,
+                networkSummary: uploadResponse.networkSummary
+              });
               
               this.globalState.createSession(sessionId, networkId, request.probabilityType);
               
@@ -85,9 +97,20 @@ export class NetworkAnalysisService {
       return throwError(() => new Error('No network data available'));
     }
     
+    // Log validation data being sent to verify user data is included
+    this.logDataValidation('Network Structure', juliaData);
+    
     return this.http.post<any>(`${this.baseUrl}/processinput`, juliaData).pipe(
       map(response => this.transformNetworkResponse(response)),
       tap(networkGraph => {
+        console.log('✅ Network structure loaded:', {
+          sessionId,
+          nodeCount: networkGraph.nodes.length,
+          edgeCount: networkGraph.edges.length,
+          directed: networkGraph.directed,
+          metadata: networkGraph.metadata
+        });
+        
         this.globalState.setNetworkGraph(networkGraph);
         this.globalState.setLoading(false);
       }),
@@ -100,7 +123,7 @@ export class NetworkAnalysisService {
   }
 
   /**
-   * Perform diamond processing and classification analysis
+   * Perform diamond processing analysis
    */
   performDiamondProcessing(sessionId: string): Observable<DiamondAnalysisResult> {
     this.globalState.setLoading(true);
@@ -113,10 +136,21 @@ export class NetworkAnalysisService {
       return throwError(() => new Error('No network data available'));
     }
     
+    // Log validation data being sent to verify user data is included
+    this.logDataValidation('Diamond Processing', juliaData);
+    
     return this.http.post<any>(`${this.baseUrl}/diamondprocessing`, juliaData).pipe(
-      tap(response => {
-        // Store the raw response for the component to process
-        this.globalState.setDiamondAnalysis(response as any);
+      map(response => this.transformDiamondResponse(response, sessionId)),
+      tap(result => {
+        console.log('✅ Diamond processing completed:', {
+          sessionId: result.sessionId,
+          diamondCount: result.summary.diamondCount,
+          joinNodeCount: result.summary.joinNodeCount,
+          nodeCount: result.nodes.length
+        });
+        
+        // Store the transformed response in global state
+        this.globalState.setDiamondAnalysis(result);
         this.globalState.setLoading(false);
       }),
       catchError(error => {
@@ -141,10 +175,28 @@ export class NetworkAnalysisService {
       return throwError(() => new Error('No network data available'));
     }
     
+    // Log validation data being sent to verify user data is included
+    this.logDataValidation('Diamond Classification', juliaData);
+    
     return this.http.post<any>(`${this.baseUrl}/diamondclassification`, juliaData).pipe(
-      tap(response => {
-        // Store the raw response for the component to process
-        this.globalState.setDiamondAnalysis(response as any);
+      map(response => this.transformDiamondResponse(response, sessionId)),
+      tap(result => {
+        console.log('✅ Diamond classification completed:', {
+          sessionId: result.sessionId,
+          diamondCount: result.summary.diamondCount,
+          joinNodeCount: result.summary.joinNodeCount,
+          nodeCount: result.nodes.length,
+          classificationsFound: result.diamondClassifications?.length || 0,
+          hasClassifications: result.diamondClassifications ? 'Yes' : 'No',
+          classificationBreakdown: result.diamondClassifications ?
+            result.diamondClassifications.reduce((acc: any, c) => {
+              acc[c.internalStructure] = (acc[c.internalStructure] || 0) + 1;
+              return acc;
+            }, {}) : 'None'
+        });
+        
+        // Store the transformed response in global state
+        this.globalState.setDiamondAnalysis(result);
         this.globalState.setLoading(false);
       }),
       catchError(error => {
@@ -157,11 +209,9 @@ export class NetworkAnalysisService {
 
   /**
    * Perform reachability analysis with belief propagation
+   * Note: Reachability analysis runs on ALL nodes and returns results for all nodes
    */
-  performReachabilityAnalysis(
-    sessionId: string,
-    query: ReachabilityQuery
-  ): Observable<ReachabilityResult> {
+  performReachabilityAnalysis(sessionId: string): Observable<ReachabilityResult> {
     this.globalState.setLoading(true);
     
     // Get the stored Julia data format
@@ -172,9 +222,19 @@ export class NetworkAnalysisService {
       return throwError(() => new Error('No network data available'));
     }
     
+    // Log validation data being sent to verify user data is included
+    this.logDataValidation('Reachability Analysis', juliaData);
+    
     return this.http.post<any>(`${this.baseUrl}/reachabilitymodule`, juliaData).pipe(
-      map(response => this.transformReachabilityResponse(response, sessionId, query)),
+      map(response => this.transformReachabilityResponse(response, sessionId)),
       tap(result => {
+        console.log('✅ Reachability analysis completed:', {
+          sessionId: result.sessionId,
+          pathCount: result.summary.pathCount,
+          nodesAnalyzed: (result as any).metadata?.nodesAnalyzed || 0,
+          totalNodes: (result as any).metadata?.totalNodes || 0
+        });
+        
         this.globalState.addReachabilityResult(result);
         this.globalState.setLoading(false);
       }),
@@ -228,12 +288,28 @@ export class NetworkAnalysisService {
       query
     };
     
+    // Log the Monte Carlo configuration being sent
+    console.log('🎲 Monte Carlo Analysis - Configuration:', {
+      sessionId,
+      config,
+      query,
+      timestamp: new Date().toISOString()
+    });
+    
     return this.http.post<ApiResponse<MonteCarloResult>>(
       `${this.baseUrl}/montecarlo`,
       requestBody
     ).pipe(
       map(response => this.extractData(response)),
       tap(result => {
+        console.log('✅ Monte Carlo analysis completed:', {
+          sessionId: result.sessionId,
+          iterations: result.config.iterations,
+          convergenceAchieved: result.results.convergenceAchieved,
+          meanProbability: result.results.meanProbability,
+          processingTime: result.processingTime
+        });
+        
         this.globalState.addMonteCarloResult(result);
         this.globalState.setLoading(false);
       }),
@@ -424,6 +500,22 @@ export class NetworkAnalysisService {
     const diamondStructures = diamondData?.diamondStructures || {};
     const diamondCount = diamondData?.diamondCount || 0;
     
+    // Extract diamond classifications from API response
+    const rawClassifications = diamondData?.diamondClassifications || [];
+    const diamondClassifications: DiamondClassification[] = rawClassifications.map((classification: any) => ({
+      joinNode: classification.joinNode,
+      internalStructure: classification.internalStructure,
+      pathTopology: classification.pathTopology,
+      complexityScore: classification.complexityScore
+    }));
+    
+    // Log classification data extraction for validation
+    console.log('🔍 Diamond Classification Data Extraction:', {
+      rawClassificationsCount: rawClassifications.length,
+      transformedClassifications: diamondClassifications,
+      sampleClassification: diamondClassifications[0] || 'None found'
+    });
+    
     // Transform Julia diamond structures (1-indexed) to Angular format (0-indexed)
     const transformedDiamondStructures: DiamondStructure[] = [];
     const joinNodeIds = new Set<string>();
@@ -521,6 +613,7 @@ export class NetworkAnalysisService {
       networkId: `network_${Date.now()}`,
       nodes,
       diamondStructures: transformedDiamondStructures,
+      diamondClassifications, // Include the extracted classification data
       summary: {
         sourceCount: sourceNodes.length,
         sinkCount: sinkNodes.length,
@@ -536,25 +629,96 @@ export class NetworkAnalysisService {
   /**
    * Transform Julia reachability response to Angular format
    */
-  private transformReachabilityResponse(juliaResponse: any, sessionId: string, query: ReachabilityQuery): ReachabilityResult {
-    // Julia returns: { success, endpointType, data: { results, networkData, ... }, timestamp }
+  private transformReachabilityResponse(juliaResponse: any, sessionId: string): ReachabilityResult {
+    // Julia returns: { success, endpointType, data: { results, networkData, analysisMetadata, summary, ... }, timestamp }
     
-    const results = juliaResponse.data?.results || {};
+    console.log('🔍 Transforming reachability response:', {
+      success: juliaResponse.success,
+      endpointType: juliaResponse.endpointType,
+      dataKeys: Object.keys(juliaResponse.data || {}),
+      resultsType: typeof juliaResponse.data?.results,
+      resultsKeys: juliaResponse.data?.results ? Object.keys(juliaResponse.data.results) : 'No results'
+    });
+    
+    const data = juliaResponse.data || {};
+    const results = data.results || {};
+    const summary = data.summary || {};
+    const analysisMetadata = data.analysisMetadata || {};
+    
+    // Transform results - Julia returns results for all nodes
+    const paths: ReachabilityPath[] = [];
+    let totalNodes = 0;
+    let totalProbabilitySum = 0;
+    const pathLengths: number[] = [];
+    
+    // Process results object which contains reachability data for all nodes
+    if (typeof results === 'object' && results !== null) {
+      Object.keys(results).forEach(nodeId => {
+        const nodeResults = results[nodeId];
+        if (nodeResults && typeof nodeResults === 'object') {
+          totalNodes++;
+          
+          // Extract reachability paths for this node
+          if (nodeResults.paths && Array.isArray(nodeResults.paths)) {
+            nodeResults.paths.forEach((pathData: any) => {
+              const pathLength = pathData.path ? pathData.path.length : 1;
+              const probability = pathData.probability || 0;
+              
+              paths.push({
+                path: pathData.path || [nodeId],
+                probability: probability,
+                length: pathLength
+              });
+              
+              pathLengths.push(pathLength);
+              if (typeof probability === 'number') {
+                totalProbabilitySum += probability;
+              }
+            });
+          } else {
+            // If no specific paths, create a single-node path
+            paths.push({
+              path: [nodeId],
+              probability: nodeResults.probability || 0,
+              length: 1
+            });
+            pathLengths.push(1);
+            if (typeof nodeResults.probability === 'number') {
+              totalProbabilitySum += nodeResults.probability;
+            }
+          }
+        }
+      });
+    }
+    
+    // Calculate summary statistics
+    const pathCount = paths.length;
+    const averageLength = pathLengths.length > 0 ? pathLengths.reduce((a, b) => a + b, 0) / pathLengths.length : 0;
+    const maxLength = pathLengths.length > 0 ? Math.max(...pathLengths) : 0;
+    const minLength = pathLengths.length > 0 ? Math.min(...pathLengths) : 0;
     
     return {
       sessionId,
       networkId: `network_${Date.now()}`,
-      query,
-      paths: [], // Would need to transform from Julia results
-      totalProbability: 0, // Would need to extract from Julia results
+      query: { sourceNodes: [], targetNodes: [] }, // No specific query since it runs on all nodes
+      paths,
+      totalProbability: totalProbabilitySum,
       summary: {
-        pathCount: 0,
-        averageLength: 0,
-        maxLength: 0,
-        minLength: 0
+        pathCount,
+        averageLength,
+        maxLength,
+        minLength
       },
-      processingTime: 0
-    };
+      processingTime: analysisMetadata.processingTime || 0,
+      metadata: {
+        analysisType: analysisMetadata.analysisType || 'reachability',
+        iterationSets: analysisMetadata.iterationSets || 0,
+        resultsGenerated: summary.resultsGenerated || totalNodes,
+        totalNodes,
+        nodesAnalyzed: analysisMetadata.nodesAnalyzed || totalNodes,
+        diamondsProcessed: analysisMetadata.diamondsProcessed || 0
+      }
+    } as ReachabilityResult & { metadata: any };
   }
 
   /**
@@ -682,5 +846,102 @@ export class NetworkAnalysisService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Log validation data being sent to verify user data is included
+   */
+  private logDataValidation(operation: string, juliaData: any): void {
+    console.log(`🔍 ${operation} - Data validation:`, {
+      operation,
+      hasCSVContent: !!juliaData.csvContent,
+      csvContentLength: juliaData.csvContent?.length || 0,
+      hasNodePriors: !!juliaData.nodePriors && Object.keys(juliaData.nodePriors).length > 0,
+      nodePriorsCount: juliaData.nodePriors ? Object.keys(juliaData.nodePriors).length : 0,
+      hasEdgeProbabilities: !!juliaData.edgeProbabilities && Object.keys(juliaData.edgeProbabilities).length > 0,
+      edgeProbabilitiesCount: juliaData.edgeProbabilities ? Object.keys(juliaData.edgeProbabilities).length : 0,
+      dataKeys: Object.keys(juliaData || {}),
+      timestamp: new Date().toISOString()
+    });
+
+    // Validate that user-uploaded data is present
+    if (!juliaData.csvContent) {
+      console.warn(`⚠️ ${operation} - Missing network CSV content`);
+    }
+    
+    if (juliaData.nodePriors && Object.keys(juliaData.nodePriors).length === 0) {
+      console.warn(`⚠️ ${operation} - Node priors object is empty`);
+    }
+    
+    if (juliaData.edgeProbabilities && Object.keys(juliaData.edgeProbabilities).length === 0) {
+      console.warn(`⚠️ ${operation} - Edge probabilities object is empty`);
+    }
+
+    // Log sample of user data (first few entries for verification)
+    if (juliaData.nodePriors && Object.keys(juliaData.nodePriors).length > 0) {
+      const sampleNodePriors = Object.keys(juliaData.nodePriors).slice(0, 3).reduce((acc: any, key) => {
+        acc[key] = juliaData.nodePriors[key];
+        return acc;
+      }, {});
+      console.log(`📊 ${operation} - Sample node priors:`, sampleNodePriors);
+    }
+
+    if (juliaData.edgeProbabilities && Object.keys(juliaData.edgeProbabilities).length > 0) {
+      const sampleEdgeProbs = Object.keys(juliaData.edgeProbabilities).slice(0, 3).reduce((acc: any, key) => {
+        acc[key] = juliaData.edgeProbabilities[key];
+        return acc;
+      }, {});
+      console.log(`📊 ${operation} - Sample edge probabilities:`, sampleEdgeProbs);
+    }
+  }
+
+  /**
+   * Enhanced transformer for diamond analysis responses
+   */
+  private transformDiamondAnalysisResponse(juliaResponse: any, sessionId: string): DiamondAnalysisResult {
+    console.log('🔄 Transforming diamond analysis response:', {
+      success: juliaResponse.success,
+      endpointType: juliaResponse.endpointType,
+      dataKeys: Object.keys(juliaResponse.data || {}),
+      diamondDataKeys: juliaResponse.data?.diamondData ? Object.keys(juliaResponse.data.diamondData) : 'No diamondData'
+    });
+
+    // Use the existing transformDiamondResponse method but with enhanced logging
+    const result = this.transformDiamondResponse(juliaResponse, sessionId);
+    
+    console.log('✅ Diamond analysis transformation completed:', {
+      sessionId: result.sessionId,
+      networkId: result.networkId,
+      totalNodes: result.nodes.length,
+      diamondStructures: result.diamondStructures.length,
+      summary: result.summary
+    });
+
+    return result;
+  }
+
+  /**
+   * Enhanced transformer for reachability analysis responses
+   */
+  private transformReachabilityAnalysisResponse(juliaResponse: any, sessionId: string): ReachabilityResult {
+    console.log('🔄 Transforming reachability analysis response:', {
+      success: juliaResponse.success,
+      endpointType: juliaResponse.endpointType,
+      dataKeys: Object.keys(juliaResponse.data || {}),
+      resultsType: typeof juliaResponse.data?.results,
+      resultsKeys: juliaResponse.data?.results ? Object.keys(juliaResponse.data.results) : 'No results'
+    });
+
+    // Use the existing transformReachabilityResponse method but with enhanced logging
+    const result = this.transformReachabilityResponse(juliaResponse, sessionId);
+    
+    console.log('✅ Reachability analysis transformation completed:', {
+      sessionId: result.sessionId,
+      networkId: result.networkId,
+      pathCount: result.summary.pathCount,
+      metadata: (result as any).metadata
+    });
+
+    return result;
   }
 }

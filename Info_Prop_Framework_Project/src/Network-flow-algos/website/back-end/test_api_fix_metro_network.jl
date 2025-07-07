@@ -8,8 +8,7 @@ using HTTP, JSON
 
 # Load the actual metro network data
 function load_metro_data(prob_type::String)
-    # Read edge file
-    edge_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/metro_directed_dag_for_ipm.edge", String)
+   edge_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/metro_directed_dag_for_ipm.edge", String)
     
     # Read node priors
     node_priors_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-nodepriors.json", String)
@@ -18,6 +17,7 @@ function load_metro_data(prob_type::String)
     # Read edge probabilities
     edge_probs_content = read("back-end/dag_ntwrk_files/metro_directed_dag_for_ipm/$prob_type/metro_directed_dag_for_ipm-linkprobabilities.json", String)
     edge_probs = JSON.parse(edge_probs_content)
+    
     
     println("📁 Loaded data for $prob_type:")
     println("   Edge file size: $(length(edge_content)) characters")
@@ -51,6 +51,17 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
             # Print full response structure for analysis
             println("📋 Full Response Structure:")
             println("   Top-level keys: $(collect(keys(result)))")
+            
+            # Print raw JSON for first few lines to see structure
+            json_str = JSON.json(result, 2)  # Pretty print with 2-space indent
+            lines = split(json_str, '\n')
+            println("📄 Raw JSON Response (first 20 lines):")
+            for (i, line) in enumerate(lines[1:min(20, length(lines))])
+                println("   $i: $line")
+            end
+            if length(lines) > 20
+                println("   ... ($(length(lines) - 20) more lines)")
+            end
             
             # Extract key metrics
             if haskey(result, "data")
@@ -98,7 +109,15 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
                                             println("   First diamond keys: $(collect(keys(first_diamond)))")
                                             for key in keys(first_diamond)
                                                 value = first_diamond[key]
-                                                println("     $key: $(value) (type: $(typeof(value)))")
+                                                if key == "relevantNodes" && isa(value, Array)
+                                                    println("     $key: $(value[1:min(5, length(value))]) (first 5 of $(length(value)) nodes)")
+                                                elseif key == "edgeList" && isa(value, Array)
+                                                    println("     $key: $(value[1:min(3, length(value))]) (first 3 of $(length(value)) edges)")
+                                                elseif key == "highestNodes" && isa(value, Array)
+                                                    println("     $key: $value ($(length(value)) nodes)")
+                                                else
+                                                    println("     $key: $(value) (type: $(typeof(value)))")
+                                                end
                                             end
                                         else
                                             println("   First diamond content: $(first_diamond)")
@@ -113,11 +132,28 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
                 end
                 
                 if haskey(data_section, "diamondClassifications")
-                    classifications = get(data_section, "diamondClassifications", [])
-                    class_count = length(classifications)
-                    println("   Classifications count: $class_count")
-                    if class_count > 0
-                        println("   First classification keys: $(collect(keys(classifications[1])))")
+                    classifications = data_section["diamondClassifications"]
+                    println("   Diamond Classifications:")
+                    println("   Classifications type: $(typeof(classifications))")
+                    
+                    if isa(classifications, Dict)
+                        println("   Classification keys (node IDs): $(collect(keys(classifications))[1:min(10, length(classifications))])")
+                        
+                        # Print first few classifications as examples
+                        for (i, node_id) in enumerate(collect(keys(classifications))[1:min(5, length(classifications))])
+                            classification = classifications[node_id]
+                            println("   Node $node_id: $classification (type: $(typeof(classification)))")
+                        end
+                    elseif isa(classifications, Array)
+                        println("   Classifications array length: $(length(classifications))")
+                        if length(classifications) > 0
+                            println("   First classification: $(classifications[1]) (type: $(typeof(classifications[1])))")
+                            if isa(classifications[1], Dict)
+                                println("   First classification keys: $(collect(keys(classifications[1])))")
+                            end
+                        end
+                    else
+                        println("   Classifications content: $classifications")
                     end
                 end
                 
@@ -129,7 +165,42 @@ function test_endpoint(endpoint::String, data::Dict, prob_type::String)
                 
                 if haskey(data_section, "reachabilityResults")
                     reach_data = data_section["reachabilityResults"]
-                    println("   Reachability results keys: $(collect(keys(reach_data)))")
+                    println("   Reachability Results:")
+                    println("   Reachability data type: $(typeof(reach_data))")
+                    println("   Reachability data keys: $(collect(keys(reach_data)))")
+                    
+                    # Print detailed structure of reachability results
+                    for key in keys(reach_data)
+                        value = reach_data[key]
+                        println("   $key: $(typeof(value))")
+                        
+                        if key == "paths" && isa(value, Array)
+                            println("     Paths array length: $(length(value))")
+                            if length(value) > 0
+                                first_path = value[1]
+                                println("     First path type: $(typeof(first_path))")
+                                if isa(first_path, Dict)
+                                    println("     First path keys: $(collect(keys(first_path)))")
+                                    for path_key in keys(first_path)
+                                        path_value = first_path[path_key]
+                                        println("       $path_key: $path_value (type: $(typeof(path_value)))")
+                                    end
+                                else
+                                    println("     First path content: $first_path")
+                                end
+                            end
+                        elseif key == "totalProbability"
+                            println("     Total probability: $value")
+                        elseif key == "summary" && isa(value, Dict)
+                            println("     Summary keys: $(collect(keys(value)))")
+                            for summary_key in keys(value)
+                                summary_value = value[summary_key]
+                                println("       $summary_key: $summary_value")
+                            end
+                        else
+                            println("     Content: $value")
+                        end
+                    end
                 end
             end
             
