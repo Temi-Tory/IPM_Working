@@ -361,8 +361,8 @@ module ReachabilityModule
                 if haskey(diamond_structures, node)
                     structure = diamond_structures[node]
                     
-                    # Calculate beliefs from diamond groups
-                    diamond_belief = calculate_diamond_groups_belief(
+                    # Calculate beliefs from diamond groups (now returns array of beliefs)
+                    diamond_beliefs = calculate_diamond_groups_belief(
                         structure,
                         belief_dict,
                         link_probability,
@@ -370,7 +370,7 @@ module ReachabilityModule
                         cache
                     )
                     
-                    push!(all_beliefs, diamond_belief)
+                    append!(all_beliefs, diamond_beliefs)
                     
                     # Handle non-diamond parents within the structure
                     if !isempty(structure.non_diamond_parents)
@@ -549,7 +549,8 @@ module ReachabilityModule
             fresh_sources,
             sub_fork_nodes,
             diamond.edgelist,
-            sub_node_priors
+            sub_node_priors,
+            sub_iteration_sets
         )
 
         # NEW: Use multi-conditioning approach
@@ -633,16 +634,23 @@ module ReachabilityModule
         cache::Dict{CacheKey, DiamondCacheEntry{T}}
     ) where {T <: Union{Float64, pbox, Interval}}
         join_node = diamond_structure.join_node
-        group_combined_beliefs = updateDiamondJoin(
-                diamond_structure.diamond.highest_nodes, 
+        
+        # Loop through all diamonds and collect beliefs
+        all_diamond_beliefs = T[]
+        for diamond in diamond_structure.diamond
+            diamond_belief = updateDiamondJoin(
+                diamond.highest_nodes,
                 join_node,
-                diamond_structure.diamond,
+                diamond,
                 link_probability,
                 node_priors,
                 belief_dict,
                 cache
             )
-        return group_combined_beliefs
+            push!(all_diamond_beliefs, diamond_belief)
+        end
+        
+        return all_diamond_beliefs
     end
 
      # Helper function to convert from original Float64 data to p-box data 

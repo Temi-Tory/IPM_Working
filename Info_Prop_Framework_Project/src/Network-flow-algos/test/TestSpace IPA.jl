@@ -15,12 +15,14 @@ using .IPAFramework
 # Choose your network - uncomment one:
 
 #network_name = "layereddiamond_3"
-#network_name = "KarlNetwork"
+network_name = "KarlNetwork"
 #network_name = "real_drone_network_integrated_adjacency"
-network_name = "grid_graph"  # 4 by 4 grid
+#network_name = "grid_graph"  # 4 by 4 grid
 #network_name = "Power Distribution Network"
 #network_name = "metro_directed_dag_for_ipm"
 #network_name = "ergo_proxy_dag_network"
+#network_name = "real_drone_network"
+
 
 # Choose data type - uncomment one:
 data_type = "float"
@@ -81,9 +83,25 @@ diamond_structures = identify_and_group_diamonds(
     source_nodes,
     fork_nodes,
     edgelist,
-    node_priors
-)
+    node_priors,
+    iteration_sets
+);
 
+#show(diamond_structures)
+#= 
+ diamond_structures2 = identify_and_group_diamonds_old(
+        join_nodes,
+        ancestors,
+        incoming_index,
+        source_nodes,
+        fork_nodes,
+        iteration_sets,
+        edgelist,
+        descendants,        
+        node_priors 
+    )
+        show(diamond_structures2)
+=#
 #Run belief propagation
 
 output = IPAFramework.update_beliefs_iterative(
@@ -99,4 +117,5 @@ output = IPAFramework.update_beliefs_iterative(
     diamond_structures, 
     join_nodes,
     fork_nodes
-)
+);
+#output[16] # expected output for KarlNetwork with float data type 0.7859147610807606
