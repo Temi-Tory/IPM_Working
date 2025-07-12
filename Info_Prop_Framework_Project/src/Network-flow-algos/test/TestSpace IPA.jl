@@ -74,6 +74,8 @@ fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_i
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
 
+#map!(x -> 1.0, values(node_priors));
+
 #Diamond structure analysis (if you have this function)
 diamond_structures = identify_and_group_diamonds(
     join_nodes,
