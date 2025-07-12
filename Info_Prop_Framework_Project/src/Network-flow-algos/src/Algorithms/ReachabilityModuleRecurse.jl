@@ -1,80 +1,3 @@
-"""
-
-    update_beliefs_iterative(...)
-
-    Main belief propagation algorithm using iterative processing of node sets.
-
-    # Floating Point Precision Considerations
-    This algorithm exhibits **recursive error propagation** in nested diamond structures:
-
-    - **Simple diamonds**: Normal floating point precision errors (~1e-15 to 1e-16)
-    - **Nested diamonds**: When diamond structures contain nodes that themselves have diamond 
-    structures, floating point errors propagate recursively through multiple levels of 
-    `updateDiamondJoin` → `update_beliefs_iterative` → `calculate_diamond_groups_belief` calls
-    - **Error accumulation**: Nodes with deeply nested diamond dependencies will show larger 
-    precision errors (e.g., ~1e-11) due to compound floating point operations across 
-    recursive diamond computations
-    - **Normal behavior**: This error propagation is expected and does not indicate algorithmic 
-    bugs - it's the natural consequence of complex recursive numerical computations
-
-    For nodes with multiple levels of diamond nesting, expect precision errors proportional 
-    to the depth and complexity of the recursive diamond structure.
-
-
-
-
-        updateDiamondJoin(conditioning_nodes, join_node, diamond, ...)
-
-    Processes a diamond structure by conditioning on all possible states of the diamond's 
-    highest nodes and computing weighted belief propagation.
-
-    # Recursive Diamond Processing Warning
-    This function is the primary source of **floating point error propagation** in nested 
-    diamond structures:
-
-    1. **Recursive calls**: When processing a diamond that contains nodes with their own 
-    diamond structures, this function recursively calls `update_beliefs_iterative`
-    2. **Error compounding**: Each recursive level introduces additional floating point 
-    operations (state enumeration, probability multiplications, inclusion-exclusion)
-    3. **Multiplicative effect**: Errors from inner diamonds get propagated and amplified 
-    through outer diamond computations
-    4. **Cache mitigation**: The caching mechanism helps reduce redundant computations but 
-    cannot eliminate the fundamental precision loss from recursive processing
-
-    Diamonds with 3+ levels of nesting may show precision errors in the 1e-11 range, 
-    which is normal and expected behavior.
-
-
-
-        calculate_diamond_groups_belief(diamond_structure, belief_dict, ...)
-
-    Entry point for diamond structure belief calculation. Delegates to `updateDiamondJoin` 
-    for the core computation.
-
-    # Note on Precision
-    This function initiates diamond processing which may involve recursive computations 
-    for nested diamond structures. See `updateDiamondJoin` documentation for details on 
-    floating point error propagation in complex diamond hierarchies.
-
-    The precision of results depends on the depth of diamond nesting:
-    - Level 1 (simple): ~1e-15 precision error
-    - Level 2+ (nested): ~1e-11 to 1e-13 precision error (still highly accurate)
-    
-
-        # ReachabilityModule - Future Development Roadmap
-
-        ## Immediate Next Steps
-        - [ ] Multi-state extension (working/failed/in-repair) using thread-per-state decomposition
-        - [ ] Performance benchmarking suite for different network topologies
-        - [ ] Memory optimization for large diamond structures (streaming/chunked processing)
-
-        ## Parallelization Strategy (Hierarchical)
-        - [ ] Level 1: Threading for multi-state (coarse-grained, longest tasks)
-        - [ ] Level 2: Async tasks for iteration sets (medium-grained, node batches)  
-        - [ ] Level 3: Batched async for diamond states (fine-grained, prevent explosion)
-        - [ ] Dynamic resource management based on problem size
-        - [ ] Fallback mechanisms for different hardware constraintsmodule 
- """
 module ReachabilityModule
 
     using Combinatorics
@@ -367,6 +290,9 @@ module ReachabilityModule
                         belief_dict,
                         link_probability,
                         node_priors,
+                        ancestors,
+                        descendants,
+                        iteration_sets,
                         cache
                     )
                     
@@ -476,6 +402,9 @@ module ReachabilityModule
         link_probability::Dict{Tuple{Int64,Int64},T},
         node_priors::Dict{Int64,T},
         belief_dict::Dict{Int64,T},
+        ancestors::Dict{Int64, Set{Int64}},
+        descendants::Dict{Int64, Set{Int64}},
+        iteration_sets::Vector{Set{Int64}},
         diamond_cache::Dict{CacheKey, DiamondCacheEntry{T}}
     ) where {T <: Union{Float64, pbox, Interval}}
 
@@ -502,29 +431,40 @@ module ReachabilityModule
             end
         end
         
-        # Calculate fresh iteration sets, ancestors, and descendants
-        sub_iteration_sets, sub_ancestors, sub_descendants = InputProcessingModule.find_iteration_sets(
-            diamond.edgelist, 
-            sub_outgoing_index, 
-            sub_incoming_index
-        )
-    
-        # Identify fork and join nodes using the fresh indices
-        sub_fork_nodes, sub_join_nodes = InputProcessingModule.identify_fork_and_join_nodes(
-            sub_outgoing_index, 
-            sub_incoming_index
-        )
-
-      
-
-        ##not needed anymore
-       #=  # Add sources that are also fork nodes in one step
-        for source in fresh_sources
-            if source in sub_fork_nodes && source ∉ fork_nodes
-                push!(conditioning_nodes, source)
+        #sub_fork_nodes = Set{Int64}() => nodes with more than one outgoing edge
+        sub_fork_nodes = Set{Int64}()
+        for (node, targets) in sub_outgoing_index
+            if length(targets) > 1
+                push!(sub_fork_nodes, node)
             end
-        end =#
-        
+        end
+        #sub_join_nodes = Set{Int64}() => nodes with more than one incoming edge
+        sub_join_nodes = Set{Int64}()
+        for (node, sources) in sub_incoming_index
+            if length(sources) > 1
+                push!(sub_join_nodes, node)
+            end
+        end
+
+        #create sub_ancestors and sub_descendants by filtering the original ancestors and descendants by relevnat nodes 
+        sub_ancestors = Dict{Int64, Set{Int64}}()
+        sub_descendants = Dict{Int64, Set{Int64}}()
+        for node in diamond.relevant_nodes            
+            # Filter ancestors and descendants to only include relevant nodes
+            sub_ancestors[node] = Set{Int64}(intersect(ancestors[node], diamond.relevant_nodes))
+            sub_descendants[node] = Set{Int64}(intersect(descendants[node], diamond.relevant_nodes))
+        end
+
+        #get fresh sub_iteration_sets by filtering the original iteration sets by relevant nodes and removing emty iter sets
+        sub_iteration_sets = Vector{Set{Int64}}()
+        for iter_set in iteration_sets
+            filtered_set = Set{Int64}(intersect(iter_set, diamond.relevant_nodes))
+            if !isempty(filtered_set)
+                push!(sub_iteration_sets, filtered_set)
+            end
+        end
+
+
         # Create sub_node_priors for the diamond nodes
         sub_node_priors = Dict{Int64, T}()
         for node in diamond.relevant_nodes
@@ -631,6 +571,9 @@ module ReachabilityModule
         belief_dict::Dict{Int64,T},
         link_probability::Dict{Tuple{Int64,Int64},T},
         node_priors::Dict{Int64,T},
+        ancestors::Dict{Int64, Set{Int64}},
+        descendants::Dict{Int64, Set{Int64}},
+        iteration_sets::Vector{Set{Int64}},
         cache::Dict{CacheKey, DiamondCacheEntry{T}}
     ) where {T <: Union{Float64, pbox, Interval}}
         join_node = diamond_structure.join_node
@@ -645,6 +588,9 @@ module ReachabilityModule
                 link_probability,
                 node_priors,
                 belief_dict,
+                ancestors,
+                descendants,
+                iteration_sets,
                 cache
             )
             push!(all_diamond_beliefs, diamond_belief)
