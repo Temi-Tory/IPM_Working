@@ -49,7 +49,7 @@ function write_network_probabilities_to_json_compact(
     node_priors::Dict{Int64, T},
     link_probabilities::Dict{Tuple{Int64, Int64}, T},
     data_type_name::String,
-    output_dir::String = "jsonfiles"
+    output_dir::String = "dag_ntwrk_files"
 ) where T <: Union{Float64, Interval, pbox}
     
     # Create network-specific folder structure
@@ -106,13 +106,13 @@ end
 """
     write_edgelist_to_file(edgelist::Vector{Tuple{Int64,Int64}}, network_name::String)
 
-Takes an edge list and writes it to a .edge file with source,destination header.
+Takes an edge list and writes it to a .EDGES file with source,destination header.
 """
-function write_edgelist_to_file(edgelist::Vector{Tuple{Int64,Int64}}, network_name::String, output_dir::String = "jsonfiles")
+function write_edgelist_to_file(edgelist::Vector{Tuple{Int64,Int64}}, network_name::String, output_dir::String = "dag_ntwrk_files")
     network_dir = joinpath(output_dir, network_name)
     mkpath(network_dir)
     
-    edge_filename = joinpath(network_dir, network_name * ".edge")
+    edge_filename = joinpath(network_dir, network_name * ".EDGES")
     
     open(edge_filename, "w") do file
         println(file, "source,destination")
@@ -222,13 +222,13 @@ function quick_process_all_types(probability_value::Float64 = 0.9)
     println()
     
     csv_files = [
-        "csvfiles/layereddiamond_3.csv",
+    #=     "csvfiles/layereddiamond_3.csv",
         "csvfiles/KarlNetwork.csv", 
         "csvfiles/real_drone_network_integrated_adjacency.csv",
         "csvfiles/16 NodeNetwork Adjacency matrix.csv",
         "csvfiles/Power Distribution Network.csv",
-        "csvfiles/metro_directed_dag_for_ipm.csv",
-        "csvfiles/ergo_proxy_dag_network.csv"
+        "csvfiles/metro_directed_dag_for_ipm.csv", =#
+        "csvfiles/munin/munin-dag.csv"
     ]
     
     results = Dict{String, Any}()

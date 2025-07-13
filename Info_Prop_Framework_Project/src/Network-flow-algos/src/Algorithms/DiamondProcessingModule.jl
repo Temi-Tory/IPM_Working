@@ -27,36 +27,45 @@ end
 Represents diamonds and non-diamond parents at a specific join node.
 """
 struct DiamondsAtNode
-    diamond::Diamond
+    diamond::Vector{Diamond}
     non_diamond_parents::Set{Int64}
     join_node::Int64
 end
 
 """
-Implements the complete diamond detection algorithm following the exact steps.
-
-# Algorithm Steps:
-0. Filter global sources
-1. For each join node: Get all parents from incoming_index
-2. Collect shared fork ancestors (that aren't irrelevant source nodes) that are shared between more than one parents
-4. Extract complete distinct edge list of paths from shared all fork ancestors to join node for diamond edgelist induced
-5. From induced edgelist identify diamond_sourcenodes (nodes with no incoming edges in the extracted induced edge list)
-5b. From induced edgelist identify relevant_nodes (all nodes involved in the paths incl shared fork anc and join node ofc)
-6. Find highest nodes (nodes both in shared fork ancestor and in the diamond_sourcenodes)
-7. Identify intermediate nodes: relevant_nodes that are NOT (diamond_sourcenodes OR highest_nodes OR join_node)
-8. To get full final diamond edges For each intermediate node: Ensure ALL its incoming edges are included in the diamond's induced edge list (it doesn't matter if its from a global source or wherever .. if its an intermediate node all of its incoming edges is part of diamond even if not part of induced edge list)
-8b. Recursive diamond completeness: For additional incoming nodes from step 8, check if they share fork ancestors. If so, recursively detect diamonds among these nodes, merge results, and repeat until stable. Updates shared_fork_ancestors and re-identifies diamond structure components at each iteration. Recursion depth limited to 1000 per join node.
-9. Build single Diamond with: edgelist, highest_nodes, relevant_nodes
+    Find highest iteration set containing any of the given nodes
+    Returns all nodes that appear in the highest iteration
 """
+function find_highest_iteration_nodes(nodes::Set{Int64}, iteration_sets::Vector{Set{Int64}})::Set{Int64}
+    highest_iter = -1
+    highest_nodes = Set{Int64}()
+    
+    # First find the highest iteration
+    for (iter, set) in enumerate(iteration_sets)
+        intersect_nodes = intersect(nodes, set)
+        if !isempty(intersect_nodes)
+            highest_iter = max(highest_iter, iter)
+        end
+    end
+    
+    # Then collect all nodes from that iteration
+    if highest_iter > 0
+        highest_nodes = intersect(nodes, iteration_sets[highest_iter])
+    end
+    
+    return highest_nodes
+end
+
 function identify_and_group_diamonds(
     join_nodes::Set{Int64},
     incoming_index::Dict{Int64, Set{Int64}},
     ancestors::Dict{Int64, Set{Int64}},
-    descendants::Dict{Int64, Set{Int64}},  
+    descendants::Dict{Int64, Set{Int64}},
     source_nodes::Set{Int64},
     fork_nodes::Set{Int64},
-    edgelist::Vector{Tuple{Int64, Int64}},      
-    node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}, Dict{Int64,Interval}}
+    edgelist::Vector{Tuple{Int64, Int64}},
+    node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}, Dict{Int64,Interval}},
+    iteration_sets::Vector{Set{Int64}}
 )::Dict{Int64, DiamondsAtNode}
     
     result = Dict{Int64, DiamondsAtNode}()
@@ -89,7 +98,7 @@ function identify_and_group_diamonds(
         parents = get(incoming_index, join_node, Set{Int64}())
         length(parents) < 2 && continue
         
-        # Step 2: Collect shared fork ancestors that are shared between more than one parents
+        # Step 2: Enhanced ancestor identification using iteration sets
         # First, get fork ancestors for each parent (excluding irrelevant sources)
         parent_fork_ancestors = Dict{Int64, Set{Int64}}()
         for parent in parents
@@ -110,8 +119,16 @@ function identify_and_group_diamonds(
             end
         end
         
-        # Keep only ancestors shared by 2+ parents
-        shared_fork_ancestors = Set{Int64}()
+        # Collect all shared fork ancestors (shared by 2+ parents)
+        all_shared_ancestors = Set{Int64}()
+        for (ancestor, influenced_parents) in ancestor_to_parents
+            if length(influenced_parents) >= 2
+                push!(all_shared_ancestors, ancestor)
+            end
+        end
+        
+        # Use iteration sets to find the topologically highest ancestors
+        shared_fork_ancestors = find_highest_iteration_nodes(all_shared_ancestors, iteration_sets)
         diamond_parents = Set{Int64}()
         for (ancestor, influenced_parents) in ancestor_to_parents
             if length(influenced_parents) >= 2
@@ -326,7 +343,7 @@ function identify_and_group_diamonds(
         non_diamond_parents = setdiff(parents, diamond_parents)
         
         diamond = Diamond(final_relevant_nodes, final_highest_nodes, final_edgelist)
-        result[join_node] = DiamondsAtNode(diamond, non_diamond_parents, join_node)
+        result[join_node] = DiamondsAtNode([diamond], non_diamond_parents, join_node)
     end
     
     return result
