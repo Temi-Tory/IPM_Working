@@ -63,11 +63,15 @@ module ReachabilityModule
     # Helper functions for type-specific operations
     # Zero and one values for different types
     zero_value(::Type{Float64}) = 0.0
-    one_value(::Type{Float64}) = 1.0
+    one_value(::Type{Float64}) = 1.0    
+    non_fixed_value(::Type{Float64}) = 0.9
     zero_value(::Type{Interval}) = Interval(0.0, 0.0)
-    one_value(::Type{Interval}) = Interval(1.0, 1.0)
+    one_value(::Type{Interval}) = Interval(1.0, 1.0)    
+    non_fixed_value(::Type{Interval}) = Interval(0.9, 0.9)  
     zero_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.0, 0.0))
-    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))
+    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))   
+    non_fixed_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.9, 0.9)) 
+    
 
     # Type-specific probability validation
     is_valid_probability(value::Float64) = 0.0 <= value <= 1.0
@@ -296,7 +300,7 @@ module ReachabilityModule
                         cache
                     )
                     
-                    append!(all_beliefs, diamond_beliefs)
+                    push!(all_beliefs, diamond_beliefs)
                     
                     # Handle non-diamond parents within the structure
                     if !isempty(structure.non_diamond_parents)
@@ -395,6 +399,7 @@ module ReachabilityModule
         return combined_belief
     end
 
+   
     function updateDiamondJoin(
         conditioning_nodes::Set{Int64},
         join_node::Int64,
@@ -406,7 +411,7 @@ module ReachabilityModule
         descendants::Dict{Int64, Set{Int64}},
         iteration_sets::Vector{Set{Int64}},
         diamond_cache::Dict{CacheKey, DiamondCacheEntry{T}}
-    ) where {T <: Union{Float64, pbox, Interval}}
+        ) where {T <: Union{Float64, pbox, Interval}}
 
         
         # Create sub_link_probability just for the diamond edges
@@ -490,7 +495,7 @@ module ReachabilityModule
             sub_fork_nodes,
             diamond.edgelist,
             sub_node_priors,
-            sub_iteration_sets
+            #sub_iteration_sets
         )
 
         # NEW: Use multi-conditioning approach
@@ -567,7 +572,7 @@ module ReachabilityModule
     end
 
     function calculate_diamond_groups_belief(
-        diamond_structure::DiamondsAtNode,
+        diamond::DiamondsAtNode,
         belief_dict::Dict{Int64,T},
         link_probability::Dict{Tuple{Int64,Int64},T},
         node_priors::Dict{Int64,T},
@@ -576,15 +581,10 @@ module ReachabilityModule
         iteration_sets::Vector{Set{Int64}},
         cache::Dict{CacheKey, DiamondCacheEntry{T}}
     ) where {T <: Union{Float64, pbox, Interval}}
-        join_node = diamond_structure.join_node
-        
-        # Loop through all diamonds and collect beliefs
-        all_diamond_beliefs = T[]
-        for diamond in diamond_structure.diamond
-            diamond_belief = updateDiamondJoin(
-                diamond.highest_nodes,
-                join_node,
-                diamond,
+        diamond_beliefs = updateDiamondJoin(
+                diamond.diamond.conditioning_nodes,
+                diamond.join_node,
+                diamond.diamond, 
                 link_probability,
                 node_priors,
                 belief_dict,
@@ -593,11 +593,9 @@ module ReachabilityModule
                 iteration_sets,
                 cache
             )
-            push!(all_diamond_beliefs, diamond_belief)
-        end
-        
-        return all_diamond_beliefs
+        return diamond_beliefs
     end
+
 
      # Helper function to convert from original Float64 data to p-box data 
     function convert_to_pbox_data(

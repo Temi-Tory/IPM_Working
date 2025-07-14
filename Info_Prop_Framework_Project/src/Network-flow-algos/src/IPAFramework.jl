@@ -26,7 +26,7 @@ module IPAFramework
                                  read_edge_probabilities_from_json,
                                  read_complete_network
 
-    using .DiamondProcessingModule: DiamondsAtNode, Diamond, identify_and_group_diamonds
+    using .DiamondProcessingModule: DiamondsAtNode, Diamond, DiamondStructure, DiamondsAtNodeRef, identify_and_group_diamonds
 
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
@@ -84,7 +84,7 @@ module IPAFramework
     # EXPORTS - Organized by module
     export 
         # Core types
-        DiamondsAtNode, Diamond,
+        DiamondsAtNode, Diamond, DiamondStructure, DiamondsAtNodeRef,
         Interval,  # Removed ProbabilitySlices as it's not exported from new InputProcessingModule
         TimeUnit, NonNegativeTime,  # Time types
 
