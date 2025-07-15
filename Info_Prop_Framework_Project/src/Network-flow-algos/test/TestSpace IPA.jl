@@ -1,12 +1,13 @@
-import Fontconfig 
+import Fontconfig
 using DataFrames, DelimitedFiles, Distributions,
       DataStructures, SparseArrays, BenchmarkTools,
-      Combinatorics
+      Combinatorics, Dates
 
 # Ensure we're running from the project root directory
 # Navigate to project root if we're in a subdirectory
 current_dir = pwd()
-
+# Force compact output
+#Base.IOContext(stdout, :compact => true, :limit => true)
 # Include the IPAFramework module
 include("../src/IPAFramework.jl")
 using .IPAFramework
@@ -16,11 +17,11 @@ using .IPAFramework
 
 #network_name = "layereddiamond_3"
 #network_name = "munin-dag"
-network_name = "KarlNetwork"
+#network_name = "KarlNetwork"
 #network_name = "real_drone_network_integrated_adjacency"
 #network_name = "grid-graph"  # 4 by 4 grid
 #network_name = "power-network"
-#network_name = "metro_directed_dag_for_ipm"
+network_name = "metro_directed_dag_for_ipm"
 #network_name = "ergo-proxy-dag-network"
 #network_name = "real_drone_network" #6166 Edges, 244 Nodes
 
@@ -89,28 +90,19 @@ diamond_structures = identify_and_group_diamonds(
     node_priors,
    # iteration_sets
 );
-#diamond_joins = Set([11]);
-#diamond_joins = Set(collect(keys(diamond_structures)));
 
-#diamond_structures[22].diamond[1].edgelist
-#show(diamond_structures)
-#= 
- diamond_structures2 = identify_and_group_diamonds_old(
-        join_nodes,
-        ancestors,
-        incoming_index,
-        source_nodes,
-        fork_nodes,
-        iteration_sets,
-        edgelist,
-        descendants,        
-        node_priors 
-    )
-        show(diamond_structures2)
-=#
+ unique_diamonds, updated_diamond_structures = build_unique_diamond_storage(
+    diamond_structures,
+    node_priors,
+    ancestors,
+    descendants,
+    iteration_sets
+); 
+
+
 #Run belief propagation
-
-# Use the original version for now (cutset conditioning has infinite recursion bug)
+#show(unique_diamonds)
+# Use the optimized version with pre-computed hierarchy
 output = IPAFramework.update_beliefs_iterative(
     edgelist,
     iteration_sets,
@@ -121,12 +113,15 @@ output = IPAFramework.update_beliefs_iterative(
     edge_probabilities,
     descendants,
     ancestors,
-    diamond_structures,
+    updated_diamond_structures,  # Use updated diamond structures instead of original
     join_nodes,
-    fork_nodes
-);
+    fork_nodes,
+    unique_diamonds
+); 
+#205,0.4566760755379154 #metro_directed_dag_for_ipm
+
 #show(output)
-#output[25] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
+#output[205] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
 #= 
 exact_results = ( path_enumeration_result(
             outgoing_index,
