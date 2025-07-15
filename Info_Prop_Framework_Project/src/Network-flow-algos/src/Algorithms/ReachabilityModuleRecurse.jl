@@ -63,11 +63,15 @@ module ReachabilityModule
     # Helper functions for type-specific operations
     # Zero and one values for different types
     zero_value(::Type{Float64}) = 0.0
-    one_value(::Type{Float64}) = 1.0
+    one_value(::Type{Float64}) = 1.0    
+    non_fixed_value(::Type{Float64}) = 0.9
     zero_value(::Type{Interval}) = Interval(0.0, 0.0)
-    one_value(::Type{Interval}) = Interval(1.0, 1.0)
+    one_value(::Type{Interval}) = Interval(1.0, 1.0)    
+    non_fixed_value(::Type{Interval}) = Interval(0.9, 0.9)  
     zero_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.0, 0.0))
-    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))
+    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))   
+    non_fixed_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.9, 0.9)) 
+    
 
     # Type-specific probability validation
     is_valid_probability(value::Float64) = 0.0 <= value <= 1.0
@@ -265,6 +269,7 @@ module ReachabilityModule
         diamond_structures::Dict{Int64, DiamondsAtNode},
         join_nodes::Set{Int64},
         fork_nodes::Set{Int64},
+        computation_lookup::Dict{UInt64, DiamondComputationData{T}},
         cache::Dict{CacheKey, DiamondCacheEntry{T}} = Dict{CacheKey, DiamondCacheEntry{T}}()  # Default empty cache
     ) where {T <: Union{Float64, pbox, Interval}}
         validate_network_data(iteration_sets, outgoing_index, incoming_index, source_nodes, node_priors, link_probability)
@@ -293,10 +298,11 @@ module ReachabilityModule
                         ancestors,
                         descendants,
                         iteration_sets,
+                        computation_lookup,
                         cache
                     )
                     
-                    append!(all_beliefs, diamond_beliefs)
+                    push!(all_beliefs, diamond_beliefs)
                     
                     # Handle non-diamond parents within the structure
                     if !isempty(structure.non_diamond_parents)
@@ -395,6 +401,14 @@ module ReachabilityModule
         return combined_belief
     end
 
+   
+    # Global recursion tracking to detect infinite loops
+    const RECURSION_TRACKER = Dict{Tuple{Int64, Set{Int64}, UInt64}, Int64}()
+    const MAX_RECURSION_DEPTH = 50
+    
+    # Track active computations to prevent recursive cache misses
+    const ACTIVE_COMPUTATIONS = Set{UInt64}()
+
     function updateDiamondJoin(
         conditioning_nodes::Set{Int64},
         join_node::Int64,
@@ -405,9 +419,46 @@ module ReachabilityModule
         ancestors::Dict{Int64, Set{Int64}},
         descendants::Dict{Int64, Set{Int64}},
         iteration_sets::Vector{Set{Int64}},
+        computation_lookup::Dict{UInt64, DiamondComputationData{T}},
         diamond_cache::Dict{CacheKey, DiamondCacheEntry{T}}
-    ) where {T <: Union{Float64, pbox, Interval}}
+        ) where {T <: Union{Float64, pbox, Interval}}
 
+        # RECURSION DETECTION: Track this specific call
+        diamond_hash_key = DiamondProcessingModule.create_diamond_hash_key(diamond)
+        recursion_key = (join_node, conditioning_nodes, diamond_hash_key)
+        
+        if haskey(RECURSION_TRACKER, recursion_key)
+            RECURSION_TRACKER[recursion_key] += 1
+            if RECURSION_TRACKER[recursion_key] > MAX_RECURSION_DEPTH
+               error("Infinite recursion detected in updateDiamondJoin - stopping to prevent stack overflow")
+            end
+        else
+            RECURSION_TRACKER[recursion_key] = 1
+        end
+
+        
+        # O(1) lookup with hash key - SUPER FAST even for large diamonds!
+        diamond_hash_key = DiamondProcessingModule.create_diamond_hash_key(diamond)
+        
+        # Debug: Check if diamond exists in lookup
+        if !haskey(computation_lookup, diamond_hash_key)
+            error("Diamond not found in computation_lookup")
+        end
+        
+        computation_data = computation_lookup[diamond_hash_key]
+        
+        # Skip ALL expensive graph building - everything is ready!
+        sub_outgoing_index = computation_data.sub_outgoing_index
+        sub_incoming_index = computation_data.sub_incoming_index
+        fresh_sources = computation_data.sub_sources
+        sub_fork_nodes = computation_data.sub_fork_nodes
+        sub_join_nodes = computation_data.sub_join_nodes
+        sub_ancestors = computation_data.sub_ancestors
+        sub_descendants = computation_data.sub_descendants
+        sub_iteration_sets = computation_data.sub_iteration_sets
+        sub_diamond_structures = computation_data.sub_diamond_structures
+        
+       
         
         # Create sub_link_probability just for the diamond edges
         sub_link_probability = Dict{Tuple{Int64, Int64}, T}()
@@ -415,57 +466,7 @@ module ReachabilityModule
             sub_link_probability[edge] = link_probability[edge]
         end
 
-        # Create fresh outgoing and incoming indices for the diamond
-        sub_outgoing_index = Dict{Int64, Set{Int64}}()
-        sub_incoming_index = Dict{Int64, Set{Int64}}()
-
-        for (i, j) in diamond.edgelist
-            push!(get!(sub_outgoing_index, i, Set{Int64}()), j)
-            push!(get!(sub_incoming_index, j, Set{Int64}()), i)
-        end
-
-        fresh_sources = Set{Int64}()
-        for node in keys(sub_outgoing_index)
-            if !haskey(sub_incoming_index, node) || isempty(sub_incoming_index[node])
-                push!(fresh_sources, node)
-            end
-        end
-        
-        #sub_fork_nodes = Set{Int64}() => nodes with more than one outgoing edge
-        sub_fork_nodes = Set{Int64}()
-        for (node, targets) in sub_outgoing_index
-            if length(targets) > 1
-                push!(sub_fork_nodes, node)
-            end
-        end
-        #sub_join_nodes = Set{Int64}() => nodes with more than one incoming edge
-        sub_join_nodes = Set{Int64}()
-        for (node, sources) in sub_incoming_index
-            if length(sources) > 1
-                push!(sub_join_nodes, node)
-            end
-        end
-
-        #create sub_ancestors and sub_descendants by filtering the original ancestors and descendants by relevnat nodes 
-        sub_ancestors = Dict{Int64, Set{Int64}}()
-        sub_descendants = Dict{Int64, Set{Int64}}()
-        for node in diamond.relevant_nodes            
-            # Filter ancestors and descendants to only include relevant nodes
-            sub_ancestors[node] = Set{Int64}(intersect(ancestors[node], diamond.relevant_nodes))
-            sub_descendants[node] = Set{Int64}(intersect(descendants[node], diamond.relevant_nodes))
-        end
-
-        #get fresh sub_iteration_sets by filtering the original iteration sets by relevant nodes and removing emty iter sets
-        sub_iteration_sets = Vector{Set{Int64}}()
-        for iter_set in iteration_sets
-            filtered_set = Set{Int64}(intersect(iter_set, diamond.relevant_nodes))
-            if !isempty(filtered_set)
-                push!(sub_iteration_sets, filtered_set)
-            end
-        end
-
-
-        # Create sub_node_priors for the diamond nodes
+        # Create sub_node_priors for the diamond nodes - only need to properly set node priors for the non-conditioning source nodes
         sub_node_priors = Dict{Int64, T}()
         for node in diamond.relevant_nodes
             if node ∉ fresh_sources
@@ -477,21 +478,9 @@ module ReachabilityModule
             elseif node ∉ conditioning_nodes
                 sub_node_priors[node] = belief_dict[node]
             elseif node ∈ conditioning_nodes
-                sub_node_priors[node] = one_value(T)    ## Set conditioning nodes to 1.0 so that diamonds identifcation works
+                sub_node_priors[node] = one_value(T)    ## Set conditioning nodes to 1.0 so that diamonds identification works
             end
         end
-
-        sub_diamond_structures = DiamondProcessingModule.identify_and_group_diamonds(
-            sub_join_nodes,
-            sub_incoming_index,
-            sub_ancestors,
-            sub_descendants,
-            fresh_sources,
-            sub_fork_nodes,
-            diamond.edgelist,
-            sub_node_priors,
-            sub_iteration_sets
-        )
 
         # NEW: Use multi-conditioning approach
         conditioning_nodes_list = collect(unique(conditioning_nodes))
@@ -531,13 +520,15 @@ module ReachabilityModule
             #store diamond diamond.edgelist, current_priors, state_beliefs
             # Generate cache key
             cache_key = make_cache_key(diamond.edgelist, current_priors)
-
+            
+           
             # Check cache first
             if haskey(diamond_cache, cache_key)
                 # Use cached result
                 cached_entry = diamond_cache[cache_key]
                 state_beliefs = cached_entry.state_beliefs
             else
+                                
                 state_beliefs = update_beliefs_iterative(
                     diamond.edgelist,
                     sub_iteration_sets,
@@ -551,9 +542,9 @@ module ReachabilityModule
                     sub_diamond_structures,
                     sub_join_nodes,
                     sub_fork_nodes,
+                    computation_lookup,
                     diamond_cache
                 )
-                # Cache miss - store result after computation
                diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
             end
 
@@ -563,41 +554,42 @@ module ReachabilityModule
         end
         
         
+        # RECURSION CLEANUP: Decrement counter when exiting
+        RECURSION_TRACKER[recursion_key] -= 1
+        if RECURSION_TRACKER[recursion_key] <= 0
+            delete!(RECURSION_TRACKER, recursion_key)
+        end
+        
         return final_belief
     end
 
     function calculate_diamond_groups_belief(
-        diamond_structure::DiamondsAtNode,
+        diamond::DiamondsAtNode,
         belief_dict::Dict{Int64,T},
         link_probability::Dict{Tuple{Int64,Int64},T},
         node_priors::Dict{Int64,T},
         ancestors::Dict{Int64, Set{Int64}},
         descendants::Dict{Int64, Set{Int64}},
         iteration_sets::Vector{Set{Int64}},
+        computation_lookup::Dict{UInt64, DiamondComputationData{T}},
         cache::Dict{CacheKey, DiamondCacheEntry{T}}
     ) where {T <: Union{Float64, pbox, Interval}}
-        join_node = diamond_structure.join_node
-        
-        # Loop through all diamonds and collect beliefs
-        all_diamond_beliefs = T[]
-        for diamond in diamond_structure.diamond
-            diamond_belief = updateDiamondJoin(
-                diamond.highest_nodes,
-                join_node,
-                diamond,
+        diamond_beliefs = updateDiamondJoin(
+                diamond.diamond.conditioning_nodes,
+                diamond.join_node,
+                diamond.diamond,
                 link_probability,
                 node_priors,
                 belief_dict,
                 ancestors,
                 descendants,
                 iteration_sets,
+                computation_lookup,
                 cache
             )
-            push!(all_diamond_beliefs, diamond_belief)
-        end
-        
-        return all_diamond_beliefs
+        return diamond_beliefs
     end
+
 
      # Helper function to convert from original Float64 data to p-box data 
     function convert_to_pbox_data(
