@@ -19,9 +19,9 @@ using .IPAFramework
 #network_name = "munin-dag"
 #network_name = "KarlNetwork"
 #network_name = "real_drone_network_integrated_adjacency"
-#network_name = "grid-graph"  # 4 by 4 grid
+network_name = "grid-graph"  # 4 by 4 grid
 #network_name = "power-network"
-network_name = "metro_directed_dag_for_ipm"
+#network_name = "metro_directed_dag_for_ipm"
 #network_name = "ergo-proxy-dag-network"
 #network_name = "real_drone_network" #6166 Edges, 244 Nodes
 
@@ -90,15 +90,15 @@ diamond_structures = identify_and_group_diamonds(
     node_priors,
    # iteration_sets
 );
-
- unique_diamonds, updated_diamond_structures = build_unique_diamond_storage(
+println("starting  build unique diamond storage");
+ unique_diamonds = build_unique_diamond_storage(
     diamond_structures,
     node_priors,
     ancestors,
     descendants,
     iteration_sets
-); 
-
+);#8 minutes processing time for drone network
+#diamond_structures[4].diamond.edgelist
 
 #Run belief propagation
 #show(unique_diamonds)
@@ -113,15 +113,15 @@ output = IPAFramework.update_beliefs_iterative(
     edge_probabilities,
     descendants,
     ancestors,
-    updated_diamond_structures,  # Use updated diamond structures instead of original
+    diamond_structures,
     join_nodes,
     fork_nodes,
     unique_diamonds
 ); 
 #205,0.4566760755379154 #metro_directed_dag_for_ipm
-
-#show(output)
-#output[205] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
+sorted_algo =SortedDict(output);
+#show(SortedDict(output))
+#output[1010] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
 #= 
 exact_results = ( path_enumeration_result(
             outgoing_index,

@@ -13,7 +13,7 @@ module DiamondProcessingModule
     # Export all public functions and types
     export DiamondsAtNode, Diamond, DiamondComputationData
     export identify_and_group_diamonds
-    export create_diamond_hash_key, create_diamond_key, build_unique_diamond_storage
+    export create_diamond_hash_key
 
     # 
     # STRUCT DEFINITIONS
@@ -84,6 +84,87 @@ module DiamondProcessingModule
     non_fixed_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.9, 0.9))
 
 
+     """
+    Create a unique hash key for a diamond based on relevant_nodes and conditioning_nodes
+    Much faster than using the full Sets as keys, especially for large diamonds
+    """
+    function create_diamond_hash_key(diamond::Diamond)::UInt64
+        return hash((diamond.edgelist, diamond.conditioning_nodes))
+    end
+
+  
+
+    """
+    Create a unique signature for a diamond based on its structure (for caching)
+    """
+    function create_diamond_signature(diamond::Diamond)::String
+        # Sort everything for consistent signatures
+        sorted_edges = sort(collect(diamond.edgelist))
+        sorted_nodes = sort(collect(diamond.relevant_nodes))
+        sorted_conditioning = sort(collect(diamond.conditioning_nodes))
+        
+        return string(hash((sorted_edges, sorted_nodes, sorted_conditioning)))
+    end
+
+     """
+    Get the topological level (iteration set index) for a join node
+    """
+    function get_iteration_level(join_node::Int64, iteration_sets::Vector{Set{Int64}})::Int
+        for (level, nodes) in enumerate(iteration_sets)
+            if join_node in nodes
+                return level
+            end
+        end
+        return length(iteration_sets) + 1  # If not found, put at end
+    end
+
+    """
+    Detect alternating cycles: same relevant_nodes but different conditioning_nodes
+    Returns merged conditioning nodes if alternating cycle detected, nothing otherwise
+    """
+    function detect_alternating_cycle(diamond::Diamond)::Union{Set{Int64}, Nothing}
+        relevant_nodes = diamond.relevant_nodes
+        conditioning_nodes = diamond.conditioning_nodes
+        
+        if haskey(ALTERNATING_CYCLE_CACHE, relevant_nodes)
+            previous_conditioning = ALTERNATING_CYCLE_CACHE[relevant_nodes]
+            if previous_conditioning != conditioning_nodes
+                # Alternating cycle detected - merge conditioning nodes
+                merged_conditioning = union(previous_conditioning, conditioning_nodes)
+                return merged_conditioning
+            end
+        else
+            # First time seeing these relevant_nodes - store conditioning nodes
+            ALTERNATING_CYCLE_CACHE[relevant_nodes] = conditioning_nodes
+        end
+        
+        return nothing
+    end
+
+    """
+    Group diamonds by their iteration levels and sort for backwards processing
+    """
+    function group_diamonds_by_level(
+        diamonds::Dict{Int64, DiamondsAtNode},
+        iteration_sets::Vector{Set{Int64}}
+    )::Vector{Vector{Tuple{Int64, DiamondsAtNode}}}
+        
+        # Group by iteration level
+        level_groups = Dict{Int, Vector{Tuple{Int64, DiamondsAtNode}}}()
+        
+        for (join_node, diamond_at_node) in diamonds
+            level = get_iteration_level(join_node, iteration_sets)
+            if !haskey(level_groups, level)
+                level_groups[level] = Vector{Tuple{Int64, DiamondsAtNode}}()
+            end
+            push!(level_groups[level], (join_node, diamond_at_node))
+        end
+        
+        # Sort levels in descending order (highest iteration level first)
+        sorted_levels = sort(collect(keys(level_groups)), rev=true)
+        
+        return [level_groups[level] for level in sorted_levels]
+    end
 
      """
     Implements the complete diamond detection algorithm following the exact steps.
@@ -399,99 +480,6 @@ module DiamondProcessingModule
 
 
 
-
-
-
-
-
-
-    """
-    Create a unique hash key for a diamond based on relevant_nodes and conditioning_nodes
-    Much faster than using the full Sets as keys, especially for large diamonds
-    """
-    function create_diamond_hash_key(diamond::Diamond)::UInt64
-        return hash((diamond.relevant_nodes, diamond.conditioning_nodes))
-    end
-
-    """
-    Create a unique key for a diamond based on relevant_nodes and conditioning_nodes
-    """
-    function create_diamond_key(diamond::Diamond)::Tuple{Set{Int64}, Set{Int64}}
-        return (diamond.relevant_nodes, diamond.conditioning_nodes)
-    end
-
-    """
-    Create a unique signature for a diamond based on its structure (for caching)
-    """
-    function create_diamond_signature(diamond::Diamond)::String
-        # Sort everything for consistent signatures
-        sorted_edges = sort(collect(diamond.edgelist))
-        sorted_nodes = sort(collect(diamond.relevant_nodes))
-        sorted_conditioning = sort(collect(diamond.conditioning_nodes))
-        
-        return string(hash((sorted_edges, sorted_nodes, sorted_conditioning)))
-    end
-
-    """
-    Detect alternating cycles: same relevant_nodes but different conditioning_nodes
-    Returns merged conditioning nodes if alternating cycle detected, nothing otherwise
-    """
-    function detect_alternating_cycle(diamond::Diamond)::Union{Set{Int64}, Nothing}
-        relevant_nodes = diamond.relevant_nodes
-        conditioning_nodes = diamond.conditioning_nodes
-        
-        if haskey(ALTERNATING_CYCLE_CACHE, relevant_nodes)
-            previous_conditioning = ALTERNATING_CYCLE_CACHE[relevant_nodes]
-            if previous_conditioning != conditioning_nodes
-                # Alternating cycle detected - merge conditioning nodes
-                merged_conditioning = union(previous_conditioning, conditioning_nodes)
-                return merged_conditioning
-            end
-        else
-            # First time seeing these relevant_nodes - store conditioning nodes
-            ALTERNATING_CYCLE_CACHE[relevant_nodes] = conditioning_nodes
-        end
-        
-        return nothing
-    end
-
-    """
-    Get the topological level (iteration set index) for a join node
-    """
-    function get_iteration_level(join_node::Int64, iteration_sets::Vector{Set{Int64}})::Int
-        for (level, nodes) in enumerate(iteration_sets)
-            if join_node in nodes
-                return level
-            end
-        end
-        return length(iteration_sets) + 1  # If not found, put at end
-    end
-
-    """
-    Group diamonds by their iteration levels and sort for backwards processing
-    """
-    function group_diamonds_by_level(
-        diamonds::Dict{Int64, DiamondsAtNode},
-        iteration_sets::Vector{Set{Int64}}
-    )::Vector{Vector{Tuple{Int64, DiamondsAtNode}}}
-        
-        # Group by iteration level
-        level_groups = Dict{Int, Vector{Tuple{Int64, DiamondsAtNode}}}()
-        
-        for (join_node, diamond_at_node) in diamonds
-            level = get_iteration_level(join_node, iteration_sets)
-            if !haskey(level_groups, level)
-                level_groups[level] = Vector{Tuple{Int64, DiamondsAtNode}}()
-            end
-            push!(level_groups[level], (join_node, diamond_at_node))
-        end
-        
-        # Sort levels in descending order (highest iteration level first)
-        sorted_levels = sort(collect(keys(level_groups)), rev=true)
-        
-        return [level_groups[level] for level in sorted_levels]
-    end
-
     #
     # NEW ITERATIVE DIAMOND PROCESSING FUNCTIONS
     #
@@ -599,6 +587,9 @@ module DiamondProcessingModule
         # Track processed diamonds to prevent infinite recursion
         processed_diamond_hashes = Set{UInt64}()
         
+        # SINGLE GROWING POOL: Starts with root diamonds, gets enriched as we discover sub-diamonds
+        global_diamonds = Set{DiamondsAtNode}(values(root_diamonds))
+        
         # Recursive function to process diamonds depth-first like the recursive version
         function process_diamond_recursive(current_diamond::Diamond, join_node::Int64, non_diamond_parents::Set{Int64}, accumulated_excluded_nodes::Set{Int64} = Set{Int64}())
             # Create hash key for this diamond
@@ -619,11 +610,14 @@ module DiamondProcessingModule
             sub_outgoing_index, sub_incoming_index, sub_sources, sub_fork_nodes,
             sub_join_nodes, sub_ancestors, sub_descendants, sub_iteration_sets, sub_node_priors =
                 compute_diamond_subgraph_structure(current_diamond, join_node, node_priors, ancestors, descendants, iteration_sets)
-            
+            #= 
+            # Find sub-diamonds from the GROWING GLOBAL POOL (returns Dict for processing)
+            sub_diamonds_dict = find_sub_diamonds_from_global(current_diamond, join_node, global_diamonds, sub_join_nodes, iteration_sets, sub_sources, current_excluded_nodes)
+ =#
             # Find inner diamonds when this diamond's conditioning nodes are processed
             # Pass ALL accumulated excluded nodes from the hierarchy to properly filter sub-diamonds
             sub_diamonds_dict = identify_and_group_diamonds(
-                sub_join_nodes,
+                Set([join_node]),  # Only process this join node
                 sub_incoming_index,
                 sub_ancestors,
                 sub_descendants,
@@ -634,7 +628,15 @@ module DiamondProcessingModule
                 current_excluded_nodes  # Pass ALL accumulated excluded nodes from hierarchy
             )
             
-             # Process each sub-diamond recursively
+          #=   # Combine sub_diamonds_dict with j_sub_diamonds_dict
+            merge!(sub_diamonds_dict, j_sub_diamonds_dict)
+             =#
+            # SELECTIVE POOL GROWTH: Only add diamonds from identify_and_group_diamonds (j_sub_diamonds_dict)
+            # NOT from find_sub_diamonds_from_global to prevent circular feedback loops
+            # The global pool should only grow with genuinely NEW diamonds discovered within current diamond's scope
+          #  union!(global_diamonds, values(sub_diamonds_dict))
+            
+            # Process each sub-diamond recursively
             filtered_sub_diamonds = Dict{Int64, DiamondsAtNode}()
             for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
                 sub_diamond = sub_diamond_at_node.diamond
@@ -646,7 +648,7 @@ module DiamondProcessingModule
                 filtered_sub_diamonds[sub_join_node] = sub_diamond_at_node
             end
             
-             # Store THIS diamond with its immediate sub-diamonds
+            # Store THIS diamond with its immediate sub-diamonds
             # Create DiamondComputationData with all precomputed structure
             computation_data = DiamondComputationData{T}(
                 sub_outgoing_index,      # sub_outgoing_index
@@ -665,21 +667,114 @@ module DiamondProcessingModule
             # Store in unique diamonds dictionary only if not already present
             if !haskey(unique_diamonds, diamond_hash)
                 unique_diamonds[diamond_hash] = computation_data
-           
             end
         end
         
-        # Process root diamonds depth-first recursively
+        # ITERATIVE DISCOVERY: Process root diamonds by iteration level (lowest to highest)
+        # This ensures lower-iteration (more general) diamonds populate the global pool first
+        # and can be reused by higher-iteration (more specific) diamonds
+        
+        # Group root diamonds by iteration level
+        root_diamonds_by_iteration = Dict{Int64, Vector{Tuple{Int64, DiamondsAtNode}}}()
         for (join_node, diamond_at_node) in root_diamonds
-            process_diamond_recursive(diamond_at_node.diamond, join_node, diamond_at_node.non_diamond_parents)
+            iteration_level = get_iteration_level(join_node, iteration_sets)
+            if !haskey(root_diamonds_by_iteration, iteration_level)
+                root_diamonds_by_iteration[iteration_level] = Vector{Tuple{Int64, DiamondsAtNode}}()
+            end
+            push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
         end
         
-   
+        # Process diamonds in iteration order (1, 2, 3, ...)
+        for iteration_level in sort(collect(keys(root_diamonds_by_iteration)))
+            
+            for (join_node, diamond_at_node) in root_diamonds_by_iteration[iteration_level]
+                process_diamond_recursive(diamond_at_node.diamond, join_node, diamond_at_node.non_diamond_parents)
+            end
+            
+        end
         
-        # NO CYCLE DETECTION: Keep original root diamonds as-is
-        updated_root_diamonds = root_diamonds
         
-        return unique_diamonds, updated_root_diamonds
+        return unique_diamonds
     end
+
+    #= function find_sub_diamonds_from_global(current_diamond, join_node, global_diamonds_set::Set{DiamondsAtNode}, sub_join_nodes, iteration_sets, sub_sources, current_excluded_nodes)
+        sub_diamonds_dict = Dict{Int64, DiamondsAtNode}()
+        
+        
+        # Find which iteration the current join_node belongs to
+        current_iteration = get_iteration_level(join_node, iteration_sets)
+        
+        _additional_joins = Set{Int64}()
+        println("🔍 DEBUGGING find_sub_diamonds_from_global for join_node: $join_node")
+        println("   Current diamond nodes: $(current_diamond.relevant_nodes)")
+        println("   Sub join nodes: $sub_join_nodes")
+        println("   Global pool size: $(length(global_diamonds_set))")
+        
+        candidates_accepted = 0
+        candidates_rejected = 0
+        
+        # Iterate through the GROWING GLOBAL SET instead of Dict
+        for candidate_diamond_at_node in global_diamonds_set
+            candidate_join_node = candidate_diamond_at_node.join_node
+                 
+            candidate_diamond = candidate_diamond_at_node.diamond
+            # Skip the current diamond itself
+            if candidate_join_node == join_node && candidate_diamond.relevant_nodes == current_diamond.relevant_nodes
+                continue
+            end
+            
+            # EARLY RELEVANCE FILTER: Only consider candidates that are in sub_join_nodes
+            # This prevents irrelevant diamonds (like node 11 for join_node 4) from being processed
+            if candidate_join_node ∉ sub_join_nodes
+                candidates_rejected += 1
+                continue
+            end
+            
+            # Find candidate's iteration level
+            candidate_iteration = get_iteration_level(candidate_join_node, iteration_sets)
+            
+            # Only consider diamonds from lower or same iterations (allow same level for single growing pool)
+            if candidate_iteration > current_iteration
+                candidates_rejected += 1
+                continue  # Skip diamonds from higher iterations only
+            end
+            
+            # Containment criteria:
+            containment_check = issubset(candidate_diamond.relevant_nodes, current_diamond.relevant_nodes)
+            if !containment_check
+                candidates_rejected += 1
+                continue
+            end
+            
+            # EDGE VALIDATION: Check if candidate's edges exist in current diamond's edgelist
+            current_edges_set = Set(current_diamond.edgelist)
+            edge_validation_passed = true
+            for edge in candidate_diamond.edgelist
+                if edge ∉ current_edges_set
+                    println("   ❌ Node $candidate_join_node REJECTED: Edge $edge not in current diamond's edgelist")
+                    edge_validation_passed = false
+                    break
+                end
+            end
+            
+            if !edge_validation_passed
+                candidates_rejected += 1
+                continue
+            end
+            
+            source_check = candidate_join_node ∉ sub_sources
+            if !source_check
+                candidates_rejected += 1
+                continue
+            end
+            
+            # SUCCESS! Candidate passed all filters
+            candidates_accepted += 1
+            sub_diamonds_dict[candidate_join_node] = candidate_diamond_at_node
+        end
+        
+        
+        return sub_diamonds_dict
+    end =#
 
 end
