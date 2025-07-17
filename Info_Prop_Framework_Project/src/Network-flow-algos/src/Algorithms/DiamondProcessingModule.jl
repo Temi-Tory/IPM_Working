@@ -758,17 +758,6 @@ module DiamondProcessingModule
                 current_excluded_nodes  # Pass ALL accumulated excluded nodes from hierarchy
             )
           
-            #= sub_diamonds_dict = Dict{Int64, DiamondsAtNode}()
-            merge!(sub_diamonds_dict, existing_sub_dict)  
-            merge!(sub_diamonds_dict, new_diamonds_dict)  =#
-          #=   # Combine sub_diamonds_dict with j_sub_diamonds_dict
-            merge!(sub_diamonds_dict, j_sub_diamonds_dict)
-             =#
-            # SELECTIVE POOL GROWTH: Only add diamonds from identify_and_group_diamonds (j_sub_diamonds_dict)
-            # NOT from find_sub_diamonds_from_global to prevent circular feedback loops
-            # The global pool should only grow with genuinely NEW diamonds discovered within current diamond's scope
-          #  union!(global_diamonds, values(sub_diamonds_dict))
-            
             # Process each sub-diamond recursively
             filtered_sub_diamonds = Dict{Int64, DiamondsAtNode}()
             for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
@@ -830,48 +819,6 @@ module DiamondProcessingModule
         return unique_diamonds
     end
 
-    function find_sub_diamonds_from_global(unique_diamonds, global_diamond, current_diamond, sub_join_nodes, join_node,sub_sources, current_excluded_nodes)
-        sub_diamonds_dict = Dict{Int64, DiamondsAtNode}()
-        global_diamonds_set = Set{DiamondsAtNode}(global_diamond)  # Ensure we work with a Set for filtering
-        
-        #get filtered global diamonds set which are global_diamonds where  candidate_diamond_at_node.edgelist is
-        # a subset of current_diamond.edgelist - i.e all edges in candidate_diamond_at_node are also in current_diamond
-        global_diamonds_set = filter(diamond_at_node -> issubset(diamond_at_node.diamond.edgelist, current_diamond.edgelist), global_diamonds_set);
-        #further filter out diamonds whose join_node is not in sub_join_nodes
-        global_diamonds_set = filter(diamond_at_node -> diamond_at_node.join_node in sub_join_nodes, global_diamonds_set);
-        #further filter out diamonds whose join_node is the same as current_diamond's join_node
-        global_diamonds_set = filter(diamond_at_node -> diamond_at_node.join_node != join_node, global_diamonds_set);
-        #further filter out diamonds whose join_node is in sub_sources or current_diamond.conditioning_nodes
-        global_diamonds_set = filter(diamond_at_node -> diamond_at_node.join_node ∉ sub_sources && diamond_at_node.join_node ∉ current_diamond.conditioning_nodes, global_diamonds_set);
-        #further filter out diamonds where any of the conditioning nodes is in current_excluded_nodes
-        global_diamonds_set = filter(diamond_at_node -> isempty(intersect(diamond_at_node.diamond.conditioning_nodes, current_excluded_nodes)), global_diamonds_set);
-        # Iterate through the GROWING GLOBAL SET instead of Dict
-        for candidate_diamond_at_node in global_diamonds_set
-            candidate_join_node = candidate_diamond_at_node.join_node       
-            sub_diamonds_dict[candidate_join_node] = candidate_diamond_at_node
-        end
-        
-        # Filter out non-maximal diamonds: if one diamond's edgelist is fully contained 
-        # in another and has fewer edges, keep only the maximal one
-        maximal_diamonds = Dict{Int64, DiamondsAtNode}()
-        for (join_node1, diamond1) in sub_diamonds_dict
-            is_maximal = true
-            for (join_node2, diamond2) in sub_diamonds_dict
-                if join_node1 != join_node2 && 
-                   issubset(diamond1.diamond.edgelist, diamond2.diamond.edgelist) &&
-                   length(diamond1.diamond.edgelist) < length(diamond2.diamond.edgelist)
-                    is_maximal = false
-                    break
-                end
-            end
-            if is_maximal
-                maximal_diamonds[join_node1] = diamond1
-            end
-        end
-        #Build hash key for each identifed maximal so that can identify actual from unique_diamonds
-          diamond_hash = create_diamond_hash_key(current_diamond)
-            
-        return maximal_diamonds
-    end 
+ 
 
 end
