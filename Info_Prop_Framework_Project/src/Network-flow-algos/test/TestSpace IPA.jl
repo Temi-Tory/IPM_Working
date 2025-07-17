@@ -19,9 +19,9 @@ using .IPAFramework
 #network_name = "munin-dag"
 #network_name = "KarlNetwork"
 #network_name = "join-260"
-#network_name = "grid-graph"  # 4 by 4 grid
+network_name = "grid-graph"  # 4 by 4 grid
 #network_name = "power-network"
-network_name = "metro_directed_dag_for_ipm"
+#network_name = "metro_directed_dag_for_ipm"
 #network_name = "ergo-proxy-dag-network"800 x 6607
 #network_name = "real_drone_network" #6166 Edges, 244 Nodes
 
@@ -93,7 +93,7 @@ diamond_structures = identify_and_group_diamonds(
 );
 
  unique_diamonds, updated_root_diamonds = build_unique_diamond_storage(
-    diamond_structures,
+    diamond_structures,t
     node_priors,
     ancestors,
     descendants,
@@ -170,7 +170,7 @@ output = IPAFramework.update_beliefs_iterative(
 ); 
 #205,0.4566760755379154 #metro_directed_dag_for_ipm
 sorted_algo =SortedDict(output);
-show(collect(values(sorted_algo)))
+#show(collect(values(sorted_algo)))
 for i in values(sorted_algo)
   
     println(i)

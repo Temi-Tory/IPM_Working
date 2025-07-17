@@ -11,7 +11,7 @@ module IPAFramework
     include("Algorithms/DroneNetworkDagModule.jl")
     include("Algorithms/DroneInputProcessingModule.jl")
     include("Algorithms/DiamondClassificationModule.jl")
-    include("Active_Work_Algos/TemporalReachabilityModule.jl")
+    #include("Active_Work_Algos/TemporalReachabilityModule.jl")
     include("Algorithms/CapacityAnalysisModule.jl")
     include("Algorithms/GeneralizedCriticalPathModule.jl")
 
@@ -31,13 +31,13 @@ module IPAFramework
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
                               convert_to_pbox_data
-
+#= 
     # NEW: Import exact state reliability functions
     using .StateReliabilityModule: StateReliabilityConfig, StateReliabilityResults,
                                   update_state_reliability_iterative, validate_reliability_network_data,
                                   markov_transition_probabilities, calculate_timestep_recommendation,
                                   WORKING, FAILED, UNDER_REPAIR, calculate_load_factor
-
+ =#
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
     using .VisualizeGraphsModule: generate_graph_dot_string, visualize_graph

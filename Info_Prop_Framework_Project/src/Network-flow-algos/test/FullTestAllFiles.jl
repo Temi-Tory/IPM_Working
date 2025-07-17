@@ -1,7 +1,7 @@
 import Fontconfig
 using DataFrames, DelimitedFiles, Distributions,
       DataStructures, SparseArrays, BenchmarkTools,
-      Combinatorics, Dates
+      Combinatorics, Dates, CSV
 
 # Ensure we're running from the project root directory
 # Navigate to project root if we're in a subdirectory
@@ -12,262 +12,282 @@ current_dir = pwd()
 include("../src/IPAFramework.jl")
 using .IPAFramework
 
-# User input from UI for example networks
-# Choose your network - uncomment one:
+# Create method that takes file name and data type and calls full reachability algorithm
+function calculateRechability(network_name::String, data_type::String="float")
+    # Start timing
+    start_time = time()
+    
+    # Construct file paths using new folder structure
+    base_path = joinpath("dag_ntwrk_files", network_name)
 
-#network_name = "layereddiamond-3"
-#network_name = "munin-dag"
-#network_name = "KarlNetwork"
-#network_name = "join-260"
-network_name = "grid-graph"  # 4 by 4 grid
-#network_name = "power-network"
-#network_name = "metro_directed_dag_for_ipm"
-#network_name = "ergo-proxy-dag-network"800 x 6607
-#network_name = "real_drone_network" #6166 Edges, 244 Nodes
+    # Option 1: Use edge file (recommended)
+    filepath_graph = joinpath(base_path, network_name * ".EDGES")
 
+    # Option 2: Use original CSV adjacency matrix (if edge file doesn't exist)
+    # filepath_graph = joinpath("csvfiles", network_name * ".csv")
 
-# Choose data type - uncomment one:
-data_type = "float"
-#data_type = "interval"
-#data_type = "pbox"
+    # JSON file paths in organized subfolders
+    # Handle naming inconsistency: grid_graph vs grid-graph in JSON files
+    json_network_name = replace(network_name, "_" => "-")  # Convert underscores to hyphens for JSON files
+    filepath_node_json = joinpath(base_path, data_type, json_network_name * "-nodepriors.json")
+    filepath_edge_json = joinpath(base_path, data_type, json_network_name * "-linkprobabilities.json")
 
-# Construct file paths using new folder structure
-base_path = joinpath("dag_ntwrk_files", network_name)
+    # Validate file existence
+    if !isfile(filepath_graph)
+        error("Graph file not found: $filepath_graph")
+    end
+    if !isfile(filepath_node_json)
+        error("Node priors file not found: $filepath_node_json")
+    end
+    if !isfile(filepath_edge_json)
+        error("Edge probabilities file not found: $filepath_edge_json")
+    end
 
-# Option 1: Use edge file (recommended)
-filepath_graph = joinpath(base_path, network_name * ".EDGES")
+    # Read the graph and node priors
+    # Option 1: Separate calls (gives you more control)
+    edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
 
-# Option 2: Use original CSV adjacency matrix (if edge file doesn't exist)
-# filepath_graph = joinpath("csvfiles", network_name * ".csv")
+    node_priors = read_node_priors_from_json(filepath_node_json)
 
-# JSON file paths in organized subfolders
-# Handle naming inconsistency: grid_graph vs grid-graph in JSON files
-json_network_name = replace(network_name, "_" => "-")  # Convert underscores to hyphens for JSON files
-filepath_node_json = joinpath(base_path, data_type, json_network_name * "-nodepriors.json")
-filepath_edge_json = joinpath(base_path, data_type, json_network_name * "-linkprobabilities.json")
+    edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
 
+    # Option 2: Convenience function (alternative approach)
+    # edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities =
+    #     read_complete_network(filepath_graph, filepath_node_json, filepath_edge_json)
 
+    # Identify network structure
+    fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+    iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
-if !isfile(filepath_graph)
-    error("Graph file not found: $filepath_graph")
+    # Diamond structure analysis (if you have this function)
+    diamond_structures = identify_and_group_diamonds(
+        join_nodes,
+        incoming_index,
+        ancestors,
+        descendants,
+        source_nodes,
+        fork_nodes,
+        edgelist,
+        node_priors,
+        iteration_sets
+    );
+
+    println("Starting build unique diamond storage");
+    unique_diamonds = build_unique_diamond_storage(
+        diamond_structures,
+        node_priors,
+        ancestors,
+        descendants,
+        iteration_sets
+    );
+    
+    # Run the main reachability algorithm
+    output = IPAFramework.update_beliefs_iterative(
+        edgelist,
+        iteration_sets,
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities,
+        descendants,
+        ancestors,
+        diamond_structures,
+        join_nodes,
+        fork_nodes,
+        unique_diamonds
+    );
+    
+    # Calculate computation time
+    computation_time = time() - start_time
+    
+    # Return sorted results and computation time
+    return SortedDict(output), computation_time
 end
-if !isfile(filepath_node_json)
-    error("Node priors file not found: $filepath_node_json")
-end
-if !isfile(filepath_edge_json)
-    error("Edge probabilities file not found: $filepath_edge_json")
-end
 
-# Read the graph and node priors
-
-# Option 1: Separate calls (gives you more control)
-edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
-
-node_priors = read_node_priors_from_json(filepath_node_json)
-
-edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
-
-# Option 2: Convenience function (alternative approach)
-# edgelist, outgoing_index, incoming_index, source_nodes, node_priors, edge_probabilities =
-#     read_complete_network(filepath_graph, filepath_node_json, filepath_edge_json)
-
-# Identify network structure
-fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
-iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
-
-#node_priors = 0.9 for all nodes
-
-#map!(x -> 1.0, values(node_priors));
-#= 
-#Diamond structure analysis (if you have this function)
-diamond_structures = identify_and_group_diamonds(
-    join_nodes,
-    incoming_index,
-    ancestors,
-    descendants,
-    source_nodes,
-    fork_nodes,
-    edgelist,
-    node_priors,
-   # iteration_sets
-);
-
- unique_diamonds, updated_root_diamonds = build_unique_diamond_storage(
-    diamond_structures,
-    node_priors,
-    ancestors,
-    descendants,
-    iteration_sets
-); 
-
-
-#Run belief propagation
-#show(unique_diamonds)
-# Use the optimized version with pre-computed hierarchy
-output = IPAFramework.update_beliefs_iterative(
-    edgelist,
-    iteration_sets,
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    edge_probabilities,
-    descendants,
-    ancestors,
-    updated_root_diamonds,  # Use updated diamond structures instead of original
-    join_nodes,
-    fork_nodes,
-    unique_diamonds
-);  =#
-
-#Diamond structure analysis (if you have this function)
-diamond_structures = identify_and_group_diamonds(
-    join_nodes,
-    incoming_index,
-    ancestors,
-    descendants,
-    source_nodes,
-    fork_nodes,
-    edgelist,
-    node_priors,
-   iteration_sets
-);
-#show(diamond_structures[260].diamond.edgelist)
-#print edgelist for each diamond structure
-#= for diamond in values(diamond_structures)
-    println("Diamond structure at node ", diamond.join_node, ":")
-    println("  Edgelist: ", diamond.diamond.edgelist)
-    println("  Fork nodes: ", diamond.diamond.conditioning_nodes)
-end
- =#
-println("starting  build unique diamond storage");
- unique_diamonds = build_unique_diamond_storage(
-    diamond_structures,
-    node_priors,
-    ancestors,
-    descendants,
-    iteration_sets
-);#8 minutes processing time for drone network
-#diamond_structures[4].diamond.edgelist
-
-#Run belief propagation
-#show(unique_diamonds)
-# Use the optimized version with pre-computed hierarchy
-output = IPAFramework.update_beliefs_iterative(
-    edgelist,
-    iteration_sets,
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    edge_probabilities,
-    descendants,
-    ancestors,
-    diamond_structures,
-    join_nodes,
-    fork_nodes,
-    unique_diamonds
-); 
-#205,0.4566760755379154 #metro_directed_dag_for_ipm
-sorted_algo =SortedDict(output);
-#show(collect(values(sorted_algo)))
-for i in values(sorted_algo)
+# Function to compare our algorithm results with CSV benchmark results
+function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::String, results_directory::String="results")
+    # Construct full path to CSV file
+    csv_filepath = joinpath(results_directory, csv_filename)
+    
+    # Check if file exists
+    if !isfile(csv_filepath)
+        error("CSV file not found: $csv_filepath")
+    end
+    
+    # Read the CSV file
+    benchmark_df = DataFrame(CSV.File(csv_filepath))
+    
+    # Create comparison DataFrame
+    comparison_data = []
+    
+    # Iterate through our algorithm results
+    for (node, our_value) in sorted_algo_results
+        # Find matching node in benchmark data
+        benchmark_row = filter(row -> row.Node == node, benchmark_df)
+        
+        if !isempty(benchmark_row)
+            benchmark_value = benchmark_row[1, :AlgoValue]
+            difference = our_value - benchmark_value
+            abs_difference = abs(difference)
+            
+            # Calculate percentage error if benchmark value is not zero
+            perc_error = benchmark_value != 0 ? (abs_difference / abs(benchmark_value)) * 100 : 0.0
+            
+            push!(comparison_data, (
+                Node = node,
+                OurAlgoValue = our_value,
+                BenchmarkAlgoValue = benchmark_value,
+                Difference = difference,
+                AbsDifference = abs_difference,
+                PercError = perc_error
+            ))
+        else
+            # Node not found in benchmark
+            push!(comparison_data, (
+                Node = node,
+                OurAlgoValue = our_value,
+                BenchmarkAlgoValue = missing,
+                Difference = missing,
+                AbsDifference = missing,
+                PercError = missing
+            ))
+        end
+    end
+    
+    # Convert to DataFrame
+    comparison_df = DataFrame(comparison_data)
+    
+    # Sort by absolute difference descending (highest first)
+    sort!(comparison_df, :AbsDifference, rev=true)
+    
   
-    println(i)
     
+    # Display the full comparison DataFrame
+    println("\nFULL COMPARISON RESULTS:")
+    show(comparison_df#= , allrows=true =#)
     
-end 
+    return 
+end
 
-open("output.txt", "w") do file
-    for i in values(sorted_algo)
-        println(file, i)
+# Comprehensive function that runs full pipeline with network aliases
+function runFullComparison(network_alias::String, data_type::String="float")
+    # Define network mappings: alias -> (network_name, benchmark_csv_file)
+    network_mappings = Dict(
+        "grid" => ("grid-graph", "GRID_0.9x0.9_ExactComp.csv"),
+        "grid-graph" => ("grid-graph", "GRID_0.9x0.9_ExactComp.csv"),
+        "karl" => ("KarlNetwork", "KarlNetwork_0.9x0.9_1milruns.csv"),
+        "karlnetwork" => ("KarlNetwork", "KarlNetwork_0.9x0.9_1milruns.csv"),
+        "metro" => ("metro_directed_dag_for_ipm", "metro0.9x0.9_ExactComp.csv"),
+        "metro_directed_dag_for_ipm" => ("metro_directed_dag_for_ipm", "metro0.9x0.9_ExactComp.csv"),
+        "power" => ("power-network", "Power0.9x0.9_ExactComp.csv"),
+        "power-network" => ("power-network", "Power0.9x0.9_ExactComp.csv"),
+        "munin" => ("munin-dag", "sorted_mumin_result.csv"),
+        "munin-dag" => ("munin-dag", "sorted_mumin_result.csv"),
+        "layered" => ("layereddiamond-3", nothing),  # No benchmark file available
+        "layereddiamond-3" => ("layereddiamond-3", nothing),
+        "join" => ("join-260", nothing),  # No benchmark file available
+        "join-260" => ("join-260", nothing),
+        "ergo" => ("ergo-proxy-dag-network", nothing),  # No benchmark file available
+        "ergo-proxy-dag-network" => ("ergo-proxy-dag-network", nothing),
+        "drone" => ("real_drone_network", nothing)  # No benchmark file available
+    )
+    
+    # Convert alias to lowercase for case-insensitive matching
+    network_key = lowercase(network_alias)
+    
+    # Check if network alias exists
+    if !haskey(network_mappings, network_key)
+        available_networks = join(sort(collect(keys(network_mappings))), ", ")
+        error("Unknown network alias: '$network_alias'. Available networks: $available_networks")
+    end
+    
+    network_name, benchmark_csv = network_mappings[network_key]
+    
+    println("="^70)
+    println("RUNNING FULL COMPARISON FOR: $network_alias")
+    println("="^70)
+    println("Network name: $network_name")
+    println("Data type: $data_type")
+    println("="^70)
+    
+    # Step 1: Run the reachability algorithm
+    try
+        sorted_results, computation_time = calculateRechability(network_name, data_type)
+        println("⏱️  Computation time: $(round(computation_time, digits=4)) seconds")
+        
+        # Step 2: Compare with benchmark if available
+        if benchmark_csv !== nothing
+            try
+                compareWithBenchmark(sorted_results, benchmark_csv)
+                return 
+            catch e
+                println("❌ Error during comparison: $e")
+                println("Returning algorithm results only.")
+                return sorted_results, computation_time, nothing
+            end
+        else
+            println("\n⚠️  STEP 2: No benchmark file available for this network.")
+            println("Showing algorithm results only:")
+            println("\nAlgorithm Results (first 10 nodes):")
+            count = 0
+            for (node, value) in sorted_results
+                if count >= 10
+                    println("... (showing first 10 of $(length(sorted_results)) nodes)")
+                    break
+                end
+                println("Node $node: $(round(value, digits=8))")
+                count += 1
+            end
+            return
+        end
+        
+    catch e
+        println("❌ Error running algorithm: $e")
+        rethrow(e)
     end
 end
-# sorted output values
-#show(SortedDict(output)) 
-#output[559] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
-#= 
-exact_results = ( path_enumeration_result(
-            outgoing_index,
-            incoming_index,
-            source_nodes,
-            node_priors,
-            edge_probabilities
-        ));
 
-    sorted_exact = OrderedDict(sort(collect(exact_results)));
-
-    # Create base DataFrame using the float values directly
-   df = DataFrame(
-    Node = collect(keys(sorted_algo)),
-    AlgoValue = collect(values(sorted_algo)),
-    ExactValue = collect(values(sorted_exact))
-)
-
-# Add absolute difference
-df.AbsDiff = abs.(df.AlgoValue .- df.ExactValue)
-
-# Add percentage error: (|algo - exact| / exact) * 100
-df.PercError = (df.AbsDiff ./ abs.(df.ExactValue)) .* 100
-
-    # Display sorted result (if you want to sort by the difference)
-    #show(sort(df, :AbsDiff, rev=true), allrows=true) 
-
+# Convenience function to list available networks
+function listAvailableNetworks()
+    networks = [
+        ("grid", "Grid Graph (4x4)", "GRID_0.9x0.9_ExactComp.csv"),
+        ("karl", "Karl Network", "KarlNetwork_0.9x0.9_1milruns.csv"),
+        ("metro", "Metro Directed DAG", "metro0.9x0.9_ExactComp.csv"),
+        ("power", "Power Network", "Power0.9x0.9_ExactComp.csv"),
+        ("munin", "Munin DAG", "sorted_mumin_result.csv"),
+        ("layered", "Layered Diamond-3", "No benchmark"),
+        ("join", "Join-260", "No benchmark"),
+        ("ergo", "Ergo Proxy DAG Network", "No benchmark"),
+        ("drone", "Real Drone Network", "No benchmark")
+    ]
+    
+    println("Available Networks:")
+    println("="^60)
+    for (alias, description, benchmark) in networks
+        println("• $alias - $description")
+        println("  Benchmark: $benchmark")
+        println()
+    end
+    
+    println("Usage examples:")
+    println("runFullComparison(\"grid\")  # Uses float data type")
+    println("runFullComparison(\"karl\", \"interval\")  # Uses interval data type")
+    println("runFullComparison(\"power\", \"pbox\")  # Uses pbox data type")
+end
 
 
+# Super simple - just use aliases!
+#runFullComparison("grid")           # Grid network + GRID_0.9x0.9_ExactComp.csv
+#runFullComparison("karl")           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+#runFullComparison("power")          # Power network + Power0.9x0.9_ExactComp.csv
+#runFullComparison("metro")          # Metro network + metro0.9x0.9_ExactComp.csv
+#runFullComparison("munin")          # Munin network + sorted_mumin_result.csv
 
+# With different data types
+#runFullComparison("karl", "interval")
+#runFullComparison("power", "pbox")
 
-    using CSV 
-
-# Sort the DataFrame by the Diff column in descending order
-sorted_df = sort(df, :AbsDiff, rev=true)
-
-# Save the sorted DataFrame as a CSV file
-CSV.write("munin-dag_0.9x0.9_ExactComp.csv", sorted_df)
-   
-
-=#
-
-
-
-#=
-
-mc_results = (MC_result(
-    edgelist,
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    edge_probabilities,
-    1_000_000,
-));
-
-
-# Sort outputs
-sorted_algo = OrderedDict(sort(collect(output)));
-sorted_mc = OrderedDict(sort(collect(mc_results)));
-
-# Create base DataFrame using the float values directly
-df = DataFrame(
-  Node = collect(keys(sorted_algo)),
-  AlgoValue = collect(values(sorted_algo)),
-  MCValue = collect(values(sorted_mc))
-)
-
-# Add a difference column (if needed)
-df.Diff = abs.(df.AlgoValue .- df.MCValue)
-# Display sorted result (if you want to sort by the difference)
-show(sort(df, :Diff, rev=true), allrows=true)
-
-
-using CSV 
-
-# Sort the DataFrame by the Diff column in descending order
-sorted_df = sort(df, :Diff, rev=true)
-
-# Save the sorted DataFrame as a CSV file
-CSV.write("munin-dag_0.9x0.9_1milruns.csv", sorted_df)
- =#
-
-
+# List available networks
+#listAvailableNetworks()
 
