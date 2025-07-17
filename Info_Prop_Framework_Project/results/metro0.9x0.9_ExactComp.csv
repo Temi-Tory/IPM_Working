@@ -1,4 +1,4 @@
-Node,AlgoValue,ExactValue,AbsDiff_calc,PercError_calc
+Node,AlgoValue,ComparisonValue,AbsDiff_calc,PercError_calc
 205,0.456676076,0.456676076,4.996E-15,1.09399E-14
 261,0.369109843,0.369109843,1.9984E-15,5.41411E-15
 260,0.369573015,0.369573015,1.05471E-15,2.85387E-15

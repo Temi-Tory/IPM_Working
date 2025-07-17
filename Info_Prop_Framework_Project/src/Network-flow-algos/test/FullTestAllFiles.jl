@@ -127,7 +127,7 @@ function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::Str
         benchmark_row = filter(row -> row.Node == node, benchmark_df)
         
         if !isempty(benchmark_row)
-            benchmark_value = benchmark_row[1, :AlgoValue]
+            benchmark_value = benchmark_row[1, :ComparisonValue]
             difference = our_value - benchmark_value
             abs_difference = abs(difference)
             
@@ -138,8 +138,8 @@ function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::Str
                 Node = node,
                 OurAlgoValue = our_value,
                 BenchmarkAlgoValue = benchmark_value,
-                Difference = difference,
                 AbsDifference = abs_difference,
+                Difference = difference,
                 PercError = perc_error
             ))
         else
@@ -148,8 +148,8 @@ function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::Str
                 Node = node,
                 OurAlgoValue = our_value,
                 BenchmarkAlgoValue = missing,
-                Difference = missing,
                 AbsDifference = missing,
+                Difference = missing,
                 PercError = missing
             ))
         end
@@ -167,7 +167,7 @@ function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::Str
     println("\nFULL COMPARISON RESULTS:")
     show(comparison_df#= , allrows=true =#)
     
-    return 
+    return comparison_df
 end
 
 # Comprehensive function that runs full pipeline with network aliases
@@ -219,8 +219,8 @@ function runFullComparison(network_alias::String, data_type::String="float")
         # Step 2: Compare with benchmark if available
         if benchmark_csv !== nothing
             try
-                compareWithBenchmark(sorted_results, benchmark_csv)
-                return 
+                comparison_df = compareWithBenchmark(sorted_results, benchmark_csv)
+                return comparison_df, computation_time
             catch e
                 println("❌ Error during comparison: $e")
                 println("Returning algorithm results only.")
@@ -278,11 +278,13 @@ end
 
 
 # Super simple - just use aliases!
-#runFullComparison("grid")           # Grid network + GRID_0.9x0.9_ExactComp.csv
-#runFullComparison("karl")           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
-#runFullComparison("power")          # Power network + Power0.9x0.9_ExactComp.csv
-#runFullComparison("metro")          # Metro network + metro0.9x0.9_ExactComp.csv
-#runFullComparison("munin")          # Munin network + sorted_mumin_result.csv
+comparison_df, computation_time = runFullComparison("grid");          # Grid network + GRID_0.9x0.9_ExactComp.csv
+#comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+#comparison_df, computation_time = runFullComparison("power");          # Power network + Power0.9x0.9_ExactComp.csv
+#comparison_df, computation_time = runFullComparison(metro");          # Metro network + metro0.9x0.9_ExactComp.csv
+#comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
+
+
 
 # With different data types
 #runFullComparison("karl", "interval")

@@ -301,11 +301,33 @@ module DiamondProcessingModule
                 end
             end
             
-
-            # Remove iteration optimization - use all shared fork ancestors directly
+            # Step 2b: Check for parent-to-parent fork relationships (asymmetric diamonds)
+            # Find parents that are ancestors of other parents
+            parent_to_parent_forks = Set{Int64}()
+            for parent_a in parents
+                for parent_b in parents
+                    if parent_a != parent_b
+                        # Check if parent_a is an ancestor of parent_b
+                        parent_b_ancestors = get(ancestors, parent_b, Set{Int64}())
+                        if parent_a in parent_b_ancestors && parent_a ∉ irrelevant_sources
+                            
+                            push!(parent_to_parent_forks, parent_a)
+                            # Add parent_a to shared_fork_ancestors since it influences multiple paths
+                            push!(shared_fork_ancestors, parent_a)
+                            # Ensure both parents are in diamond_parents
+                            push!(diamond_parents, parent_a)
+                            push!(diamond_parents, parent_b)
+                        end
+                    end
+                end
+            end
+            
+            # Remove iteration optimization for now - use all shared fork ancestors directly
            
             # Skip if no shared fork ancestors
             isempty(shared_fork_ancestors) && continue
+            
+            
             
             # Step 4: Extract complete distinct edge list of paths from shared all fork ancestors to join node for diamond edgelist induced
             # Build relevant nodes for induced subgraph: shared fork ancestors + their descendants that are ancestors of join_node + join_node
@@ -313,12 +335,16 @@ module DiamondProcessingModule
             push!(relevant_nodes_for_induced, join_node)
             
             join_ancestors = get(ancestors, join_node, Set{Int64}())
+           
             for shared_ancestor in shared_fork_ancestors
                 shared_descendants = get(descendants, shared_ancestor, Set{Int64}())
                 # Add descendants of shared ancestor that are also ancestors of join node
                 intermediates = intersect(shared_descendants, join_ancestors)
                 union!(relevant_nodes_for_induced, intermediates)
+               
             end
+            
+           
             
             # Extract induced edgelist
             induced_edgelist = Vector{Tuple{Int64, Int64}}()
@@ -329,12 +355,16 @@ module DiamondProcessingModule
                 end
             end
             
+          
+            
             # Step 5: From induced edgelist identify diamond_sourcenodes (nodes with no incoming edges in the extracted induced edge list)
             targets_in_induced = Set{Int64}()
             for (_, target) in induced_edgelist
                 push!(targets_in_induced, target)
             end
             diamond_sourcenodes = setdiff(setdiff(relevant_nodes_for_induced, targets_in_induced), exluded_nodes)
+            
+           
             
             # Step 5b: From induced edgelist identify relevant_nodes (all nodes involved in the paths)
             relevant_nodes = Set{Int64}()
@@ -343,41 +373,58 @@ module DiamondProcessingModule
                 push!(relevant_nodes, target)
             end
             
+           
+            
             # Step 6: Find conditioning nodes (ALL sources in induced graph)
             # IMPORTANT: Exclude nodes that are already conditioned in parent context
             conditioning_nodes = setdiff(diamond_sourcenodes, exluded_nodes)
             
+           
+            
             # VALIDITY CHECK: Skip diamonds that would have no conditioning nodes after exclusion
             # This prevents circular dependencies where excluded nodes were the only conditioning nodes
             if isempty(conditioning_nodes)
+               
                 continue  # Skip this diamond - it's not valid without conditioning nodes
             end
             
             # Step 7: Identify intermediate nodes: relevant_nodes that are NOT (conditioning_nodes OR join_node)
             intermediate_nodes = setdiff(relevant_nodes, union(conditioning_nodes, Set([join_node])))
             
+           
+            
             # Step 8: For each intermediate node: Ensure ALL its incoming edges are included in the diamond's induced edge list
             final_edgelist = copy(induced_edgelist)
             final_relevant_nodes_for_induced = copy(relevant_nodes_for_induced)
             final_shared_fork_ancestors = copy(shared_fork_ancestors)
+            
+            
             
             # Track nodes added in this step for recursive processing
             nodes_added_in_step8 = Set{Int64}()
             
             for intermediate_node in intermediate_nodes
                 incoming_edges = get(incoming_index, intermediate_node, Set{Int64}())
+              
+                
                 for source_node in incoming_edges
                     edge = (source_node, intermediate_node)
                     if edge ∉ final_edgelist
+                      
                         push!(final_edgelist, edge)
                         # Only add to nodes_added_in_step8 if it wasn't in original relevant_nodes_for_induced
                         if source_node ∉ relevant_nodes_for_induced
                             push!(nodes_added_in_step8, source_node)
+                            
                         end
                         push!(final_relevant_nodes_for_induced, source_node)
+                    else
+                        
                     end
                 end
             end
+            
+          
             
             # Step 8b: Enhanced subsource analysis - detect shared ancestors between diamond sources
             targets_in_final = Set{Int64}()
@@ -385,6 +432,8 @@ module DiamondProcessingModule
                 push!(targets_in_final, target)
             end
             final_diamond_sourcenodes = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_final), exluded_nodes)
+            
+            
             
             # Shared subsource analysis: find common ancestors between diamond sources
             subsource_analysis_depth = 0
@@ -395,8 +444,12 @@ module DiamondProcessingModule
                 subsource_analysis_depth += 1
                 sources_changed = false
                 
+              
+                
                 # Get current sources (excluding join node and already excluded nodes)
                 current_sources = setdiff(final_diamond_sourcenodes, Set([join_node]))
+                
+                
                 
                 if length(current_sources) >= 2
                     # Find shared ancestors between current sources
@@ -426,6 +479,27 @@ module DiamondProcessingModule
                                 union!(shared_source_ancestors, shared)
                                 push!(sources_sharing_ancestors, source_i)
                                 push!(sources_sharing_ancestors, source_j)
+                            end
+                        end
+                    end
+                    
+                    # Check for source-to-source relationships in current sources
+                    current_sources_array = collect(current_sources)
+                    for i in eachindex(current_sources_array)
+                        source_a = current_sources_array[i]
+                        for j in (i+1):lastindex(current_sources_array)
+                            source_b = current_sources_array[j]
+                            source_b_ancestors = get(ancestors, source_b, Set{Int64}())
+                            source_a_ancestors = get(ancestors, source_a, Set{Int64}())
+                            
+                            if source_a in source_b_ancestors && source_a ∉ irrelevant_sources
+                                push!(shared_source_ancestors, source_a)
+                                push!(sources_sharing_ancestors, source_a)
+                                push!(sources_sharing_ancestors, source_b)
+                            elseif source_b in source_a_ancestors && source_b ∉ irrelevant_sources
+                                push!(shared_source_ancestors, source_b)
+                                push!(sources_sharing_ancestors, source_a)
+                                push!(sources_sharing_ancestors, source_b)
                             end
                         end
                     end
@@ -479,6 +553,8 @@ module DiamondProcessingModule
             while recursion_depth < max_recursion_depth
                 recursion_depth += 1
                 
+                
+                
                 # Check if ALL current diamond source nodes share fork ancestors
                 diamond_source_fork_ancestors = Dict{Int64, Set{Int64}}()
                 for node in final_diamond_sourcenodes
@@ -507,14 +583,80 @@ module DiamondProcessingModule
                     end
                 end
                 
+                # Check for source-to-source relationships among diamond source nodes
+                source_to_source_forks = Set{Int64}()
+                sources_array = collect(final_diamond_sourcenodes)
+                for i in eachindex(sources_array)
+                    source_a = sources_array[i]
+                    for j in (i+1):lastindex(sources_array)
+                        source_b = sources_array[j]
+                        # Check if source_a is ancestor of source_b or vice versa
+                        source_b_ancestors = get(ancestors, source_b, Set{Int64}())
+                        source_a_ancestors = get(ancestors, source_a, Set{Int64}())
+                        
+                        if source_a in source_b_ancestors && source_a ∉ irrelevant_sources
+                            push!(source_to_source_forks, source_a)
+                        elseif source_b in source_a_ancestors && source_b ∉ irrelevant_sources
+                            push!(source_to_source_forks, source_b)
+                        end
+                    end
+                end
+                
+                # Add source-to-source forks to new_shared_fork_ancestors
+                union!(new_shared_fork_ancestors, source_to_source_forks)
+                
                 # Remove ancestors we already have
                 new_shared_fork_ancestors = setdiff(new_shared_fork_ancestors, final_shared_fork_ancestors)
                 
-                # Skip if no new shared fork ancestors found
-                isempty(new_shared_fork_ancestors) && break
+                # CRITICAL FIX: Process intermediate nodes BEFORE checking for break condition
+                # This ensures that even if no new shared fork ancestors are found,
+                # we still process any intermediate nodes that were introduced
                 
-                # Update shared fork ancestors
-                union!(final_shared_fork_ancestors, new_shared_fork_ancestors)
+                # Re-identify current relevant nodes from current edgelist
+                current_relevant_nodes = Set{Int64}()
+                for (source, target) in final_edgelist
+                    push!(current_relevant_nodes, source)
+                    push!(current_relevant_nodes, target)
+                end
+                
+                # Re-identify current diamond sources
+                current_targets = Set{Int64}()
+                for (_, target) in final_edgelist
+                    push!(current_targets, target)
+                end
+                current_diamond_sources = setdiff(setdiff(final_relevant_nodes_for_induced, current_targets), exluded_nodes)
+                
+                # Identify current intermediate nodes
+                current_intermediate_nodes = setdiff(current_relevant_nodes, union(current_diamond_sources, Set([join_node])))
+                
+                
+                
+                # Process ALL incoming edges for current intermediate nodes
+                edges_added_this_iteration = false
+                for intermediate_node in current_intermediate_nodes
+                    incoming_edges = get(incoming_index, intermediate_node, Set{Int64}())
+                    
+                    
+                    for source_node in incoming_edges
+                        edge = (source_node, intermediate_node)
+                        if edge ∉ final_edgelist
+                            
+                            push!(final_edgelist, edge)
+                            push!(final_relevant_nodes_for_induced, source_node)
+                            edges_added_this_iteration = true
+                        end
+                    end
+                end
+                
+                # Skip if no new shared fork ancestors found AND no edges were added for intermediate nodes
+                if isempty(new_shared_fork_ancestors) && !edges_added_this_iteration
+                    break
+                end
+                
+                # Update shared fork ancestors (only if we have new ones)
+                if !isempty(new_shared_fork_ancestors)
+                    union!(final_shared_fork_ancestors, new_shared_fork_ancestors)
+                end
                 
                 # Extract paths from new shared ancestors to diamond source nodes
                 for shared_ancestor in new_shared_fork_ancestors
@@ -531,12 +673,15 @@ module DiamondProcessingModule
                     end
                 end
                 
-                # Extract new induced edges
-                for edge in edgelist
-                    source, target = edge
-                    if source in final_relevant_nodes_for_induced && target in final_relevant_nodes_for_induced
-                        if edge ∉ final_edgelist
-                            push!(final_edgelist, edge)
+                # Extract new induced edges (only if we have new shared fork ancestors)
+                if !isempty(new_shared_fork_ancestors)
+                    for edge in edgelist
+                        source, target = edge
+                        if source in final_relevant_nodes_for_induced && target in final_relevant_nodes_for_induced
+                            if edge ∉ final_edgelist
+                                
+                                push!(final_edgelist, edge)
+                            end
                         end
                     end
                 end
@@ -564,11 +709,14 @@ module DiamondProcessingModule
                 for intermediate_node in new_intermediate_nodes
                     # Process ALL new intermediate nodes to ensure complete diamond structure
                     incoming_edges = get(incoming_index, intermediate_node, Set{Int64}())
+                   
                     for source_node in incoming_edges
                         edge = (source_node, intermediate_node)
                         if edge ∉ final_edgelist
+                           
                             push!(final_edgelist, edge)
                             push!(final_relevant_nodes_for_induced, source_node)
+                        
                         end
                     end
                 end
@@ -595,10 +743,13 @@ module DiamondProcessingModule
             final_highest_nodes = intersect(final_shared_fork_ancestors, final_diamond_sourcenodes)
             
             
+            
+            
             # Step 9: Build single Diamond with: edgelist, conditioning_nodes, relevant_nodes
             # Classify non-diamond parents
             non_diamond_parents = setdiff(parents, diamond_parents)
             
+                       
             diamond = Diamond(final_relevant_nodes, final_highest_nodes, final_edgelist)
             result[join_node] = DiamondsAtNode(diamond, non_diamond_parents, join_node)
         end

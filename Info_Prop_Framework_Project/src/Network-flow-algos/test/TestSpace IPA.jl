@@ -149,7 +149,7 @@ println("starting  build unique diamond storage");
     iteration_sets
 );#8 minutes processing time for drone network
 #diamond_structures[4].diamond.edgelist
-
+#= 
 #Run belief propagation
 #show(unique_diamonds)
 # Use the optimized version with pre-computed hierarchy
@@ -182,7 +182,7 @@ open("output.txt", "w") do file
     for i in values(sorted_algo)
         println(file, i)
     end
-end
+end =#
 # sorted output values
 #show(SortedDict(output)) 
 #output[559] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
