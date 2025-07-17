@@ -20,6 +20,17 @@ module DiamondProcessingModule
     # STRUCT DEFINITIONS
     # 
 
+    struct DiamondExecutionLevel
+        level_id::Int64                    # 1 = outermost, N = innermost  
+        diamonds_at_level::Set{UInt64}     # Diamond hashes - that's ALL we need!
+        num_states::Int64                  # 2^|conditioning_nodes| - for quick cost estimation
+    end
+
+    struct DiamondExecutionPlan
+        root_join_node::Int64
+        execution_levels::Vector{DiamondExecutionLevel}
+        total_computational_cost::Int64    # Product of all num_states
+    end
     """
     Represents a diamond structure in the network.
     """
@@ -848,7 +859,7 @@ module DiamondProcessingModule
 
     """
     Build unique diamond storage with depth-first recursive processing to match recursive version
-    Returns unique_diamonds::Dict{UInt64, DiamondComputationData{T}}
+    Returns (unique_diamonds, execution_plans)
     """
     function build_unique_diamond_storage(
         root_diamonds::Dict{Int64, DiamondsAtNode},
@@ -857,7 +868,6 @@ module DiamondProcessingModule
         descendants::Dict{Int64, Set{Int64}},
         iteration_sets::Vector{Set{Int64}}
     ) where {T <: Union{Float64, pbox, Interval}}
-       
         
         # Clear caches for fresh start
         empty!(ALTERNATING_CYCLE_CACHE)
@@ -870,11 +880,21 @@ module DiamondProcessingModule
         # Track processed diamonds to prevent infinite recursion
         processed_diamond_hashes = Set{UInt64}()
         
-        # SINGLE GROWING POOL: Starts with root diamonds, gets enriched as we discover sub-diamonds
-        global_diamonds = Set{DiamondsAtNode}(values(root_diamonds))
+        # NEW: Track execution plans during discovery
+        execution_plans = Dict{Int64, DiamondExecutionPlan}()
+        
+        # Track diamonds by level for each execution plan
+        plan_level_tracking = Dict{Int64, Dict{Int64, Set{UInt64}}}()  # root_join_node -> level -> diamond_hashes
         
         # Recursive function to process diamonds depth-first like the recursive version
-        function process_diamond_recursive(current_diamond::Diamond, join_node::Int64, non_diamond_parents::Set{Int64}, accumulated_excluded_nodes::Set{Int64} = Set{Int64}(), is_root_diamond::Bool = false)
+        function process_diamond_recursive(
+            current_diamond::Diamond, 
+            join_node::Int64, 
+            non_diamond_parents::Set{Int64},
+            accumulated_excluded_nodes::Set{Int64} = Set{Int64}(),
+            nesting_level::Int64 = 1,
+            root_join_node::Int64 = join_node
+        )
             # Create hash key for this diamond
             diamond_hash = create_diamond_hash_key(current_diamond)
             
@@ -886,14 +906,25 @@ module DiamondProcessingModule
             # Mark this diamond as being processed
             push!(processed_diamond_hashes, diamond_hash)
             
+            # Initialize execution plan tracking for this root if not exists
+            if !haskey(plan_level_tracking, root_join_node)
+                plan_level_tracking[root_join_node] = Dict{Int64, Set{UInt64}}()
+            end
+            
+            # Add this diamond to the appropriate level for this execution plan
+            if !haskey(plan_level_tracking[root_join_node], nesting_level)
+                plan_level_tracking[root_join_node][nesting_level] = Set{UInt64}()
+            end
+            push!(plan_level_tracking[root_join_node][nesting_level], diamond_hash)
+            
             # Accumulate excluded nodes: all conditioning nodes from current level + all parent levels
             current_excluded_nodes = union(accumulated_excluded_nodes, current_diamond.conditioning_nodes)
-           
+        
             # Compute subgraph structure for this diamond
             sub_outgoing_index, sub_incoming_index, sub_sources, sub_fork_nodes,
             sub_join_nodes, sub_ancestors, sub_descendants, sub_iteration_sets, sub_node_priors =
                 compute_diamond_subgraph_structure(current_diamond, join_node, node_priors, ancestors, descendants, iteration_sets)
-          
+        
             # Find inner diamonds when this diamond's conditioning nodes are processed
             # Pass ALL accumulated excluded nodes from the hierarchy to properly filter sub-diamonds
             sub_diamonds_dict = identify_and_group_diamonds(
@@ -908,15 +939,22 @@ module DiamondProcessingModule
                 sub_iteration_sets,
                 current_excluded_nodes  # Pass ALL accumulated excluded nodes from hierarchy
             )
-          
+        
             # Process each sub-diamond recursively
             filtered_sub_diamonds = Dict{Int64, DiamondsAtNode}()
             for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
                 sub_diamond = sub_diamond_at_node.diamond
                 
-                # Process sub-diamond recursively (it becomes Level 0 for its own processing)
+                # Process sub-diamond recursively at deeper nesting level
                 # Pass accumulated excluded nodes to maintain hierarchy
-                process_diamond_recursive(sub_diamond, sub_join_node, sub_diamond_at_node.non_diamond_parents, current_excluded_nodes)
+                process_diamond_recursive(
+                    sub_diamond, 
+                    sub_join_node, 
+                    sub_diamond_at_node.non_diamond_parents, 
+                    current_excluded_nodes,
+                    nesting_level + 1,  # Deeper level
+                    root_join_node      # Same root
+                )
                 
                 filtered_sub_diamonds[sub_join_node] = sub_diamond_at_node
             end
@@ -959,15 +997,55 @@ module DiamondProcessingModule
         
         # Process diamonds in iteration order (1, 2, 3, ...)
         for iteration_level in sort(collect(keys(root_diamonds_by_iteration)))
-            
             for (join_node, diamond_at_node) in root_diamonds_by_iteration[iteration_level]
-                process_diamond_recursive(diamond_at_node.diamond, join_node, diamond_at_node.non_diamond_parents)
+                # Start recursive processing from this root diamond
+                process_diamond_recursive(
+                    diamond_at_node.diamond, 
+                    join_node, 
+                    diamond_at_node.non_diamond_parents,
+                    Set{Int64}(),  # No accumulated excluded nodes at root level
+                    1,             # Start at nesting level 1
+                    join_node      # This is the root join node
+                )
             end
-            
         end
         
+        # Build execution plans from tracked level data
+        for (root_join_node, level_data) in plan_level_tracking
+            execution_levels = Vector{DiamondExecutionLevel}()
+            total_cost = 1
+            
+            # Sort levels and build execution levels
+            for level_id in sort(collect(keys(level_data)))
+                diamonds_at_level = level_data[level_id]
+                
+                # Calculate states for this level
+                level_states = 1
+                for diamond_hash in diamonds_at_level
+                    computation_data = unique_diamonds[diamond_hash]
+                    num_conditioning_nodes = length(computation_data.diamond.conditioning_nodes)
+                    diamond_states = 2^num_conditioning_nodes
+                    level_states *= diamond_states
+                end
+                
+                execution_level = DiamondExecutionLevel(
+                    level_id,
+                    diamonds_at_level,
+                    level_states
+                )
+                
+                push!(execution_levels, execution_level)
+                total_cost *= level_states
+            end
+            
+            execution_plans[root_join_node] = DiamondExecutionPlan(
+                root_join_node,
+                execution_levels,
+                total_cost
+            )
+        end
         
-        return unique_diamonds
+        return unique_diamonds, execution_plans
     end
 
  

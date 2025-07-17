@@ -73,7 +73,7 @@ function calculateRechability(network_name::String, data_type::String="float")
     );
 
     println("Starting build unique diamond storage");
-    unique_diamonds = build_unique_diamond_storage(
+    unique_diamonds, execution_plans = build_unique_diamond_storage(
         diamond_structures,
         node_priors,
         ancestors,
@@ -102,7 +102,7 @@ function calculateRechability(network_name::String, data_type::String="float")
     computation_time = time() - start_time
     
     # Return sorted results and computation time
-    return SortedDict(output), computation_time
+    return SortedDict(output), computation_time,execution_plans
 end
 
 # Function to compare our algorithm results with CSV benchmark results
@@ -213,18 +213,18 @@ function runFullComparison(network_alias::String, data_type::String="float")
     
     # Step 1: Run the reachability algorithm
     try
-        sorted_results, computation_time = calculateRechability(network_name, data_type)
+        sorted_results, computation_time, execution_plans = calculateRechability(network_name, data_type)
         println("⏱️  Computation time: $(round(computation_time, digits=4)) seconds")
         
         # Step 2: Compare with benchmark if available
         if benchmark_csv !== nothing
             try
                 comparison_df = compareWithBenchmark(sorted_results, benchmark_csv)
-                return comparison_df, computation_time
+                return comparison_df, computation_time, execution_plans
             catch e
                 println("❌ Error during comparison: $e")
                 println("Returning algorithm results only.")
-                return sorted_results, computation_time, nothing
+                return sorted_results, computation_time,execution_plans, nothing
             end
         else
             println("\n⚠️  STEP 2: No benchmark file available for this network.")
@@ -278,12 +278,13 @@ end
 
 
 # Super simple - just use aliases!
-comparison_df, computation_time = runFullComparison("grid");          # Grid network + GRID_0.9x0.9_ExactComp.csv
-#comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
-#comparison_df, computation_time = runFullComparison("power");          # Power network + Power0.9x0.9_ExactComp.csv
-#comparison_df, computation_time = runFullComparison(metro");          # Metro network + metro0.9x0.9_ExactComp.csv
-#comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
+comparison_df, computation_time, execution_plans = runFullComparison("grid");   
+#comparison_df, computation_time, execution_plans = runFullComparison("karl");
+#comparison_df, computation_time, execution_plans = runFullComparison("power");
+#comparison_df, computation_time, execution_plans = runFullComparison("metro");
+#comparison_df, computation_time, execution_plans = runFullComparison("munin");
 
+#show(execution_plans)
 
 
 # With different data types
