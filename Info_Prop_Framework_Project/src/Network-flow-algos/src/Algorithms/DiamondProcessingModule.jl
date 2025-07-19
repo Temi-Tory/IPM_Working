@@ -63,10 +63,6 @@ module DiamondProcessingModule
     #
 
 
-    # Memoization cache for diamond identification results
-    # Key: (join_nodes, effective_fork_nodes, edgelist_hash) -> Result: Dict{Int64, DiamondsAtNode}
-    const DIAMOND_IDENTIFICATION_CACHE = Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}()
-
     # 
     # HELPER FUNCTIONS
     # 
@@ -723,7 +719,8 @@ module DiamondProcessingModule
         edgelist::Vector{Tuple{Int64, Int64}},      
         node_priors::Union{Dict{Int64,Float64}, Dict{Int64,pbox}, Dict{Int64,Interval}},
         iteration_sets::Vector{Set{Int64}},
-        exluded_nodes::Set{Int64} = Set{Int64}()
+        exluded_nodes::Set{Int64} = Set{Int64}(),
+        DIAMOND_IDENTIFICATION_CACHE::Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}} = Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}()
     )::Dict{Int64, DiamondsAtNode}
         
         result = Dict{Int64, DiamondsAtNode}()
@@ -902,7 +899,8 @@ module DiamondProcessingModule
        
         
         # Clear caches for fresh start
-        empty!(DIAMOND_IDENTIFICATION_CACHE)
+       DIAMOND_IDENTIFICATION_CACHE = Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}()
+   
         
         # Final result: unique diamonds with hash-based lookup
         unique_diamonds = Dict{UInt64, DiamondComputationData{T}}()
@@ -946,7 +944,8 @@ module DiamondProcessingModule
                 current_diamond.edgelist,
                 sub_node_priors,
                 sub_iteration_sets,
-                current_excluded_nodes  # Pass ALL accumulated excluded nodes from hierarchy
+                current_excluded_nodes,  # Pass ALL accumulated excluded nodes from hierarchy
+                DIAMOND_IDENTIFICATION_CACHE
             )
           
             # Process each sub-diamond recursively

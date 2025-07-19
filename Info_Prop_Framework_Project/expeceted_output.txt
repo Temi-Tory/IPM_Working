@@ -1,0 +1,790 @@
+🚀 STARTING ROOT DIAMOND PROCESSING: Join Node 26 (Iteration Level 10)
+════════════════════════════════════════════════════════════════════════════════
+📊 ROOT DIAMOND STRUCTURE:
+   Relevant nodes: Set([24, 17, 1, 19, 23, 11, 9, 3, 7, 15, 21, 26])
+   Conditioning: Set([11])
+   Non-diamond parents: Set{Int64}()
+   Total edges: 18
+════════════════════════════════════════════════════════════════════════════════
+
+🔍 PROCESSING DIAMOND [Depth 0] Join Node: 26
+   ╭─ Diamond Structure:
+   │  Relevant nodes: Set([24, 17, 1, 19, 23, 11, 9, 3, 7, 15, 21, 26])
+   │  Conditioning nodes: Set([11])
+   │  Edgelist (18 edges):
+   │    Edge 1: 1 → 17
+   │    Edge 2: 3 → 19
+   │    Edge 3: 7 → 9
+   │    Edge 4: 7 → 15
+   │    Edge 5: 7 → 17
+   │    Edge 6: 9 → 24
+   │    Edge 7: 11 → 1
+   │    Edge 8: 11 → 7
+   │    Edge 9: 15 → 9
+   │    Edge 10: 15 → 26
+   │    Edge 11: 17 → 19
+   │    Edge 12: 19 → 26
+   │    Edge 13: 21 → 1
+   │    Edge 14: 23 → 1
+   │    Edge 15: 23 → 17
+   │    Edge 16: 24 → 3
+   │    Edge 17: 24 → 21
+   │    Edge 18: 24 → 23
+   ├─ Context:
+   │  Non-diamond parents: Set{Int64}()
+   │  Accumulated excluded: Set{Int64}()
+   └─ Processing...
+
+📝 SUBGRAPH COMPUTATION:
+   Current excluded nodes: Set([11])
+   ╭─ Subgraph Results:
+   │  Sub join nodes: Set([9, 26, 17, 1, 19])
+   │  Sub fork nodes: Set([15, 7, 11, 24, 23])
+   │  Sub sources: Set([11])
+   │  Sub incoming edges:
+   │    Node 24 ← Set([9])
+   │    Node 17 ← Set([7, 1, 23])
+   │    Node 23 ← Set([24])
+   │    Node 1 ← Set([21, 11, 23])
+   │    Node 19 ← Set([17, 3])
+   │    Node 9 ← Set([15, 7])
+   │    Node 3 ← Set([24])
+   │    Node 7 ← Set([11])
+   │    Node 15 ← Set([7])
+   │    Node 21 ← Set([24])
+   │    Node 26 ← Set([15, 19])
+   └─ Calling identify_and_group_diamonds...
+
+💎 INNER DIAMONDS DISCOVERED: 5
+   ╭─ Inner Diamond at Join 9:
+   │  Relevant nodes: Set([15, 7, 9])
+   │  Conditioning: Set([7])
+   │  Non-diamond parents: Set{Int64}()
+   │  Edges (3):
+   │    7 → 9
+   │    7 → 15
+   │    15 → 9
+   └─ Hash: 2019417156523083654
+
+   ╭─ Inner Diamond at Join 26:
+   │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21, 26])
+   │  Conditioning: Set([7])
+   │  Non-diamond parents: Set{Int64}()
+   │  Edges (17):
+   │    1 → 17
+   │    3 → 19
+   │    7 → 9
+   │    7 → 15
+   │    7 → 17
+   │    9 → 24
+   │    15 → 9
+   │    15 → 26
+   │    17 → 19
+   │    19 → 26
+   │    21 → 1
+   │    23 → 1
+   │    23 → 17
+   │    24 → 3
+   │    24 → 21
+   │    24 → 23
+   │    11 → 1
+   └─ Hash: 5680328632972451610
+
+   ╭─ Inner Diamond at Join 17:
+   │  Relevant nodes: Set([15, 7, 21, 11, 9, 24, 17, 1, 23])
+   │  Conditioning: Set([7])
+   │  Non-diamond parents: Set{Int64}()
+   │  Edges (12):
+   │    1 → 17
+   │    7 → 9
+   │    7 → 15
+   │    7 → 17
+   │    9 → 24
+   │    15 → 9
+   │    21 → 1
+   │    23 → 1
+   │    23 → 17
+   │    24 → 21
+   │    24 → 23
+   │    11 → 1
+   └─ Hash: 13300880716191091862
+
+   ╭─ Inner Diamond at Join 1:
+   │  Relevant nodes: Set([15, 7, 21, 9, 24, 1, 23])
+   │  Conditioning: Set([7])
+   │  Non-diamond parents: Set([11])
+   │  Edges (8):
+   │    7 → 9
+   │    7 → 15
+   │    9 → 24
+   │    15 → 9
+   │    21 → 1
+   │    23 → 1
+   │    24 → 21
+   │    24 → 23
+   └─ Hash: 289192686427987068
+
+   ╭─ Inner Diamond at Join 19:
+   │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21])
+   │  Conditioning: Set([7])
+   │  Non-diamond parents: Set{Int64}()
+   │  Edges (15):
+   │    1 → 17
+   │    3 → 19
+   │    7 → 9
+   │    7 → 15
+   │    7 → 17
+   │    9 → 24
+   │    15 → 9
+   │    17 → 19
+   │    21 → 1
+   │    23 → 1
+   │    23 → 17
+   │    24 → 3
+   │    24 → 21
+   │    24 → 23
+   │    11 → 1
+   └─ Hash: 16990989673212689417
+
+
+🔄 RECURSING INTO: Join Node 9
+   └─ Will process with excluded: Set([11])
+
+  🔍 PROCESSING DIAMOND [Depth 1] Join Node: 9
+     ╭─ Diamond Structure:
+     │  Relevant nodes: Set([15, 7, 9])
+     │  Conditioning nodes: Set([7])
+     │  Edgelist (3 edges):
+     │    Edge 1: 7 → 9
+     │    Edge 2: 7 → 15
+     │    Edge 3: 15 → 9
+     ├─ Context:
+     │  Non-diamond parents: Set{Int64}()
+     │  Accumulated excluded: Set([11])
+     └─ Processing...
+
+  ⚠️  SKIPPING: Already processed
+     Hash: 2019417156523083654
+
+🔄 RECURSING INTO: Join Node 26
+   └─ Will process with excluded: Set([11])
+
+  🔍 PROCESSING DIAMOND [Depth 1] Join Node: 26
+     ╭─ Diamond Structure:
+     │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21, 26])
+     │  Conditioning nodes: Set([7])
+     │  Edgelist (17 edges):
+     │    Edge 1: 1 → 17
+     │    Edge 2: 3 → 19
+     │    Edge 3: 7 → 9
+     │    Edge 4: 7 → 15
+     │    Edge 5: 7 → 17
+     │    Edge 6: 9 → 24
+     │    Edge 7: 15 → 9
+     │    Edge 8: 15 → 26
+     │    Edge 9: 17 → 19
+     │    Edge 10: 19 → 26
+     │    Edge 11: 21 → 1
+     │    Edge 12: 23 → 1
+     │    Edge 13: 23 → 17
+     │    Edge 14: 24 → 3
+     │    Edge 15: 24 → 21
+     │    Edge 16: 24 → 23
+     │    Edge 17: 11 → 1
+     ├─ Context:
+     │  Non-diamond parents: Set{Int64}()
+     │  Accumulated excluded: Set([11])
+     └─ Processing...
+
+  📝 SUBGRAPH COMPUTATION:
+     Current excluded nodes: Set([7, 11])
+     ╭─ Subgraph Results:
+     │  Sub join nodes: Set([9, 26, 17, 1, 19])
+     │  Sub fork nodes: Set([15, 7, 24, 23])
+     │  Sub sources: Set([7, 11])
+     │  Sub incoming edges:
+     │    Node 23 ← Set([24])
+     │    Node 15 ← Set([7])
+     │    Node 21 ← Set([24])
+     │    Node 9 ← Set([15, 7])
+     │    Node 26 ← Set([15, 19])
+     │    Node 24 ← Set([9])
+     │    Node 17 ← Set([7, 1, 23])
+     │    Node 3 ← Set([24])
+     │    Node 1 ← Set([21, 11, 23])
+     │    Node 19 ← Set([17, 3])
+     └─ Calling identify_and_group_diamonds...
+
+  💎 INNER DIAMONDS DISCOVERED: 4
+     ╭─ Inner Diamond at Join 26:
+     │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21, 26])
+     │  Conditioning: Set([15])
+     │  Non-diamond parents: Set{Int64}()
+     │  Edges (16):
+     │    1 → 17
+     │    3 → 19
+     │    9 → 24
+     │    15 → 9
+     │    15 → 26
+     │    17 → 19
+     │    19 → 26
+     │    21 → 1
+     │    23 → 1
+     │    23 → 17
+     │    24 → 3
+     │    24 → 21
+     │    24 → 23
+     │    7 → 9
+     │    7 → 17
+     │    11 → 1
+     └─ Hash: 9583496739099923640
+
+     ╭─ Inner Diamond at Join 17:
+     │  Relevant nodes: Set([15, 21, 7, 11, 9, 24, 17, 1, 23])
+     │  Conditioning: Set([15])
+     │  Non-diamond parents: Set([7])
+     │  Edges (10):
+     │    1 → 17
+     │    9 → 24
+     │    15 → 9
+     │    21 → 1
+     │    23 → 1
+     │    23 → 17
+     │    24 → 21
+     │    24 → 23
+     │    7 → 9
+     │    11 → 1
+     └─ Hash: 1536177068559076068
+
+     ╭─ Inner Diamond at Join 1:
+     │  Relevant nodes: Set([15, 21, 7, 9, 24, 1, 23])
+     │  Conditioning: Set([15])
+     │  Non-diamond parents: Set([11])
+     │  Edges (7):
+     │    9 → 24
+     │    15 → 9
+     │    21 → 1
+     │    23 → 1
+     │    24 → 21
+     │    24 → 23
+     │    7 → 9
+     └─ Hash: 309546603089428436
+
+     ╭─ Inner Diamond at Join 19:
+     │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21])
+     │  Conditioning: Set([15])
+     │  Non-diamond parents: Set{Int64}()
+     │  Edges (14):
+     │    1 → 17
+     │    3 → 19
+     │    9 → 24
+     │    15 → 9
+     │    17 → 19
+     │    21 → 1
+     │    23 → 1
+     │    23 → 17
+     │    24 → 3
+     │    24 → 21
+     │    24 → 23
+     │    7 → 9
+     │    7 → 17
+     │    11 → 1
+     └─ Hash: 17446634441961922362
+
+
+  🔄 RECURSING INTO: Join Node 26
+     └─ Will process with excluded: Set([7, 11])
+
+    🔍 PROCESSING DIAMOND [Depth 2] Join Node: 26
+       ╭─ Diamond Structure:
+       │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21, 26])
+       │  Conditioning nodes: Set([15])
+       │  Edgelist (16 edges):
+       │    Edge 1: 1 → 17
+       │    Edge 2: 3 → 19
+       │    Edge 3: 9 → 24
+       │    Edge 4: 15 → 9
+       │    Edge 5: 15 → 26
+       │    Edge 6: 17 → 19
+       │    Edge 7: 19 → 26
+       │    Edge 8: 21 → 1
+       │    Edge 9: 23 → 1
+       │    Edge 10: 23 → 17
+       │    Edge 11: 24 → 3
+       │    Edge 12: 24 → 21
+       │    Edge 13: 24 → 23
+       │    Edge 14: 7 → 9
+       │    Edge 15: 7 → 17
+       │    Edge 16: 11 → 1
+       ├─ Context:
+       │  Non-diamond parents: Set{Int64}()
+       │  Accumulated excluded: Set([7, 11])
+       └─ Processing...
+
+    📝 SUBGRAPH COMPUTATION:
+       Current excluded nodes: Set([15, 7, 11])
+       ╭─ Subgraph Results:
+       │  Sub join nodes: Set([9, 26, 17, 1, 19])
+       │  Sub fork nodes: Set([15, 7, 24, 23])
+       │  Sub sources: Set([15, 7, 11])
+       │  Sub incoming edges:
+       │    Node 23 ← Set([24])
+       │    Node 21 ← Set([24])
+       │    Node 9 ← Set([15, 7])
+       │    Node 26 ← Set([15, 19])
+       │    Node 24 ← Set([9])
+       │    Node 17 ← Set([7, 1, 23])
+       │    Node 3 ← Set([24])
+       │    Node 1 ← Set([21, 11, 23])
+       │    Node 19 ← Set([17, 3])
+       └─ Calling identify_and_group_diamonds...
+
+    💎 INNER DIAMONDS DISCOVERED: 3
+       ╭─ Inner Diamond at Join 17:
+       │  Relevant nodes: Set([21, 11, 24, 17, 1, 23])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set([7])
+       │  Edges (7):
+       │    1 → 17
+       │    21 → 1
+       │    23 → 1
+       │    23 → 17
+       │    24 → 21
+       │    24 → 23
+       │    11 → 1
+       └─ Hash: 17062060636028439586
+
+       ╭─ Inner Diamond at Join 1:
+       │  Relevant nodes: Set([21, 24, 1, 23])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set([11])
+       │  Edges (4):
+       │    21 → 1
+       │    23 → 1
+       │    24 → 21
+       │    24 → 23
+       └─ Hash: 15908072967003228970
+
+       ╭─ Inner Diamond at Join 19:
+       │  Relevant nodes: Set([23, 21, 7, 11, 24, 17, 3, 1, 19])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set{Int64}()
+       │  Edges (11):
+       │    1 → 17
+       │    3 → 19
+       │    17 → 19
+       │    21 → 1
+       │    23 → 1
+       │    23 → 17
+       │    24 → 3
+       │    24 → 21
+       │    24 → 23
+       │    7 → 17
+       │    11 → 1
+       └─ Hash: 16991189864701266955
+
+
+    🔄 RECURSING INTO: Join Node 17
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 17
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([21, 11, 24, 17, 1, 23])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (7 edges):
+         │    Edge 1: 1 → 17
+         │    Edge 2: 21 → 1
+         │    Edge 3: 23 → 1
+         │    Edge 4: 23 → 17
+         │    Edge 5: 24 → 21
+         │    Edge 6: 24 → 23
+         │    Edge 7: 11 → 1
+         ├─ Context:
+         │  Non-diamond parents: Set([7])
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 17062060636028439586
+
+    🔄 RECURSING INTO: Join Node 1
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 1
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([21, 24, 1, 23])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (4 edges):
+         │    Edge 1: 21 → 1
+         │    Edge 2: 23 → 1
+         │    Edge 3: 24 → 21
+         │    Edge 4: 24 → 23
+         ├─ Context:
+         │  Non-diamond parents: Set([11])
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 15908072967003228970
+
+    🔄 RECURSING INTO: Join Node 19
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 19
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([23, 21, 7, 11, 24, 17, 3, 1, 19])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (11 edges):
+         │    Edge 1: 1 → 17
+         │    Edge 2: 3 → 19
+         │    Edge 3: 17 → 19
+         │    Edge 4: 21 → 1
+         │    Edge 5: 23 → 1
+         │    Edge 6: 23 → 17
+         │    Edge 7: 24 → 3
+         │    Edge 8: 24 → 21
+         │    Edge 9: 24 → 23
+         │    Edge 10: 7 → 17
+         │    Edge 11: 11 → 1
+         ├─ Context:
+         │  Non-diamond parents: Set{Int64}()
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 16991189864701266955
+
+    ✅ STORED DIAMOND: Join Node 26
+       ╭─ Computation Data:
+       │  Sub-diamonds: 3
+       │    Inner at join 17
+       │    Inner at join 1
+       │    Inner at join 19
+       │  Hash: 9583496739099923640
+       └─ Storage complete
+
+  🔄 RECURSING INTO: Join Node 17
+     └─ Will process with excluded: Set([7, 11])
+
+    🔍 PROCESSING DIAMOND [Depth 2] Join Node: 17
+       ╭─ Diamond Structure:
+       │  Relevant nodes: Set([15, 21, 7, 11, 9, 24, 17, 1, 23])
+       │  Conditioning nodes: Set([15])
+       │  Edgelist (10 edges):
+       │    Edge 1: 1 → 17
+       │    Edge 2: 9 → 24
+       │    Edge 3: 15 → 9
+       │    Edge 4: 21 → 1
+       │    Edge 5: 23 → 1
+       │    Edge 6: 23 → 17
+       │    Edge 7: 24 → 21
+       │    Edge 8: 24 → 23
+       │    Edge 9: 7 → 9
+       │    Edge 10: 11 → 1
+       ├─ Context:
+       │  Non-diamond parents: Set([7])
+       │  Accumulated excluded: Set([7, 11])
+       └─ Processing...
+
+    ⚠️  SKIPPING: Already processed
+       Hash: 1536177068559076068
+
+  🔄 RECURSING INTO: Join Node 1
+     └─ Will process with excluded: Set([7, 11])
+
+    🔍 PROCESSING DIAMOND [Depth 2] Join Node: 1
+       ╭─ Diamond Structure:
+       │  Relevant nodes: Set([15, 21, 7, 9, 24, 1, 23])
+       │  Conditioning nodes: Set([15])
+       │  Edgelist (7 edges):
+       │    Edge 1: 9 → 24
+       │    Edge 2: 15 → 9
+       │    Edge 3: 21 → 1
+       │    Edge 4: 23 → 1
+       │    Edge 5: 24 → 21
+       │    Edge 6: 24 → 23
+       │    Edge 7: 7 → 9
+       ├─ Context:
+       │  Non-diamond parents: Set([11])
+       │  Accumulated excluded: Set([7, 11])
+       └─ Processing...
+
+    ⚠️  SKIPPING: Already processed
+       Hash: 309546603089428436
+
+  🔄 RECURSING INTO: Join Node 19
+     └─ Will process with excluded: Set([7, 11])
+
+    🔍 PROCESSING DIAMOND [Depth 2] Join Node: 19
+       ╭─ Diamond Structure:
+       │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21])
+       │  Conditioning nodes: Set([15])
+       │  Edgelist (14 edges):
+       │    Edge 1: 1 → 17
+       │    Edge 2: 3 → 19
+       │    Edge 3: 9 → 24
+       │    Edge 4: 15 → 9
+       │    Edge 5: 17 → 19
+       │    Edge 6: 21 → 1
+       │    Edge 7: 23 → 1
+       │    Edge 8: 23 → 17
+       │    Edge 9: 24 → 3
+       │    Edge 10: 24 → 21
+       │    Edge 11: 24 → 23
+       │    Edge 12: 7 → 9
+       │    Edge 13: 7 → 17
+       │    Edge 14: 11 → 1
+       ├─ Context:
+       │  Non-diamond parents: Set{Int64}()
+       │  Accumulated excluded: Set([7, 11])
+       └─ Processing...
+
+    📝 SUBGRAPH COMPUTATION:
+       Current excluded nodes: Set([15, 7, 11])
+       ╭─ Subgraph Results:
+       │  Sub join nodes: Set([9, 17, 1, 19])
+       │  Sub fork nodes: Set([7, 24, 23])
+       │  Sub sources: Set([15, 7, 11])
+       │  Sub incoming edges:
+       │    Node 23 ← Set([24])
+       │    Node 21 ← Set([24])
+       │    Node 9 ← Set([15, 7])
+       │    Node 24 ← Set([9])
+       │    Node 17 ← Set([7, 1, 23])
+       │    Node 3 ← Set([24])
+       │    Node 1 ← Set([21, 11, 23])
+       │    Node 19 ← Set([17, 3])
+       └─ Calling identify_and_group_diamonds...
+
+    💎 INNER DIAMONDS DISCOVERED: 3
+       ╭─ Inner Diamond at Join 17:
+       │  Relevant nodes: Set([21, 11, 24, 17, 1, 23])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set([7])
+       │  Edges (7):
+       │    1 → 17
+       │    21 → 1
+       │    23 → 1
+       │    23 → 17
+       │    24 → 21
+       │    24 → 23
+       │    11 → 1
+       └─ Hash: 17062060636028439586
+
+       ╭─ Inner Diamond at Join 1:
+       │  Relevant nodes: Set([21, 24, 1, 23])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set([11])
+       │  Edges (4):
+       │    21 → 1
+       │    23 → 1
+       │    24 → 21
+       │    24 → 23
+       └─ Hash: 15908072967003228970
+
+       ╭─ Inner Diamond at Join 19:
+       │  Relevant nodes: Set([23, 21, 7, 11, 24, 17, 3, 1, 19])
+       │  Conditioning: Set([24])
+       │  Non-diamond parents: Set{Int64}()
+       │  Edges (11):
+       │    1 → 17
+       │    3 → 19
+       │    17 → 19
+       │    21 → 1
+       │    23 → 1
+       │    23 → 17
+       │    24 → 3
+       │    24 → 21
+       │    24 → 23
+       │    7 → 17
+       │    11 → 1
+       └─ Hash: 16991189864701266955
+
+
+    🔄 RECURSING INTO: Join Node 17
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 17
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([21, 11, 24, 17, 1, 23])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (7 edges):
+         │    Edge 1: 1 → 17
+         │    Edge 2: 21 → 1
+         │    Edge 3: 23 → 1
+         │    Edge 4: 23 → 17
+         │    Edge 5: 24 → 21
+         │    Edge 6: 24 → 23
+         │    Edge 7: 11 → 1
+         ├─ Context:
+         │  Non-diamond parents: Set([7])
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 17062060636028439586
+
+    🔄 RECURSING INTO: Join Node 1
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 1
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([21, 24, 1, 23])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (4 edges):
+         │    Edge 1: 21 → 1
+         │    Edge 2: 23 → 1
+         │    Edge 3: 24 → 21
+         │    Edge 4: 24 → 23
+         ├─ Context:
+         │  Non-diamond parents: Set([11])
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 15908072967003228970
+
+    🔄 RECURSING INTO: Join Node 19
+       └─ Will process with excluded: Set([15, 7, 11])
+
+      🔍 PROCESSING DIAMOND [Depth 3] Join Node: 19
+         ╭─ Diamond Structure:
+         │  Relevant nodes: Set([23, 21, 7, 11, 24, 17, 3, 1, 19])
+         │  Conditioning nodes: Set([24])
+         │  Edgelist (11 edges):
+         │    Edge 1: 1 → 17
+         │    Edge 2: 3 → 19
+         │    Edge 3: 17 → 19
+         │    Edge 4: 21 → 1
+         │    Edge 5: 23 → 1
+         │    Edge 6: 23 → 17
+         │    Edge 7: 24 → 3
+         │    Edge 8: 24 → 21
+         │    Edge 9: 24 → 23
+         │    Edge 10: 7 → 17
+         │    Edge 11: 11 → 1
+         ├─ Context:
+         │  Non-diamond parents: Set{Int64}()
+         │  Accumulated excluded: Set([15, 7, 11])
+         └─ Processing...
+
+      ⚠️  SKIPPING: Already processed
+         Hash: 16991189864701266955
+
+    ✅ STORED DIAMOND: Join Node 19
+       ╭─ Computation Data:
+       │  Sub-diamonds: 3
+       │    Inner at join 17
+       │    Inner at join 1
+       │    Inner at join 19
+       │  Hash: 17446634441961922362
+       └─ Storage complete
+
+  ✅ STORED DIAMOND: Join Node 26
+     ╭─ Computation Data:
+     │  Sub-diamonds: 4
+     │    Inner at join 26
+     │    Inner at join 17
+     │    Inner at join 1
+     │    Inner at join 19
+     │  Hash: 5680328632972451610
+     └─ Storage complete
+
+🔄 RECURSING INTO: Join Node 17
+   └─ Will process with excluded: Set([11])
+
+  🔍 PROCESSING DIAMOND [Depth 1] Join Node: 17
+     ╭─ Diamond Structure:
+     │  Relevant nodes: Set([15, 7, 21, 11, 9, 24, 17, 1, 23])
+     │  Conditioning nodes: Set([7])
+     │  Edgelist (12 edges):
+     │    Edge 1: 1 → 17
+     │    Edge 2: 7 → 9
+     │    Edge 3: 7 → 15
+     │    Edge 4: 7 → 17
+     │    Edge 5: 9 → 24
+     │    Edge 6: 15 → 9
+     │    Edge 7: 21 → 1
+     │    Edge 8: 23 → 1
+     │    Edge 9: 23 → 17
+     │    Edge 10: 24 → 21
+     │    Edge 11: 24 → 23
+     │    Edge 12: 11 → 1
+     ├─ Context:
+     │  Non-diamond parents: Set{Int64}()
+     │  Accumulated excluded: Set([11])
+     └─ Processing...
+
+  ⚠️  SKIPPING: Already processed
+     Hash: 13300880716191091862
+
+🔄 RECURSING INTO: Join Node 1
+   └─ Will process with excluded: Set([11])
+
+  🔍 PROCESSING DIAMOND [Depth 1] Join Node: 1
+     ╭─ Diamond Structure:
+     │  Relevant nodes: Set([15, 7, 21, 9, 24, 1, 23])
+     │  Conditioning nodes: Set([7])
+     │  Edgelist (8 edges):
+     │    Edge 1: 7 → 9
+     │    Edge 2: 7 → 15
+     │    Edge 3: 9 → 24
+     │    Edge 4: 15 → 9
+     │    Edge 5: 21 → 1
+     │    Edge 6: 23 → 1
+     │    Edge 7: 24 → 21
+     │    Edge 8: 24 → 23
+     ├─ Context:
+     │  Non-diamond parents: Set([11])
+     │  Accumulated excluded: Set([11])
+     └─ Processing...
+
+  ⚠️  SKIPPING: Already processed
+     Hash: 289192686427987068
+
+🔄 RECURSING INTO: Join Node 19
+   └─ Will process with excluded: Set([11])
+
+  🔍 PROCESSING DIAMOND [Depth 1] Join Node: 19
+     ╭─ Diamond Structure:
+     │  Relevant nodes: Set([24, 17, 23, 1, 19, 11, 9, 3, 7, 15, 21])
+     │  Conditioning nodes: Set([7])
+     │  Edgelist (15 edges):
+     │    Edge 1: 1 → 17
+     │    Edge 2: 3 → 19
+     │    Edge 3: 7 → 9
+     │    Edge 4: 7 → 15
+     │    Edge 5: 7 → 17
+     │    Edge 6: 9 → 24
+     │    Edge 7: 15 → 9
+     │    Edge 8: 17 → 19
+     │    Edge 9: 21 → 1
+     │    Edge 10: 23 → 1
+     │    Edge 11: 23 → 17
+     │    Edge 12: 24 → 3
+     │    Edge 13: 24 → 21
+     │    Edge 14: 24 → 23
+     │    Edge 15: 11 → 1
+     ├─ Context:
+     │  Non-diamond parents: Set{Int64}()
+     │  Accumulated excluded: Set([11])
+     └─ Processing...
+
+  ⚠️  SKIPPING: Already processed
+     Hash: 16990989673212689417
+
+✅ STORED DIAMOND: Join Node 26
+   ╭─ Computation Data:
+   │  Sub-diamonds: 5
+   │    Inner at join 9
+   │    Inner at join 26
+   │    Inner at join 17
+   │    Inner at join 1
+   │    Inner at join 19
+   │  Hash: 18208862363777774903
+   └─ Storage complete
+
+════════════════════════════════════════════════════════════════════════════════
+🏁 FINISHED ROOT DIAMOND PROCESSING: Join Node 26
+════════════════════════════════════════════════════════════════════════════════
+
