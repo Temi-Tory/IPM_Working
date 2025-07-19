@@ -62,11 +62,6 @@ module DiamondProcessingModule
     # CONSTANTS AND CACHES
     #
 
-    # Alternating cycle detection - tracks relevant_nodes -> conditioning_nodes to detect alternating patterns
-    const ALTERNATING_CYCLE_CACHE = Dict{Set{Int64}, Set{Int64}}()
-
-    # Cache for processed diamonds to avoid recomputation
-    const PROCESSED_DIAMONDS_CACHE = Dict{UInt64, Bool}()
 
     # Memoization cache for diamond identification results
     # Key: (join_nodes, effective_fork_nodes, edgelist_hash) -> Result: Dict{Int64, DiamondsAtNode}
@@ -99,17 +94,6 @@ module DiamondProcessingModule
 
   
 
-    """
-    Create a unique signature for a diamond based on its structure (for caching)
-    """
-    function create_diamond_signature(diamond::Diamond)::String
-        # Sort everything for consistent signatures
-        sorted_edges = sort(collect(diamond.edgelist))
-        sorted_nodes = sort(collect(diamond.relevant_nodes))
-        sorted_conditioning = sort(collect(diamond.conditioning_nodes))
-        
-        return string(hash((sorted_edges, sorted_nodes, sorted_conditioning)))
-    end
 
      """
     Get the topological level (iteration set index) for a join node
@@ -123,54 +107,9 @@ module DiamondProcessingModule
         return length(iteration_sets) + 1  # If not found, put at end
     end
 
-    """
-    Detect alternating cycles: same relevant_nodes but different conditioning_nodes
-    Returns merged conditioning nodes if alternating cycle detected, nothing otherwise
-    """
-    function detect_alternating_cycle(diamond::Diamond)::Union{Set{Int64}, Nothing}
-        relevant_nodes = diamond.relevant_nodes
-        conditioning_nodes = diamond.conditioning_nodes
-        
-        if haskey(ALTERNATING_CYCLE_CACHE, relevant_nodes)
-            previous_conditioning = ALTERNATING_CYCLE_CACHE[relevant_nodes]
-            if previous_conditioning != conditioning_nodes
-                # Alternating cycle detected - merge conditioning nodes
-                merged_conditioning = union(previous_conditioning, conditioning_nodes)
-                return merged_conditioning
-            end
-        else
-            # First time seeing these relevant_nodes - store conditioning nodes
-            ALTERNATING_CYCLE_CACHE[relevant_nodes] = conditioning_nodes
-        end
-        
-        return nothing
-    end
+   
 
-    """
-    Group diamonds by their iteration levels and sort for backwards processing
-    """
-    function group_diamonds_by_level(
-        diamonds::Dict{Int64, DiamondsAtNode},
-        iteration_sets::Vector{Set{Int64}}
-    )::Vector{Vector{Tuple{Int64, DiamondsAtNode}}}
-        
-        # Group by iteration level
-        level_groups = Dict{Int, Vector{Tuple{Int64, DiamondsAtNode}}}()
-        
-        for (join_node, diamond_at_node) in diamonds
-            level = get_iteration_level(join_node, iteration_sets)
-            if !haskey(level_groups, level)
-                level_groups[level] = Vector{Tuple{Int64, DiamondsAtNode}}()
-            end
-            push!(level_groups[level], (join_node, diamond_at_node))
-        end
-        
-        # Sort levels in descending order (highest iteration level first)
-        sorted_levels = sort(collect(keys(level_groups)), rev=true)
-        
-        return [level_groups[level] for level in sorted_levels]
-    end
-
+    
     """
         Find highest iteration set containing any of the given nodes
         Returns all nodes that appear in the highest iteration
@@ -860,8 +799,6 @@ module DiamondProcessingModule
        
         
         # Clear caches for fresh start
-        empty!(ALTERNATING_CYCLE_CACHE)
-        empty!(PROCESSED_DIAMONDS_CACHE)
         empty!(DIAMOND_IDENTIFICATION_CACHE)
         
         # Final result: unique diamonds with hash-based lookup
