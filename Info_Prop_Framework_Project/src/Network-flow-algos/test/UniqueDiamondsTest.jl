@@ -9,11 +9,12 @@ current_dir = pwd()
 # Force compact output
 #Base.IOContext(stdout, :compact => true, :limit => true)
 # Include the IPAFramework module
+
 include("../src/IPAFramework.jl")
 using .IPAFramework
 
 # Create method that takes file name and data type and calls full reachability algorithm
-function calculateRechability(network_name::String, data_type::String="float")
+function calculateUniqueDiamonds(network_name::String, data_type::String="float")
     # Start timing
     start_time = time()
     
@@ -81,97 +82,18 @@ function calculateRechability(network_name::String, data_type::String="float")
         iteration_sets
     );
     
-    # Run the main reachability algorithm
-    output = IPAFramework.update_beliefs_iterative(
-        edgelist,
-        iteration_sets,
-        outgoing_index,
-        incoming_index,
-        source_nodes,
-        node_priors,
-        edge_probabilities,
-        descendants,
-        ancestors,
-        diamond_structures,
-        join_nodes,
-        fork_nodes,
-        unique_diamonds
-    );
     
     # Calculate computation time
     computation_time = time() - start_time
     
     # Return sorted results and computation time
-    return SortedDict(output), computation_time
+    return unique_diamonds, computation_time
 end
 
-# Function to compare our algorithm results with CSV benchmark results
-function compareWithBenchmark(sorted_algo_results::SortedDict, csv_filename::String, results_directory::String="results")
-    # Construct full path to CSV file
-    csv_filepath = joinpath(results_directory, csv_filename)
-    
-    # Check if file exists
-    if !isfile(csv_filepath)
-        error("CSV file not found: $csv_filepath")
-    end
-    
-    # Read the CSV file
-    benchmark_df = DataFrame(CSV.File(csv_filepath))
-    
-    # Create comparison DataFrame
-    comparison_data = []
-    
-    # Iterate through our algorithm results
-    for (node, our_value) in sorted_algo_results
-        # Find matching node in benchmark data
-        benchmark_row = filter(row -> row.Node == node, benchmark_df)
-        
-        if !isempty(benchmark_row)
-            benchmark_value = benchmark_row[1, :ComparisonValue]
-            difference = our_value - benchmark_value
-            abs_difference = abs(difference)
-            
-            # Calculate percentage error if benchmark value is not zero
-            perc_error = benchmark_value != 0 ? (abs_difference / abs(benchmark_value)) * 100 : 0.0
-            
-            push!(comparison_data, (
-                Node = node,
-                OurAlgoValue = our_value,
-                BenchmarkAlgoValue = benchmark_value,
-                AbsDifference = abs_difference,
-                Difference = difference,
-                PercError = perc_error
-            ))
-        else
-            # Node not found in benchmark
-            push!(comparison_data, (
-                Node = node,
-                OurAlgoValue = our_value,
-                BenchmarkAlgoValue = missing,
-                AbsDifference = missing,
-                Difference = missing,
-                PercError = missing
-            ))
-        end
-    end
-    
-    # Convert to DataFrame
-    comparison_df = DataFrame(comparison_data)
-    
-    # Sort by absolute difference descending (highest first)
-    sort!(comparison_df, :AbsDifference, rev=true)
-    
-  
-    
-    # Display the full comparison DataFrame
-    println("\nFULL COMPARISON RESULTS:")
-    show(comparison_df#= , allrows=true =#)
-    
-    return comparison_df
-end
+
 
 # Comprehensive function that runs full pipeline with network aliases
-function runFullComparison(network_alias::String, data_type::String="float")
+function runFullDiscovery(network_alias::String, data_type::String="float")
     # Define network mappings: alias -> (network_name, benchmark_csv_file)
     network_mappings = Dict(
         "grid" => ("grid-graph", "GRID_0.9x0.9_ExactComp.csv"),
@@ -205,7 +127,7 @@ function runFullComparison(network_alias::String, data_type::String="float")
     network_name, benchmark_csv = network_mappings[network_key]
     
     println("="^70)
-    println("RUNNING FULL COMPARISON FOR: $network_alias")
+    println("RUNNING FULL DISCOVERY FOR: $network_alias")
     println("="^70)
     println("Network name: $network_name")
     println("Data type: $data_type")
@@ -213,35 +135,10 @@ function runFullComparison(network_alias::String, data_type::String="float")
     
     # Step 1: Run the reachability algorithm
     try
-        sorted_results, computation_time = calculateRechability(network_name, data_type)
-        println("⏱️  Computation time: $(round(computation_time, digits=4)) seconds")
+        result, computation_time = calculateUniqueDiamonds(network_name, data_type)
+        println("⏱️  Computation time: $(round(computation_time, digits=4)) seconds");
         
-        # Step 2: Compare with benchmark if available
-        if benchmark_csv !== nothing
-            try
-                comparison_df = compareWithBenchmark(sorted_results, benchmark_csv)
-                return comparison_df, computation_time
-            catch e
-                println("❌ Error during comparison: $e")
-                println("Returning algorithm results only.")
-                return sorted_results, computation_time, nothing
-            end
-        else
-            println("\n⚠️  STEP 2: No benchmark file available for this network.")
-            println("Showing algorithm results only:")
-            println("\nAlgorithm Results (first 10 nodes):")
-            count = 0
-            for (node, value) in sorted_results
-                if count >= 10
-                    println("... (showing first 10 of $(length(sorted_results)) nodes)")
-                    break
-                end
-                println("Node $node: $(round(value, digits=8))")
-                count += 1
-            end
-            return
-        end
-        
+       return result, computation_time
     catch e
         println("❌ Error running algorithm: $e")
         rethrow(e)
@@ -278,17 +175,18 @@ end
 
 
 # Super simple - just use aliases!
-#comparison_df, computation_time = runFullComparison("grid");          # Grid network + GRID_0.9x0.9_ExactComp.csv
-comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
-#comparison_df, computation_time = runFullComparison("power");          # Power network + Power0.9x0.9_ExactComp.csv
-#comparison_df, computation_time = runFullComparison("metro");          # Metro network + metro0.9x0.9_ExactComp.csv
-#comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
+#comparison_df, computation_time = runFullDiscovery("grid");          # Grid network + GRID_0.9x0.9_ExactComp.csv
+comparison_df, computation_time = runFullDiscovery("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+#comparison_df, computation_time = runFullDiscovery("power");          # Power network + Power0.9x0.9_ExactComp.csv
+#comparison_df, computation_time = runFullDiscovery("metro");          # Metro network + metro0.9x0.9_ExactComp.csv
+#comparison_df, computation_time = runFullDiscovery("munin");          # Munin network + sorted_mumin_result.csv
 
-#calculateRechability("real_drone_network")
+#runFullDiscovery("real_drone_network")
+#x = runFullDiscovery("ergo-proxy-dag-network")
 
 # With different data types
-#runFullComparison("karl", "interval")
-#runFullComparison("power", "pbox")
+#runFullDiscovery("karl", "interval")
+#runFullDiscovery("power", "pbox")
 
 # List available networks
 #listAvailableNetworks()
