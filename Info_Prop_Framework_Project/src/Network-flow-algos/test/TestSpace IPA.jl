@@ -132,7 +132,7 @@ diamond_structures = identify_and_group_diamonds(
     node_priors,
    iteration_sets
 );
-#show(diamond_structures[260].diamond.edgelist)
+#show(diamond_structures[7].diamond.conditioning_nodes)
 #print edgelist for each diamond structure
 #= for diamond in values(diamond_structures)
     println("Diamond structure at node ", diamond.join_node, ":")

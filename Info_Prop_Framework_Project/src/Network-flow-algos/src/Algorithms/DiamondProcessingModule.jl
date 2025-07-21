@@ -58,6 +58,15 @@ module DiamondProcessingModule
         diamond::Diamond
     end
 
+    # Optimization statistics tracking
+    struct OptimizationStats
+        lookups_attempted::Int
+        lookups_successful::Int
+        joins_looked_up::Int
+        joins_computed_fresh::Int
+        computation_reduction_percent::Float64
+    end
+
      # Work item to replace recursive function calls
     struct DiamondWorkItem
         diamond::Diamond
@@ -829,6 +838,112 @@ end
     return diamond, non_diamond_parents
 end
 
+function perform_hybrid_diamond_lookup(
+    sub_join_nodes::Set{Int64},
+    current_join::Int64,
+    current_excluded_nodes::Set{Int64},
+    diamond_cache::Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}},
+    sub_incoming_index::Dict{Int64, Set{Int64}},
+    sub_ancestors::Dict{Int64, Set{Int64}},
+    sub_descendants::Dict{Int64, Set{Int64}},
+    sub_sources::Set{Int64},
+    sub_fork_nodes::Set{Int64},
+    edgelist::Vector{Tuple{Int64, Int64}},
+    sub_node_priors,
+    sub_iteration_sets::Vector{Set{Int64}},
+    diamond_lookup_table::Dict{Int64, Vector{DiamondsAtNode}},
+    ctx::DiamondOptimizationContext
+)
+    
+    stats = OptimizationStats(0, 0, 0, 0, 0.0)
+    successful_lookups = Dict{Int64, DiamondsAtNode}()
+    failed_joins = Set{Int64}()
+    
+    # Try lookups for ALL joins (including current)
+    # Add current join to failed_joins initially since it's always computed fresh
+    push!(failed_joins, current_join)
+    
+    
+    # Try lookups for non-current joins
+    for join in sub_join_nodes
+        if join == current_join
+            continue  # Skip current join, already added to failed_joins
+        end
+        stats = OptimizationStats(stats.lookups_attempted + 1, stats.lookups_successful, 
+                                stats.joins_looked_up, stats.joins_computed_fresh, stats.computation_reduction_percent)
+        
+        if haskey(diamond_lookup_table, join)
+           best_candidate = nothing
+            best_score = 0
+            
+            for (i, candidate) in enumerate(diamond_lookup_table[join])
+                score = 0
+                
+                # Edge containment check
+                candidate_edges = Set(candidate.diamond.edgelist)
+                available_edges = Set(edgelist)
+                if !issubset(candidate_edges, available_edges)
+                    continue
+                end
+                score += 1
+                
+                # Conditioning conflict check
+                conflicts = intersect(candidate.diamond.conditioning_nodes, current_excluded_nodes)
+                if !isempty(conflicts)
+                    score += 3  # Major conflict
+                 end
+                
+                if score < 3 && score > best_score  # Only accept if no major conflicts
+                    best_candidate = candidate
+                    best_score = score
+                end
+            end
+            
+            if best_candidate !== nothing
+                successful_lookups[join] = best_candidate
+                stats = OptimizationStats(stats.lookups_attempted, stats.lookups_successful + 1, 
+                                        stats.joins_looked_up + 1, stats.joins_computed_fresh, stats.computation_reduction_percent)
+            else
+                push!(failed_joins, join)
+            end
+        else
+            push!(failed_joins, join)
+        end
+    end
+    
+    
+    # Fresh computation for current join + failed lookups
+    fresh_diamonds_dict = Dict{Int64, DiamondsAtNode}()
+    if !isempty(failed_joins)
+        fresh_diamonds_dict = identify_and_group_diamonds(
+            failed_joins,
+            sub_incoming_index,
+            sub_ancestors,
+            sub_descendants,
+            sub_sources,
+            sub_fork_nodes,
+            edgelist,
+            sub_node_priors,
+            sub_iteration_sets,
+            current_excluded_nodes,
+            diamond_cache,
+            ctx
+        )
+    end
+    
+    # Calculate performance metrics
+    total_joins = length(sub_join_nodes)
+    successful_lookup_rate = total_joins > 0 ? length(successful_lookups) / total_joins : 0.0
+    stats = OptimizationStats(stats.lookups_attempted, stats.lookups_successful, 
+                            length(successful_lookups), length(failed_joins), 
+                            successful_lookup_rate * 100.0)
+    
+    # CRITICAL: Merge successful lookups with fresh computation
+    final_diamonds_dict = merge(successful_lookups, fresh_diamonds_dict)
+    
+    return final_diamonds_dict, stats
+end
+
 # 1. MODIFY identify_and_group_diamonds to accept ctx parameter
 function identify_and_group_diamonds(
     join_nodes::Set{Int64},
@@ -1015,6 +1130,9 @@ function build_unique_diamond_storage(
     ctx = DiamondOptimizationContext()
     unique_diamonds = Dict{UInt64, DiamondComputationData{T}}()
     
+    # Initialize diamond lookup table for hybrid optimization
+    diamond_lookup_table = Dict{Int64, Vector{DiamondsAtNode}}()
+    
     #  CRITICAL: Track processed hashes to avoid expensive reprocessing
     processed_diamond_hashes = Set{UInt64}()
     
@@ -1063,9 +1181,7 @@ function build_unique_diamond_storage(
             items_skipped_early += 1
             total_items_processed += 1
             
-            if total_items_processed % 1000 == 0 || items_skipped_early % 100 == 0
-                println("⚡ Item $total_items_processed: Early skip duplicate (hash: $(string(current_item.diamond_hash)[1:8])...) | Outstanding: $(length(work_stack)) | Early skips: $items_skipped_early")
-            end
+           
             continue
         end
         
@@ -1085,20 +1201,41 @@ function build_unique_diamond_storage(
         sub_join_nodes, sub_ancestors, sub_descendants, sub_iteration_sets, sub_node_priors =
             compute_diamond_subgraph_structure(current_diamond, join_node, node_priors, ancestors, descendants, iteration_sets)
       
-        sub_diamonds_dict = identify_and_group_diamonds(
-            sub_join_nodes,
-            sub_incoming_index,
-            sub_ancestors,
-            sub_descendants,        
-            sub_sources,
-            sub_fork_nodes,
-            current_diamond.edgelist,
-            sub_node_priors,
-            sub_iteration_sets,
-            current_excluded_nodes,
-            DIAMOND_IDENTIFICATION_CACHE,
-            ctx
-        )
+        if is_root_diamond
+            # ROOT DIAMONDS: Always use full computation for maximal diamond discovery
+            sub_diamonds_dict = identify_and_group_diamonds(
+                sub_join_nodes,
+                sub_incoming_index,
+                sub_ancestors,
+                sub_descendants,        
+                sub_sources,
+                sub_fork_nodes,
+                current_diamond.edgelist,
+                sub_node_priors,
+                sub_iteration_sets,
+                current_excluded_nodes,
+                DIAMOND_IDENTIFICATION_CACHE,
+                ctx
+            )
+        else
+            # SUB DIAMONDS: Use hybrid optimization with lookup table
+            sub_diamonds_dict, optimization_stats = perform_hybrid_diamond_lookup(
+                sub_join_nodes,
+                join_node,
+                current_excluded_nodes,
+                DIAMOND_IDENTIFICATION_CACHE,
+                sub_incoming_index,
+                sub_ancestors,
+                sub_descendants,
+                sub_sources,
+                sub_fork_nodes,
+                current_diamond.edgelist,
+                sub_node_priors,
+                sub_iteration_sets,
+                diamond_lookup_table,
+                ctx
+            )
+        end
       
         #  FILTER OUT ALREADY PROCESSED SUB-DIAMONDS BEFORE ADDING TO STACK
         sub_diamonds_to_add = []
@@ -1147,15 +1284,21 @@ function build_unique_diamond_storage(
         
         unique_diamonds[current_item.diamond_hash] = computation_data
         
+        # POPULATE LOOKUP TABLE for future hybrid optimization
+        for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
+            if !haskey(diamond_lookup_table, sub_join_node)
+                diamond_lookup_table[sub_join_node] = Vector{DiamondsAtNode}()
+            end
+            push!(diamond_lookup_table[sub_join_node], sub_diamond_at_node)
+        end
+        
         total_items_processed += 1
         
         # Progress reporting
         diamond_type = is_root_diamond ? "ROOT" : "SUB"
         sub_count = length(sub_diamonds_to_add)
         excluded_count = length(current_excluded_nodes)
-        
-        println("✅ Item $total_items_processed: Processed $diamond_type diamond (hash: $(string(current_item.diamond_hash)[1:8])...) | Found $sub_count NEW sub-diamonds | Excluded nodes: $excluded_count | Outstanding: $(length(work_stack))")
-        
+      
         # Memory management and progress reporting
         # 2. More frequent cache clearing:
         if total_items_processed % 500 == 0  # Instead of 1000
@@ -1176,17 +1319,13 @@ function build_unique_diamond_storage(
                 empty!(ctx.set_hash_cache)
             end
             
-            println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
+          #  println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
         end
     end
     
-    println("🎉 Diamond processing completed!")
-    println("📈 Final statistics:")
-    println("   • Total items processed: $total_items_processed")
-    println("   • Items skipped early (before processing): $items_skipped_early")
+    println("📈 Diamond processing completed!")
     println("   • Unique diamonds found: $(length(unique_diamonds))")
-    println("   • Processing efficiency: $(round(100 * length(unique_diamonds) / total_items_processed, digits=1))%")
-    
+   
     return unique_diamonds
 end
 

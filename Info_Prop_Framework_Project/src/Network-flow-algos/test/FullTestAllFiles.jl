@@ -276,10 +276,17 @@ function listAvailableNetworks()
     println("runFullComparison(\"power\", \"pbox\")  # Uses pbox data type")
 end
 
+#= 
+open("diamondiscoverystacklogkarl_hybrid.txt", "w") do file
+    redirect_stdout(file) do
+        comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+    end 
+end
+ =#
 
 # Super simple - just use aliases!
 #comparison_df, computation_time = runFullComparison("grid");          # Grid network + GRID_0.9x0.9_ExactComp.csv
-comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+#comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
 #comparison_df, computation_time = runFullComparison("power");          # Power network + Power0.9x0.9_ExactComp.csv
 #comparison_df, computation_time = runFullComparison("metro");          # Metro network + metro0.9x0.9_ExactComp.csv
 #comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
