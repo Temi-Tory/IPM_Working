@@ -903,11 +903,12 @@ function perform_hybrid_diamond_lookup(
                 successful_lookups[join] = best_candidate
                 stats = OptimizationStats(stats.lookups_attempted, stats.lookups_successful + 1, 
                                         stats.joins_looked_up + 1, stats.joins_computed_fresh, stats.computation_reduction_percent)
+                                    #    println("best_candidate selected")
             else
                 push!(failed_joins, join)
             end
         else
-            push!(failed_joins, join)
+            #push!(failed_joins, join) # turns out it unncessary 
         end
     end
     
@@ -957,7 +958,7 @@ function identify_and_group_diamonds(
     iteration_sets::Vector{Set{Int64}},
     exluded_nodes::Set{Int64} = Set{Int64}(),
     DIAMOND_IDENTIFICATION_CACHE::Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}} = Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}(),
-    ctx::Union{DiamondOptimizationContext, Nothing} = nothing  #  ADD THIS PARAMETER
+    ctx::Union{DiamondOptimizationContext, Nothing} = nothing  
 )::Dict{Int64, DiamondsAtNode}
     
     #  CREATE CONTEXT ONLY IF NOT PROVIDED
@@ -974,6 +975,7 @@ function identify_and_group_diamonds(
     cache_key = (join_nodes, effective_fork_nodes, edgelist_hash)
     
     if haskey(DIAMOND_IDENTIFICATION_CACHE, cache_key)
+        #  println("DIAMOND_IDENTIFICATION_CACHE exiting")
         return DIAMOND_IDENTIFICATION_CACHE[cache_key]
     end
     
@@ -1135,7 +1137,7 @@ function build_unique_diamond_storage(
     
     #  CRITICAL: Track processed hashes to avoid expensive reprocessing
     processed_diamond_hashes = Set{UInt64}()
-    
+    valid_Joins = Set(keys(root_diamonds))
     work_stack = Vector{DiamondWorkItem}()
     total_items_processed = 0
     items_skipped_early = 0
@@ -1154,8 +1156,9 @@ function build_unique_diamond_storage(
     total_root_diamonds = sum(length(diamonds) for diamonds in values(root_diamonds_by_iteration))
     println("📊 Total root diamonds to process: $total_root_diamonds")
     
+    mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
     # Initialize work stack with root diamonds - PRE-COMPUTE HASHES
-    for iteration_level in sort(collect(keys(root_diamonds_by_iteration)))
+    for iteration_level in mainrootstack
         for (join_node, diamond_at_node) in root_diamonds_by_iteration[iteration_level] 
             diamond_hash = create_diamond_hash_key(diamond_at_node.diamond)
             push!(work_stack, DiamondWorkItem(
@@ -1181,7 +1184,7 @@ function build_unique_diamond_storage(
             items_skipped_early += 1
             total_items_processed += 1
             
-           
+                # println("duplicate detecrted exiting")
             continue
         end
         
@@ -1201,10 +1204,11 @@ function build_unique_diamond_storage(
         sub_join_nodes, sub_ancestors, sub_descendants, sub_iteration_sets, sub_node_priors =
             compute_diamond_subgraph_structure(current_diamond, join_node, node_priors, ancestors, descendants, iteration_sets)
       
+            #intersect Vector{Int64} with sub_join_nodes Set{Int64}
         if is_root_diamond
             # ROOT DIAMONDS: Always use full computation for maximal diamond discovery
             sub_diamonds_dict = identify_and_group_diamonds(
-                sub_join_nodes,
+                intersect(sub_join_nodes, valid_Joins), # Only process sub-joins that are also valid joins#sub_join_nodes,# only pass sub_join_nodes also in valid joins
                 sub_incoming_index,
                 sub_ancestors,
                 sub_descendants,        
@@ -1220,7 +1224,7 @@ function build_unique_diamond_storage(
         else
             # SUB DIAMONDS: Use hybrid optimization with lookup table
             sub_diamonds_dict, optimization_stats = perform_hybrid_diamond_lookup(
-                sub_join_nodes,
+                intersect(sub_join_nodes, valid_Joins),
                 join_node,
                 current_excluded_nodes,
                 DIAMOND_IDENTIFICATION_CACHE,
@@ -1319,7 +1323,7 @@ function build_unique_diamond_storage(
                 empty!(ctx.set_hash_cache)
             end
             
-          #  println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
+          println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
         end
     end
     

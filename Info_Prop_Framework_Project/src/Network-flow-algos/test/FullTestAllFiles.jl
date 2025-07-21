@@ -60,7 +60,7 @@ function calculateRechability(network_name::String, data_type::String="float")
     iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
     # Diamond structure analysis (if you have this function)
-    diamond_structures = identify_and_group_diamonds(
+    root_diamonds = identify_and_group_diamonds(
         join_nodes,
         incoming_index,
         ancestors,
@@ -74,13 +74,13 @@ function calculateRechability(network_name::String, data_type::String="float")
 
     println("Starting build unique diamond storage");
     unique_diamonds = build_unique_diamond_storage(
-        diamond_structures,
+        root_diamonds,
         node_priors,
         ancestors,
         descendants,
         iteration_sets
     );
-    
+
     # Run the main reachability algorithm
     output = IPAFramework.update_beliefs_iterative(
         edgelist,
@@ -92,7 +92,7 @@ function calculateRechability(network_name::String, data_type::String="float")
         edge_probabilities,
         descendants,
         ancestors,
-        diamond_structures,
+        root_diamonds,
         join_nodes,
         fork_nodes,
         unique_diamonds
@@ -276,10 +276,10 @@ function listAvailableNetworks()
     println("runFullComparison(\"power\", \"pbox\")  # Uses pbox data type")
 end
 
-#= 
-open("diamondiscoverystacklogkarl_hybrid.txt", "w") do file
+ 
+#= open("diamondiscovery_grid.txt", "w") do file
     redirect_stdout(file) do
-        comparison_df, computation_time = runFullComparison("karl");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
+        comparison_df, computation_time = runFullComparison("grid");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  
     end 
 end
  =#
@@ -292,6 +292,7 @@ end
 #comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
 
 #calculateRechability("real_drone_network")
+#calculateRechability("ergo-proxy-dag-network")
 
 # With different data types
 #runFullComparison("karl", "interval")

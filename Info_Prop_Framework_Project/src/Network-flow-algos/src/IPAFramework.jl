@@ -26,7 +26,7 @@ module IPAFramework
                                  read_edge_probabilities_from_json,
                                  read_complete_network
 
-    using .DiamondProcessingModule: DiamondsAtNode, Diamond,  DiamondComputationData, identify_and_group_diamonds, build_unique_diamond_storage
+    using .DiamondProcessingModule: DiamondsAtNode, Diamond,  DiamondComputationData, identify_and_group_diamonds, build_unique_diamond_storage,create_diamond_hash_key
 
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
@@ -97,7 +97,7 @@ module IPAFramework
         read_complete_network,                # NEW: Convenience function for complete network
 
         # Network decomposition  
-        identify_and_group_diamonds,build_unique_diamond_storage,
+        identify_and_group_diamonds,build_unique_diamond_storage,create_diamond_hash_key,
 
         # Standard reachability analysis
         validate_network_data, update_beliefs_iterative, updateDiamondJoin,
