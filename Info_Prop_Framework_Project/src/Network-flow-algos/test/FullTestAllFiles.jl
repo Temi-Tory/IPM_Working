@@ -73,7 +73,7 @@ function calculateRechability(network_name::String, data_type::String="float")
     );
 
     println("Starting build unique diamond storage");
-    unique_diamonds = build_unique_diamond_storage(
+    unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
         root_diamonds,
         node_priors,
         ancestors,
@@ -276,7 +276,7 @@ function listAvailableNetworks()
     println("runFullComparison(\"power\", \"pbox\")  # Uses pbox data type")
 end
 
- 
+
 #= open("diamondiscovery_grid.txt", "w") do file
     redirect_stdout(file) do
         comparison_df, computation_time = runFullComparison("grid");           # Karl network + KarlNetwork_0.9x0.9_1milruns.csv  

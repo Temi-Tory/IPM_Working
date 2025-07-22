@@ -15,6 +15,7 @@ module DiamondProcessingModule
     export identify_and_group_diamonds
     export create_diamond_hash_key
     export build_unique_diamond_storage
+    export build_unique_diamond_storage_depth_first_parallel
 
     # 
     # STRUCT DEFINITIONS
@@ -1333,6 +1334,268 @@ function build_unique_diamond_storage(
     return unique_diamonds
 end
 
- 
+# NEW PARALLEL DEPTH-FIRST DIAMOND PROCESSING IMPLEMENTATION
+
+"""
+Adaptive memory management for large-scale diamond processing.
+Clears caches and forces garbage collection based on dataset size and memory pressure.
+"""
+function manage_memory_adaptive(
+    ctx::DiamondOptimizationContext,
+    diamonds_processed::Int,
+    thread_id::Int,
+    force_gc::Bool = false
+)
+    cache_size = length(ctx.set_intersection_cache) + length(ctx.set_difference_cache) +
+                length(ctx.edge_filter_cache) + length(ctx.ancestor_intersections)
+    
+    # Adaptive thresholds based on processing scale
+    cache_threshold = diamonds_processed > 1000 ? 500 : 1000
+    gc_threshold = diamonds_processed > 2000 ? 100 : 200
+    
+    if cache_size > cache_threshold || force_gc
+        empty!(ctx.set_intersection_cache)
+        empty!(ctx.set_difference_cache)
+        empty!(ctx.edge_filter_cache)
+        empty!(ctx.ancestor_intersections)
+        empty!(ctx.descendant_intersections)
+        empty!(ctx.set_hash_cache)
+        
+        if diamonds_processed % gc_threshold == 0 || force_gc
+            GC.gc()
+            println("🧹 Thread $thread_id: Cleared caches and forced GC (processed: $diamonds_processed, cache was: $cache_size)")
+        else
+            println("🧹 Thread $thread_id: Cleared caches (processed: $diamonds_processed, cache was: $cache_size)")
+        end
+    end
+end
+
+"""
+Parallel depth-first diamond processing for handling 200+ root diamonds efficiently.
+Each thread processes a complete diamond subtree in LIFO order to preserve dependencies.
+"""
+function build_unique_diamond_storage_depth_first_parallel(
+    root_diamonds::Dict{Int64, DiamondsAtNode},
+    node_priors::Dict{Int64,T},
+    ancestors::Dict{Int64, Set{Int64}},
+    descendants::Dict{Int64, Set{Int64}},
+    iteration_sets::Vector{Set{Int64}}
+) where {T <: Union{Float64, pbox, Interval}}
+    
+    unique_diamonds = Dict{UInt64, DiamondComputationData{T}}()
+    processed_hashes = Set{UInt64}()
+    results_lock = Threads.SpinLock()
+    processed_hashes_lock = Threads.SpinLock()
+    
+    # Group root diamonds by iteration level (your existing logic)
+    root_diamonds_by_iteration = Dict{Int64, Vector{Tuple{Int64, DiamondsAtNode}}}()
+    for (join_node, diamond_at_node) in root_diamonds
+        iteration_level = get_iteration_level(join_node, iteration_sets)
+        if !haskey(root_diamonds_by_iteration, iteration_level)
+            root_diamonds_by_iteration[iteration_level] = Vector{Tuple{Int64, DiamondsAtNode}}()
+        end
+        push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
+    end
+    
+    println("🔷 Starting depth-first parallel processing...")
+    
+    # Process iteration levels sequentially (preserves global ordering)
+    mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
+    
+    for iteration_level in mainrootstack
+        level_diamonds = root_diamonds_by_iteration[iteration_level]
+        println("📊 Processing iteration level $iteration_level with $(length(level_diamonds)) root diamonds")
+        
+        # Force garbage collection between iteration levels for large datasets
+        if length(level_diamonds) > 50
+            GC.gc()
+            println("🧹 Forced GC between iteration levels for large dataset")
+        end
+        
+        # Parallelize root diamonds within each level
+        # Each thread gets its own LIFO subtree to process completely
+        Threads.@threads for i in eachindex(level_diamonds)
+            join_node, diamond_at_node = level_diamonds[i]
+            thread_ctx = DiamondOptimizationContext()
+            
+            # Process this entire diamond subtree in LIFO order (sequential within thread)
+            thread_results = process_diamond_subtree_sequential_lifo(
+                diamond_at_node.diamond,
+                join_node,
+                diamond_at_node.non_diamond_parents,
+                Set{Int64}(),  # accumulated_excluded_nodes
+                true,  # is_root_diamond
+                thread_ctx,
+                node_priors,
+                ancestors,
+                descendants,
+                iteration_sets,
+                processed_hashes,
+                processed_hashes_lock
+            )
+            
+            # Merge thread results (thread-safe)
+            lock(results_lock) do
+                merge!(unique_diamonds, thread_results)
+            end
+            
+            println("✅ Thread $(Threads.threadid()): Completed subtree for join_node $join_node ($(length(thread_results)) diamonds)")
+        end
+        
+        # Memory status report after each iteration level
+        total_diamonds = length(unique_diamonds)
+        println("📈 Iteration level $iteration_level completed: $total_diamonds total unique diamonds")
+    end
+    
+    return unique_diamonds
+end
+
+"""
+Process a complete diamond subtree sequentially in LIFO order within a single thread.
+This preserves exact dependency resolution order while enabling parallelization across subtrees.
+"""
+function process_diamond_subtree_sequential_lifo(
+    root_diamond::Diamond,
+    root_join_node::Int64,
+    root_non_diamond_parents::Set{Int64},
+    root_accumulated_excluded_nodes::Set{Int64},
+    is_root::Bool,
+    ctx::DiamondOptimizationContext,
+    node_priors,
+    ancestors,
+    descendants,
+    iteration_sets,
+    global_processed_hashes::Set{UInt64},
+    global_processed_hashes_lock::Threads.SpinLock
+)::Dict{UInt64, DiamondComputationData}
+    
+    # Each thread maintains its own LIFO stack for its subtree
+    local_work_stack = Vector{DiamondWorkItem}()
+    local_unique_diamonds = Dict{UInt64, DiamondComputationData}()
+    local_processed_hashes = Set{UInt64}()
+    
+    # Initialize with root diamond
+    root_hash = create_diamond_hash_key(root_diamond)
+    push!(local_work_stack, DiamondWorkItem(
+        root_diamond,
+        root_join_node,
+        root_non_diamond_parents,
+        root_accumulated_excluded_nodes,
+        is_root,
+        root_hash
+    ))
+    
+    # Process LIFO stack sequentially within this thread
+    # This preserves your exact dependency resolution order
+    while !isempty(local_work_stack)
+        current_item = pop!(local_work_stack)  # LIFO - your original semantics!
+        
+        # Check for duplicates (thread-local first, then global)
+        if current_item.diamond_hash in local_processed_hashes
+            continue
+        end
+        
+        # Check global processed hashes (thread-safe)
+        already_processed = false
+        lock(global_processed_hashes_lock) do
+            if current_item.diamond_hash in global_processed_hashes
+                already_processed = true
+            else
+                push!(global_processed_hashes, current_item.diamond_hash)
+            end
+        end
+        
+        if already_processed
+            continue
+        end
+        
+        # Mark as locally processed
+        push!(local_processed_hashes, current_item.diamond_hash)
+        
+        # Extract work item data
+        current_diamond = current_item.diamond
+        join_node = current_item.join_node
+        accumulated_excluded_nodes = current_item.accumulated_excluded_nodes
+        is_root_diamond = current_item.is_root_diamond
+        
+        current_excluded_nodes = union(accumulated_excluded_nodes, current_diamond.conditioning_nodes)
+        
+        # Compute diamond subgraph structure (expensive computation)
+        sub_outgoing_index, sub_incoming_index, sub_sources, sub_fork_nodes,
+        sub_join_nodes, sub_ancestors, sub_descendants, sub_iteration_sets, sub_node_priors =
+            compute_diamond_subgraph_structure(
+                current_diamond, join_node, node_priors,
+                ancestors, descendants, iteration_sets
+            )
+        
+        # Identify sub-diamonds
+        sub_diamonds_dict = identify_and_group_diamonds(
+            sub_join_nodes,
+            sub_incoming_index,
+            sub_ancestors,
+            sub_descendants,
+            sub_sources,
+            sub_fork_nodes,
+            current_diamond.edgelist,
+            sub_node_priors,
+            sub_iteration_sets,
+            current_excluded_nodes,
+            Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}(),  # Fresh cache per thread
+            ctx
+        )
+        
+        # Create computation data
+        computation_data = DiamondComputationData{eltype(values(node_priors))}(
+            sub_outgoing_index,
+            sub_incoming_index,
+            sub_sources,
+            sub_fork_nodes,
+            sub_join_nodes,
+            sub_ancestors,
+            sub_descendants,
+            sub_iteration_sets,
+            sub_node_priors,
+            sub_diamonds_dict,
+            current_diamond
+        )
+        
+        # Store result locally
+        local_unique_diamonds[current_item.diamond_hash] = computation_data
+        
+        # Add sub-diamonds to LOCAL LIFO stack (preserves dependency order!)
+        sub_work_items = Vector{DiamondWorkItem}()
+        for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
+            sub_diamond_hash = create_diamond_hash_key(sub_diamond_at_node.diamond)
+            
+            push!(sub_work_items, DiamondWorkItem(
+                sub_diamond_at_node.diamond,
+                sub_join_node,
+                sub_diamond_at_node.non_diamond_parents,
+                current_excluded_nodes,
+                false,
+                sub_diamond_hash
+            ))
+        end
+        
+        # Add to stack in reverse order to maintain LIFO processing order
+        for item in reverse(sub_work_items)
+            push!(local_work_stack, item)
+        end
+        
+        # Adaptive memory management for large-scale processing
+        thread_id = Threads.threadid()
+        diamonds_processed = length(local_unique_diamonds)
+        
+        if diamonds_processed % 50 == 0  # More frequent reporting for large datasets
+            manage_memory_adaptive(ctx, diamonds_processed, thread_id)
+            println("🔧 Thread $thread_id: Processed $diamonds_processed diamonds, stack size: $(length(local_work_stack))")
+        end
+    end
+    
+    thread_id = Threads.threadid()
+    println("🎯 Thread $thread_id: Completed subtree with $(length(local_unique_diamonds)) unique diamonds")
+    
+    return local_unique_diamonds
+end
 
 end
