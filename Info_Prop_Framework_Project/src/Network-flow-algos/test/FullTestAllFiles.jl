@@ -291,7 +291,10 @@ end
 #comparison_df, computation_time = runFullComparison("metro");          # Metro network + metro0.9x0.9_ExactComp.csv
 #comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
 
-#calculateRechability("real_drone_network")
+#calculateRechability("real_drone_network")# the generated DAG HAS236 MAXIMAL diamodn which os usually not a problem 
+#except that it crashes my computer even on 8 thread during build_unique_diamond_storage_depth_first_parallel
+#.. its even worse with build_unique_diamond_storage i think may be bcz i combined both or created an unreaslistic DAG 
+
 #calculateRechability("ergo-proxy-dag-network")
 
 # With different data types
