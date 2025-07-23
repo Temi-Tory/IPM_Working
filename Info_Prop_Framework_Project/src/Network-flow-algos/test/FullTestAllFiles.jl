@@ -307,6 +307,21 @@ end
 #comparison_df, computation_time = calculateRechability("military_multi_domain_network")
 
 
+filename = "central_belt_distribution"
+
+filename = "highlands_emergency_network"
+
+filename = "national_emergency_medical_network"
+
+filename = "comprehensive_islands_supply_network"
+
+open(filename * "_result.txt", "w") do file
+    redirect_stdout(file) do
+        comparison_df, computation_time = calculateRechability(filename);
+        show(comparison_df) 
+         show(computation_time) 
+    end 
+end
 
 #comparison_df, computation_time = calculateRechability("realistic_failure_scenario")
 # With different data types
