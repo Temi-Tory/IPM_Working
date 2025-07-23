@@ -300,7 +300,13 @@ end
 #calculateRechability("ergo-proxy-dag-network")
 #calculateRechability("ergo-proxy-dag-network")
 #comparison_df, computation_time = calculateRechability("emergency_supply_test")
-comparison_df, computation_time = calculateRechability("multi_stage_supply_chain")
+#comparison_df, computation_time = calculateRechability("multi_stage_supply_chain")
+
+#comparison_df, computation_time = calculateRechability("continental_medical_network")
+ 
+#comparison_df, computation_time = calculateRechability("military_multi_domain_network")
+
+
 
 #comparison_df, computation_time = calculateRechability("realistic_failure_scenario")
 # With different data types

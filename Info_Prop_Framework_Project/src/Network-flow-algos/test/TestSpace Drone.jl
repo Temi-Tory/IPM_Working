@@ -5,14 +5,14 @@ using DataFrames, DelimitedFiles, Distributions,
       Combinatorics, Dates, CSV
 using StatsBase: sample
 
-# Ensure we're running from the project root directory
+#= # Ensure we're running from the project root directory
 # Navigate to project root if we're in a subdirectory
 current_dir = pwd()
 # Force compact output
 #Base.IOContext(stdout, :compact => true, :limit => true)
 # Include the IPAFramework module
 include("../src/IPAFramework.jl")
-using .IPAFramework
+using .IPAFramework =#
 
 function load_drone_data_simplified(excel_file::String)
     """Load drone data but create smaller test cases first"""
@@ -401,6 +401,262 @@ function test_diamond_rich_scenarios()
     return scenarios
 end
 
+function create_continental_medical_network()
+    """Create massive continental medical supply network (Target: 100+ diamonds)"""
+    println("\n🌍 CREATING CONTINENTAL MEDICAL SUPPLY NETWORK (100+ DIAMONDS)")
+    println("="^80)
+    
+    # Network structure: 5 Manufacturing plants → 15 Regional warehouses → 30 Distribution hubs → 100 Hospitals
+    edgelist = Vector{Tuple{Int64, Int64}}()
+    node_priors = Dict{Int64, Float64}()
+    edge_probabilities = Dict{Tuple{Int64, Int64}, Float64}()
+    
+    # Node allocation - 150 total nodes
+    manufacturing_plants = collect(1:5)           # 5 plants (supply chain uncertainty)
+    regional_warehouses = collect(6:20)          # 15 warehouses (weather zones)  
+    distribution_hubs = collect(21:50)           # 30 hubs (infrastructure reliability)
+    hospitals = collect(51:150)                  # 100 hospitals (final destinations)
+    
+    println("📊 Network structure:")
+    println("   • 5 Manufacturing plants (nodes 1-5)")
+    println("   • 15 Regional warehouses (nodes 6-20)")  
+    println("   • 30 Distribution hubs (nodes 21-50)")
+    println("   • 100 Hospitals (nodes 51-150)")
+    
+    # Set node priors with realistic supply chain uncertainties
+    # Manufacturing plants: Supply chain disruption risk
+    for plant in manufacturing_plants
+        node_priors[plant] = 0.75 + 0.10 * rand()  # 75-85% reliability (TRIGGERS DIAMONDS)
+    end
+    
+    # Regional warehouses: Weather zone variations  
+    weather_zones = [0.85, 0.78, 0.82, 0.76, 0.88]  # Different climate reliability
+    for (i, warehouse) in enumerate(regional_warehouses)
+        zone = ((i-1) % 5) + 1
+        base_reliability = weather_zones[zone]
+        node_priors[warehouse] = base_reliability + 0.08 * rand()  # Zone + variation
+    end
+    
+    # Distribution hubs and hospitals: Reliable destinations
+    for hub in distribution_hubs
+        node_priors[hub] = 1.0  # Hubs are reliable infrastructure
+    end
+    for hospital in hospitals
+        node_priors[hospital] = 1.0  # Hospitals are critical destinations
+    end
+    
+    # Stage 1: Manufacturing plants → Regional warehouses (creates first diamond level)
+    println("🔗 Creating Stage 1: Plants → Warehouses...")
+    for plant in manufacturing_plants
+        # Each plant supplies to 8-12 warehouses (high connectivity for diamonds)
+        connected_warehouses = sample(regional_warehouses, 10, replace=false)
+        for warehouse in connected_warehouses
+            push!(edgelist, (plant, warehouse))
+            # Manufacturing to warehouse reliability (logistics uncertainty)
+            edge_probabilities[(plant, warehouse)] = 0.82 + 0.13 * rand()  # 82-95%
+        end
+    end
+    
+    # Stage 2: Regional warehouses → Distribution hubs (creates second diamond level)
+    println("🔗 Creating Stage 2: Warehouses → Distribution Hubs...")
+    for warehouse in regional_warehouses
+        # Each warehouse supplies 6-8 distribution hubs
+        connected_hubs = sample(distribution_hubs, 7, replace=false)
+        for hub in connected_hubs
+            push!(edgelist, (warehouse, hub))
+            # Warehouse to hub transport (regional infrastructure)
+            edge_probabilities[(warehouse, hub)] = 0.78 + 0.17 * rand()  # 78-95%
+        end
+    end
+    
+    # Stage 3: Distribution hubs → Hospitals (creates third diamond level)
+    println("🔗 Creating Stage 3: Hubs → Hospitals...")
+    for hub in distribution_hubs
+        # Each hub serves 6-8 hospitals (ensures good connectivity)
+        connected_hospitals = sample(hospitals, 7, replace=false)
+        for hospital in connected_hospitals
+            push!(edgelist, (hub, hospital))
+            # Hub to hospital delivery (last mile reliability)
+            edge_probabilities[(hub, hospital)] = 0.85 + 0.10 * rand()  # 85-95%
+        end
+    end
+    
+    # Export massive continental network
+    network_name = export_simple_drone_dag(
+        edgelist, node_priors, edge_probabilities, "continental_medical_network"
+    )
+    
+    println("✅ Created Continental Medical Supply Network!")
+    println("   📊 Statistics:")
+    println("      • Total nodes: 150 (5 + 15 + 30 + 100)")
+    println("      • Total edges: $(length(edgelist))")
+    println("      • Uncertain sources: 20 nodes (plants + warehouses)")
+    println("      • Expected diamonds: 80-120 across 3 stages")
+    println("      • Network depth: 4 levels")
+    println("   🎯 This should stress-test 3-digit diamond processing!")
+    
+    return network_name
+end
+
+function create_military_multi_domain_network()
+    """Create military multi-domain operations network (Target: 200+ diamonds)"""
+    println("\n⚔️  CREATING MILITARY MULTI-DOMAIN OPERATIONS (200+ DIAMONDS)")
+    println("="^80)
+    
+    # 5-Echelon military structure
+    edgelist = Vector{Tuple{Int64, Int64}}()
+    node_priors = Dict{Int64, Float64}()
+    edge_probabilities = Dict{Tuple{Int64, Int64}, Float64}()
+    
+    # Node allocation - 230 total nodes across 5 echelons
+    command_centers = collect(1:3)              # 3 Command centers
+    forward_bases = collect(4:15)               # 12 Forward operating bases
+    supply_depots = collect(16:40)              # 25 Supply depots
+    unit_positions = collect(41:100)            # 60 Unit positions  
+    individual_soldiers = collect(101:250)      # 150 Individual soldiers
+    
+    println("📊 Military network structure (5 echelons):")
+    println("   • 3 Command centers (nodes 1-3)")
+    println("   • 12 Forward operating bases (nodes 4-15)")
+    println("   • 25 Supply depots (nodes 16-40)")
+    println("   • 60 Unit positions (nodes 41-100)")
+    println("   • 150 Individual soldiers (nodes 101-250)")
+    
+    # Multi-factor uncertainty modeling
+    # Command centers: Leadership/communication reliability
+    for cmd in command_centers
+        node_priors[cmd] = 0.80 + 0.10 * rand()  # 80-90% command effectiveness
+    end
+    
+    # Forward bases: Equipment/personnel readiness + threat environment
+    threat_levels = [0.8, 0.7, 0.85, 0.75, 0.82, 0.78, 0.88, 0.73, 0.86, 0.79, 0.84, 0.76]
+    for (i, base) in enumerate(forward_bases)
+        base_readiness = 0.70 + 0.15 * rand()  # 70-85% base readiness
+        threat_factor = threat_levels[i]
+        node_priors[base] = base_readiness * threat_factor  # Combined uncertainty
+    end
+    
+    # Supply depots: Equipment availability + environmental factors
+    for depot in supply_depots
+        equipment_status = 0.72 + 0.13 * rand()  # 72-85% equipment availability
+        weather_impact = 0.85 + 0.10 * rand()   # 85-95% weather factor
+        node_priors[depot] = equipment_status * weather_impact
+    end
+    
+    # Unit positions and soldiers: Reliable destinations  
+    for unit in unit_positions
+        node_priors[unit] = 1.0
+    end
+    for soldier in individual_soldiers
+        node_priors[soldier] = 1.0
+    end
+    
+    # Echelon 1: Command centers → Forward bases
+    println("🔗 Creating Echelon 1: Command → Forward Bases...")
+    for cmd in command_centers
+        # Each command controls 8-10 forward bases (overlapping command structure)
+        controlled_bases = sample(forward_bases, 9, replace=false)
+        for base in controlled_bases
+            push!(edgelist, (cmd, base))
+            # Command effectiveness (communication + decision making)
+            edge_probabilities[(cmd, base)] = 0.75 + 0.20 * rand()  # 75-95%
+        end
+    end
+    
+    # Echelon 2: Forward bases → Supply depots
+    println("🔗 Creating Echelon 2: Bases → Supply Depots...")
+    for base in forward_bases
+        # Each base coordinates with 4-6 supply depots
+        coordinated_depots = sample(supply_depots, 5, replace=false)
+        for depot in coordinated_depots
+            push!(edgelist, (base, depot))
+            # Logistics coordination (supply chain + security)
+            edge_probabilities[(base, depot)] = 0.70 + 0.25 * rand()  # 70-95%
+        end
+    end
+    
+    # Echelon 3: Supply depots → Unit positions
+    println("🔗 Creating Echelon 3: Depots → Unit Positions...")
+    for depot in supply_depots
+        # Each depot supports 4-6 unit positions
+        supported_units = sample(unit_positions, 5, replace=false)
+        for unit in supported_units
+            push!(edgelist, (depot, unit))
+            # Supply delivery (transport + tactical situation)
+            edge_probabilities[(depot, unit)] = 0.65 + 0.30 * rand()  # 65-95%
+        end
+    end
+    
+    # Echelon 4: Unit positions → Individual soldiers
+    println("🔗 Creating Echelon 4: Units → Individual Soldiers...")
+    for unit in unit_positions
+        # Each unit position has 4-6 soldiers
+        assigned_soldiers = sample(individual_soldiers, 5, replace=false)
+        for soldier in assigned_soldiers
+            push!(edgelist, (unit, soldier))
+            # Individual supply (last tactical mile)
+            edge_probabilities[(unit, soldier)] = 0.80 + 0.15 * rand()  # 80-95%
+        end
+    end
+    
+    # Export military network
+    network_name = export_simple_drone_dag(
+        edgelist, node_priors, edge_probabilities, "military_multi_domain_network"
+    )
+    
+    println("✅ Created Military Multi-Domain Operations Network!")
+    println("   📊 Statistics:")
+    println("      • Total nodes: 250 across 5 echelons")
+    println("      • Total edges: $(length(edgelist))")
+    println("      • Uncertain sources: 40 nodes (commands + bases + depots)")
+    println("      • Expected diamonds: 180-250 across 5 echelons")
+    println("      • Multi-factor uncertainties: leadership, equipment, threat, environment")
+    println("   ⚔️  This should test parallel processing limits!")
+    
+    return network_name
+end
+
+function create_large_scale_test_suite()
+    """Create all large-scale scenarios for comprehensive testing"""
+    println("\n🚀 CREATING LARGE-SCALE DRONE NETWORK TEST SUITE")
+    println("="^90)
+    
+    large_scenarios = []
+    
+    # Continental Medical Network (100+ diamonds)
+    println("\n1️⃣  BUILDING CONTINENTAL MEDICAL NETWORK...")
+    continental_name = create_continental_medical_network()
+    push!(large_scenarios, (continental_name, "Continental Medical Network", "100+ diamonds"))
+    
+    # Military Multi-Domain Network (200+ diamonds)  
+    println("\n2️⃣  BUILDING MILITARY MULTI-DOMAIN NETWORK...")
+    military_name = create_military_multi_domain_network()
+    push!(large_scenarios, (military_name, "Military Multi-Domain Operations", "200+ diamonds"))
+    
+    println("\n" * "="^90)
+    println("🎯 LARGE-SCALE TEST SUITE READY!")
+    println("="^90)
+    println("📊 Test these massive networks:")
+    
+    for (network_name, description, diamond_count) in large_scenarios
+        println("   julia> @time result = calculateRechability(\"$network_name\")")
+        println("          # $description ($diamond_count)")
+        println()
+    end
+    
+    println("🔥 PERFORMANCE EXPECTATIONS:")
+    println("   • Continental Medical: ~100 diamonds, 4-level processing")
+    println("   • Military Multi-Domain: ~200 diamonds, 5-echelon complexity")
+    println()
+    println("⚡ These will stress-test:")
+    println("   • 3-digit diamond processing capability")
+    println("   • Parallel thread utilization (8+ threads)")
+    println("   • Memory management for large graphs")
+    println("   • Deep nested diamond structures")
+    
+    return large_scenarios
+end
+
 # Run the basic test first
 test_names = test_drone_framework_integration()
 
@@ -411,9 +667,16 @@ println("="^70)
 
 diamond_scenarios = test_diamond_rich_scenarios()
 
-println("\n" * "="^70)
+# Create massive-scale networks for extreme testing
+println("\n" * "="^90)  
+println("🚀 CREATING MASSIVE-SCALE NETWORKS FOR EXTREME TESTING")
+println("="^90)
+
+large_scale_scenarios = create_large_scale_test_suite()
+
+println("\n" * "="^90)
 println("🎉 ALL SCENARIOS READY FOR TESTING!")
-println("="^70)
+println("="^90)
 println("🔹 Basic scenarios (might have 0 diamonds due to 1.0 priors):")
 println("   julia> calculateRechability(\"$(test_names[1])\")")
 println("   julia> calculateRechability(\"$(test_names[2])\")")
@@ -423,8 +686,19 @@ for (network_name, description) in diamond_scenarios
     println("   julia> calculateRechability(\"$network_name\")  # $description")
 end
 println("")
+println("🚀 MASSIVE-SCALE scenarios (100+ diamonds!):")
+for (network_name, description, diamond_count) in large_scale_scenarios
+    println("   julia> @time result = calculateRechability(\"$network_name\")  # $description ($diamond_count)")
+end
+println("")
 println("🎯 Expected results:")
-println("   • Modified emergency supply: Should find ~3 diamonds (depot = 0.85)")
-println("   • Multi-stage supply chain: Should find 20+ diamonds (suppliers = 0.8-0.9)")
-println("   • Realistic failure scenario: Should find 10+ diamonds (weather/equipment failures)")
-println("="^70)
+println("   • Emergency supply: ~3 diamonds (depot uncertainty)")
+println("   • Multi-stage supply: ~20 diamonds (supplier uncertainty)")  
+println("   • Realistic failure: ~10 diamonds (weather/equipment)")
+println("   • Continental medical: ~100 diamonds (150 nodes, 4 levels)")
+println("   • Military operations: ~200 diamonds (250 nodes, 5 echelons)")
+println("")
+println("⚡ Performance testing progression:")
+println("   Small → Medium → Large → Massive (3 → 20 → 100 → 200+ diamonds)")
+println("   This will demonstrate your framework's incredible scalability!")
+println("="^90)
