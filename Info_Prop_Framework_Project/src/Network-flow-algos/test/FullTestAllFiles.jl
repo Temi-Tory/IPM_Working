@@ -71,7 +71,8 @@ function calculateRechability(network_name::String, data_type::String="float")
         node_priors,
         iteration_sets
     );
-
+    l_root_diamonds = length(root_diamonds)
+    println("Found $l_root_diamonds root_diamonds");
     println("Starting build unique diamond storage");
     unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
         root_diamonds,
@@ -80,7 +81,8 @@ function calculateRechability(network_name::String, data_type::String="float")
         descendants,
         iteration_sets
     );
-
+    l_unique_diamonds = length(unique_diamonds)
+    println("Found $l_unique_diamonds unique_diamonds");
     # Run the main reachability algorithm
     output = IPAFramework.update_beliefs_iterative(
         edgelist,
@@ -296,7 +298,12 @@ end
 #.. its even worse with build_unique_diamond_storage i think may be bcz i combined both or created an unreaslistic DAG 
 
 #calculateRechability("ergo-proxy-dag-network")
+#calculateRechability("ergo-proxy-dag-network")
+#comparison_df, computation_time = calculateRechability("emergency_supply_test")
+comparison_df, computation_time = calculateRechability("multi_stage_supply_chain")
 
+#comparison_df, computation_time = calculateRechability("realistic_failure_scenario")
+# With different data types
 # With different data types
 #runFullComparison("karl", "interval")
 #runFullComparison("power", "pbox")
