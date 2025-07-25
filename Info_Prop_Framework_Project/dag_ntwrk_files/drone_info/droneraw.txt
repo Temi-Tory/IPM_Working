@@ -1,0 +1,146 @@
+📝 UPDATE THESE PATHS WITH YOUR ACTUAL CSV FILES:
+
+nodes_file = "dag_ntwrk_files/drone_info/nodes.csv"
+vtol_file = "dag_ntwrk_files/drone_info/drone1.csv"
+fixed_file = "dag_ntwrk_files/drone_info/drone2.csv"
+
+ COMPLETE DRONE NETWORK DATA ANALYSIS
+================================================================================
+
+ ANALYZING NODES CSV: dag_ntwrk_files/drone_info/nodes.csv
+--------------------------------------------------
+ Successfully loaded nodes CSV
+ Dimensions: 244 rows × 13 columns
+ Column names: ["numberID", "east", "nort", "lat", "lon", "uprn", "city_type", "source_receiver_type", "info", "CS_type", "DP_type", "group_1", "group_2"]
+
+ Data types:
+   numberID: Int64
+   east: Float64
+   nort: Float64
+   lat: Float64
+   lon: Float64
+   uprn: Int64
+   city_type: String3
+   source_receiver_type: String15
+   info: String
+   CS_type: Int64
+   DP_type: Int64
+   group_1: Int64
+   group_2: Int64
+
+ First 5 rows:
+5×13 DataFrame
+ Row │ numberID  east           nort            lat      lon       uprn   city ⋯
+     │ Int64     Float64        Float64         Float64  Float64   Int64  Stri ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │        1       2.4016e5       6.3852e5   55.614   -4.53817      0  H    ⋯
+   2 │        2       2.3662e5       6.26177e5  55.502   -4.58702      0  A
+   3 │        6  353342.0       633789.0        55.5955  -2.74047      0  H
+   4 │       10  294130.0       575081.0        55.0588  -3.6577       0  H
+   5 │       15  327977.0       693093.0        56.1252  -3.1587       0  H    ⋯
+                                                               7 columns omitted
+
+ Node type distribution:
+3×2 DataFrame
+ Row │ city_type  count
+     │ String3    Int64
+─────┼──────────────────
+   1 │ H            215
+   2 │ A             18
+   3 │ new           11
+
+   H examples (first 3):
+      ID: 1 - University Hospital Crosshouse
+      ID: 6 - Borders General Hospital
+      ID: 10 - Dumfries & Galloway Royal Infirmary
+
+   A examples (first 3):
+      ID: 2 - Glasgow Prestwick Airport
+      ID: 16 - Dundee Airport
+      ID: 21 - Glasgow International Airport
+
+   new examples (first 3):
+      ID: 41 - new
+      ID: 44 - new
+      ID: 47 - new
+
+ Geographic coverage:
+   Latitude range: 54.83444404 to 60.1515905
+   Longitude range: -7.496280665 to -1.153737444
+
+
+ ANALYZING VTOL CSV: dag_ntwrk_files/drone_info/drone1.csv
+--------------------------------------------------
+ Successfully loaded VTOL CSV
+ Dimensions: 244 rows × 244 columns
+
+ First 5×5 sample of connectivity matrix:
+5×5 DataFrame
+ Row │ Column1  Column2  Column3  Column4  Column5
+     │ Float64  Float64  Float64  Float64  Float64
+─────┼─────────────────────────────────────────────
+   1 │  Inf      401.96   Inf         Inf   Inf
+   2 │  401.96   Inf      Inf         Inf   Inf
+   3 │  Inf      Inf      Inf         Inf  2019.15
+   4 │  Inf      Inf      Inf         Inf   Inf
+   5 │  Inf      Inf     2019.15      Inf   Inf
+
+ Data analysis:
+   First column type: Float64
+   Sample values: [Inf, 401.95995014814, Inf, Inf, Inf]
+
+ Connectivity statistics:
+   Total entries: 59536
+   Feasible connections: 12054 (20.2%)
+   Infeasible (Inf): 47482 (79.8%)
+   Missing values: 0 (0.0%)
+
+ Feasible connection values:
+   Range: 1.76307687739768 to 2191.28763168779
+   Mean: 1197.8
+   Median: 1264.5
+
+
+ ANALYZING FIXED-WING CSV: dag_ntwrk_files/drone_info/drone2.csv
+--------------------------------------------------
+ Successfully loaded FIXED-WING CSV
+ Dimensions: 244 rows × 244 columns
+
+ First 5×5 sample of connectivity matrix:
+5×5 DataFrame
+ Row │ Column1  Column2  Column3  Column4  Column5
+     │ Float64  Float64  Float64  Float64  Float64
+─────┼─────────────────────────────────────────────
+   1 │     Inf      Inf      Inf      Inf      Inf
+   2 │     Inf      Inf      Inf      Inf      Inf
+   3 │     Inf      Inf      Inf      Inf      Inf
+   4 │     Inf      Inf      Inf      Inf      Inf
+   5 │     Inf      Inf      Inf      Inf      Inf
+
+ Data analysis:
+   First column type: Float64
+   Sample values: [Inf, Inf, Inf, Inf, Inf]
+
+ Connectivity statistics:
+   Total entries: 59536
+   Feasible connections: 300 (0.5%)
+   Infeasible (Inf): 59236 (99.5%)
+   Missing values: 0 (0.0%)
+
+ Feasible connection values:
+   Range: 306.081354188242 to 9977.01496256251
+   Mean: 3753.11
+   Median: 3748.57
+
+
+ CROSS-REFERENCE ANALYSIS
+--------------------------------------------------
+ Data consistency check:
+   Nodes count: 244
+   VTOL matrix: 244 × 244
+   Fixed-wing matrix: 244 × 244
+    Dimensions are consistent!
+
+
+
+ 

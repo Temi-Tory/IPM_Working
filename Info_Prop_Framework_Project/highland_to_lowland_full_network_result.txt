@@ -1,0 +1,16 @@
+Found 5 root_diamonds
+Starting build unique diamond storage
+🔷 Starting depth-first parallel processing...
+📊 Processing iteration level 3 with 5 root diamonds
+🎯 Thread 1: Completed subtree with 1 unique diamonds
+✅ Thread 1: Completed subtree for join_node 197 (1 diamonds)
+🎯 Thread 5: Completed subtree with 1 unique diamonds
+✅ Thread 5: Completed subtree for join_node 199 (1 diamonds)
+🎯 Thread 8: Completed subtree with 1 unique diamonds
+✅ Thread 8: Completed subtree for join_node 196 (1 diamonds)
+🎯 Thread 2: Completed subtree with 1 unique diamonds
+✅ Thread 2: Completed subtree for join_node 198 (1 diamonds)
+🎯 Thread 6: Completed subtree with 1 unique diamonds
+✅ Thread 6: Completed subtree for join_node 195 (1 diamonds)
+📈 Iteration level 3 completed: 5 total unique diamonds
+Found 5 unique_diamonds
