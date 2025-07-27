@@ -293,39 +293,10 @@ end
 #comparison_df, computation_time = runFullComparison("metro");          # Metro network + metro0.9x0.9_ExactComp.csv
 #comparison_df, computation_time = runFullComparison("munin");          # Munin network + sorted_mumin_result.csv
 
-#calculateRechability("real_drone_network")# the generated DAG HAS236 MAXIMAL diamodn which os usually not a problem 
-#except that it crashes my computer even on 8 thread during build_unique_diamond_storage_depth_first_parallel
-#.. its even worse with build_unique_diamond_storage i think may be bcz i combined both or created an unreaslistic DAG 
 
 #calculateRechability("ergo-proxy-dag-network")
-#calculateRechability("ergo-proxy-dag-network")
-#comparison_df, computation_time = calculateRechability("emergency_supply_test")
-#comparison_df, computation_time = calculateRechability("multi_stage_supply_chain")
-
-#comparison_df, computation_time = calculateRechability("continental_medical_network")
- 
-#comparison_df, computation_time = calculateRechability("military_multi_domain_network")
-
-#= 
-filename = "central_belt_distribution"
-
-filename = "highlands_emergency_network"
-
-filename = "national_emergency_medical_network" =#
-
-#filename = "central_belt_transfers_fixed" 
-
-#filename = "highland_emergency_fixed" 
-
-#filename = "comprehensive_islands_supply_network"
 
 #filename = "highland_to_lowland_full_network"
-
-
-#filename = "glasgow_to_shetland_extreme"
-
-
-#filename = "multi_hospital_supply_hub"
 
 
 

@@ -3,6 +3,7 @@ module IPAFramework
     include("Algorithms/InputProcessingModule.jl")
     include("Algorithms/DiamondProcessingModule.jl")
     include("Algorithms/ReachabilityModuleRecurse.jl")
+    include("Algorithms/SDPBeliefPropagationModule.jl")  # NEW: SDP-based diamond processing
     #=     include("Active_Work_Algos/StateReliabilityModule.jl")  # NEW: Exact MTTF/MTTR module =#
     include("Algorithms/ComparisonModules.jl")
     include("Algorithms/VisualizeGraphsModule.jl")
@@ -31,6 +32,11 @@ module IPAFramework
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
                               convert_to_pbox_data
+
+    # NEW: Import SDP-based diamond processing functions
+    using .SDPBeliefPropagationModule: updateDiamondJoinSDP, updateDiamondJoinSDPReplacement,
+                                      DiamondSDP, BeliefPath, BeliefTerm,
+                                      build_diamond_sdp, compute_diamond_belief_sdp
 #= 
     # NEW: Import exact state reliability functions
     using .StateReliabilityModule: StateReliabilityConfig, StateReliabilityResults,
