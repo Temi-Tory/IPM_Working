@@ -200,9 +200,6 @@ E[E[E[...E[Belief(Final_Join) | Layer_L] ... | Layer₂] | Layer₁]
 
 **Worst-case complexity:** O(2^{Σᵢ nᵢ}) where nᵢ = conditioning nodes in layer i
 
-**Why exponential explosion occurs:**
-Each layer adds its own state space multiplicatively. If layers are independent, you get the full Cartesian product of state spaces.
-
 ---
 
 ## Key Mathematical Properties

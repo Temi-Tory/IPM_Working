@@ -969,7 +969,6 @@ function identify_and_group_diamonds(
     
     result = Dict{Int64, DiamondsAtNode}()
     
-    # Rest of function stays exactly the same...
     irrelevant_sources = filter_irrelevant_sources(source_nodes, node_priors, exluded_nodes, ctx)
     effective_fork_nodes = cached_setdiff(fork_nodes, irrelevant_sources, ctx)
     edgelist_hash = hash(sort(edgelist))
