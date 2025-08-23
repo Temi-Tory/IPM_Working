@@ -1,0 +1,245 @@
+DAG_Node_ID,Original_Node_ID,Facility_Name,Node_Type,Latitude,Longitude,Mission_Role
+175,220,"Cleland Hospital",H,55.80381685,-3.90593862,network
+170,215,"Migdale Hospital",H,57.89167493,-4.341446222,network
+52,73,"new",new,60.12535509,-2.054196977,DESTINATION
+206,251,"St Michael's Hospital",H,55.97503746,-3.585907137,network
+70,115,"Thomas Hope Hospital",H,55.15060215,-2.998314097,network
+67,112,"Crichton Royal Hospital",H,55.05683478,-3.597721967,network
+140,185,"Ugie Hospital",H,57.51538041,-1.792753795,network
+57,86,"Arbroath Airport",new,56.58285609,-2.621991137,DESTINATION
+123,168,"Arndale Resource Centre",H,55.90942803,-4.348857013,network
+162,207,"Belford Hospital",H,56.81961329,-5.103503994,network
+218,263,"Dundee Dental Hospital",H,56.45849503,-2.977892064,network
+197,242,"Chalmers Hospital",H,55.95283655,-3.197895768,network
+138,183,"Turriff Cottage Hospital",H,57.53734207,-2.449308321,network
+179,224,"Lockhart Hospital",H,55.67011979,-3.758529773,network
+132,177,"Glen O'Dee Hospital",H,57.05934867,-2.519829255,network
+9,23,"Aberdeen Dyce Airport",A,57.2019,-2.19778,network
+66,111,"Castle Douglas Community Hospital",H,54.93904841,-3.923638147,network
+219,264,"Strathmartine Hospital",H,56.50461339,-3.002135832,network
+46,41,"new",new,57.33490808,-5.540030481,network
+27,68,"Gilbert Bain Hospital",H,60.1515905,-1.153737444,DESTINATION
+55,82,"Barra Airport",A,57.0228,-7.44306,DESTINATION
+85,130,"St Andrews Community Hospital",H,56.32774528,-2.804063191,network
+80,125,"Laurel Bank (CETU)",H,55.06292255,-3.602475871,network
+53,77,"new",new,56.55999706,-4.002153202,DESTINATION
+127,172,"The Mary Aitkenhead Centre",H,55.8947143,-4.384344928,network
+44,103,"Hawick Community  Hospital",H,55.42351153,-2.793080396,network
+235,280,"Gowanlea",H,56.56361057,-2.572393149,network
+24,59,"University Hospital Monklands",H,55.8659408,-3.998281093,DESTINATION
+163,208,"Glencoe Hospital",H,56.68504892,-5.096778442,network
+166,211,"County Community Hospital Invergordon",H,57.69660892,-4.15049453,network
+82,127,"Midpark Hospital",H,55.05259832,-3.58695362,network
+71,116,"Lochmaben Hospital",H,55.12844838,-3.453098493,network
+41,100,"Girvan Community Hospital",H,55.2482983,-4.845812147,network
+29,79,"Western Isles Hospital",H,58.22148589,-6.382504582,network
+185,230,"Stonehouse Hospital",H,55.69241697,-3.99053178,network
+234,279,"Whitehills Hospital",H,56.65237417,-2.870139267,network
+150,195,"Islay Hospital",H,55.7558601,-6.278215216,network
+96,141,"Clackmannanshire Community Healthcare Centre",H,56.12478022,-3.782199491,network
+233,278,"Stracathro Hospital",H,56.77508919,-2.612183711,network
+90,135,"Queen Margaret Hospital",H,56.08238381,-3.425563347,network
+93,138,"Bellsdyke Hospital",H,56.03504609,-3.818273686,network
+177,222,"Kello Hospital",H,55.62255627,-3.519069634,network
+62,107,"Hawick Psychogeriatric Day Hospital",H,55.41944947,-2.788906805,DESTINATION
+231,276,"Little Cairnie Hospital",H,56.56795065,-2.606457761,network
+107,152,"Auchinlea Resource Centre",H,55.87121504,-4.129670818,network
+202,247,"Cambridge Street Day Centre",H,55.94790711,-3.203928301,network
+125,170,"Pineview",H,55.90989103,-4.324464125,network
+84,129,"Adamson Hospital",H,56.32441458,-3.016476797,network
+193,238,"Edington Cottage Hospital",H,56.05557239,-2.716843114,network
+205,250,"Ballenden House",H,55.9444908,-3.180858496,network
+88,133,"Weston Day Hospital",H,56.31855927,-3.018245422,network
+213,258,"Findlay House",H,55.96819412,-3.143059788,network
+139,184,"Chalmers Hospital",H,57.66923663,-2.52278476,network
+207,252,"Tippethill Hospital",H,55.87680395,-3.686279247,network
+1,1,"University Hospital Crosshouse",H,55.61397859,-4.538174149,SOURCE
+92,137,"Bo'ness Hospital",H,56.01165112,-3.612898938,network
+4,22,"Aberdeen Royal Infirmary",H,57.15446245,-2.135741274,SOURCE
+109,154,"Shawpark Resource Centre",H,55.88855482,-4.285921346,network
+192,237,"Edenhall Hospital",H,55.93689091,-3.034627515,network
+161,206,"St Vincent's Hospital",H,57.08493197,-4.055753518,network
+243,288,"St Brendans Cot Hospital",H,56.95228577,-7.496280665,network
+225,270,"Aberfeldy Cottage Hospital",H,56.61863517,-3.859065662,network
+14,33,"Tiree Airport",A,56.49919891,-6.869170189,network
+68,113,"Nithbank Hospital",H,55.06239553,-3.601373171,network
+186,231,"Udston Hospital",H,55.77742427,-4.079689604,network
+200,245,"Royal Edinburgh Hospital",H,55.92725157,-3.214444464,network
+209,254,"St John's Hospital",H,55.89302304,-3.518009928,network
+238,283,"Pitlochry Community Hospital",H,56.70160803,-3.73581816,network
+120,165,"Arran Resource Centre",H,55.85166608,-4.225111902,network
+97,142,"Dumbarton Joint Hospital/Riverview Resource Centre",H,55.9486886,-4.593566144,network
+69,114,"Kirkcudbright Cottage Hospital",H,54.83444404,-4.049303582,network
+220,265,"Hawkhill Day Hospital",H,56.45726248,-2.990551095,network
+91,136,"Lynebank Hospital",H,56.07789802,-3.41239735,network
+72,117,"Moffat Community Hospital",H,55.33136484,-3.428983243,network
+100,145,"Dykebar Hospital",H,55.82286947,-4.39782038,network
+237,282,"Carseview Centre",H,56.46354398,-3.044212853,network
+230,275,"Brechin Infirmary",H,56.73424771,-2.650491245,network
+113,158,"New Victoria Hospital",H,55.82867305,-4.264041449,network
+173,218,"Victoria Memorial Cottage Hospital",H,55.97686919,-4.06856589,network
+131,176,"Aboyne Hospital",H,57.07643789,-2.765467882,network
+23,28,"Raigmore Hospital",H,57.47407751,-4.191111893,DESTINATION
+103,148,"Glasgow Royal Infirmary",H,55.86409106,-4.234373832,network
+33,92,"Lady Margaret Hospital",H,55.76135748,-4.921581923,network
+73,118,"Newton Stewart Hospital",H,54.95103654,-4.490623744,network
+117,162,"Centre for Integrative Care",H,55.88073775,-4.313853803,network
+36,95,"Maybole Day Hospital",H,55.35471481,-4.680353228,network
+158,203,"Lawson Memorial Hospital",H,57.97329514,-3.98626108,network
+187,232,"Beckford Lodge",H,55.78244632,-4.051486784,network
+34,93,"Warrix Avenue Mental Health Community Rehabilitation Unit",H,55.61190847,-4.658983516,network
+22,18,"Lochview Hospital (Forth Valley Royal Hospital)",H,56.02804111,-3.844555495,DESTINATION
+195,240,"Royal Victoria Hospital",H,55.95868674,-3.231640633,network
+102,147,"Glasgow Dental Hospital and School",H,55.86611521,-4.264269807,network
+112,157,"Mearnskirk House",H,55.76115855,-4.329952242,network
+7,16,"Dundee Airport",A,56.45249939,-3.02583003,network
+242,287,"CAMHS Hospital Unit",H,56.46500792,-2.983789281,network
+47,44,"new",new,56.54605839,-4.733614026,network
+221,266,"Dundonald Centre",H,56.4725958,-2.960314842,network
+12,31,"Islay Airport",A,55.68190002,-6.256669998,network
+172,217,"Coathill Hospital",H,55.84868464,-4.024619696,network
+101,146,"Blythswood House",H,55.88034649,-4.387317634,network
+25,61,"Edinburgh Royal Infirmary",H,55.92195904,-3.137185357,DESTINATION
+10,29,"Inverness Airport",A,57.54249954,-4.047500134,network
+167,212,"New Craigs Hospital",H,57.46905256,-4.268277089,network
+183,228,"Airbles Road Centre",H,55.78262449,-3.982019232,network
+114,159,"Florence Street Mental Health Resource Centre",H,55.85186975,-4.245560573,network
+148,193,"Argyll and Bute Hospital",H,56.03530247,-5.427977833,network
+181,226,"Strathclyde Hospital",H,55.78452134,-4.00085727,network
+42,101,"The Knoll Hospital",H,55.77263743,-2.339900107,network
+60,105,"Kelso Hospital",H,55.60327133,-2.431912461,DESTINATION
+178,223,"Lady Home Cottage Hospital",H,55.55827099,-3.837814533,network
+240,285,"Kingsway Care Centre",H,56.4771138,-2.998909269,network
+226,271,"Blairgowrie & Rattray Cottage Hospital",H,56.5860307,-3.344854159,network
+121,166,"Riverside Resource Centre",H,55.87101907,-4.294682696,network
+153,198,"Lorn & Islands Hospital",H,56.40055912,-5.473792316,network
+169,214,"Dunaros Community Hospital",H,56.51566045,-5.946832131,network
+20,80,"Stornoway Airport",A,58.215599,-6.33111,network
+229,274,"Arbroath Infirmary",H,56.55466136,-2.595360853,network
+201,246,"Royal Hospital for Sick Children (Edinburgh)",H,55.93814726,-3.185436819,network
+98,143,"Vale of Leven General Hospital",H,55.99316724,-4.590578906,network
+21,15,"Victoria Hospital",H,56.12519279,-3.158700518,DESTINATION
+38,97,"Arrol Park Resource Centre",H,55.44916677,-4.638514148,network
+239,284,"Perth Dental Hospital",H,56.3913228,-3.484987106,network
+89,134,"Glenrothes Hospital",H,56.2051741,-3.181070675,network
+65,110,"Eyemouth Day Hospital",H,55.87120209,-2.089405295,network
+11,30,"Wick Airport",A,58.45890045,-3.093060017,network
+5,6,"Borders General Hospital",H,55.59548794,-2.740474678,SOURCE
+189,234,"Red Deer Centre/Day Hospital",H,55.75803944,-4.195753549,network
+174,219,"Wester Moffat Hospital",H,55.86892035,-3.939577701,network
+227,272,"Murray Royal Hospital",H,56.40047419,-3.410730583,network
+137,182,"Jubilee Hospital",H,57.44344284,-2.788813164,network
+119,164,"Anvil Resource Centre",H,55.85235273,-4.191942313,network
+108,153,"Stobhill Hospital",H,55.89296032,-4.218565887,network
+141,186,"Buckie Day Hospital",H,57.6681016,-2.980266204,network
+208,253,"Whitburn Day Hospital",H,55.86709634,-3.687680614,network
+17,64,"Kirkwall Airport",A,58.95780182,-2.904999971,network
+222,267,"Royal Victoria Day Hospital",H,56.46265803,-3.012311044,network
+31,90,"Arran War Memorial Hospital",H,55.54315331,-5.114359851,network
+94,139,"Stirling Community Hospital",H,56.106903,-3.934580493,network
+45,104,"Andrew Lang Unit",H,55.55033014,-2.839448313,network
+134,179,"Inverurie Hospital",H,57.27678856,-2.378035362,network
+126,171,"Netherton",H,55.89505605,-4.329415592,network
+19,69,"Sumburgh Airport",A,59.87889862,-1.295560002,network
+30,85,"Royal Alexandra Hospital",H,55.83528137,-4.436562056,network
+74,119,"Thornhill Hospital",H,55.23567518,-3.765209858,network
+171,216,"Mull and Iona Community Hospital",H,56.47959836,-5.714768434,network
+81,126,"Lismore",H,54.99464948,-3.251087963,network
+63,108,"Peebles Psychogeriatric Day Hospital",H,55.65155396,-3.181355872,network
+111,156,"Leverndale Hospital",H,55.83539782,-4.365218663,network
+6,2,"Glasgow Prestwick Airport",A,55.502003,-4.587019,SOURCE
+3,10,"Dumfries & Galloway Royal Infirmary",H,55.0588462,-3.657698883,SOURCE
+79,124,"Innistaigh",H,54.89862985,-5.021175739,network
+216,261,"Kings Cross Hospital",H,56.47780102,-2.98408773,network
+99,144,"Inverclyde Royal Hospital",H,55.94438602,-4.808629296,network
+228,273,"Scone Day Hospital",H,56.42084682,-3.407684934,network
+212,257,"Bathgate House Day Hospital",H,55.90194772,-3.641937275,network
+155,200,"Dunbar Hospital",H,58.58451762,-3.538168965,network
+2,20,"Queen Elizabeth University Hospital",H,55.86270871,-4.336845035,SOURCE
+54,81,"Benbecula Airport",A,57.48109818,-7.362780094,DESTINATION
+142,187,"Dr Gray's Hospital",H,57.64589268,-3.330468391,network
+168,213,"Mid-Argyll Community Hospital and Integrated Care Centre",H,56.04210885,-5.417305234,network
+144,189,"Turner Memorial Hospital",H,57.54218558,-2.95407633,network
+182,227,"Kirklands Hospital",H,55.81192327,-4.063556454,network
+64,109,"Galashiels Psychogeriatric Day Hospital",H,55.61782646,-2.807748979,network
+116,161,"Gartnavel Royal Hospital",H,55.88260299,-4.320097735,network
+204,249,"Bonnyrigg Day Centre",H,55.87270787,-3.061243781,network
+196,241,"Astley Ainslie Hospital",H,55.92957056,-3.196028125,network
+59,88,"North Ronaldsay Airport",new,59.36923404,-2.431068036,DESTINATION
+164,209,"Portree Hospital",H,57.41055233,-6.191859131,network
+191,236,"Corstorphine Hospital",H,55.94301171,-3.269943375,network
+75,120,"Annan Hospital",H,54.98815386,-3.245571404,network
+215,260,"East Lothian Community Hospital",H,55.95715125,-2.795514921,network
+56,83,"new",new,57.76643301,-7.027993699,DESTINATION
+145,190,"Rehabilitation Hospital",H,57.1362389,-2.101784826,network
+156,201,"Caithness General Hospital",H,58.44171715,-3.094184124,network
+40,99,"East Ayrshire Community Hospital",H,55.45251122,-4.271668605,network
+76,121,"Galloway Community Hospital",H,54.89921902,-5.022108907,network
+236,281,"Crieff Community Hospital",H,56.37008261,-3.840705549,network
+129,174,"City Hospital",H,57.15380167,-2.087055187,network
+224,269,"St Margaret's Hospital",H,56.29387341,-3.717919065,network
+78,123,"Wellgreen Cottages",H,55.04944873,-3.598226271,network
+223,268,"Perth Royal Infirmary",H,56.39645576,-3.451555364,network
+13,32,"Campbeltown Airport",A,55.43719864,-5.686389923,network
+152,197,"Victoria Hospital Annexe",H,55.82705723,-5.053344218,network
+188,233,"University Hospital Wishaw",H,55.77374293,-3.94042798,network
+151,196,"Victoria Hospital",H,56.0923321,-5.075106928,network
+217,262,"Royal Victoria Hospital",H,56.46396897,-3.011053694,network
+165,210,"Ross Memorial Hospital",H,57.59470653,-4.416007475,network
+106,151,"Parkview Resource Centre",H,55.85020447,-4.172620246,network
+194,239,"Herdmanflat Hospital",H,55.96029975,-2.786592496,network
+26,63,"Balfour Hospital",H,58.97412018,-2.963844233,DESTINATION
+146,191,"Kincardine Community Hospital",H,56.96931858,-2.229214779,network
+32,91,"Ayrshire Central Hospital",H,55.63461331,-4.676906809,network
+16,62,"Edinburgh Airport",A,55.950145,-3.372288,network
+160,205,"Nairn Town and County Hospital",H,57.57838727,-3.87115279,network
+199,244,"Liberton Hospital",H,55.90900053,-3.152645161,network
+105,150,"Acorn Street Day Hospital",H,55.8467593,-4.223569292,network
+77,122,"Acorn House",H,55.05366159,-3.604578697,network
+154,199,"Campbeltown Hospital",H,55.42069171,-5.603184142,network
+128,173,"Woodend General Hospital",H,57.14749402,-2.169962908,network
+211,256,"Ferryfield House",H,55.97207592,-3.229021222,network
+143,188,"Stephen Cottage Hospital",H,57.4459224,-3.122858852,network
+232,277,"Montrose Royal Infirmary",H,56.70789536,-2.472990997,network
+39,98,"Three Towns Resource Centre",H,55.6396381,-4.770025661,network
+190,235,"Belhaven Hospital",H,55.99591579,-2.53617233,network
+159,204,"RNI Community Hospital",H,57.47090254,-4.230218662,network
+28,76,"Ninewells Hospital",H,56.46180151,-2.989936931,DESTINATION
+15,34,"Oban  Airport",A,56.46678798,-5.397557268,network
+198,243,"Edinburgh Dental Institute",H,55.94414689,-3.196941762,network
+149,194,"Cowal Community Hospital",H,55.95942659,-4.926704391,network
+122,167,"Eastwood Resource Centre",H,55.79025942,-4.285694635,network
+58,87,"Perth Airport",A,56.43578293,-3.370727821,DESTINATION
+87,132,"Stratheden Hospital",H,56.30450447,-3.052752996,network
+95,140,"Bungalows/Red Lodge",H,56.0202128,-3.837346211,network
+157,202,"Wick Town and County Hospital",H,58.43309857,-3.096742837,network
+203,248,"Glencorse Day Centre",H,55.84777295,-3.189665092,network
+124,169,"Woodlands Resource Centre",H,55.94053104,-4.146326284,network
+135,180,"Peterhead Community Hospital",H,57.50258644,-1.791941805,network
+210,255,"Inchkeith House",H,55.96819211,-3.171982196,network
+115,160,"Shawmill Resource Centre",H,55.8265766,-4.29518636,network
+244,289,"Uist & Barra Hospital",H,57.47272244,-7.377046305,network
+49,49,"new",new,58.56491488,-4.889286107,network
+61,106,"Hay Lodge Hospital",H,55.6520425,-3.196787966,DESTINATION
+35,94,"Ailsa Hospital",H,55.43418885,-4.591883282,network
+180,225,"Roadmeetings Hospital",H,55.72963089,-3.811487007,network
+43,102,"Galavale House",H,55.60729837,-2.787751806,network
+83,128,"Cameron Hospital",H,56.18651381,-3.05648161,network
+214,259,"Midlothian Community Hospital",H,55.88029515,-3.088724814,network
+51,70,"Fair Isle Airport",new,59.53623128,-1.626983954,DESTINATION
+8,21,"Glasgow International Airport",A,55.871899,-4.43306,network
+184,229,"University Hospital Hairmyres",H,55.75998173,-4.220715026,network
+118,163,"Beatson West of Scotland Cancer Centre",H,55.88329566,-4.31147132,network
+86,131,"Randolph Wemyss Memorial Hospital",H,56.17721134,-3.025761579,network
+147,192,"375 Great Western Lodge",H,57.13417605,-2.127455288,network
+176,221,"Hartwoodhill Hospital",H,55.81003107,-3.846805722,network
+50,53,"new",new,58.17604371,-4.092198507,network
+48,47,"new",new,57.75748237,-4.824516777,network
+130,175,"Woolmanhill Hospital",H,57.14925507,-2.103969374,network
+241,286,"Bluebell Intermediary Care Unit",H,56.45943886,-3.048319896,network
+133,178,"Roxburghe House",H,57.15721439,-2.124360202,network
+37,96,"Biggart Hospital",H,55.49259795,-4.603636983,network
+104,149,"Lightburn Hospital",H,55.86069748,-4.16425599,network
+110,155,"Springpark Resource Centre/Day Hospital",H,55.88624039,-4.251048065,network
+136,181,"Fraserburgh Hospital",H,57.68787852,-2.017914396,network
+18,65,"Eday Airport",A,59.19060135,-2.772219896,network

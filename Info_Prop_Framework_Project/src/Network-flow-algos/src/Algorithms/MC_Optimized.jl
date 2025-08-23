@@ -93,7 +93,7 @@ function find_all_reachable(graph::Dict{Int64, Set{Int64}}, sources::Set{Int64})
     return reachable
 end
 
-
+#= 
 mc_results = MC_result_optimized(
         edgelist,
         outgoing_index,
@@ -130,4 +130,4 @@ sorted_df = sort(df, :Diff, rev=true)
 
 # Save the sorted DataFrame as a CSV file
 CSV.write("sorted_mumin_result.csv", sorted_df)
- =#
+ =# =#

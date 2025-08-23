@@ -2,6 +2,10 @@
 DIAMOND HIERARCHY ANALYSIS: 15 Unique Conditioning Contexts
 ================================================================================
 
+====Node Mappings====
+1=cs1, 2=cs2, 3=s0, 4=n8, 5=n10, 6=n11, 7=n1, 8=n2, 9=n3, 10=n4, 
+11=n5, 12=n7, 13=n9, 14=n12, 15=n14, 16=n13, 17=n6, 18=j_maximal
+
 📋 CONTEXT 1 (Hash: 18258135...)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔹 PARENT DIAMOND CONTEXT:

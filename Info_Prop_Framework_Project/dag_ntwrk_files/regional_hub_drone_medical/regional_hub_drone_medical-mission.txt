@@ -1,0 +1,35 @@
+REGIONAL HUB MISSION SPECIFICATION
+=====================================
+
+Sources (Regional Hubs): 6 nodes
+  DAG_Node_1
+  DAG_Node_2
+  DAG_Node_3
+  DAG_Node_4
+  DAG_Node_5
+  DAG_Node_6
+
+Destinations (Strategic Facilities): 20 nodes
+  DAG_Node_21
+  DAG_Node_22
+  DAG_Node_23
+  DAG_Node_24
+  DAG_Node_25
+  DAG_Node_26
+  DAG_Node_27
+  DAG_Node_28
+  DAG_Node_51
+  DAG_Node_52
+  DAG_Node_53
+  DAG_Node_54
+  DAG_Node_55
+  DAG_Node_56
+  DAG_Node_57
+  DAG_Node_58
+  DAG_Node_59
+  DAG_Node_60
+  DAG_Node_61
+  DAG_Node_62
+
+Total Mission Complexity: 6 × 20 = 120 source-destination pairs
+Expected Tractability: 30min - 1hr for exact path enumeration

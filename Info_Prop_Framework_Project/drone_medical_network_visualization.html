@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scotland Drone Medical Network Visualization</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .controls {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .checkbox-item label {
+            font-size: 12px;
+            color: #555;
+        }
+
+        .slider-group {
+            margin-top: 10px;
+        }
+
+        .slider-group label {
+            display: block;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+        }
+
+        .export-btn {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .export-btn:hover {
+            background: #005a87;
+        }
+
+        .stats {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stats h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .stats p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .legend h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        .legend-text {
+            font-size: 12px;
+            color: #555;
+        }
+
+        .leaflet-popup-content {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .leaflet-popup-content h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+        }
+
+        .leaflet-popup-content p {
+            margin: 4px 0;
+        }
+
+        .progress-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <h2 style="margin-top: 0; color: #333;">Scotland Drone Medical Network</h2>
+            
+            <div class="stats">
+                <h3>Network Statistics</h3>
+                <p><strong>Total Nodes:</strong> <span id="total-nodes">782</span></p>
+                <p><strong>Total Connections:</strong> <span id="total-connections">2791</span></p>
+                <p><strong>Cluster Centers:</strong> <span id="cluster-centers">23</span></p>
+                <p><strong>Airports:</strong> <span id="airports">67</span></p>
+                <p><strong>Avg Connections:</strong> <span id="avg-connections">7.13</span></p>
+            </div>
+
+            <div class="legend">
+                <h3>Node Types</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #d73027;"></div>
+                    <span class="legend-text">Cluster Center (23)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1a9850;"></div>
+                    <span class="legend-text">Cluster Node (692)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #313695;"></div>
+                    <span class="legend-text">Power Backbone (67)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f46d43;"></div>
+                    <span class="legend-text">Airport (67)</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Display Options</h3>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="show-connections" checked>
+                        <label for="show-connections">Show Connections</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="show-airports" checked>
+                        <label for="show-airports">Show Airports</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="show-labels" checked>
+                        <label for="show-labels">Show Major Hub Labels</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="show-regions" checked>
+                        <label for="show-regions">Show Region Statistics</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Visual Settings</h3>
+                <div class="slider-group">
+                    <label for="node-size">Node Size: <span id="node-size-value">1.0</span></label>
+                    <input type="range" id="node-size" min="0.5" max="2.0" step="0.1" value="1.0">
+                </div>
+                <div class="slider-group">
+                    <label for="connection-opacity">Connection Opacity: <span id="connection-opacity-value">0.6</span></label>
+                    <input type="range" id="connection-opacity" min="0.1" max="1.0" step="0.1" value="0.6">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Export Options</h3>
+                <button class="export-btn" onclick="exportToPNG()">Download as PNG</button>
+                <p style="font-size: 11px; color: #666; margin-top: 10px;">
+                    High-resolution image suitable for journal publication
+                </p>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="progress-indicator" id="progress">Loading network data...</div>
+        </div>
+    </div>
+
+    <script>
+        // Network data will be loaded here
+        const networkData = {
+            nodes: [
+                {id: 1, name: "University Hospital Crosshouse", type: "CLUSTER_CENTER", lat: 55.61397859, lng: -4.538174149, facility_type: "H", connections: 16},
+                {id: 2, name: "Glasgow Prestwick Airport", type: "CLUSTER_CENTER", lat: 55.502003, lng: -4.587019, facility_type: "A", connections: 15},
+                {id: 3, name: "Glasgow International Airport", type: "POWER_BACKBONE", lat: 55.871899, lng: -4.43306, facility_type: "A", connections: 14},
+                {id: 4, name: "Aberdeen Dyce Airport", type: "POWER_BACKBONE", lat: 57.2019, lng: -2.19778, facility_type: "A", connections: 13},
+                {id: 5, name: "Inverness Airport", type: "POWER_BACKBONE", lat: 57.54249954, lng: -4.047500134, facility_type: "A", connections: 12},
+                {id: 6, name: "Wick Airport", type: "CLUSTER_CENTER", lat: 58.45890045, lng: -3.093060017, facility_type: "A", connections: 11},
+                {id: 7, name: "Islay Airport", type: "POWER_BACKBONE", lat: 55.68190002, lng: -6.256669998, facility_type: "A", connections: 10},
+                {id: 8, name: "Campbeltown Airport", type: "POWER_BACKBONE", lat: 55.43719864, lng: -5.686389923, facility_type: "A", connections: 9},
+                {id: 9, name: "Tiree Airport", type: "POWER_BACKBONE", lat: 56.49919891, lng: -6.869170189, facility_type: "A", connections: 8},
+                {id: 10, name: "Oban Airport", type: "POWER_BACKBONE", lat: 56.46678798, lng: -5.397557268, facility_type: "A", connections: 7}
+            ],
+            edges: [
+                {source: 1, target: 2},
+                {source: 2, target: 3},
+                {source: 3, target: 4},
+                {source: 4, target: 5},
+                {source: 5, target: 6}
+            ]
+        };
+
+        // Initialize map
+        let map;
+        let nodeLayer;
+        let connectionLayer;
+        let regionLayer;
+
+        function initializeMap() {
+            // Show progress
+            document.getElementById('progress').style.display = 'block';
+
+            map = L.map('map').setView([56.5, -4.0], 6);
+
+            // Add base map
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Initialize layers
+            nodeLayer = L.layerGroup().addTo(map);
+            connectionLayer = L.layerGroup().addTo(map);
+            regionLayer = L.layerGroup().addTo(map);
+
+            // Load and process data
+            loadNetworkData();
+        }
+
+        function loadNetworkData() {
+            // Parse the provided data files and create interactive visualization
+            // This is a simplified example - in practice you'd parse the actual files
+            
+            const nodes = [
+                // Major hubs and airports from your data
+                {id: "1", name: "University Hospital Crosshouse", lat: 55.61397859, lng: -4.538174149, role: "CLUSTER_CENTER", type: "H", connections: 16},
+                {id: "2", name: "Glasgow Prestwick Airport", lat: 55.502003, lng: -4.587019, role: "CLUSTER_CENTER", type: "A", connections: 15},
+                {id: "21", name: "Balfour Hospital", lat: 58.97412018, lng: -2.963844233, role: "CLUSTER_CENTER", type: "H", connections: 16},
+                {id: "71", name: "University Hospital Hairmyres", lat: 55.75998173, lng: -4.220715026, role: "CLUSTER_CENTER", type: "H", connections: 16},
+                {id: "111", name: "Western Isles Hospital", lat: 58.22148589, lng: -6.382504582, role: "CLUSTER_CENTER", type: "H", connections: 15},
+                {id: "155", name: "Springpark Resource Centre", lat: 55.88624039, lng: -4.251048065, role: "CLUSTER_CENTER", type: "H", connections: 14},
+                {id: "20", name: "Queen Elizabeth University Hospital", lat: 55.86270871, lng: -4.336845035, role: "CLUSTER_CENTER", type: "H", connections: 13},
+                {id: "22", name: "Aberdeen Royal Infirmary", lat: 57.15446245, lng: -2.135741274, role: "POWER_BACKBONE", type: "H", connections: 12},
+                {id: "28", name: "Raigmore Hospital", lat: 57.47407751, lng: -4.191111893, role: "POWER_BACKBONE", type: "H", connections: 11},
+                {id: "30", name: "Wick Airport", lat: 58.45890045, lng: -3.093060017, role: "CLUSTER_CENTER", type: "A", connections: 10},
+                
+                // Additional key nodes for regional coverage
+                {id: "Scottish_Highlands", name: "Highlands Region", lat: 57.5, lng: -4.5, role: "REGION", type: "REGION", connections: 100},
+                {id: "Central_Scotland", name: "Central Scotland", lat: 56.0, lng: -4.0, role: "REGION", type: "REGION", connections: 271},
+                {id: "Southern_Scotland", name: "Southern Scotland", lat: 55.0, lng: -3.5, role: "REGION", type: "REGION", connections: 411},
+                {id: "Scottish_Islands", name: "Islands", lat: 58.5, lng: -6.0, role: "REGION", type: "REGION", connections: 54}
+            ];
+
+            const edges = [
+                {source: "1", target: "2"},
+                {source: "1", target: "21"},
+                {source: "2", target: "71"},
+                {source: "21", target: "111"},
+                {source: "71", target: "155"},
+                {source: "20", target: "22"},
+                {source: "22", target: "28"},
+                {source: "28", target: "30"}
+            ];
+
+            renderNetwork(nodes, edges);
+            
+            // Hide progress
+            setTimeout(() => {
+                document.getElementById('progress').style.display = 'none';
+            }, 1000);
+        }
+
+        function renderNetwork(nodes, edges) {
+            // Clear existing layers
+            nodeLayer.clearLayers();
+            connectionLayer.clearLayers();
+            regionLayer.clearLayers();
+
+            // Color scheme for different roles
+            const roleColors = {
+                'CLUSTER_CENTER': '#d73027',
+                'POWER_BACKBONE': '#313695', 
+                'CLUSTER_NODE': '#1a9850',
+                'REGION': 'rgba(100,100,100,0.1)'
+            };
+
+            const typeColors = {
+                'H': '#2166ac', // Hospitals
+                'A': '#f46d43', // Airports
+                'REGION': 'rgba(100,100,100,0.1)'
+            };
+
+            // Render connections first (so they appear under nodes)
+            edges.forEach(edge => {
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                const targetNode = nodes.find(n => n.id === edge.target);
+                
+                if (sourceNode && targetNode && sourceNode.role !== 'REGION' && targetNode.role !== 'REGION') {
+                    const connection = L.polyline([
+                        [sourceNode.lat, sourceNode.lng],
+                        [targetNode.lat, targetNode.lng]
+                    ], {
+                        color: '#666',
+                        weight: 1,
+                        opacity: 0.6,
+                        className: 'network-connection'
+                    });
+                    
+                    connectionLayer.addLayer(connection);
+                }
+            });
+
+            // Render nodes
+            nodes.forEach(node => {
+                if (node.role === 'REGION') {
+                    // Render region indicators
+                    const regionCircle = L.circle([node.lat, node.lng], {
+                        radius: Math.sqrt(node.connections) * 5000,
+                        color: '#999',
+                        weight: 1,
+                        opacity: 0.3,
+                        fillColor: '#999',
+                        fillOpacity: 0.1,
+                        className: 'region-indicator'
+                    });
+                    
+                    const regionLabel = L.marker([node.lat, node.lng], {
+                        icon: L.divIcon({
+                            className: 'region-label',
+                            html: `<div style="background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #ccc;">${node.name}: ${node.connections}</div>`,
+                            iconSize: [100, 20],
+                            iconAnchor: [50, 10]
+                        })
+                    });
+                    
+                    regionLayer.addLayer(regionCircle);
+                    regionLayer.addLayer(regionLabel);
+                } else {
+                    // Regular nodes
+                    const baseSize = node.type === 'A' ? 8 : 6;
+                    const size = baseSize + Math.min(node.connections || 0, 10);
+                    
+                    const color = node.type === 'A' ? typeColors.A : roleColors[node.role] || roleColors.CLUSTER_NODE;
+                    
+                    const marker = L.circleMarker([node.lat, node.lng], {
+                        radius: size,
+                        color: '#fff',
+                        weight: 2,
+                        fillColor: color,
+                        fillOpacity: 0.8,
+                        className: `node-marker ${node.role.toLowerCase()} ${node.type.toLowerCase()}`
+                    });
+                    
+                    // Add popup with detailed information
+                    const popupContent = `
+                        <div>
+                            <h4>${node.name}</h4>
+                            <p><strong>Type:</strong> ${node.type === 'H' ? 'Hospital' : 'Airport'}</p>
+                            <p><strong>Role:</strong> ${node.role.replace('_', ' ')}</p>
+                            <p><strong>Connections:</strong> ${node.connections || 0}</p>
+                            <p><strong>Location:</strong> ${node.lat.toFixed(4)}, ${node.lng.toFixed(4)}</p>
+                        </div>
+                    `;
+                    
+                    marker.bindPopup(popupContent);
+                    nodeLayer.addLayer(marker);
+                    
+                    // Add labels for major hubs
+                    if (node.connections >= 10) {
+                        const label = L.marker([node.lat, node.lng], {
+                            icon: L.divIcon({
+                                className: 'hub-label',
+                                html: `<div style="background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; border: 1px solid #999; margin-top: ${size + 5}px;">${node.name}</div>`,
+                                iconSize: [120, 15],
+                                iconAnchor: [60, 0]
+                            })
+                        });
+                        nodeLayer.addLayer(label);
+                    }
+                }
+            });
+        }
+
+        // Control handlers
+        function setupControls() {
+            // Toggle controls
+            document.getElementById('show-connections').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    map.addLayer(connectionLayer);
+                } else {
+                    map.removeLayer(connectionLayer);
+                }
+            });
+
+            document.getElementById('show-airports').addEventListener('change', function(e) {
+                const airportNodes = document.querySelectorAll('.node-marker.a');
+                airportNodes.forEach(node => {
+                    node.style.display = e.target.checked ? 'block' : 'none';
+                });
+            });
+
+            document.getElementById('show-labels').addEventListener('change', function(e) {
+                const labels = document.querySelectorAll('.hub-label');
+                labels.forEach(label => {
+                    label.style.display = e.target.checked ? 'block' : 'none';
+                });
+            });
+
+            document.getElementById('show-regions').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    map.addLayer(regionLayer);
+                } else {
+                    map.removeLayer(regionLayer);
+                }
+            });
+
+            // Slider controls
+            document.getElementById('node-size').addEventListener('input', function(e) {
+                const scale = parseFloat(e.target.value);
+                document.getElementById('node-size-value').textContent = scale.toFixed(1);
+                
+                const nodeMarkers = document.querySelectorAll('.node-marker');
+                nodeMarkers.forEach(marker => {
+                    const currentRadius = parseFloat(marker.getAttribute('r') || marker.style.width || '6');
+                    marker.setAttribute('r', currentRadius * scale);
+                });
+            });
+
+            document.getElementById('connection-opacity').addEventListener('input', function(e) {
+                const opacity = parseFloat(e.target.value);
+                document.getElementById('connection-opacity-value').textContent = opacity.toFixed(1);
+                
+                const connections = document.querySelectorAll('.network-connection');
+                connections.forEach(connection => {
+                    connection.style.opacity = opacity;
+                });
+            });
+        }
+
+        // PNG Export functionality
+        async function exportToPNG() {
+            const exportBtn = document.querySelector('.export-btn');
+            const originalText = exportBtn.textContent;
+            
+            exportBtn.textContent = 'Generating PNG...';
+            exportBtn.disabled = true;
+            
+            try {
+                // Hide controls temporarily
+                const controls = document.querySelector('.controls');
+                controls.style.display = 'none';
+                
+                // Capture the map
+                const canvas = await html2canvas(document.querySelector('.map-container'), {
+                    backgroundColor: '#ffffff',
+                    width: 1920,
+                    height: 1080,
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true
+                });
+                
+                // Show controls again
+                controls.style.display = 'block';
+                
+                // Download the image
+                const link = document.createElement('a');
+                link.download = 'scotland-drone-medical-network.png';
+                link.href = canvas.toDataURL();
+                link.click();
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed. Please try again.');
+            } finally {
+                exportBtn.textContent = originalText;
+                exportBtn.disabled = false;
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            setupControls();
+        });
+    </script>
+</body>
+</html>

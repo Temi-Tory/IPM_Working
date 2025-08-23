@@ -1,0 +1,23 @@
+HYBRID POWER-HIERARCHICAL DRONE NETWORK
+========================================
+
+This network combines two proven topologies:
+  • Power backbone: Linear structure from scaled-power-5x
+  • Hierarchical clusters: Dense hub-spoke structures embedded at strategic points
+  • Cross-topology connections: Bridge edges creating new diamond opportunities
+
+Network Architecture:
+  • Total nodes: 782
+  • Total edges: 2789
+  • Power backbone nodes: 115
+  • Cluster centers: 23
+  • Hierarchical nodes per cluster: ~244
+
+Expected Complexity:
+  • Linear backbone diamonds from power topology
+  • Dense local diamonds from hierarchical clusters
+  • Cross-topology diamonds from backbone-cluster interactions
+  • Target processing time: 10-60 seconds
+
+This hybrid approach maximizes diamond formation while maintaining
+realistic Scottish drone infrastructure constraints.

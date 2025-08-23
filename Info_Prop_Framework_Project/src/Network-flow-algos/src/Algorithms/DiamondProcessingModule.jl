@@ -39,6 +39,25 @@ module DiamondProcessingModule
         join_node::Int64
     end
 
+    # Hash and equality methods for DiamondsAtNode to enable Set-based lookup tables
+    function Base.hash(d::DiamondsAtNode, h::UInt)
+        return hash((
+            d.diamond.edgelist, 
+            d.diamond.relevant_nodes, 
+            d.diamond.conditioning_nodes,
+            d.non_diamond_parents,
+            d.join_node
+        ), h)
+    end
+
+    function Base.:(==)(d1::DiamondsAtNode, d2::DiamondsAtNode)
+        return d1.diamond.edgelist == d2.diamond.edgelist &&
+               d1.diamond.relevant_nodes == d2.diamond.relevant_nodes &&
+               d1.diamond.conditioning_nodes == d2.diamond.conditioning_nodes &&
+               d1.non_diamond_parents == d2.non_diamond_parents &&
+               d1.join_node == d2.join_node
+    end
+
     """
     Computation-ready data for a diamond - contains all pre-computed subgraph structure
     """
@@ -600,7 +619,13 @@ end
         for (_, target) in final_edgelist
             push!(targets_in_final, target)
         end
-        final_diamond_sourcenodes = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_final), exluded_nodes)
+        # BUGFIX: Recompute diamond sources correctly based on current edgelist
+        # Diamond sources are nodes that appear as sources in edgelist but not as targets
+        sources_in_final = Set{Int64}()
+        for (source, _) in final_edgelist
+            push!(sources_in_final, source)
+        end
+        final_diamond_sourcenodes = setdiff(setdiff(sources_in_final, targets_in_final), exluded_nodes)
     end
     
     return final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes
@@ -627,7 +652,12 @@ end
     
     # Re-identify final diamond structure components (match inefficient version)
     #  OPTIMIZE: Use cached intersection
-    final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+    # BUGFIX: When shared fork ancestors is empty, use diamond sources as conditioning nodes
+    if isempty(final_shared_fork_ancestors)
+        final_highest_nodes = final_diamond_sourcenodes
+    else
+        final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+    end
     
     while recursion_depth < max_recursion_depth
         recursion_depth += 1
@@ -682,9 +712,16 @@ end
         # Add source-to-source forks to new_shared_fork_ancestors
         union!(new_shared_fork_ancestors, source_to_source_forks)
         
-        # Remove ancestors we already have
-        #  OPTIMIZE: Use cached setdiff
-        new_shared_fork_ancestors = cached_setdiff(new_shared_fork_ancestors, final_shared_fork_ancestors, ctx)
+        # BUGFIX: If there's only 1 diamond source, clear shared fork ancestors
+        # since you can't have "shared" ancestors with just 1 source
+        if length(final_diamond_sourcenodes) <= 1
+            final_shared_fork_ancestors = Set{Int64}()
+            new_shared_fork_ancestors = Set{Int64}()  # Also clear new ones
+        else
+            # Remove ancestors we already have
+            #  OPTIMIZE: Use cached setdiff
+            new_shared_fork_ancestors = cached_setdiff(new_shared_fork_ancestors, final_shared_fork_ancestors, ctx)
+        end
         
         # CRITICAL FIX: Process intermediate nodes BEFORE checking for break condition
         # This ensures that even if no new shared fork ancestors are found,
@@ -768,7 +805,12 @@ end
         
         # Update highest nodes with expanded shared fork ancestors (match inefficient version)
         #  OPTIMIZE: Use cached intersection
-        final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+        # BUGFIX: When shared fork ancestors is empty, use diamond sources as conditioning nodes
+        if isempty(final_shared_fork_ancestors)
+            final_highest_nodes = final_diamond_sourcenodes
+        else
+            final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+        end
         
         # Identify new intermediate nodes from expanded structure
         final_relevant_nodes = Set{Int64}()
@@ -827,9 +869,19 @@ end
     for (_, target) in final_edgelist
         push!(targets_in_final, target)
     end
-    final_diamond_sourcenodes = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_final), exluded_nodes)
+    # BUGFIX: Use actual sources from edgelist, not final_relevant_nodes_for_induced
+    sources_in_final = Set{Int64}()
+    for (source, _) in final_edgelist
+        push!(sources_in_final, source)
+    end
+    final_diamond_sourcenodes = setdiff(setdiff(sources_in_final, targets_in_final), exluded_nodes)
     #  OPTIMIZE: Use cached intersection
-    final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+    # BUGFIX: When shared fork ancestors is empty, use diamond sources as conditioning nodes
+    if isempty(final_shared_fork_ancestors)
+        final_highest_nodes = final_diamond_sourcenodes
+    else
+        final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
+    end
     
     # Classify non-diamond parents
     non_diamond_parents = setdiff(parents, diamond_parents)
@@ -852,7 +904,7 @@ function perform_hybrid_diamond_lookup(
     edgelist::Vector{Tuple{Int64, Int64}},
     sub_node_priors,
     sub_iteration_sets::Vector{Set{Int64}},
-    diamond_lookup_table::Dict{Int64, Vector{DiamondsAtNode}},
+    diamond_lookup_table::Dict{Int64, Set{DiamondsAtNode}},
     ctx::DiamondOptimizationContext
 )
     
@@ -877,7 +929,7 @@ function perform_hybrid_diamond_lookup(
            best_candidate = nothing
             best_score = 0
             
-            for (i, candidate) in enumerate(diamond_lookup_table[join])
+            for candidate in diamond_lookup_table[join]
                 score = 0
                 
                 # Edge containment check
@@ -904,7 +956,7 @@ function perform_hybrid_diamond_lookup(
                 successful_lookups[join] = best_candidate
                 stats = OptimizationStats(stats.lookups_attempted, stats.lookups_successful + 1, 
                                         stats.joins_looked_up + 1, stats.joins_computed_fresh, stats.computation_reduction_percent)
-                                    #    println("best_candidate selected")
+                                    #    ###println("best_candidate selected")
             else
                 push!(failed_joins, join)
             end
@@ -975,7 +1027,7 @@ function identify_and_group_diamonds(
     cache_key = (join_nodes, effective_fork_nodes, edgelist_hash)
     
     if haskey(DIAMOND_IDENTIFICATION_CACHE, cache_key)
-        #  println("DIAMOND_IDENTIFICATION_CACHE exiting")
+        #  ###println("DIAMOND_IDENTIFICATION_CACHE exiting")
         return DIAMOND_IDENTIFICATION_CACHE[cache_key]
     end
     
@@ -1001,19 +1053,74 @@ function identify_and_group_diamonds(
         
         intermediate_nodes = identify_intermediate_nodes(relevant_nodes, conditioning_nodes, join_node)
         
+        # 🔍 BEFORE Step 8 - Initial State
+        if join_node in [96, 25]
+            #println("🔍 BEFORE STEP 8 for join " * string(join_node) * ":")
+            #println("   Edgelist: " * string(sort(induced_edgelist)))
+            #println("   Relevant nodes: " * string(sort(collect(relevant_nodes_for_induced))))
+            #println("   Diamond sources (computed): " * string(sort(collect(diamond_sourcenodes))))
+            #println("   Conditioning nodes: " * string(sort(collect(conditioning_nodes))))
+        end
+        
         final_edgelist, final_relevant_nodes_for_induced, nodes_added_in_step8 = ensure_intermediate_incoming_edges(
             intermediate_nodes, incoming_index, induced_edgelist, relevant_nodes_for_induced
         )
+        
+        # 🔍 AFTER Step 8 - Post Intermediate Edges
+        if join_node in [96, 25]
+            #println("🔍 AFTER STEP 8 for join " * string(join_node) * ":")
+            #println("   Edgelist: " * string(sort(final_edgelist)))
+            #println("   Relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
+            # Recompute diamond sources manually to see what they should be
+            targets_in_step8 = Set{Int64}()
+            for (_, target) in final_edgelist
+                push!(targets_in_step8, target)
+            end
+            step8_diamond_sources = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_step8), exluded_nodes)
+            #println("   Diamond sources (should be): " * string(sort(collect(step8_diamond_sources))))
+        end
         
         final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes = perform_subsource_analysis(
             final_edgelist, final_relevant_nodes_for_induced, ancestors, descendants, 
             irrelevant_sources, join_node, exluded_nodes, edgelist, ctx
         )
         
+        # 🔍 AFTER Step 8b - Post Subsource Analysis  
+        if join_node in [96, 25]
+            #println("🔍 AFTER STEP 8b for join " * string(join_node) * ":")
+            #println("   Edgelist: " * string(sort(final_edgelist)))
+            #println("   Relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
+            #println("   Diamond sources (computed): " * string(sort(collect(final_diamond_sourcenodes))))
+            # Manually verify diamond sources match edgelist
+            targets_in_step8b = Set{Int64}()
+            for (_, target) in final_edgelist
+                push!(targets_in_step8b, target)
+            end
+            manual_diamond_sources = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_step8b), exluded_nodes)
+            #println("   Diamond sources (manual verification): " * string(sort(collect(manual_diamond_sources))))
+        end
+        
         final_edgelist, final_relevant_nodes_for_induced, final_shared_fork_ancestors, final_highest_nodes = perform_recursive_diamond_completeness(
             final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes, shared_fork_ancestors,
             ancestors, descendants, fork_nodes, irrelevant_sources, incoming_index, join_node, exluded_nodes, edgelist, ctx
         )
+        
+        # 🔍 AFTER Step 8c - Post Recursive Completeness
+        if join_node in [96, 25]
+            #println("🔍 AFTER STEP 8c for join " * string(join_node) * ":")
+            #println("   Final edgelist: " * string(sort(final_edgelist)))
+            #println("   Final relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
+            #println("   Final diamond sources: " * string(sort(collect(final_diamond_sourcenodes))))
+            #println("   Final shared fork ancestors: " * string(sort(collect(final_shared_fork_ancestors))))
+            #println("   Final highest nodes (intersection): " * string(sort(collect(final_highest_nodes))))
+            # Final manual verification
+            final_targets = Set{Int64}()
+            for (_, target) in final_edgelist
+                push!(final_targets, target)
+            end
+            final_manual_sources = setdiff(setdiff(final_relevant_nodes_for_induced, final_targets), exluded_nodes)
+            #println("   Manual diamond sources verification: " * string(sort(collect(final_manual_sources))))
+        end
         
         diamond, non_diamond_parents = build_final_diamond_structure(
             final_edgelist, final_relevant_nodes_for_induced, final_shared_fork_ancestors, final_highest_nodes,
@@ -1133,7 +1240,7 @@ function build_unique_diamond_storage(
     unique_diamonds = Dict{UInt64, DiamondComputationData{T}}()
     
     # Initialize diamond lookup table for hybrid optimization
-    diamond_lookup_table = Dict{Int64, Vector{DiamondsAtNode}}()
+    diamond_lookup_table = Dict{Int64, Set{DiamondsAtNode}}()
     
     #  CRITICAL: Track processed hashes to avoid expensive reprocessing
     processed_diamond_hashes = Set{UInt64}()
@@ -1152,9 +1259,9 @@ function build_unique_diamond_storage(
         push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
     end
     
-    println("🔷 Initializing diamond processing...")
+    ###println("🔷 Initializing diamond processing...")
     total_root_diamonds = sum(length(diamonds) for diamonds in values(root_diamonds_by_iteration))
-    println("📊 Total root diamonds to process: $total_root_diamonds")
+    ###println("📊 Total root diamonds to process: $total_root_diamonds")
     
     mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
     # Initialize work stack with root diamonds - PRE-COMPUTE HASHES
@@ -1172,8 +1279,8 @@ function build_unique_diamond_storage(
         end
     end
     
-    println("🚀 Starting iterative diamond processing...")
-    println("📈 Initial work stack size: $(length(work_stack))")
+    ###println("🚀 Starting iterative diamond processing...")
+    ###println("📈 Initial work stack size: $(length(work_stack))")
     
     # Main iterative processing loop with EARLY duplicate detection
     while !isempty(work_stack)
@@ -1184,7 +1291,7 @@ function build_unique_diamond_storage(
             items_skipped_early += 1
             total_items_processed += 1
             
-                # println("duplicate detecrted exiting")
+                # ###println("duplicate detecrted exiting")
             continue
         end
         
@@ -1291,7 +1398,7 @@ function build_unique_diamond_storage(
         # POPULATE LOOKUP TABLE for future hybrid optimization
         for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
             if !haskey(diamond_lookup_table, sub_join_node)
-                diamond_lookup_table[sub_join_node] = Vector{DiamondsAtNode}()
+                diamond_lookup_table[sub_join_node] = Set{DiamondsAtNode}()
             end
             push!(diamond_lookup_table[sub_join_node], sub_diamond_at_node)
         end
@@ -1314,7 +1421,7 @@ function build_unique_diamond_storage(
                         length(ctx.edge_filter_cache) + length(ctx.ancestor_intersections)
             
             if cache_size > 10000  
-                println("🧹 Clearing caches (size: $cache_size)")
+                ###println("🧹 Clearing caches (size: $cache_size)")
                 empty!(ctx.set_intersection_cache)
                 empty!(ctx.set_difference_cache)
                 empty!(ctx.edge_filter_cache)
@@ -1323,12 +1430,12 @@ function build_unique_diamond_storage(
                 empty!(ctx.set_hash_cache)
             end
             
-          println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
+          ###println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
         end
     end
     
-    println("📈 Diamond processing completed!")
-    println("   • Unique diamonds found: $(length(unique_diamonds))")
+    ###println("📈 Diamond processing completed!")
+    ###println("   • Unique diamonds found: $(length(unique_diamonds))")
    
     return unique_diamonds
 end
@@ -1362,9 +1469,9 @@ function manage_memory_adaptive(
         
         if diamonds_processed % gc_threshold == 0 || force_gc
             GC.gc()
-            println("🧹 Thread $thread_id: Cleared caches and forced GC (processed: $diamonds_processed, cache was: $cache_size)")
+            ###println("🧹 Thread $thread_id: Cleared caches and forced GC (processed: $diamonds_processed, cache was: $cache_size)")
         else
-            println("🧹 Thread $thread_id: Cleared caches (processed: $diamonds_processed, cache was: $cache_size)")
+            ###println("🧹 Thread $thread_id: Cleared caches (processed: $diamonds_processed, cache was: $cache_size)")
         end
     end
 end
@@ -1386,6 +1493,10 @@ function build_unique_diamond_storage_depth_first_parallel(
     results_lock = Threads.SpinLock()
     processed_hashes_lock = Threads.SpinLock()
     
+    # Shared lookup table for thread-local copying and merging
+    shared_diamond_lookup_table = Dict{Int64, Set{DiamondsAtNode}}()
+    lookup_table_lock = Threads.SpinLock()
+    
     # Group root diamonds by iteration level (your existing logic)
     root_diamonds_by_iteration = Dict{Int64, Vector{Tuple{Int64, DiamondsAtNode}}}()
     for (join_node, diamond_at_node) in root_diamonds
@@ -1396,19 +1507,19 @@ function build_unique_diamond_storage_depth_first_parallel(
         push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
     end
     
-    println("🔷 Starting depth-first parallel processing...")
+    ###println("🔷 Starting depth-first parallel processing...")
     
     # Process iteration levels sequentially (preserves global ordering)
     mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
     
     for iteration_level in mainrootstack
         level_diamonds = root_diamonds_by_iteration[iteration_level]
-        println("📊 Processing iteration level $iteration_level with $(length(level_diamonds)) root diamonds")
+        ###println("📊 Processing iteration level $iteration_level with $(length(level_diamonds)) root diamonds")
         
         # Force garbage collection between iteration levels for large datasets
         if length(level_diamonds) > 50
             GC.gc()
-            println("🧹 Forced GC between iteration levels for large dataset")
+            ###println("🧹 Forced GC between iteration levels for large dataset")
         end
         
         # Parallelize root diamonds within each level
@@ -1417,8 +1528,13 @@ function build_unique_diamond_storage_depth_first_parallel(
             join_node, diamond_at_node = level_diamonds[i]
             thread_ctx = DiamondOptimizationContext()
             
+            # COPY current shared lookup table as starting point
+            thread_local_lookup_table = lock(lookup_table_lock) do
+                deepcopy(shared_diamond_lookup_table)
+            end
+            
             # Process this entire diamond subtree in LIFO order (sequential within thread)
-            thread_results = process_diamond_subtree_sequential_lifo(
+            thread_results = process_diamond_subtree_sequential_lifo_with_lookup(
                 diamond_at_node.diamond,
                 join_node,
                 diamond_at_node.non_diamond_parents,
@@ -1430,20 +1546,32 @@ function build_unique_diamond_storage_depth_first_parallel(
                 descendants,
                 iteration_sets,
                 processed_hashes,
-                processed_hashes_lock
+                processed_hashes_lock,
+                thread_local_lookup_table  # Pass thread-local lookup table
             )
             
-            # Merge thread results (thread-safe)
+            # Merge thread results and lookup table discoveries (thread-safe)
             lock(results_lock) do
                 merge!(unique_diamonds, thread_results)
             end
             
-            println("✅ Thread $(Threads.threadid()): Completed subtree for join_node $join_node ($(length(thread_results)) diamonds)")
+            # MERGE lookup table discoveries back to shared table
+            lock(lookup_table_lock) do
+                for (join_node_key, diamonds_set) in thread_local_lookup_table
+                    if !haskey(shared_diamond_lookup_table, join_node_key)
+                        shared_diamond_lookup_table[join_node_key] = Set{DiamondsAtNode}()
+                    end
+                    # Automatic deduplication via Set union!
+                    union!(shared_diamond_lookup_table[join_node_key], diamonds_set)
+                end
+            end
+            
+            ###println("✅ Thread $(Threads.threadid()): Completed subtree for join_node $join_node ($(length(thread_results)) diamonds)")
         end
         
         # Memory status report after each iteration level
         total_diamonds = length(unique_diamonds)
-        println("📈 Iteration level $iteration_level completed: $total_diamonds total unique diamonds")
+        ###println("📈 Iteration level $iteration_level completed: $total_diamonds total unique diamonds")
     end
     
     return unique_diamonds
@@ -1453,7 +1581,7 @@ end
 Process a complete diamond subtree sequentially in LIFO order within a single thread.
 This preserves exact dependency resolution order while enabling parallelization across subtrees.
 """
-function process_diamond_subtree_sequential_lifo(
+function process_diamond_subtree_sequential_lifo_with_lookup(
     root_diamond::Diamond,
     root_join_node::Int64,
     root_non_diamond_parents::Set{Int64},
@@ -1465,7 +1593,8 @@ function process_diamond_subtree_sequential_lifo(
     descendants,
     iteration_sets,
     global_processed_hashes::Set{UInt64},
-    global_processed_hashes_lock::Threads.SpinLock
+    global_processed_hashes_lock::Threads.SpinLock,
+    thread_local_lookup_table::Dict{Int64, Set{DiamondsAtNode}}
 )::Dict{UInt64, DiamondComputationData}
     
     # Each thread maintains its own LIFO stack for its subtree
@@ -1527,21 +1656,42 @@ function process_diamond_subtree_sequential_lifo(
                 ancestors, descendants, iteration_sets
             )
         
-        # Identify sub-diamonds
-        sub_diamonds_dict = identify_and_group_diamonds(
-            sub_join_nodes,
-            sub_incoming_index,
-            sub_ancestors,
-            sub_descendants,
-            sub_sources,
-            sub_fork_nodes,
-            current_diamond.edgelist,
-            sub_node_priors,
-            sub_iteration_sets,
-            current_excluded_nodes,
-            Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}(),  # Fresh cache per thread
-            ctx
-        )
+        # Identify sub-diamonds using hybrid lookup for non-root diamonds
+        if is_root_diamond
+            # ROOT DIAMONDS: Always use full computation for maximal diamond discovery
+            sub_diamonds_dict = identify_and_group_diamonds(
+                sub_join_nodes,
+                sub_incoming_index,
+                sub_ancestors,
+                sub_descendants,
+                sub_sources,
+                sub_fork_nodes,
+                current_diamond.edgelist,
+                sub_node_priors,
+                sub_iteration_sets,
+                current_excluded_nodes,
+                Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}(),  # Fresh cache per thread
+                ctx
+            )
+        else
+            # SUB DIAMONDS: Use hybrid optimization with thread-local lookup table
+            sub_diamonds_dict, optimization_stats = perform_hybrid_diamond_lookup(
+                sub_join_nodes,
+                join_node,
+                current_excluded_nodes,
+                Dict{Tuple{Set{Int64}, Set{Int64}, UInt64}, Dict{Int64, DiamondsAtNode}}(),  # Fresh cache per thread
+                sub_incoming_index,
+                sub_ancestors,
+                sub_descendants,
+                sub_sources,
+                sub_fork_nodes,
+                current_diamond.edgelist,
+                sub_node_priors,
+                sub_iteration_sets,
+                thread_local_lookup_table,  # Use thread-local lookup table
+                ctx
+            )
+        end
         
         # Create computation data
         computation_data = DiamondComputationData{eltype(values(node_priors))}(
@@ -1560,6 +1710,14 @@ function process_diamond_subtree_sequential_lifo(
         
         # Store result locally
         local_unique_diamonds[current_item.diamond_hash] = computation_data
+        
+        # POPULATE thread-local lookup table for future hybrid optimization
+        for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
+            if !haskey(thread_local_lookup_table, sub_join_node)
+                thread_local_lookup_table[sub_join_node] = Set{DiamondsAtNode}()
+            end
+            push!(thread_local_lookup_table[sub_join_node], sub_diamond_at_node)
+        end
         
         # Add sub-diamonds to LOCAL LIFO stack (preserves dependency order!)
         sub_work_items = Vector{DiamondWorkItem}()
@@ -1587,12 +1745,12 @@ function process_diamond_subtree_sequential_lifo(
         
         if diamonds_processed % 50 == 0  # More frequent reporting for large datasets
             manage_memory_adaptive(ctx, diamonds_processed, thread_id)
-            println("🔧 Thread $thread_id: Processed $diamonds_processed diamonds, stack size: $(length(local_work_stack))")
+            ###println("🔧 Thread $thread_id: Processed $diamonds_processed diamonds, stack size: $(length(local_work_stack))")
         end
     end
     
     thread_id = Threads.threadid()
-    println("🎯 Thread $thread_id: Completed subtree with $(length(local_unique_diamonds)) unique diamonds")
+    ###println("🎯 Thread $thread_id: Completed subtree with $(length(local_unique_diamonds)) unique diamonds")
     
     return local_unique_diamonds
 end

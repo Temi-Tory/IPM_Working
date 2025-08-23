@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extract Network Data</title>
+</head>
+<body>
+    <h1>Network Data Extractor</h1>
+    <p>Open console to see extracted data for the visualization</p>
+
+    <script>
+        // Parse the complete node mapping file content
+        async function extractNetworkData() {
+            const nodeData = await fetch('./dag_ntwrk_files/drone-medical-delivery-network/drone-medical-delivery-network-node-mapping.txt');
+            const nodeText = await nodeData.text();
+            
+            const edgeData = await fetch('./dag_ntwrk_files/drone-medical-delivery-network/drone-medical-delivery-network.EDGES');
+            const edgeText = await edgeData.text();
+            
+            // Parse nodes
+            const nodeLines = nodeText.split('\\n');
+            const nodes = [];
+            
+            for (let i = 1; i < nodeLines.length; i++) { // Skip header
+                const line = nodeLines[i].trim();
+                if (line) {
+                    // Parse CSV with quoted strings
+                    const parts = [];
+                    let current = '';
+                    let inQuotes = false;
+                    
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            parts.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    parts.push(current.trim());
+                    
+                    if (parts.length >= 7) {
+                        const facilityId = parts[1];
+                        const name = parts[2].replace(/"/g, '');
+                        const type = parts[3];
+                        const lat = parseFloat(parts[4]);
+                        const lng = parseFloat(parts[5]);
+                        const role = parts[6];
+                        
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            nodes.push({
+                                id: facilityId,
+                                name: name,
+                                type: type,
+                                lat: lat,
+                                lng: lng,
+                                role: role,
+                                connections: 0
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Parse edges
+            const edgeLines = edgeText.split('\\n');
+            const edges = [];
+            const connectionCount = {};
+            
+            for (let i = 1; i < edgeLines.length; i++) { // Skip header
+                const line = edgeLines[i].trim();
+                if (line) {
+                    const parts = line.split(',');
+                    if (parts.length >= 2) {
+                        const source = parts[0].trim();
+                        const target = parts[1].trim();
+                        
+                        edges.push({ source, target });
+                        
+                        connectionCount[source] = (connectionCount[source] || 0) + 1;
+                        connectionCount[target] = (connectionCount[target] || 0) + 1;
+                    }
+                }
+            }
+            
+            // Update connection counts
+            nodes.forEach(node => {
+                node.connections = connectionCount[node.id] || 0;
+            });
+            
+            console.log('Complete Network Data:');
+            console.log('Nodes:', nodes.length);
+            console.log('Edges:', edges.length);
+            console.log('Node Data:', JSON.stringify(nodes.slice(0, 5), null, 2));
+            console.log('Edge Data:', JSON.stringify(edges.slice(0, 10), null, 2));
+            
+            return { nodes, edges };
+        }
+        
+        extractNetworkData().catch(console.error);
+    </script>
+</body>
+</html>

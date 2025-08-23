@@ -113,7 +113,8 @@ using Combinatorics
         incoming_index::Dict{Int64,Set{Int64}},
         source_nodes::Set{Int64},
         node_priors::Dict{Int64, Float64},
-        edge_probabilities::Dict{Tuple{Int64,Int64}, Float64}
+        edge_probabilities::Dict{Tuple{Int64,Int64}, Float64},
+        is_sink_only::Bool = false
     )
         # Get all nodes
         all_nodes = reduce(union, values(incoming_index), init=keys(incoming_index))
@@ -124,8 +125,18 @@ using Combinatorics
             active_probability[node] = node_priors[node]
         end
         
+        nodes_to_calc = Set{Int64}()
+        if is_sink_only
+             for node in all_nodes
+                if !haskey(outgoing_index, node)
+                    push!(nodes_to_calc, node)
+                end
+            end
+        else
+            nodes_to_calc = setdiff(all_nodes, source_nodes)
+        end
         # For non-source nodes, calculate using path enumeration
-        for node in setdiff(all_nodes, source_nodes)
+        for node in nodes_to_calc
             # Step 1: Find all paths from all source nodes to this node
             all_paths = Vector{Vector{Int64}}()
             for source in source_nodes
