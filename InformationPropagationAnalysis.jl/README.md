@@ -167,7 +167,7 @@ If you use InformationPropagationAnalysis.jl in your research, please cite:
   title={InformationPropagationAnalysis.jl: Exact Reachability Analysis with Diamond Structure Optimization},
   author={T. Ohiani and E. Patelli},
   year={2024},
-  url={https://github.com/your-username/InformationPropagationAnalysis.jl}
+  url={https://github.com/Temi-Tory/IPM_Working/tree/ipa.jlV1deployment}
 }
 ```
 
@@ -188,6 +188,10 @@ The theoretical foundation and diamond structure concepts are described in:
   keywords={Directed acyclic graph, Monte Carlo methods, Heuristic algorithms, Redundancy, Diamonds, Approximation algorithms, Safety, System Reliability, Probability Propagation, Network Graphs, Message Passing, Simulation}
 }
 ```
+
+## Acknowledgments
+
+T. Ohiani is supported by the UK National Decommissioning Authority Bursary Studentship "Developing a resilience framework for decommissioning plan of a nuclear facility".
 
 ## License
 
