@@ -1,6 +1,8 @@
 module Validation
 using Combinatorics
 
+export MC_result, path_enumeration_result, has_path
+
 
 
 function MC_result(
