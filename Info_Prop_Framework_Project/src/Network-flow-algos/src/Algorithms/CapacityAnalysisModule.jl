@@ -988,8 +988,7 @@ module CapacityAnalysisModule
             node_flows, parent_selection, incoming_index, capacity_params.target_nodes, config
         )
         
-        # Calculate path flow contributions
-        path_flows = calculate_path_flow_contributions(critical_paths, node_flows, capacity_params.target_nodes)
+        # Path flow contributions removed - not needed in simplified result structure
         
         computation_time = time() - start_time
         
@@ -1003,7 +1002,6 @@ module CapacityAnalysisModule
             critical_paths,
             utilization,
             :maximum_flow,
-            path_flows=path_flows,
             computation_time=computation_time,
             convergence_info=Dict{Symbol, Any}(:iterations => length(iteration_sets), :tolerance_used => config.tolerance)
         )
@@ -1897,8 +1895,7 @@ module CapacityAnalysisModule
             node_flows, parent_selection, incoming_index, capacity_params.target_nodes, config
         )
         
-        # Calculate path flow contributions
-        path_flows = calculate_path_flow_contributions(critical_paths, node_flows, capacity_params.target_nodes)
+        # Path flow contributions removed - not needed in simplified result structure
         
         computation_time = time() - start_time
         
@@ -1912,7 +1909,6 @@ module CapacityAnalysisModule
             critical_paths,
             utilization,
             :classical_maximum_flow,
-            path_flows=path_flows,
             computation_time=computation_time,
             convergence_info=Dict{Symbol, Any}(:iterations => length(iteration_sets), :analysis_type => "classical")
         )
