@@ -1,0 +1,12 @@
+{
+  "links": {
+    "(3,4)": 0.9137346417841592,
+    "(3,5)": 0.9024054462008068,
+    "(1,4)": 0.8888222094481663,
+    "(2,5)": 0.886061915811429,
+    "(1,5)": 0.9285205858388992
+  },
+  "data_type": "Float64",
+  "serialization": "compact",
+  "description": "Realistic drone network link probabilities"
+}

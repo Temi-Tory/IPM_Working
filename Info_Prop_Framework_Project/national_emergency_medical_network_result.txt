@@ -1,0 +1,27 @@
+Found 10 root_diamonds
+Starting build unique diamond storage
+🔷 Starting depth-first parallel processing...
+📊 Processing iteration level 3 with 10 root diamonds
+🎯 Thread 1: Completed subtree with 1 unique diamonds
+🎯 Thread 5: Completed subtree with 1 unique diamonds
+🎯 Thread 3: Completed subtree with 1 unique diamonds
+🎯 Thread 4: Completed subtree with 1 unique diamonds
+✅ Thread 3: Completed subtree for join_node 55 (1 diamonds)
+✅ Thread 1: Completed subtree for join_node 48 (1 diamonds)
+✅ Thread 5: Completed subtree for join_node 50 (1 diamonds)
+✅ Thread 4: Completed subtree for join_node 46 (1 diamonds)
+🎯 Thread 2: Completed subtree with 1 unique diamonds
+✅ Thread 2: Completed subtree for join_node 51 (1 diamonds)
+🎯 Thread 5: Completed subtree with 1 unique diamonds
+✅ Thread 5: Completed subtree for join_node 53 (1 diamonds)
+🎯 Thread 1: Completed subtree with 1 unique diamonds
+🎯 Thread 2: Completed subtree with 1 unique diamonds
+✅ Thread 1: Completed subtree for join_node 52 (1 diamonds)
+✅ Thread 2: Completed subtree for join_node 49 (1 diamonds)
+🎯 Thread 3: Completed subtree with 1 unique diamonds
+✅ Thread 3: Completed subtree for join_node 47 (1 diamonds)
+🎯 Thread 4: Completed subtree with 1 unique diamonds
+✅ Thread 4: Completed subtree for join_node 54 (1 diamonds)
+📈 Iteration level 3 completed: 10 total unique diamonds
+Found 10 unique_diamonds
+SortedDict(1 => 0.7609961356776845, 2 => 0.8886405381150777, 3 => 0.7640147865551008, 4 => 0.8036395259901411, 5 => 0.7912954514399653, 6 => 0.9590680332599696, 7 => 0.5102467500811768, 8 => 0.9739481673170501, 9 => 0.6848981992382751, 10 => 1.0, 11 => 1.0, 12 => 1.0, 13 => 1.0, 14 => 1.0, 15 => 1.0, 16 => 0.946676364645682, 17 => 1.0, 18 => 1.0, 19 => 1.0, 20 => 1.0, 21 => 1.0, 22 => 1.0, 23 => 0.5631244945854005, 24 => 0.7343768096314507, 25 => 0.9075222240322397, 26 => 0.8220396511763907, 27 => 0.7912801226682407, 28 => 0.718604895852115, 29 => 0.9721531634107302, 30 => 0.9435292900594862, 31 => 0.7071361647334403, 32 => 0.7297389140880989, 34 => 0.8874563086271288, 35 => 0.8194977498895893, 36 => 0.9229176131652491, 37 => 0.9182304343748006, 38 => 0.5725091406693346, 39 => 0.7195833597370649, 40 => 0.8347040485486086, 41 => 0.6681892719408822, 42 => 0.6717914311995663, 43 => 0.7342380624409612, 44 => 0.8096753788004921, 45 => 0.7249195401186098, 46 => 0.9624516961684474, 47 => 0.9413050856332573, 48 => 0.9049435177113765, 49 => 0.7939915226372734, 50 => 0.8789163992117376, 51 => 0.8615393822611042, 52 => 0.8137751008819036, 53 => 0.8103340719533234, 54 => 0.9339929919445757, 55 => 0.9526849325992324, 56 => 0.5832294166134357, 57 => 0.5314385980010422, 58 => 0.5245321030664134, 59 => 0.5214214402583844, 61 => 0.6902346448216355, 62 => 0.49145387247562305, 63 => 0.6883021635324497, 64 => 0.6056217311508122, 73 => 0.6137858330144699, 74 => 0.6280866750398211)0.004999876022338867

@@ -3,6 +3,7 @@ module IPAFramework
     include("Algorithms/InputProcessingModule.jl")
     include("Algorithms/DiamondProcessingModule.jl")
     include("Algorithms/ReachabilityModuleRecurse.jl")
+    include("Algorithms/SDPBeliefPropagationModule.jl")  # NEW: SDP-based diamond processing
     #=     include("Active_Work_Algos/StateReliabilityModule.jl")  # NEW: Exact MTTF/MTTR module =#
     include("Algorithms/ComparisonModules.jl")
     include("Algorithms/VisualizeGraphsModule.jl")
@@ -11,7 +12,7 @@ module IPAFramework
     include("Algorithms/DroneNetworkDagModule.jl")
     include("Algorithms/DroneInputProcessingModule.jl")
     include("Algorithms/DiamondClassificationModule.jl")
-    include("Active_Work_Algos/TemporalReachabilityModule.jl")
+    #include("Active_Work_Algos/TemporalReachabilityModule.jl")
     include("Algorithms/CapacityAnalysisModule.jl")
     include("Algorithms/GeneralizedCriticalPathModule.jl")
 
@@ -26,18 +27,23 @@ module IPAFramework
                                  read_edge_probabilities_from_json,
                                  read_complete_network
 
-    using .DiamondProcessingModule: DiamondsAtNode, Diamond,  DiamondComputationData, identify_and_group_diamonds, build_unique_diamond_storage
+    using .DiamondProcessingModule: DiamondsAtNode, Diamond,  DiamondComputationData, identify_and_group_diamonds, build_unique_diamond_storage, build_unique_diamond_storage_depth_first_parallel,create_diamond_hash_key
 
     using .ReachabilityModule: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
                               convert_to_pbox_data
 
+    # NEW: Import SDP-based diamond processing functions
+    using .SDPBeliefPropagationModule: updateDiamondJoinSDP, updateDiamondJoinSDPReplacement,
+                                      DiamondSDP, BeliefPath, BeliefTerm,
+                                      build_diamond_sdp, compute_diamond_belief_sdp
+#= 
     # NEW: Import exact state reliability functions
     using .StateReliabilityModule: StateReliabilityConfig, StateReliabilityResults,
                                   update_state_reliability_iterative, validate_reliability_network_data,
                                   markov_transition_probabilities, calculate_timestep_recommendation,
                                   WORKING, FAILED, UNDER_REPAIR, calculate_load_factor
-
+ =#
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
     using .VisualizeGraphsModule: generate_graph_dot_string, visualize_graph
@@ -97,7 +103,7 @@ module IPAFramework
         read_complete_network,                # NEW: Convenience function for complete network
 
         # Network decomposition  
-        identify_and_group_diamonds,build_unique_diamond_storage,
+        identify_and_group_diamonds,build_unique_diamond_storage, build_unique_diamond_storage_depth_first_parallel,create_diamond_hash_key,
 
         # Standard reachability analysis
         validate_network_data, update_beliefs_iterative, updateDiamondJoin,

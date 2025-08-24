@@ -1,0 +1,5 @@
+Found 0 root_diamonds
+Starting build unique diamond storage
+🔷 Starting depth-first parallel processing...
+Found 0 unique_diamonds
+SortedDict(1 => 0.8771241137924226, 2 => 0.806549904443265, 3 => 0.8571676412428993, 4 => 1.0, 5 => 0.7473313003446456, 6 => 0.7919154855217296, 7 => 0.6450945946945577, 8 => 0.6488149121248196)0.0029997825622558594

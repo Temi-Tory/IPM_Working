@@ -1,0 +1,17 @@
+{
+  "nodes": {
+    "3": 1.0,
+    "4": 1.0,
+    "1": 0.8771241137924226,
+    "5": 1.0,
+    "2": 0.806549904443265,
+    "6": 1.0,
+    "7": 1.0,
+    "10": 1.0,
+    "9": 1.0,
+    "8": 1.0
+  },
+  "data_type": "Float64",
+  "serialization": "compact",
+  "description": "Realistic drone network node priors"
+}

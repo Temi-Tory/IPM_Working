@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(julia:*)"
+    ],
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\InformationPropagationAnalysis.jl"
+    ]
+  }
+}

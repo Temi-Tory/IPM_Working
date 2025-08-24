@@ -1,0 +1,890 @@
+The latest version of Julia in the `release` channel is 1.11.6+0.x64.w64.mingw32. You currently have `1.11.2+0.x64.w64.mingw32` installed. Run:
+
+  juliaup update
+
+in your terminal shell to install Julia 1.11.6+0.x64.w64.mingw32 and update the `release` channel to that version.
+======================================================================
+RUNNING FULL COMPARISON FOR: karl
+======================================================================
+Network name: KarlNetwork
+Data type: float
+======================================================================
+Starting build unique diamond storage
+🔷 Initializing diamond processing...
+📊 Total root diamonds to process: 18
+🚀 Starting iterative diamond processing...
+📈 Initial work stack size: 18
+🚀 STARTING: Item 1 | Hash: 13540174... | Join: 10 | Is root: true | Excluded: 0 nodes
+   🔍 VALIDATION: sub_join_nodes = [1, 2, 4, 5, 8, 9, 10, 12, 14, 16, 17, 19, 26]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1, 2, 4, 5, 8, 9, 10, 12, 14, 16, 17, 19, 26]
+   🔍 VALIDATION: 13/13 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 515288909127... not in cache, computed 13 sub-diamonds
+   📝 Cache contains 1 hashes: 515288909127...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 10 | Sub-joins to process: 13
+     ❌ Join 5: LOOKUP FAILED - needs fresh computation
+     ❌ Join 16: LOOKUP FAILED - needs fresh computation
+     ❌ Join 12: LOOKUP FAILED - needs fresh computation
+     ❌ Join 8: LOOKUP FAILED - needs fresh computation
+     ❌ Join 17: LOOKUP FAILED - needs fresh computation
+     ❌ Join 1: LOOKUP FAILED - needs fresh computation
+     ❌ Join 19: LOOKUP FAILED - needs fresh computation
+     ❌ Join 9: LOOKUP FAILED - needs fresh computation
+     ❌ Join 14: LOOKUP FAILED - needs fresh computation
+     ❌ Join 4: LOOKUP FAILED - needs fresh computation
+     ❌ Join 2: LOOKUP FAILED - needs fresh computation
+     ❌ Join 26: LOOKUP FAILED - needs fresh computation
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 12
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 13 joins instead of 13
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(1, 2), (1, 5), (1, 8), (1, 12), (1, 14)]
+     • Conditioning: [11]
+     • Current excluded: [11]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 13 sub-diamonds
+     [1] Join 5:
+       • Actual edges: [(1, 5), (1, 17), (7, 5)]
+       • Actual conditioning: [7]
+       • Non-diamond parents: Int64[]
+     [2] Join 16:
+       • Actual edges: [(1, 16), (7, 9), (7, 15)]
+       • Actual conditioning: [7]
+       • Non-diamond parents: Int64[]
+     [3] Join 12:
+       • Actual edges: [(1, 12), (3, 12), (7, 9)]
+       • Actual conditioning: [7]
+       • Non-diamond parents: Int64[]
+     [4] Join 8:
+       • Actual edges: [(1, 8), (1, 17), (7, 9)]
+       • Actual conditioning: [7]
+       • Non-diamond parents: Int64[]
+     [5] Join 17:
+       • Actual edges: [(1, 17), (7, 9), (7, 15)]
+       • Actual conditioning: [7]
+       • Non-diamond parents: Int64[]
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+     🆚 Join 5 COMPARISON:
+       ACTUAL: edges=15, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 16 COMPARISON:
+       ACTUAL: edges=11, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 12 COMPARISON:
+       ACTUAL: edges=12, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 8 COMPARISON:
+       ACTUAL: edges=16, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 17 COMPARISON:
+       ACTUAL: edges=12, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 1 COMPARISON:
+       ACTUAL: edges=8, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 19 COMPARISON:
+       ACTUAL: edges=15, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 9 COMPARISON:
+       ACTUAL: edges=3, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 14 COMPARISON:
+       ACTUAL: edges=40, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 4 COMPARISON:
+       ACTUAL: edges=30, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 2 COMPARISON:
+       ACTUAL: edges=45, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+     🆚 Join 10 COMPARISON:
+       ACTUAL: edges=52, conditioning=[7]
+       LOOKUP: NOT FOUND - this is a truly new diamond structure
+🔄 WORK GENERATION: Parent 13540174... generated 13 new work items:
+   [1] New work item: 10493900... | Join node: 5 | Excluded: 1 nodes
+   [2] New work item: 76176237... | Join node: 16 | Excluded: 1 nodes
+   [3] New work item: 44320639... | Join node: 12 | Excluded: 1 nodes
+   [4] New work item: 85191923... | Join node: 8 | Excluded: 1 nodes
+   [5] New work item: 11313306... | Join node: 17 | Excluded: 1 nodes
+   [6] New work item: 15698657... | Join node: 1 | Excluded: 1 nodes
+   [7] New work item: 27755419... | Join node: 19 | Excluded: 1 nodes
+   [8] New work item: 82854293... | Join node: 9 | Excluded: 1 nodes
+   [9] New work item: 77641891... | Join node: 14 | Excluded: 1 nodes
+   [10] New work item: 16942164... | Join node: 4 | Excluded: 1 nodes
+   [11] New work item: 60578942... | Join node: 2 | Excluded: 1 nodes
+   [12] New work item: 10736214... | Join node: 10 | Excluded: 1 nodes
+   [13] New work item: 68310188... | Join node: 26 | Excluded: 1 nodes
+✅ Item 1: Processed ROOT diamond (hash: 13540174...) | Found 13 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 30
+🚀 STARTING: Item 2 | Hash: 68310188... | Join: 26 | Is root: false | Excluded: 1 nodes
+   🔍 VALIDATION: sub_join_nodes = [1, 9, 17, 19, 26]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1, 9, 17, 19, 26]
+   🔍 VALIDATION: 5/5 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 105017798565... not in cache, computed 4 sub-diamonds
+   📝 Cache contains 2 hashes: 515288909127, 105017798565...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 26 | Sub-joins to process: 5
+     ⚠️  Join 9: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [7]
+       • Current excluded: [7, 11]
+       • Conflict: [7]
+     ❌ Join 9: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 17: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [7]
+       • Current excluded: [7, 11]
+       • Conflict: [7]
+     ❌ Join 17: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 1: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [7]
+       • Current excluded: [7, 11]
+       • Conflict: [7]
+     ❌ Join 1: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 19: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [7]
+       • Current excluded: [7, 11]
+       • Conflict: [7]
+     ❌ Join 19: LOOKUP FAILED - needs fresh computation
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 4
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 5 joins instead of 5
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(1, 17), (3, 19), (7, 9), (7, 15), (7, 17)]
+     • Conditioning: [7]
+     • Current excluded: [7, 11]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 4 sub-diamonds
+     [1] Join 26:
+       • Actual edges: [(1, 17), (3, 19), (9, 24)]
+       • Actual conditioning: [15]
+       • Non-diamond parents: Int64[]
+     [2] Join 17:
+       • Actual edges: [(1, 17), (9, 24), (15, 9)]
+       • Actual conditioning: [15]
+       • Non-diamond parents: [7]
+     [3] Join 1:
+       • Actual edges: [(9, 24), (15, 9), (21, 1)]
+       • Actual conditioning: [15]
+       • Non-diamond parents: [11]
+     [4] Join 19:
+       • Actual edges: [(1, 17), (3, 19), (9, 24)]
+       • Actual conditioning: [15]
+       • Non-diamond parents: Int64[]
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+     🆚 Join 17 COMPARISON:
+       ACTUAL: edges=10, conditioning=[15]
+       LOOKUP: edges=12, conditioning=[7] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(7, 17), (7, 15)]
+         • Actual has extra conditioning: [15]
+         • Lookup has extra conditioning: [7]
+     🆚 Join 1 COMPARISON:
+       ACTUAL: edges=7, conditioning=[15]
+       LOOKUP: edges=8, conditioning=[7] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(7, 15)]
+         • Actual has extra conditioning: [15]
+         • Lookup has extra conditioning: [7]
+     🆚 Join 19 COMPARISON:
+       ACTUAL: edges=14, conditioning=[15]
+       LOOKUP: edges=15, conditioning=[7] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(7, 15)]
+         • Actual has extra conditioning: [15]
+         • Lookup has extra conditioning: [7]
+🔄 WORK GENERATION: Parent 68310188... generated 4 new work items:
+   [1] New work item: 12496763... | Join node: 26 | Excluded: 2 nodes
+   [2] New work item: 15575734... | Join node: 17 | Excluded: 2 nodes
+   [3] New work item: 17864739... | Join node: 1 | Excluded: 2 nodes
+   [4] New work item: 17132361... | Join node: 19 | Excluded: 2 nodes
+✅ Item 2: Processed SUB diamond (hash: 68310188...) | Found 4 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 33
+🚀 STARTING: Item 3 | Hash: 17132361... | Join: 19 | Is root: false | Excluded: 2 nodes
+   🔍 VALIDATION: sub_join_nodes = [1, 9, 17, 19]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1, 9, 17, 19]
+   🔍 VALIDATION: 4/4 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 103632274447... not in cache, computed 3 sub-diamonds
+   📝 Cache contains 3 hashes: 515288909127, 103632274447, 105017798565...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 19 | Sub-joins to process: 4
+     ❌ Join 9: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 17: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [15]
+       • Current excluded: [7, 11, 15]
+       • Conflict: [15]
+     ❌ Join 17: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 1: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [15]
+       • Current excluded: [7, 11, 15]
+       • Conflict: [15]
+     ❌ Join 1: LOOKUP FAILED - needs fresh computation
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 3
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 4 joins instead of 4
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(1, 17), (3, 19), (9, 24), (15, 9), (17, 19)]
+     • Conditioning: [15]
+     • Current excluded: [7, 11, 15]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 3 sub-diamonds
+     [1] Join 17:
+       • Actual edges: [(1, 17), (21, 1), (23, 1)]
+       • Actual conditioning: [24]
+       • Non-diamond parents: [7]
+     [2] Join 1:
+       • Actual edges: [(21, 1), (23, 1), (24, 21)]
+       • Actual conditioning: [24]
+       • Non-diamond parents: [11]
+     [3] Join 19:
+       • Actual edges: [(1, 17), (3, 19), (17, 19)]
+       • Actual conditioning: [24]
+       • Non-diamond parents: Int64[]
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+     🆚 Join 17 COMPARISON:
+       ACTUAL: edges=7, conditioning=[24]
+       LOOKUP: edges=10, conditioning=[15] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(9, 24), (15, 9), (7, 9)]
+         • Actual has extra conditioning: [24]
+         • Lookup has extra conditioning: [15]
+     🆚 Join 1 COMPARISON:
+       ACTUAL: edges=4, conditioning=[24]
+       LOOKUP: edges=7, conditioning=[15] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(9, 24), (15, 9), (7, 9)]
+         • Actual has extra conditioning: [24]
+         • Lookup has extra conditioning: [15]
+     🆚 Join 19 COMPARISON:
+       ACTUAL: edges=11, conditioning=[24]
+       LOOKUP: edges=14, conditioning=[15] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(9, 24), (7, 9), (15, 9)]
+         • Actual has extra conditioning: [24]
+         • Lookup has extra conditioning: [15]
+🔄 WORK GENERATION: Parent 17132361... generated 3 new work items:
+   [1] New work item: 12324337... | Join node: 17 | Excluded: 3 nodes
+   [2] New work item: 68037915... | Join node: 1 | Excluded: 3 nodes
+   [3] New work item: 90842891... | Join node: 19 | Excluded: 3 nodes
+✅ Item 3: Processed SUB diamond (hash: 17132361...) | Found 3 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 35
+🚀 STARTING: Item 4 | Hash: 90842891... | Join: 19 | Is root: false | Excluded: 3 nodes
+   🔍 VALIDATION: sub_join_nodes = [1, 17, 19]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1, 17, 19]
+   🔍 VALIDATION: 3/3 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 164821031231... not in cache, computed 1 sub-diamonds
+   📝 Cache contains 4 hashes: 515288909127, 164821031231, 103632274447...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 19 | Sub-joins to process: 3
+     ⚠️  Join 17: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [24]
+       • Current excluded: [7, 11, 15, 24]
+       • Conflict: [24]
+     ❌ Join 17: LOOKUP FAILED - needs fresh computation
+     ⚠️  Join 1: EDGES OK but CONDITIONING CONFLICT
+       • Stored conditioning: [24]
+       • Current excluded: [7, 11, 15, 24]
+       • Conflict: [24]
+     ❌ Join 1: LOOKUP FAILED - needs fresh computation
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 2
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 3 joins instead of 3
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(1, 17), (3, 19), (17, 19), (21, 1), (23, 1)]
+     • Conditioning: [24]
+     • Current excluded: [7, 11, 15, 24]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 1 sub-diamonds
+     [1] Join 17:
+       • Actual edges: [(1, 17), (23, 1), (23, 17)]
+       • Actual conditioning: [23]
+       • Non-diamond parents: [7]
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+     🆚 Join 17 COMPARISON:
+       ACTUAL: edges=5, conditioning=[23]
+       LOOKUP: edges=7, conditioning=[24] [STORED]
+       MATCH: edges=false, conditioning=false, overall=false
+       ❗ DIFFERENCE DETECTED:
+         • Lookup has extra edges: [(24, 21), (24, 23)]
+         • Actual has extra conditioning: [23]
+         • Lookup has extra conditioning: [24]
+🔄 WORK GENERATION: Parent 90842891... generated 1 new work items:
+   [1] New work item: 81591777... | Join node: 17 | Excluded: 4 nodes
+✅ Item 4: Processed SUB diamond (hash: 90842891...) | Found 1 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 35
+🚀 STARTING: Item 5 | Hash: 81591777... | Join: 17 | Is root: false | Excluded: 4 nodes
+   🔍 VALIDATION: sub_join_nodes = [1, 17]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1, 17]
+   🔍 VALIDATION: 2/2 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 847707146478... not in cache, computed 0 sub-diamonds
+   📝 Cache contains 5 hashes: 515288909127, 164821031231, 847707146478...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 17 | Sub-joins to process: 2
+     ❌ Join 1: LOOKUP FAILED - needs fresh computation
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 1
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 2 joins instead of 2
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(1, 17), (23, 1), (23, 17), (21, 1), (11, 1)]
+     • Conditioning: [23]
+     • Current excluded: [7, 11, 15, 23, 24]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 0 sub-diamonds
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+✅ Item 5: Processed SUB diamond (hash: 81591777...) | Found 0 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 34
+🚀 STARTING: Item 6 | Hash: 68037915... | Join: 1 | Is root: false | Excluded: 3 nodes
+   🔍 VALIDATION: sub_join_nodes = [1]
+   🔍 VALIDATION: root_join_nodes = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13]
+   🔍 VALIDATION: overlapping_joins = [1]
+   🔍 VALIDATION: 1/1 sub-joins found in root diamonds
+   ❌ CACHE MISS: Hash 113469389136... not in cache, computed 0 sub-diamonds
+   📝 Cache contains 6 hashes: 113469389136, 515288909127, 164821031231...
+   🚀 DIAMOND LOOKUP OPTIMIZATION VALIDATION:
+     📊 Current join: 1 | Sub-joins to process: 1
+     📈 LOOKUP VALIDATION RESULTS:
+       • Successful lookups: 0
+       • Failed lookups (need computation): 0
+       • Current join (always computed): 1
+       • Lookup success rate: 0.0%
+       • Computation reduction potential: 0.0%
+       • Would call identify_and_group_diamonds() for 1 joins instead of 1
+   📋 CURRENT DIAMOND:
+     • Edgelist: [(21, 1), (23, 1), (24, 21), (24, 23)]
+     • Conditioning: [24]
+     • Current excluded: [7, 11, 15, 24]
+   📋 ACTUAL identify_and_group_diamonds() RESULTS:
+     • Found 0 sub-diamonds
+   🔍 COMPARISON: Actual Results vs Lookup Strategy
+✅ Item 6: Processed SUB diamond (hash: 68037915...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 33
+🚀 STARTING: Item 7 | Hash: 12324337... | Join: 17 | Is root: false | Excluded: 3 nodes
+   ❌ CACHE MISS: Hash 159571227209... not in cache, computed 1 sub-diamonds
+✅ Item 7: Processed SUB diamond (hash: 12324337...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 32
+🚀 STARTING: Item 8 | Hash: 17864739... | Join: 1 | Is root: false | Excluded: 2 nodes
+   ❌ CACHE MISS: Hash 109899103502... not in cache, computed 1 sub-diamonds
+✅ Item 8: Processed SUB diamond (hash: 17864739...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 31
+🚀 STARTING: Item 9 | Hash: 15575734... | Join: 17 | Is root: false | Excluded: 2 nodes
+   ❌ CACHE MISS: Hash 899463719855... not in cache, computed 2 sub-diamonds
+✅ Item 9: Processed SUB diamond (hash: 15575734...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 30
+🚀 STARTING: Item 10 | Hash: 12496763... | Join: 26 | Is root: false | Excluded: 2 nodes
+   ❌ CACHE MISS: Hash 125493547995... not in cache, computed 3 sub-diamonds
+✅ Item 10: Processed SUB diamond (hash: 12496763...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 29
+🚀 STARTING: Item 11 | Hash: 10736214... | Join: 10 | Is root: false | Excluded: 1 nodes
+   ❌ CACHE MISS: Hash 178375515797... not in cache, computed 11 sub-diamonds
+🔄 WORK GENERATION: Parent 10736214... generated 7 new work items:
+   [1] New work item: 18412846... | Join node: 5 | Excluded: 2 nodes
+   [2] New work item: 36532576... | Join node: 12 | Excluded: 2 nodes
+   [3] New work item: 70493392... | Join node: 8 | Excluded: 2 nodes
+   [4] New work item: 80955882... | Join node: 14 | Excluded: 2 nodes
+   [5] New work item: 16369240... | Join node: 4 | Excluded: 2 nodes
+   [6] New work item: 21378191... | Join node: 2 | Excluded: 2 nodes
+   [7] New work item: 94109314... | Join node: 10 | Excluded: 2 nodes
+✅ Item 11: Processed SUB diamond (hash: 10736214...) | Found 7 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 35
+🚀 STARTING: Item 12 | Hash: 94109314... | Join: 10 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 94109314... generated 10 new work items:
+   [1] New work item: 23430669... | Join node: 5 | Excluded: 3 nodes
+   [2] New work item: 70074563... | Join node: 4 | Excluded: 3 nodes
+   [3] New work item: 20977461... | Join node: 2 | Excluded: 3 nodes
+   [4] New work item: 12831531... | Join node: 10 | Excluded: 3 nodes
+   [5] New work item: 13369477... | Join node: 12 | Excluded: 3 nodes
+   [6] New work item: 11951435... | Join node: 8 | Excluded: 3 nodes
+   [7] New work item: 16531476... | Join node: 17 | Excluded: 3 nodes
+   [8] New work item: 93619711... | Join node: 14 | Excluded: 3 nodes
+   [9] New work item: 84500471... | Join node: 1 | Excluded: 3 nodes
+   [10] New work item: 60123833... | Join node: 19 | Excluded: 3 nodes
+✅ Item 12: Processed SUB diamond (hash: 94109314...) | Found 10 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 44
+🚀 STARTING: Item 13 | Hash: 60123833... | Join: 19 | Is root: false | Excluded: 3 nodes
+✅ Item 13: Processed SUB diamond (hash: 60123833...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 43
+🚀 STARTING: Item 14 | Hash: 84500471... | Join: 1 | Is root: false | Excluded: 3 nodes
+✅ Item 14: Processed SUB diamond (hash: 84500471...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 42
+🚀 STARTING: Item 15 | Hash: 93619711... | Join: 14 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 93619711... generated 5 new work items:
+   [1] New work item: 94915440... | Join node: 5 | Excluded: 4 nodes
+   [2] New work item: 17698228... | Join node: 4 | Excluded: 4 nodes
+   [3] New work item: 11319453... | Join node: 12 | Excluded: 4 nodes
+   [4] New work item: 95000863... | Join node: 8 | Excluded: 4 nodes
+   [5] New work item: 16918434... | Join node: 14 | Excluded: 4 nodes
+✅ Item 15: Processed SUB diamond (hash: 93619711...) | Found 5 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 46
+🚀 STARTING: Item 16 | Hash: 16918434... | Join: 14 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 16918434... generated 4 new work items:
+   [1] New work item: 17826214... | Join node: 5 | Excluded: 5 nodes
+   [2] New work item: 10583348... | Join node: 4 | Excluded: 5 nodes
+   [3] New work item: 14037031... | Join node: 8 | Excluded: 5 nodes
+   [4] New work item: 14150121... | Join node: 14 | Excluded: 5 nodes
+✅ Item 16: Processed SUB diamond (hash: 16918434...) | Found 4 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 49
+🚀 STARTING: Item 17 | Hash: 14150121... | Join: 14 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 14150121... generated 4 new work items:
+   [1] New work item: 16651767... | Join node: 5 | Excluded: 8 nodes
+   [2] New work item: 69660870... | Join node: 4 | Excluded: 8 nodes
+   [3] New work item: 53062849... | Join node: 8 | Excluded: 8 nodes
+   [4] New work item: 65357130... | Join node: 14 | Excluded: 8 nodes
+✅ Item 17: Processed SUB diamond (hash: 14150121...) | Found 4 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 52
+🚀 STARTING: Item 18 | Hash: 65357130... | Join: 14 | Is root: false | Excluded: 8 nodes
+🔄 WORK GENERATION: Parent 65357130... generated 1 new work items:
+   [1] New work item: 18267007... | Join node: 4 | Excluded: 9 nodes
+✅ Item 18: Processed SUB diamond (hash: 65357130...) | Found 1 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 52
+🚀 STARTING: Item 19 | Hash: 18267007... | Join: 4 | Is root: false | Excluded: 9 nodes
+🔄 WORK GENERATION: Parent 18267007... generated 1 new work items:
+   [1] New work item: 58233292... | Join node: 4 | Excluded: 10 nodes
+✅ Item 19: Processed SUB diamond (hash: 18267007...) | Found 1 NEW sub-diamonds | Excluded nodes: 10 | Outstanding: 52
+🚀 STARTING: Item 20 | Hash: 58233292... | Join: 4 | Is root: false | Excluded: 10 nodes
+✅ Item 20: Processed SUB diamond (hash: 58233292...) | Found 0 NEW sub-diamonds | Excluded nodes: 11 | Outstanding: 51
+🚀 STARTING: Item 21 | Hash: 53062849... | Join: 8 | Is root: false | Excluded: 8 nodes
+✅ Item 21: Processed SUB diamond (hash: 53062849...) | Found 0 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 50
+🚀 STARTING: Item 22 | Hash: 69660870... | Join: 4 | Is root: false | Excluded: 8 nodes
+✅ Item 22: Processed SUB diamond (hash: 69660870...) | Found 0 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 49
+🚀 STARTING: Item 23 | Hash: 16651767... | Join: 5 | Is root: false | Excluded: 8 nodes
+✅ Item 23: Processed SUB diamond (hash: 16651767...) | Found 0 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 48
+🚀 STARTING: Item 24 | Hash: 14037031... | Join: 8 | Is root: false | Excluded: 5 nodes
+✅ Item 24: Processed SUB diamond (hash: 14037031...) | Found 0 NEW sub-diamonds | Excluded nodes: 7 | Outstanding: 47
+🚀 STARTING: Item 25 | Hash: 10583348... | Join: 4 | Is root: false | Excluded: 5 nodes
+✅ Item 25: Processed SUB diamond (hash: 10583348...) | Found 0 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 46
+🚀 STARTING: Item 26 | Hash: 17826214... | Join: 5 | Is root: false | Excluded: 5 nodes
+✅ Item 26: Processed SUB diamond (hash: 17826214...) | Found 0 NEW sub-diamonds | Excluded nodes: 7 | Outstanding: 45
+🚀 STARTING: Item 27 | Hash: 95000863... | Join: 8 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 95000863... generated 1 new work items:
+   [1] New work item: 14615172... | Join node: 8 | Excluded: 5 nodes
+✅ Item 27: Processed SUB diamond (hash: 95000863...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 45
+🚀 STARTING: Item 28 | Hash: 14615172... | Join: 8 | Is root: false | Excluded: 5 nodes
+✅ Item 28: Processed SUB diamond (hash: 14615172...) | Found 0 NEW sub-diamonds | Excluded nodes: 6 | Outstanding: 44
+🚀 STARTING: Item 29 | Hash: 11319453... | Join: 12 | Is root: false | Excluded: 4 nodes
+✅ Item 29: Processed SUB diamond (hash: 11319453...) | Found 0 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 43
+🚀 STARTING: Item 30 | Hash: 17698228... | Join: 4 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 17698228... generated 1 new work items:
+   [1] New work item: 87704043... | Join node: 4 | Excluded: 5 nodes
+✅ Item 30: Processed SUB diamond (hash: 17698228...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 43
+🚀 STARTING: Item 31 | Hash: 87704043... | Join: 4 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 87704043... generated 1 new work items:
+   [1] New work item: 13487675... | Join node: 4 | Excluded: 7 nodes
+✅ Item 31: Processed SUB diamond (hash: 87704043...) | Found 1 NEW sub-diamonds | Excluded nodes: 7 | Outstanding: 43
+🚀 STARTING: Item 32 | Hash: 13487675... | Join: 4 | Is root: false | Excluded: 7 nodes
+🔄 WORK GENERATION: Parent 13487675... generated 1 new work items:
+   [1] New work item: 14215884... | Join node: 4 | Excluded: 8 nodes
+✅ Item 32: Processed SUB diamond (hash: 13487675...) | Found 1 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 43
+🚀 STARTING: Item 33 | Hash: 14215884... | Join: 4 | Is root: false | Excluded: 8 nodes
+✅ Item 33: Processed SUB diamond (hash: 14215884...) | Found 0 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 42
+🚀 STARTING: Item 34 | Hash: 94915440... | Join: 5 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 94915440... generated 1 new work items:
+   [1] New work item: 96918997... | Join node: 5 | Excluded: 5 nodes
+✅ Item 34: Processed SUB diamond (hash: 94915440...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 42
+🚀 STARTING: Item 35 | Hash: 96918997... | Join: 5 | Is root: false | Excluded: 5 nodes
+✅ Item 35: Processed SUB diamond (hash: 96918997...) | Found 0 NEW sub-diamonds | Excluded nodes: 6 | Outstanding: 41
+🚀 STARTING: Item 36 | Hash: 16531476... | Join: 17 | Is root: false | Excluded: 3 nodes
+✅ Item 36: Processed SUB diamond (hash: 16531476...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 40
+🚀 STARTING: Item 37 | Hash: 11951435... | Join: 8 | Is root: false | Excluded: 3 nodes
+✅ Item 37: Processed SUB diamond (hash: 11951435...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 39
+🚀 STARTING: Item 38 | Hash: 13369477... | Join: 12 | Is root: false | Excluded: 3 nodes
+✅ Item 38: Processed SUB diamond (hash: 13369477...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 38
+🚀 STARTING: Item 39 | Hash: 12831531... | Join: 10 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 12831531... generated 2 new work items:
+   [1] New work item: 14811284... | Join node: 2 | Excluded: 4 nodes
+   [2] New work item: 32171414... | Join node: 10 | Excluded: 4 nodes
+✅ Item 39: Processed SUB diamond (hash: 12831531...) | Found 2 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 39
+🚀 STARTING: Item 40 | Hash: 32171414... | Join: 10 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 32171414... generated 2 new work items:
+   [1] New work item: 79197021... | Join node: 2 | Excluded: 5 nodes
+   [2] New work item: 15277390... | Join node: 10 | Excluded: 5 nodes
+✅ Item 40: Processed SUB diamond (hash: 32171414...) | Found 2 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 40
+🚀 STARTING: Item 41 | Hash: 15277390... | Join: 10 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 15277390... generated 2 new work items:
+   [1] New work item: 14104893... | Join node: 2 | Excluded: 8 nodes
+   [2] New work item: 93927926... | Join node: 10 | Excluded: 8 nodes
+✅ Item 41: Processed SUB diamond (hash: 15277390...) | Found 2 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 41
+🚀 STARTING: Item 42 | Hash: 93927926... | Join: 10 | Is root: false | Excluded: 8 nodes
+🔄 WORK GENERATION: Parent 93927926... generated 2 new work items:
+   [1] New work item: 12177018... | Join node: 2 | Excluded: 9 nodes
+   [2] New work item: 34741547... | Join node: 10 | Excluded: 9 nodes
+✅ Item 42: Processed SUB diamond (hash: 93927926...) | Found 2 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 42
+🚀 STARTING: Item 43 | Hash: 34741547... | Join: 10 | Is root: false | Excluded: 9 nodes
+🔄 WORK GENERATION: Parent 34741547... generated 2 new work items:
+   [1] New work item: 44272495... | Join node: 2 | Excluded: 11 nodes
+   [2] New work item: 62298438... | Join node: 10 | Excluded: 11 nodes
+✅ Item 43: Processed SUB diamond (hash: 34741547...) | Found 2 NEW sub-diamonds | Excluded nodes: 11 | Outstanding: 43
+🚀 STARTING: Item 44 | Hash: 62298438... | Join: 10 | Is root: false | Excluded: 11 nodes
+🔄 WORK GENERATION: Parent 62298438... generated 2 new work items:
+   [1] New work item: 66655720... | Join node: 2 | Excluded: 14 nodes
+   [2] New work item: 16745779... | Join node: 10 | Excluded: 14 nodes
+✅ Item 44: Processed SUB diamond (hash: 62298438...) | Found 2 NEW sub-diamonds | Excluded nodes: 14 | Outstanding: 44
+🚀 STARTING: Item 45 | Hash: 16745779... | Join: 10 | Is root: false | Excluded: 14 nodes
+🔄 WORK GENERATION: Parent 16745779... generated 1 new work items:
+   [1] New work item: 13170809... | Join node: 10 | Excluded: 15 nodes
+✅ Item 45: Processed SUB diamond (hash: 16745779...) | Found 1 NEW sub-diamonds | Excluded nodes: 15 | Outstanding: 44
+🚀 STARTING: Item 46 | Hash: 13170809... | Join: 10 | Is root: false | Excluded: 15 nodes
+✅ Item 46: Processed SUB diamond (hash: 13170809...) | Found 0 NEW sub-diamonds | Excluded nodes: 16 | Outstanding: 43
+🚀 STARTING: Item 47 | Hash: 66655720... | Join: 2 | Is root: false | Excluded: 14 nodes
+✅ Item 47: Processed SUB diamond (hash: 66655720...) | Found 0 NEW sub-diamonds | Excluded nodes: 15 | Outstanding: 42
+🚀 STARTING: Item 48 | Hash: 44272495... | Join: 2 | Is root: false | Excluded: 11 nodes
+✅ Item 48: Processed SUB diamond (hash: 44272495...) | Found 0 NEW sub-diamonds | Excluded nodes: 14 | Outstanding: 41
+🚀 STARTING: Item 49 | Hash: 12177018... | Join: 2 | Is root: false | Excluded: 9 nodes
+🔄 WORK GENERATION: Parent 12177018... generated 1 new work items:
+   [1] New work item: 30875151... | Join node: 2 | Excluded: 10 nodes
+✅ Item 49: Processed SUB diamond (hash: 12177018...) | Found 1 NEW sub-diamonds | Excluded nodes: 10 | Outstanding: 41
+🚀 STARTING: Item 50 | Hash: 30875151... | Join: 2 | Is root: false | Excluded: 10 nodes
+🔄 WORK GENERATION: Parent 30875151... generated 1 new work items:
+   [1] New work item: 11756335... | Join node: 2 | Excluded: 12 nodes
+✅ Item 50: Processed SUB diamond (hash: 30875151...) | Found 1 NEW sub-diamonds | Excluded nodes: 12 | Outstanding: 41
+🚀 STARTING: Item 51 | Hash: 11756335... | Join: 2 | Is root: false | Excluded: 12 nodes
+✅ Item 51: Processed SUB diamond (hash: 11756335...) | Found 0 NEW sub-diamonds | Excluded nodes: 13 | Outstanding: 40
+🚀 STARTING: Item 52 | Hash: 14104893... | Join: 2 | Is root: false | Excluded: 8 nodes
+✅ Item 52: Processed SUB diamond (hash: 14104893...) | Found 0 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 39
+🚀 STARTING: Item 53 | Hash: 79197021... | Join: 2 | Is root: false | Excluded: 5 nodes
+✅ Item 53: Processed SUB diamond (hash: 79197021...) | Found 0 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 38
+🚀 STARTING: Item 54 | Hash: 14811284... | Join: 2 | Is root: false | Excluded: 4 nodes
+✅ Item 54: Processed SUB diamond (hash: 14811284...) | Found 0 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 37
+🚀 STARTING: Item 55 | Hash: 20977461... | Join: 2 | Is root: false | Excluded: 3 nodes
+✅ Item 55: Processed SUB diamond (hash: 20977461...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 36
+🚀 STARTING: Item 56 | Hash: 70074563... | Join: 4 | Is root: false | Excluded: 3 nodes
+✅ Item 56: Processed SUB diamond (hash: 70074563...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 35
+🚀 STARTING: Item 57 | Hash: 23430669... | Join: 5 | Is root: false | Excluded: 3 nodes
+✅ Item 57: Processed SUB diamond (hash: 23430669...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 34
+🚀 STARTING: Item 58 | Hash: 21378191... | Join: 2 | Is root: false | Excluded: 2 nodes
+✅ Item 58: Processed SUB diamond (hash: 21378191...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 33
+🚀 STARTING: Item 59 | Hash: 16369240... | Join: 4 | Is root: false | Excluded: 2 nodes
+✅ Item 59: Processed SUB diamond (hash: 16369240...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 32
+🚀 STARTING: Item 60 | Hash: 80955882... | Join: 14 | Is root: false | Excluded: 2 nodes
+✅ Item 60: Processed SUB diamond (hash: 80955882...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 31
+🚀 STARTING: Item 61 | Hash: 70493392... | Join: 8 | Is root: false | Excluded: 2 nodes
+✅ Item 61: Processed SUB diamond (hash: 70493392...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 30
+🚀 STARTING: Item 62 | Hash: 36532576... | Join: 12 | Is root: false | Excluded: 2 nodes
+✅ Item 62: Processed SUB diamond (hash: 36532576...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 29
+🚀 STARTING: Item 63 | Hash: 18412846... | Join: 5 | Is root: false | Excluded: 2 nodes
+✅ Item 63: Processed SUB diamond (hash: 18412846...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 28
+🚀 STARTING: Item 64 | Hash: 60578942... | Join: 2 | Is root: false | Excluded: 1 nodes
+✅ Item 64: Processed SUB diamond (hash: 60578942...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 27
+🚀 STARTING: Item 65 | Hash: 16942164... | Join: 4 | Is root: false | Excluded: 1 nodes
+✅ Item 65: Processed SUB diamond (hash: 16942164...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 26
+🚀 STARTING: Item 66 | Hash: 77641891... | Join: 14 | Is root: false | Excluded: 1 nodes
+✅ Item 66: Processed SUB diamond (hash: 77641891...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 25
+🚀 STARTING: Item 67 | Hash: 82854293... | Join: 9 | Is root: false | Excluded: 1 nodes
+✅ Item 67: Processed SUB diamond (hash: 82854293...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 24
+🚀 STARTING: Item 68 | Hash: 27755419... | Join: 19 | Is root: false | Excluded: 1 nodes
+✅ Item 68: Processed SUB diamond (hash: 27755419...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 23
+🚀 STARTING: Item 69 | Hash: 15698657... | Join: 1 | Is root: false | Excluded: 1 nodes
+✅ Item 69: Processed SUB diamond (hash: 15698657...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 22
+🚀 STARTING: Item 70 | Hash: 11313306... | Join: 17 | Is root: false | Excluded: 1 nodes
+✅ Item 70: Processed SUB diamond (hash: 11313306...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 21
+🚀 STARTING: Item 71 | Hash: 85191923... | Join: 8 | Is root: false | Excluded: 1 nodes
+✅ Item 71: Processed SUB diamond (hash: 85191923...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 20
+🚀 STARTING: Item 72 | Hash: 44320639... | Join: 12 | Is root: false | Excluded: 1 nodes
+✅ Item 72: Processed SUB diamond (hash: 44320639...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 19
+🚀 STARTING: Item 73 | Hash: 76176237... | Join: 16 | Is root: false | Excluded: 1 nodes
+✅ Item 73: Processed SUB diamond (hash: 76176237...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 18
+🚀 STARTING: Item 74 | Hash: 10493900... | Join: 5 | Is root: false | Excluded: 1 nodes
+✅ Item 74: Processed SUB diamond (hash: 10493900...) | Found 0 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 17
+🚀 STARTING: Item 75 | Hash: 12771329... | Join: 2 | Is root: true | Excluded: 0 nodes
+✅ Item 75: Processed ROOT diamond (hash: 12771329...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 16
+🚀 STARTING: Item 76 | Hash: 16810102... | Join: 14 | Is root: true | Excluded: 0 nodes
+✅ Item 76: Processed ROOT diamond (hash: 16810102...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 15
+🚀 STARTING: Item 77 | Hash: 23576044... | Join: 6 | Is root: true | Excluded: 0 nodes
+🔄 WORK GENERATION: Parent 23576044... generated 1 new work items:
+   [1] New work item: 27346958... | Join node: 6 | Excluded: 1 nodes
+✅ Item 77: Processed ROOT diamond (hash: 23576044...) | Found 1 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 15
+🚀 STARTING: Item 78 | Hash: 27346958... | Join: 6 | Is root: false | Excluded: 1 nodes
+🔄 WORK GENERATION: Parent 27346958... generated 1 new work items:
+   [1] New work item: 95192304... | Join node: 6 | Excluded: 2 nodes
+✅ Item 78: Processed SUB diamond (hash: 27346958...) | Found 1 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 15
+🚀 STARTING: Item 79 | Hash: 95192304... | Join: 6 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 95192304... generated 1 new work items:
+   [1] New work item: 14707789... | Join node: 6 | Excluded: 3 nodes
+✅ Item 79: Processed SUB diamond (hash: 95192304...) | Found 1 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 15
+🚀 STARTING: Item 80 | Hash: 14707789... | Join: 6 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 14707789... generated 1 new work items:
+   [1] New work item: 60919424... | Join node: 6 | Excluded: 4 nodes
+✅ Item 80: Processed SUB diamond (hash: 14707789...) | Found 1 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 15
+🚀 STARTING: Item 81 | Hash: 60919424... | Join: 6 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 60919424... generated 1 new work items:
+   [1] New work item: 15729357... | Join node: 6 | Excluded: 5 nodes
+✅ Item 81: Processed SUB diamond (hash: 60919424...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 15
+🚀 STARTING: Item 82 | Hash: 15729357... | Join: 6 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 15729357... generated 1 new work items:
+   [1] New work item: 45050537... | Join node: 6 | Excluded: 8 nodes
+✅ Item 82: Processed SUB diamond (hash: 15729357...) | Found 1 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 15
+🚀 STARTING: Item 83 | Hash: 45050537... | Join: 6 | Is root: false | Excluded: 8 nodes
+🔄 WORK GENERATION: Parent 45050537... generated 1 new work items:
+   [1] New work item: 29403798... | Join node: 6 | Excluded: 9 nodes
+✅ Item 83: Processed SUB diamond (hash: 45050537...) | Found 1 NEW sub-diamonds | Excluded nodes: 9 | Outstanding: 15
+🚀 STARTING: Item 84 | Hash: 29403798... | Join: 6 | Is root: false | Excluded: 9 nodes
+🔄 WORK GENERATION: Parent 29403798... generated 1 new work items:
+   [1] New work item: 45449408... | Join node: 6 | Excluded: 10 nodes
+✅ Item 84: Processed SUB diamond (hash: 29403798...) | Found 1 NEW sub-diamonds | Excluded nodes: 10 | Outstanding: 15
+🚀 STARTING: Item 85 | Hash: 45449408... | Join: 6 | Is root: false | Excluded: 10 nodes
+✅ Item 85: Processed SUB diamond (hash: 45449408...) | Found 0 NEW sub-diamonds | Excluded nodes: 11 | Outstanding: 14
+🚀 STARTING: Item 86 | Hash: 16866678... | Join: 4 | Is root: true | Excluded: 0 nodes
+✅ Item 86: Processed ROOT diamond (hash: 16866678...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 13
+🚀 STARTING: Item 87 | Hash: 73158203... | Join: 26 | Is root: true | Excluded: 0 nodes
+✅ Item 87: Processed ROOT diamond (hash: 73158203...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 12
+🚀 STARTING: Item 88 | Hash: 95423175... | Join: 13 | Is root: true | Excluded: 0 nodes
+🔄 WORK GENERATION: Parent 95423175... generated 2 new work items:
+   [1] New work item: 76469709... | Join node: 13 | Excluded: 1 nodes
+   [2] New work item: 11110769... | Join node: 18 | Excluded: 1 nodes
+✅ Item 88: Processed ROOT diamond (hash: 95423175...) | Found 2 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 13
+🚀 STARTING: Item 89 | Hash: 11110769... | Join: 18 | Is root: false | Excluded: 1 nodes
+🔄 WORK GENERATION: Parent 11110769... generated 1 new work items:
+   [1] New work item: 78408677... | Join node: 18 | Excluded: 2 nodes
+✅ Item 89: Processed SUB diamond (hash: 11110769...) | Found 1 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 13
+🚀 STARTING: Item 90 | Hash: 78408677... | Join: 18 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 78408677... generated 1 new work items:
+   [1] New work item: 29629618... | Join node: 18 | Excluded: 3 nodes
+✅ Item 90: Processed SUB diamond (hash: 78408677...) | Found 1 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 13
+🚀 STARTING: Item 91 | Hash: 29629618... | Join: 18 | Is root: false | Excluded: 3 nodes
+✅ Item 91: Processed SUB diamond (hash: 29629618...) | Found 0 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 12
+🚀 STARTING: Item 92 | Hash: 76469709... | Join: 13 | Is root: false | Excluded: 1 nodes
+🔄 WORK GENERATION: Parent 76469709... generated 1 new work items:
+   [1] New work item: 53621607... | Join node: 13 | Excluded: 2 nodes
+✅ Item 92: Processed SUB diamond (hash: 76469709...) | Found 1 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 12
+🚀 STARTING: Item 93 | Hash: 53621607... | Join: 13 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 53621607... generated 1 new work items:
+   [1] New work item: 13419267... | Join node: 13 | Excluded: 3 nodes
+✅ Item 93: Processed SUB diamond (hash: 53621607...) | Found 1 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 12
+🚀 STARTING: Item 94 | Hash: 13419267... | Join: 13 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 13419267... generated 1 new work items:
+   [1] New work item: 94889673... | Join node: 13 | Excluded: 5 nodes
+✅ Item 94: Processed SUB diamond (hash: 13419267...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 12
+🚀 STARTING: Item 95 | Hash: 94889673... | Join: 13 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 94889673... generated 1 new work items:
+   [1] New work item: 40852960... | Join node: 13 | Excluded: 6 nodes
+✅ Item 95: Processed SUB diamond (hash: 94889673...) | Found 1 NEW sub-diamonds | Excluded nodes: 6 | Outstanding: 12
+🚀 STARTING: Item 96 | Hash: 40852960... | Join: 13 | Is root: false | Excluded: 6 nodes
+✅ Item 96: Processed SUB diamond (hash: 40852960...) | Found 0 NEW sub-diamonds | Excluded nodes: 7 | Outstanding: 11
+🚀 STARTING: Item 97 | Hash: 14376233... | Join: 25 | Is root: true | Excluded: 0 nodes
+🔄 WORK GENERATION: Parent 14376233... generated 1 new work items:
+   [1] New work item: 43081630... | Join node: 25 | Excluded: 1 nodes
+✅ Item 97: Processed ROOT diamond (hash: 14376233...) | Found 1 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 11
+🚀 STARTING: Item 98 | Hash: 43081630... | Join: 25 | Is root: false | Excluded: 1 nodes
+🔄 WORK GENERATION: Parent 43081630... generated 2 new work items:
+   [1] New work item: 98268994... | Join node: 25 | Excluded: 2 nodes
+   [2] New work item: 47752525... | Join node: 18 | Excluded: 2 nodes
+✅ Item 98: Processed SUB diamond (hash: 43081630...) | Found 2 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 12
+🚀 STARTING: Item 99 | Hash: 47752525... | Join: 18 | Is root: false | Excluded: 2 nodes
+✅ Item 99: Processed SUB diamond (hash: 47752525...) | Found 0 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 11
+🚀 STARTING: Item 100 | Hash: 98268994... | Join: 25 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 98268994... generated 2 new work items:
+   [1] New work item: 14179526... | Join node: 25 | Excluded: 3 nodes
+   [2] New work item: 10810106... | Join node: 18 | Excluded: 3 nodes
+✅ Item 100: Processed SUB diamond (hash: 98268994...) | Found 2 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 12
+🚀 STARTING: Item 101 | Hash: 10810106... | Join: 18 | Is root: false | Excluded: 3 nodes
+✅ Item 101: Processed SUB diamond (hash: 10810106...) | Found 0 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 11
+🚀 STARTING: Item 102 | Hash: 14179526... | Join: 25 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 14179526... generated 1 new work items:
+   [1] New work item: 62624357... | Join node: 25 | Excluded: 4 nodes
+✅ Item 102: Processed SUB diamond (hash: 14179526...) | Found 1 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 11
+🚀 STARTING: Item 103 | Hash: 62624357... | Join: 25 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 62624357... generated 1 new work items:
+   [1] New work item: 12904025... | Join node: 25 | Excluded: 5 nodes
+✅ Item 103: Processed SUB diamond (hash: 62624357...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 11
+🚀 STARTING: Item 104 | Hash: 12904025... | Join: 25 | Is root: false | Excluded: 5 nodes
+🔄 WORK GENERATION: Parent 12904025... generated 1 new work items:
+   [1] New work item: 11989709... | Join node: 25 | Excluded: 7 nodes
+✅ Item 104: Processed SUB diamond (hash: 12904025...) | Found 1 NEW sub-diamonds | Excluded nodes: 7 | Outstanding: 11
+🚀 STARTING: Item 105 | Hash: 11989709... | Join: 25 | Is root: false | Excluded: 7 nodes
+✅ Item 105: Processed SUB diamond (hash: 11989709...) | Found 0 NEW sub-diamonds | Excluded nodes: 8 | Outstanding: 10
+🚀 STARTING: Item 106 | Hash: 10685969... | Join: 20 | Is root: true | Excluded: 0 nodes
+🔄 WORK GENERATION: Parent 10685969... generated 1 new work items:
+   [1] New work item: 85355212... | Join node: 20 | Excluded: 1 nodes
+✅ Item 106: Processed ROOT diamond (hash: 10685969...) | Found 1 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 10
+🚀 STARTING: Item 107 | Hash: 85355212... | Join: 20 | Is root: false | Excluded: 1 nodes
+🔄 WORK GENERATION: Parent 85355212... generated 1 new work items:
+   [1] New work item: 92513313... | Join node: 20 | Excluded: 2 nodes
+✅ Item 107: Processed SUB diamond (hash: 85355212...) | Found 1 NEW sub-diamonds | Excluded nodes: 2 | Outstanding: 10
+🚀 STARTING: Item 108 | Hash: 92513313... | Join: 20 | Is root: false | Excluded: 2 nodes
+🔄 WORK GENERATION: Parent 92513313... generated 1 new work items:
+   [1] New work item: 23251992... | Join node: 20 | Excluded: 3 nodes
+✅ Item 108: Processed SUB diamond (hash: 92513313...) | Found 1 NEW sub-diamonds | Excluded nodes: 3 | Outstanding: 10
+🚀 STARTING: Item 109 | Hash: 23251992... | Join: 20 | Is root: false | Excluded: 3 nodes
+🔄 WORK GENERATION: Parent 23251992... generated 1 new work items:
+   [1] New work item: 92279356... | Join node: 20 | Excluded: 4 nodes
+✅ Item 109: Processed SUB diamond (hash: 23251992...) | Found 1 NEW sub-diamonds | Excluded nodes: 4 | Outstanding: 10
+🚀 STARTING: Item 110 | Hash: 92279356... | Join: 20 | Is root: false | Excluded: 4 nodes
+🔄 WORK GENERATION: Parent 92279356... generated 1 new work items:
+   [1] New work item: 14024653... | Join node: 20 | Excluded: 5 nodes
+✅ Item 110: Processed SUB diamond (hash: 92279356...) | Found 1 NEW sub-diamonds | Excluded nodes: 5 | Outstanding: 10
+🚀 STARTING: Item 111 | Hash: 14024653... | Join: 20 | Is root: false | Excluded: 5 nodes
+✅ Item 111: Processed SUB diamond (hash: 14024653...) | Found 0 NEW sub-diamonds | Excluded nodes: 6 | Outstanding: 9
+🚀 STARTING: Item 112 | Hash: 17330404... | Join: 18 | Is root: true | Excluded: 0 nodes
+✅ Item 112: Processed ROOT diamond (hash: 17330404...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 8
+🚀 STARTING: Item 113 | Hash: 11339166... | Join: 19 | Is root: true | Excluded: 0 nodes
+✅ Item 113: Processed ROOT diamond (hash: 11339166...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 7
+🚀 STARTING: Item 114 | Hash: 54892729... | Join: 8 | Is root: true | Excluded: 0 nodes
+✅ Item 114: Processed ROOT diamond (hash: 54892729...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 6
+🚀 STARTING: Item 115 | Hash: 57210594... | Join: 5 | Is root: true | Excluded: 0 nodes
+✅ Item 115: Processed ROOT diamond (hash: 57210594...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 5
+🚀 STARTING: Item 116 | Hash: 13728398... | Join: 17 | Is root: true | Excluded: 0 nodes
+✅ Item 116: Processed ROOT diamond (hash: 13728398...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 4
+🚀 STARTING: Item 117 | Hash: 11857273... | Join: 12 | Is root: true | Excluded: 0 nodes
+✅ Item 117: Processed ROOT diamond (hash: 11857273...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 3
+🚀 STARTING: Item 118 | Hash: 13336420... | Join: 16 | Is root: true | Excluded: 0 nodes
+✅ Item 118: Processed ROOT diamond (hash: 13336420...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 2
+🚀 STARTING: Item 119 | Hash: 12900427... | Join: 1 | Is root: true | Excluded: 0 nodes
+✅ Item 119: Processed ROOT diamond (hash: 12900427...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 1
+🚀 STARTING: Item 120 | Hash: 11336785... | Join: 9 | Is root: true | Excluded: 0 nodes
+✅ Item 120: Processed ROOT diamond (hash: 11336785...) | Found 0 NEW sub-diamonds | Excluded nodes: 1 | Outstanding: 0
+🎉 Diamond processing completed!
+📈 Final statistics:
+   • Total items processed: 120
+   • Items skipped early (before processing): 0
+   • Unique diamonds found: 117
+   • Processing efficiency: 97.5%
+   • Diamond substructure cache hits: 0
+   • Diamond substructure cache misses: 120
+   • Diamond substructure cache hit rate: 0.0%
+   • DIAMOND_SUBSTRUCTURE_CACHE size: 120
+🔍 TOPOLOGICAL SORTING VALIDATION:
+   📊 Root diamond join nodes: 18
+   📊 All unique diamond join nodes found: 18
+   📊 Unique joins: [1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 19, 20, 25, 26]
+   ✅ Joins contained in roots: 18/18
+   🎯 THEORY CONFIRMED: All unique diamond joins exist in root diamonds!
+   💡 OPTIMIZATION POTENTIAL: Can replace expensive identify_and_group_diamonds() with diamond lookup!
+🔗 Mapping skipped diamonds to processed equivalents...
+   📋 hash_to_parent_info has 99 entries
+   📋 unique_diamonds has 117 entries
+   📋 computational_hash_to_original has 120 entries
+   🔍 Checking diamond 94754400... - in unique_diamonds: true
+   🔍 Checking diamond 15361770... - in unique_diamonds: true
+   🔍 Checking diamond 17217417... - in unique_diamonds: true
+   🔍 Checking diamond 13300880... - in unique_diamonds: true
+   🔍 Checking diamond 11458154... - in unique_diamonds: true
+   🔍 Checking diamond 13716723... - in unique_diamonds: true
+   🔍 Checking diamond 12276158... - in unique_diamonds: true
+   🔍 Checking diamond 69528596... - in unique_diamonds: true
+   🔍 Checking diamond 17062060... - in unique_diamonds: true
+   🔍 Checking diamond 66781023... - in unique_diamonds: true
+   🔍 Checking diamond 11808618... - in unique_diamonds: true
+   🔍 Checking diamond 87603380... - in unique_diamonds: true
+   🔍 Checking diamond 95834967... - in unique_diamonds: true
+   🔍 Checking diamond 25397145... - in unique_diamonds: true
+   🔍 Checking diamond 51067635... - in unique_diamonds: true
+   🔍 Checking diamond 14887938... - in unique_diamonds: true
+   🔍 Checking diamond 15201405... - in unique_diamonds: true
+   🔍 Checking diamond 16523639... - in unique_diamonds: true
+   🔍 Checking diamond 57188917... - in unique_diamonds: true
+   🔍 Checking diamond 10248294... - in unique_diamonds: true
+   🔍 Checking diamond 67099265... - in unique_diamonds: true
+   🔍 Checking diamond 16991189... - in unique_diamonds: true
+   🔍 Checking diamond 15380037... - in unique_diamonds: true
+   🔍 Checking diamond 19127144... - in unique_diamonds: true
+   🔍 Checking diamond 45074535... - in unique_diamonds: true
+   🔍 Checking diamond 10236786... - in unique_diamonds: true
+   🔍 Checking diamond 58685076... - in unique_diamonds: true
+   🔍 Checking diamond 16889574... - in unique_diamonds: true
+   🔍 Checking diamond 12944168... - in unique_diamonds: true
+   🔍 Checking diamond 91406608... - in unique_diamonds: true
+   🔍 Checking diamond 26364773... - in unique_diamonds: true
+   🔍 Checking diamond 17600537... - in unique_diamonds: true
+   🔍 Checking diamond 12669239... - in unique_diamonds: true
+   🔍 Checking diamond 11051150... - in unique_diamonds: true
+   🔍 Checking diamond 18694789... - in unique_diamonds: true
+   🔍 Checking diamond 33487731... - in unique_diamonds: true
+   🔍 Checking diamond 17487945... - in unique_diamonds: true
+   🔍 Checking diamond 71688393... - in unique_diamonds: true
+   🔍 Checking diamond 17622609... - in unique_diamonds: true
+   🔍 Checking diamond 62734222... - in unique_diamonds: true
+   🔍 Checking diamond 15908072... - in unique_diamonds: true
+   🔍 Checking diamond 10813525... - in unique_diamonds: true
+   🔍 Checking diamond 15797092... - in unique_diamonds: true
+   🔍 Checking diamond 85077801... - in unique_diamonds: true
+   🔍 Checking diamond 16077445... - in unique_diamonds: true
+   🔍 Checking diamond 88583261... - in unique_diamonds: true
+   🔍 Checking diamond 17800708... - in unique_diamonds: true
+   🔍 Checking diamond 10626242... - in unique_diamonds: true
+   🔍 Checking diamond 33737738... - in unique_diamonds: true
+   🔍 Checking diamond 51704209... - in unique_diamonds: true
+   🔍 Checking diamond 82840086... - in unique_diamonds: true
+   🔍 Checking diamond 20194171... - in unique_diamonds: true
+   🔍 Checking diamond 13378925... - in unique_diamonds: true
+   🔍 Checking diamond 86174376... - in unique_diamonds: true
+   🔍 Checking diamond 36773844... - in unique_diamonds: true
+   🔍 Checking diamond 12954418... - in unique_diamonds: true
+   🔍 Checking diamond 53012699... - in unique_diamonds: true
+   🔍 Checking diamond 38157311... - in unique_diamonds: true
+   🔍 Checking diamond 12767695... - in unique_diamonds: true
+   🔍 Checking diamond 84512421... - in unique_diamonds: true
+   🔍 Checking diamond 99915305... - in unique_diamonds: true
+   🔍 Checking diamond 28919268... - in unique_diamonds: true
+   🔍 Checking diamond 44061732... - in unique_diamonds: true
+   🔍 Checking diamond 62252127... - in unique_diamonds: true
+   🔍 Checking diamond 13436749... - in unique_diamonds: true
+   🔍 Checking diamond 17446634... - in unique_diamonds: true
+   🔍 Checking diamond 12832295... - in unique_diamonds: true
+   🔍 Checking diamond 27329219... - in unique_diamonds: true
+   🔍 Checking diamond 50275381... - in unique_diamonds: true
+   🔍 Checking diamond 15473758... - in unique_diamonds: true
+   🔍 Checking diamond 80533032... - in unique_diamonds: true
+   🔍 Checking diamond 11575486... - in unique_diamonds: true
+   🔍 Checking diamond 13416495... - in unique_diamonds: true
+   🔍 Checking diamond 11669958... - in unique_diamonds: true
+   🔍 Checking diamond 30954660... - in unique_diamonds: true
+   🔍 Checking diamond 16280396... - in unique_diamonds: true
+   🔍 Checking diamond 68836360... - in unique_diamonds: true
+   🔍 Checking diamond 37505140... - in unique_diamonds: true
+   🔍 Checking diamond 32910566... - in unique_diamonds: true
+   🔍 Checking diamond 16990989... - in unique_diamonds: true
+   🔍 Checking diamond 12183935... - in unique_diamonds: true
+   🔍 Checking diamond 64679489... - in unique_diamonds: true
+   🔍 Checking diamond 12981167... - in unique_diamonds: true
+   🔍 Checking diamond 16889986... - in unique_diamonds: true
+   🔍 Checking diamond 16205670... - in unique_diamonds: true
+   🔍 Checking diamond 20108049... - in unique_diamonds: true
+   🔍 Checking diamond 99409306... - in unique_diamonds: true
+   🔍 Checking diamond 56803286... - in unique_diamonds: true
+   🔍 Checking diamond 22427886... - in unique_diamonds: true
+   🔍 Checking diamond 17459887... - in unique_diamonds: true
+   🔍 Checking diamond 57874420... - in unique_diamonds: true
+   🔍 Checking diamond 11205956... - in unique_diamonds: true
+   🔍 Checking diamond 96705211... - in unique_diamonds: true
+   🔍 Checking diamond 13924731... - in unique_diamonds: true
+   🔍 Checking diamond 18231898... - in unique_diamonds: true
+   🔍 Checking diamond 10726615... - in unique_diamonds: true
+   🔍 Checking diamond 30770666... - in unique_diamonds: true
+   🔍 Checking diamond 79238122... - in unique_diamonds: true
+   🔍 Checking diamond 15944290... - in unique_diamonds: true
+   📊 Successfully mapped 0 skipped diamonds
+🎯 Final lookup table size: 117 (includes processed + mapped skipped diamonds)
+⏱️  Computation time: 1.869 seconds
+
+FULL COMPARISON RESULTS:
+26×6 DataFrame
+ Row │ Node   OurAlgoValue  BenchmarkAlgoValue  AbsDifference  Difference    P ⋯
+     │ Int64  Float64       Float64             Float64        Float64       F ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │    25      0.785915            0.785244    0.000670761   0.000670761  0 ⋯
+   2 │    26      0.680898            0.680303    0.000595178   0.000595178  0
+   3 │     3      0.418802            0.418324    0.000477549   0.000477549  0
+   4 │    12      0.691886            0.691449    0.000436529   0.000436529  0
+   5 │    10      0.801663            0.802099    0.000436366  -0.000436366  0 ⋯
+   6 │     1      0.772116            0.771711    0.000405038   0.000405038  0
+   7 │    19      0.682013            0.682398    0.000384878  -0.000384878  0
+   8 │    23      0.418802            0.419186    0.000384451  -0.000384451  0
+  ⋮  │   ⋮         ⋮                ⋮                 ⋮             ⋮          ⋱
+  20 │    14      0.780472            0.780582    0.000109915  -0.000109915  0 ⋯
+  21 │     4      0.777995            0.77792     7.49013e-5    7.49013e-5   0
+  22 │    13      0.808109            0.808042    6.6623e-5     6.6623e-5    0
+  23 │    21      0.418802            0.418745    5.65486e-5    5.65486e-5   0
+  24 │     2      0.807037            0.807092    5.48057e-5   -5.48057e-5   0 ⋯
+  25 │    22      0.729               0.728951    4.9e-5        4.9e-5       0
+  26 │    18      0.780068            0.780038    3.01942e-5    3.01942e-5   0
+                                                    1 column and 11 rows omitted
