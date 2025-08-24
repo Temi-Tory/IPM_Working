@@ -1,0 +1,23 @@
+DUAL MISSION SCOTTISH MEDICAL SUPPLY NETWORK
+==========================================
+
+Mission A: Northern Scotland Emergency Supply
+  Target: Highland and Aberdeen region medical facilities
+  Nodes: 115 facilities
+
+Mission B: Central Belt Medical Supply
+  Target: Glasgow-Edinburgh corridor facilities
+  Nodes: 126 facilities
+
+Shared Resources: Strategic Airports & Major Hospitals
+  Nodes: 3 shared hubs
+  Function: Enable cross-mission resource allocation
+
+Network Complexity:
+  • Total nodes: 244
+  • Total edges: 303
+  • Expected exact algorithm performance: Intractable
+  • Expected your algorithm performance: ~25-35 seconds
+
+This network demonstrates scalability to full Scottish medical infrastructure
+while maintaining controlled complexity through dual mission architecture.

@@ -1,0 +1,4 @@
+ finding root diamonds
+Found 5 root_diamonds
+Starting build unique diamond storage
+Found 8 unique_diamonds

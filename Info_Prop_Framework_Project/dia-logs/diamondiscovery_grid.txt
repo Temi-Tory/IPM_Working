@@ -1,0 +1,302 @@
+======================================================================
+RUNNING FULL COMPARISON FOR: grid
+======================================================================
+Network name: grid-graph
+Data type: float
+======================================================================
+Starting build unique diamond storage
+🔷 Initializing diamond processing...
+📊 Total root diamonds to process: 8
+🚀 Starting iterative diamond processing...
+📈 Initial work stack size: 8
+📈 Diamond processing completed!
+   • Unique diamonds found: 28
+==================================================
+DIAMOND ANALYSIS FOR: grid-graph
+==================================================
+ROOT DIAMONDS (8 total):
+  Join Node 4:
+    - Relevant nodes: 11 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 14 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 255056477803065594
+  Join Node 16:
+    - Relevant nodes: 15 nodes
+    - Conditioning nodes: 3 nodes
+    - Edges: 22 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 5036834322483483018
+  Join Node 6:
+    - Relevant nodes: 8 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 9 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 8249147109371086415
+  Join Node 11:
+    - Relevant nodes: 10 nodes
+    - Conditioning nodes: 2 nodes
+    - Edges: 13 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 7137654743661503012
+  Join Node 7:
+    - Relevant nodes: 9 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 11 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 2555938050765618239
+  Join Node 15:
+    - Relevant nodes: 12 nodes
+    - Conditioning nodes: 2 nodes
+    - Edges: 17 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 3739831089356954110
+  Join Node 12:
+    - Relevant nodes: 12 nodes
+    - Conditioning nodes: 3 nodes
+    - Edges: 16 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 8705077318523909375
+  Join Node 14:
+    - Relevant nodes: 5 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 5 edges
+    - Non-diamond parents: 0 nodes
+    - Hash: 13560827226969926338
+
+UNIQUE DIAMONDS (28 total):
+  Hash 7537308384104729602:
+    - Relevant nodes: 13 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 16 edges
+    - Sub-diamonds: 2 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 16: Hash 193513659498214466
+      * Join Node 12: Hash 139166327149640010
+  Hash 5036834322483483018:
+    - Relevant nodes: 15 nodes
+    - Conditioning nodes: 3 nodes
+    - Edges: 22 edges
+    - Sub-diamonds: 5 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 16: Hash 12794944267852051232
+      * Join Node 6: Hash 2258526933435114840
+      * Join Node 11: Hash 653082749472896568
+      * Join Node 15: Hash 9181540947069354437
+      * Join Node 12: Hash 416456461967380421
+  Hash 12787846620614645141:
+    - Relevant nodes: 11 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 13 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 7: Hash 2826431458914067393
+  Hash 193513659498214466:
+    - Relevant nodes: 8 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 9 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 16: Hash 912649973120414283
+  Hash 2649204174203010775:
+    - Relevant nodes: 8 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 9 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 11151447643830391152
+  Hash 11151447643830391152:
+    - Relevant nodes: 5 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 5 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 13560827226969926338:
+    - Relevant nodes: 5 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 5 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 416456461967380421:
+    - Relevant nodes: 11 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 13 edges
+    - Sub-diamonds: 2 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 11: Hash 9685558619514548453
+      * Join Node 12: Hash 5080138792892872648
+  Hash 139166327149640010:
+    - Relevant nodes: 5 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 5 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 5080138792892872648:
+    - Relevant nodes: 9 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 10 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 12: Hash 139166327149640010
+  Hash 7137654743661503012:
+    - Relevant nodes: 10 nodes
+    - Conditioning nodes: 2 nodes
+    - Edges: 13 edges
+    - Sub-diamonds: 3 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2258526933435114840
+      * Join Node 7: Hash 3545941618593376447
+      * Join Node 11: Hash 6522927352086887110
+  Hash 2826431458914067393:
+    - Relevant nodes: 7 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 7 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 12794944267852051232:
+    - Relevant nodes: 14 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 19 edges
+    - Sub-diamonds: 4 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 15: Hash 5069229171481825349
+      * Join Node 16: Hash 7537308384104729602
+      * Join Node 11: Hash 9685558619514548453
+      * Join Node 12: Hash 5080138792892872648
+  Hash 6044031945453263076:
+    - Relevant nodes: 8 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 9 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 7: Hash 2826431458914067393
+  Hash 3739831089356954110:
+    - Relevant nodes: 12 nodes
+    - Conditioning nodes: 2 nodes
+    - Edges: 17 edges
+    - Sub-diamonds: 4 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2258526933435114840
+      * Join Node 7: Hash 3545941618593376447
+      * Join Node 11: Hash 6522927352086887110
+      * Join Node 15: Hash 7165258862808852503
+  Hash 912649973120414283:
+    - Relevant nodes: 6 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 6 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 2258526933435114840:
+    - Relevant nodes: 5 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 5 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 8249147109371086415:
+    - Relevant nodes: 8 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 9 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 11151447643830391152
+  Hash 5069229171481825349:
+    - Relevant nodes: 10 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 11 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 9181540947069354437:
+    - Relevant nodes: 11 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 14 edges
+    - Sub-diamonds: 2 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 15: Hash 5069229171481825349
+      * Join Node 11: Hash 9685558619514548453
+  Hash 2555938050765618239:
+    - Relevant nodes: 9 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 11 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2649204174203010775
+  Hash 9685558619514548453:
+    - Relevant nodes: 7 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 7 edges
+    - Sub-diamonds: 0 sub-diamonds
+  Hash 653082749472896568:
+    - Relevant nodes: 9 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 10 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 11: Hash 9685558619514548453
+  Hash 8705077318523909375:
+    - Relevant nodes: 12 nodes
+    - Conditioning nodes: 3 nodes
+    - Edges: 16 edges
+    - Sub-diamonds: 3 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2258526933435114840
+      * Join Node 11: Hash 653082749472896568
+      * Join Node 12: Hash 416456461967380421
+  Hash 3545941618593376447:
+    - Relevant nodes: 9 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 11 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2258526933435114840
+  Hash 7165258862808852503:
+    - Relevant nodes: 12 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 16 edges
+    - Sub-diamonds: 3 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 15: Hash 12787846620614645141
+      * Join Node 7: Hash 2826431458914067393
+      * Join Node 11: Hash 9685558619514548453
+  Hash 255056477803065594:
+    - Relevant nodes: 11 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 14 edges
+    - Sub-diamonds: 1 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 6: Hash 2649204174203010775
+  Hash 6522927352086887110:
+    - Relevant nodes: 10 nodes
+    - Conditioning nodes: 1 nodes
+    - Edges: 12 edges
+    - Sub-diamonds: 2 sub-diamonds
+    - Sub-diamond hashes:
+      * Join Node 7: Hash 2826431458914067393
+      * Join Node 11: Hash 6044031945453263076
+
+MAPPING ANALYSIS:
+  - Root diamond hashes: 8
+  - Unique diamond hashes: 28
+  - Root hashes in unique set: 8
+  - Additional unique hashes: 20
+
+ROOT DIAMOND CONTAINMENT ANALYSIS:
+  ✅ No root diamond hashes appear as sub-diamonds of other diamonds
+     All 8 root diamonds are maximal
+==================================================
+⏱️  Computation time: 0.007 seconds
+
+FULL COMPARISON RESULTS:
+16×6 DataFrame
+ Row │ Node   OurAlgoValue  BenchmarkAlgoValue  AbsDifference  Difference    P ⋯
+     │ Int64  Float64       Float64             Float64        Float64       F ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │    12      0.787379            0.787379    4.8909e-10    4.8909e-10   6 ⋯
+   2 │     4      0.825203            0.825203    4.09516e-10   4.09516e-10  4
+   3 │     7      0.859786            0.859786    3.67087e-10   3.67087e-10  4
+   4 │    14      0.819059            0.819059    3.01e-10      3.01e-10     3
+   5 │    11      0.818183            0.818183    2.02328e-10   2.02328e-10  2 ⋯
+   6 │    15      0.831017            0.831017    1.76947e-10  -1.76947e-10  2
+   7 │     8      0.696427            0.696427    4.26593e-11  -4.26593e-11  6
+   8 │    16      0.820333            0.820333    3.84148e-11   3.84148e-11  4
+   9 │     6      0.865884            0.865884    1.24533e-11   1.24533e-11  1 ⋯
+  10 │     5      0.729               0.729       1.11022e-16   1.11022e-16  1
+  11 │    10      0.681366            0.681366    1.11022e-16   1.11022e-16  1
+  12 │     1      0.9                 0.9         0.0           0.0          0
+  13 │     2      0.86751             0.86751     0.0           0.0          0 ⋯
+  14 │     3      0.9                 0.9         0.0           0.0          0
+  15 │     9      0.841193            0.841193    0.0           0.0          0
+  16 │    13      0.9                 0.9         0.0           0.0          0
+                                                                1 column omitted
