@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(grep:*)",
-      "Bash(julia:*)"
+      "Bash(julia:*)",
+      "WebSearch"
     ],
     "deny": [],
     "additionalDirectories": [

@@ -1,3 +1,13 @@
+#= # Time analysis
+task_durations::Dict{Int64, TimeUnit}              # Processing time per node
+dependency_delays::Dict{Tuple{Int64,Int64}, TimeUnit}  # Edge delays
+
+# Cost analysis  
+node_costs::Dict{Int64, Float64}                   # Processing cost per node
+edge_costs::Dict{Tuple{Int64,Int64}, Float64}      # Transition costs
+
+# No node_priors needed - that's a probability concept
+ =#
 module GeneralizedCriticalPathModule
     using ..DiamondProcessingModule
     using ..InputProcessingModule
@@ -533,81 +543,38 @@ module GeneralizedCriticalPathModule
         return critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, params)
     end
     
-    """
-    Bottleneck analysis (find minimum capacity along paths)
     
-    This function performs true bottleneck analysis where the minimum capacity
-    in the entire network constrains all nodes. It performs a forward pass to
-    find the bottleneck, then applies that bottleneck to all nodes.
+    
     """
-    function bottleneck_analysis(
+    Severity accumulation analysis
+    """
+    function severity_analysis(
         iteration_sets::Vector{Set{Int64}},
         outgoing_index::Dict{Int64,Set{Int64}},
         incoming_index::Dict{Int64,Set{Int64}},
         source_nodes::Set{Int64},
-        node_capacities::Dict{Int64, Float64},
-        edge_capacities::Dict{Tuple{Int64,Int64}, Float64} = Dict{Tuple{Int64,Int64}, Float64}(),
-        initial_capacity::Float64 = Inf
+        node_severitys::Dict{Int64, Float64},
+        edge_severitys::Dict{Tuple{Int64,Int64}, Float64} = Dict{Tuple{Int64,Int64}, Float64}(),
+        base_severity::Float64 = 0.0
     )
-        # First, find the actual bottleneck using forward propagation
-        params = CriticalPathParameters(
-            node_capacities,
-            edge_capacities,
-            initial_capacity,
-            min_combination,    # Find bottleneck (minimum)
-            min_propagation,    # Capacity limited by minimum
-            min_propagation     # Node capacity is limiting
-        )
-        
-        # Perform forward analysis to find bottleneck
-        forward_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, params)
-        
-        # Find the true bottleneck (minimum capacity across all nodes)
-        bottleneck_capacity = minimum(values(forward_result.node_values))
-        
-        println("[DEBUG] Bottleneck analysis: found bottleneck capacity = $bottleneck_capacity")
-        
-        # Apply bottleneck to all nodes
-        bottleneck_results = Dict{Int64, Float64}()
-        for node in keys(forward_result.node_values)
-            bottleneck_results[node] = bottleneck_capacity
-        end
-        
-        println("[DEBUG] Bottleneck analysis: applied bottleneck to all nodes = $bottleneck_results")
-        
-        return CriticalPathResult(bottleneck_results)
-    end
-    
-    """
-    Risk accumulation analysis
-    """
-    function risk_analysis(
-        iteration_sets::Vector{Set{Int64}},
-        outgoing_index::Dict{Int64,Set{Int64}},
-        incoming_index::Dict{Int64,Set{Int64}},
-        source_nodes::Set{Int64},
-        node_risks::Dict{Int64, Float64},
-        edge_risks::Dict{Tuple{Int64,Int64}, Float64} = Dict{Tuple{Int64,Int64}, Float64}(),
-        base_risk::Float64 = 0.0
-    )
-        # Exact risk combination without independence assumption
+        # Exact severity combination without independence assumption
         # For exact computation, we cannot assume statistical independence
-        function risk_combination(risks::Vector{Float64})::Float64
-            if isempty(risks)
+        function severity_combination(severitys::Vector{Float64})::Float64
+            if isempty(severitys)
                 return 0.0
             end
-            # For exact computation, use maximum risk (worst-case scenario)
+            # For exact computation, use maximum severity (worst-case scenario)
             # This is mathematically exact without invalid independence assumptions
-            return maximum(risks)
+            return maximum(severitys)
         end
         
         params = CriticalPathParameters(
-            node_risks,
-            edge_risks,
-            base_risk,
-            risk_combination,     # Custom risk combination
-            additive_propagation, # Risks are additive along paths  
-            additive_propagation  # Node risks are additive
+            node_severitys,
+            edge_severitys,
+            base_severity,
+            severity_combination,     # Custom severity combination
+            additive_propagation, # Severitys are additive along paths  
+            additive_propagation  # Node severitys are additive
         )
         
         return critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, params)
@@ -902,12 +869,6 @@ module GeneralizedCriticalPathModule
     - slack: Use calculate_slack_multiplicative
     - backtracking: Use find_critical_path_nodes_general with multiplicative_inverse
     
-    BOTTLENECK SYSTEMS (capacity, resource limits):
-    - combination_function: min_combination
-    - propagation_function: min_propagation
-    - node_function: min_propagation
-    - slack: Custom slack function (ratio-based or difference-based)
-    - backtracking: Use find_critical_path_nodes_general with appropriate inverse
     
     CUSTOM SYSTEMS:
     - Define our own combination, propagation, and node functions
@@ -922,8 +883,5 @@ module GeneralizedCriticalPathModule
     - Use from_hours() to convert NonNegativeTime to other units
     - All conversions maintain mathematical exactness
     """
-    function mathematical_guidelines()
-        println("See function documentation for mathematical guidelines")
-    end
 
 end

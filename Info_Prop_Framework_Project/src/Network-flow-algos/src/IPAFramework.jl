@@ -17,7 +17,11 @@ module IPAFramework
     include("Algorithms/GeneralizedCriticalPathModule.jl")
 
     # UPDATED: Import from enhanced InputProcessingModule
-    using .InputProcessingModule: Interval, 
+    using .InputProcessingModule: Interval, pbox, PBA,
+                                 # Uncertainty operations
+                                 zero_value, one_value, non_fixed_value, is_valid_probability,
+                                 add_values, multiply_values, min_values, max_values, sum_values,
+                                 complement_value, subtract_values, prod_values, divide_values,
                                  # Core graph structure functions
                                  read_graph_to_dict,
                                  identify_fork_and_join_nodes, 
@@ -65,10 +69,11 @@ module IPAFramework
                                       create_drone_metadata, extract_dag_matrices, save_real_drone_results
 
     using .CapacityAnalysisModule: CapacityParameters, CapacityResult,
-           maximum_flow_capacity, bottleneck_capacity_analysis,
-           widest_path_analysis, network_throughput_analysis,
-           classical_maximum_flow, comparative_capacity_analysis,
-           AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
+           maximum_flow_capacity, maximum_flow_capacity_uncertain,
+           bottleneck_capacity_analysis, widest_path_analysis, 
+           network_throughput_analysis, classical_maximum_flow, 
+           comparative_capacity_analysis, AnalysisConfig, 
+           MultiCommodityParameters, UncertaintyParameters,
            validate_capacity_parameters, validate_capacity_results
                               
     # Updated DiamondClassification imports
@@ -91,8 +96,13 @@ module IPAFramework
     export 
         # Core types
         DiamondsAtNode, Diamond,  DiamondComputationData,
-        Interval,  # Removed ProbabilitySlices as it's not exported from new InputProcessingModule
+        Interval, pbox, PBA,  # Uncertainty types
         TimeUnit, NonNegativeTime,  # Time types
+        
+        # Uncertainty operations
+        zero_value, one_value, non_fixed_value, is_valid_probability,
+        add_values, multiply_values, min_values, max_values, sum_values,
+        complement_value, subtract_values, prod_values, divide_values,
 
         # UPDATED: Enhanced input processing functions
         read_graph_to_dict,                    # NEW: Returns only graph structure
@@ -160,10 +170,11 @@ module IPAFramework
 
         # Capacity analysis
         CapacityParameters, CapacityResult,
-        maximum_flow_capacity, bottleneck_capacity_analysis,
-        widest_path_analysis, network_throughput_analysis,
-        classical_maximum_flow, comparative_capacity_analysis,
-        AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
+        maximum_flow_capacity, maximum_flow_capacity_uncertain,
+        bottleneck_capacity_analysis, widest_path_analysis, 
+        network_throughput_analysis, classical_maximum_flow, 
+        comparative_capacity_analysis, AnalysisConfig, 
+        MultiCommodityParameters, UncertaintyParameters,
         validate_capacity_parameters, validate_capacity_results
 
     """

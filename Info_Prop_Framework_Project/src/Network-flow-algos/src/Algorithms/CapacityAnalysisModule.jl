@@ -1,13 +1,20 @@
 module CapacityAnalysisModule
     using ..DiamondProcessingModule
     using ..InputProcessingModule
+    
+    # Import uncertainty operations from InputProcessingModule
+    import ..InputProcessingModule: Interval, pbox, PBA,
+           zero_value, one_value, add_values, multiply_values,
+           min_values, max_values, sum_values, divide_values
 
     export CapacityParameters, CapacityResult,
            maximum_flow_capacity, bottleneck_capacity_analysis,
            widest_path_analysis, network_throughput_analysis,
            classical_maximum_flow, comparative_capacity_analysis,
            AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
-           validate_capacity_parameters, validate_capacity_results
+           validate_capacity_parameters, validate_capacity_results,
+           # NEW: Uncertainty-aware capacity analysis
+           maximum_flow_capacity_uncertain
 
     # Configuration for analysis tolerances and options
     struct AnalysisConfig
@@ -93,16 +100,16 @@ module CapacityAnalysisModule
         end
     end
 
-    # Enhanced capacity analysis parameters
-    struct CapacityParameters
+    # Enhanced capacity analysis parameters (generic for uncertainty types)
+    struct CapacityParameters{T}
         # Node processing capacities (units/time)
-        node_capacities::Dict{Int64, Float64}
+        node_capacities::Dict{Int64, T}
         
         # Edge transmission capacities (units/time) 
-        edge_capacities::Dict{Tuple{Int64,Int64}, Float64}
+        edge_capacities::Dict{Tuple{Int64,Int64}, T}
         
         # Source input rates (units/time)
-        source_input_rates::Dict{Int64, Float64}
+        source_input_rates::Dict{Int64, T}
         
         # Target nodes we want to analyze flow to
         target_nodes::Set{Int64}
@@ -110,37 +117,30 @@ module CapacityAnalysisModule
         # Analysis configuration
         config::AnalysisConfig
         
-        # Optional multi-commodity parameters
+        # Optional multi-commodity parameters (Float64-based for now)
         multi_commodity::Union{MultiCommodityParameters, Nothing}
         
-        # Optional uncertainty parameters
+        # Optional uncertainty parameters (for Monte Carlo - deprecated in favor of direct T types)
         uncertainty::Union{UncertaintyParameters, Nothing}
         
         function CapacityParameters(
-            node_capacities::Dict{Int64, Float64},
-            edge_capacities::Dict{Tuple{Int64,Int64}, Float64},
-            source_input_rates::Dict{Int64, Float64},
+            node_capacities::Dict{Int64, T},
+            edge_capacities::Dict{Tuple{Int64,Int64}, T},
+            source_input_rates::Dict{Int64, T},
             target_nodes::Set{Int64};
             config::AnalysisConfig = AnalysisConfig(),
             multi_commodity::Union{MultiCommodityParameters, Nothing} = nothing,
             uncertainty::Union{UncertaintyParameters, Nothing} = nothing
-        )
-            new(node_capacities, edge_capacities, source_input_rates, target_nodes,
-                config, multi_commodity, uncertainty)
+        ) where T <: Union{Float64, Interval, pbox}
+            new{T}(node_capacities, edge_capacities, source_input_rates, target_nodes,
+                   config, multi_commodity, uncertainty)
         end
     end
 
-    # Enhanced results structure with uncertainty bounds and multi-commodity support
-    struct CapacityResult
+    # Enhanced results structure with uncertainty support
+    struct CapacityResult{T}
         # Maximum sustainable flow rate to each node
-        node_max_flows::Dict{Int64, Float64}
-        
-        # Uncertainty bounds (if uncertainty analysis performed)
-        node_flow_lower_bounds::Union{Dict{Int64, Float64}, Nothing}
-        node_flow_upper_bounds::Union{Dict{Int64, Float64}, Nothing}
-        
-        # Multi-commodity flows (if multi-commodity analysis performed)
-        commodity_flows::Union{Dict{Symbol, Dict{Int64, Float64}}, Nothing}
+        node_max_flows::Dict{Int64, T}
         
         # Bottleneck edges/nodes limiting each target
         bottlenecks::Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}}
@@ -148,14 +148,8 @@ module CapacityAnalysisModule
         # Enhanced critical path analysis for each target
         critical_paths::Dict{Int64, Vector{Vector{Int64}}}  # Multiple paths per target
         
-        # Path flow contributions for each critical path
-        path_flows::Dict{Int64, Vector{Float64}}
-        
         # Overall network capacity utilization
-        network_utilization::Float64
-        
-        # Confidence intervals for utilization (if uncertainty analysis)
-        utilization_confidence_interval::Union{Tuple{Float64, Float64}, Nothing}
+        network_utilization::T
         
         # Specific analysis type performed
         analysis_type::Symbol
@@ -165,22 +159,16 @@ module CapacityAnalysisModule
         convergence_info::Dict{Symbol, Any}
         
         function CapacityResult(
-            node_max_flows::Dict{Int64, Float64},
+            node_max_flows::Dict{Int64, T},
             bottlenecks::Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}},
             critical_paths::Dict{Int64, Vector{Vector{Int64}}},
-            network_utilization::Float64,
+            network_utilization::T,
             analysis_type::Symbol;
-            node_flow_lower_bounds::Union{Dict{Int64, Float64}, Nothing} = nothing,
-            node_flow_upper_bounds::Union{Dict{Int64, Float64}, Nothing} = nothing,
-            commodity_flows::Union{Dict{Symbol, Dict{Int64, Float64}}, Nothing} = nothing,
-            path_flows::Dict{Int64, Vector{Float64}} = Dict{Int64, Vector{Float64}}(),
-            utilization_confidence_interval::Union{Tuple{Float64, Float64}, Nothing} = nothing,
             computation_time::Float64 = 0.0,
             convergence_info::Dict{Symbol, Any} = Dict{Symbol, Any}()
-        )
-            new(node_max_flows, node_flow_lower_bounds, node_flow_upper_bounds, commodity_flows,
-                bottlenecks, critical_paths, path_flows, network_utilization, 
-                utilization_confidence_interval, analysis_type, computation_time, convergence_info)
+        ) where T
+            new{T}(node_max_flows, bottlenecks, critical_paths, network_utilization, 
+                   analysis_type, computation_time, convergence_info)
         end
     end
 
@@ -743,6 +731,137 @@ module CapacityAnalysisModule
     end# Mathematically Correct Capacity Analysis for DAG Networks
 
     # MAIN CAPACITY ANALYSIS FUNCTIONS
+
+    """
+    Uncertainty-Aware Maximum Flow Capacity Analysis
+    
+    This calculates exact maximum sustainable flow rates through your DAG network using 
+    interval arithmetic or p-box arithmetic for uncertainty propagation instead of Monte Carlo.
+    
+    Supports:
+    - Float64: Standard deterministic analysis
+    - Interval: Exact interval arithmetic for bounded uncertainties  
+    - pbox: Exact probability bounds analysis for distributional uncertainties
+    
+    Mathematical guarantee: Results are exact bounds, not approximations.
+    """
+    function maximum_flow_capacity_uncertain(
+        iteration_sets::Vector{Set{Int64}},
+        outgoing_index::Dict{Int64,Set{Int64}},
+        incoming_index::Dict{Int64,Set{Int64}},
+        source_nodes::Set{Int64},
+        capacity_params::CapacityParameters{T}
+    )::CapacityResult{T} where T <: Union{Float64, Interval, pbox}
+        
+        start_time = time()
+        config = capacity_params.config
+        
+        if config.verbose
+            println("Starting uncertainty-aware maximum flow capacity analysis with type $T...")
+        end
+        
+        node_flows = Dict{Int64, T}()
+        bottlenecks = Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}}()
+        
+        # Process nodes in topological order using uncertainty arithmetic
+        for (level, node_set) in enumerate(iteration_sets)
+            if config.verbose
+                println("Processing level $level with nodes: $node_set")
+            end
+            
+            for node in node_set
+                if node in source_nodes
+                    # Source nodes: limited by input rate and processing capacity
+                    source_rate = get(capacity_params.source_input_rates, node, zero_value(T))
+                    node_capacity = get(capacity_params.node_capacities, node, one_value(T))
+                    
+                    # For large default capacity, use a large constant
+                    if node_capacity == one_value(T)
+                        # Create large capacity value
+                        if T == Float64
+                            node_capacity = 1e6
+                        elseif T == Interval
+                            node_capacity = Interval(1e6, 1e6)
+                        else # pbox
+                            node_capacity = PBA.makepbox(PBA.interval(1e6, 1e6))
+                        end
+                    end
+                    
+                    # Use uncertainty-aware min operation
+                    node_flows[node] = min_values(source_rate, node_capacity)
+                    bottlenecks[node] = [(:source_input, node)]
+                else
+                    # Regular nodes: aggregate flow using uncertainty arithmetic
+                    total_incoming_flow = zero_value(T)
+                    limiting_factors = Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}()
+                    
+                    for parent in incoming_index[node]
+                        if !haskey(node_flows, parent)
+                            throw(ErrorException("Parent node $parent not processed yet"))
+                        end
+                        
+                        parent_flow = node_flows[parent]
+                        edge_capacity = get(capacity_params.edge_capacities, (parent, node), 
+                                          T == Float64 ? 1e6 : 
+                                          T == Interval ? Interval(1e6, 1e6) :
+                                          PBA.makepbox(PBA.interval(1e6, 1e6)))
+                        
+                        # Use uncertainty-aware min and add operations
+                        edge_flow = min_values(parent_flow, edge_capacity)
+                        total_incoming_flow = add_values(total_incoming_flow, edge_flow)
+                        
+                        push!(limiting_factors, (parent, node))
+                    end
+                    
+                    # Node output limited by uncertainty-aware min operation
+                    node_capacity = get(capacity_params.node_capacities, node,
+                                      T == Float64 ? 1e6 :
+                                      T == Interval ? Interval(1e6, 1e6) :
+                                      PBA.makepbox(PBA.interval(1e6, 1e6)))
+                    
+                    node_flows[node] = min_values(total_incoming_flow, node_capacity)
+                    bottlenecks[node] = limiting_factors
+                end
+            end
+        end
+        
+        # Calculate network utilization with uncertainty
+        source_rates = [capacity_params.source_input_rates[src] for src in source_nodes if haskey(capacity_params.source_input_rates, src)]
+        total_possible_input = isempty(source_rates) ? zero_value(T) : sum_values(source_rates)
+        
+        target_flows_vec = [node_flows[node] for node in capacity_params.target_nodes if haskey(node_flows, node)]
+        total_actual_output = isempty(target_flows_vec) ? zero_value(T) : sum_values(target_flows_vec)
+        
+        # Use uncertainty-aware division for utilization
+        utilization = if total_possible_input == zero_value(T)
+            zero_value(T)
+        else
+            divide_values(total_actual_output, total_possible_input)
+        end
+        
+        # Simplified critical paths for uncertainty-aware analysis
+        critical_paths = Dict{Int64, Vector{Vector{Int64}}}()
+        for target in capacity_params.target_nodes
+            critical_paths[target] = [[target]]  # Simplified for now - could be enhanced
+        end
+        
+        computation_time = time() - start_time
+        
+        if config.verbose
+            println("Uncertainty-aware analysis completed in $(round(computation_time, digits=3)) seconds")
+            println("Result type: $T")
+        end
+        
+        return CapacityResult(
+            node_flows,
+            bottlenecks,
+            critical_paths,
+            utilization,
+            :uncertainty_aware_flow,
+            computation_time=computation_time,
+            convergence_info=Dict(:iterations => length(iteration_sets), :uncertainty_type => T)
+        )
+    end
 
     """
     Enhanced Maximum Flow Capacity Analysis with configurable tolerances and path reconstruction

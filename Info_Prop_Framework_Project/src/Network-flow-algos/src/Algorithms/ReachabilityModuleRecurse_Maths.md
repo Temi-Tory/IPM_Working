@@ -1,3 +1,33 @@
+ The reachability algorithm is an exact probabilistic inference algorithm that
+  solves:
+
+  P(N) = Prior(N) × P(N receives ≥1 signal from sources | DAG network structure)
+
+  Where the main expensive challenge is computing:
+  P(N receives ≥1 signal) = P(A ∪ B ∪ C ∪ ...)
+
+  The Mathematical Framework:
+
+  P(≥1 signal) = Σᵢ Sᵢ - Σᵢ<ⱼ Sᵢ×Sⱼ + Σᵢ<ⱼ<ₖ Sᵢ×Sⱼ×Sₖ - ...
+               = S₁ + S₂ + S₃ - S₁S₂ - S₁S₃ - S₂S₃ + S₁S₂S₃
+
+  This is exactly the inclusion-exclusion principle for P(A ∪ B ∪ C).
+
+  What Each Signal Represents:
+
+  - A: "Signal reaches N via path through parent P₁"
+  - B: "Signal reaches N via path through parent P₂"
+  - C: "Signal reaches N via path through parent P₃"
+
+  The algorithm computes P(A ∪ B ∪ C) = "N receives signal from at least one source"
+
+  The Diamond Processing:
+
+  The  diamond enumeration is also doing exact probabilistic inference - it's computing:
+  P(N | diamond structure) = Σ_{all_states} P(state) × P(N | state)
+
+  This is conditional expectation - another exact inference method.
+
 # Complete Mathematical Analysis of ReachabilityModuleRecurse.jl
 
 ## Overview

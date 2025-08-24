@@ -7,7 +7,13 @@ module InputProcessingModule
     const PBA = ProbabilityBoundsAnalysis
     const pbox = ProbabilityBoundsAnalysis.pbox
 
-    export Interval, read_graph_to_dict, 
+    export Interval, pbox, PBA,
+           # Uncertainty operations
+           zero_value, one_value, non_fixed_value, is_valid_probability,
+           add_values, multiply_values, min_values, max_values, sum_values,
+           complement_value, subtract_values, prod_values, divide_values,
+           # File I/O functions
+           read_graph_to_dict, 
            # Generic functions (auto-detect type)
            read_node_priors_from_json, read_edge_probabilities_from_json,
            # Type-specific functions (guaranteed return types)
@@ -29,6 +35,134 @@ module InputProcessingModule
         end
     end
 
+     # Min operation (crucial for capacity constraints)
+    min_values(a::Float64, b::Float64) = min(a, b)
+    min_values(a::Interval, b::Interval) = Interval(min(a.lower,
+    b.lower), min(a.upper, b.upper))
+    min_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = min)
+
+    # Max operation (for flow aggregation)
+    max_values(a::Float64, b::Float64) = max(a, b)
+    max_values(a::Interval, b::Interval) = Interval(max(a.lower,
+    b.lower), max(a.upper, b.upper))
+    max_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = max)
+
+    # Sum over collections
+    sum_values(values::Vector{T}) where T = reduce(add_values, values;      
+    init=zero_value(T))
+
+    # Helper functions for type-specific operations
+    # Zero and one values for different types
+    zero_value(::Type{Float64}) = 0.0
+    one_value(::Type{Float64}) = 1.0    
+    non_fixed_value(::Type{Float64}) = 0.9
+    zero_value(::Type{Interval}) = Interval(0.0, 0.0)
+    one_value(::Type{Interval}) = Interval(1.0, 1.0)    
+    non_fixed_value(::Type{Interval}) = Interval(0.9, 0.9)  
+    zero_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.0, 0.0))
+    one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))   
+    non_fixed_value(::Type{pbox}) = PBA.makepbox(PBA.interval(0.9, 0.9)) 
+    
+
+    # Type-specific probability validation
+    is_valid_probability(value::Float64) = 0.0 <= value <= 1.0
+
+    function is_valid_probability(value::Interval)
+        return value.lower >= 0.0 && value.upper <= 1.0
+    end
+
+    function is_valid_probability(value::pbox)
+        min_value = PBA.minimum(value)
+        max_value = PBA.maximum(value)
+        
+        # Handle the case where min/max might return intervals
+        min_bound = isa(min_value, PBA.Interval) ? min_value.lo : min_value
+        max_bound = isa(max_value, PBA.Interval) ? max_value.hi : max_value
+        
+        return min_bound >= 0.0 && max_bound <= 1.0
+    end
+
+    # Type-specific arithmetic operations
+    # Addition
+    add_values(a::Float64, b::Float64) = a + b
+    add_values(a::Interval, b::Interval) = Interval(a.lower + b.lower, a.upper + b.upper)
+    add_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = +)
+
+    # Multiplication
+    multiply_values(a::Float64, b::Float64) = a * b
+    function multiply_values(a::Interval, b::Interval)
+        products = [a.lower * b.lower, a.lower * b.upper, a.upper * b.lower, a.upper * b.upper]
+        return Interval(minimum(products), maximum(products))
+    end
+    multiply_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = *)
+
+    # Complement (1 - value)
+    complement_value(a::Float64) = 1.0 - a
+    complement_value(a::Interval) = Interval(1.0 - a.upper, 1.0 - a.lower)
+    complement_value(a::pbox) = PBA.convIndep(one_value(pbox), a, op = -)
+
+    # Subtraction
+    subtract_values(a::Float64, b::Float64) = a - b
+    subtract_values(a::Interval, b::Interval) = Interval(a.lower - b.upper, a.upper - b.lower)
+    subtract_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = -)
+
+    # Division
+    divide_values(a::Float64, b::Float64) = a / b
+    function divide_values(a::Interval, b::Interval)
+        if b.lower <= 0.0 && b.upper >= 0.0
+            throw(ArgumentError("Division by interval containing zero"))
+        end
+        quotients = [a.lower / b.lower, a.lower / b.upper, a.upper / b.lower, a.upper / b.upper]
+        return Interval(minimum(quotients), maximum(quotients))
+    end
+    divide_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = /)
+
+    # Sum of vector
+    sum_values(values::Vector{Float64}) = sum(values)
+    function sum_values(values::Vector{Interval})
+        if isempty(values)
+            return zero_value(Interval)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = add_values(result, values[i])
+        end
+        return result
+    end
+    function sum_values(values::Vector{pbox})
+        if isempty(values)
+            return zero_value(pbox)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = add_values(result, values[i])
+        end
+        return result
+    end
+
+    # Product of vector
+    prod_values(values::Vector{Float64}) = prod(values)
+    function prod_values(values::Vector{Interval})
+        if isempty(values)
+            return one_value(Interval)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = multiply_values(result, values[i])
+        end
+        return result
+    end
+    function prod_values(values::Vector{pbox})
+        if isempty(values)
+            return one_value(pbox)
+        end
+        result = values[1]
+        for i in 2:length(values)
+            result = multiply_values(result, values[i])
+        end
+        return result
+    end
+    
     # Constructor for creating interval from single value (deterministic case)
     Interval(value::Float64) = Interval(value, value)
 

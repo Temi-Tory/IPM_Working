@@ -1,3 +1,8 @@
+#= The diamond detection automatically identifies:
+
+Common failure points (convergent subsystems)
+Natural organizational boundaries
+Places where delays propagate through multiple paths =#
 module DiamondProcessingModule
 
     using ..InputProcessingModule 
