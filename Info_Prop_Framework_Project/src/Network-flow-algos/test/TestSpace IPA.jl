@@ -15,15 +15,22 @@ using .IPAFramework
 # User input from UI for example networks
 # Choose your network - uncomment one:
 
-#network_name = "layereddiamond_3"
+#network_name = "layereddiamond-3"
+network_name = "scaled-power-network-5x"
+network_name = "scaled-power-network-3x"
+network_name = "dual_mission_drone_medical"
+
 #network_name = "munin-dag"
 #network_name = "KarlNetwork"
-#network_name = "real_drone_network_integrated_adjacency"
-#network_name = "grid-graph"  # 4 by 4 grid
-#network_name = "power-network"
-network_name = "metro_directed_dag_for_ipm"
-#network_name = "ergo-proxy-dag-network"
+#network_name = "join-260"
+#network_name = "grid-graph-5x5"  # 4 by 4 grid
+#  network_name = "grid-graph"  # 4 by 4 grid
+# network_name = "power-network"
+#network_name = "metro_directed_dag_for_ipm"
+#network_name = "ergo-proxy-dag-network"800 x 6607
 #network_name = "real_drone_network" #6166 Edges, 244 Nodes
+
+#network_name = "water"  # 4 by 4 grid
 
 
 # Choose data type - uncomment one:
@@ -75,9 +82,142 @@ edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
 fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
 iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
+#node_priors = 0.9 for all nodes
+
+ 
+
+        println(" finding root diamonds");
+    # Diamond structure analysis (if you have this function)
+    root_diamonds = identify_and_group_diamonds(
+        join_nodes,
+        incoming_index,
+        ancestors,
+        descendants,
+        source_nodes,
+        fork_nodes,
+        edgelist,
+        node_priors,
+        iteration_sets
+    );
+    l_root_diamonds = length(root_diamonds)
+    println("Found $l_root_diamonds root_diamonds");
+    println("Starting build unique diamond storage");
+    unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+        root_diamonds,
+        node_priors,
+        ancestors,
+        descendants,
+        iteration_sets
+    );
+    l_unique_diamonds = length(unique_diamonds)
+    println("Found $l_unique_diamonds unique_diamonds");
+    # Run the main reachability algorithm
+
+     
+#= open(network_name * "_result.txt", "w") do file
+    redirect_stdout(file) do
+          unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+        root_diamonds,
+        node_priors,
+        ancestors,
+        descendants,
+        iteration_sets
+    );
+    
+    end 
+end 
+=#
+start_time = time()
+    output = IPAFramework.update_beliefs_iterative(
+        edgelist,
+        iteration_sets,
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities,
+        descendants,
+        ancestors,
+        root_diamonds,
+        join_nodes,
+        fork_nodes,
+        unique_diamonds
+    );
+    
+    # Calculate computation time
+    computation_time = time() - start_time
+
+        println("Starting exact_computation");
+exact_start_time = time()
+       
+exact_results = ( path_enumeration_result(
+            outgoing_index,
+            incoming_index,
+            source_nodes,
+            node_priors,
+            edge_probabilities,
+            true
+        ));
+
+
+    exact_computation_time = time() - exact_start_time #672.3919999599457 for mumin 1_000_000runs
+
+ # define the benchmark with default parameters
+
+    
+# Sort outputs
+sorted_algo = OrderedDict(sort(collect(output)));
+sorted_mc = OrderedDict(sort(collect(mc_results)));
+
+# Create base DataFrame using the float values directly
+df = DataFrame(
+  Node = collect(keys(sorted_algo)),
+  AlgoValue = collect(values(sorted_algo)),
+  MCValue = collect(values(sorted_mc))
+)
+
+# Add a difference column (if needed)
+df.Diff = abs.(df.AlgoValue .- df.MCValue)
+#= # Display sorted result (if you want to sort by the difference)
+show(sort(df, :Diff, rev=true), allrows=true)
+=#
+#= 
+using CSV 
+
+# Sort the DataFrame by the Diff column in descending order
+sorted_df = sort(df, :Diff, rev=true)
+
+# Save the sorted DataFrame as a CSV file
+CSV.write("sorted_mumin_10Mc.csv", sorted_df)
+ =#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #map!(x -> 1.0, values(node_priors));
-
+#= 
 #Diamond structure analysis (if you have this function)
 diamond_structures = identify_and_group_diamonds(
     join_nodes,
@@ -91,8 +231,8 @@ diamond_structures = identify_and_group_diamonds(
    # iteration_sets
 );
 
- unique_diamonds, updated_diamond_structures = build_unique_diamond_storage(
-    diamond_structures,
+ unique_diamonds, updated_root_diamonds = build_unique_diamond_storage(
+    diamond_structures,t
     node_priors,
     ancestors,
     descendants,
@@ -113,15 +253,78 @@ output = IPAFramework.update_beliefs_iterative(
     edge_probabilities,
     descendants,
     ancestors,
-    updated_diamond_structures,  # Use updated diamond structures instead of original
+    updated_root_diamonds,  # Use updated diamond structures instead of original
+    join_nodes,
+    fork_nodes,
+    unique_diamonds
+);  =#
+
+#Diamond structure analysis (if you have this function)
+diamond_structures = identify_and_group_diamonds(
+    join_nodes,
+    incoming_index,
+    ancestors,
+    descendants,
+    source_nodes,
+    fork_nodes,
+    edgelist,
+    node_priors,
+   iteration_sets
+);
+#show(diamond_structures[7].diamond.conditioning_nodes)
+#print edgelist for each diamond structure
+#= for diamond in values(diamond_structures)
+    println("Diamond structure at node ", diamond.join_node, ":")
+    println("  Edgelist: ", diamond.diamond.edgelist)
+    println("  Fork nodes: ", diamond.diamond.conditioning_nodes)
+end
+ =#
+println("starting  build unique diamond storage");
+ unique_diamonds = build_unique_diamond_storage(
+    diamond_structures,
+    node_priors,
+    ancestors,
+    descendants,
+    iteration_sets
+);#8 minutes processing time for drone network
+#diamond_structures[4].diamond.edgelist
+#= 
+#Run belief propagation
+#show(unique_diamonds)
+# Use the optimized version with pre-computed hierarchy
+output = IPAFramework.update_beliefs_iterative(
+    edgelist,
+    iteration_sets,
+    outgoing_index,
+    incoming_index,
+    source_nodes,
+    node_priors,
+    edge_probabilities,
+    descendants,
+    ancestors,
+    diamond_structures,
     join_nodes,
     fork_nodes,
     unique_diamonds
 ); 
 #205,0.4566760755379154 #metro_directed_dag_for_ipm
+sorted_algo =SortedDict(output);
+#show(collect(values(sorted_algo)))
+for i in values(sorted_algo)
+  
+    println(i)
+    
+    
+end 
 
-#show(output)
-#output[205] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
+open("output.txt", "w") do file
+    for i in values(sorted_algo)
+        println(file, i)
+    end
+end =#
+# sorted output values
+#show(SortedDict(output)) 
+#output[559] # expected output for KarlNetwork with float data type output[25] = 0.7859147610807606
 #= 
 exact_results = ( path_enumeration_result(
             outgoing_index,
@@ -175,7 +378,7 @@ mc_results = (MC_result(
     source_nodes,
     node_priors,
     edge_probabilities,
-    1_000_000,
+    1_00_000,
 ));
 
 

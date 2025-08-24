@@ -42,7 +42,7 @@ module InputProcessingModule
         isfile(filename) || throw(SystemError("File not found: $filename"))
         
         # Determine file type by extension or content
-        if endswith(filename, ".edge")
+        if endswith(filename, ".edge") || endswith(filename, ".EDGES")
             return read_graph_from_edgelist(filename)
         else
             # Try to detect if it's an edge list by reading first few lines

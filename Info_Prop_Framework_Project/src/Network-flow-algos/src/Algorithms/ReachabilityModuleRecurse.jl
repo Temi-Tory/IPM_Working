@@ -402,13 +402,6 @@ module ReachabilityModule
     end
 
    
-    # Global recursion tracking to detect infinite loops
-    const RECURSION_TRACKER = Dict{Tuple{Int64, Set{Int64}, UInt64}, Int64}()
-    const MAX_RECURSION_DEPTH = 50
-    
-    # Track active computations to prevent recursive cache misses
-    const ACTIVE_COMPUTATIONS = Set{UInt64}()
-
     function updateDiamondJoin(
         conditioning_nodes::Set{Int64},
         join_node::Int64,
@@ -423,18 +416,7 @@ module ReachabilityModule
         diamond_cache::Dict{CacheKey, DiamondCacheEntry{T}}
         ) where {T <: Union{Float64, pbox, Interval}}
 
-        # RECURSION DETECTION: Track this specific call
-        diamond_hash_key = DiamondProcessingModule.create_diamond_hash_key(diamond)
-        recursion_key = (join_node, conditioning_nodes, diamond_hash_key)
         
-        if haskey(RECURSION_TRACKER, recursion_key)
-            RECURSION_TRACKER[recursion_key] += 1
-            if RECURSION_TRACKER[recursion_key] > MAX_RECURSION_DEPTH
-               error("Infinite recursion detected in updateDiamondJoin - stopping to prevent stack overflow")
-            end
-        else
-            RECURSION_TRACKER[recursion_key] = 1
-        end
 
         
         # O(1) lookup with hash key - SUPER FAST even for large diamonds!
@@ -553,12 +535,6 @@ module ReachabilityModule
             final_belief = add_values(final_belief, multiply_values(join_belief, state_probability))
         end
         
-        
-        # RECURSION CLEANUP: Decrement counter when exiting
-        RECURSION_TRACKER[recursion_key] -= 1
-        if RECURSION_TRACKER[recursion_key] <= 0
-            delete!(RECURSION_TRACKER, recursion_key)
-        end
         
         return final_belief
     end
