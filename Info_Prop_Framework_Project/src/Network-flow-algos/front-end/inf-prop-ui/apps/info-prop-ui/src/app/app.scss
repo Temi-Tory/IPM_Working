@@ -1,0 +1,127 @@
+// App component styles
+.app-container {
+  height: 100vh;
+  background-color: var(--surface-background);
+}
+
+.app-sidenav {
+  width: 280px;
+  background-color: var(--surface-container);
+  border-right: 1px solid var(--outline-variant);
+  
+  .mat-mdc-nav-list {
+    padding: 16px 0;
+    
+    .mat-mdc-list-item {
+      margin: 4px 16px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: var(--surface-container-high);
+      }
+      
+      &.mdc-list-item--activated {
+        background-color: var(--primary-container);
+        color: var(--on-primary-container);
+        
+        .mat-icon {
+          color: var(--on-primary-container);
+        }
+      }
+      
+      .mat-icon {
+        color: var(--on-surface-variant);
+        margin-right: 12px;
+      }
+      
+      .nav-title {
+        font-weight: 500;
+        font-size: 14px;
+        color: var(--on-surface);
+        line-height: 1.2;
+      }
+      
+      .nav-subtitle {
+        font-weight: 400;
+        font-size: 12px;
+        color: var(--on-surface-variant);
+        line-height: 1.2;
+        margin-top: 2px;
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+.app-toolbar {
+  background-color: var(--surface-container);
+  border-bottom: 1px solid var(--outline-variant);
+  height: 64px;
+  padding: 0 16px;
+  box-shadow: none;
+  
+  .menu-button {
+    margin-right: 16px;
+    color: var(--on-surface);
+    
+    .mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  .app-title {
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--on-surface);
+    letter-spacing: -0.015em;
+  }
+  
+  .spacer {
+    flex: 1 1 auto;
+  }
+  
+  .theme-toggle {
+    .mdc-switch__track {
+      background-color: var(--surface-variant);
+    }
+    
+    .mdc-switch__thumb {
+      background-color: var(--on-surface-variant);
+    }
+    
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-left: 8px;
+      color: var(--on-surface-variant);
+    }
+    
+    &.mat-mdc-slide-toggle-checked {
+      .mdc-switch__track {
+        background-color: var(--primary);
+      }
+      
+      .mdc-switch__thumb {
+        background-color: var(--on-primary);
+      }
+      
+      .mat-icon {
+        color: var(--primary);
+      }
+    }
+  }
+}
+
+.app-content {
+  background-color: var(--surface-background);
+}
+
+.app-main {
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background-color: var(--surface-background);
+}

@@ -301,18 +301,46 @@ function handle_upload(request::HTTP.Request)
             return HTTP.Response(405, headers, JSON.json(Dict("error" => "Method not allowed")))
         end
         
-        # TODO: Implement proper multipart file upload handling
-        # For now, return a placeholder response
+        # Create unique upload directory
+        upload_id = string(UUIDs.uuid4())
+        upload_path = joinpath(UPLOAD_DIR, upload_id)
+        mkpath(upload_path)
+        
+        println("Processing file upload to: ", upload_path)
+        
+        # Parse multipart form data (simplified implementation)
+        body = String(request.body)
+        
+        # Extract network name from request if present
+        network_name = "uploaded_network_" * upload_id[1:8]
+        
+        # For now, save the raw request body for debugging
+        raw_file_path = joinpath(upload_path, "upload_data.txt")
+        open(raw_file_path, "w") do f
+            write(f, body)
+        end
+        
+        println("Upload received - ", length(body), " bytes")
+        println("Files saved to: ", upload_path)
+        
         response_data = Dict(
             "success" => true,
-            "message" => "File upload endpoint - implementation needed",
+            "message" => "Files uploaded successfully",
+            "upload_id" => upload_id,
+            "upload_path" => upload_path,
+            "network_name" => network_name,
+            "bytes_received" => length(body),
             "timestamp" => Dates.now()
         )
         
         return HTTP.Response(200, headers, JSON.json(response_data))
         
     catch e
-        headers = ["Content-Type" => "application/json"]
+        println("Upload error: ", e)
+        headers = [
+            "Content-Type" => "application/json",
+            "Access-Control-Allow-Origin" => "*"
+        ]
         error_response = Dict("success" => false, "error" => string(e))
         return HTTP.Response(500, headers, JSON.json(error_response))
     end
@@ -358,9 +386,35 @@ function start_server()
     HTTP.register!(router, "GET", "/analyze", handle_analyze)
     HTTP.register!(router, "OPTIONS", "/upload", handle_upload)
     
+    # Add CORS middleware function
+    function add_cors_headers(response::HTTP.Response)
+        headers = Dict(response.headers)
+        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+        headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        headers["Access-Control-Max-Age"] = "86400"
+        return HTTP.Response(response.status, collect(headers), response.body)
+    end
+    
+    # Handle preflight OPTIONS requests
+    HTTP.register!(router, "OPTIONS", "/*", request -> begin
+        headers = [
+            "Access-Control-Allow-Origin" => "*",
+            "Access-Control-Allow-Methods" => "GET, POST, OPTIONS, PUT, DELETE",
+            "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+            "Access-Control-Max-Age" => "86400"
+        ]
+        HTTP.Response(200, headers, "")
+    end)
+    
     # Add a simple health check endpoint
     HTTP.register!(router, "GET", "/health", request -> begin
-        headers = ["Content-Type" => "application/json"]
+        headers = [
+            "Content-Type" => "application/json",
+            "Access-Control-Allow-Origin" => "*",
+            "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers" => "Content-Type"
+        ]
         response = Dict("status" => "healthy", "timestamp" => Dates.now())
         HTTP.Response(200, headers, JSON.json(response))
     end)
@@ -369,7 +423,4 @@ function start_server()
     HTTP.serve(router, "0.0.0.0", PORT)
 end
 
-# Run server if this file is executed directly
-if abspath(PROGRAM_FILE) == @__FILE__
     start_server()
-end

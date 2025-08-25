@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(npm run serve:*)",
+      "Bash(npm run start:*)",
+      "Bash(npx nx serve:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx nx build:*)",
+      "Bash(npm install:*)",
+      "Bash(git checkout:*)",
+      "Bash(rm:*)",
+      "Bash(npm run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

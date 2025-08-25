@@ -1,0 +1,203 @@
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Define muted pastel color palette
+$light-primary: mat.m2-define-palette((
+  50: #f8f9ff,
+  100: #e8ecff,
+  200: #d1d9ff,
+  300: #aab8ff,
+  400: #8392ff,
+  500: #6366f1,  // Primary - muted indigo
+  600: #4f46e5,
+  700: #4338ca,
+  800: #3730a3,
+  900: #312e81,
+  A100: #c7d2fe,
+  A200: #a5b4fc,
+  A400: #818cf8,
+  A700: #6366f1,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: white,
+    A700: white,
+  )
+));
+
+$light-accent: mat.m2-define-palette((
+  50: #fef7ff,
+  100: #fceeff,
+  200: #f8d7ff,
+  300: #f0b7ff,
+  400: #e690ff,
+  500: #d946ef,  // Accent - muted magenta
+  600: #c026d3,
+  700: #a21caf,
+  800: #86198f,
+  900: #701a75,
+  A100: #f3e8ff,
+  A200: #e9d5ff,
+  A400: #c084fc,
+  A700: #a855f7,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: white,
+    A700: white,
+  )
+));
+
+// Light theme
+$light-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $light-primary,
+    accent: $light-accent,
+    warn: mat.m2-define-palette(mat.$m2-red-palette),
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+// Dark theme
+$dark-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: $light-primary,
+    accent: $light-accent,
+    warn: mat.m2-define-palette(mat.$m2-red-palette),
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+// Apply the light theme by default
+@include mat.all-component-themes($light-theme);
+
+// Define custom CSS variables for consistent theming
+:root {
+  // Light theme variables - muted pastel tones
+  --primary: #6366f1;
+  --primary-container: #e0e7ff;
+  --on-primary: #ffffff;
+  --on-primary-container: #1e1b4b;
+  
+  --secondary: #d946ef;
+  --secondary-container: #fce7f3;
+  --on-secondary: #ffffff;
+  --on-secondary-container: #831843;
+  
+  --surface-background: #fafbfc;
+  --surface: #ffffff;
+  --surface-container: #f8fafc;
+  --surface-container-high: #f1f5f9;
+  --surface-variant: #e2e8f0;
+  
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  
+  --outline: #cbd5e1;
+  --outline-variant: #e2e8f0;
+  
+  --shadow: rgba(0, 0, 0, 0.04);
+  --surface-tint: var(--primary);
+}
+
+// Dark theme variables
+[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-container: #312e81;
+  --on-primary: #1e1b4b;
+  --on-primary-container: #e0e7ff;
+  
+  --secondary: #f472b6;
+  --secondary-container: #831843;
+  --on-secondary: #831843;
+  --on-secondary-container: #fce7f3;
+  
+  --surface-background: #0f172a;
+  --surface: #1e293b;
+  --surface-container: #334155;
+  --surface-container-high: #475569;
+  --surface-variant: #64748b;
+  
+  --on-surface: #f8fafc;
+  --on-surface-variant: #cbd5e1;
+  
+  --outline: #64748b;
+  --outline-variant: #475569;
+  
+  --shadow: rgba(0, 0, 0, 0.24);
+  --surface-tint: var(--primary);
+}
+
+// Apply dark theme when data-theme="dark"
+[data-theme="dark"] {
+  @include mat.all-component-colors($dark-theme);
+}
+
+// Global styles for minimal visual noise
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--surface-background);
+  color: var(--on-surface);
+  font-family: inherit;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+// Material Design 3 inspired adjustments for minimal noise
+.mat-mdc-card {
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px var(--shadow) !important;
+  border: 1px solid var(--outline-variant) !important;
+}
+
+.mat-mdc-button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.mat-mdc-raised-button {
+  box-shadow: 0 1px 3px var(--shadow) !important;
+}
+
+// Remove excessive shadows and borders for cleaner look
+.mat-mdc-dialog-container {
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px var(--shadow) !important;
+}

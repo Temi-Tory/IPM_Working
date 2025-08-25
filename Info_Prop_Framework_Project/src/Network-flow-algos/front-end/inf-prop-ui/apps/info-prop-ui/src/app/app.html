@@ -1,0 +1,94 @@
+<mat-sidenav-container class="app-container">
+  <mat-sidenav 
+    #drawer 
+    class="app-sidenav" 
+    fixedInViewport="true"
+    [opened]="isDrawerOpen"
+    mode="over">
+    <mat-nav-list>
+      <a mat-list-item routerLink="/home">
+        <mat-icon matListItemIcon>home</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Home</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/upload">
+        <mat-icon matListItemIcon>cloud_upload</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Upload Network</div>
+          <div class="nav-subtitle">Import network files</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/structure">
+        <mat-icon matListItemIcon>account_tree</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Network Structure</div>
+          <div class="nav-subtitle">Graph topology & analysis</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/diamonds">
+        <mat-icon matListItemIcon>diamond</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Diamond Analysis</div>
+          <div class="nav-subtitle">Parallel path structures</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/inference">
+        <mat-icon matListItemIcon>psychology</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Exact Inference</div>
+          <div class="nav-subtitle">Probabilistic belief propagation</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/flow">
+        <mat-icon matListItemIcon>water_drop</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Flow Analysis</div>
+          <div class="nav-subtitle">Capacity & throughput</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/critical-path">
+        <mat-icon matListItemIcon>schedule</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Critical Path Analysis</div>
+          <div class="nav-subtitle">Time & cost optimization</div>
+        </div>
+      </a>
+      <a mat-list-item routerLink="/system-profile">
+        <mat-icon matListItemIcon>analytics</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">System Profile</div>
+          <div class="nav-subtitle">Comprehensive comparison</div>
+        </div>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  
+  <mat-sidenav-content class="app-content">
+    <mat-toolbar class="app-toolbar">
+      <button 
+        mat-icon-button 
+        class="menu-button"
+        (click)="toggleDrawer()"
+        aria-label="Toggle navigation">
+        <mat-icon>menu</mat-icon>
+      </button>
+      
+      <span class="app-title">{{ title }}</span>
+      
+      <span class="spacer"></span>
+      
+      <mat-slide-toggle 
+        class="theme-toggle"
+        [checked]="isDarkTheme"
+        (change)="toggleTheme()"
+        aria-label="Toggle dark theme">
+        <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </mat-slide-toggle>
+    </mat-toolbar>
+    
+    <main class="app-main">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

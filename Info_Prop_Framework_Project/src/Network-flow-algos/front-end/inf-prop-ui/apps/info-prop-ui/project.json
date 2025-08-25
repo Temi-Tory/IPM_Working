@@ -1,27 +1,27 @@
 {
-  "name": "inf-prop-ui",
+  "name": "info-prop-ui",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "app",
-  "sourceRoot": "apps/inf-prop-ui/src",
+  "sourceRoot": "apps/info-prop-ui/src",
   "tags": [],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/apps/inf-prop-ui",
-        "browser": "apps/inf-prop-ui/src/main.ts",
+        "outputPath": "dist/apps/info-prop-ui",
+        "browser": "apps/info-prop-ui/src/main.ts",
         "polyfills": ["zone.js"],
-        "tsConfig": "apps/inf-prop-ui/tsconfig.app.json",
+        "tsConfig": "apps/info-prop-ui/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
           {
             "glob": "**/*",
-            "input": "apps/inf-prop-ui/public"
+            "input": "apps/info-prop-ui/public"
           }
         ],
-        "styles": ["apps/inf-prop-ui/src/styles.scss"]
+        "styles": ["apps/info-prop-ui/src/styles.scss"]
       },
       "configurations": {
         "production": {
@@ -52,10 +52,10 @@
       "executor": "@angular/build:dev-server",
       "configurations": {
         "production": {
-          "buildTarget": "inf-prop-ui:build:production"
+          "buildTarget": "info-prop-ui:build:production"
         },
         "development": {
-          "buildTarget": "inf-prop-ui:build:development"
+          "buildTarget": "info-prop-ui:build:development"
         }
       },
       "defaultConfiguration": "development"
@@ -63,7 +63,7 @@
     "extract-i18n": {
       "executor": "@angular/build:extract-i18n",
       "options": {
-        "buildTarget": "inf-prop-ui:build"
+        "buildTarget": "info-prop-ui:build"
       }
     },
     "lint": {
@@ -73,8 +73,8 @@
       "continuous": true,
       "executor": "@nx/web:file-server",
       "options": {
-        "buildTarget": "inf-prop-ui:build",
-        "staticFilePath": "dist/apps/inf-prop-ui/browser",
+        "buildTarget": "info-prop-ui:build",
+        "staticFilePath": "dist/apps/info-prop-ui/browser",
         "spa": true
       }
     }
