@@ -1,0 +1,262 @@
+<div class="upload-container">
+  
+  <!-- Header Section -->
+  <div class="upload-header">
+    <h1>Upload Network</h1>
+    <p>Upload your network folder or ZIP file to begin analysis</p>
+    
+    <!-- Session Status -->
+    @if (sessionService.hasActiveSession()) {
+      <div class="session-status">
+        <mat-icon>history</mat-icon>
+        <span>Active Session: {{ sessionService.getNetworkName() }}</span>
+        <button mat-icon-button (click)="resetUpload()" title="Clear session">
+          <mat-icon>clear</mat-icon>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Upload Zone -->
+  <mat-card class="upload-zone" 
+            [class.drag-over]="isDragOver()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)">
+    
+    @if (!detectedStructure() && !isValidating()) {
+      <!-- Initial Upload State -->
+      <div class="upload-prompt">
+        <mat-icon class="upload-icon">cloud_upload</mat-icon>
+        <h3>Drag & Drop Network Folder</h3>
+        <p>Or click to browse for files</p>
+        
+        <input type="file" 
+               id="fileInput" 
+               multiple 
+               webkitdirectory
+               (change)="onFileSelect($event)"
+               style="display: none;">
+        
+        <button mat-raised-button 
+                color="primary" 
+                (click)="onBrowseClick()">
+          <mat-icon>folder_open</mat-icon>
+          Browse Folder
+        </button>
+        
+        <div class="upload-help">
+          <mat-icon class="help-icon">info</mat-icon>
+          <span>Expected structure: network-name.EDGES + optional analysis folders (float/, capacity/, cpm/)</span>
+        </div>
+      </div>
+    }
+
+    @if (isValidating()) {
+      <!-- Validating State -->
+      <div class="validating-state">
+        <mat-icon class="spinning">hourglass_empty</mat-icon>
+        <h3>Validating Network Structure...</h3>
+        <p>Checking files and detecting available analyses</p>
+      </div>
+    }
+
+    @if (detectedStructure()) {
+      <!-- Detected Structure Display -->
+      <div class="detected-structure">
+        <div class="structure-header">
+          <mat-icon class="success-icon">check_circle</mat-icon>
+          <h3>{{ detectedStructure()!.networkName }}</h3>
+          <button mat-icon-button (click)="resetUpload()" title="Upload different network">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        <!-- File Status Chips -->
+        <div class="file-status">
+          <mat-chip-set>
+            <mat-chip [color]="detectedStructure()!.hasEdgesFile ? 'primary' : 'warn'">
+              <mat-icon matChipAvatar>{{ detectedStructure()!.hasEdgesFile ? 'check' : 'error' }}</mat-icon>
+              .EDGES File
+            </mat-chip>
+            
+            @if (detectedStructure()!.availableDataTypes.length > 0) {
+              <mat-chip color="accent">
+                <mat-icon matChipAvatar>psychology</mat-icon>
+                Inference Data ({{ detectedStructure()!.availableDataTypes.join(', ') }})
+              </mat-chip>
+            }
+            
+            @if (detectedStructure()!.hasCapacityData) {
+              <mat-chip color="accent">
+                <mat-icon matChipAvatar>water_drop</mat-icon>
+                Capacity Data
+              </mat-chip>
+            }
+            
+            @if (detectedStructure()!.hasCPMData) {
+              <mat-chip color="accent">
+                <mat-icon matChipAvatar>schedule</mat-icon>
+                CPM Data
+              </mat-chip>
+            }
+            
+            @if (detectedStructure()!.hasNodeMapping) {
+              <mat-chip color="accent">
+                <mat-icon matChipAvatar>label</mat-icon>
+                Node Mapping
+              </mat-chip>
+            }
+          </mat-chip-set>
+        </div>
+      </div>
+    }
+  </mat-card>
+
+  <!-- Analysis Configuration -->
+  @if (detectedStructure()) {
+    <mat-card class="analysis-config">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>settings</mat-icon>
+          Analysis Configuration
+        </mat-card-title>
+        <mat-card-subtitle>Choose which analyses to run</mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="config-grid">
+          
+          <!-- Basic Structure (Always enabled if EDGES file present) -->
+          <div class="config-item">
+            <mat-checkbox 
+              [checked]="analysisConfig().basicStructure"
+              [disabled]="true">
+              Network Structure
+            </mat-checkbox>
+            <p class="config-description">Basic topology visualization and diamond detection</p>
+          </div>
+
+          <!-- Exact Inference -->
+          <div class="config-item">
+            <mat-checkbox 
+              [checked]="analysisConfig().exactInference"
+              [disabled]="!canEnableInference()"
+              (change)="updateAnalysisConfig({ exactInference: $event.checked })">
+              Exact Inference
+            </mat-checkbox>
+            <p class="config-description">Probabilistic belief propagation analysis</p>
+            
+            @if (analysisConfig().exactInference && canEnableInference()) {
+              <mat-select 
+                [value]="analysisConfig().inferenceDataType"
+                (valueChange)="updateAnalysisConfig({ inferenceDataType: $event })"
+                class="data-type-select">
+                @for (dataType of detectedStructure()!.availableDataTypes; track dataType) {
+                  <mat-option [value]="dataType">{{ dataType }}</mat-option>
+                }
+              </mat-select>
+            }
+          </div>
+
+          <!-- Flow Analysis -->
+          <div class="config-item">
+            <mat-checkbox 
+              [checked]="analysisConfig().flowAnalysis"
+              [disabled]="!canEnableFlowAnalysis()"
+              (change)="updateAnalysisConfig({ flowAnalysis: $event.checked })">
+              Flow Analysis
+            </mat-checkbox>
+            <p class="config-description">Maximum flow capacity and throughput analysis</p>
+          </div>
+
+          <!-- Critical Path Analysis -->
+          <div class="config-item">
+            <mat-checkbox 
+              [checked]="analysisConfig().criticalPathAnalysis"
+              [disabled]="!canEnableCriticalPath()"
+              (change)="updateAnalysisConfig({ criticalPathAnalysis: $event.checked })">
+              Critical Path Analysis
+            </mat-checkbox>
+            <p class="config-description">Time and cost optimization analysis</p>
+            
+            @if (analysisConfig().criticalPathAnalysis && canEnableCriticalPath()) {
+              <div class="cpm-options">
+                <mat-checkbox 
+                  [checked]="analysisConfig().criticalPathOptions?.enableTime || false"
+                  (change)="updateCriticalPathOption('enableTime', $event.checked)">
+                  Time Optimization
+                </mat-checkbox>
+                <mat-checkbox 
+                  [checked]="analysisConfig().criticalPathOptions?.enableCost || false"
+                  (change)="updateCriticalPathOption('enableCost', $event.checked)">
+                  Cost Optimization
+                </mat-checkbox>
+              </div>
+            }
+          </div>
+
+          <!-- Node Mapping Status -->
+          @if (detectedStructure()!.hasNodeMapping) {
+            <div class="config-item mapping-detected">
+              <div class="mapping-status">
+                <mat-icon class="success-icon">check_circle</mat-icon>
+                <span class="mapping-title">Node Mapping Detected</span>
+              </div>
+              <p class="config-description">Human-readable node names will be used in visualizations</p>
+            </div>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Upload Progress -->
+    @if (uploadProgress().uploading) {
+      <mat-card class="upload-progress">
+        <mat-card-content>
+          <div class="progress-header">
+            <h3>{{ uploadProgress().message }}</h3>
+            <span>{{ uploadProgress().progress }}%</span>
+          </div>
+          <mat-progress-bar 
+            mode="determinate" 
+            [value]="uploadProgress().progress">
+          </mat-progress-bar>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button mat-button (click)="resetUpload()">
+        <mat-icon>refresh</mat-icon>
+        Upload Different Network
+      </button>
+      
+      <button mat-raised-button 
+              color="primary"
+              [disabled]="!detectedStructure()?.hasEdgesFile || uploadProgress().uploading || !hasValidFilesForAnalysis()"
+              (click)="uploadNetwork()">
+        <mat-icon>rocket_launch</mat-icon>
+        Start Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Warnings and Errors -->
+  @if (detectedStructure()?.warnings && detectedStructure()!.warnings.length > 0) {
+    <mat-card class="warnings">
+      <mat-card-header>
+        <mat-card-title class="warning-title">
+          <mat-icon>warning</mat-icon>
+          Warnings
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @for (warning of detectedStructure()!.warnings; track warning) {
+          <p class="warning-message">{{ warning }}</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
