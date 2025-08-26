@@ -1,0 +1,293 @@
+<div class="network-structure-container">
+  
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Network Structure Analysis</h1>
+        <p class="network-name">{{ getNetworkName() }}</p>
+      </div>
+      
+      <div class="header-actions">
+        <app-analysis-view-switcher 
+          [currentMode]="currentViewMode()"
+          [availableModes]="availableViewModes()"
+          (modeChange)="switchViewMode($event)">
+        </app-analysis-view-switcher>
+        
+        <button mat-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportData('json')">
+            <mat-icon>code</mat-icon>
+            <span>Export JSON</span>
+          </button>
+          <button mat-menu-item (click)="exportData('csv')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export CSV</span>
+          </button>
+          <button mat-menu-item (click)="exportData('png')">
+            <mat-icon>image</mat-icon>
+            <span>Export PNG</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Loading network structure...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div>
+            <h3>Error Loading Network Structure</h3>
+            <p>{{ error() }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && !error() && componentData()) {
+    
+    <!-- Visual Mode -->
+    @if (isVisualMode()) {
+      <div class="visual-mode">
+        <div class="visual-content">
+          
+          <!-- Graph Visualization Container -->
+          <mat-card class="graph-container">
+            <mat-card-content>
+              <div class="graph-placeholder">
+                <mat-icon class="graph-icon">account_tree</mat-icon>
+                <h3>Interactive Network Graph</h3>
+                <p>Graph visualization will be implemented here</p>
+                <p class="graph-stats">{{ getTotalNodes() }} nodes • {{ getTotalEdges() }} edges</p>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Visual Controls -->
+          <mat-card class="controls-panel">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>tune</mat-icon>
+                Visualization Controls
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- Node Type Highlighting -->
+              <div class="control-section">
+                <h4>Highlight Node Types</h4>
+                <div class="highlight-buttons">
+                  <button mat-stroked-button 
+                          class="source-button"
+                          (click)="highlightSourceNodes()">
+                    <mat-icon>play_arrow</mat-icon>
+                    Sources ({{ getSourceNodes().length }})
+                  </button>
+                  
+                  <button mat-stroked-button 
+                          class="sink-button"
+                          (click)="highlightSinkNodes()">
+                    <mat-icon>stop</mat-icon>
+                    Sinks ({{ getSinkNodes().length }})
+                  </button>
+                  
+                  <button mat-stroked-button 
+                          class="fork-button"
+                          (click)="highlightForkNodes()">
+                    <mat-icon>call_split</mat-icon>
+                    Forks ({{ getForkNodes().length }})
+                  </button>
+                  
+                  <button mat-stroked-button 
+                          class="join-button"
+                          (click)="highlightJoinNodes()">
+                    <mat-icon>call_merge</mat-icon>
+                    Joins ({{ getJoinNodes().length }})
+                  </button>
+                  
+                  <button mat-stroked-button (click)="resetHighlights()">
+                    <mat-icon>clear</mat-icon>
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <!-- Node IDs Display -->
+              <div class="control-section">
+                <h4>Node IDs by Type</h4>
+                <div class="node-ids">
+                  @if (getSourceNodes().length > 0) {
+                    <div class="node-type-row">
+                      <span class="node-type-label source">Sources:</span>
+                      <span class="node-ids-list">{{ getSourceNodes().join(', ') }}</span>
+                    </div>
+                  }
+                  
+                  @if (getSinkNodes().length > 0) {
+                    <div class="node-type-row">
+                      <span class="node-type-label sink">Sinks:</span>
+                      <span class="node-ids-list">{{ getSinkNodes().join(', ') }}</span>
+                    </div>
+                  }
+                  
+                  @if (getForkNodes().length > 0) {
+                    <div class="node-type-row">
+                      <span class="node-type-label fork">Forks:</span>
+                      <span class="node-ids-list">{{ getForkNodes().join(', ') }}</span>
+                    </div>
+                  }
+                  
+                  @if (getJoinNodes().length > 0) {
+                    <div class="node-type-row">
+                      <span class="node-type-label join">Joins:</span>
+                      <span class="node-ids-list">{{ getJoinNodes().join(', ') }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Mode -->
+    @if (isDashboardMode()) {
+      <div class="dashboard-mode">
+        <div class="dashboard-grid">
+          
+          <!-- Basic Statistics -->
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>analytics</mat-icon>
+                Network Statistics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-grid">
+                <div class="stat-item">
+                  <div class="stat-value">{{ getTotalNodes() }}</div>
+                  <div class="stat-label">Total Nodes</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getTotalEdges() }}</div>
+                  <div class="stat-label">Total Edges</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getIterationSetsCount() }}</div>
+                  <div class="stat-label">Iteration Sets</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getTotalEdges() > 0 ? (getTotalEdges() / getTotalNodes()).toFixed(2) : '0' }}</div>
+                  <div class="stat-label">Avg Edges/Node</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Node Type Distribution -->
+          <mat-card class="distribution-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>pie_chart</mat-icon>
+                Node Type Distribution
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="node-type-stats">
+                <div class="node-type-stat source">
+                  <div class="type-info">
+                    <mat-icon>play_arrow</mat-icon>
+                    <span class="type-name">Source Nodes</span>
+                  </div>
+                  <div class="type-count">{{ getSourceNodes().length }}</div>
+                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getSourceNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
+                </div>
+                
+                <div class="node-type-stat sink">
+                  <div class="type-info">
+                    <mat-icon>stop</mat-icon>
+                    <span class="type-name">Sink Nodes</span>
+                  </div>
+                  <div class="type-count">{{ getSinkNodes().length }}</div>
+                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getSinkNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
+                </div>
+                
+                <div class="node-type-stat fork">
+                  <div class="type-info">
+                    <mat-icon>call_split</mat-icon>
+                    <span class="type-name">Fork Nodes</span>
+                  </div>
+                  <div class="type-count">{{ getForkNodes().length }}</div>
+                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getForkNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
+                </div>
+                
+                <div class="node-type-stat join">
+                  <div class="type-info">
+                    <mat-icon>call_merge</mat-icon>
+                    <span class="type-name">Join Nodes</span>
+                  </div>
+                  <div class="type-count">{{ getJoinNodes().length }}</div>
+                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getJoinNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Network Properties -->
+          <mat-card class="properties-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Network Properties
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="properties-list">
+                <div class="property-item">
+                  <span class="property-label">Network Type:</span>
+                  <span class="property-value">Directed Acyclic Graph (DAG)</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Sources:</span>
+                  <span class="property-value">{{ getSourceNodes().length > 0 ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Sinks:</span>
+                  <span class="property-value">{{ getSinkNodes().length > 0 ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Parallelism:</span>
+                  <span class="property-value">{{ (getForkNodes().length > 0 || getJoinNodes().length > 0) ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Node Mapping:</span>
+                  <span class="property-value">{{ componentData()?.structure?.hasNodeMapping ? 'Available' : 'Not Available' }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+  }
+</div>

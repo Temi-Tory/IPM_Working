@@ -22,6 +22,7 @@ import {
 import { NetworkValidationService } from '../shared/services/network-validation.service';
 import { NetworkSessionService } from '../shared/services/network-session.service';
 import { NetworkBackendService } from '../shared/services/network-backend.service';
+import { AnalysisStateService } from '../shared/services/analysis-state.service';
 
 @Component({
   selector: 'app-upload-network',
@@ -70,7 +71,8 @@ export class UploadNetworkComponent {
     private validationService: NetworkValidationService,
     public sessionService: NetworkSessionService, // Make public for template access
     private snackBar: MatSnackBar,
-    private backendService: NetworkBackendService
+    private backendService: NetworkBackendService,
+    private analysisStateService: AnalysisStateService
   ) {
     // Disable session loading for now - require fresh uploads
     // this.loadExistingSession();
@@ -267,6 +269,9 @@ export class UploadNetworkComponent {
         next: (response) => {
           this.uploadProgress.update(p => ({ ...p, progress: 100, message: 'Analysis complete!' }));
           
+          // Update analysis state service with results
+          this.analysisStateService.updateAnalysisResults(structure, config, response);
+          
           // Disabled session storage for now - keep it simple
           // this.sessionService.saveAnalysisResults(response);
           
@@ -274,6 +279,7 @@ export class UploadNetworkComponent {
           
           // Log results for debugging
           console.log('Backend Analysis Results:', response);
+          console.log('Analysis State Updated:', this.analysisStateService.getStateInfo());
           
           // TODO: Navigate to network structure view to show results
           
@@ -346,6 +352,9 @@ export class UploadNetworkComponent {
   resetUpload() {
     // Disabled session storage for now - keep it simple
     // this.sessionService.clearSession();
+    
+    // Clear analysis state
+    this.analysisStateService.clearAnalysisState();
     
     this.detectedStructure.set(null);
     this.analysisConfig.set({

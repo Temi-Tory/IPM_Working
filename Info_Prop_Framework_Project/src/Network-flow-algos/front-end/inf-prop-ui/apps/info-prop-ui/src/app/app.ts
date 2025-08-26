@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { CommonModule } from '@angular/common';
+import { AnalysisStateService } from './shared/services/analysis-state.service';
 
 @Component({
   imports: [
@@ -27,6 +28,9 @@ export class App {
   protected title = 'Information Propagation Framework';
   protected isDrawerOpen = false;
   protected isDarkTheme = true; // Default to dark mode
+
+  // Inject analysis state service for tab enable/disable logic
+  protected analysisState = inject(AnalysisStateService);
 
   constructor() {
     // Set dark mode as default on app initialization

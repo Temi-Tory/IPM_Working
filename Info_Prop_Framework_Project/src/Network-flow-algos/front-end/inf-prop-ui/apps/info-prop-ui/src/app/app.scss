@@ -50,6 +50,23 @@
         margin-top: 2px;
         opacity: 0.8;
       }
+      
+      &.disabled {
+        opacity: 0.4;
+        pointer-events: none;
+        cursor: not-allowed;
+        
+        &:hover {
+          background-color: transparent;
+        }
+        
+        .mat-icon,
+        .nav-title,
+        .nav-subtitle {
+          color: var(--on-surface-variant);
+          opacity: 0.4;
+        }
+      }
     }
   }
 }

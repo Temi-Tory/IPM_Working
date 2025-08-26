@@ -19,42 +19,76 @@
           <div class="nav-subtitle">Import network files</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/structure">
+      <a mat-list-item 
+         routerLink="/structure" 
+         [class.disabled]="!analysisState.networkStructureTab().enabled"
+         [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Network Structure</div>
           <div class="nav-subtitle">Graph topology & analysis</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/diamonds">
+      
+      <a mat-list-item 
+         routerLink="/diamonds" 
+         [class.disabled]="!analysisState.diamondAnalysisTab().enabled"
+         [attr.tabindex]="!analysisState.diamondAnalysisTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>diamond</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Diamond Analysis</div>
           <div class="nav-subtitle">Parallel path structures</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/inference">
+      
+      <a mat-list-item 
+         routerLink="/reachability"
+         [class.disabled]="!analysisState.reachabilityAnalysisTab().enabled"
+         [attr.tabindex]="!analysisState.reachabilityAnalysisTab().enabled ? -1 : 0">
+        <mat-icon matListItemIcon>route</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Reachability Analysis</div>
+          <div class="nav-subtitle">Path connectivity & reach</div>
+        </div>
+      </a>
+      
+      <a mat-list-item 
+         routerLink="/inference" 
+         [class.disabled]="!analysisState.exactInferenceTab().enabled"
+         [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>psychology</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Exact Inference</div>
           <div class="nav-subtitle">Probabilistic belief propagation</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/flow">
+      
+      <a mat-list-item 
+         routerLink="/flow" 
+         [class.disabled]="!analysisState.flowAnalysisTab().enabled"
+         [attr.tabindex]="!analysisState.flowAnalysisTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>water_drop</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Flow Analysis</div>
           <div class="nav-subtitle">Capacity & throughput</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/critical-path">
+      
+      <a mat-list-item 
+         routerLink="/critical-path" 
+         [class.disabled]="!analysisState.criticalPathTab().enabled"
+         [attr.tabindex]="!analysisState.criticalPathTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>schedule</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Critical Path Analysis</div>
           <div class="nav-subtitle">Time & cost optimization</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/system-profile">
+      
+      <a mat-list-item 
+         routerLink="/system-profile" 
+         [class.disabled]="!analysisState.systemProfileTab().enabled"
+         [attr.tabindex]="!analysisState.systemProfileTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>analytics</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">System Profile</div>
