@@ -1,0 +1,378 @@
+<div class="reachability-analysis-container">
+  
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Reachability Analysis</h1>
+        <p class="network-name">{{ componentData()?.structure?.networkName || 'Network' }}</p>
+      </div>
+      
+      <div class="header-actions">
+        <app-analysis-view-switcher 
+          [currentMode]="currentViewMode()"
+          [availableModes]="availableViewModes()"
+          (modeChange)="switchViewMode($event)">
+        </app-analysis-view-switcher>
+        
+        <button mat-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportData('json')">
+            <mat-icon>code</mat-icon>
+            <span>Export JSON</span>
+          </button>
+          <button mat-menu-item (click)="exportData('csv')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export CSV</span>
+          </button>
+          <button mat-menu-item (click)="exportData('png')">
+            <mat-icon>image</mat-icon>
+            <span>Export PNG</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Analyzing network reachability...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div>
+            <h3>Error Loading Reachability Analysis</h3>
+            <p>{{ error() }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && !error() && componentData()) {
+    
+    <!-- Visual Mode -->
+    @if (isVisualMode()) {
+      <div class="visual-mode">
+        <div class="visual-content">
+          
+          <!-- Graph Visualization Container -->
+          <mat-card class="graph-container">
+            <mat-card-content>
+              <div class="graph-placeholder">
+                <mat-icon class="graph-icon">device_hub</mat-icon>
+                <h3>Interactive Reachability Graph</h3>
+                <p>Network graph with reachability paths highlighted</p>
+                <div class="graph-stats">
+                  <span class="stat-item">{{ getReachablePairsCount() }}/{{ getTotalPairsCount() }} pairs reachable</span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat-item">{{ (getReachabilityRatio() * 100).toFixed(1) }}% connectivity</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Interactive Controls -->
+          <mat-card class="controls-panel">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>tune</mat-icon>
+                Path Analysis Controls
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- Node Selection -->
+              <div class="control-section">
+                <h4>Select Path</h4>
+                <div class="path-selectors">
+                  <mat-form-field appearance="outline" class="node-selector">
+                    <mat-label>Source Node</mat-label>
+                    <mat-select [value]="selectedSourceNode" (selectionChange)="onSourceNodeChange($event.value)">
+                      <mat-option [value]="null">None</mat-option>
+                      @for (node of availableNodes; track node) {
+                        <mat-option [value]="node">Node {{ node }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline" class="node-selector">
+                    <mat-label>Target Node</mat-label>
+                    <mat-select [value]="selectedTargetNode" (selectionChange)="onTargetNodeChange($event.value)">
+                      <mat-option [value]="null">None</mat-option>
+                      @for (node of availableNodes; track node) {
+                        <mat-option [value]="node">Node {{ node }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                
+                @if (selectedSourceNode !== null && selectedTargetNode !== null) {
+                  <div class="path-info">
+                    @if (isNodeReachable(selectedSourceNode, selectedTargetNode)) {
+                      <div class="path-result reachable">
+                        <mat-icon>check_circle</mat-icon>
+                        <span>Node {{ selectedTargetNode }} is reachable from Node {{ selectedSourceNode }}</span>
+                        <span class="path-distance">Distance: {{ getDistance(selectedSourceNode, selectedTargetNode) }}</span>
+                      </div>
+                      <div class="path-display">
+                        <strong>Path:</strong>
+                        @for (node of getPath(selectedSourceNode, selectedTargetNode); track node; let last = $last) {
+                          <span class="path-node">{{ node }}</span>
+                          @if (!last) {
+                            <mat-icon class="path-arrow">arrow_forward</mat-icon>
+                          }
+                        }
+                      </div>
+                    } @else {
+                      <div class="path-result unreachable">
+                        <mat-icon>cancel</mat-icon>
+                        <span>Node {{ selectedTargetNode }} is not reachable from Node {{ selectedSourceNode }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Quick Analysis Buttons -->
+              <div class="control-section">
+                <h4>Quick Analysis</h4>
+                <div class="quick-analysis-buttons">
+                  @if (selectedSourceNode !== null) {
+                    <button mat-stroked-button 
+                            class="reachability-button"
+                            (click)="highlightReachableFrom(selectedSourceNode)">
+                      <mat-icon>trending_up</mat-icon>
+                      Show Reachable From {{ selectedSourceNode }}
+                    </button>
+                  }
+                  
+                  @if (selectedTargetNode !== null) {
+                    <button mat-stroked-button 
+                            class="reachability-button"
+                            (click)="highlightReachableTo(selectedTargetNode)">
+                      <mat-icon>trending_down</mat-icon>
+                      Show Reaching {{ selectedTargetNode }}
+                    </button>
+                  }
+                  
+                  <button mat-stroked-button (click)="resetHighlights()">
+                    <mat-icon>clear</mat-icon>
+                    Clear Highlights
+                  </button>
+                </div>
+              </div>
+
+              <!-- Display Options -->
+              <div class="control-section">
+                <h4>Display Options</h4>
+                <div class="display-options">
+                  <mat-slide-toggle 
+                    [(ngModel)]="showOnlyReachable"
+                    color="accent">
+                    Show only reachable pairs
+                  </mat-slide-toggle>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Mode -->
+    @if (isDashboardMode()) {
+      <div class="dashboard-mode">
+        <div class="dashboard-grid">
+          
+          <!-- Reachability Statistics -->
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>analytics</mat-icon>
+                Reachability Statistics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-grid">
+                <div class="stat-item">
+                  <div class="stat-value">{{ getReachablePairsCount() }}</div>
+                  <div class="stat-label">Reachable Pairs</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getTotalPairsCount() }}</div>
+                  <div class="stat-label">Total Pairs</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ (getReachabilityRatio() * 100).toFixed(1) }}%</div>
+                  <div class="stat-label">Reachability Ratio</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getConnectedComponentsCount() }}</div>
+                  <div class="stat-label">Components</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Distance Analysis -->
+          <mat-card class="distance-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>timeline</mat-icon>
+                Distance Analysis
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="distance-stats">
+                <div class="distance-stat">
+                  <div class="distance-info">
+                    <mat-icon>straighten</mat-icon>
+                    <span class="distance-name">Maximum Distance</span>
+                  </div>
+                  <div class="distance-value">{{ getMaxDistance() }} hops</div>
+                </div>
+                
+                <div class="distance-stat">
+                  <div class="distance-info">
+                    <mat-icon>show_chart</mat-icon>
+                    <span class="distance-name">Average Distance</span>
+                  </div>
+                  <div class="distance-value">{{ getAverageDistance().toFixed(2) }} hops</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Reachability Matrix Preview -->
+          <mat-card class="matrix-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>grid_on</mat-icon>
+                Reachability Matrix
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="matrix-container">
+                @if (getReachabilityMatrix().length <= 20) {
+                  <div class="matrix-grid">
+                    <!-- Column headers -->
+                    <div class="matrix-cell header"></div>
+                    @for (col of getReachabilityMatrix()[0]; track $index; let colIndex = $index) {
+                      <div class="matrix-cell header">{{ colIndex }}</div>
+                    }
+                    
+                    <!-- Matrix rows -->
+                    @for (row of getReachabilityMatrix(); track $index; let rowIndex = $index) {
+                      <!-- Row header -->
+                      <div class="matrix-cell header">{{ rowIndex }}</div>
+                      
+                      <!-- Row cells -->
+                      @for (cell of row; track $index; let colIndex = $index) {
+                        <div class="matrix-cell" 
+                             [class.reachable]="cell && rowIndex !== colIndex"
+                             [class.self]="rowIndex === colIndex">
+                          {{ cell && rowIndex !== colIndex ? '✓' : (rowIndex === colIndex ? '—' : '✗') }}
+                        </div>
+                      }
+                    }
+                  </div>
+                } @else {
+                  <div class="matrix-large-info">
+                    <p>Matrix is too large to display ({{ getReachabilityMatrix().length }}×{{ getReachabilityMatrix().length }})</p>
+                    <p>Use export function to get full matrix data</p>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Connected Components -->
+          <mat-card class="components-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>account_tree</mat-icon>
+                Connected Components
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="components-list">
+                @for (component of getStronglyConnectedComponents(); track $index; let componentIndex = $index) {
+                  <div class="component-item">
+                    <div class="component-header">
+                      <span class="component-label">Component {{ componentIndex + 1 }}</span>
+                      <span class="component-size">{{ component.length }} nodes</span>
+                    </div>
+                    <div class="component-nodes">
+                      @for (nodeId of component; track nodeId; let last = $last) {
+                        <span class="node-chip">{{ nodeId }}</span>
+                        @if (!last) {
+                          <span class="node-separator">, </span>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Network Properties -->
+          <mat-card class="properties-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Reachability Properties
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="properties-list">
+                <div class="property-item">
+                  <span class="property-label">Connectivity Type:</span>
+                  <span class="property-value">
+                    @if (getReachabilityRatio() === 1.0) {
+                      Fully Connected
+                    } @else if (getReachabilityRatio() > 0.8) {
+                      Highly Connected
+                    } @else if (getReachabilityRatio() > 0.5) {
+                      Moderately Connected
+                    } @else if (getReachabilityRatio() > 0.2) {
+                      Sparsely Connected
+                    } @else {
+                      Poorly Connected
+                    }
+                  </span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Is Strongly Connected:</span>
+                  <span class="property-value">{{ getConnectedComponentsCount() === 1 ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Graph Diameter:</span>
+                  <span class="property-value">{{ getMaxDistance() }} hops</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Average Path Length:</span>
+                  <span class="property-value">{{ getAverageDistance().toFixed(2) }} hops</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+  }
+</div>

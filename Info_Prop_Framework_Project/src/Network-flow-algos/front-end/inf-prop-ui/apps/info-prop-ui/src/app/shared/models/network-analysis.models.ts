@@ -99,10 +99,19 @@ export interface NetworkAnalysisResponse {
     };
     exact_inference?: {
       node_beliefs: Record<string, number>;
+      top_beliefs: Record<string, number>;
       execution_time: number;
-      diamonds_found: number;
       data_type: DataType;
+      algorithm_type: string;
       error?: string;
+    };
+    diamond_analysis?: {
+      root_diamonds_count: number;
+      unique_diamonds_count: number;
+      join_nodes_with_diamonds: number[];
+      classifications: Record<string, any>;
+      diamond_efficiency: number;
+      has_complex_diamonds: boolean;
     };
     flow_analysis?: {
       network_utilization: number;

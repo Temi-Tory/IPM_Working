@@ -1,0 +1,324 @@
+<div class="diamond-analysis-container">
+  
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Diamond Analysis</h1>
+        <p class="network-name">{{ getNetworkName() }}</p>
+      </div>
+      
+      <div class="header-actions">
+        <app-analysis-view-switcher 
+          [currentMode]="currentViewMode()"
+          [availableModes]="availableViewModes()"
+          (modeChange)="switchViewMode($event)">
+        </app-analysis-view-switcher>
+        
+        <button mat-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportData('json')">
+            <mat-icon>code</mat-icon>
+            <span>Export JSON</span>
+          </button>
+          <button mat-menu-item (click)="exportData('csv')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export CSV</span>
+          </button>
+          <button mat-menu-item (click)="exportData('png')">
+            <mat-icon>image</mat-icon>
+            <span>Export PNG</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Loading diamond analysis...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div>
+            <h3>Error Loading Diamond Analysis</h3>
+            <p>{{ error() }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && !error() && componentData()) {
+    
+    <!-- Visual Mode -->
+    @if (isVisualMode()) {
+      <div class="visual-mode">
+        <div class="visual-content">
+          
+          <!-- Graph Visualization Container -->
+          <mat-card class="graph-container">
+            <mat-card-content>
+              <div class="graph-placeholder">
+                <mat-icon class="graph-icon">diamond</mat-icon>
+                <h3>Interactive Diamond Graph</h3>
+                <p>Diamond structures visualization will be implemented here</p>
+                <p class="graph-stats">{{ getDiamondsFound() }} diamonds • {{ getTotalNodeBeliefs() }} nodes with beliefs</p>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Visual Controls -->
+          <mat-card class="controls-panel">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>tune</mat-icon>
+                Diamond Controls
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- Diamond Highlighting -->
+              <div class="control-section">
+                <h4>Highlight Diamond Structures</h4>
+                <div class="highlight-buttons">
+                  <button mat-stroked-button 
+                          class="diamond-button"
+                          (click)="highlightDiamondNodes()">
+                    <mat-icon>diamond</mat-icon>
+                    All Diamonds ({{ getDiamondsFound() }})
+                  </button>
+                  
+                  @for (type of getDiamondTypes(); track type.type) {
+                    <button mat-stroked-button 
+                            [class]="'diamond-type-button ' + type.type"
+                            [class.highlighted]="isHighlightedType(type.type)"
+                            (click)="highlightDiamondType(type.type)">
+                      <mat-icon>{{ type.type === 'root' ? 'account_tree' : 'hub' }}</mat-icon>
+                      {{ type.type | titlecase }} ({{ type.count }})
+                    </button>
+                  }
+                  
+                  <button mat-stroked-button 
+                          class="high-belief-button"
+                          (click)="highlightHighBeliefNodes()">
+                    <mat-icon>trending_up</mat-icon>
+                    High Belief Nodes
+                  </button>
+                  
+                  <button mat-stroked-button (click)="resetHighlights()">
+                    <mat-icon>clear</mat-icon>
+                    Clear Highlights
+                  </button>
+                </div>
+              </div>
+
+              <!-- Diamond Information -->
+              <div class="control-section">
+                <h4>Diamond Information</h4>
+                <div class="diamond-info">
+                  <div class="info-item">
+                    <span class="info-label">Total Diamonds:</span>
+                    <span class="info-value">{{ getDiamondsFound() }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Data Type:</span>
+                    <span class="info-value">{{ getDataType() | titlecase }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Execution Time:</span>
+                    <span class="info-value">{{ getFormattedExecutionTime() }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Diamond Nodes:</span>
+                    <span class="info-value nodes-list">{{ getDiamondNodesList() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Belief Statistics -->
+              <div class="control-section">
+                <h4>Node Belief Statistics</h4>
+                <div class="belief-stats">
+                  <div class="stat-row">
+                    <span class="stat-label">Average:</span>
+                    <span class="stat-value">{{ getAverageNodeBelief().toFixed(3) }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="stat-label">Maximum:</span>
+                    <span class="stat-value">{{ getMaxNodeBelief().toFixed(3) }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="stat-label">Minimum:</span>
+                    <span class="stat-value">{{ getMinNodeBelief().toFixed(3) }}</span>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Mode -->
+    @if (isDashboardMode()) {
+      <div class="dashboard-mode">
+        <div class="dashboard-grid">
+          
+          <!-- Diamond Statistics -->
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>diamond</mat-icon>
+                Diamond Statistics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-grid">
+                <div class="stat-item">
+                  <div class="stat-value">{{ getDiamondsFound() }}</div>
+                  <div class="stat-label">Total Diamonds</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getTotalNodeBeliefs() }}</div>
+                  <div class="stat-label">Nodes with Beliefs</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getAverageNodeBelief().toFixed(3) }}</div>
+                  <div class="stat-label">Avg Node Belief</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getFormattedExecutionTime() }}</div>
+                  <div class="stat-label">Execution Time</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Diamond Type Distribution -->
+          <mat-card class="distribution-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>pie_chart</mat-icon>
+                Diamond Type Distribution
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="diamond-type-stats">
+                @for (type of getDiamondTypes(); track type.type) {
+                  <div class="diamond-type-stat" [class]="type.type">
+                    <div class="type-info">
+                      <mat-icon>{{ type.type === 'root' ? 'account_tree' : 'hub' }}</mat-icon>
+                      <span class="type-name">{{ type.type | titlecase }} Diamonds</span>
+                    </div>
+                    <div class="type-count">{{ type.count }}</div>
+                    <div class="type-percentage">{{ type.percentage.toFixed(1) }}%</div>
+                  </div>
+                }
+                
+                @if (getDiamondTypes().length === 0) {
+                  <div class="no-types">
+                    <p>No diamond type information available</p>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Node Belief Analysis -->
+          <mat-card class="beliefs-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>psychology</mat-icon>
+                Node Belief Analysis
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="beliefs-analysis">
+                <div class="belief-summary">
+                  <div class="summary-item">
+                    <span class="summary-label">Data Type:</span>
+                    <span class="summary-value">{{ getDataType() | titlecase }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Total Nodes:</span>
+                    <span class="summary-value">{{ getTotalNodeBeliefs() }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Avg Belief:</span>
+                    <span class="summary-value">{{ getAverageNodeBelief().toFixed(4) }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Belief Range:</span>
+                    <span class="summary-value">
+                      {{ getMinNodeBelief().toFixed(3) }} - {{ getMaxNodeBelief().toFixed(3) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Belief Distribution Chart Placeholder -->
+                <div class="chart-placeholder">
+                  <mat-icon class="chart-icon">bar_chart</mat-icon>
+                  <p>Belief distribution chart would be displayed here</p>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Analysis Properties -->
+          <mat-card class="properties-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Analysis Properties
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="properties-list">
+                <div class="property-item">
+                  <span class="property-label">Analysis Type:</span>
+                  <span class="property-value">Exact Inference (Diamonds)</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Data Type:</span>
+                  <span class="property-value">{{ getDataType() | titlecase }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Diamonds Found:</span>
+                  <span class="property-value">{{ getDiamondsFound() > 0 ? 'Yes (' + getDiamondsFound() + ')' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Node Beliefs:</span>
+                  <span class="property-value">{{ getTotalNodeBeliefs() > 0 ? 'Yes (' + getTotalNodeBeliefs() + ')' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Performance:</span>
+                  <span class="property-value">
+                    {{ getExecutionTime() < 1 ? 'Fast' : getExecutionTime() < 10 ? 'Good' : 'Slow' }}
+                    ({{ getFormattedExecutionTime() }})
+                  </span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+  }
+</div>

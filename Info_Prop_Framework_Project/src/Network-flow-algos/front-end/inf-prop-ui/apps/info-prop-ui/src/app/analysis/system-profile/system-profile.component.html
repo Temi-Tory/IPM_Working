@@ -1,0 +1,524 @@
+<div class="system-profile-container">
+  
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>
+          <mat-icon class="header-icon">dashboard</mat-icon>
+          System Profile
+        </h1>
+        <p class="network-name">
+          @if (getSystemSnapshot()) {
+            {{ getSystemSnapshot()?.networkName }}
+          } @else {
+            Executive Dashboard
+          }
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <app-analysis-view-switcher 
+          [currentMode]="currentViewMode()"
+          [availableModes]="availableViewModes()"
+          (modeChange)="switchViewMode($event)">
+        </app-analysis-view-switcher>
+        
+        <button mat-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportData('json')">
+            <mat-icon>code</mat-icon>
+            <span>Export Complete Profile (JSON)</span>
+          </button>
+          <button mat-menu-item (click)="exportData('csv')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export Executive Report (CSV)</span>
+          </button>
+          <button mat-menu-item (click)="exportData('png')">
+            <mat-icon>image</mat-icon>
+            <span>Export System Visualization (PNG)</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Generating system profile...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div>
+            <h3>Error Loading System Profile</h3>
+            <p>{{ error() }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && !error() && componentData()) {
+    
+    <!-- Visual Mode - System-wide Network Visualization -->
+    @if (isVisualMode()) {
+      <div class="visual-mode">
+        <div class="visual-content">
+          
+          <!-- System Graph Visualization -->
+          <mat-card class="graph-container">
+            <mat-card-content>
+              <div class="graph-placeholder">
+                <mat-icon class="graph-icon">account_tree</mat-icon>
+                <h3>System-Wide Network Visualization</h3>
+                <p>Comprehensive network view with all analysis overlays</p>
+                <div class="graph-stats">
+                  <span class="stat">{{ getTotalNodes() }} nodes</span>
+                  <span class="stat">{{ getTotalEdges() }} edges</span>
+                  <span class="stat">{{ (getOverallHealthScore() * 100).toFixed(0) }}% health</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- System Controls -->
+          <mat-card class="controls-panel">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>settings</mat-icon>
+                System Controls
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- System Highlighting -->
+              <div class="control-section">
+                <h4>System Highlighting</h4>
+                <div class="highlight-buttons">
+                  <button mat-stroked-button 
+                          class="completed-button"
+                          (click)="highlightCompletedAnalyses()">
+                    <mat-icon>check_circle</mat-icon>
+                    Completed Analyses ({{ getCompletedAnalyses() }})
+                  </button>
+                  
+                  <button mat-stroked-button 
+                          class="failed-button"
+                          [disabled]="getFailedAnalyses() === 0"
+                          (click)="highlightFailedAnalyses()">
+                    <mat-icon>error</mat-icon>
+                    Failed Analyses ({{ getFailedAnalyses() }})
+                  </button>
+                  
+                  <button mat-stroked-button 
+                          class="critical-button"
+                          (click)="highlightCriticalNodes()">
+                    <mat-icon>priority_high</mat-icon>
+                    Critical System Nodes
+                  </button>
+                  
+                  <button mat-stroked-button (click)="resetHighlights()">
+                    <mat-icon>clear</mat-icon>
+                    Reset View
+                  </button>
+                </div>
+              </div>
+
+              <!-- System Overview -->
+              <div class="control-section">
+                <h4>System Overview</h4>
+                <div class="system-overview">
+                  <div class="overview-metric">
+                    <mat-icon [style.color]="getHealthScoreColor(getOverallHealthScore())">
+                      favorite
+                    </mat-icon>
+                    <div class="metric-content">
+                      <span class="metric-label">System Health</span>
+                      <span class="metric-value" 
+                            [style.color]="getHealthScoreColor(getOverallHealthScore())">
+                        {{ (getOverallHealthScore() * 100).toFixed(0) }}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="overview-metric">
+                    <mat-icon style="color: #9C27B0;">speed</mat-icon>
+                    <div class="metric-content">
+                      <span class="metric-label">System Efficiency</span>
+                      <span class="metric-value" 
+                            [style.color]="getEfficiencyColor(getSystemEfficiency())">
+                        {{ (getSystemEfficiency() * 100).toFixed(0) }}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="overview-metric">
+                    <mat-icon style="color: #673AB7;">schema</mat-icon>
+                    <div class="metric-content">
+                      <span class="metric-label">Complexity</span>
+                      <span class="metric-value" 
+                            [style.color]="getComplexityColor(getTopologyComplexity())">
+                        {{ getTopologyComplexity() | titlecase }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Analysis Status -->
+              <div class="control-section">
+                <h4>Analysis Status</h4>
+                <div class="analysis-status">
+                  <div class="status-item">
+                    <span class="status-label">Network Structure:</span>
+                    <mat-chip [style.background-color]="getStatusColor(getAnalysisStatus('networkStructure'))">
+                      {{ getAnalysisStatus('networkStructure') | titlecase }}
+                    </mat-chip>
+                  </div>
+                  
+                  <div class="status-item">
+                    <span class="status-label">Exact Inference:</span>
+                    <mat-chip [style.background-color]="getStatusColor(getAnalysisStatus('exactInference'))">
+                      {{ getAnalysisStatus('exactInference') | titlecase }}
+                    </mat-chip>
+                  </div>
+                  
+                  <div class="status-item">
+                    <span class="status-label">Flow Analysis:</span>
+                    <mat-chip [style.background-color]="getStatusColor(getAnalysisStatus('flowAnalysis'))">
+                      {{ getAnalysisStatus('flowAnalysis') | titlecase }}
+                    </mat-chip>
+                  </div>
+                  
+                  <div class="status-item">
+                    <span class="status-label">Critical Path:</span>
+                    <mat-chip [style.background-color]="getStatusColor(getAnalysisStatus('criticalPath'))">
+                      {{ getAnalysisStatus('criticalPath') | titlecase }}
+                    </mat-chip>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Mode - Executive Dashboard -->
+    @if (isDashboardMode()) {
+      <div class="dashboard-mode">
+        
+        <!-- Executive Summary -->
+        <mat-card class="executive-summary">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>summarize</mat-icon>
+              Executive Summary
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="summary-content">
+              @for (summary of getExecutiveSummary(); track $index) {
+                <p class="summary-item">{{ summary }}</p>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <div class="dashboard-grid">
+          
+          <!-- System Health Overview -->
+          <mat-card class="health-overview">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>favorite</mat-icon>
+                System Health Overview
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="health-dashboard">
+                <div class="health-gauge">
+                  <div class="gauge-container">
+                    <div class="gauge-bg"></div>
+                    <div class="gauge-fill" 
+                         [style.background]="'conic-gradient(' + getHealthScoreColor(getOverallHealthScore()) + ' 0deg, ' + getHealthScoreColor(getOverallHealthScore()) + ' ' + (getOverallHealthScore() * 360) + 'deg, #e0e0e0 ' + (getOverallHealthScore() * 360) + 'deg)'">
+                    </div>
+                    <div class="gauge-center">
+                      <span class="gauge-value">{{ (getOverallHealthScore() * 100).toFixed(0) }}%</span>
+                      <span class="gauge-label">Health Score</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="health-breakdown">
+                  <div class="breakdown-item">
+                    <span class="breakdown-label">Completed Analyses:</span>
+                    <span class="breakdown-value success">{{ getCompletedAnalyses() }} / {{ getTotalAnalyses() }}</span>
+                  </div>
+                  <div class="breakdown-item">
+                    <span class="breakdown-label">System Efficiency:</span>
+                    <span class="breakdown-value" [style.color]="getEfficiencyColor(getSystemEfficiency())">
+                      {{ (getSystemEfficiency() * 100).toFixed(0) }}%
+                    </span>
+                  </div>
+                  <div class="breakdown-item">
+                    <span class="breakdown-label">Network Complexity:</span>
+                    <span class="breakdown-value" [style.color]="getComplexityColor(getTopologyComplexity())">
+                      {{ getTopologyComplexity() | titlecase }}
+                    </span>
+                  </div>
+                  
+                  @if (getFailedAnalyses() > 0) {
+                    <div class="breakdown-item warning">
+                      <span class="breakdown-label">
+                        <mat-icon>warning</mat-icon>
+                        Failed Analyses:
+                      </span>
+                      <span class="breakdown-value">{{ getFailedAnalyses() }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- System Metrics -->
+          <mat-card class="system-metrics">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>analytics</mat-icon>
+                Key System Metrics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="metrics-grid">
+                @for (metric of getSystemMetrics(); track metric.label) {
+                  <div class="metric-card">
+                    <div class="metric-header">
+                      <mat-icon [style.color]="metric.color">{{ metric.icon }}</mat-icon>
+                      <span class="metric-label">{{ metric.label }}</span>
+                    </div>
+                    <div class="metric-value" [style.color]="metric.color">
+                      {{ metric.value }}{{ metric.unit ? ' ' + metric.unit : '' }}
+                    </div>
+                    <div class="metric-description">{{ metric.description }}</div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Analysis Comparison -->
+          <mat-card class="analysis-comparison">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>compare</mat-icon>
+                Analysis Comparison
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="comparison-table">
+                <div class="table-header">
+                  <div class="header-cell">Analysis</div>
+                  <div class="header-cell">Status</div>
+                  <div class="header-cell">Performance</div>
+                  <div class="header-cell">Key Metric</div>
+                </div>
+                
+                @for (comparison of getAnalysisComparisons(); track comparison.analysisType) {
+                  <div class="table-row">
+                    <div class="table-cell analysis-name">{{ comparison.analysisType }}</div>
+                    <div class="table-cell">
+                      <mat-chip [style.background-color]="getStatusColor(comparison.status)" class="status-chip">
+                        {{ comparison.status | titlecase }}
+                      </mat-chip>
+                    </div>
+                    <div class="table-cell performance">
+                      <div class="performance-indicator">
+                        <div class="performance-bar">
+                          <div class="performance-fill" 
+                               [style.width.%]="comparison.successRate"
+                               [style.background-color]="getStatusColor(comparison.status)">
+                          </div>
+                        </div>
+                        <span class="performance-time">{{ getFormattedExecutionTime(comparison.avgExecutionTime) }}</span>
+                      </div>
+                    </div>
+                    <div class="table-cell key-metric">
+                      @if (comparison.keyMetric) {
+                        <span class="metric-label">{{ comparison.keyMetric.label }}:</span>
+                        <span class="metric-value">{{ comparison.keyMetric.value }}</span>
+                      } @else {
+                        <span class="no-metric">N/A</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Network Insights -->
+          <mat-card class="network-insights">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>account_tree</mat-icon>
+                Network Insights
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="insights-grid">
+                <div class="insight-item">
+                  <div class="insight-icon">
+                    <mat-icon>hub</mat-icon>
+                  </div>
+                  <div class="insight-content">
+                    <div class="insight-value">{{ getTotalNodes() }}</div>
+                    <div class="insight-label">Total Nodes</div>
+                  </div>
+                </div>
+                
+                <div class="insight-item">
+                  <div class="insight-icon">
+                    <mat-icon>alt_route</mat-icon>
+                  </div>
+                  <div class="insight-content">
+                    <div class="insight-value">{{ getTotalEdges() }}</div>
+                    <div class="insight-label">Connections</div>
+                  </div>
+                </div>
+                
+                <div class="insight-item">
+                  <div class="insight-icon">
+                    <mat-icon>input</mat-icon>
+                  </div>
+                  <div class="insight-content">
+                    <div class="insight-value">{{ getSourceNodes() }}</div>
+                    <div class="insight-label">Sources</div>
+                  </div>
+                </div>
+                
+                <div class="insight-item">
+                  <div class="insight-icon">
+                    <mat-icon>output</mat-icon>
+                  </div>
+                  <div class="insight-content">
+                    <div class="insight-value">{{ getSinkNodes() }}</div>
+                    <div class="insight-label">Sinks</div>
+                  </div>
+                </div>
+                
+                <div class="insight-item full-width">
+                  <div class="insight-icon">
+                    <mat-icon>schema</mat-icon>
+                  </div>
+                  <div class="insight-content">
+                    <div class="insight-value" [style.color]="getComplexityColor(getTopologyComplexity())">
+                      {{ getTopologyComplexity() | titlecase }}
+                    </div>
+                    <div class="insight-label">Topology Complexity</div>
+                    <div class="insight-detail">
+                      Network density: {{ (getNetworkDensity() * 100).toFixed(1) }}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Performance Metrics -->
+          <mat-card class="performance-metrics">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>speed</mat-icon>
+                Performance Metrics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="performance-stats">
+                <div class="stat-item">
+                  <div class="stat-label">Total Execution Time</div>
+                  <div class="stat-value">{{ getFormattedExecutionTime(getTotalExecutionTime()) }}</div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-label">Average per Analysis</div>
+                  <div class="stat-value">{{ getFormattedExecutionTime(getAverageExecutionTime()) }}</div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-label">Fastest Analysis</div>
+                  <div class="stat-value success">{{ getFastestAnalysis() | titlecase }}</div>
+                </div>
+                
+                <div class="stat-item">
+                  <div class="stat-label">Slowest Analysis</div>
+                  <div class="stat-value warning">{{ getSlowestAnalysis() | titlecase }}</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Recommendations -->
+          <mat-card class="recommendations full-width">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>lightbulb</mat-icon>
+                Recommendations & Insights
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="recommendations-content">
+                @if (getRecommendations().length > 0) {
+                  <div class="recommendations-list">
+                    @for (recommendation of getRecommendations(); track $index) {
+                      <div class="recommendation-item">
+                        <mat-icon class="rec-icon">arrow_forward</mat-icon>
+                        <span class="rec-text">{{ recommendation }}</span>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="no-recommendations">
+                    <mat-icon>check_circle</mat-icon>
+                    <p>System is performing optimally. No specific recommendations at this time.</p>
+                  </div>
+                }
+                
+                <div class="insights-summary">
+                  <div class="summary-item">
+                    <span class="summary-label">Inference Quality:</span>
+                    <span class="summary-value" 
+                          [class]="'quality-' + getInferenceQuality()">
+                      {{ getInferenceQuality() | titlecase }}
+                    </span>
+                  </div>
+                  
+                  <div class="summary-item">
+                    <span class="summary-label">Flow-Topology Ratio:</span>
+                    <span class="summary-value">
+                      {{ (getFlowToTopologyRatio() * 100).toFixed(1) }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+  }
+</div>

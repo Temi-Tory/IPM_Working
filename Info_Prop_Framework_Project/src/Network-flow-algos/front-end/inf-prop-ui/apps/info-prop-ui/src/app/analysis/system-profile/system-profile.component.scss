@@ -1,0 +1,826 @@
+// System Profile - Purple Theme (#9C27B0 primary, #673AB7 secondary)
+$system-primary: #9C27B0;
+$system-secondary: #673AB7;
+$system-accent: #E1BEE7;
+$system-light: #F3E5F5;
+$system-dark: #4A148C;
+$system-success: #4CAF50;
+$system-warning: #FF9800;
+$system-error: #F44336;
+
+.system-profile-container {
+  padding: 24px;
+  background-color: var(--surface-background);
+  min-height: calc(100vh - 64px);
+}
+
+.analysis-header {
+  margin-bottom: 24px;
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    
+    .header-info {
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--on-surface);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        
+        .header-icon {
+          color: $system-primary;
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+      
+      .network-name {
+        margin: 0;
+        font-size: 16px;
+        color: var(--on-surface-variant);
+        font-weight: 500;
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  
+  mat-spinner {
+    margin-bottom: 16px;
+    
+    ::ng-deep .mat-mdc-progress-spinner circle {
+      stroke: $system-primary;
+    }
+  }
+  
+  p {
+    color: var(--on-surface-variant);
+    font-size: 14px;
+  }
+}
+
+.error-card {
+  background-color: var(--error-container);
+  color: var(--on-error-container);
+  
+  .error-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    .error-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: var(--error);
+    }
+    
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--on-error-container);
+    }
+    
+    p {
+      margin: 0;
+      color: var(--on-error-container);
+      opacity: 0.8;
+    }
+  }
+}
+
+// Visual Mode Styles
+.visual-mode {
+  .visual-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+    height: calc(100vh - 200px);
+    
+    .graph-container {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--surface-container-low);
+      
+      mat-card-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .graph-placeholder {
+          text-align: center;
+          color: var(--on-surface-variant);
+          
+          .graph-icon {
+            font-size: 64px;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+            color: $system-primary;
+          }
+          
+          h3 {
+            margin: 0 0 8px 0;
+            font-weight: 500;
+            color: $system-primary;
+          }
+          
+          p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+          }
+          
+          .graph-stats {
+            margin-top: 16px;
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            
+            .stat {
+              padding: 8px 16px;
+              background-color: $system-light;
+              border-radius: 16px;
+              font-weight: 500;
+              color: $system-dark;
+              font-size: 14px;
+            }
+          }
+        }
+      }
+    }
+    
+    .controls-panel {
+      background-color: var(--surface-container);
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+      
+      .control-section {
+        margin-bottom: 24px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: $system-primary;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .highlight-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          
+          button {
+            justify-content: flex-start;
+            color: var(--on-surface);
+            border-color: $system-accent;
+            
+            &:hover {
+              background-color: $system-light;
+              border-color: $system-primary;
+            }
+            
+            &.completed-button {
+              border-color: $system-success;
+              color: $system-success;
+              
+              &:hover {
+                background-color: rgba(76, 175, 80, 0.1);
+              }
+            }
+            
+            &.failed-button {
+              border-color: $system-error;
+              color: $system-error;
+              
+              &:hover {
+                background-color: rgba(244, 67, 54, 0.1);
+              }
+            }
+            
+            &.critical-button {
+              border-color: $system-secondary;
+              color: $system-secondary;
+              
+              &:hover {
+                background-color: rgba(103, 58, 183, 0.1);
+              }
+            }
+          }
+        }
+        
+        .system-overview {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          
+          .overview-metric {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background-color: $system-light;
+            border-radius: 8px;
+            
+            mat-icon {
+              font-size: 24px;
+              width: 24px;
+              height: 24px;
+            }
+            
+            .metric-content {
+              flex: 1;
+              
+              .metric-label {
+                display: block;
+                font-size: 12px;
+                color: var(--on-surface-variant);
+                font-weight: 500;
+              }
+              
+              .metric-value {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--on-surface);
+              }
+            }
+          }
+        }
+        
+        .analysis-status {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          
+          .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            
+            .status-label {
+              font-size: 13px;
+              color: var(--on-surface-variant);
+            }
+            
+            mat-chip {
+              font-size: 11px;
+              height: 24px;
+              color: white;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dashboard Mode Styles
+.dashboard-mode {
+  .executive-summary {
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, $system-light, white);
+    border-left: 4px solid $system-primary;
+    
+    .summary-content {
+      .summary-item {
+        margin: 0 0 12px 0;
+        line-height: 1.6;
+        color: var(--on-surface);
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+  
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 24px;
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    // Health Overview
+    .health-overview {
+      background: linear-gradient(135deg, $system-light, white);
+      
+      .health-dashboard {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        
+        .health-gauge {
+          .gauge-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            
+            .gauge-bg, .gauge-fill {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+            }
+            
+            .gauge-bg {
+              background-color: #e0e0e0;
+            }
+            
+            .gauge-fill {
+              // Dynamic background set via style binding
+            }
+            
+            .gauge-center {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              text-align: center;
+              
+              .gauge-value {
+                display: block;
+                font-size: 24px;
+                font-weight: 700;
+                color: $system-primary;
+              }
+              
+              .gauge-label {
+                display: block;
+                font-size: 12px;
+                color: var(--on-surface-variant);
+                font-weight: 500;
+              }
+            }
+          }
+        }
+        
+        .health-breakdown {
+          flex: 1;
+          
+          .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid $system-accent;
+            
+            &:last-child {
+              border-bottom: none;
+            }
+            
+            .breakdown-label {
+              font-size: 14px;
+              color: var(--on-surface-variant);
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            
+            .breakdown-value {
+              font-weight: 600;
+              
+              &.success {
+                color: $system-success;
+              }
+              
+              &.warning {
+                color: $system-warning;
+              }
+            }
+            
+            &.warning {
+              color: $system-warning;
+            }
+          }
+        }
+      }
+    }
+    
+    // System Metrics
+    .system-metrics {
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 16px;
+        
+        .metric-card {
+          padding: 16px;
+          border-radius: 8px;
+          background-color: $system-light;
+          text-align: center;
+          
+          .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            
+            mat-icon {
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+            
+            .metric-label {
+              font-size: 12px;
+              font-weight: 600;
+              color: var(--on-surface-variant);
+            }
+          }
+          
+          .metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          
+          .metric-description {
+            font-size: 11px;
+            color: var(--on-surface-variant);
+            line-height: 1.4;
+          }
+        }
+      }
+    }
+    
+    // Analysis Comparison
+    .analysis-comparison {
+      .comparison-table {
+        .table-header,
+        .table-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 2fr 1.5fr;
+          gap: 16px;
+          align-items: center;
+          padding: 12px 0;
+        }
+        
+        .table-header {
+          border-bottom: 2px solid $system-primary;
+          margin-bottom: 8px;
+          
+          .header-cell {
+            font-weight: 600;
+            color: $system-primary;
+            font-size: 14px;
+          }
+        }
+        
+        .table-row {
+          border-bottom: 1px solid $system-accent;
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          .table-cell {
+            font-size: 13px;
+            
+            &.analysis-name {
+              font-weight: 500;
+            }
+            
+            .status-chip {
+              font-size: 10px;
+              height: 20px;
+              color: white;
+              font-weight: 500;
+            }
+            
+            .performance {
+              .performance-indicator {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                
+                .performance-bar {
+                  height: 6px;
+                  background-color: #e0e0e0;
+                  border-radius: 3px;
+                  overflow: hidden;
+                  
+                  .performance-fill {
+                    height: 100%;
+                    transition: width 0.3s ease;
+                  }
+                }
+                
+                .performance-time {
+                  font-size: 11px;
+                  color: var(--on-surface-variant);
+                }
+              }
+            }
+            
+            .key-metric {
+              .metric-label {
+                font-size: 11px;
+                color: var(--on-surface-variant);
+              }
+              
+              .metric-value {
+                font-weight: 600;
+                color: $system-primary;
+              }
+              
+              .no-metric {
+                color: var(--on-surface-variant);
+                font-style: italic;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Network Insights
+    .network-insights {
+      .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        
+        .insight-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background-color: $system-light;
+          border-radius: 8px;
+          
+          &.full-width {
+            grid-column: 1 / -1;
+          }
+          
+          .insight-icon {
+            mat-icon {
+              font-size: 32px;
+              width: 32px;
+              height: 32px;
+              color: $system-primary;
+            }
+          }
+          
+          .insight-content {
+            .insight-value {
+              font-size: 24px;
+              font-weight: 700;
+              color: var(--on-surface);
+              margin-bottom: 4px;
+            }
+            
+            .insight-label {
+              font-size: 14px;
+              color: var(--on-surface-variant);
+              font-weight: 500;
+            }
+            
+            .insight-detail {
+              font-size: 12px;
+              color: var(--on-surface-variant);
+              margin-top: 4px;
+            }
+          }
+        }
+      }
+    }
+    
+    // Performance Metrics
+    .performance-metrics {
+      .performance-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        
+        .stat-item {
+          text-align: center;
+          padding: 16px;
+          background-color: $system-light;
+          border-radius: 8px;
+          
+          .stat-label {
+            display: block;
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            margin-bottom: 8px;
+            font-weight: 500;
+          }
+          
+          .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--on-surface);
+            
+            &.success {
+              color: $system-success;
+            }
+            
+            &.warning {
+              color: $system-warning;
+            }
+          }
+        }
+      }
+    }
+    
+    // Recommendations
+    .recommendations {
+      .recommendations-content {
+        .recommendations-list {
+          .recommendation-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid $system-accent;
+            
+            &:last-child {
+              border-bottom: none;
+            }
+            
+            .rec-icon {
+              color: $system-primary;
+              margin-top: 2px;
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+            
+            .rec-text {
+              flex: 1;
+              line-height: 1.5;
+              color: var(--on-surface);
+            }
+          }
+        }
+        
+        .no-recommendations {
+          text-align: center;
+          padding: 24px;
+          color: $system-success;
+          
+          mat-icon {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+          }
+          
+          p {
+            margin: 0;
+            font-weight: 500;
+          }
+        }
+        
+        .insights-summary {
+          margin-top: 24px;
+          padding-top: 16px;
+          border-top: 2px solid $system-accent;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          
+          .summary-item {
+            flex: 1;
+            text-align: center;
+            
+            .summary-label {
+              display: block;
+              font-size: 12px;
+              color: var(--on-surface-variant);
+              margin-bottom: 4px;
+            }
+            
+            .summary-value {
+              font-size: 16px;
+              font-weight: 600;
+              
+              &.quality-high {
+                color: $system-success;
+              }
+              
+              &.quality-medium {
+                color: $system-warning;
+              }
+              
+              &.quality-low {
+                color: $system-error;
+              }
+              
+              &.quality-unknown {
+                color: var(--on-surface-variant);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .system-profile-container {
+    padding: 16px;
+  }
+  
+  .visual-mode .visual-content {
+    grid-template-columns: 1fr;
+    height: auto;
+    
+    .controls-panel {
+      max-height: none;
+    }
+  }
+  
+  .dashboard-mode .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    
+    .analysis-comparison .comparison-table {
+      .table-header,
+      .table-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        
+        .table-cell {
+          padding: 4px 0;
+        }
+      }
+    }
+    
+    .network-insights .insights-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .performance-metrics .performance-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Animation and Transitions
+.metric-card,
+.insight-item,
+.recommendation-item {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(156, 39, 176, 0.15);
+  }
+}
+
+.gauge-fill {
+  transition: all 0.5s ease;
+}
+
+.performance-fill {
+  transition: width 0.5s ease;
+}
+
+// Utility Classes
+.success {
+  color: $system-success !important;
+}
+
+.warning {
+  color: $system-warning !important;
+}
+
+.error {
+  color: $system-error !important;
+}

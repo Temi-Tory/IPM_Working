@@ -149,7 +149,7 @@ function run_conditional_network_analysis(network_name::String, base_path::Strin
                 node_priors = read_node_priors_from_json(filepath_node_json)
                 edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
                 
-                # Diamond identification
+                # Diamond identification and classification
                 root_diamonds = identify_and_group_diamonds(
                     join_nodes, incoming_index, ancestors, descendants,
                     source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
@@ -159,7 +159,50 @@ function run_conditional_network_analysis(network_name::String, base_path::Strin
                     root_diamonds, node_priors, ancestors, descendants, iteration_sets
                 )
                 
-                # Run reachability analysis
+                # Classify diamonds for detailed analysis
+                diamond_classifications = Dict()
+                for (join_node, diamonds_at_node) in root_diamonds
+                    diamond = diamonds_at_node.diamond
+                    classification = classify_diamond_exhaustive(
+                        diamond, join_node, edgelist, outgoing_index, incoming_index, 
+                        source_nodes, fork_nodes, join_nodes, iteration_sets, ancestors, descendants
+                    )
+                    # Find the highest nodes (fork nodes) for this diamond by analyzing the diamond structure
+                    diamond_source_nodes = Set{Int64}()
+                    for node in diamond.relevant_nodes
+                        if node in source_nodes
+                            push!(diamond_source_nodes, node)
+                        end
+                    end
+                    
+                    # Get fork nodes within the diamond
+                    diamond_fork_nodes = intersect(diamond.relevant_nodes, fork_nodes)
+                    
+                    diamond_classifications[string(join_node)] = Dict(
+                        "fork_structure" => string(classification.fork_structure),
+                        "internal_structure" => string(classification.internal_structure),
+                        "path_topology" => string(classification.path_topology),
+                        "join_structure" => string(classification.join_structure),
+                        "external_connectivity" => string(classification.external_connectivity),
+                        "degeneracy" => string(classification.degeneracy),
+                        "fork_count" => classification.fork_count,
+                        "subgraph_size" => classification.subgraph_size,
+                        "internal_forks" => classification.internal_forks,
+                        "internal_joins" => classification.internal_joins,
+                        "path_count" => classification.path_count,
+                        "complexity_score" => classification.complexity_score,
+                        "optimization_potential" => classification.optimization_potential,
+                        "bottleneck_risk" => classification.bottleneck_risk,
+                        "relevant_nodes" => collect(diamond.relevant_nodes),
+                        "conditioning_nodes" => collect(diamond.conditioning_nodes),
+                        "fork_nodes" => collect(diamond_fork_nodes),
+                        "source_nodes" => collect(diamond_source_nodes),
+                        "edge_count" => length(diamond.edgelist),
+                        "is_maximal" => false  # Will be determined later
+                    )
+                end
+                
+                # Run exact inference (belief propagation)
                 reachability_output = update_beliefs_iterative(
                     edgelist, iteration_sets, outgoing_index, incoming_index,
                     source_nodes, node_priors, edge_probabilities, descendants,
@@ -169,13 +212,83 @@ function run_conditional_network_analysis(network_name::String, base_path::Strin
                 execution_time = time() - start_time
                 
                 # Convert to serializable format
-                reachability_dict = Dict(string(k) => v for (k, v) in reachability_output)
+                inference_dict = Dict(string(k) => v for (k, v) in reachability_output)
+                
+                # Sort by belief value for top results
+                sorted_beliefs = sort(collect(inference_dict), by=x->x[2], rev=true)
+                top_beliefs = Dict()
+                for (i, (node, belief)) in enumerate(sorted_beliefs[1:min(10, length(sorted_beliefs))])
+                    top_beliefs[node] = belief
+                end
                 
                 results["exact_inference"] = Dict(
-                    "node_beliefs" => reachability_dict,
+                    "node_beliefs" => inference_dict,
+                    "top_beliefs" => top_beliefs,
                     "execution_time" => execution_time,
-                    "diamonds_found" => length(unique_diamonds),
-                    "data_type" => data_type
+                    "data_type" => data_type,
+                    "algorithm_type" => "belief_propagation"
+                )
+                
+                # Classify unique diamonds as well
+                unique_diamond_classifications = Dict()
+                unique_diamond_hashes = Set()
+                
+                for (hash_key, diamond_data) in unique_diamonds
+                    # Get the actual diamond from the computation data
+                    if haskey(diamond_data.sub_diamond_structures, hash_key)
+                        for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
+                            if diamonds_at_node.diamond ∉ unique_diamond_hashes
+                                push!(unique_diamond_hashes, diamonds_at_node.diamond)
+                                
+                                classification = classify_diamond_exhaustive(
+                                    diamonds_at_node.diamond, join_node, edgelist, outgoing_index, incoming_index,
+                                    source_nodes, fork_nodes, join_nodes, iteration_sets, ancestors, descendants
+                                )
+                                
+                                diamond = diamonds_at_node.diamond
+                                diamond_source_nodes = intersect(diamond.relevant_nodes, source_nodes)
+                                diamond_fork_nodes = intersect(diamond.relevant_nodes, fork_nodes)
+                                
+                                unique_key = "unique_$(hash_key)_$(join_node)"
+                                unique_diamond_classifications[unique_key] = Dict(
+                                    "type" => "unique",
+                                    "hash_key" => string(hash_key),
+                                    "join_node" => join_node,
+                                    "fork_structure" => string(classification.fork_structure),
+                                    "internal_structure" => string(classification.internal_structure),
+                                    "path_topology" => string(classification.path_topology),
+                                    "join_structure" => string(classification.join_structure),
+                                    "external_connectivity" => string(classification.external_connectivity),
+                                    "degeneracy" => string(classification.degeneracy),
+                                    "fork_count" => classification.fork_count,
+                                    "subgraph_size" => classification.subgraph_size,
+                                    "internal_forks" => classification.internal_forks,
+                                    "internal_joins" => classification.internal_joins,
+                                    "path_count" => classification.path_count,
+                                    "complexity_score" => classification.complexity_score,
+                                    "optimization_potential" => classification.optimization_potential,
+                                    "bottleneck_risk" => classification.bottleneck_risk,
+                                    "relevant_nodes" => collect(diamond.relevant_nodes),
+                                    "conditioning_nodes" => collect(diamond.conditioning_nodes),
+                                    "fork_nodes" => collect(diamond_fork_nodes),
+                                    "source_nodes" => collect(diamond_source_nodes),
+                                    "edge_count" => length(diamond.edgelist)
+                                )
+                            end
+                        end
+                    end
+                end
+                
+                # Add detailed diamond analysis
+                results["diamond_analysis"] = Dict(
+                    "root_diamonds_count" => length(root_diamonds),
+                    "unique_diamonds_count" => length(unique_diamonds),
+                    "join_nodes_with_diamonds" => collect(keys(root_diamonds)),
+                    "root_classifications" => diamond_classifications,
+                    "unique_classifications" => unique_diamond_classifications,
+                    "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
+                    "has_complex_diamonds" => any(c["complexity_score"] > 10.0 for c in values(diamond_classifications)),
+                    "total_classifications" => length(diamond_classifications) + length(unique_diamond_classifications)
                 )
             else
                 results["exact_inference"] = Dict(
@@ -313,7 +426,7 @@ function run_conditional_network_analysis(network_name::String, base_path::Strin
                     )
                     cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
                     
-                    cmp_results["cost_analysis"] = Dict(
+                    cpm_results["cost_analysis"] = Dict(
                         "total_cost" => cost_result.critical_value,
                         "critical_nodes" => cost_result.critical_nodes,
                         "node_values" => Dict(string(k) => v for (k, v) in cost_result.node_values)
@@ -377,16 +490,16 @@ function run_network_analysis(network_name::String, base_path::String, data_type
             "iteration_sets_count" => length(iteration_sets)
         )
         
-        # STEP 2: Reachability Analysis
+        # STEP 2: Exact Inference Analysis
         if isfile(filepath_node_json) && isfile(filepath_edge_json)
-            println("Running reachability analysis...")
+            println("Running exact inference analysis...")
             start_time = time()
             
-            # Load reachability inputs
+            # Load inference inputs
             node_priors = read_node_priors_from_json(filepath_node_json)
             edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
             
-            # Diamond identification
+            # Diamond identification and classification
             root_diamonds = identify_and_group_diamonds(
                 join_nodes, incoming_index, ancestors, descendants,
                 source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
@@ -396,7 +509,36 @@ function run_network_analysis(network_name::String, base_path::String, data_type
                 root_diamonds, node_priors, ancestors, descendants, iteration_sets
             )
             
-            # Run reachability analysis
+            # Classify diamonds for detailed analysis
+            diamond_classifications = Dict()
+            for (join_node, diamonds_at_node) in root_diamonds
+                diamond = diamonds_at_node.diamond
+                classification = classify_diamond_exhaustive(
+                    diamond, join_node, edgelist, outgoing_index, incoming_index, 
+                    source_nodes, fork_nodes, join_nodes, iteration_sets, ancestors, descendants
+                )
+                diamond_classifications[string(join_node)] = Dict(
+                    "fork_structure" => string(classification.fork_structure),
+                    "internal_structure" => string(classification.internal_structure),
+                    "path_topology" => string(classification.path_topology),
+                    "join_structure" => string(classification.join_structure),
+                    "external_connectivity" => string(classification.external_connectivity),
+                    "degeneracy" => string(classification.degeneracy),
+                    "fork_count" => classification.fork_count,
+                    "subgraph_size" => classification.subgraph_size,
+                    "internal_forks" => classification.internal_forks,
+                    "internal_joins" => classification.internal_joins,
+                    "path_count" => classification.path_count,
+                    "complexity_score" => classification.complexity_score,
+                    "optimization_potential" => classification.optimization_potential,
+                    "bottleneck_risk" => classification.bottleneck_risk,
+                    "relevant_nodes" => collect(diamond.relevant_nodes),
+                    "conditioning_nodes" => collect(diamond.conditioning_nodes),
+                    "edge_count" => length(diamond.edgelist)
+                )
+            end
+            
+            # Run exact inference (belief propagation)
             reachability_output = update_beliefs_iterative(
                 edgelist, iteration_sets, outgoing_index, incoming_index,
                 source_nodes, node_priors, edge_probabilities, descendants,
@@ -406,13 +548,31 @@ function run_network_analysis(network_name::String, base_path::String, data_type
             execution_time = time() - start_time
             
             # Convert to serializable format
-            reachability_dict = Dict(string(k) => v for (k, v) in reachability_output)
+            inference_dict = Dict(string(k) => v for (k, v) in reachability_output)
             
-            results["reachability"] = Dict(
-                "node_beliefs" => reachability_dict,
+            # Sort by belief value for top results
+            sorted_beliefs = sort(collect(inference_dict), by=x->x[2], rev=true)
+            top_beliefs = Dict()
+            for (i, (node, belief)) in enumerate(sorted_beliefs[1:min(10, length(sorted_beliefs))])
+                top_beliefs[node] = belief
+            end
+            
+            results["exact_inference"] = Dict(
+                "node_beliefs" => inference_dict,
+                "top_beliefs" => top_beliefs,
                 "execution_time" => execution_time,
-                "diamonds_found" => length(unique_diamonds),
-                "data_type" => data_type
+                "data_type" => data_type,
+                "algorithm_type" => "belief_propagation"
+            )
+            
+            # Add detailed diamond analysis
+            results["diamond_analysis"] = Dict(
+                "root_diamonds_count" => length(root_diamonds),
+                "unique_diamonds_count" => length(unique_diamonds),
+                "join_nodes_with_diamonds" => collect(keys(root_diamonds)),
+                "classifications" => diamond_classifications,
+                "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
+                "has_complex_diamonds" => any(c["complexity_score"] > 10.0 for c in values(diamond_classifications))
             )
         end
         
@@ -460,7 +620,7 @@ function run_network_analysis(network_name::String, base_path::String, data_type
             # Convert to serializable format
             target_flows = Dict(string(k) => v for (k, v) in capacity_result.node_max_flows if k in targets)
             
-            results["capacity"] = Dict(
+            results["flow_analysis"] = Dict(
                 "network_utilization" => capacity_result.network_utilization,
                 "target_flows" => target_flows,
                 "total_source_input" => sum(values(source_rates)),

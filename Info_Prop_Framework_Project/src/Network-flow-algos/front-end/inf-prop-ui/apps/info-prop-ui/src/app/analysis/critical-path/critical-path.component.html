@@ -1,0 +1,553 @@
+<div class="critical-path-container">
+  
+  <!-- Header Section -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Critical Path Analysis</h1>
+        <p class="network-name">{{ getNetworkName() }}</p>
+      </div>
+      
+      <div class="header-actions">
+        <app-analysis-view-switcher 
+          [currentMode]="currentViewMode()"
+          [availableModes]="availableViewModes()"
+          (modeChange)="switchViewMode($event)">
+        </app-analysis-view-switcher>
+        
+        <button mat-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportData('json')">
+            <mat-icon>code</mat-icon>
+            <span>Export JSON</span>
+          </button>
+          <button mat-menu-item (click)="exportData('csv')">
+            <mat-icon>table_chart</mat-icon>
+            <span>Export CSV</span>
+          </button>
+          <button mat-menu-item (click)="exportData('png')">
+            <mat-icon>image</mat-icon>
+            <span>Export PNG</span>
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Loading critical path analysis...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div>
+            <h3>Error Loading Critical Path Analysis</h3>
+            <p>{{ error() }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && !error() && componentData()) {
+    
+    <!-- Visual Mode -->
+    @if (isVisualMode()) {
+      <div class="visual-mode">
+        <div class="visual-content">
+          
+          <!-- Graph Visualization Container -->
+          <mat-card class="graph-container">
+            <mat-card-content>
+              <div class="graph-placeholder">
+                <mat-icon class="graph-icon">timeline</mat-icon>
+                <h3>Interactive Critical Path Graph</h3>
+                <p>Critical path network visualization will be implemented here</p>
+                <div class="graph-stats">
+                  @if (hasTimeAnalysis()) {
+                    <span class="time-stat">{{ getCriticalDuration().toFixed(1) }} time units</span>
+                  }
+                  @if (hasCostAnalysis()) {
+                    <span class="cost-stat">{{ getTotalCost().toFixed(1) }} cost units</span>
+                  }
+                  <span class="path-length">{{ getCriticalPathLength() }} nodes</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Visual Controls -->
+          <mat-card class="controls-panel">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>tune</mat-icon>
+                Critical Path Controls
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              
+              <!-- Path Highlighting -->
+              <div class="control-section">
+                <h4>Highlight Critical Paths</h4>
+                <div class="highlight-buttons">
+                  @if (hasTimeAnalysis()) {
+                    <button mat-stroked-button 
+                            class="time-path-button"
+                            [class.highlighted]="isHighlightedPathType('time')"
+                            (click)="highlightTimeCriticalPath()">
+                      <mat-icon>schedule</mat-icon>
+                      Time Critical Path ({{ getCriticalTimeNodes().length }})
+                    </button>
+                  }
+                  
+                  @if (hasCostAnalysis()) {
+                    <button mat-stroked-button 
+                            class="cost-path-button"
+                            [class.highlighted]="isHighlightedPathType('cost')"
+                            (click)="highlightCostCriticalPath()">
+                      <mat-icon>attach_money</mat-icon>
+                      Cost Critical Path ({{ getCriticalCostNodes().length }})
+                    </button>
+                  }
+                  
+                  @if (hasBothAnalyses()) {
+                    <button mat-stroked-button 
+                            class="both-paths-button"
+                            [class.highlighted]="isHighlightedPathType('both')"
+                            (click)="highlightBothCriticalPaths()">
+                      <mat-icon>merge_type</mat-icon>
+                      Combined Paths
+                    </button>
+                  }
+                  
+                  @if (hasOptimizationOpportunities()) {
+                    <button mat-stroked-button 
+                            class="optimization-button"
+                            [class.highlighted]="isHighlightedPathType('optimization')"
+                            (click)="highlightOptimizationTargets()">
+                      <mat-icon>trending_up</mat-icon>
+                      Optimization Targets
+                    </button>
+                  }
+                  
+                  <button mat-stroked-button (click)="resetHighlights()">
+                    <mat-icon>clear</mat-icon>
+                    Clear Highlights
+                  </button>
+                </div>
+              </div>
+
+              <!-- Path Information -->
+              <div class="control-section">
+                <h4>Path Information</h4>
+                <div class="path-info">
+                  @if (hasTimeAnalysis()) {
+                    <div class="info-item">
+                      <span class="info-label">Critical Duration:</span>
+                      <span class="info-value">{{ getCriticalDuration().toFixed(1) }} time units</span>
+                    </div>
+                  }
+                  
+                  @if (hasCostAnalysis()) {
+                    <div class="info-item">
+                      <span class="info-label">Total Cost:</span>
+                      <span class="info-value">{{ getTotalCost().toFixed(1) }} cost units</span>
+                    </div>
+                  }
+                  
+                  <div class="info-item">
+                    <span class="info-label">Path Length:</span>
+                    <span class="info-value">{{ getCriticalPathLength() }} nodes</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Path Category:</span>
+                    <span class="info-value" [style.color]="getPathCategoryColor()">
+                      {{ getPathCategory() | titlecase }}
+                    </span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Analysis Type:</span>
+                    <span class="info-value">{{ getAnalysisType() | titlecase }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="info-label">Execution Time:</span>
+                    <span class="info-value">{{ getFormattedExecutionTime() }}</span>
+                  </div>
+                  
+                  @if (hasTimeAnalysis()) {
+                    <div class="info-item">
+                      <span class="info-label">Critical Time Nodes:</span>
+                      <span class="info-value nodes-list">{{ getCriticalTimeNodesList() }}</span>
+                    </div>
+                  }
+                  
+                  @if (hasCostAnalysis()) {
+                    <div class="info-item">
+                      <span class="info-label">Critical Cost Nodes:</span>
+                      <span class="info-value nodes-list">{{ getCriticalCostNodesList() }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Critical Path Analysis -->
+              <div class="control-section">
+                <h4>Path Analysis</h4>
+                <div class="path-analysis">
+                  @if (hasTimeAnalysis()) {
+                    <div class="analysis-metric">
+                      <div class="metric-header">
+                        <mat-icon>schedule</mat-icon>
+                        <span>Time Analysis</span>
+                      </div>
+                      <div class="metric-value">{{ getCriticalDuration().toFixed(1) }} units</div>
+                      <div class="metric-details">
+                        <span>{{ getCriticalTimeNodes().length }} critical nodes</span>
+                        <span>Efficiency: {{ (getTimeEfficiency() * 100).toFixed(1) }}%</span>
+                      </div>
+                    </div>
+                  }
+                  
+                  @if (hasCostAnalysis()) {
+                    <div class="analysis-metric">
+                      <div class="metric-header">
+                        <mat-icon>attach_money</mat-icon>
+                        <span>Cost Analysis</span>
+                      </div>
+                      <div class="metric-value">{{ getTotalCost().toFixed(1) }} units</div>
+                      <div class="metric-details">
+                        <span>{{ getCriticalCostNodes().length }} critical nodes</span>
+                        <span>Efficiency: {{ (getCostEfficiency() * 100).toFixed(1) }}%</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Top Critical Nodes -->
+              <div class="control-section">
+                <h4>Most Critical Nodes</h4>
+                <div class="critical-nodes">
+                  @for (node of getTopCriticalNodes(); track node.nodeId) {
+                    <div class="critical-node-item">
+                      <div class="node-header">
+                        <span class="node-id">Node {{ node.nodeId }}</span>
+                        <mat-chip class="criticality-chip" 
+                                 [style.background-color]="getBottleneckColorForPotential(node.bottleneckPotential)">
+                          {{ node.bottleneckPotential | titlecase }}
+                        </mat-chip>
+                      </div>
+                      <div class="node-details">
+                        @if (node.timeValue > 0) {
+                          <span class="time-value">Time: {{ node.timeValue.toFixed(1) }}</span>
+                        }
+                        @if (node.costValue > 0) {
+                          <span class="cost-value">Cost: {{ node.costValue.toFixed(1) }}</span>
+                        }
+                      </div>
+                      <div class="criticality-bar">
+                        <div class="criticality-fill" 
+                             [style.width.%]="node.criticalityScore * 100"
+                             [style.background-color]="getBottleneckColorForPotential(node.bottleneckPotential)">
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  
+                  @if (getNodeCriticality().length === 0) {
+                    <div class="no-critical-nodes">
+                      <p>No critical nodes detected</p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Mode -->
+    @if (isDashboardMode()) {
+      <div class="dashboard-mode">
+        <div class="dashboard-grid">
+          
+          <!-- Critical Path Statistics -->
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>timeline</mat-icon>
+                Critical Path Statistics
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-grid">
+                @if (hasTimeAnalysis()) {
+                  <div class="stat-item">
+                    <div class="stat-value">{{ getCriticalDuration().toFixed(1) }}</div>
+                    <div class="stat-label">Critical Duration</div>
+                  </div>
+                }
+                @if (hasCostAnalysis()) {
+                  <div class="stat-item">
+                    <div class="stat-value">{{ getTotalCost().toFixed(1) }}</div>
+                    <div class="stat-label">Total Cost</div>
+                  </div>
+                }
+                <div class="stat-item">
+                  <div class="stat-value">{{ getCriticalPathLength() }}</div>
+                  <div class="stat-label">Path Length</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value">{{ getFormattedExecutionTime() }}</div>
+                  <div class="stat-label">Execution Time</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Path Analysis Dashboard -->
+          <mat-card class="path-analysis-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>assessment</mat-icon>
+                Path Analysis Overview
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="path-overview">
+                <div class="path-gauge">
+                  <div class="gauge-container">
+                    <div class="gauge-category" [style.color]="getPathCategoryColor()">
+                      {{ getPathCategory() | titlecase }}
+                    </div>
+                    <div class="gauge-type">{{ getAnalysisType() | titlecase }} Analysis</div>
+                    <div class="gauge-metrics">
+                      @if (hasTimeAnalysis()) {
+                        <span class="time-efficiency">Time Efficiency: {{ (getTimeEfficiency() * 100).toFixed(1) }}%</span>
+                      }
+                      @if (hasCostAnalysis()) {
+                        <span class="cost-efficiency">Cost Efficiency: {{ (getCostEfficiency() * 100).toFixed(1) }}%</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Time Analysis -->
+          @if (hasTimeAnalysis()) {
+            <mat-card class="time-analysis-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>schedule</mat-icon>
+                  Time Analysis
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="time-analysis">
+                  <div class="time-summary">
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ getCriticalDuration().toFixed(1) }}</div>
+                      <div class="summary-label">Critical Duration</div>
+                    </div>
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ getCriticalTimeNodes().length }}</div>
+                      <div class="summary-label">Critical Nodes</div>
+                    </div>
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ (getTimeEfficiency() * 100).toFixed(1) }}%</div>
+                      <div class="summary-label">Efficiency</div>
+                    </div>
+                  </div>
+
+                  <!-- Time Critical Nodes -->
+                  <div class="time-nodes">
+                    <h5>Time Critical Nodes</h5>
+                    <div class="node-list">
+                      @for (node of getTimeCriticalNodes(); track node.nodeId) {
+                        <div class="time-node-item">
+                          <mat-icon class="time-icon">schedule</mat-icon>
+                          <span class="node-name">Node {{ node.nodeId }}</span>
+                          <span class="node-value">{{ node.timeValue.toFixed(1) }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <!-- Cost Analysis -->
+          @if (hasCostAnalysis()) {
+            <mat-card class="cost-analysis-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>attach_money</mat-icon>
+                  Cost Analysis
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="cost-analysis">
+                  <div class="cost-summary">
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ getTotalCost().toFixed(1) }}</div>
+                      <div class="summary-label">Total Cost</div>
+                    </div>
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ getCriticalCostNodes().length }}</div>
+                      <div class="summary-label">Critical Nodes</div>
+                    </div>
+                    <div class="summary-stat">
+                      <div class="summary-value">{{ (getCostEfficiency() * 100).toFixed(1) }}%</div>
+                      <div class="summary-label">Efficiency</div>
+                    </div>
+                  </div>
+
+                  <!-- Cost Critical Nodes -->
+                  <div class="cost-nodes">
+                    <h5>Cost Critical Nodes</h5>
+                    <div class="node-list">
+                      @for (node of getCostCriticalNodes(); track node.nodeId) {
+                        <div class="cost-node-item">
+                          <mat-icon class="cost-icon">attach_money</mat-icon>
+                          <span class="node-name">Node {{ node.nodeId }}</span>
+                          <span class="node-value">{{ node.costValue.toFixed(1) }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <!-- Optimization Opportunities -->
+          @if (hasOptimizationOpportunities()) {
+            <mat-card class="optimization-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>trending_up</mat-icon>
+                  Optimization Opportunities
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="optimization-opportunities">
+                  <div class="opportunities-summary">
+                    <div class="summary-item">
+                      <span class="summary-label">Total Opportunities:</span>
+                      <span class="summary-value">{{ getOptimizationOpportunities().length }}</span>
+                    </div>
+                    <div class="summary-item">
+                      <span class="summary-label">High Impact:</span>
+                      <span class="summary-value">
+                        {{ getHighImpactOpportunities().length }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Top Opportunities -->
+                  <div class="top-opportunities">
+                    <h5>Top Optimization Targets</h5>
+                    @for (opportunity of getTopOptimizationOpportunities(); track opportunity.nodeId + opportunity.type) {
+                      <div class="opportunity-row">
+                        <div class="opportunity-info">
+                          <span class="opportunity-node">Node {{ opportunity.nodeId }}</span>
+                          <mat-chip class="opportunity-type" 
+                                   [class.time-type]="opportunity.type === 'time'"
+                                   [class.cost-type]="opportunity.type === 'cost'">
+                            {{ opportunity.type | titlecase }}
+                          </mat-chip>
+                        </div>
+                        <div class="opportunity-impact-bar">
+                          <div class="impact-progress" 
+                               [style.width.%]="opportunity.impact * 100"
+                               [class.time-impact]="opportunity.type === 'time'"
+                               [class.cost-impact]="opportunity.type === 'cost'">
+                          </div>
+                        </div>
+                        <span class="opportunity-value">{{ (opportunity.impact * 100).toFixed(1) }}%</span>
+                      </div>
+                    }
+                    
+                    @if (getOptimizationOpportunities().length === 0) {
+                      <div class="no-opportunities">
+                        <p>No optimization opportunities identified</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          <!-- Analysis Properties -->
+          <mat-card class="properties-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>info</mat-icon>
+                Analysis Properties
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="properties-list">
+                <div class="property-item">
+                  <span class="property-label">Analysis Type:</span>
+                  <span class="property-value">Critical Path Method (CPM)</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Data Type:</span>
+                  <span class="property-value">{{ getDataType() | titlecase }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Path Category:</span>
+                  <span class="property-value" [style.color]="getPathCategoryColor()">
+                    {{ getPathCategory() | titlecase }}
+                  </span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Time Analysis:</span>
+                  <span class="property-value">{{ hasTimeAnalysis() ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Has Cost Analysis:</span>
+                  <span class="property-value">{{ hasCostAnalysis() ? 'Yes' : 'No' }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Critical Nodes:</span>
+                  <span class="property-value">{{ getNodeCriticality().length }}</span>
+                </div>
+                <div class="property-item">
+                  <span class="property-label">Performance:</span>
+                  <span class="property-value">
+                    {{ getExecutionTime() < 1 ? 'Fast' : getExecutionTime() < 10 ? 'Good' : 'Slow' }}
+                    ({{ getFormattedExecutionTime() }})
+                  </span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    }
+  }
+</div>

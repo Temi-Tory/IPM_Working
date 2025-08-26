@@ -1,0 +1,463 @@
+.diamond-analysis-container {
+  padding: 24px;
+  background-color: var(--surface-background);
+  min-height: calc(100vh - 64px);
+}
+
+.analysis-header {
+  margin-bottom: 24px;
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    
+    .header-info {
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--on-surface);
+      }
+      
+      .network-name {
+        margin: 0;
+        font-size: 16px;
+        color: var(--on-surface-variant);
+        font-weight: 500;
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: var(--on-surface-variant);
+    font-size: 14px;
+  }
+}
+
+.error-card {
+  background-color: var(--error-container);
+  color: var(--on-error-container);
+  
+  .error-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    
+    .error-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: var(--error);
+    }
+    
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--on-error-container);
+    }
+    
+    p {
+      margin: 0;
+      color: var(--on-error-container);
+      opacity: 0.8;
+    }
+  }
+}
+
+// Visual Mode Styles
+.visual-mode {
+  .visual-content {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    height: calc(100vh - 200px);
+    
+    .graph-container {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--surface-container-low);
+      
+      mat-card-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .graph-placeholder {
+          text-align: center;
+          color: var(--on-surface-variant);
+          
+          .graph-icon {
+            font-size: 64px;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+            color: #9C27B0; // Purple for diamond theme
+          }
+          
+          h3 {
+            margin: 0 0 8px 0;
+            font-weight: 500;
+          }
+          
+          p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+            
+            &.graph-stats {
+              margin-top: 12px;
+              font-weight: 500;
+              color: var(--primary);
+            }
+          }
+        }
+      }
+    }
+    
+    .controls-panel {
+      background-color: var(--surface-container);
+      
+      .control-section {
+        margin-bottom: 24px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--on-surface);
+        }
+        
+        .highlight-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          
+          button {
+            justify-content: flex-start;
+            
+            &.diamond-button {
+              color: #9C27B0;
+              border-color: #9C27B0;
+            }
+            
+            &.diamond-type-button {
+              &.root {
+                color: #9C27B0;
+                border-color: #9C27B0;
+                
+                &.highlighted {
+                  background-color: rgba(156, 39, 176, 0.1);
+                }
+              }
+              
+              &.unique {
+                color: #673AB7;
+                border-color: #673AB7;
+                
+                &.highlighted {
+                  background-color: rgba(103, 58, 183, 0.1);
+                }
+              }
+            }
+            
+            &.high-belief-button {
+              color: #FF9800;
+              border-color: #FF9800;
+            }
+          }
+        }
+        
+        .diamond-info {
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            
+            .info-label {
+              font-weight: 600;
+              color: var(--on-surface-variant);
+            }
+            
+            .info-value {
+              color: var(--on-surface);
+              font-family: 'Roboto Mono', monospace;
+              
+              &.nodes-list {
+                max-width: 150px;
+                word-break: break-all;
+                text-align: right;
+              }
+            }
+          }
+        }
+        
+        .belief-stats {
+          .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            
+            .stat-label {
+              font-weight: 600;
+              color: var(--on-surface-variant);
+            }
+            
+            .stat-value {
+              color: var(--primary);
+              font-family: 'Roboto Mono', monospace;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Dashboard Mode Styles
+.dashboard-mode {
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    
+    .stat-card {
+      background-color: var(--surface-container);
+      
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        
+        .stat-item {
+          text-align: center;
+          
+          .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+          }
+          
+          .stat-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+        }
+      }
+    }
+    
+    .distribution-card {
+      background-color: var(--surface-container);
+      
+      .diamond-type-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        
+        .diamond-type-stat {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          border-radius: 8px;
+          background-color: var(--surface-container-high);
+          
+          .type-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            
+            .mat-icon {
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+            
+            .type-name {
+              font-weight: 500;
+            }
+          }
+          
+          .type-count {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+          }
+          
+          .type-percentage {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            min-width: 40px;
+            text-align: right;
+          }
+          
+          &.root {
+            .mat-icon { color: #9C27B0; }
+          }
+          
+          &.unique {
+            .mat-icon { color: #673AB7; }
+          }
+        }
+        
+        .no-types {
+          text-align: center;
+          padding: 20px;
+          color: var(--on-surface-variant);
+          opacity: 0.7;
+        }
+      }
+    }
+    
+    .beliefs-card {
+      background-color: var(--surface-container);
+      
+      .beliefs-analysis {
+        .belief-summary {
+          margin-bottom: 20px;
+          
+          .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--outline-variant);
+            
+            &:last-child {
+              border-bottom: none;
+            }
+            
+            .summary-label {
+              font-weight: 500;
+              color: var(--on-surface-variant);
+            }
+            
+            .summary-value {
+              font-weight: 600;
+              color: var(--on-surface);
+              font-family: 'Roboto Mono', monospace;
+            }
+          }
+        }
+        
+        .chart-placeholder {
+          text-align: center;
+          padding: 30px 20px;
+          color: var(--on-surface-variant);
+          border-radius: 8px;
+          background-color: var(--surface-container-highest);
+          
+          .chart-icon {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+            color: #9C27B0;
+          }
+          
+          p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+          }
+        }
+      }
+    }
+    
+    .properties-card {
+      background-color: var(--surface-container);
+      
+      .properties-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        
+        .property-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--outline-variant);
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          .property-label {
+            font-weight: 500;
+            color: var(--on-surface-variant);
+          }
+          
+          .property-value {
+            font-weight: 600;
+            color: var(--on-surface);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .diamond-analysis-container {
+    padding: 16px;
+  }
+  
+  .analysis-header .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .visual-mode .visual-content {
+    grid-template-columns: 1fr;
+    height: auto;
+    
+    .controls-panel {
+      order: -1;
+    }
+  }
+  
+  .dashboard-mode .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Diamond-specific theme colors
+:host {
+  --diamond-primary: #9C27B0;
+  --diamond-secondary: #673AB7;
+  --diamond-accent: #E1BEE7;
+}

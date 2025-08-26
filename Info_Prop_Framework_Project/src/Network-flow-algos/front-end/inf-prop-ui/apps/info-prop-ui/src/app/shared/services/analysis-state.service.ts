@@ -18,7 +18,6 @@ export interface AnalysisStateSnapshot {
   tabStates: {
     networkStructure: AnalysisTabState;
     diamondAnalysis: AnalysisTabState;
-    reachabilityAnalysis: AnalysisTabState;
     exactInference: AnalysisTabState;
     flowAnalysis: AnalysisTabState;
     criticalPath: AnalysisTabState;
@@ -37,7 +36,6 @@ export class AnalysisStateService {
   
   networkStructureTab = computed(() => this.currentState()?.tabStates.networkStructure || { enabled: false, completed: false, hasData: false });
   diamondAnalysisTab = computed(() => this.currentState()?.tabStates.diamondAnalysis || { enabled: false, completed: false, hasData: false });
-  reachabilityAnalysisTab = computed(() => this.currentState()?.tabStates.reachabilityAnalysis || { enabled: false, completed: false, hasData: false });
   exactInferenceTab = computed(() => this.currentState()?.tabStates.exactInference || { enabled: false, completed: false, hasData: false });
   flowAnalysisTab = computed(() => this.currentState()?.tabStates.flowAnalysis || { enabled: false, completed: false, hasData: false });
   criticalPathTab = computed(() => this.currentState()?.tabStates.criticalPath || { enabled: false, completed: false, hasData: false });
@@ -56,7 +54,7 @@ export class AnalysisStateService {
     const state = this.currentState();
     return state ? {
       structure: state.networkStructure,
-      results: state.analysisResults.results?.exact_inference
+      results: state.analysisResults.results?.diamond_analysis
     } : null;
   });
 
@@ -115,8 +113,9 @@ export class AnalysisStateService {
     const hasInferenceResults = !!(results.results?.exact_inference && !results.results.exact_inference.error);
     const hasFlowResults = !!(results.results?.flow_analysis && !results.results.flow_analysis.error);
     const hasCriticalPathResults = !!(results.results?.critical_path && !results.results.critical_path.error);
+    const hasDiamondResults = !!(results.results?.diamond_analysis);
     
-    const diamondsFound = results.results?.exact_inference?.diamonds_found || 0;
+    const diamondsFound = results.results?.diamond_analysis?.unique_diamonds_count || 0;
     const hasDiamonds = diamondsFound > 0;
 
     return {
@@ -129,16 +128,9 @@ export class AnalysisStateService {
 
       // Diamond Analysis - enabled if diamonds were found
       diamondAnalysis: {
-        enabled: hasInferenceResults && hasDiamonds,
-        completed: hasInferenceResults && hasDiamonds,
-        hasData: hasInferenceResults && hasDiamonds
-      },
-
-      // Reachability Analysis - enabled if we have network structure (derived from basic topology)
-      reachabilityAnalysis: {
-        enabled: hasNetworkResults,
-        completed: hasNetworkResults,
-        hasData: hasNetworkResults
+        enabled: hasDiamondResults && hasDiamonds,
+        completed: hasDiamondResults && hasDiamonds,
+        hasData: hasDiamondResults && hasDiamonds
       },
 
       // Exact Inference - enabled if inference was requested and completed
@@ -189,6 +181,10 @@ export class AnalysisStateService {
 
   getExactInferenceData(): any {
     return this.currentState()?.analysisResults.results?.exact_inference;
+  }
+
+  getDiamondAnalysisData(): any {
+    return this.currentState()?.analysisResults.results?.diamond_analysis;
   }
 
   getFlowAnalysisData(): any {

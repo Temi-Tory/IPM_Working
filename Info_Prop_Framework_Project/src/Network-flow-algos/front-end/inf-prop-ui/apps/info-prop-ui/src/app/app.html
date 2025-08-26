@@ -42,18 +42,7 @@
       </a>
       
       <a mat-list-item 
-         routerLink="/reachability"
-         [class.disabled]="!analysisState.reachabilityAnalysisTab().enabled"
-         [attr.tabindex]="!analysisState.reachabilityAnalysisTab().enabled ? -1 : 0">
-        <mat-icon matListItemIcon>route</mat-icon>
-        <div matListItemTitle>
-          <div class="nav-title">Reachability Analysis</div>
-          <div class="nav-subtitle">Path connectivity & reach</div>
-        </div>
-      </a>
-      
-      <a mat-list-item 
-         routerLink="/inference" 
+         routerLink="/exact-inference" 
          [class.disabled]="!analysisState.exactInferenceTab().enabled"
          [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>psychology</mat-icon>
