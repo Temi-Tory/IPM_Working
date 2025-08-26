@@ -15,31 +15,9 @@ import { FormsModule } from '@angular/forms';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+import { ExactInferenceResult, FloatBelief, IntervalBelief, PboxBelief } from '../../shared/models/network-analysis.models';
 
-interface NetworkStructureResult {
-  total_nodes: number;
-  total_edges: number;
-  source_nodes: number[];
-  sink_nodes: number[];
-  fork_nodes: number[];
-  join_nodes: number[];
-  iteration_sets_count: number;
-}
-
-interface ReachabilityResult {
-  reachabilityMatrix: boolean[][];
-  pathMatrix: number[][][]; // [source][target] = [path of node IDs]
-  stronglyConnectedComponents: number[][];
-  connectedComponentsCount: number;
-  nodeDistances: number[][]; // [source][target] = distance
-  maxDistance: number;
-  averageDistance: number;
-  reachabilityStats: {
-    totalPairs: number;
-    reachablePairs: number;
-    reachabilityRatio: number;
-  };
-}
+type BeliefValue = FloatBelief | IntervalBelief | PboxBelief;
 
 @Component({
   selector: 'app-reachability-analysis',
@@ -61,16 +39,19 @@ interface ReachabilityResult {
   templateUrl: './reachability-analysis.component.html',
   styleUrl: './reachability-analysis.component.scss'
 })
-export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ReachabilityResult> implements OnInit, OnDestroy {
+export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactInferenceResult> implements OnInit, OnDestroy {
   
   private analysisState = inject(AnalysisStateService);
   private snackBar = inject(MatSnackBar);
 
   // UI state
-  selectedSourceNode: number | null = null;
-  selectedTargetNode: number | null = null;
+  selectedNode: string | null = null;
+  selectedSourceNode: string | null = null;
+  selectedTargetNode: string | null = null;
+  showHighBeliefsOnly = false;
   showOnlyReachable = false;
-  availableNodes: number[] = [];
+  availableNodes: string[] = [];
+  sortOrder: 'asc' | 'desc' | 'none' = 'desc';
 
   constructor() {
     super();
@@ -78,7 +59,7 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<Reachab
 
   ngOnInit(): void {
     this.initializeComponent();
-    this.loadAndAnalyzeData();
+    this.loadExactInferenceData();
   }
 
   ngOnDestroy(): void {
@@ -91,253 +72,94 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<Reachab
     this.currentViewMode.set('visual');
   }
 
-  private loadAndAnalyzeData(): void {
-    const networkData = this.analysisState.networkData();
+  private loadExactInferenceData(): void {
+    const exactInferenceData = this.analysisState.exactInferenceData();
     
-    if (!networkData || !networkData.results) {
-      this.setError('No network analysis data available');
+    if (!exactInferenceData || !exactInferenceData.results) {
+      this.setError('No exact inference data available');
       return;
     }
 
     this.setLoading(true);
     
     try {
-      const networkStructure = networkData.results as NetworkStructureResult;
-      const reachabilityResults = this.calculateReachability(networkStructure);
-      
-      const analysisData: AnalysisComponentData<ReachabilityResult> = {
-        structure: networkData.structure,
-        results: reachabilityResults
+      const analysisData: AnalysisComponentData<ExactInferenceResult> = {
+        structure: exactInferenceData.structure,
+        results: exactInferenceData.results
       };
       
-      this.availableNodes = Array.from({length: networkStructure.total_nodes}, (_, i) => i);
+      this.availableNodes = Object.keys(exactInferenceData.results.node_beliefs);
       
       this.setData(analysisData);
       this.setLoading(false);
       
       this.snackBar.open(
-        `Reachability analysis complete: ${reachabilityResults.reachabilityStats.reachablePairs}/${reachabilityResults.reachabilityStats.totalPairs} pairs reachable`, 
+        `Exact inference loaded: ${this.availableNodes.length} node beliefs (${exactInferenceData.results.data_type})`, 
         'Close', 
         { duration: 4000 }
       );
       
     } catch (error) {
-      this.setError(`Failed to analyze reachability: ${error}`);
+      this.setError(`Failed to load exact inference data: ${error}`);
       this.setLoading(false);
     }
   }
 
-  private calculateReachability(networkStructure: NetworkStructureResult): ReachabilityResult {
-    const nodeCount = networkStructure.total_nodes;
-    
-    // Initialize adjacency matrix from network structure
-    const adjacencyMatrix = this.buildAdjacencyMatrix(networkStructure);
-    
-    // Calculate reachability matrix using Floyd-Warshall algorithm
-    const reachabilityMatrix = this.calculateReachabilityMatrix(adjacencyMatrix);
-    
-    // Calculate shortest paths and distances
-    const { pathMatrix, distanceMatrix } = this.calculatePathsAndDistances(adjacencyMatrix);
-    
-    // Find strongly connected components (simplified for DAG)
-    const stronglyConnectedComponents = this.findStronglyConnectedComponents(adjacencyMatrix);
-    
-    // Calculate statistics
-    let reachablePairs = 0;
-    let totalDistance = 0;
-    let maxDistance = 0;
-    
-    for (let i = 0; i < nodeCount; i++) {
-      for (let j = 0; j < nodeCount; j++) {
-        if (i !== j && reachabilityMatrix[i][j]) {
-          reachablePairs++;
-          const distance = distanceMatrix[i][j];
-          totalDistance += distance;
-          maxDistance = Math.max(maxDistance, distance);
-        }
-      }
-    }
-    
-    const totalPairs = nodeCount * (nodeCount - 1);
-    
-    return {
-      reachabilityMatrix,
-      pathMatrix,
-      stronglyConnectedComponents,
-      connectedComponentsCount: stronglyConnectedComponents.length,
-      nodeDistances: distanceMatrix,
-      maxDistance,
-      averageDistance: reachablePairs > 0 ? totalDistance / reachablePairs : 0,
-      reachabilityStats: {
-        totalPairs,
-        reachablePairs,
-        reachabilityRatio: totalPairs > 0 ? reachablePairs / totalPairs : 0
-      }
-    };
-  }
 
-  private buildAdjacencyMatrix(networkStructure: NetworkStructureResult): boolean[][] {
-    const nodeCount = networkStructure.total_nodes;
-    const matrix = Array(nodeCount).fill(null).map(() => Array(nodeCount).fill(false));
+  processData(data: AnalysisComponentData<ExactInferenceResult>): void {
+    console.log('Processing exact inference data:', data);
     
-    // For demonstration, build edges based on node types
-    // In a real implementation, this would come from the actual edge data
-    const allNodes = Array.from({length: nodeCount}, (_, i) => i);
-    
-    // Connect sources to forks/joins, forks to joins/sinks, etc.
-    networkStructure.source_nodes?.forEach(source => {
-      // Sources connect to next nodes (simplified logic)
-      if (source + 1 < nodeCount) {
-        matrix[source][source + 1] = true;
-      }
-    });
-    
-    // Add more sophisticated edge logic based on your actual network structure
-    // This is a simplified version for demonstration
-    for (let i = 0; i < nodeCount - 1; i++) {
-      if (Math.random() > 0.3) { // Simplified random connectivity
-        matrix[i][i + 1] = true;
-      }
-    }
-    
-    return matrix;
-  }
-
-  private calculateReachabilityMatrix(adjacencyMatrix: boolean[][]): boolean[][] {
-    const nodeCount = adjacencyMatrix.length;
-    const reachability = adjacencyMatrix.map(row => [...row]);
-    
-    // Floyd-Warshall for reachability
-    for (let k = 0; k < nodeCount; k++) {
-      for (let i = 0; i < nodeCount; i++) {
-        for (let j = 0; j < nodeCount; j++) {
-          reachability[i][j] = reachability[i][j] || (reachability[i][k] && reachability[k][j]);
-        }
-      }
-    }
-    
-    return reachability;
-  }
-
-  private calculatePathsAndDistances(adjacencyMatrix: boolean[][]): {
-    pathMatrix: number[][][],
-    distanceMatrix: number[][]
-  } {
-    const nodeCount = adjacencyMatrix.length;
-    const INF = Number.MAX_SAFE_INTEGER;
-    
-    // Initialize distance matrix
-    const distanceMatrix = Array(nodeCount).fill(null).map(() => Array(nodeCount).fill(INF));
-    const pathMatrix: number[][][] = Array(nodeCount).fill(null).map(() => 
-      Array(nodeCount).fill(null).map(() => [] as number[])
-    );
-    
-    // Initialize with direct edges
-    for (let i = 0; i < nodeCount; i++) {
-      distanceMatrix[i][i] = 0;
-      pathMatrix[i][i] = []; // Empty path for self
-      for (let j = 0; j < nodeCount; j++) {
-        if (i !== j && adjacencyMatrix[i][j]) {
-          distanceMatrix[i][j] = 1;
-          pathMatrix[i][j] = [i, j];
-        }
-      }
-    }
-    
-    // Floyd-Warshall for shortest paths
-    for (let k = 0; k < nodeCount; k++) {
-      for (let i = 0; i < nodeCount; i++) {
-        for (let j = 0; j < nodeCount; j++) {
-          if (distanceMatrix[i][k] !== INF && 
-              distanceMatrix[k][j] !== INF && 
-              distanceMatrix[i][k] + distanceMatrix[k][j] < distanceMatrix[i][j]) {
-            distanceMatrix[i][j] = distanceMatrix[i][k] + distanceMatrix[k][j];
-            // Reconstruct path by combining paths through k
-            if (pathMatrix[i][k].length > 0 && pathMatrix[k][j].length > 0) {
-              pathMatrix[i][j] = [...pathMatrix[i][k].slice(0, -1), ...pathMatrix[k][j]];
-            }
-          }
-        }
-      }
-    }
-    
-    return { pathMatrix, distanceMatrix };
-  }
-
-  private findStronglyConnectedComponents(adjacencyMatrix: boolean[][]): number[][] {
-    // Simplified SCC detection for demonstration
-    // In practice, use Tarjan's or Kosaraju's algorithm
-    const nodeCount = adjacencyMatrix.length;
-    const visited = new Array(nodeCount).fill(false);
-    const components: number[][] = [];
-    
-    for (let i = 0; i < nodeCount; i++) {
-      if (!visited[i]) {
-        const component = [i];
-        visited[i] = true;
-        // Add connected nodes (simplified)
-        for (let j = i + 1; j < nodeCount; j++) {
-          if (!visited[j] && (adjacencyMatrix[i][j] || adjacencyMatrix[j][i])) {
-            component.push(j);
-            visited[j] = true;
-          }
-        }
-        components.push(component);
-      }
-    }
-    
-    return components;
-  }
-
-  processData(data: AnalysisComponentData<ReachabilityResult>): void {
-    console.log('Processing reachability analysis data:', data);
-    
-    // Update visualization config
+    // Update visualization config based on belief values
     this.visualizationConfig.update(config => ({
       ...config,
       showLabels: true,
       highlightNodes: [],
-      nodeColors: this.generateReachabilityNodeColors(data.results)
+      nodeColors: this.generateBeliefNodeColors(data.results)
     }));
   }
 
-  private generateReachabilityNodeColors(results: ReachabilityResult): Record<number, string> {
+  private generateBeliefNodeColors(results: ExactInferenceResult): Record<number, string> {
     const nodeColors: Record<number, string> = {};
     
-    // Color nodes by connectivity (teal theme)
-    const nodeCount = results.reachabilityMatrix.length;
-    
-    for (let i = 0; i < nodeCount; i++) {
-      let reachableCount = 0;
-      let reachedByCount = 0;
+    // Generate colors based on belief values (blue/teal theme)
+    Object.entries(results.node_beliefs).forEach(([nodeId, belief]) => {
+      const numNodeId = parseInt(nodeId);
+      if (isNaN(numNodeId)) return;
       
-      for (let j = 0; j < nodeCount; j++) {
-        if (results.reachabilityMatrix[i][j]) reachableCount++;
-        if (results.reachabilityMatrix[j][i]) reachedByCount++;
-      }
+      const beliefValue = this.extractBeliefValue(belief);
+      const intensity = Math.min(beliefValue, 1.0); // Cap at 1.0
       
-      const totalConnectivity = reachableCount + reachedByCount;
-      
-      if (totalConnectivity === 0) {
-        nodeColors[i] = '#B0BEC5'; // Gray for isolated nodes
-      } else if (totalConnectivity < nodeCount * 0.3) {
-        nodeColors[i] = '#80CBC4'; // Light teal for low connectivity
-      } else if (totalConnectivity < nodeCount * 0.7) {
-        nodeColors[i] = '#009688'; // Primary teal for medium connectivity
+      if (intensity < 0.3) {
+        nodeColors[numNodeId] = '#E0F2F1'; // Very light teal for low beliefs
+      } else if (intensity < 0.6) {
+        nodeColors[numNodeId] = '#80CBC4'; // Light teal for medium beliefs
+      } else if (intensity < 0.8) {
+        nodeColors[numNodeId] = '#009688'; // Primary teal for high beliefs
       } else {
-        nodeColors[i] = '#00695C'; // Dark teal for high connectivity
+        nodeColors[numNodeId] = '#00695C'; // Dark teal for very high beliefs
       }
-    }
+    });
     
     return nodeColors;
   }
 
+  private extractBeliefValue(belief: BeliefValue): number {
+    if (typeof belief === 'number') {
+      return belief; // FloatBelief
+    } else if ('lower' in belief && 'upper' in belief) {
+      return (belief.lower + belief.upper) / 2; // IntervalBelief midpoint
+    } else if ('mean_lower' in belief && 'mean_upper' in belief) {
+      return (belief.mean_lower + belief.mean_upper) / 2; // PboxBelief midpoint
+    }
+    return 0;
+  }
+
   updateVisualization(config: VisualizationConfig): void {
-    console.log('Updating reachability visualization with config:', config);
+    console.log('Updating exact inference visualization with config:', config);
     
     if (this.isVisualMode()) {
-      // Update the graph visualization
-      // This will highlight paths and reachability
+      // Update the graph visualization to show belief values
+      // This will highlight nodes based on their belief values
     }
   }
 
@@ -358,39 +180,37 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<Reachab
     }
   }
 
-  private exportAsJson(data: ReachabilityResult): void {
+  private exportAsJson(data: ExactInferenceResult): void {
     const jsonData = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reachability-analysis-${Date.now()}.json`;
+    a.download = `exact-inference-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
-  private exportAsCsv(data: ReachabilityResult): void {
+  private exportAsCsv(data: ExactInferenceResult): void {
     const csvRows = [
-      ['Source Node', 'Target Node', 'Reachable', 'Distance', 'Path Length'],
+      ['Node ID', 'Belief Value', 'Belief Type', 'Details']
     ];
     
-    const nodeCount = data.reachabilityMatrix.length;
-    for (let i = 0; i < nodeCount; i++) {
-      for (let j = 0; j < nodeCount; j++) {
-        if (i !== j) {
-          csvRows.push([
-            i.toString(),
-            j.toString(),
-            data.reachabilityMatrix[i][j] ? 'Yes' : 'No',
-            data.nodeDistances[i][j] !== Number.MAX_SAFE_INTEGER ? data.nodeDistances[i][j].toString() : 'Infinite',
-            data.pathMatrix[i][j] ? data.pathMatrix[i][j].length.toString() : '0'
-          ]);
-        }
-      }
-    }
+    Object.entries(data.node_beliefs).forEach(([nodeId, belief]) => {
+      const beliefValue = this.extractBeliefValue(belief);
+      const beliefType = this.getBeliefType(belief);
+      const details = this.getBeliefDetails(belief);
+      
+      csvRows.push([
+        nodeId,
+        beliefValue.toString(),
+        beliefType,
+        details
+      ]);
+    });
     
     const csvContent = csvRows.map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -398,7 +218,7 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<Reachab
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reachability-matrix-${Date.now()}.csv`;
+    a.download = `exact-inference-beliefs-${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -409,111 +229,282 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<Reachab
     this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
   }
 
-  // Template helper methods
-  getReachabilityMatrix(): boolean[][] {
-    return this.componentData()?.results?.reachabilityMatrix || [];
+  private getBeliefType(belief: BeliefValue): string {
+    if (typeof belief === 'number') {
+      return 'float';
+    } else if ('lower' in belief && 'upper' in belief) {
+      return 'interval';
+    } else if ('type' in belief && belief.type === 'pbox') {
+      return 'pbox';
+    }
+    return 'unknown';
   }
 
+  private getBeliefDetails(belief: BeliefValue): string {
+    if (typeof belief === 'number') {
+      return belief.toString();
+    } else if ('lower' in belief && 'upper' in belief) {
+      return `[${belief.lower}, ${belief.upper}]`;
+    } else if ('type' in belief && belief.type === 'pbox') {
+      return `mean[${belief.mean_lower}, ${belief.mean_upper}] var[${belief.var_lower}, ${belief.var_upper}]`;
+    }
+    return 'N/A';
+  }
+
+  // Template helper methods
+  getNodeBeliefs(): Record<string, BeliefValue> {
+    return this.componentData()?.results?.node_beliefs || {};
+  }
+
+  getExecutionTime(): number {
+    return this.componentData()?.results?.execution_time || 0;
+  }
+
+  getDataType(): 'float' | 'interval' | 'pbox' {
+    return this.componentData()?.results?.data_type || 'float';
+  }
+
+  getAlgorithmType(): string {
+    return this.componentData()?.results?.algorithm_type || 'belief_propagation';
+  }
+
+  getNodesCount(): number {
+    return Object.keys(this.getNodeBeliefs()).length;
+  }
+
+  getAverageBeliefValue(): number {
+    const beliefs = Object.values(this.getNodeBeliefs());
+    if (beliefs.length === 0) return 0;
+    
+    const sum = beliefs.reduce((acc: number, belief) => acc + this.extractBeliefValue(belief), 0);
+    return sum / beliefs.length;
+  }
+
+  getMaxBeliefValue(): number {
+    const beliefs = Object.values(this.getNodeBeliefs());
+    if (beliefs.length === 0) return 0;
+    
+    return Math.max(...beliefs.map(belief => this.extractBeliefValue(belief)));
+  }
+
+  getMinBeliefValue(): number {
+    const beliefs = Object.values(this.getNodeBeliefs());
+    if (beliefs.length === 0) return 0;
+    
+    return Math.min(...beliefs.map(belief => this.extractBeliefValue(belief)));
+  }
+
+  getFormattedExecutionTime(): string {
+    const time = this.getExecutionTime();
+    if (time < 1) {
+      return `${(time * 1000).toFixed(0)}ms`;
+    } else if (time < 60) {
+      return `${time.toFixed(2)}s`;
+    } else {
+      const minutes = Math.floor(time / 60);
+      const seconds = (time % 60).toFixed(0);
+      return `${minutes}m ${seconds}s`;
+    }
+  }
+
+  getSortedNodeEntries(): Array<[string, BeliefValue]> {
+    const entries = Object.entries(this.getNodeBeliefs());
+    
+    if (this.sortOrder === 'none') {
+      return entries;
+    }
+    
+    return entries.sort((a, b) => {
+      const valueA = this.extractBeliefValue(a[1]);
+      const valueB = this.extractBeliefValue(b[1]);
+      
+      if (this.sortOrder === 'asc') {
+        return valueA - valueB;
+      } else {
+        return valueB - valueA;
+      }
+    });
+  }
+
+  getFilteredNodeEntries(): Array<[string, BeliefValue]> {
+    let entries = this.getSortedNodeEntries();
+    
+    if (this.showHighBeliefsOnly) {
+      const avgBelief = this.getAverageBeliefValue();
+      entries = entries.filter(([_, belief]) => this.extractBeliefValue(belief) > avgBelief);
+    }
+    
+    return entries;
+  }
+
+  // Interactive belief analysis
+  onNodeSelection(nodeId: string | null): void {
+    this.selectedNode = nodeId;
+    this.updateNodeHighlight();
+  }
+
+  onSortOrderChange(order: 'asc' | 'desc' | 'none'): void {
+    this.sortOrder = order;
+  }
+
+  onHighBeliefsToggle(showHighOnly: boolean): void {
+    this.showHighBeliefsOnly = showHighOnly;
+  }
+
+  private updateNodeHighlight(): void {
+    if (this.selectedNode !== null) {
+      const numNodeId = parseInt(this.selectedNode);
+      if (!isNaN(numNodeId)) {
+        this.highlightNodes([numNodeId]);
+      }
+    } else {
+      this.highlightNodes([]);
+    }
+  }
+
+  highlightHighBeliefNodes(): void {
+    const avgBelief = this.getAverageBeliefValue();
+    const highBeliefNodes: number[] = [];
+    
+    Object.entries(this.getNodeBeliefs()).forEach(([nodeId, belief]) => {
+      const beliefValue = this.extractBeliefValue(belief);
+      if (beliefValue > avgBelief) {
+        const numNodeId = parseInt(nodeId);
+        if (!isNaN(numNodeId)) {
+          highBeliefNodes.push(numNodeId);
+        }
+      }
+    });
+    
+    this.highlightNodes(highBeliefNodes);
+    this.selectedNode = null;
+  }
+
+  highlightLowBeliefNodes(): void {
+    const avgBelief = this.getAverageBeliefValue();
+    const lowBeliefNodes: number[] = [];
+    
+    Object.entries(this.getNodeBeliefs()).forEach(([nodeId, belief]) => {
+      const beliefValue = this.extractBeliefValue(belief);
+      if (beliefValue < avgBelief) {
+        const numNodeId = parseInt(nodeId);
+        if (!isNaN(numNodeId)) {
+          lowBeliefNodes.push(numNodeId);
+        }
+      }
+    });
+    
+    this.highlightNodes(lowBeliefNodes);
+    this.selectedNode = null;
+  }
+
+  clearHighlights(): void {
+    this.highlightNodes([]);
+    this.selectedNode = null;
+  }
+
+  getNodeBelief(nodeId: string): BeliefValue | null {
+    return this.getNodeBeliefs()[nodeId] || null;
+  }
+
+  formatBeliefValue(belief: BeliefValue): string {
+    if (typeof belief === 'number') {
+      return belief.toFixed(4);
+    } else if ('lower' in belief && 'upper' in belief) {
+      return `[${belief.lower.toFixed(4)}, ${belief.upper.toFixed(4)}]`;
+    } else if ('type' in belief && belief.type === 'pbox') {
+      return `μ[${belief.mean_lower.toFixed(4)}, ${belief.mean_upper.toFixed(4)}]`;
+    }
+    return 'N/A';
+  }
+
+  // Legacy methods for backward compatibility with templates
   getReachablePairsCount(): number {
-    return this.componentData()?.results?.reachabilityStats.reachablePairs || 0;
+    return this.getNodesCount();
   }
 
   getTotalPairsCount(): number {
-    return this.componentData()?.results?.reachabilityStats.totalPairs || 0;
+    const nodeCount = this.getNodesCount();
+    return nodeCount * (nodeCount - 1);
   }
 
   getReachabilityRatio(): number {
-    return this.componentData()?.results?.reachabilityStats.reachabilityRatio || 0;
-  }
-
-  getMaxDistance(): number {
-    return this.componentData()?.results?.maxDistance || 0;
-  }
-
-  getAverageDistance(): number {
-    return this.componentData()?.results?.averageDistance || 0;
+    const total = this.getTotalPairsCount();
+    return total > 0 ? this.getReachablePairsCount() / total : 0;
   }
 
   getConnectedComponentsCount(): number {
-    return this.componentData()?.results?.connectedComponentsCount || 0;
+    // For exact inference, we assume all nodes are connected
+    return 1;
+  }
+
+  getMaxDistance(): number {
+    // For exact inference, return max belief value as "distance"
+    return this.getMaxBeliefValue();
+  }
+
+  getAverageDistance(): number {
+    // For exact inference, return average belief value as "distance"  
+    return this.getAverageBeliefValue();
+  }
+
+  getReachabilityMatrix(): any[][] {
+    // For exact inference, return empty matrix as we don't have reachability
+    return [];
   }
 
   getStronglyConnectedComponents(): number[][] {
-    return this.componentData()?.results?.stronglyConnectedComponents || [];
+    // For exact inference, return all nodes as one component
+    const allNodes = Object.keys(this.getNodeBeliefs()).map(id => parseInt(id)).filter(id => !isNaN(id));
+    return allNodes.length > 0 ? [allNodes] : [];
   }
 
-  // Interactive path analysis
-  onSourceNodeChange(nodeId: number | null): void {
+  // Legacy methods for backward compatibility with templates
+  onSourceNodeChange(nodeId: string | null): void {
     this.selectedSourceNode = nodeId;
-    this.updatePathHighlight();
   }
 
-  onTargetNodeChange(nodeId: number | null): void {
+  onTargetNodeChange(nodeId: string | null): void {
     this.selectedTargetNode = nodeId;
-    this.updatePathHighlight();
   }
 
-  private updatePathHighlight(): void {
-    if (this.selectedSourceNode !== null && this.selectedTargetNode !== null) {
-      const data = this.componentData();
-      if (data && data.results.pathMatrix[this.selectedSourceNode][this.selectedTargetNode]) {
-        const path = data.results.pathMatrix[this.selectedSourceNode][this.selectedTargetNode];
-        this.highlightPath(path);
+  highlightReachableFrom(sourceNode: number | string | null): void {
+    if (sourceNode !== null) {
+      const nodeId = typeof sourceNode === 'string' ? parseInt(sourceNode) : sourceNode;
+      if (!isNaN(nodeId)) {
+        this.highlightNodes([nodeId]);
       }
     }
   }
 
-  private highlightPath(path: number[]): void {
-    this.highlightNodes(path);
-    
-    const edges = [];
-    for (let i = 0; i < path.length - 1; i++) {
-      edges.push({ from: path[i], to: path[i + 1] });
-    }
-    this.highlightEdges(edges);
-  }
-
-  isNodeReachable(source: number, target: number): boolean {
-    const matrix = this.getReachabilityMatrix();
-    return matrix[source] && matrix[source][target] || false;
-  }
-
-  getDistance(source: number, target: number): number {
-    const data = this.componentData();
-    if (!data) return Infinity;
-    
-    const distance = data.results.nodeDistances[source][target];
-    return distance === Number.MAX_SAFE_INTEGER ? Infinity : distance;
-  }
-
-  getPath(source: number, target: number): number[] {
-    const data = this.componentData();
-    return data?.results.pathMatrix[source][target] || [];
-  }
-
-  highlightReachableFrom(sourceNode: number): void {
-    const matrix = this.getReachabilityMatrix();
-    const reachableNodes = [];
-    
-    for (let i = 0; i < matrix.length; i++) {
-      if (matrix[sourceNode] && matrix[sourceNode][i]) {
-        reachableNodes.push(i);
+  highlightReachableTo(targetNode: number | string | null): void {
+    if (targetNode !== null) {
+      const nodeId = typeof targetNode === 'string' ? parseInt(targetNode) : targetNode;
+      if (!isNaN(nodeId)) {
+        this.highlightNodes([nodeId]);
       }
     }
-    
-    this.highlightNodes([sourceNode, ...reachableNodes]);
   }
 
-  highlightReachableTo(targetNode: number): void {
-    const matrix = this.getReachabilityMatrix();
-    const reachingNodes = [];
-    
-    for (let i = 0; i < matrix.length; i++) {
-      if (matrix[i] && matrix[i][targetNode]) {
-        reachingNodes.push(i);
+  isNodeReachable(source: string | null, target: string | null): boolean {
+    // For exact inference, just check if both nodes exist
+    return source !== null && target !== null && source !== target;
+  }
+
+  getDistance(source: string | null, target: string | null): number {
+    // For exact inference, return 1 if both nodes exist, otherwise 0
+    return this.isNodeReachable(source, target) ? 1 : 0;
+  }
+
+  getPath(source: string | null, target: string | null): number[] {
+    // For exact inference, return simple path if reachable
+    if (this.isNodeReachable(source, target)) {
+      const sourceId = parseInt(source!);
+      const targetId = parseInt(target!);
+      if (!isNaN(sourceId) && !isNaN(targetId)) {
+        return [sourceId, targetId];
       }
     }
-    
-    this.highlightNodes([...reachingNodes, targetNode]);
+    return [];
   }
 }

@@ -11,27 +11,19 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { DataType } from '../../shared/models/network-analysis.models';
-
-interface DiamondAnalysisResult {
-  root_diamonds_count: number;
-  unique_diamonds_count: number;
-  join_nodes_with_diamonds: number[];
-  classifications: Record<string, any>;
-  diamond_efficiency: number;
-  has_complex_diamonds: boolean;
-  // For backward compatibility during transition
-  diamonds_found?: number;
-  execution_time?: number;
-  data_type?: string;
-  node_beliefs?: Record<string, number>;
-}
+import { DiamondAnalysisResult } from '../../shared/models/network-analysis.models';
 
 interface DiamondTypeInfo {
   type: 'root' | 'unique';
   count: number;
   percentage: number;
   color: string;
+}
+
+interface ClassificationInfo {
+  id: string;
+  classification: any;
+  type: 'root' | 'unique';
 }
 
 @Component({
@@ -59,6 +51,7 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
   private diamondNodes: number[] = [];
   private diamondTypes: DiamondTypeInfo[] = [];
   private highlightedDiamondType: string | null = null;
+  private classificationDetails: ClassificationInfo[] = [];
 
   constructor() {
     super();
@@ -87,7 +80,7 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
       return;
     }
 
-    const totalDiamonds = diamondData.results.unique_diamonds_count || (diamondData.results as any).diamonds_found || 0;
+    const totalDiamonds = diamondData.results.total_classifications || 0;
     if (totalDiamonds === 0) {
       this.setError('No diamonds found in the network. Diamond analysis requires networks with diamond structures.');
       return;
@@ -104,8 +97,8 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
       this.setData(analysisData);
       this.setLoading(false);
       
-      const totalCount = analysisData.results.unique_diamonds_count || (analysisData.results as any).diamonds_found || 0;
-      this.snackBar.open(`Diamond analysis loaded: ${totalCount} diamonds found`, 'Close', {
+      const totalCount = analysisData.results.total_classifications || 0;
+      this.snackBar.open(`Diamond analysis loaded: ${totalCount} diamond classifications found`, 'Close', {
         duration: 3000
       });
       
@@ -119,14 +112,14 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
     // Process and prepare data for visualization
     console.log('Processing diamond analysis data:', data);
     
-    // Extract diamond nodes from node beliefs (nodes with beliefs are likely part of diamonds)
-    this.diamondNodes = data.results.join_nodes_with_diamonds || Object.keys((data.results as any).node_beliefs || {})
-      .map(nodeId => parseInt(nodeId, 10))
-      .filter(nodeId => !isNaN(nodeId));
+    // Extract diamond nodes from join nodes with diamonds
+    this.diamondNodes = data.results.join_nodes_with_diamonds || [];
 
-    // Calculate diamond type distribution (simplified - in a real implementation, 
-    // this would come from the backend with more detailed diamond structure info)
+    // Calculate diamond type distribution using actual backend data
     this.diamondTypes = this.calculateDiamondTypes(data.results);
+    
+    // Process classification details for detailed view
+    this.classificationDetails = this.processClassifications(data.results);
     
     // Update visualization config based on data
     this.visualizationConfig.update(config => ({
@@ -138,12 +131,10 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
   }
 
   private calculateDiamondTypes(results: DiamondAnalysisResult): DiamondTypeInfo[] {
-    // This is a simplified calculation - in reality, the backend should provide
-    // detailed information about diamond types and structures
     // Use the actual diamond analysis results from the backend
-    const rootDiamonds = results.root_diamonds_count;
-    const uniqueDiamonds = results.unique_diamonds_count;
-    const totalDiamonds = rootDiamonds + uniqueDiamonds;
+    const rootDiamonds = results.root_diamonds_count || 0;
+    const uniqueDiamonds = results.unique_diamonds_count || 0;
+    const totalDiamonds = results.total_classifications || 0;
 
     return [
       {
@@ -159,6 +150,34 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
         color: '#673AB7' // Deep purple for unique diamonds
       }
     ];
+  }
+
+  private processClassifications(results: DiamondAnalysisResult): ClassificationInfo[] {
+    const classifications: ClassificationInfo[] = [];
+    
+    // Process root classifications
+    if (results.root_classifications) {
+      Object.entries(results.root_classifications).forEach(([id, classification]) => {
+        classifications.push({
+          id,
+          classification,
+          type: 'root'
+        });
+      });
+    }
+    
+    // Process unique classifications
+    if (results.unique_classifications) {
+      Object.entries(results.unique_classifications).forEach(([id, classification]) => {
+        classifications.push({
+          id,
+          classification,
+          type: 'unique'
+        });
+      });
+    }
+    
+    return classifications;
   }
 
   private generateDiamondNodeColors(results: DiamondAnalysisResult): Record<number, string> {
@@ -204,11 +223,16 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
 
   private exportAsJson(data: DiamondAnalysisResult): void {
     const exportData = {
-      diamonds_found: data.diamonds_found,
-      execution_time: data.execution_time,
-      data_type: data.data_type,
-      node_beliefs: data.node_beliefs,
+      total_classifications: data.total_classifications,
+      root_diamonds_count: data.root_diamonds_count,
+      unique_diamonds_count: data.unique_diamonds_count,
+      diamond_efficiency: data.diamond_efficiency,
+      has_complex_diamonds: data.has_complex_diamonds,
+      join_nodes_with_diamonds: data.join_nodes_with_diamonds,
+      root_classifications: data.root_classifications,
+      unique_classifications: data.unique_classifications,
       diamond_types: this.diamondTypes,
+      classifications: this.classificationDetails,
       exported_at: new Date().toISOString()
     };
 
@@ -228,18 +252,18 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
   private exportAsCsv(data: DiamondAnalysisResult): void {
     const csvRows = [
       ['Metric', 'Value'],
-      ['Diamonds Found', data.diamonds_found?.toString() || '0'],
-      ['Execution Time (s)', data.execution_time?.toString() || '0'],
-      ['Data Type', data.data_type || 'unknown'],
-      ['Total Node Beliefs', Object.keys(data.node_beliefs || {}).length.toString()],
-      ['Avg Node Belief', this.getAverageNodeBelief().toString()],
-      ['Max Node Belief', this.getMaxNodeBelief().toString()],
-      ['Min Node Belief', this.getMinNodeBelief().toString()]
+      ['Total Classifications', data.total_classifications?.toString() || '0'],
+      ['Root Diamonds Count', data.root_diamonds_count?.toString() || '0'],
+      ['Unique Diamonds Count', data.unique_diamonds_count?.toString() || '0'],
+      ['Diamond Efficiency', data.diamond_efficiency?.toString() || '0'],
+      ['Has Complex Diamonds', data.has_complex_diamonds?.toString() || 'false'],
+      ['Join Nodes with Diamonds', data.join_nodes_with_diamonds?.join(';') || 'None']
     ];
 
     // Add diamond type information
     this.diamondTypes.forEach(type => {
       csvRows.push([`${type.type.charAt(0).toUpperCase() + type.type.slice(1)} Diamonds`, type.count.toString()]);
+      csvRows.push([`${type.type.charAt(0).toUpperCase() + type.type.slice(1)} Percentage`, type.percentage.toFixed(2) + '%']);
     });
     
     const csvContent = csvRows.map(row => row.join(',')).join('\n');
@@ -265,57 +289,83 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
     return this.componentData()?.structure?.networkName || 'Network';
   }
 
-  getDiamondsFound(): number {
-    return this.componentData()?.results?.diamonds_found || 0;
+  getTotalClassifications(): number {
+    return this.componentData()?.results?.total_classifications || 0;
   }
 
-  getExecutionTime(): number {
-    return this.componentData()?.results?.execution_time || 0;
+  getRootDiamondsCount(): number {
+    return this.componentData()?.results?.root_diamonds_count || 0;
   }
 
-  getDataType(): string {
-    return this.componentData()?.results?.data_type || 'unknown';
+  getUniqueDiamondsCount(): number {
+    return this.componentData()?.results?.unique_diamonds_count || 0;
   }
 
-  getNodeBeliefs(): Record<string, number> {
-    return this.componentData()?.results?.node_beliefs || {};
+  getDiamondEfficiency(): number {
+    return this.componentData()?.results?.diamond_efficiency || 0;
   }
 
-  getTotalNodeBeliefs(): number {
-    return Object.keys(this.getNodeBeliefs()).length;
+  getHasComplexDiamonds(): boolean {
+    return this.componentData()?.results?.has_complex_diamonds || false;
   }
 
-  getAverageNodeBelief(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    if (beliefs.length === 0) return 0;
-    return beliefs.reduce((sum, belief) => sum + belief, 0) / beliefs.length;
+  getJoinNodesWithDiamonds(): number[] {
+    return this.componentData()?.results?.join_nodes_with_diamonds || [];
   }
 
-  getMaxNodeBelief(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    return beliefs.length > 0 ? Math.max(...beliefs) : 0;
-  }
-
-  getMinNodeBelief(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    return beliefs.length > 0 ? Math.min(...beliefs) : 0;
+  getClassifications(): ClassificationInfo[] {
+    return this.classificationDetails;
   }
 
   getDiamondTypes(): DiamondTypeInfo[] {
     return this.diamondTypes;
   }
 
+  getDiamondsFound(): number {
+    return this.getTotalClassifications();
+  }
+
+  getTotalNodeBeliefs(): number {
+    return this.getJoinNodesWithDiamonds().length;
+  }
+
+  highlightHighBeliefNodes(): void {
+    // For diamond analysis, highlight join nodes with diamonds
+    this.highlightJoinNodes();
+  }
+
+  getDataType(): string {
+    return 'diamond';
+  }
+
   getFormattedExecutionTime(): string {
-    const time = this.getExecutionTime();
-    if (time < 1) {
-      return `${(time * 1000).toFixed(0)}ms`;
-    } else if (time < 60) {
-      return `${time.toFixed(2)}s`;
-    } else {
-      const minutes = Math.floor(time / 60);
-      const seconds = (time % 60).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
+    // Diamond analysis doesn't have execution time, return default
+    return '0ms';
+  }
+
+  getAverageNodeBelief(): number {
+    // For diamond analysis, return efficiency as "average belief"
+    return this.getDiamondEfficiency();
+  }
+
+  getMaxNodeBelief(): number {
+    // Return 1.0 for diamond analysis (max efficiency)
+    return 1.0;
+  }
+
+  getMinNodeBelief(): number {
+    // Return 0.0 for diamond analysis (min efficiency)
+    return 0.0;
+  }
+
+  getExecutionTime(): number {
+    // Diamond analysis doesn't have execution time, return 0
+    return 0;
+  }
+
+  getFormattedEfficiency(): string {
+    const efficiency = this.getDiamondEfficiency();
+    return `${(efficiency * 100).toFixed(2)}%`;
   }
 
   // Diamond highlighting methods for interaction
@@ -331,17 +381,9 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
     this.highlightedDiamondType = type;
   }
 
-  highlightHighBeliefNodes(): void {
-    const beliefs = this.getNodeBeliefs();
-    const avgBelief = this.getAverageNodeBelief();
-    
-    // Highlight nodes with above-average beliefs
-    const highBeliefNodes = Object.entries(beliefs)
-      .filter(([_, belief]) => belief > avgBelief)
-      .map(([nodeId, _]) => parseInt(nodeId, 10))
-      .filter(nodeId => !isNaN(nodeId));
-    
-    this.highlightNodes(highBeliefNodes);
+  highlightJoinNodes(): void {
+    const joinNodes = this.getJoinNodesWithDiamonds();
+    this.highlightNodes(joinNodes);
     this.highlightedDiamondType = null;
   }
 

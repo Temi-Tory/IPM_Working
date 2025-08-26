@@ -11,23 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { DataType } from '../../shared/models/network-analysis.models';
-
-interface CriticalPathResult {
-  time_analysis?: {
-    critical_duration: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
-  cost_analysis?: {
-    total_cost: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
-  execution_time: number;
-  data_type?: DataType;
-  error?: string;
-}
+import { CriticalPathResult } from '../../shared/models/network-analysis.models';
 
 interface PathMetrics {
   criticalDuration: number;
@@ -105,10 +89,6 @@ export class CriticalPathComponent extends BaseAnalysisComponent<CriticalPathRes
       return;
     }
 
-    if (criticalPathData.results.error) {
-      this.setError(`Critical path analysis failed: ${criticalPathData.results.error}`);
-      return;
-    }
 
     this.setLoading(true);
     
@@ -379,7 +359,6 @@ export class CriticalPathComponent extends BaseAnalysisComponent<CriticalPathRes
       time_analysis: data.time_analysis,
       cost_analysis: data.cost_analysis,
       execution_time: data.execution_time,
-      data_type: data.data_type,
       path_metrics: this.pathMetrics,
       node_criticality: this.nodeCriticality,
       optimization_opportunities: this.optimizationOpportunities,
@@ -410,8 +389,7 @@ export class CriticalPathComponent extends BaseAnalysisComponent<CriticalPathRes
       ['Cost Efficiency', this.pathMetrics?.costEfficiency?.toFixed(4) || '0'],
       ['Path Category', this.pathMetrics?.pathCategory || 'unknown'],
       ['Analysis Type', this.pathMetrics?.analysisType || 'unknown'],
-      ['Execution Time (s)', data.execution_time?.toString() || '0'],
-      ['Data Type', data.data_type || 'unknown']
+      ['Execution Time (s)', data.execution_time?.toString() || '0']
     ];
 
     // Add critical nodes
@@ -486,7 +464,7 @@ export class CriticalPathComponent extends BaseAnalysisComponent<CriticalPathRes
   }
 
   getDataType(): string {
-    return this.componentData()?.results?.data_type || 'unknown';
+    return 'critical_path';
   }
 
   getPathMetrics(): PathMetrics | null {

@@ -110,9 +110,9 @@ export class AnalysisStateService {
   ): AnalysisStateSnapshot['tabStates'] {
     
     const hasNetworkResults = !!(results.results?.network_structure);
-    const hasInferenceResults = !!(results.results?.exact_inference && !results.results.exact_inference.error);
-    const hasFlowResults = !!(results.results?.flow_analysis && !results.results.flow_analysis.error);
-    const hasCriticalPathResults = !!(results.results?.critical_path && !results.results.critical_path.error);
+    const hasInferenceResults = !!(results.results?.exact_inference);
+    const hasFlowResults = !!(results.results?.flow_analysis);
+    const hasCriticalPathResults = !!(results.results?.critical_path);
     const hasDiamondResults = !!(results.results?.diamond_analysis);
     
     const diamondsFound = results.results?.diamond_analysis?.unique_diamonds_count || 0;
@@ -137,24 +137,21 @@ export class AnalysisStateService {
       exactInference: {
         enabled: config.exactInference && hasInferenceResults,
         completed: config.exactInference && hasInferenceResults,
-        hasData: config.exactInference && hasInferenceResults,
-        error: results.results?.exact_inference?.error
+        hasData: config.exactInference && hasInferenceResults
       },
 
       // Flow Analysis - enabled if flow analysis was requested and completed
       flowAnalysis: {
         enabled: config.flowAnalysis && hasFlowResults,
         completed: config.flowAnalysis && hasFlowResults,
-        hasData: config.flowAnalysis && hasFlowResults,
-        error: results.results?.flow_analysis?.error
+        hasData: config.flowAnalysis && hasFlowResults
       },
 
       // Critical Path - enabled if CPM analysis was requested and completed
       criticalPath: {
         enabled: config.criticalPathAnalysis && hasCriticalPathResults,
         completed: config.criticalPathAnalysis && hasCriticalPathResults,
-        hasData: config.criticalPathAnalysis && hasCriticalPathResults,
-        error: results.results?.critical_path?.error
+        hasData: config.criticalPathAnalysis && hasCriticalPathResults
       },
 
       // System Profile - enabled if any analysis completed successfully

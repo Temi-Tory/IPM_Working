@@ -11,7 +11,11 @@
       "Bash(git checkout:*)",
       "Bash(rm:*)",
       "Bash(npm run:*)",
-      "Bash(julia:*)"
+      "Bash(julia:*)",
+      "Bash(find:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx ng build:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

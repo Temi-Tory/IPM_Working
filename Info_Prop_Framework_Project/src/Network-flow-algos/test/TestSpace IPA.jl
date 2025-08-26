@@ -16,9 +16,7 @@ using .IPAFramework
 # Choose your network - uncomment one:
 
 #network_name = "layereddiamond-3"
-network_name = "scaled-power-network-5x"
-network_name = "scaled-power-network-3x"
-network_name = "dual_mission_drone_medical"
+network_name = "power-network"
 
 #network_name = "munin-dag"
 #network_name = "KarlNetwork"
@@ -34,9 +32,9 @@ network_name = "dual_mission_drone_medical"
 
 
 # Choose data type - uncomment one:
-data_type = "float"
+#data_type = "float"
 #data_type = "interval"
-#data_type = "pbox"
+data_type = "pbox"
 
 # Construct file paths using new folder structure
 base_path = joinpath("dag_ntwrk_files", network_name)
@@ -146,6 +144,8 @@ start_time = time()
     
     # Calculate computation time
     computation_time = time() - start_time
+
+
 
         println("Starting exact_computation");
 exact_start_time = time()

@@ -11,18 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { DataType } from '../../shared/models/network-analysis.models';
-
-interface FlowAnalysisResult {
-  network_utilization: number;
-  total_source_input: number;
-  total_target_output: number;
-  active_sources: number[];
-  target_flows: Record<string, number>;
-  execution_time: number;
-  data_type?: DataType;
-  error?: string;
-}
+import { FlowAnalysisResult } from '../../shared/models/network-analysis.models';
 
 interface FlowMetrics {
   utilizationPercentage: number;
@@ -96,10 +85,6 @@ export class FlowAnalysisComponent extends BaseAnalysisComponent<FlowAnalysisRes
       return;
     }
 
-    if (flowData.results.error) {
-      this.setError(`Flow analysis failed: ${flowData.results.error}`);
-      return;
-    }
 
     this.setLoading(true);
     
@@ -298,7 +283,6 @@ export class FlowAnalysisComponent extends BaseAnalysisComponent<FlowAnalysisRes
       active_sources: data.active_sources,
       target_flows: data.target_flows,
       execution_time: data.execution_time,
-      data_type: data.data_type,
       flow_metrics: this.flowMetrics,
       sources_info: this.sourcesInfo,
       bottleneck_nodes: this.bottleneckNodes,
@@ -330,7 +314,6 @@ export class FlowAnalysisComponent extends BaseAnalysisComponent<FlowAnalysisRes
       ['Average Target Flow', this.flowMetrics?.averageTargetFlow?.toFixed(2) || '0'],
       ['Max Target Flow', this.flowMetrics?.maxTargetFlow?.toString() || '0'],
       ['Execution Time (s)', data.execution_time?.toString() || '0'],
-      ['Data Type', data.data_type || 'unknown'],
       ['Utilization Category', this.flowMetrics?.utilizationCategory || 'unknown']
     ];
 
@@ -402,7 +385,7 @@ export class FlowAnalysisComponent extends BaseAnalysisComponent<FlowAnalysisRes
   }
 
   getDataType(): string {
-    return this.componentData()?.results?.data_type || 'unknown';
+    return 'flow_analysis';
   }
 
   getFlowMetrics(): FlowMetrics | null {

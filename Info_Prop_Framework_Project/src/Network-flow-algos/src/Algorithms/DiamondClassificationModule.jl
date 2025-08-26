@@ -8,8 +8,8 @@ module DiamondClassificationModule
     # Exhaustive Diamond Categories
 
     ## By Fork Structure:
-    1. **SINGLE_FORK**: `len(diamond.highest_nodes) == 1`
-    2. **MULTI_FORK**: `len(diamond.highest_nodes) > 1` 
+    1. **SINGLE_FORK**: `len(diamond.conditioning_nodes) == 1`
+    2. **MULTI_FORK**: `len(diamond.conditioning_nodes) > 1` 
     3. **CHAINED_FORK**: Some internal nodes are both fork AND join (sequential diamonds)
     4. **SELF_INFLUENCE_FORK**: Fork node is also direct parent of join node
 
@@ -126,11 +126,11 @@ module DiamondClassificationModule
         # === EXACT SET OPERATIONS ===
         
         # Basic metrics
-        fork_count = length(diamond.highest_nodes)
+        fork_count = length(diamond.conditioning_nodes)
         subgraph_size = length(diamond.relevant_nodes)
         
         # Internal nodes (excluding main forks and join)
-        internal_nodes = setdiff(diamond.relevant_nodes, diamond.highest_nodes, Set([join_node]))
+        internal_nodes = setdiff(diamond.relevant_nodes, diamond.conditioning_nodes, Set([join_node]))
         
         # FORK STRUCTURE ANALYSIS
         fork_structure = analyze_fork_structure(diamond, join_node, fork_nodes, join_nodes, incoming_index)
@@ -171,13 +171,13 @@ module DiamondClassificationModule
     # === DETECTION FUNCTIONS USING SET OPERATIONS ===
     
     function analyze_fork_structure(diamond::Diamond, join_node::Int64, fork_nodes::Set{Int64},  join_nodes::Set{Int64}, incoming_index::Dict{Int64,Set{Int64}})::ForkStructure
-        fork_count = length(diamond.highest_nodes)
+        fork_count = length(diamond.conditioning_nodes)
         
         # Check for self-influence: any fork directly connects to join
-        is_self_influence = !isempty(intersect(diamond.highest_nodes, get(incoming_index, join_node, Set{Int64}())))
+        is_self_influence = !isempty(intersect(diamond.conditioning_nodes, get(incoming_index, join_node, Set{Int64}())))
         
         # Check for chained: any internal node is both fork AND join
-        internal_nodes = setdiff(diamond.relevant_nodes, diamond.highest_nodes, Set([join_node]))
+        internal_nodes = setdiff(diamond.relevant_nodes, diamond.conditioning_nodes, Set([join_node]))
         fork_join_nodes = intersect(internal_nodes, fork_nodes) ∩ join_nodes
         is_chained = !isempty(fork_join_nodes)
         
@@ -258,7 +258,7 @@ module DiamondClassificationModule
         convergence_points = Set{Int64}()
         
         # Internal nodes (excluding main forks and join)
-        internal_nodes = setdiff(diamond.relevant_nodes, diamond.highest_nodes, Set([join_node]))
+        internal_nodes = setdiff(diamond.relevant_nodes, diamond.conditioning_nodes, Set([join_node]))
         
         for node in internal_nodes
             # Get incoming edges within diamond
@@ -270,7 +270,7 @@ module DiamondClassificationModule
                 parent_fork_ancestry = Set{Int64}()
                 for parent in internal_parents
                     # Find which fork(s) this parent descends from
-                    parent_forks = intersect(get(ancestors, parent, Set{Int64}()), diamond.highest_nodes)
+                    parent_forks = intersect(get(ancestors, parent, Set{Int64}()), diamond.conditioning_nodes)
                     union!(parent_fork_ancestry, parent_forks)
                 end
                 
@@ -291,7 +291,7 @@ module DiamondClassificationModule
         branching_points = Set{Int64}()
         
         # Look for internal nodes (not main forks) with multiple outgoing edges
-        internal_nodes = setdiff(diamond.relevant_nodes, diamond.highest_nodes)
+        internal_nodes = setdiff(diamond.relevant_nodes, diamond.conditioning_nodes)
         
         for node in internal_nodes
             # Get outgoing edges within diamond
@@ -320,7 +320,7 @@ module DiamondClassificationModule
             src, dst = edge
             
             # Skip edges from main forks (these are expected)
-            src in diamond.highest_nodes && continue
+            src in diamond.conditioning_nodes && continue
             
             # Check if this edge connects different "paths"
             if is_cross_path_connection(src, dst, diamond, ancestors, descendants)
@@ -339,8 +339,8 @@ module DiamondClassificationModule
         descendants::Dict{Int64, Set{Int64}}
     )::Bool
         # Find which forks each node traces back to
-        src_forks = intersect(get(ancestors, src, Set{Int64}()), diamond.highest_nodes)
-        dst_forks = intersect(get(ancestors, dst, Set{Int64}()), diamond.highest_nodes)
+        src_forks = intersect(get(ancestors, src, Set{Int64}()), diamond.conditioning_nodes)
+        dst_forks = intersect(get(ancestors, dst, Set{Int64}()), diamond.conditioning_nodes)
         
         # Cross-connection: nodes trace to different forks AND this isn't a convergence
         if !isempty(src_forks) && !isempty(dst_forks)
@@ -403,7 +403,7 @@ module DiamondClassificationModule
     function estimate_path_count_exact(diamond::Diamond, outgoing_index::Dict{Int64,Set{Int64}})::Int64
         # Simple path counting from each fork
         total_paths = 0
-        for fork in diamond.highest_nodes
+        for fork in diamond.conditioning_nodes
             fork_paths = length(intersect(get(outgoing_index, fork, Set{Int64}()), diamond.relevant_nodes))
             total_paths += max(fork_paths, 1)
         end

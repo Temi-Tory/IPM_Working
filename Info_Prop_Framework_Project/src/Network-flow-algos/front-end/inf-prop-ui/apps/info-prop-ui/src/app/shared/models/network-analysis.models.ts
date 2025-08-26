@@ -81,62 +81,126 @@ export interface ValidationResult {
   structure?: DetectedNetworkStructure;
 }
 
+// API Response Interfaces
+
+export interface AnalysisConfig {
+  exactInference: boolean;
+  flowAnalysis: boolean;
+  diamondAnalysis: boolean;
+  inference_data_type: 'float' | 'interval' | 'pbox';
+  inferenceDataType: 'float' | 'interval' | 'pbox';
+  networkName: string;
+  criticalPathAnalysis: boolean;
+  basicStructure: boolean;
+}
+
+export interface NetworkStructureResult {
+  source_nodes: number[];
+  total_nodes: number;
+  total_edges: number;
+  fork_nodes: number[];
+  sink_nodes: number[];
+  join_nodes: number[];
+  iteration_sets_count: number;
+}
+
+export interface DiamondClassification {
+  fork_count: number;
+  relevant_nodes: number[];
+  fork_nodes: number[];
+  fork_structure: string;
+  internal_joins: number;
+  complexity_score: number;
+  internal_structure: string;
+  external_connectivity: string;
+  subgraph_size: number;
+  degeneracy: string;
+  path_count: number;
+  source_nodes: number[];
+  conditioning_nodes: number[];
+  bottleneck_risk: string;
+  path_topology: string;
+  edge_count: number;
+  is_maximal: boolean;
+  internal_forks: number;
+  join_structure: string;
+  optimization_potential: string;
+}
+
+export interface DiamondAnalysisResult {
+  diamond_efficiency: number;
+  has_complex_diamonds: boolean;
+  total_classifications: number;
+  join_nodes_with_diamonds: number[];
+  unique_diamonds_count: number;
+  root_diamonds_count: number;
+  root_classifications: Record<string, DiamondClassification>;
+  unique_classifications: Record<string, DiamondClassification>;
+}
+
+export type FloatBelief = number;
+
+export interface IntervalBelief {
+  lower: number;
+  upper: number;
+}
+
+export interface PboxBelief {
+  type: 'pbox';
+  mean_lower: number;
+  mean_upper: number;
+  var_lower: number;
+  var_upper: number;
+  shape: string;
+  n: number;
+  name: string;
+}
+
+export interface ExactInferenceResult {
+  node_beliefs: Record<string, FloatBelief | IntervalBelief | PboxBelief>;
+  execution_time: number;
+  data_type: 'float' | 'interval' | 'pbox';
+  algorithm_type: 'belief_propagation';
+}
+
+export interface FlowAnalysisResult {
+  network_utilization: number;
+  total_source_input: number;
+  active_sources: number[];
+  total_target_output: number;
+  target_flows: Record<string, number>;
+  execution_time: number;
+}
+
+export interface CriticalPathResult {
+  time_analysis: {
+    critical_duration: number;
+    critical_nodes: number[];
+    node_values: Record<string, number>;
+  };
+  cost_analysis: {
+    total_cost: number;
+    critical_nodes: number[];
+    node_values: Record<string, number>;
+  };
+  execution_time: number;
+}
+
+export interface NetworkAnalysisResults {
+  network_structure: NetworkStructureResult;
+  diamond_analysis?: DiamondAnalysisResult;
+  exact_inference?: ExactInferenceResult;
+  flow_analysis?: FlowAnalysisResult;
+  critical_path?: CriticalPathResult;
+}
+
 export interface NetworkAnalysisResponse {
   success: boolean;
-  network_name?: string;
+  network_name: string;
   timestamp: string;
+  analysis_config: AnalysisConfig;
+  results: NetworkAnalysisResults;
   error?: string;
-  analysis_config?: AnalysisConfiguration;
-  results?: {
-    network_structure?: {
-      total_nodes: number;
-      total_edges: number;
-      source_nodes: number[];
-      sink_nodes: number[];
-      fork_nodes: number[];
-      join_nodes: number[];
-      iteration_sets_count: number;
-    };
-    exact_inference?: {
-      node_beliefs: Record<string, number>;
-      top_beliefs: Record<string, number>;
-      execution_time: number;
-      data_type: DataType;
-      algorithm_type: string;
-      error?: string;
-    };
-    diamond_analysis?: {
-      root_diamonds_count: number;
-      unique_diamonds_count: number;
-      join_nodes_with_diamonds: number[];
-      classifications: Record<string, any>;
-      diamond_efficiency: number;
-      has_complex_diamonds: boolean;
-    };
-    flow_analysis?: {
-      network_utilization: number;
-      target_flows: Record<string, number>;
-      total_source_input: number;
-      total_target_output: number;
-      active_sources: number[];
-      execution_time: number;
-      error?: string;
-    };
-    critical_path?: {
-      time_analysis?: {
-        critical_duration: number;
-        critical_nodes: number[];
-        node_values: Record<string, number>;
-      };
-      cost_analysis?: {
-        total_cost: number;
-        critical_nodes: number[];
-        node_values: Record<string, number>;
-      };
-      execution_time: number;
-      error?: string;
-    };
-  };
 }
 
 export interface BackendHealthResponse {

@@ -212,18 +212,28 @@ function run_conditional_network_analysis(network_name::String, base_path::Strin
                 execution_time = time() - start_time
                 
                 # Convert to serializable format
-                inference_dict = Dict(string(k) => v for (k, v) in reachability_output)
-                
-                # Sort by belief value for top results
-                sorted_beliefs = sort(collect(inference_dict), by=x->x[2], rev=true)
-                top_beliefs = Dict()
-                for (i, (node, belief)) in enumerate(sorted_beliefs[1:min(10, length(sorted_beliefs))])
-                    top_beliefs[node] = belief
+                inference_dict = Dict()
+                for (k, v) in reachability_output
+                    key = string(k)
+                    if data_type == "pbox"
+                        # Convert Pbox to serializable format using actual pbox fields
+                        inference_dict[key] = Dict(
+                            "type" => "pbox",
+                            "mean_lower" => v.ml,
+                            "mean_upper" => v.mh,
+                            "var_lower" => v.vl,
+                            "var_upper" => v.vh,
+                            "shape" => v.shape,
+                            "n" => v.n,
+                            "name" => v.name
+                        )
+                    else
+                        inference_dict[key] = v
+                    end
                 end
                 
                 results["exact_inference"] = Dict(
                     "node_beliefs" => inference_dict,
-                    "top_beliefs" => top_beliefs,
                     "execution_time" => execution_time,
                     "data_type" => data_type,
                     "algorithm_type" => "belief_propagation"
@@ -880,6 +890,24 @@ function handle_upload(request::HTTP.Request)
         if haskey(files, "analysisConfig")
             config_json = String(files["analysisConfig"].data)
             analysis_config = JSON.parse(config_json)
+        else
+            # Parse individual form fields for analysis configuration
+            for key in ["basicStructure", "diamondAnalysis", "exactInference", "flowAnalysis", "criticalPathAnalysis", "nodeVisualization", "networkName", "inference_data_type"]
+                if haskey(files, key)
+                    field_value = String(files[key].data)
+                    if field_value == "true"
+                        analysis_config[key] = true
+                    elseif field_value == "false"
+                        analysis_config[key] = false
+                    else
+                        analysis_config[key] = field_value
+                    end
+                end
+            end
+            # Handle inference data type specifically
+            if haskey(analysis_config, "inference_data_type")
+                analysis_config["inferenceDataType"] = analysis_config["inference_data_type"]
+            end
         end
         
         # Extract network name
