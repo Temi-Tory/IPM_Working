@@ -69,17 +69,15 @@
       <div class="visual-mode">
         <div class="visual-content">
           
-          <!-- Graph Visualization Container -->
-          <mat-card class="graph-container">
-            <mat-card-content>
-              <div class="graph-placeholder">
-                <mat-icon class="graph-icon">account_tree</mat-icon>
-                <h3>Interactive Network Graph</h3>
-                <p>Graph visualization will be implemented here</p>
-                <p class="graph-stats">{{ getTotalNodes() }} nodes • {{ getTotalEdges() }} edges</p>
-              </div>
-            </mat-card-content>
-          </mat-card>
+          <!-- Network Visualization Component -->
+          <app-network-visualization 
+            [networkData]="componentData()?.results"
+            [width]="800"
+            [height]="600"
+            (nodeSelected)="onNodeSelected($event)"
+            (edgeSelected)="onEdgeSelected($event)"
+            (canvasClicked)="onCanvasClicked($event)">
+          </app-network-visualization>
 
           <!-- Visual Controls -->
           <mat-card class="controls-panel">

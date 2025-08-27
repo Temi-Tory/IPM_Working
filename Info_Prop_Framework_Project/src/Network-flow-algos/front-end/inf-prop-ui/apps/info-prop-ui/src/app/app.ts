@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { AnalysisStateService } from './shared/services/analysis-state.service';
 
@@ -18,7 +20,9 @@ import { AnalysisStateService } from './shared/services/analysis-state.service';
     MatIconModule,
     MatButtonModule,
     MatListModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatTooltipModule,
+    MatSnackBarModule
   ],
   selector: 'app-root',
   templateUrl: './app.html',
@@ -32,6 +36,7 @@ export class App implements OnInit {
 
   // Inject analysis state service for tab enable/disable logic
   protected analysisState = inject(AnalysisStateService);
+  private snackBar = inject(MatSnackBar);
 
   constructor() {
     // Set dark mode as default on app initialization
@@ -43,6 +48,22 @@ export class App implements OnInit {
     // Open drawer by default on larger screens
     if (!this.isMobile) {
       this.isDrawerOpen = true;
+    }
+    
+    // Load comprehensive structure data if we have an active analysis
+    if (this.analysisState.hasActiveAnalysis()) {
+      const existingData = this.analysisState.getComprehensiveStructureData();
+      if (!existingData) {
+        // Try to load comprehensive structure data
+        this.analysisState.loadComprehensiveNetworkStructure().subscribe({
+          next: (data) => {
+            this.analysisState.setComprehensiveStructureData(data);
+          },
+          error: (error) => {
+            console.warn('Could not load comprehensive structure data:', error);
+          }
+        });
+      }
     }
   }
 
@@ -101,5 +122,22 @@ export class App implements OnInit {
     if (this.analysisState.criticalPathTab().completed) completed++;
     
     return completed;
+  }
+
+  // Save/Export functionality
+  saveAnalysisToStorage(): void {
+    this.snackBar.open('Save full analysis to storage button clicked', 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
+  }
+
+  exportAnalysisReport(): void {
+    this.snackBar.open('Export full analysis as PDF report button clicked', 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
   }
 }

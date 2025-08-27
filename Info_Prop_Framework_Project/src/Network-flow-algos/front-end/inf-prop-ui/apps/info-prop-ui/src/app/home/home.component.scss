@@ -198,3 +198,220 @@
     }
   }
 }
+
+// Dashboard Styles
+.dashboard-section {
+  padding: 32px 0;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  
+  .dashboard-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--on-surface);
+    margin: 0;
+    letter-spacing: -0.02em;
+    
+    @media (max-width: 768px) {
+      font-size: 2rem;
+    }
+  }
+  
+  .dashboard-subtitle {
+    font-size: 1.1rem;
+    color: var(--on-surface-variant);
+    margin: 4px 0 0 0;
+    font-weight: 400;
+  }
+  
+  button[mat-icon-button] {
+    color: var(--on-surface-variant);
+    
+    &:hover {
+      background-color: var(--surface-variant);
+    }
+  }
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.metric-card {
+  background-color: var(--surface);
+  border: 1px solid var(--outline-variant);
+  
+  .mat-mdc-card-header {
+    padding-bottom: 8px;
+    
+    .mat-mdc-card-title {
+      color: var(--on-surface);
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+  }
+  
+  .mat-mdc-card-content {
+    padding-top: 0;
+  }
+  
+  &.topology-card .mat-icon {
+    background-color: var(--primary-container);
+    color: var(--on-primary-container);
+  }
+  
+  &.roles-card .mat-icon {
+    background-color: var(--secondary-container);
+    color: var(--on-secondary-container);
+  }
+  
+  &.complexity-card .mat-icon {
+    background-color: var(--tertiary-container);
+    color: var(--on-tertiary-container);
+  }
+  
+  &.data-card .mat-icon {
+    background-color: var(--success-container);
+    color: var(--on-success-container);
+  }
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--outline-variant);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  .metric-label {
+    color: var(--on-surface-variant);
+    font-size: 0.9rem;
+  }
+  
+  .metric-value {
+    color: var(--on-surface);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+}
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  
+  .role-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: var(--surface-variant);
+    
+    .role-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    
+    .role-count {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--on-surface);
+      margin-bottom: 2px;
+    }
+    
+    .role-label {
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+}
+
+.data-richness {
+  margin-bottom: 16px;
+  
+  .richness-label {
+    color: var(--on-surface-variant);
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 8px;
+  }
+  
+  .richness-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    mat-progress-bar {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      
+      ::ng-deep .mdc-linear-progress__bar-inner {
+        border-radius: 3px;
+      }
+    }
+    
+    .richness-percentage {
+      color: var(--on-surface);
+      font-weight: 600;
+      font-size: 0.9rem;
+      min-width: 35px;
+    }
+  }
+}
+
+.data-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  
+  .data-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background-color: var(--error-container);
+    color: var(--on-error-container);
+    font-size: 0.85rem;
+    
+    &.available {
+      background-color: var(--success-container);
+      color: var(--on-success-container);
+    }
+    
+    .mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+    
+    .data-count {
+      margin-left: auto;
+      font-weight: 600;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+  }
+}

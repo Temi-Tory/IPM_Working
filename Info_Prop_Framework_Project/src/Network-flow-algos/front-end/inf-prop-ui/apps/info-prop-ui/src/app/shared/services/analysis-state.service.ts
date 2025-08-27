@@ -1,5 +1,7 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { NetworkAnalysisResponse, AnalysisConfiguration, DetectedNetworkStructure } from '../models/network-analysis.models';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { NetworkAnalysisResponse, AnalysisConfiguration, DetectedNetworkStructure, NetworkStructureResult } from '../models/network-analysis.models';
+import { NetworkBackendService } from './network-backend.service';
 
 export interface AnalysisTabState {
   enabled: boolean;
@@ -29,7 +31,10 @@ export interface AnalysisStateSnapshot {
   providedIn: 'root'
 })
 export class AnalysisStateService {
+  private networkBackendService = inject(NetworkBackendService);
+  
   private currentState = signal<AnalysisStateSnapshot | null>(null);
+  private comprehensiveStructureData = new BehaviorSubject<NetworkStructureResult | null>(null);
 
   // Computed signals for individual tab states
   hasActiveAnalysis = computed(() => !!this.currentState());
@@ -47,11 +52,15 @@ export class AnalysisStateService {
   // Computed getters for analysis data
   networkData = computed(() => {
     const state = this.currentState();
+    const comprehensive = this.comprehensiveStructureData.value;
     return state ? {
       structure: state.networkStructure,
-      results: state.analysisResults.results?.network_structure
+      results: comprehensive || state.analysisResults.results?.network_structure
     } : null;
   });
+
+  // Observable for comprehensive structure data
+  comprehensiveNetworkStructure$ = this.comprehensiveStructureData.asObservable();
 
   diamondData = computed(() => {
     const state = this.currentState();
@@ -86,6 +95,55 @@ export class AnalysisStateService {
   });
 
   constructor() {}
+
+  /**
+   * Fetch comprehensive network structure data for the current network
+   */
+  loadComprehensiveNetworkStructure(): Observable<NetworkStructureResult> {
+    const state = this.currentState();
+    if (!state) {
+      throw new Error('No active network analysis to load comprehensive structure for');
+    }
+
+    return this.networkBackendService.getComprehensiveNetworkStructure(state.networkName);
+  }
+
+  /**
+   * Update the comprehensive structure data
+   */
+  setComprehensiveStructureData(data: NetworkStructureResult): void {
+    this.comprehensiveStructureData.next(data);
+  }
+
+  /**
+   * Get the current comprehensive structure data
+   */
+  getComprehensiveStructureData(): NetworkStructureResult | null {
+    return this.comprehensiveStructureData.value;
+  }
+
+  /**
+   * Refresh comprehensive structure data from the backend
+   */
+  refreshComprehensiveStructure(): Observable<NetworkStructureResult> {
+    const state = this.currentState();
+    if (!state) {
+      throw new Error('No active network analysis to refresh structure for');
+    }
+
+    const refreshObservable = this.networkBackendService.refreshNetworkStructure(
+      state.networkName, 
+      true // include optional data
+    );
+
+    // Update the local cache when data is received
+    refreshObservable.subscribe({
+      next: (data) => this.setComprehensiveStructureData(data),
+      error: (error) => console.error('Failed to refresh comprehensive structure:', error)
+    });
+
+    return refreshObservable;
+  }
 
   updateAnalysisResults(
     networkStructure: DetectedNetworkStructure,
@@ -168,6 +226,7 @@ export class AnalysisStateService {
 
   clearAnalysisState(): void {
     this.currentState.set(null);
+    this.comprehensiveStructureData.next(null);
   }
 
   getCurrentSnapshot(): AnalysisStateSnapshot | null {

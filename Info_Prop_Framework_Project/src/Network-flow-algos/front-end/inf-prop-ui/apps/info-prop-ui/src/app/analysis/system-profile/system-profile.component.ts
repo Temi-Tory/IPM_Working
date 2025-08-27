@@ -366,14 +366,44 @@ export class SystemProfileComponent extends BaseAnalysisComponent<SystemProfileR
     const maxPossibleEdges = totalNodes * (totalNodes - 1);
     const networkDensity = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
 
-    // Determine topology complexity
+    // Enhanced complexity calculation using comprehensive data
     let topologyComplexity: 'simple' | 'moderate' | 'complex';
-    if (totalNodes < 10 || networkDensity < 0.1) {
-      topologyComplexity = 'simple';
-    } else if (totalNodes < 50 && networkDensity < 0.3) {
-      topologyComplexity = 'moderate';
+    
+    // Check if we have comprehensive structure data
+    const hasComprehensiveData = !!(networkData?.edgelist && networkData?.outgoing_index);
+    
+    if (hasComprehensiveData) {
+      // Use comprehensive data for better complexity assessment
+      const forkNodes = networkData?.fork_nodes?.length || 0;
+      const joinNodes = networkData?.join_nodes?.length || 0;
+      const iterationSets = networkData?.iteration_sets?.length || 0;
+      
+      // More sophisticated complexity scoring
+      const complexityScore = this.calculateComplexityScore(
+        totalNodes, 
+        totalEdges, 
+        forkNodes, 
+        joinNodes, 
+        iterationSets, 
+        networkDensity
+      );
+      
+      if (complexityScore < 0.3) {
+        topologyComplexity = 'simple';
+      } else if (complexityScore < 0.7) {
+        topologyComplexity = 'moderate';
+      } else {
+        topologyComplexity = 'complex';
+      }
     } else {
-      topologyComplexity = 'complex';
+      // Fallback to basic complexity calculation
+      if (totalNodes < 10 || networkDensity < 0.1) {
+        topologyComplexity = 'simple';
+      } else if (totalNodes < 50 && networkDensity < 0.3) {
+        topologyComplexity = 'moderate';
+      } else {
+        topologyComplexity = 'complex';
+      }
     }
 
     return {
@@ -384,6 +414,29 @@ export class SystemProfileComponent extends BaseAnalysisComponent<SystemProfileR
       networkDensity,
       topologyComplexity
     };
+  }
+
+  private calculateComplexityScore(
+    totalNodes: number, 
+    totalEdges: number, 
+    forkNodes: number, 
+    joinNodes: number, 
+    iterationSets: number, 
+    networkDensity: number
+  ): number {
+    // Normalize metrics to 0-1 scale
+    const nodeComplexity = Math.min(totalNodes / 100, 1); // Scale up to 100 nodes
+    const densityComplexity = networkDensity;
+    const branchComplexity = Math.min((forkNodes + joinNodes) / totalNodes, 1);
+    const iterationComplexity = Math.min(iterationSets / 10, 1); // Scale up to 10 iteration sets
+    
+    // Weighted combination
+    return (
+      nodeComplexity * 0.3 + 
+      densityComplexity * 0.3 + 
+      branchComplexity * 0.25 + 
+      iterationComplexity * 0.15
+    );
   }
 
   private generateCrossAnalysisInsights(
@@ -1106,6 +1159,57 @@ export class SystemProfileComponent extends BaseAnalysisComponent<SystemProfileR
 
   getCompletionPercentage(): number {
     return this.getAnalysisCoverage();
+  }
+
+  // Methods for accessing comprehensive structure data
+  getComprehensiveStructureData(): any {
+    return this.analysisState.getComprehensiveStructureData();
+  }
+
+  hasComprehensiveStructureData(): boolean {
+    const data = this.getComprehensiveStructureData();
+    return !!(data?.edgelist && data?.outgoing_index && data?.incoming_index);
+  }
+
+  getStructuralComplexityMetrics(): any {
+    const comprehensive = this.getComprehensiveStructureData();
+    if (!comprehensive) return null;
+
+    const totalNodes = comprehensive.total_nodes || 0;
+    const totalEdges = comprehensive.total_edges || 0;
+    const forkNodes = comprehensive.fork_nodes?.length || 0;
+    const joinNodes = comprehensive.join_nodes?.length || 0;
+    const iterationSets = comprehensive.iteration_sets?.length || 0;
+    
+    return {
+      totalNodes,
+      totalEdges,
+      forkNodes,
+      joinNodes,
+      iterationSets,
+      branchingFactor: totalNodes > 0 ? (forkNodes + joinNodes) / totalNodes : 0,
+      networkDensity: totalNodes > 1 ? totalEdges / (totalNodes * (totalNodes - 1)) : 0,
+      hasNodePriors: !!(comprehensive.node_priors),
+      hasEdgeProbabilities: !!(comprehensive.edge_probabilities),
+      hasCpmData: !!(comprehensive.cpm_data),
+      hasCapacityData: !!(comprehensive.capacity_data)
+    };
+  }
+
+  getDataRichness(): string {
+    const comprehensive = this.getComprehensiveStructureData();
+    if (!comprehensive) return 'Basic';
+    
+    let richness = 0;
+    if (comprehensive.node_priors) richness++;
+    if (comprehensive.edge_probabilities) richness++;
+    if (comprehensive.cpm_data) richness++;
+    if (comprehensive.capacity_data) richness++;
+    
+    if (richness >= 3) return 'Very Rich';
+    if (richness >= 2) return 'Rich';
+    if (richness >= 1) return 'Moderate';
+    return 'Basic';
   }
 
   getCompletionCircumference(): string {

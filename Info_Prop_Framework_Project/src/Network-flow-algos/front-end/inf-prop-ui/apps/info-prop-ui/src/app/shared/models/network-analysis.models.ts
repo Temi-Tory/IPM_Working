@@ -95,13 +95,39 @@ export interface AnalysisConfig {
 }
 
 export interface NetworkStructureResult {
-  source_nodes: number[];
+  // Basic counts
   total_nodes: number;
   total_edges: number;
-  fork_nodes: number[];
+
+  // Node classifications
+  source_nodes: number[];
   sink_nodes: number[];
+  fork_nodes: number[];
   join_nodes: number[];
+  all_nodes: number[];
+
+  // Network topology
+  edgelist: [number, number][];
+  outgoing_index: Record<number, number[]>;
+  incoming_index: Record<number, number[]>;
+
+  // Analysis metadata
+  iteration_sets: number[][];
   iteration_sets_count: number;
+  ancestors: Record<number, number[]>;
+  descendants: Record<number, number[]>;
+
+  // Probabilistic data
+  node_priors?: Record<number, number>;
+  edge_probabilities?: Record<string, number>; // key format: "from_to"
+
+  // Optional analysis data
+  cpm_data?: {
+    time_values?: Record<number, number>;
+    cost_values?: Record<number, number>;
+    [key: string]: any;
+  };
+  capacity_data?: Record<number, number>;
 }
 
 export interface DiamondClassification {

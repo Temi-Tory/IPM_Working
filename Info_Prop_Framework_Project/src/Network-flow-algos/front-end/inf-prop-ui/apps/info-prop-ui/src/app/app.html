@@ -16,6 +16,24 @@
         </div>
         <div class="progress-text">{{ getCompletedSteps() }}/{{ getTotalSteps() }} Complete</div>
       </div>
+      
+      @if (analysisState.hasActiveAnalysis()) {
+        <div class="network-summary">
+          <div class="network-name">{{ analysisState.getCurrentSnapshot()?.networkName || 'Current Network' }}</div>
+          @if (analysisState.getComprehensiveStructureData(); as structureData) {
+            <div class="quick-stats">
+              <span class="stat-item">
+                <mat-icon class="stat-icon">account_tree</mat-icon>
+                {{ structureData.total_nodes }}N / {{ structureData.total_edges }}E
+              </span>
+              <span class="stat-item">
+                <mat-icon class="stat-icon">layers</mat-icon>
+                {{ structureData.iteration_sets_count }} layers
+              </span>
+            </div>
+          }
+        </div>
+      }
     </div>
 
     <mat-nav-list>
@@ -182,6 +200,27 @@
       <span class="app-title">{{ title }}</span>
       
       <span class="spacer"></span>
+      
+      <!-- Save/Export buttons - shown only when analysis is complete -->
+      @if (analysisState.hasActiveAnalysis()) {
+        <button 
+          mat-icon-button 
+          class="toolbar-button"
+          (click)="saveAnalysisToStorage()"
+          matTooltip="Save full analysis to local storage"
+          aria-label="Save analysis">
+          <mat-icon>save</mat-icon>
+        </button>
+        
+        <button 
+          mat-icon-button 
+          class="toolbar-button"
+          (click)="exportAnalysisReport()"
+          matTooltip="Export analysis as PDF report"
+          aria-label="Export PDF report">
+          <mat-icon>picture_as_pdf</mat-icon>
+        </button>
+      }
       
       <mat-slide-toggle 
         class="theme-toggle"

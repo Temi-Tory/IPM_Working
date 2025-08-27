@@ -2,7 +2,7 @@
 # Simple HTTP server that accepts file uploads and returns raw analysis results
 
 using HTTP, JSON
-using Dates, UUIDs
+using Dates, UUIDs, Statistics
 
 # Include the IPAFramework module
 include("src/IPAFramework.jl")
@@ -718,6 +718,166 @@ function run_network_analysis(network_name::String, base_path::String, data_type
     return results
 end
 
+function process_comprehensive_network_structure_analysis(network_path::String, network_name::String, analysis_config::Dict)
+    try
+        # Construct file paths
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        # Check if edges file exists
+        if !isfile(filepath_graph)
+            throw("Required .EDGES file not found at: $filepath_graph")
+        end
+        
+        data_type = get(analysis_config, "inferenceDataType", "float")
+        json_network_name = replace(network_name, "_" => "-")
+        filepath_node_json = joinpath(network_path, data_type, json_network_name * "-nodepriors.json")
+        filepath_edge_json = joinpath(network_path, data_type, json_network_name * "-linkprobabilities.json")
+        filepath_capacity_json = joinpath(network_path, "capacity", json_network_name * "-capacities.json")
+        filepath_cpm_json = joinpath(network_path, "cpm", json_network_name * "-cpm-inputs.json")
+        
+        println("Starting comprehensive network structure analysis for: ", network_name)
+        
+        # STEP 1: Read graph structure (required for all analyses)
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        all_nodes = collect(keys(incoming_index))
+        sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), all_nodes)
+        
+        # Network structure analysis (always performed)
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Build comprehensive response
+        results = Dict(
+            "success" => true,
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            
+            # Core network structure
+            "total_nodes" => length(all_nodes),
+            "total_edges" => length(edgelist),
+            "source_nodes" => collect(source_nodes),
+            "sink_nodes" => collect(sink_nodes),
+            "fork_nodes" => collect(fork_nodes),
+            "join_nodes" => collect(join_nodes),
+            "all_nodes" => all_nodes,
+            
+            # Graph structure details
+            "edgelist" => [(e[1], e[2]) for e in edgelist],
+            "outgoing_index" => Dict(string(k) => collect(v) for (k, v) in outgoing_index),
+            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index),
+            
+            # Topological analysis
+            "iteration_sets" => [collect(s) for s in iteration_sets],
+            "iteration_sets_count" => length(iteration_sets),
+            "ancestors" => Dict(string(k) => collect(v) for (k, v) in ancestors),
+            "descendants" => Dict(string(k) => collect(v) for (k, v) in descendants),
+            
+            # Analysis metadata
+            "data_type" => data_type,
+            "analysis_timestamp" => Dates.now()
+        )
+        
+        # STEP 2: Load node priors if available
+        node_priors = nothing
+        if isfile(filepath_node_json)
+            try
+                node_priors = read_node_priors_from_json(filepath_node_json)
+                results["node_priors"] = Dict(string(k) => v for (k, v) in node_priors)
+                results["has_node_priors"] = true
+                println("Successfully loaded node priors")
+            catch e
+                println("Warning: Could not load node priors - ", e)
+                results["has_node_priors"] = false
+                results["node_priors_error"] = string(e)
+            end
+        else
+            results["has_node_priors"] = false
+        end
+        
+        # STEP 3: Load edge probabilities if available
+        edge_probabilities = nothing
+        if isfile(filepath_edge_json)
+            try
+                edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
+                results["edge_probabilities"] = Dict(string(k) => v for (k, v) in edge_probabilities)
+                results["has_edge_probabilities"] = true
+                println("Successfully loaded edge probabilities")
+            catch e
+                println("Warning: Could not load edge probabilities - ", e)
+                results["has_edge_probabilities"] = false
+                results["edge_probabilities_error"] = string(e)
+            end
+        else
+            results["has_edge_probabilities"] = false
+        end
+        
+        # STEP 4: Load capacity data if available
+        if isfile(filepath_capacity_json)
+            try
+                capacity_data = JSON.parsefile(filepath_capacity_json)
+                results["capacity_data"] = capacity_data
+                results["has_capacity_data"] = true
+                println("Successfully loaded capacity data")
+            catch e
+                println("Warning: Could not load capacity data - ", e)
+                results["has_capacity_data"] = false
+                results["capacity_data_error"] = string(e)
+            end
+        else
+            results["has_capacity_data"] = false
+        end
+        
+        # STEP 5: Load CPM data if available
+        if isfile(filepath_cpm_json)
+            try
+                cpm_data = JSON.parsefile(filepath_cpm_json)
+                results["cpm_data"] = cpm_data
+                results["has_cpm_data"] = true
+                println("Successfully loaded CPM data")
+            catch e
+                println("Warning: Could not load CPM data - ", e)
+                results["has_cpm_data"] = false
+                results["cpm_data_error"] = string(e)
+            end
+        else
+            results["has_cpm_data"] = false
+        end
+        
+        # STEP 6: Calculate additional network metrics
+        results["network_metrics"] = Dict(
+            "max_out_degree" => isempty(outgoing_index) ? 0 : maximum(length(children) for children in values(outgoing_index)),
+            "max_in_degree" => isempty(incoming_index) ? 0 : maximum(length(parents) for parents in values(incoming_index)),
+            "avg_out_degree" => isempty(outgoing_index) ? 0.0 : mean(length(children) for children in values(outgoing_index)),
+            "avg_in_degree" => isempty(incoming_index) ? 0.0 : mean(length(parents) for parents in values(incoming_index)),
+            "network_depth" => length(iteration_sets),
+            "fork_ratio" => length(fork_nodes) / max(1, length(all_nodes)),
+            "join_ratio" => length(join_nodes) / max(1, length(all_nodes)),
+            "source_ratio" => length(source_nodes) / max(1, length(all_nodes)),
+            "sink_ratio" => length(sink_nodes) / max(1, length(all_nodes))
+        )
+        
+        # STEP 7: File availability summary
+        results["file_availability"] = Dict(
+            "edges_file" => isfile(filepath_graph),
+            "node_priors_file" => isfile(filepath_node_json),
+            "edge_probabilities_file" => isfile(filepath_edge_json),
+            "capacity_file" => isfile(filepath_capacity_json),
+            "cpm_file" => isfile(filepath_cpm_json),
+            "data_type" => data_type
+        )
+        
+        return results
+        
+    catch e
+        return Dict(
+            "success" => false,
+            "error" => string(e),
+            "timestamp" => Dates.now(),
+            "network_name" => network_name
+        )
+    end
+end
+
 # HTTP request handlers
 function parse_multipart_data(body, content_type)
     try
@@ -942,6 +1102,79 @@ function handle_upload(request::HTTP.Request)
     end
 end
 
+function handle_network_structure_analysis(request::HTTP.Request)
+    try
+        # Set CORS headers
+        headers = [
+            "Access-Control-Allow-Origin" => "*",
+            "Access-Control-Allow-Methods" => "POST, OPTIONS",
+            "Access-Control-Allow-Headers" => "Content-Type",
+            "Content-Type" => "application/json"
+        ]
+        
+        if request.method == "OPTIONS"
+            return HTTP.Response(200, headers)
+        end
+        
+        if request.method != "POST"
+            return HTTP.Response(405, headers, JSON.json(Dict("error" => "Method not allowed")))
+        end
+        
+        # Get content type
+        content_type = ""
+        for (name, value) in request.headers
+            if lowercase(name) == "content-type"
+                content_type = value
+                break
+            end
+        end
+        
+        if !startswith(content_type, "multipart/form-data")
+            return HTTP.Response(400, headers, JSON.json(Dict("error" => "Expected multipart/form-data")))
+        end
+        
+        # Parse multipart data
+        files = parse_multipart_data(request.body, content_type)
+        
+        # Extract analysis configuration
+        analysis_config = Dict()
+        if haskey(files, "analysisConfig")
+            config_json = String(files["analysisConfig"].data)
+            analysis_config = JSON.parse(config_json)
+        end
+        
+        # Extract network name
+        network_name = get(analysis_config, "networkName", "uploaded_network_" * string(UUIDs.uuid4())[1:8])
+        
+        # Create unique upload directory
+        upload_id = string(UUIDs.uuid4())
+        upload_path = joinpath(UPLOAD_DIR, upload_id)
+        mkpath(upload_path)
+        
+        println("Processing network structure analysis for: ", network_name)
+        println("Files received: ", collect(keys(files)))
+        
+        # Build network directory structure
+        network_dir = build_network_directory(upload_path, network_name, files, analysis_config)
+        
+        # Run comprehensive network structure analysis
+        results = process_comprehensive_network_structure_analysis(network_dir, network_name, analysis_config)
+        
+        println("Network structure analysis complete for: ", network_name)
+        
+        return HTTP.Response(200, headers, JSON.json(results))
+        
+    catch e
+        println("Network structure analysis error: ", e)
+        headers = [
+            "Content-Type" => "application/json",
+            "Access-Control-Allow-Origin" => "*"
+        ]
+        error_response = Dict("success" => false, "error" => string(e))
+        return HTTP.Response(500, headers, JSON.json(error_response))
+    end
+end
+
 function handle_health(request::HTTP.Request)
     try
         headers = [
@@ -964,14 +1197,244 @@ function handle_health(request::HTTP.Request)
     end
 end
 
+function process_comprehensive_network_structure_analysis(network_path::String, network_name::String)
+    try
+        println("Computing comprehensive network structure for: ", network_name)
+        
+        # Construct file paths
+        edges_file = joinpath(network_path, network_name * ".EDGES")
+        node_priors_file = joinpath(network_path, "float", network_name * "-nodepriors.json")
+        edge_probs_file = joinpath(network_path, "float", network_name * "-linkprobabilities.json")
+        cpm_file = joinpath(network_path, "cpm", network_name * "-cpm-inputs.json")
+        capacity_file = joinpath(network_path, "capacity", network_name * "-capacities.json")
+        
+        # Use InputProcessingModule to load and analyze the network
+        using .IPAFramework.InputProcessingModule
+        
+        # Read graph structure
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file)
+        
+        # Get all nodes from incoming_index keys (this contains ALL nodes)
+        all_nodes = sort([parse(Int, k) for k in keys(incoming_index)])
+        
+        # Identify structural roles
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        
+        # Find sink nodes (nodes not in outgoing_index or with empty outgoing)
+        sink_nodes = [node for node in all_nodes if !haskey(outgoing_index, node) || isempty(outgoing_index[node])]
+        
+        # Get iteration sets and relationships
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Try to load optional data
+        node_priors = nothing
+        edge_probabilities = nothing
+        cmp_data = nothing
+        capacity_data = nothing
+        
+        if isfile(node_priors_file)
+            try
+                node_priors = read_node_priors_from_json(node_priors_file)
+            catch e
+                println("Warning: Could not load node priors: ", e)
+            end
+        end
+        
+        if isfile(edge_probs_file)
+            try
+                edge_probabilities = read_edge_probabilities_from_json(edge_probs_file)
+            catch e
+                println("Warning: Could not load edge probabilities: ", e)
+            end
+        end
+        
+        if isfile(cmp_file)
+            try
+                cmp_data = JSON.parsefile(cmp_file)
+            catch e
+                println("Warning: Could not load CPM data: ", e)
+            end
+        end
+        
+        if isfile(capacity_file)
+            try
+                capacity_data = JSON.parsefile(capacity_file)
+            catch e
+                println("Warning: Could not load capacity data: ", e)
+            end
+        end
+        
+        # Convert Julia types to JSON-serializable types
+        outgoing_dict = Dict{String, Vector{Int}}()
+        for (k, v) in outgoing_index
+            outgoing_dict[string(k)] = collect(v)
+        end
+        
+        incoming_dict = Dict{String, Vector{Int}}()
+        for (k, v) in incoming_index
+            incoming_dict[string(k)] = collect(v)
+        end
+        
+        ancestors_dict = Dict{String, Vector{Int}}()
+        for (k, v) in ancestors
+            ancestors_dict[string(k)] = collect(v)
+        end
+        
+        descendants_dict = Dict{String, Vector{Int}}()  
+        for (k, v) in descendants
+            descendants_dict[string(k)] = collect(v)
+        end
+        
+        # Build comprehensive response
+        comprehensive_response = Dict(
+            "success" => true,
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "total_nodes" => length(all_nodes),
+            "total_edges" => length(edgelist),
+            "source_nodes" => collect(source_nodes),
+            "sink_nodes" => sink_nodes,
+            "fork_nodes" => collect(fork_nodes),
+            "join_nodes" => collect(join_nodes),
+            "all_nodes" => all_nodes,
+            "edgelist" => edgelist,
+            "outgoing_index" => outgoing_dict,
+            "incoming_index" => incoming_dict,
+            "iteration_sets" => [collect(s) for s in iteration_sets],
+            "iteration_sets_count" => length(iteration_sets),
+            "ancestors" => ancestors_dict,
+            "descendants" => descendants_dict,
+            "node_priors" => node_priors,
+            "edge_probabilities" => edge_probabilities,
+            "cmp_data" => cmp_data,
+            "capacity_data" => capacity_data
+        )
+        
+        println("Comprehensive structure computed successfully for: ", network_name)
+        return comprehensive_response
+        
+    catch e
+        println("Error in comprehensive structure analysis: ", e)
+        throw(e)
+    end
+end
+
+function handle_comprehensive_network_structure(request::HTTP.Request)
+    try
+        # Set CORS headers
+        headers = [
+            "Access-Control-Allow-Origin" => "*",
+            "Access-Control-Allow-Methods" => "GET, OPTIONS", 
+            "Access-Control-Allow-Headers" => "Content-Type",
+            "Content-Type" => "application/json"
+        ]
+        
+        if request.method == "OPTIONS"
+            return HTTP.Response(200, headers)
+        end
+        
+        if request.method != "GET"
+            return HTTP.Response(405, headers, JSON.json(Dict("error" => "Method not allowed")))
+        end
+        
+        # Parse query parameters
+        query_params = HTTP.queryparams(request.target)
+        network_name = get(query_params, "network_name", "")
+        
+        if isempty(network_name)
+            return HTTP.Response(400, headers, JSON.json(Dict(
+                "error" => "Missing network_name parameter",
+                "success" => false
+            )))
+        end
+        
+        # Find the most recent network data in temp_uploads
+        comprehensive_data = nothing
+        
+        # Look for network data in temp_uploads directories
+        if isdir(UPLOAD_DIR)
+            for upload_dir in readdir(UPLOAD_DIR)
+                upload_path = joinpath(UPLOAD_DIR, upload_dir)
+                if isdir(upload_path)
+                    # Look for network directory with matching name
+                    network_path = joinpath(upload_path, network_name)
+                    if isdir(network_path)
+                        try
+                            comprehensive_data = process_comprehensive_network_structure_analysis(network_path, network_name)
+                            break
+                        catch e
+                            println("Error processing comprehensive structure for $network_name: $e")
+                            continue
+                        end
+                    end
+                end
+            end
+        end
+        
+        if comprehensive_data !== nothing
+            return HTTP.Response(200, headers, JSON.json(comprehensive_data))
+        else
+            # Return empty structure if no data found
+            empty_response = Dict(
+                "success" => true,
+                "network_name" => network_name,
+                "timestamp" => Dates.now(),
+                "total_nodes" => 0,
+                "total_edges" => 0,
+                "source_nodes" => Int64[],
+                "sink_nodes" => Int64[],
+                "fork_nodes" => Int64[],
+                "join_nodes" => Int64[],
+                "all_nodes" => Int64[],
+                "edgelist" => Tuple{Int64, Int64}[],
+                "outgoing_index" => Dict{Int64, Vector{Int64}}(),
+                "incoming_index" => Dict{Int64, Vector{Int64}}(),
+                "iteration_sets" => Vector{Int64}[],
+                "iteration_sets_count" => 0,
+                "ancestors" => Dict{Int64, Vector{Int64}}(),
+                "descendants" => Dict{Int64, Vector{Int64}}(),
+                "node_priors" => nothing,
+                "edge_probabilities" => nothing,
+                "cpm_data" => nothing,
+                "capacity_data" => nothing,
+                "message" => "No network data found for $network_name"
+            )
+            # This should be an error - if they're requesting comprehensive structure, it should exist
+            return HTTP.Response(404, headers, JSON.json(Dict(
+                "error" => "Network data not found for '$network_name'. Please upload and analyze the network first.",
+                "success" => false,
+                "network_name" => network_name,
+                "timestamp" => Dates.now()
+            )))
+        end
+        
+    catch e
+        println("Comprehensive network structure error: ", e)
+        headers = [
+            "Content-Type" => "application/json",
+            "Access-Control-Allow-Origin" => "*"
+        ]
+        error_response = Dict(
+            "error" => string(e),
+            "success" => false,
+            "timestamp" => Dates.now()
+        )
+        return HTTP.Response(500, headers, JSON.json(error_response))
+    end
+end
+
 function start_server()
     setup_server()
     
     # Define routes
     router = HTTP.Router()
     HTTP.register!(router, "POST", "/upload", handle_upload)
+    HTTP.register!(router, "POST", "/network-structure", handle_network_structure_analysis)
+    HTTP.register!(router, "GET", "/api/network/structure", handle_comprehensive_network_structure)
+    HTTP.register!(router, "OPTIONS", "/api/network/structure", handle_comprehensive_network_structure)
     HTTP.register!(router, "GET", "/health", handle_health)
     HTTP.register!(router, "OPTIONS", "/upload", handle_upload)
+    HTTP.register!(router, "OPTIONS", "/network-structure", handle_network_structure_analysis)
     
     # Handle preflight OPTIONS requests for all endpoints
     HTTP.register!(router, "OPTIONS", "/*", request -> begin
@@ -986,6 +1449,7 @@ function start_server()
     
     println("Server routes registered:")
     println("- POST /upload - Upload and analyze network files")
+    println("- POST /network-structure - Comprehensive network structure analysis")
     println("- GET  /health - Health check endpoint")
     println("- OPTIONS /* - CORS preflight handling")
     

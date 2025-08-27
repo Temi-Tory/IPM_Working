@@ -1,0 +1,209 @@
+<div class="network-visualization-container">
+  <!-- Control Toolbar -->
+  <mat-toolbar class="visualization-toolbar">
+    <mat-toolbar-row>
+      <span class="toolbar-title">
+        <mat-icon>device_hub</mat-icon>
+        Network Graph
+      </span>
+      
+      <div class="toolbar-spacer"></div>
+      
+      <!-- Network Stats -->
+      <div class="network-stats" *ngIf="networkData">
+        <span class="stat-item">
+          <mat-icon>radio_button_unchecked</mat-icon>
+          {{getNodeCount()}} nodes
+        </span>
+        <span class="stat-item">
+          <mat-icon>trending_flat</mat-icon>
+          {{getLinkCount()}} edges
+        </span>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="control-buttons">
+        <button mat-icon-button 
+                matTooltip="Center Graph" 
+                (click)="centerGraph()">
+          <mat-icon>center_focus_strong</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Reset Zoom" 
+                (click)="resetZoom()">
+          <mat-icon>zoom_out_map</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Unfix All Nodes" 
+                (click)="unfixAllNodes()">
+          <mat-icon>open_with</mat-icon>
+        </button>
+      </div>
+    </mat-toolbar-row>
+  </mat-toolbar>
+
+  <!-- Configuration Panel -->
+  <mat-card class="config-panel">
+    <div class="config-row">
+      <div class="config-item">
+        <label>Link Distance: {{linkDistance}}</label>
+        <mat-slider 
+          [min]="30" 
+          [max]="150" 
+          [step]="10"
+          class="config-slider">
+          <input matSliderThumb 
+                 name="linkDistance"
+                 [(ngModel)]="linkDistance"
+                 (ngModelChange)="updateLinkDistance()">
+        </mat-slider>
+      </div>
+
+      <div class="config-item">
+        <label>Charge Strength: {{Math.abs(chargeStrength)}}</label>
+        <mat-slider 
+          [min]="100" 
+          [max]="1000" 
+          [step]="50"
+          class="config-slider">
+          <input matSliderThumb 
+                 name="chargeStrength"
+                 [ngModel]="Math.abs(chargeStrength)"
+                 (ngModelChange)="chargeStrength = -$event; updateChargeStrength()">
+        </mat-slider>
+      </div>
+
+      <div class="config-item">
+        <label>Node Size: {{nodeRadius}}</label>
+        <mat-slider 
+          [min]="10" 
+          [max]="50" 
+          [step]="5"
+          class="config-slider">
+          <input matSliderThumb 
+                 name="nodeRadius"
+                 [(ngModel)]="nodeRadius"
+                 (ngModelChange)="updateNodeRadius()">
+        </mat-slider>
+      </div>
+
+      <div class="config-item">
+        <label>Edge Thickness: {{edgeThickness}}</label>
+        <mat-slider 
+          [min]="1" 
+          [max]="8" 
+          [step]="1"
+          class="config-slider">
+          <input matSliderThumb 
+                 name="edgeThickness"
+                 [(ngModel)]="edgeThickness"
+                 (ngModelChange)="updateEdgeThickness()">
+        </mat-slider>
+      </div>
+
+      <div class="config-item">
+        <mat-slide-toggle 
+          [(ngModel)]="showNodeLabels"
+          (ngModelChange)="updateNodeLabels()"
+          name="showNodeLabels">
+          Show Node Labels
+        </mat-slide-toggle>
+      </div>
+
+      <div class="config-item">
+        <mat-slide-toggle 
+          [(ngModel)]="enableHighlighting"
+          name="enableHighlighting">
+          Enable Node Highlighting
+        </mat-slide-toggle>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Legend -->
+  <mat-card class="legend-panel" *ngIf="networkData">
+    <mat-card-header>
+      <mat-card-title class="legend-title">Node Types</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="legend-items">
+        <div class="legend-item" *ngIf="getNodesByRole('source').length > 0">
+          <div class="legend-color source-color"></div>
+          <span>Source ({{getNodesByRole('source').length}})</span>
+        </div>
+        <div class="legend-item" *ngIf="getNodesByRole('sink').length > 0">
+          <div class="legend-color sink-color"></div>
+          <span>Sink ({{getNodesByRole('sink').length}})</span>
+        </div>
+        <div class="legend-item" *ngIf="getNodesByRole('fork').length > 0">
+          <div class="legend-color fork-color"></div>
+          <span>Fork ({{getNodesByRole('fork').length}})</span>
+        </div>
+        <div class="legend-item" *ngIf="getNodesByRole('join').length > 0">
+          <div class="legend-color join-color"></div>
+          <span>Join ({{getNodesByRole('join').length}})</span>
+        </div>
+        <div class="legend-item" *ngIf="getNodesByRole('regular').length > 0">
+          <div class="legend-color regular-color"></div>
+          <span>Regular ({{getNodesByRole('regular').length}})</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Main Visualization Area -->
+  <mat-card class="visualization-card">
+    <mat-card-content class="visualization-content">
+      <!-- Loading Indicator -->
+      <div class="loading-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Rendering network...</p>
+      </div>
+
+      <!-- No Data Message -->
+      <div class="no-data-message" *ngIf="!networkData && !isLoading">
+        <mat-icon class="no-data-icon">device_hub</mat-icon>
+        <h3>No Network Data</h3>
+        <p>Load network data to visualize the graph structure.</p>
+      </div>
+
+      <!-- SVG Container -->
+      <div #svgContainer 
+           class="svg-container"
+           [class.hidden]="!networkData || isLoading">
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Instructions -->
+  <mat-card class="instructions-panel">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>help_outline</mat-icon>
+        Instructions
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="instruction-list">
+        <div class="instruction-item">
+          <mat-icon class="instruction-icon">pan_tool</mat-icon>
+          <span><strong>Drag nodes</strong> to reposition them</span>
+        </div>
+        <div class="instruction-item">
+          <mat-icon class="instruction-icon">mouse</mat-icon>
+          <span><strong>Scroll</strong> to zoom in/out</span>
+        </div>
+        <div class="instruction-item">
+          <mat-icon class="instruction-icon">open_with</mat-icon>
+          <span><strong>Drag canvas</strong> to pan around</span>
+        </div>
+        <div class="instruction-item">
+          <mat-icon class="instruction-icon">touch_app</mat-icon>
+          <span><strong>Click nodes/edges</strong> for selection events</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -15,7 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { ExactInferenceResult, FloatBelief, IntervalBelief, PboxBelief } from '../../shared/models/network-analysis.models';
+import { ExactInferenceResult, FloatBelief, IntervalBelief, PboxBelief, NetworkStructureResult } from '../../shared/models/network-analysis.models';
 
 type BeliefValue = FloatBelief | IntervalBelief | PboxBelief;
 
@@ -468,23 +468,6 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
     this.selectedTargetNode = nodeId;
   }
 
-  highlightReachableFrom(sourceNode: number | string | null): void {
-    if (sourceNode !== null) {
-      const nodeId = typeof sourceNode === 'string' ? parseInt(sourceNode) : sourceNode;
-      if (!isNaN(nodeId)) {
-        this.highlightNodes([nodeId]);
-      }
-    }
-  }
-
-  highlightReachableTo(targetNode: number | string | null): void {
-    if (targetNode !== null) {
-      const nodeId = typeof targetNode === 'string' ? parseInt(targetNode) : targetNode;
-      if (!isNaN(nodeId)) {
-        this.highlightNodes([nodeId]);
-      }
-    }
-  }
 
   isNodeReachable(source: string | null, target: string | null): boolean {
     // For exact inference, just check if both nodes exist
@@ -497,7 +480,19 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
   }
 
   getPath(source: string | null, target: string | null): number[] {
-    // For exact inference, return simple path if reachable
+    // Try to use comprehensive structure data for accurate path finding
+    const comprehensiveData = this.getComprehensiveStructureData();
+    
+    if (comprehensiveData && source && target) {
+      const sourceId = parseInt(source);
+      const targetId = parseInt(target);
+      
+      if (!isNaN(sourceId) && !isNaN(targetId)) {
+        return this.findPathInComprehensiveData(sourceId, targetId, comprehensiveData);
+      }
+    }
+    
+    // Fallback to simple path for exact inference
     if (this.isNodeReachable(source, target)) {
       const sourceId = parseInt(source!);
       const targetId = parseInt(target!);
@@ -506,5 +501,170 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
       }
     }
     return [];
+  }
+
+  // Methods for accessing comprehensive structure data
+  getComprehensiveStructureData(): NetworkStructureResult | null {
+    return this.analysisState.getComprehensiveStructureData();
+  }
+
+  hasComprehensiveStructureData(): boolean {
+    const data = this.getComprehensiveStructureData();
+    return !!(data?.edgelist && data?.outgoing_index && data?.incoming_index);
+  }
+
+  // Enhanced reachability analysis using comprehensive structure data
+  isNodeReachableInNetwork(sourceId: number, targetId: number): boolean {
+    const comprehensiveData = this.getComprehensiveStructureData();
+    
+    if (!comprehensiveData) {
+      // Fallback to basic check
+      return sourceId !== targetId;
+    }
+    
+    // Use descendants data if available
+    const descendants = comprehensiveData.descendants;
+    if (descendants && descendants[sourceId]) {
+      return descendants[sourceId].includes(targetId);
+    }
+    
+    // Use BFS on edge list
+    return this.bfsReachability(sourceId, targetId, comprehensiveData.edgelist);
+  }
+
+  private bfsReachability(sourceId: number, targetId: number, edgelist: [number, number][]): boolean {
+    if (sourceId === targetId) return true;
+    
+    // Build adjacency list
+    const adjacency: Record<number, number[]> = {};
+    edgelist.forEach(([from, to]) => {
+      if (!adjacency[from]) adjacency[from] = [];
+      adjacency[from].push(to);
+    });
+    
+    // BFS
+    const visited = new Set<number>();
+    const queue = [sourceId];
+    visited.add(sourceId);
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      
+      if (current === targetId) return true;
+      
+      const neighbors = adjacency[current] || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  private findPathInComprehensiveData(sourceId: number, targetId: number, data: NetworkStructureResult): number[] {
+    if (sourceId === targetId) return [sourceId];
+    
+    // Build adjacency list
+    const adjacency: Record<number, number[]> = {};
+    data.edgelist.forEach(([from, to]) => {
+      if (!adjacency[from]) adjacency[from] = [];
+      adjacency[from].push(to);
+    });
+    
+    // BFS with path tracking
+    const visited = new Set<number>();
+    const queue: Array<{node: number, path: number[]}> = [{node: sourceId, path: [sourceId]}];
+    visited.add(sourceId);
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      
+      if (current.node === targetId) {
+        return current.path;
+      }
+      
+      const neighbors = adjacency[current.node] || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push({
+            node: neighbor,
+            path: [...current.path, neighbor]
+          });
+        }
+      }
+    }
+    
+    return []; // No path found
+  }
+
+  // Get ancestors and descendants from comprehensive data
+  getNodeAncestors(nodeId: number): number[] {
+    const comprehensiveData = this.getComprehensiveStructureData();
+    return comprehensiveData?.ancestors?.[nodeId] || [];
+  }
+
+  getNodeDescendants(nodeId: number): number[] {
+    const comprehensiveData = this.getComprehensiveStructureData();
+    return comprehensiveData?.descendants?.[nodeId] || [];
+  }
+
+  // Enhanced analysis methods using comprehensive data
+  getOutgoingNodes(nodeId: number): number[] {
+    const comprehensiveData = this.getComprehensiveStructureData();
+    return comprehensiveData?.outgoing_index?.[nodeId] || [];
+  }
+
+  getIncomingNodes(nodeId: number): number[] {
+    const comprehensiveData = this.getComprehensiveStructureData();
+    return comprehensiveData?.incoming_index?.[nodeId] || [];
+  }
+
+  getNodeConnectivity(nodeId: number): {incoming: number, outgoing: number, total: number} {
+    const incoming = this.getIncomingNodes(nodeId).length;
+    const outgoing = this.getOutgoingNodes(nodeId).length;
+    return {
+      incoming,
+      outgoing, 
+      total: incoming + outgoing
+    };
+  }
+
+  // Update reachability highlighting with comprehensive data
+  highlightReachableFrom(sourceNode: number | string | null): void {
+    if (sourceNode === null) return;
+    
+    const nodeId = typeof sourceNode === 'string' ? parseInt(sourceNode) : sourceNode;
+    if (isNaN(nodeId)) return;
+    
+    const comprehensiveData = this.getComprehensiveStructureData();
+    if (comprehensiveData) {
+      // Highlight all descendants
+      const descendants = this.getNodeDescendants(nodeId);
+      this.highlightNodes([nodeId, ...descendants]);
+    } else {
+      // Fallback to basic highlighting
+      this.highlightNodes([nodeId]);
+    }
+  }
+
+  highlightReachableTo(targetNode: number | string | null): void {
+    if (targetNode === null) return;
+    
+    const nodeId = typeof targetNode === 'string' ? parseInt(targetNode) : targetNode;
+    if (isNaN(nodeId)) return;
+    
+    const comprehensiveData = this.getComprehensiveStructureData();
+    if (comprehensiveData) {
+      // Highlight all ancestors
+      const ancestors = this.getNodeAncestors(nodeId);
+      this.highlightNodes([nodeId, ...ancestors]);
+    } else {
+      // Fallback to basic highlighting
+      this.highlightNodes([nodeId]);
+    }
   }
 }

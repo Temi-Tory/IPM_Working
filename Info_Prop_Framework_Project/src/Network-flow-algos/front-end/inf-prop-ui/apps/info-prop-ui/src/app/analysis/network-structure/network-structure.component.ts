@@ -11,16 +11,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+import { NetworkVisualizationComponent, NodeSelectionEvent, EdgeSelectionEvent } from '../network-visualization/network-visualization.component';
 
-interface NetworkStructureResult {
-  total_nodes: number;
-  total_edges: number;
-  source_nodes: number[];
-  sink_nodes: number[];
-  fork_nodes: number[];
-  join_nodes: number[];
-  iteration_sets_count: number;
-}
+import { NetworkStructureResult } from '../../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-network-structure',
@@ -33,7 +26,8 @@ interface NetworkStructureResult {
     MatProgressSpinnerModule,
     MatMenuModule,
     MatSnackBarModule,
-    AnalysisViewSwitcherComponent
+    AnalysisViewSwitcherComponent,
+    NetworkVisualizationComponent
   ],
   templateUrl: './network-structure.component.html',
   styleUrl: './network-structure.component.scss'
@@ -72,6 +66,50 @@ export class NetworkStructureComponent extends BaseAnalysisComponent<NetworkStru
 
     this.setLoading(true);
     
+    // Check if we have comprehensive structure data, if not try to load it
+    const comprehensiveData = this.analysisState.getComprehensiveStructureData();
+    
+    if (!comprehensiveData && networkData.structure) {
+      // Try to load comprehensive structure data
+      this.analysisState.loadComprehensiveNetworkStructure().subscribe({
+        next: (comprehensive) => {
+          this.processComprehensiveData(comprehensive, networkData.structure);
+        },
+        error: (error) => {
+          console.warn('Could not load comprehensive structure data, using basic data:', error);
+          this.processBasicData(networkData);
+        }
+      });
+    } else if (comprehensiveData) {
+      this.processComprehensiveData(comprehensiveData, networkData.structure);
+    } else {
+      this.processBasicData(networkData);
+    }
+  }
+
+  private processComprehensiveData(comprehensive: NetworkStructureResult, structure: any): void {
+    try {
+      const analysisData: AnalysisComponentData<NetworkStructureResult> = {
+        structure: structure,
+        results: comprehensive
+      };
+      
+      this.setData(analysisData);
+      this.setLoading(false);
+      
+      this.snackBar.open(
+        `Comprehensive network structure loaded: ${comprehensive.total_nodes} nodes, ${comprehensive.total_edges} edges, ${comprehensive.edgelist.length} edge connections`, 
+        'Close', 
+        { duration: 3000 }
+      );
+      
+    } catch (error) {
+      this.setError(`Failed to process comprehensive network data: ${error}`);
+      this.setLoading(false);
+    }
+  }
+
+  private processBasicData(networkData: any): void {
     try {
       const analysisData: AnalysisComponentData<NetworkStructureResult> = {
         structure: networkData.structure,
@@ -81,9 +119,11 @@ export class NetworkStructureComponent extends BaseAnalysisComponent<NetworkStru
       this.setData(analysisData);
       this.setLoading(false);
       
-      this.snackBar.open(`Network structure loaded: ${analysisData.results.total_nodes} nodes, ${analysisData.results.total_edges} edges`, 'Close', {
-        duration: 3000
-      });
+      this.snackBar.open(
+        `Basic network structure loaded: ${analysisData.results.total_nodes} nodes, ${analysisData.results.total_edges} edges`, 
+        'Close', 
+        { duration: 3000 }
+      );
       
     } catch (error) {
       this.setError(`Failed to load network data: ${error}`);
@@ -231,6 +271,61 @@ export class NetworkStructureComponent extends BaseAnalysisComponent<NetworkStru
     return this.componentData()?.results?.iteration_sets_count || 0;
   }
 
+  // New methods for comprehensive structure data
+  getAllNodes(): number[] {
+    return this.componentData()?.results?.all_nodes || [];
+  }
+
+  getEdgeList(): [number, number][] {
+    return this.componentData()?.results?.edgelist || [];
+  }
+
+  getOutgoingIndex(): Record<number, number[]> {
+    return this.componentData()?.results?.outgoing_index || {};
+  }
+
+  getIncomingIndex(): Record<number, number[]> {
+    return this.componentData()?.results?.incoming_index || {};
+  }
+
+  getIterationSets(): number[][] {
+    return this.componentData()?.results?.iteration_sets || [];
+  }
+
+  getAncestors(): Record<number, number[]> {
+    return this.componentData()?.results?.ancestors || {};
+  }
+
+  getDescendants(): Record<number, number[]> {
+    return this.componentData()?.results?.descendants || {};
+  }
+
+  getNodePriors(): Record<number, number> | undefined {
+    return this.componentData()?.results?.node_priors;
+  }
+
+  getEdgeProbabilities(): Record<string, number> | undefined {
+    return this.componentData()?.results?.edge_probabilities;
+  }
+
+  getCpmData(): any | undefined {
+    return this.componentData()?.results?.cpm_data;
+  }
+
+  getCapacityData(): Record<number, number> | undefined {
+    return this.componentData()?.results?.capacity_data;
+  }
+
+  hasComprehensiveData(): boolean {
+    const data = this.componentData()?.results;
+    return !!(data?.edgelist && data?.outgoing_index && data?.incoming_index);
+  }
+
+  hasOptionalData(): boolean {
+    const data = this.componentData()?.results;
+    return !!(data?.node_priors || data?.edge_probabilities || data?.cpm_data || data?.capacity_data);
+  }
+
   // Highlighting methods for interaction
   highlightSourceNodes(): void {
     this.highlightNodes(this.getSourceNodes());
@@ -246,5 +341,80 @@ export class NetworkStructureComponent extends BaseAnalysisComponent<NetworkStru
 
   highlightJoinNodes(): void {
     this.highlightNodes(this.getJoinNodes());
+  }
+
+  // Methods for refreshing comprehensive data
+  refreshComprehensiveData(): void {
+    this.setLoading(true);
+    
+    this.analysisState.refreshComprehensiveStructure().subscribe({
+      next: (comprehensive) => {
+        this.processComprehensiveData(comprehensive, this.componentData()?.structure);
+        this.snackBar.open('Comprehensive structure data refreshed', 'Close', { duration: 2000 });
+      },
+      error: (error) => {
+        this.setError(`Failed to refresh comprehensive data: ${error}`);
+        this.setLoading(false);
+      }
+    });
+  }
+
+  // Utility methods for comprehensive analysis
+  getAncestorsForNode(nodeId: number): number[] {
+    const ancestors = this.getAncestors();
+    return ancestors[nodeId] || [];
+  }
+
+  getDescendantsForNode(nodeId: number): number[] {
+    const descendants = this.getDescendants();
+    return descendants[nodeId] || [];
+  }
+
+  getOutgoingEdgesForNode(nodeId: number): number[] {
+    const outgoing = this.getOutgoingIndex();
+    return outgoing[nodeId] || [];
+  }
+
+  getIncomingEdgesForNode(nodeId: number): number[] {
+    const incoming = this.getIncomingIndex();
+    return incoming[nodeId] || [];
+  }
+
+  // Get edge probability by edge key
+  getEdgeProbability(fromNode: number, toNode: number): number | undefined {
+    const edgeProbs = this.getEdgeProbabilities();
+    return edgeProbs ? edgeProbs[`${fromNode}_${toNode}`] : undefined;
+  }
+
+  // Get node prior probability
+  getNodePrior(nodeId: number): number | undefined {
+    const nodePriors = this.getNodePriors();
+    return nodePriors ? nodePriors[nodeId] : undefined;
+  }
+
+  // Event handlers for network visualization
+  onNodeSelected(event: NodeSelectionEvent): void {
+    console.log('Node selected:', event.node);
+    this.snackBar.open(
+      `Node ${event.node.id} selected (${event.node.role})`,
+      'Close',
+      { duration: 2000 }
+    );
+  }
+
+  onEdgeSelected(event: EdgeSelectionEvent): void {
+    console.log('Edge selected:', event.link);
+    const sourceId = typeof event.link.source === 'object' ? event.link.source.id : event.link.source;
+    const targetId = typeof event.link.target === 'object' ? event.link.target.id : event.link.target;
+    this.snackBar.open(
+      `Edge ${sourceId} → ${targetId} selected`,
+      'Close',
+      { duration: 2000 }
+    );
+  }
+
+  onCanvasClicked(event: MouseEvent): void {
+    console.log('Canvas clicked');
+    // Clear any selections or perform other actions
   }
 }

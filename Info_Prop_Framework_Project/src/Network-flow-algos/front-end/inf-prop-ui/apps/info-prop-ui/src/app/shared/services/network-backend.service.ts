@@ -6,7 +6,8 @@ import { catchError, map } from 'rxjs/operators';
 import { 
   NetworkAnalysisRequest, 
   NetworkAnalysisResponse, 
-  BackendHealthResponse 
+  BackendHealthResponse,
+  NetworkStructureResult
 } from '../models/network-analysis.models';
 
 @Injectable({
@@ -19,7 +20,8 @@ export class NetworkBackendService {
   private readonly baseUrl = 'http://localhost:8080';
   private readonly endpoints = {
     upload: '/upload',
-    health: '/health'
+    health: '/health',
+    networkStructure: '/api/network/structure'
   };
 
   /**
@@ -178,7 +180,14 @@ export class NetworkBackendService {
             fork_nodes: [],
             sink_nodes: [],
             join_nodes: [],
-            iteration_sets_count: 0
+            iteration_sets_count: 0,
+            all_nodes: [],
+            edgelist: [],
+            outgoing_index: {},
+            incoming_index: {},
+            iteration_sets: [],
+            ancestors: {},
+            descendants: {}
           }
         }
       } as NetworkAnalysisResponse));
@@ -224,11 +233,64 @@ export class NetworkBackendService {
                 fork_nodes: [],
                 sink_nodes: [],
                 join_nodes: [],
-                iteration_sets_count: 0
+                iteration_sets_count: 0,
+                all_nodes: [],
+                edgelist: [],
+                outgoing_index: {},
+                incoming_index: {},
+                iteration_sets: [],
+                ancestors: {},
+                descendants: {}
               }
             }
           } as NetworkAnalysisResponse));
         })
       );
+  }
+
+  /**
+   * Fetch comprehensive network structure data for a specific network
+   * @param networkName - The name of the network to analyze
+   */
+  getComprehensiveNetworkStructure(networkName: string): Observable<NetworkStructureResult> {
+    const params = new URLSearchParams({ network_name: networkName });
+    
+    return this.http.get<NetworkStructureResult>(
+      `${this.baseUrl}${this.endpoints.networkStructure}?${params.toString()}`
+    ).pipe(
+      catchError(error => {
+        console.error('Comprehensive network structure fetch error:', error);
+        return throwError(() => new Error(
+          `Failed to fetch comprehensive network structure: ${error.message || 'Unknown error'}`
+        ));
+      })
+    );
+  }
+
+  /**
+   * Refresh network structure data for an existing analysis
+   * This method can be called to get updated comprehensive data
+   * @param networkName - The name of the network
+   * @param includeOptionalData - Whether to include optional CPM and capacity data
+   */
+  refreshNetworkStructure(
+    networkName: string, 
+    includeOptionalData: boolean = true
+  ): Observable<NetworkStructureResult> {
+    const params = new URLSearchParams({ 
+      network_name: networkName,
+      include_optional: includeOptionalData.toString()
+    });
+    
+    return this.http.get<NetworkStructureResult>(
+      `${this.baseUrl}${this.endpoints.networkStructure}?${params.toString()}`
+    ).pipe(
+      catchError(error => {
+        console.error('Network structure refresh error:', error);
+        return throwError(() => new Error(
+          `Failed to refresh network structure: ${error.message || 'Unknown error'}`
+        ));
+      })
+    );
   }
 }

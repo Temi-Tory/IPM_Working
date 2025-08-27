@@ -1,90 +1,228 @@
 <div class="home-container">
-  <div class="hero-section">
-    <h1 class="hero-title">Information Propagation Analysis</h1>
-    <p class="hero-subtitle">
-      A comprehensive Julia framework for advanced network analysis, featuring probabilistic inference, flow optimization, and critical path analysis.
-    </p>
-    
-    <div class="package-info">
-      <mat-card class="package-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="julia-icon">code</mat-icon>
-          <mat-card-title>InformationPropagationAnalysis.jl</mat-card-title>
-          <mat-card-subtitle>v0.1.0 - Open Source Julia Package</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>A Multi-Algorithm ToolKit for network analysis in Directed Acyclic Graphs .</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <a mat-stroked-button href="https://github.com/Temi-Tory/InformationPropagationAnalysis.jl" target="_blank">
-            <mat-icon>open_in_new</mat-icon>
-            View on GitHub
-          </a>
-        </mat-card-actions>
-      </mat-card>
+  @if (analysisState.hasActiveAnalysis() && comprehensiveData) {
+    <!-- Dashboard Mode: Show comprehensive analysis data -->
+    <div class="dashboard-section">
+      <div class="dashboard-header">
+        <h1 class="dashboard-title">Network Analysis Dashboard</h1>
+        <p class="dashboard-subtitle">{{ analysisState.getCurrentSnapshot()?.networkName || 'Current Network' }}</p>
+        <button mat-icon-button (click)="refreshStructureData()" matTooltip="Refresh structure data">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+
+      <!-- Key Metrics Cards -->
+      <div class="metrics-grid">
+        <mat-card class="metric-card topology-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>account_tree</mat-icon>
+            <mat-card-title>Network Topology</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="metric-row">
+              <span class="metric-label">Nodes:</span>
+              <span class="metric-value">{{ networkMetrics.totalNodes }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Edges:</span>
+              <span class="metric-value">{{ networkMetrics.totalEdges }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Depth:</span>
+              <span class="metric-value">{{ networkMetrics.networkDepth }} layers</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Density:</span>
+              <span class="metric-value">{{ networkMetrics.density }}%</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="metric-card roles-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>category</mat-icon>
+            <mat-card-title>Structural Roles</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="roles-grid">
+              <div class="role-item">
+                <mat-icon class="role-icon" [style.color]="getStructuralRoleColor('sources')">input</mat-icon>
+                <span class="role-count">{{ networkMetrics.sourceNodes }}</span>
+                <span class="role-label">Sources</span>
+              </div>
+              <div class="role-item">
+                <mat-icon class="role-icon" [style.color]="getStructuralRoleColor('sinks')">output</mat-icon>
+                <span class="role-count">{{ networkMetrics.sinkNodes }}</span>
+                <span class="role-label">Sinks</span>
+              </div>
+              <div class="role-item">
+                <mat-icon class="role-icon" [style.color]="getStructuralRoleColor('forks')">call_split</mat-icon>
+                <span class="role-count">{{ networkMetrics.forkNodes }}</span>
+                <span class="role-label">Forks</span>
+              </div>
+              <div class="role-item">
+                <mat-icon class="role-icon" [style.color]="getStructuralRoleColor('joins')">call_merge</mat-icon>
+                <span class="role-count">{{ networkMetrics.joinNodes }}</span>
+                <span class="role-label">Joins</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="metric-card complexity-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>insights</mat-icon>
+            <mat-card-title>Complexity Indicators</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="metric-row">
+              <span class="metric-label">Branching Factor:</span>
+              <span class="metric-value">{{ complexityIndicators.branchingFactor }}%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Convergence Factor:</span>
+              <span class="metric-value">{{ complexityIndicators.convergenceFactor }}%</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Structural Complexity:</span>
+              <span class="metric-value">{{ complexityIndicators.structuralComplexity }}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Connectivity Ratio:</span>
+              <span class="metric-value">{{ complexityIndicators.connectivityRatio }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="metric-card data-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>storage</mat-icon>
+            <mat-card-title>Data Availability</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="data-richness">
+              <span class="richness-label">Data Richness:</span>
+              <div class="richness-bar">
+                <mat-progress-bar mode="determinate" [value]="complexityIndicators.dataRichness"></mat-progress-bar>
+                <span class="richness-percentage">{{ complexityIndicators.dataRichness }}%</span>
+              </div>
+            </div>
+            <div class="data-status-grid">
+              <div class="data-status" [class.available]="dataAvailability.hasNodePriors">
+                <mat-icon>{{ dataAvailability.hasNodePriors ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Node Priors</span>
+                @if (dataAvailability.hasNodePriors) {
+                  <span class="data-count">({{ dataAvailability.nodePriorsCount }})</span>
+                }
+              </div>
+              <div class="data-status" [class.available]="dataAvailability.hasEdgeProbabilities">
+                <mat-icon>{{ dataAvailability.hasEdgeProbabilities ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Edge Probabilities</span>
+                @if (dataAvailability.hasEdgeProbabilities) {
+                  <span class="data-count">({{ dataAvailability.edgeProbsCount }})</span>
+                }
+              </div>
+              <div class="data-status" [class.available]="dataAvailability.hasCpmData">
+                <mat-icon>{{ dataAvailability.hasCpmData ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>CPM Data</span>
+              </div>
+              <div class="data-status" [class.available]="dataAvailability.hasCapacityData">
+                <mat-icon>{{ dataAvailability.hasCapacityData ? 'check_circle' : 'cancel' }}</mat-icon>
+                <span>Capacity Data</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  } @else {
+    <!-- Welcome Mode: Show introduction and getting started -->
+    <div class="hero-section">
+      <h1 class="hero-title">Information Propagation Analysis</h1>
+      <p class="hero-subtitle">
+        A comprehensive Julia framework for advanced network analysis, featuring probabilistic inference, flow optimization, and critical path analysis.
+      </p>
+      
+      <div class="package-info">
+        <mat-card class="package-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="julia-icon">code</mat-icon>
+            <mat-card-title>InformationPropagationAnalysis.jl</mat-card-title>
+            <mat-card-subtitle>v0.1.0 - Open Source Julia Package</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>A Multi-Algorithm ToolKit for network analysis in Directed Acyclic Graphs .</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <a mat-stroked-button href="https://github.com/Temi-Tory/InformationPropagationAnalysis.jl" target="_blank">
+              <mat-icon>open_in_new</mat-icon>
+              View on GitHub
+            </a>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+
+      <div class="cta-section">
+        <button mat-raised-button color="primary" class="primary-cta" routerLink="/upload">
+          <mat-icon>cloud_upload</mat-icon>
+          Get Started - Upload Network
+        </button>
+        <p class="cta-help">Upload your network files (.EDGES + JSON configurations) to begin analysis</p>
+      </div>
+    </div>
+  }
+
+    <div class="algorithms-overview">
+      <h2 class="section-title">Three Core Analysis Methods</h2>
+      <div class="algorithms-grid">
+        <div class="algorithm-item">
+          <mat-icon class="algorithm-icon">psychology</mat-icon>
+          <h3>Exact Inference</h3>
+          <p>Probabilistic belief propagation with diamond decomposition for precise uncertainty quantification</p>
+        </div>
+        <div class="algorithm-item">
+          <mat-icon class="algorithm-icon">water_drop</mat-icon>
+          <h3>Flow Analysis</h3>
+          <p>Maximum flow capacity, bottleneck identification, and network throughput optimization</p>
+        </div>
+        <div class="algorithm-item">
+          <mat-icon class="algorithm-icon">schedule</mat-icon>
+          <h3>Critical Path Analysis</h3>
+          <p>Time and cost optimization using generalized critical path methods with uncertainty support</p>
+        </div>
+      </div>
     </div>
 
-    <div class="cta-section">
-      <button mat-raised-button color="primary" class="primary-cta" routerLink="/upload">
-        <mat-icon>cloud_upload</mat-icon>
-        Get Started - Upload Network
-      </button>
-      <p class="cta-help">Upload your network files (.EDGES + JSON configurations) to begin analysis</p>
-    </div>
-  </div>
-
-  <div class="algorithms-overview">
-    <h2 class="section-title">Three Core Analysis Methods</h2>
-    <div class="algorithms-grid">
-      <div class="algorithm-item">
-        <mat-icon class="algorithm-icon">psychology</mat-icon>
-        <h3>Exact Inference</h3>
-        <p>Probabilistic belief propagation with diamond decomposition for precise uncertainty quantification</p>
-      </div>
-      <div class="algorithm-item">
-        <mat-icon class="algorithm-icon">water_drop</mat-icon>
-        <h3>Flow Analysis</h3>
-        <p>Maximum flow capacity, bottleneck identification, and network throughput optimization</p>
-      </div>
-      <div class="algorithm-item">
-        <mat-icon class="algorithm-icon">schedule</mat-icon>
-        <h3>Critical Path Analysis</h3>
-        <p>Time and cost optimization using generalized critical path methods with uncertainty support</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="workflow-info">
-    <h2 class="section-title">Framework Workflow</h2>
-    <div class="workflow-steps">
-      <div class="step">
-        <div class="step-number">1</div>
-        <div class="step-content">
-          <h4>Upload Network</h4>
-          <p>Import .EDGES files and JSON configurations</p>
+    <div class="workflow-info">
+      <h2 class="section-title">Framework Workflow</h2>
+      <div class="workflow-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Upload Network</h4>
+            <p>Import .EDGES files and JSON configurations</p>
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <div class="step-content">
-          <h4>Analyze Structure</h4>
-          <p>Examine topology and diamond patterns</p>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Analyze Structure</h4>
+            <p>Examine topology and diamond patterns</p>
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <div class="step-content">
-          <h4>Run Algorithms</h4>
-          <p>Execute inference, flow, and critical path analysis</p>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Run Algorithms</h4>
+            <p>Execute inference, flow, and critical path analysis</p>
+          </div>
         </div>
-      </div>
-      <div class="step">
-        <div class="step-number">4</div>
-        <div class="step-content">
-          <h4>Compare Results</h4>
-          <p>View comprehensive system profile and insights</p>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h4>Compare Results</h4>
+            <p>View comprehensive system profile and insights</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 </div>

@@ -1,0 +1,325 @@
+// Theme-aware node colors
+:host {
+  // Light theme - more muted colors
+  --node-source-color: #43A047;    // Softer green
+  --node-sink-color: #E53935;      // Softer red  
+  --node-fork-color: #1E88E5;      // Softer blue
+  --node-join-color: #FB8C00;      // Softer orange
+  --node-regular-color: #757575;   // Medium gray
+  --node-stroke-color: #ffffff;    // White stroke for light mode
+  --edge-color: #666666;           // Dark gray edges for light mode
+  --svg-background: #fafafa;       // Light background for SVG
+  --text-color: #333333;           // Dark text for light mode
+}
+
+:host-context([data-theme="dark"]) {
+  // Dark theme - more contrasted, brighter colors  
+  --node-source-color: #66BB6A;    // Brighter green for contrast
+  --node-sink-color: #EF5350;      // Brighter red for contrast
+  --node-fork-color: #42A5F5;      // Brighter blue for contrast  
+  --node-join-color: #FFCA28;      // Brighter yellow-orange for contrast
+  --node-regular-color: #BDBDBD;   // Light gray for visibility
+  --node-stroke-color: #121212;    // Dark stroke for dark mode
+  --edge-color: #CCCCCC;           // Light gray edges for dark mode
+  --svg-background: #1a1a1a;       // Dark background for SVG
+  --text-color: #ffffff;           // Light text for dark mode
+}
+
+.network-visualization-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100vh;
+  background: var(--mat-sys-background);
+  color: var(--mat-sys-on-background);
+
+  .visualization-toolbar {
+    background: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--mat-sys-shadow);
+
+    .toolbar-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      font-size: 18px;
+
+      mat-icon {
+        color: #1976d2;
+      }
+    }
+
+    .toolbar-spacer {
+      flex: 1 1 auto;
+    }
+
+    .network-stats {
+      display: flex;
+      gap: 16px;
+      margin-right: 16px;
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 14px;
+        color: var(--mat-sys-on-surface-variant);
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: var(--mat-sys-primary);
+        }
+      }
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 4px;
+    }
+  }
+
+  .config-panel {
+    background: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+    box-shadow: 0 2px 4px var(--mat-sys-shadow);
+
+    .config-row {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      flex-wrap: wrap;
+
+      .config-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 200px;
+
+        label {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--mat-sys-on-surface);
+        }
+
+        .config-slider {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .legend-panel {
+    background: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+    box-shadow: 0 2px 4px var(--mat-sys-shadow);
+
+    .legend-title {
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+
+        .legend-color {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+
+          &.source-color {
+            background-color: var(--node-source-color, #43A047);
+          }
+
+          &.sink-color {
+            background-color: var(--node-sink-color, #E53935);
+          }
+
+          &.fork-color {
+            background-color: var(--node-fork-color, #1E88E5);
+          }
+
+          &.join-color {
+            background-color: var(--node-join-color, #FB8C00);
+          }
+
+          &.regular-color {
+            background-color: var(--node-regular-color, #757575);
+          }
+        }
+      }
+    }
+  }
+
+  .visualization-card {
+    flex: 1;
+    background: var(--mat-sys-surface-container);
+    box-shadow: 0 2px 4px var(--mat-sys-shadow);
+
+    .visualization-content {
+      position: relative;
+      padding: 0;
+      height: 600px;
+      overflow: hidden;
+
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 10;
+
+        p {
+          margin-top: 16px;
+          color: #666;
+          font-size: 14px;
+        }
+      }
+
+      .no-data-message {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+
+        .no-data-icon {
+          font-size: 64px;
+          width: 64px;
+          height: 64px;
+          margin-bottom: 16px;
+          opacity: 0.5;
+        }
+
+        h3 {
+          margin: 0 0 8px 0;
+          font-weight: 400;
+        }
+
+        p {
+          margin: 0;
+          font-size: 14px;
+        }
+      }
+
+      .svg-container {
+        width: 100%;
+        height: 100%;
+
+        &.hidden {
+          display: none;
+        }
+
+        svg {
+          width: 100%;
+          height: 100%;
+          background: #fff;
+          cursor: grab;
+
+          &:active {
+            cursor: grabbing;
+          }
+        }
+      }
+    }
+  }
+
+  .instructions-panel {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+    .instruction-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+
+      .instruction-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 4px;
+        background: #f5f5f5;
+
+        .instruction-icon {
+          color: #1976d2;
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+
+        span {
+          font-size: 14px;
+          color: #333;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .network-visualization-container {
+    .config-panel .config-row {
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .legend-panel .legend-items {
+      justify-content: center;
+    }
+
+    .instructions-panel .instruction-list {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// D3 specific styles that may be needed for better integration
+:host ::ng-deep {
+  .node {
+    transition: all 0.15s ease;
+
+    &:hover {
+      stroke-width: 3px !important;
+    }
+  }
+
+  .link {
+    transition: stroke-width 0.15s ease;
+
+    &:hover {
+      stroke-width: 3px !important;
+      stroke: #333 !important;
+    }
+  }
+
+  .node-label {
+    pointer-events: none;
+    user-select: none;
+  }
+}
