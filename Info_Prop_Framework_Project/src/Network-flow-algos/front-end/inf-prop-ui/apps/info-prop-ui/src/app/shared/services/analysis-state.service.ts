@@ -34,6 +34,9 @@ export class AnalysisStateService {
   // Computed signals for individual tab states
   hasActiveAnalysis = computed(() => !!this.currentState());
   
+  // Upload tab is always completed if we have analysis state 
+  uploadTab = computed(() => ({ enabled: true, completed: !!this.currentState(), hasData: !!this.currentState() }));
+  
   networkStructureTab = computed(() => this.currentState()?.tabStates.networkStructure || { enabled: false, completed: false, hasData: false });
   diamondAnalysisTab = computed(() => this.currentState()?.tabStates.diamondAnalysis || { enabled: false, completed: false, hasData: false });
   exactInferenceTab = computed(() => this.currentState()?.tabStates.exactInference || { enabled: false, completed: false, hasData: false });

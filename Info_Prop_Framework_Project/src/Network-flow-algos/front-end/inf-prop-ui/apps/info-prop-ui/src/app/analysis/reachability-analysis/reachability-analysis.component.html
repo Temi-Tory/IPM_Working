@@ -4,7 +4,7 @@
   <div class="analysis-header">
     <div class="header-content">
       <div class="header-info">
-        <h1>Reachability Analysis</h1>
+        <h1><mat-icon>psychology</mat-icon> Exact Inference (Belief Propagation)</h1>
         <p class="network-name">{{ componentData()?.structure?.networkName || 'Network' }}</p>
       </div>
       
@@ -42,7 +42,7 @@
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner></mat-spinner>
-      <p>Analyzing network reachability...</p>
+      <p>Computing belief propagation...</p>
     </div>
   }
 
@@ -53,7 +53,7 @@
         <div class="error-content">
           <mat-icon class="error-icon">error</mat-icon>
           <div>
-            <h3>Error Loading Reachability Analysis</h3>
+            <h3>Error Loading Exact Inference Analysis</h3>
             <p>{{ error() }}</p>
           </div>
         </div>
@@ -74,8 +74,8 @@
             <mat-card-content>
               <div class="graph-placeholder">
                 <mat-icon class="graph-icon">device_hub</mat-icon>
-                <h3>Interactive Reachability Graph</h3>
-                <p>Network graph with reachability paths highlighted</p>
+                <h3>Interactive Belief Propagation Graph</h3>
+                <p>Network graph with belief values and propagation paths</p>
                 <div class="graph-stats">
                   <span class="stat-item">{{ getReachablePairsCount() }}/{{ getTotalPairsCount() }} pairs reachable</span>
                   <span class="stat-separator">•</span>

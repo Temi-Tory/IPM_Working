@@ -1,4 +1,4 @@
-// System Profile - Purple Theme (#9C27B0 primary, #673AB7 secondary)
+// System Profile - Purple Theme with Dark Mode Support
 $system-primary: #9C27B0;
 $system-secondary: #673AB7;
 $system-accent: #E1BEE7;
@@ -7,6 +7,11 @@ $system-dark: #4A148C;
 $system-success: #4CAF50;
 $system-warning: #FF9800;
 $system-error: #F44336;
+
+// Dark mode compatible colors
+$system-surface-light: rgba(156, 39, 176, 0.08);  // Very subtle purple background
+$system-surface-medium: rgba(156, 39, 176, 0.12); // Slightly more visible
+$system-border-light: rgba(156, 39, 176, 0.2);    // Border color that works in both modes
 
 .system-profile-container {
   padding: 24px;
@@ -158,10 +163,11 @@ $system-error: #F44336;
             
             .stat {
               padding: 8px 16px;
-              background-color: $system-light;
+              background-color: $system-surface-medium;
+              border: 1px solid $system-border-light;
               border-radius: 16px;
               font-weight: 500;
-              color: $system-dark;
+              color: var(--on-surface);
               font-size: 14px;
             }
           }
@@ -201,7 +207,7 @@ $system-error: #F44336;
             border-color: $system-accent;
             
             &:hover {
-              background-color: $system-light;
+              background-color: $system-surface-light;
               border-color: $system-primary;
             }
             
@@ -244,7 +250,8 @@ $system-error: #F44336;
             align-items: center;
             gap: 12px;
             padding: 12px;
-            background-color: $system-light;
+            background-color: $system-surface-light;
+            border: 1px solid $system-border-light;
             border-radius: 8px;
             
             mat-icon {
@@ -301,12 +308,78 @@ $system-error: #F44336;
   }
 }
 
+// Executive Summary Banner (used in visual mode)
+.executive-summary-banner {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, $system-surface-medium, var(--surface-container));
+  border-left: 4px solid $system-primary;
+  border: 1px solid $system-border-light;
+  border-radius: 8px;
+  
+  .banner-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $system-primary;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  .banner-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    
+    .banner-stat {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background-color: var(--surface-container-low);
+      border-radius: 8px;
+      border: 1px solid $system-border-light;
+      
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        color: $system-primary;
+      }
+      
+      .stat-content {
+        .stat-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--on-surface);
+          margin: 0;
+        }
+        
+        .stat-label {
+          font-size: 12px;
+          color: var(--on-surface-variant);
+          margin: 0;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
+
 // Dashboard Mode Styles
 .dashboard-mode {
   .executive-summary {
     margin-bottom: 24px;
-    background: linear-gradient(135deg, $system-light, white);
+    background: linear-gradient(135deg, $system-surface-medium, var(--surface-container));
     border-left: 4px solid $system-primary;
+    border: 1px solid $system-border-light;
     
     .summary-content {
       .summary-item {

@@ -5,17 +5,57 @@
 }
 
 .app-sidenav {
-  width: 280px;
+  width: 320px;
   background-color: var(--surface-container);
   border-right: 1px solid var(--outline-variant);
   
+  // Progress header styles
+  .nav-header {
+    padding: 20px 16px 16px 16px;
+    border-bottom: 1px solid var(--outline-variant);
+    margin-bottom: 8px;
+    
+    .nav-header-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--on-surface);
+      margin-bottom: 12px;
+    }
+    
+    .nav-header-progress {
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background-color: var(--surface-variant);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--primary), var(--tertiary));
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+      }
+      
+      .progress-text {
+        font-size: 12px;
+        color: var(--on-surface-variant);
+        font-weight: 500;
+      }
+    }
+  }
+  
   .mat-mdc-nav-list {
-    padding: 16px 0;
+    padding: 8px 0;
     
     .mat-mdc-list-item {
-      margin: 4px 16px;
-      border-radius: 8px;
+      margin: 2px 16px;
+      border-radius: 12px;
       transition: all 0.2s ease;
+      position: relative;
+      min-height: 56px;
       
       &:hover {
         background-color: var(--surface-container-high);
@@ -27,6 +67,25 @@
         
         .mat-icon {
           color: var(--on-primary-container);
+        }
+      }
+      
+      &.completed {
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 32px;
+          background-color: var(--primary);
+          border-radius: 0 2px 2px 0;
+        }
+        
+        .nav-title {
+          color: var(--primary);
+          font-weight: 600;
         }
       }
       
@@ -51,6 +110,34 @@
         opacity: 0.8;
       }
       
+      // Status icons container
+      .nav-status {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        
+        .status-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          
+          &.completed {
+            color: var(--primary);
+          }
+          
+          &.available {
+            color: var(--tertiary);
+            animation: pulse 2s infinite;
+          }
+          
+          &.pending {
+            color: var(--outline);
+            opacity: 0.5;
+          }
+        }
+      }
+      
       &.disabled {
         opacity: 0.4;
         pointer-events: none;
@@ -68,6 +155,19 @@
         }
       }
     }
+  }
+}
+
+// Pulse animation for available analyses
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
   }
 }
 
@@ -141,4 +241,20 @@
   padding: 24px;
   min-height: calc(100vh - 64px);
   background-color: var(--surface-background);
+}
+
+// Responsive adjustments
+@media (max-width: 1199px) {
+  .app-sidenav {
+    width: 280px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-content {
+    // Adjust main content margin when sidebar is persistent
+    .mat-drawer-content {
+      margin-left: 0 !important;
+    }
+  }
 }

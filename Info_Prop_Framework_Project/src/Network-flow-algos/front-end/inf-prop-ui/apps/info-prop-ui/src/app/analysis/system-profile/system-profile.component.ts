@@ -865,4 +865,329 @@ export class SystemProfileComponent extends BaseAnalysisComponent<SystemProfileR
     // This would highlight the most important nodes across all analyses
     this.snackBar.open('Highlighting critical system nodes', 'Close', { duration: 2000 });
   }
+
+  // New methods for the comprehensive system profile template
+
+  getNetworkName(): string {
+    return this.systemSnapshot?.networkName || 'System';
+  }
+
+  getNetworkTopologyType(): string {
+    const nodes = this.getTotalNodes();
+    const edges = this.getTotalEdges();
+    if (nodes === 0) return 'Empty';
+    
+    const density = edges / (nodes * (nodes - 1) / 2);
+    if (density > 0.7) return 'Dense Network';
+    if (density > 0.3) return 'Moderate Network';
+    return 'Sparse Network';
+  }
+
+  getHealthScoreGradient(): string {
+    const score = this.getOverallHealthScore();
+    if (score >= 0.8) {
+      return 'linear-gradient(135deg, #4CAF50, #8BC34A)';
+    } else if (score >= 0.6) {
+      return 'linear-gradient(135deg, #8BC34A, #CDDC39)';
+    } else if (score >= 0.4) {
+      return 'linear-gradient(135deg, #CDDC39, #FF9800)';
+    } else {
+      return 'linear-gradient(135deg, #FF9800, #F44336)';
+    }
+  }
+
+  isAnalysisCompleted(analysisType: string): boolean {
+    if (!this.systemSnapshot) return false;
+    
+    const tabStates = this.systemSnapshot.tabStates;
+    switch (analysisType) {
+      case 'networkStructure': return tabStates.networkStructure?.completed || false;
+      case 'diamondAnalysis': return tabStates.diamondAnalysis?.completed || false;
+      case 'exactInference': return tabStates.exactInference?.completed || false;
+      case 'flowAnalysis': return tabStates.flowAnalysis?.completed || false;
+      case 'criticalPath': return tabStates.criticalPath?.completed || false;
+      default: return false;
+    }
+  }
+
+  // Add minimal required methods that the template expects
+  getNetworkStructureMetric(metric: string): number {
+    return 0; // Placeholder
+  }
+
+  getNetworkComplexityScore(): number {
+    return 50; // Placeholder
+  }
+
+  // New analysis-focused summary methods
+  getNetworkConnectivitySummary(): string {
+    const nodes = this.getTotalNodes();
+    const edges = this.getTotalEdges();
+    if (nodes === 0) return 'No network data';
+    
+    const density = edges / Math.max(1, (nodes * (nodes - 1) / 2));
+    const connectivity = (density * 100).toFixed(1);
+    return `${nodes} nodes, ${edges} edges (${connectivity}% density)`;
+  }
+
+  getDiamondStructureSummary(): string {
+    const diamondData = this.analysisState.diamondData();
+    if (!diamondData?.results) return 'No diamond analysis';
+    
+    const rootCount = diamondData.results.root_diamonds_count || 0;
+    const uniqueCount = diamondData.results.unique_diamonds_count || 0;
+    const efficiency = ((diamondData.results.diamond_efficiency || 0) * 100).toFixed(1);
+    
+    if (rootCount === 0) return 'No diamond structures detected';
+    return `${rootCount} root diamonds, ${uniqueCount} unique (${efficiency}% efficiency)`;
+  }
+
+  getInformationFlowSummary(): string {
+    const flowData = this.analysisState.flowAnalysisData();
+    if (!flowData?.results) return 'No flow analysis';
+    
+    const totalOutput = flowData.results.total_target_output || 0;
+    const utilization = ((flowData.results.network_utilization || 0) * 100).toFixed(1);
+    const activeSources = flowData.results.active_sources?.length || 0;
+    
+    return `${activeSources} active sources, ${totalOutput.toFixed(2)} total output (${utilization}% utilization)`;
+  }
+
+  getCriticalPathSummary(): string {
+    const cpmData = this.analysisState.criticalPathData();
+    if (!cpmData?.results) return 'No critical path analysis';
+    
+    const duration = cpmData.results.time_analysis?.critical_duration || 0;
+    const criticalActivities = cpmData.results.time_analysis?.critical_nodes?.length || 0;
+    const totalCost = cpmData.results.cost_analysis?.total_cost || 0;
+    
+    return `Duration: ${duration.toFixed(1)}, Cost: ${totalCost.toFixed(1)}, ${criticalActivities} critical nodes`;
+  }
+
+  getBeliefPropagationSummary(): string {
+    const beliefData = this.analysisState.exactInferenceData();
+    if (!beliefData?.results) return 'No belief propagation';
+    
+    const nodeBeliefs = beliefData.results.node_beliefs || {};
+    const totalNodes = Object.keys(nodeBeliefs).length;
+    
+    if (totalNodes === 0) return 'No belief values computed';
+    
+    const maxBelief = Math.max(...Object.values(nodeBeliefs) as number[]);
+    const avgBelief = (Object.values(nodeBeliefs) as number[]).reduce((a, b) => a + b, 0) / totalNodes;
+    
+    return `${totalNodes} nodes, max belief: ${maxBelief.toFixed(3)}, avg: ${avgBelief.toFixed(3)}`;
+  }
+
+  getConnectivityType(): string {
+    return 'Connected'; // Placeholder
+  }
+
+  getDiamondAnalysisMetric(metric: string): any {
+    return 0; // Placeholder
+  }
+
+  getDiamondEfficiencyFormatted(): string {
+    return '0%'; // Placeholder
+  }
+
+  getDiamondCoveragePercent(): number {
+    return 0; // Placeholder
+  }
+
+  getInferenceDataType(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getInferenceMetric(metric: string): any {
+    return 0; // Placeholder
+  }
+
+  getInferenceConvergence(): boolean {
+    return false; // Placeholder
+  }
+
+  getUncertaintyType(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getInferenceComplexity(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getFlowAnalysisMetric(metric: string): any {
+    return 0; // Placeholder
+  }
+
+  getFlowBottlenecks(): number {
+    return 0; // Placeholder
+  }
+
+  getFlowUtilizationPercent(): number {
+    return 0; // Placeholder
+  }
+
+  getFlowEfficiencyClass(): string {
+    return 'low-efficiency'; // Placeholder
+  }
+
+  getFlowEfficiencyLevel(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getFlowPatternType(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getCriticalPathMetric(metric: string): any {
+    return 0; // Placeholder
+  }
+
+  getCriticalPathFloat(): number {
+    return 0; // Placeholder
+  }
+
+  getCriticalPathRiskClass(): string {
+    return 'medium-risk'; // Placeholder
+  }
+
+  getCriticalPathRiskLevel(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+  getResourceConstraintLevel(): string {
+    return 'Unknown'; // Placeholder
+  }
+
+
+  getMemoryUsage(): string {
+    return '< 100MB'; // Placeholder
+  }
+
+  getOptimizationScore(): number {
+    return 0.5; // Placeholder
+  }
+
+  getOptimizationScoreClass(): string {
+    return 'optimization-medium'; // Placeholder
+  }
+
+  getBottleneckRiskClass(): string {
+    return 'bottleneck-low'; // Placeholder
+  }
+
+  getOverallBottleneckRisk(): string {
+    return 'Low'; // Placeholder
+  }
+
+  getPerformanceBreakdown(): any[] {
+    return []; // Placeholder
+  }
+
+  getSystemRecommendations(): any[] {
+    return []; // Placeholder
+  }
+
+  getAnalysisCoverage(): number {
+    return this.getCompletedAnalyses() * 20; // 5 analyses max
+  }
+
+  getOptimizationPotential(): number {
+    return 50; // Placeholder
+  }
+
+  getOverallRiskScore(): string {
+    return 'Low'; // Placeholder
+  }
+
+  getRiskColor(): string {
+    return '#4CAF50'; // Green for low risk
+  }
+
+  getCompletionPercentage(): number {
+    return this.getAnalysisCoverage();
+  }
+
+  getCompletionCircumference(): string {
+    return '264'; // 2 * π * 42
+  }
+
+  getCompletionOffset(): string {
+    const circumference = 264;
+    const percentage = this.getCompletionPercentage();
+    const offset = circumference - (percentage / 100) * circumference;
+    return offset.toString();
+  }
+
+  getAnalysisBreakdown(): any[] {
+    return [
+      { name: 'Network Structure', completed: this.isAnalysisCompleted('networkStructure'), time: 50 },
+      { name: 'Diamond Analysis', completed: this.isAnalysisCompleted('diamondAnalysis'), time: 100 },
+      { name: 'Exact Inference', completed: this.isAnalysisCompleted('exactInference'), time: 200 },
+      { name: 'Flow Analysis', completed: this.isAnalysisCompleted('flowAnalysis'), time: 75 },
+      { name: 'Critical Path', completed: this.isAnalysisCompleted('criticalPath'), time: 60 }
+    ];
+  }
+
+  getTopInsight(): any {
+    const completedCount = this.getCompletedAnalyses();
+    if (completedCount >= 4) {
+      return {
+        title: 'Comprehensive Analysis Complete',
+        description: 'Most network analyses completed successfully with good coverage.',
+        icon: 'check_circle',
+        severity: 'success'
+      };
+    } else if (completedCount >= 2) {
+      return {
+        title: 'Partial Analysis Available',
+        description: 'Some analyses completed. Additional analysis recommended for full insights.',
+        icon: 'info',
+        severity: 'info'
+      };
+    } else {
+      return {
+        title: 'Limited Analysis Data',
+        description: 'Few analyses completed. Run additional analyses for comprehensive insights.',
+        icon: 'warning',
+        severity: 'warning'
+      };
+    }
+  }
+
+  getAdditionalInsights(): any[] {
+    const insights = [];
+    
+    if (this.isAnalysisCompleted('diamondAnalysis')) {
+      insights.push({
+        id: 'diamonds',
+        text: 'Diamond structures detected',
+        icon: 'diamond',
+        type: 'info'
+      });
+    }
+    
+    if (this.isAnalysisCompleted('flowAnalysis')) {
+      insights.push({
+        id: 'flow',
+        text: 'Flow analysis completed',
+        icon: 'water_drop',
+        type: 'success'
+      });
+    }
+    
+    return insights;
+  }
+
+  override switchViewMode(mode: 'visual' | 'dashboard'): void {
+    this.currentViewMode.set(mode);
+  }
+
+  override isVisualMode(): boolean {
+    return this.currentViewMode() === 'visual';
+  }
+
+  override isDashboardMode(): boolean {
+    return this.currentViewMode() === 'dashboard';
+  }
 }

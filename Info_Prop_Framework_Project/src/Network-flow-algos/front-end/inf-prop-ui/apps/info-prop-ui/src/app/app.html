@@ -4,7 +4,20 @@
     class="app-sidenav" 
     fixedInViewport="true"
     [opened]="isDrawerOpen"
-    mode="over">
+    [mode]="getDrawerMode()"
+    [disableClose]="shouldDisableClose()">
+    
+    <!-- Analysis Progress Header -->
+    <div class="nav-header">
+      <div class="nav-header-title">Analysis Pipeline</div>
+      <div class="nav-header-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="getOverallProgress()"></div>
+        </div>
+        <div class="progress-text">{{ getCompletedSteps() }}/{{ getTotalSteps() }} Complete</div>
+      </div>
+    </div>
+
     <mat-nav-list>
       <a mat-list-item routerLink="/home">
         <mat-icon matListItemIcon>home</mat-icon>
@@ -12,76 +25,145 @@
           <div class="nav-title">Home</div>
         </div>
       </a>
-      <a mat-list-item routerLink="/upload">
+      
+      <a mat-list-item routerLink="/upload" [class.completed]="analysisState.uploadTab().completed">
         <mat-icon matListItemIcon>cloud_upload</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Upload Network</div>
           <div class="nav-subtitle">Import network files</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.uploadTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
+      
       <a mat-list-item 
          routerLink="/structure" 
          [class.disabled]="!analysisState.networkStructureTab().enabled"
+         [class.completed]="analysisState.networkStructureTab().completed"
          [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Network Structure</div>
           <div class="nav-subtitle">Graph topology & analysis</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.networkStructureTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.networkStructureTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
       
       <a mat-list-item 
          routerLink="/diamonds" 
          [class.disabled]="!analysisState.diamondAnalysisTab().enabled"
+         [class.completed]="analysisState.diamondAnalysisTab().completed"
          [attr.tabindex]="!analysisState.diamondAnalysisTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>diamond</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Diamond Analysis</div>
           <div class="nav-subtitle">Parallel path structures</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.diamondAnalysisTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.diamondAnalysisTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
       
       <a mat-list-item 
          routerLink="/exact-inference" 
          [class.disabled]="!analysisState.exactInferenceTab().enabled"
+         [class.completed]="analysisState.exactInferenceTab().completed"
          [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>psychology</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Exact Inference</div>
           <div class="nav-subtitle">Probabilistic belief propagation</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.exactInferenceTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.exactInferenceTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
       
       <a mat-list-item 
          routerLink="/flow" 
          [class.disabled]="!analysisState.flowAnalysisTab().enabled"
+         [class.completed]="analysisState.flowAnalysisTab().completed"
          [attr.tabindex]="!analysisState.flowAnalysisTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>water_drop</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Flow Analysis</div>
           <div class="nav-subtitle">Capacity & throughput</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.flowAnalysisTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.flowAnalysisTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
       
       <a mat-list-item 
          routerLink="/critical-path" 
          [class.disabled]="!analysisState.criticalPathTab().enabled"
+         [class.completed]="analysisState.criticalPathTab().completed"
          [attr.tabindex]="!analysisState.criticalPathTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>schedule</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Critical Path Analysis</div>
           <div class="nav-subtitle">Time & cost optimization</div>
         </div>
+        <div class="nav-status">
+          @if (analysisState.criticalPathTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.criticalPathTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
       </a>
       
       <a mat-list-item 
          routerLink="/system-profile" 
          [class.disabled]="!analysisState.systemProfileTab().enabled"
+         [class.completed]="analysisState.systemProfileTab().completed"
          [attr.tabindex]="!analysisState.systemProfileTab().enabled ? -1 : 0">
         <mat-icon matListItemIcon>analytics</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">System Profile</div>
           <div class="nav-subtitle">Comprehensive comparison</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.systemProfileTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.systemProfileTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
         </div>
       </a>
     </mat-nav-list>

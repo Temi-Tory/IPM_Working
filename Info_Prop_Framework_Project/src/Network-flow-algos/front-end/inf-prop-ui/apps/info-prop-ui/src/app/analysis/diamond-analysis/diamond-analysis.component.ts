@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, KeyValuePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
@@ -30,6 +32,7 @@ interface ClassificationInfo {
   selector: 'app-diamond-analysis',
   imports: [
     CommonModule,
+    KeyValuePipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -37,6 +40,8 @@ interface ClassificationInfo {
     MatProgressSpinnerModule,
     MatMenuModule,
     MatSnackBarModule,
+    MatExpansionModule,
+    MatTabsModule,
     AnalysisViewSwitcherComponent
   ],
   templateUrl: './diamond-analysis.component.html',
@@ -95,6 +100,7 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
       };
       
       this.setData(analysisData);
+      this.processData(analysisData);
       this.setLoading(false);
       
       const totalCount = analysisData.results.total_classifications || 0;
@@ -368,6 +374,19 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
     return `${(efficiency * 100).toFixed(2)}%`;
   }
 
+  // New methods for the updated template
+  getTotalRootDiamonds(): number {
+    return this.getRootDiamondsCount();
+  }
+
+  getTotalUniqueDiamonds(): number {
+    return this.getUniqueDiamondsCount();
+  }
+
+  getDiamondEfficiencyPercent(): number {
+    return this.getDiamondEfficiency() * 100;
+  }
+
   // Diamond highlighting methods for interaction
   highlightDiamondNodes(): void {
     this.highlightNodes(this.diamondNodes);
@@ -397,5 +416,169 @@ export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnaly
 
   isHighlightedType(type: string): boolean {
     return this.highlightedDiamondType === type;
+  }
+
+  // New methods for the redesigned template
+
+  getRootClassifications(): Record<string, any> {
+    return this.componentData()?.results?.root_classifications || {};
+  }
+
+  getUniqueClassifications(): Record<string, any> {
+    return this.componentData()?.results?.unique_classifications || {};
+  }
+
+  getDiamondClassification(classification: any): any {
+    // Return the classification object with structure details
+    // This would be populated by the backend with full DiamondClassification data
+    return {
+      relevant_nodes: classification?.relevant_nodes || [],
+      conditioning_nodes: classification?.conditioning_nodes || [],
+      edge_count: classification?.edge_count || 0,
+      fork_count: classification?.fork_count || 0,
+      subgraph_size: classification?.subgraph_size || 0,
+      internal_forks: classification?.internal_forks || 0,
+      internal_joins: classification?.internal_joins || 0,
+      path_count: classification?.path_count || 0,
+      complexity_score: classification?.complexity_score || 0,
+      fork_structure: classification?.fork_structure || 'Unknown',
+      internal_structure: classification?.internal_structure || 'Unknown',
+      path_topology: classification?.path_topology || 'Unknown',
+      join_structure: classification?.join_structure || 'Unknown',
+      external_connectivity: classification?.external_connectivity || 'Unknown',
+      degeneracy: classification?.degeneracy || 'Unknown',
+      optimization_potential: classification?.optimization_potential || 'Unknown',
+      bottleneck_risk: classification?.bottleneck_risk || 'Unknown',
+      is_maximal: classification?.is_maximal || false
+    };
+  }
+
+  formatNodesList(nodes: number[]): string {
+    if (!nodes || nodes.length === 0) return 'None';
+    if (nodes.length > 6) {
+      return `${nodes.slice(0, 6).join(', ')}... (+${nodes.length - 6} more)`;
+    }
+    return nodes.join(', ');
+  }
+
+  getOptimizationClass(potential: string): string {
+    const classes: Record<string, string> = {
+      'High_Parallelization': 'optimization-high',
+      'Complex_Coordination': 'optimization-medium',
+      'Hierarchical_Optimization': 'optimization-medium',
+      'Complex_Network_Effects': 'optimization-complex',
+      'Merge_Point_Optimization': 'optimization-medium',
+      'Load_Distribution_Optimization': 'optimization-medium',
+      'Complex_Analysis_Required': 'optimization-complex',
+      'Questionable_Pattern': 'optimization-low'
+    };
+    return classes[potential] || 'optimization-unknown';
+  }
+
+  getBottleneckClass(risk: string): string {
+    const classes: Record<string, string> = {
+      'Low': 'bottleneck-low',
+      'Medium': 'bottleneck-medium',
+      'High': 'bottleneck-high',
+      'Very_High': 'bottleneck-very-high'
+    };
+    return classes[risk] || 'bottleneck-unknown';
+  }
+
+  getComplexityPercentage(score: number): number {
+    // Normalize complexity score to percentage (assuming max complexity around 50)
+    return Math.min((score / 50) * 100, 100);
+  }
+
+  getStructureTypeCount(type: 'fork' | 'path' | 'internal'): number {
+    // Count different structure types from classifications
+    const rootClassifications = this.getRootClassifications();
+    const uniqueClassifications = this.getUniqueClassifications();
+    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
+    
+    const typeSet = new Set<string>();
+    
+    allClassifications.forEach((classification: any) => {
+      const diamondClass = this.getDiamondClassification(classification);
+      switch (type) {
+        case 'fork':
+          typeSet.add(diamondClass.fork_structure);
+          break;
+        case 'path':
+          typeSet.add(diamondClass.path_topology);
+          break;
+        case 'internal':
+          typeSet.add(diamondClass.internal_structure);
+          break;
+      }
+    });
+    
+    return typeSet.size;
+  }
+
+  getOptimizationPotentialCount(level: string): number {
+    const rootClassifications = this.getRootClassifications();
+    const uniqueClassifications = this.getUniqueClassifications();
+    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
+    
+    return allClassifications.filter((classification: any) => {
+      const diamondClass = this.getDiamondClassification(classification);
+      return diamondClass.optimization_potential?.includes(level);
+    }).length;
+  }
+
+  getBottleneckRiskCount(level: string): number {
+    const rootClassifications = this.getRootClassifications();
+    const uniqueClassifications = this.getUniqueClassifications();
+    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
+    
+    return allClassifications.filter((classification: any) => {
+      const diamondClass = this.getDiamondClassification(classification);
+      return diamondClass.bottleneck_risk === level;
+    }).length;
+  }
+
+  getDiamondCoverage(): number {
+    const totalJoinNodes = this.getJoinNodesWithDiamonds().length;
+    const totalNodes = this.componentData()?.structure?.nodes?.length || 1;
+    return Math.round((totalJoinNodes / totalNodes) * 100);
+  }
+
+  getAverageComplexity(): number {
+    const rootClassifications = this.getRootClassifications();
+    const uniqueClassifications = this.getUniqueClassifications();
+    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
+    
+    if (allClassifications.length === 0) return 0;
+    
+    const totalComplexity = allClassifications.reduce((sum: number, classification: any) => {
+      const diamondClass = this.getDiamondClassification(classification);
+      return sum + diamondClass.complexity_score;
+    }, 0);
+    
+    return totalComplexity / allClassifications.length;
+  }
+
+  getCriticalDiamondsCount(): number {
+    return this.getBottleneckRiskCount('High') + this.getBottleneckRiskCount('Very_High');
+  }
+
+  highlightCriticalDiamonds(): void {
+    // Highlight diamonds with high bottleneck risk
+    this.highlightNodes(this.diamondNodes);
+    this.snackBar.open('Critical diamonds highlighted', 'Close', { duration: 2000 });
+  }
+
+  // View mode helpers
+  override switchViewMode(mode: 'visual' | 'dashboard'): void {
+    this.currentViewMode.set(mode);
+  }
+
+  override isVisualMode(): boolean {
+    return this.currentViewMode() === 'visual';
+  }
+
+  override isDashboardMode(): boolean {
+    return this.currentViewMode() === 'dashboard';
   }
 }
