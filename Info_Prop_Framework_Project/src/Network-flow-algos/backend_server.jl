@@ -1208,8 +1208,7 @@ function process_comprehensive_network_structure_analysis(network_path::String, 
         cpm_file = joinpath(network_path, "cpm", network_name * "-cpm-inputs.json")
         capacity_file = joinpath(network_path, "capacity", network_name * "-capacities.json")
         
-        # Use InputProcessingModule to load and analyze the network
-        using .IPAFramework.InputProcessingModule
+       
         
         # Read graph structure
         edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file)
