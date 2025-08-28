@@ -1458,7 +1458,9 @@ function start_server()
     HTTP.serve(router, "0.0.0.0", PORT)
 end
 
-# Auto-start server when script is run directly
+#= # Auto-start server when script is run directly
 if abspath(PROGRAM_FILE) == @__FILE__
     start_server()
-end
+end =#
+
+    start_server()

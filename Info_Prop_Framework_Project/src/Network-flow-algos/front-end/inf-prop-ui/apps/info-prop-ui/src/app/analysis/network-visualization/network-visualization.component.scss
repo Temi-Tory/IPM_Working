@@ -7,7 +7,7 @@
   --node-join-color: #FB8C00;      // Softer orange
   --node-regular-color: #757575;   // Medium gray
   --node-stroke-color: #ffffff;    // White stroke for light mode
-  --edge-color: #666666;           // Dark gray edges for light mode
+  --edge-color: #444444;           // Medium gray edges for light mode
   --svg-background: #fafafa;       // Light background for SVG
   --text-color: #333333;           // Dark text for light mode
 }
@@ -20,7 +20,7 @@
   --node-join-color: #FFCA28;      // Brighter yellow-orange for contrast
   --node-regular-color: #BDBDBD;   // Light gray for visibility
   --node-stroke-color: #121212;    // Dark stroke for dark mode
-  --edge-color: #CCCCCC;           // Light gray edges for dark mode
+  --edge-color: #E0E0E0;           // Bright light gray edges for dark mode contrast
   --svg-background: #1a1a1a;       // Dark background for SVG
   --text-color: #ffffff;           // Light text for dark mode
 }

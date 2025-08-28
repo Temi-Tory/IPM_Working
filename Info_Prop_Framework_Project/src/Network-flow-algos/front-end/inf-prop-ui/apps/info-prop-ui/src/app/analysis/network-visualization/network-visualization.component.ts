@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { FormsModule } from '@angular/forms';
 
 import * as d3 from 'd3';
@@ -38,6 +39,15 @@ export interface EdgeSelectionEvent {
   event: MouseEvent;
 }
 
+export interface NodeInfo {
+  id: number;
+  role: 'source' | 'sink' | 'fork' | 'join' | 'regular';
+  ancestors?: number[];
+  descendants?: number[];
+  prior?: number;
+  iterationSet?: number;
+}
+
 @Component({
   selector: 'app-network-visualization',
   standalone: true,
@@ -51,6 +61,7 @@ export interface EdgeSelectionEvent {
     MatToolbarModule,
     MatSliderModule,
     MatSlideToggleModule,
+    MatExpansionModule,
     FormsModule
   ],
   templateUrl: './network-visualization.component.html',
@@ -82,6 +93,9 @@ export class NetworkVisualizationComponent implements OnChanges, AfterViewInit, 
   showNodeLabels = true;
   enableHighlighting = false;
   isLoading = false;
+  
+  // Node information panel
+  selectedNodeInfo: NodeInfo | null = null;
 
   constructor(private elementRef: ElementRef) {}
   
@@ -307,7 +321,7 @@ export class NetworkVisualizationComponent implements OnChanges, AfterViewInit, 
       .append('line')
       .attr('class', 'link')
       .attr('stroke', () => getComputedStyle(this.elementRef.nativeElement).getPropertyValue('--edge-color').trim() || '#666')
-      .attr('stroke-width', 2)
+      .attr('stroke-width', this.edgeThickness)
       .attr('marker-end', (d: any) => {
         const targetNode = this.nodes.find(n => n.id === (typeof d.target === 'object' ? d.target.id : d.target));
         return targetNode ? `url(#arrowhead-${targetNode.role})` : 'url(#arrowhead-default)';
@@ -372,6 +386,7 @@ export class NetworkVisualizationComponent implements OnChanges, AfterViewInit, 
         .on('end', (event, d) => this.onDragEnd(event, d)))
       .on('click', (event: MouseEvent, d: NetworkNode) => {
         event.stopPropagation();
+        this.onNodeClick(d);
         this.nodeSelected.emit({ node: d, event });
       });
 
@@ -456,6 +471,107 @@ export class NetworkVisualizationComponent implements OnChanges, AfterViewInit, 
     this.simulation.alpha(0.3).restart();
   }
 
+  updateNodeRadius(): void {
+    if (this.svg) {
+      this.svg.selectAll('.node')
+        .attr('r', this.nodeRadius);
+      
+      // Update collision force
+      if (this.simulation) {
+        (this.simulation.force('collision') as d3.ForceCollide<NetworkNode>).radius(this.nodeRadius + 2);
+        this.simulation.alpha(0.1).restart();
+      }
+    }
+  }
+
+  updateEdgeThickness(): void {
+    if (this.svg) {
+      this.svg.selectAll('.link')
+        .attr('stroke-width', this.edgeThickness);
+    }
+  }
+
+  updateNodeLabels(): void {
+    if (this.svg) {
+      this.svg.selectAll('.node-label')
+        .style('display', this.showNodeLabels ? 'block' : 'none');
+    }
+  }
+
+  // Advanced highlighting methods
+  highlightNodeAncestors(nodeId: number): void {
+    if (!this.enableHighlighting || !this.networkData) return;
+    
+    this.clearHighlights();
+    
+    if (this.networkData.ancestors && this.networkData.ancestors[nodeId]) {
+      const ancestorNodes = [nodeId, ...this.networkData.ancestors[nodeId]];
+      this.highlightNodes(ancestorNodes, 'ancestor-highlight');
+      this.highlightConnectingEdges(ancestorNodes);
+    }
+  }
+
+  highlightNodeDescendants(nodeId: number): void {
+    if (!this.enableHighlighting || !this.networkData) return;
+    
+    this.clearHighlights();
+    
+    if (this.networkData.descendants && this.networkData.descendants[nodeId]) {
+      const descendantNodes = [nodeId, ...this.networkData.descendants[nodeId]];
+      this.highlightNodes(descendantNodes, 'descendant-highlight');
+      this.highlightConnectingEdges(descendantNodes);
+    }
+  }
+
+  highlightIterationSet(setIndex: number): void {
+    if (!this.enableHighlighting || !this.networkData) return;
+    
+    this.clearHighlights();
+    
+    if (this.networkData.iteration_sets && this.networkData.iteration_sets[setIndex]) {
+      const setNodes = this.networkData.iteration_sets[setIndex];
+      this.highlightNodes(setNodes, 'iteration-set-highlight');
+    }
+  }
+
+  private highlightNodes(nodeIds: number[], highlightClass: string = 'highlighted'): void {
+    if (!this.svg) return;
+    
+    this.svg.selectAll('.node')
+      .classed(highlightClass, (d: any) => nodeIds.includes(d.id))
+      .style('stroke-width', (d: any) => nodeIds.includes(d.id) ? '4px' : '2px')
+      .style('opacity', (d: any) => nodeIds.includes(d.id) ? 1.0 : 0.3);
+  }
+
+  private highlightConnectingEdges(nodeIds: number[]): void {
+    if (!this.svg) return;
+    
+    this.svg.selectAll('.link')
+      .style('stroke-width', (d: any) => {
+        const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+        const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+        return (nodeIds.includes(sourceId) && nodeIds.includes(targetId)) ? this.edgeThickness * 2 : this.edgeThickness;
+      })
+      .style('opacity', (d: any) => {
+        const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+        const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+        return (nodeIds.includes(sourceId) && nodeIds.includes(targetId)) ? 1.0 : 0.3;
+      });
+  }
+
+  clearHighlights(): void {
+    if (!this.svg) return;
+    
+    this.svg.selectAll('.node')
+      .classed('highlighted ancestor-highlight descendant-highlight iteration-set-highlight', false)
+      .style('stroke-width', '2px')
+      .style('opacity', 1.0);
+      
+    this.svg.selectAll('.link')
+      .style('stroke-width', this.edgeThickness)
+      .style('opacity', 1.0);
+  }
+
   // Utility methods
   getNodeCount(): number {
     return this.nodes.length;
@@ -473,6 +589,46 @@ export class NetworkVisualizationComponent implements OnChanges, AfterViewInit, 
   formatChargeStrength = (value: number): string => {
     return Math.abs(value).toString();
   };
+
+  // Node click handler for information panel
+  onNodeClick(node: NetworkNode): void {
+    if (!this.networkData) {
+      this.selectedNodeInfo = null;
+      return;
+    }
+
+    const data = this.networkData;
+    const nodeId = node.id;
+    
+    // Get ancestors from networkData
+    const ancestors = data.ancestors?.[nodeId] || [];
+    
+    // Get descendants from networkData
+    const descendants = data.descendants?.[nodeId] || [];
+    
+    // Get prior probability from node_priors if available
+    const prior = data.node_priors?.[nodeId];
+    
+    // Find which iteration set this node belongs to
+    let iterationSet: number | undefined = undefined;
+    if (data.iteration_sets) {
+      for (let i = 0; i < data.iteration_sets.length; i++) {
+        if (data.iteration_sets[i].includes(nodeId)) {
+          iterationSet = i;
+          break;
+        }
+      }
+    }
+
+    this.selectedNodeInfo = {
+      id: nodeId,
+      role: node.role,
+      ancestors: ancestors.length > 0 ? ancestors : undefined,
+      descendants: descendants.length > 0 ? descendants : undefined,
+      prior: prior,
+      iterationSet: iterationSet
+    };
+  }
 
   // Make Math available to template
   Math = Math;

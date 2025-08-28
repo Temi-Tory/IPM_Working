@@ -44,6 +44,67 @@
     </mat-toolbar-row>
   </mat-toolbar>
 
+  <!-- Node Information Panel -->
+  <mat-expansion-panel class="node-info-panel" *ngIf="selectedNodeInfo" [expanded]="true">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon>info</mat-icon>
+        Node {{selectedNodeInfo.id}} Information
+      </mat-panel-title>
+    </mat-expansion-panel-header>
+    
+    <div class="node-info-content">
+      <div class="info-row">
+        <strong>Type:</strong> {{selectedNodeInfo.role | titlecase}}
+      </div>
+      
+      <div class="info-row" *ngIf="selectedNodeInfo.ancestors?.length">
+        <strong>Ancestors:</strong> {{selectedNodeInfo.ancestors?.join(', ')}}
+        <button mat-icon-button 
+                (click)="highlightNodeAncestors(selectedNodeInfo.id)"
+                [disabled]="!enableHighlighting"
+                matTooltip="Highlight ancestors">
+          <mat-icon>arrow_upward</mat-icon>
+        </button>
+      </div>
+      
+      <div class="info-row" *ngIf="selectedNodeInfo.descendants?.length">
+        <strong>Descendants:</strong> {{selectedNodeInfo.descendants?.join(', ')}}
+        <button mat-icon-button 
+                (click)="highlightNodeDescendants(selectedNodeInfo.id)"
+                [disabled]="!enableHighlighting"
+                matTooltip="Highlight descendants">
+          <mat-icon>arrow_downward</mat-icon>
+        </button>
+      </div>
+      
+      <div class="info-row" *ngIf="selectedNodeInfo.prior">
+        <strong>Prior Probability:</strong> {{selectedNodeInfo.prior}}
+      </div>
+      
+      <div class="info-row" *ngIf="selectedNodeInfo.iterationSet !== undefined">
+        <strong>Iteration Set:</strong> {{selectedNodeInfo.iterationSet}}
+        <button mat-icon-button 
+                (click)="highlightIterationSet(selectedNodeInfo.iterationSet!)"
+                [disabled]="!enableHighlighting"
+                matTooltip="Highlight iteration set">
+          <mat-icon>layers</mat-icon>
+        </button>
+      </div>
+      
+      <div class="info-actions">
+        <button mat-button (click)="clearHighlights()" [disabled]="!enableHighlighting">
+          <mat-icon>clear</mat-icon>
+          Clear Highlights
+        </button>
+        <button mat-button (click)="selectedNodeInfo = null">
+          <mat-icon>close</mat-icon>
+          Close
+        </button>
+      </div>
+    </div>
+  </mat-expansion-panel>
+
   <!-- Configuration Panel -->
   <mat-card class="config-panel">
     <div class="config-row">
