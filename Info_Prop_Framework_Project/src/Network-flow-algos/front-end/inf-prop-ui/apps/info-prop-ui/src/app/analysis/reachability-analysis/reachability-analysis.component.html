@@ -4,7 +4,13 @@
   <div class="analysis-header">
     <div class="header-content">
       <div class="header-info">
-        <h1><mat-icon>psychology</mat-icon> Exact Inference (Belief Propagation)</h1>
+        <h1><mat-icon>psychology</mat-icon>
+          @if (hasMultiTypeResults) {
+            Multi-Type Uncertainty Analysis
+          } @else {
+            Exact Inference (Belief Propagation)
+          }
+        </h1>
         <p class="network-name">{{ componentData()?.structure?.networkName || 'Network' }}</p>
       </div>
       

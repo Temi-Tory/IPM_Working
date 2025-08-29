@@ -24,15 +24,16 @@ end
 
 network_name = "power-network"
 
-# network_name = "mlgw-gas-network"
-# network_name = "single-mission-drone-network"
-# network_name = "drone-medical-delivery-network"
 
 
 
 
 
-data_type = "float"
+
+# data_type = "float"
+# data_type = "interval"
+data_type = "pbox"
+
 
 
 # Construct file paths using new folder structure
@@ -125,36 +126,4 @@ output = IPAFramework.update_beliefs_iterative(
 # Calculate computation time
 computation_time = time() - start_time
 
-println("Starting exact_computation");
-exact_start_time = time()
-
-exact_results = (path_enumeration_result(
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    edge_probabilities,
-   # true
-));
-
-
-exact_computation_time = time() - exact_start_time #672.3919999599457 for mumin 1_000_000runs
-
-
-
-#= 
-open(network_name * "_result.txt", "w") 
-    do file
-        redirect_stdout(file)
-        do
-            unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-                root_diamonds,
-                node_priors,
-                ancestors,
-                descendants,
-                iteration_sets
-            );
-
-        end 
-    end 
-=#
+show(output)

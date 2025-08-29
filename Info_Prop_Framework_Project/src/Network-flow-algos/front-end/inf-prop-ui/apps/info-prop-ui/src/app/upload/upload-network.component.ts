@@ -53,10 +53,19 @@ export class UploadNetworkComponent {
     criticalPathAnalysis: false,
     nodeVisualization: true, // Always true - we'll use mapping if available
     inferenceDataType: 'float',
+    selectedInferenceTypes: [],
+    compareResults: false,
     criticalPathOptions: {
       enableTime: true,
       enableCost: true
     }
+  });
+
+  // Multi-type selection state
+  selectedTypes = signal<{[key in DataType]: boolean}>({
+    float: false,
+    pbox: false,
+    interval: false
   });
   uploadProgress = signal<UploadProgress>({
     uploading: false,
@@ -170,17 +179,55 @@ export class UploadNetworkComponent {
       basicStructure: structure.hasEdgesFile,
       diamondAnalysis: structure.hasEdgesFile,
       exactInference: false, // Let user choose
-      flowAnalysis: false,   // Let user choose  
+      flowAnalysis: false,   // Let user choose
       criticalPathAnalysis: false, // Let user choose
       nodeVisualization: true, // Always true - use mapping if available
-      inferenceDataType: structure.availableDataTypes[0] || 'float'
+      inferenceDataType: structure.availableDataTypes[0] || 'float',
+      selectedInferenceTypes: [],
+      compareResults: false
     };
 
     this.analysisConfig.set(updatedConfig);
+    
+    // Reset selected types based on available types
+    const newSelectedTypes: {[key in DataType]: boolean} = {
+      float: false,
+      pbox: false,
+      interval: false
+    };
+    this.selectedTypes.set(newSelectedTypes);
   }
 
   updateAnalysisConfig(updates: Partial<AnalysisConfiguration>) {
     this.analysisConfig.update(config => ({ ...config, ...updates }));
+  }
+
+  updateSelectedTypes(type: DataType, selected: boolean) {
+    this.selectedTypes.update(types => ({ ...types, [type]: selected }));
+    
+    // Update analysis config with selected types
+    const selectedTypesList = Object.entries(this.selectedTypes())
+      .filter(([_, isSelected]) => isSelected)
+      .map(([type, _]) => type as DataType);
+    
+    this.analysisConfig.update(config => ({
+      ...config,
+      selectedInferenceTypes: selectedTypesList,
+      // If only one type selected, also set as primary type for backward compatibility
+      inferenceDataType: selectedTypesList.length === 1 ? selectedTypesList[0] : config.inferenceDataType
+    }));
+  }
+
+  updateCompareResults(compare: boolean) {
+    this.analysisConfig.update(config => ({ ...config, compareResults: compare }));
+  }
+
+  getSelectedTypesCount(): number {
+    return Object.values(this.selectedTypes()).filter(Boolean).length;
+  }
+
+  hasMultipleTypesSelected(): boolean {
+    return this.getSelectedTypesCount() > 1;
   }
 
   updateCriticalPathOption(option: 'enableTime' | 'enableCost', value: boolean) {

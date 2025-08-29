@@ -38,6 +38,8 @@ export interface AnalysisConfiguration {
   criticalPathAnalysis: boolean;
   nodeVisualization: boolean;
   inferenceDataType?: DataType;
+  selectedInferenceTypes?: DataType[];
+  compareResults?: boolean;
   criticalPathOptions?: {
     enableTime: boolean;
     enableCost: boolean;
@@ -64,6 +66,8 @@ export interface NetworkAnalysisRequest {
     };
   };
   analysesToRun: AnalysisConfiguration;
+  selectedInferenceTypes?: DataType[];
+  compareResults?: boolean;
 }
 
 export interface UploadProgress {
@@ -187,6 +191,31 @@ export interface ExactInferenceResult {
   execution_time: number;
   data_type: 'float' | 'interval' | 'pbox';
   algorithm_type: 'belief_propagation';
+  belief_statistics?: any;
+  convergence_analysis?: any;
+  uncertainty_propagation?: any;
+  total_nodes_analyzed?: number;
+}
+
+export interface MultiTypeInferenceResult {
+  float?: ExactInferenceResult;
+  pbox?: ExactInferenceResult;
+  interval?: ExactInferenceResult;
+  comparative_analysis?: {
+    types_compared: string[];
+    comparison_metrics: any;
+    belief_statistics_comparison?: Record<string, any>;
+    uncertainty_propagation_comparison?: Record<string, any>;
+    execution_time_comparison?: Record<string, number>;
+  };
+  processing_summary?: {
+    requested_types: string[];
+    available_types: string[];
+    processed_types: string[];
+    successful_types: string[];
+    missing_types: string[];
+    total_execution_time: number;
+  };
 }
 
 export interface FlowAnalysisResult {
@@ -216,6 +245,7 @@ export interface NetworkAnalysisResults {
   network_structure: NetworkStructureResult;
   diamond_analysis?: DiamondAnalysisResult;
   exact_inference?: ExactInferenceResult;
+  multi_type_inference?: MultiTypeInferenceResult;
   flow_analysis?: FlowAnalysisResult;
   critical_path?: CriticalPathResult;
 }

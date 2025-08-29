@@ -146,6 +146,19 @@ export class NetworkBackendService {
     formData.append('exactInference', request.analysesToRun.exactInference.toString());
     formData.append('flowAnalysis', request.analysesToRun.flowAnalysis.toString());
     formData.append('criticalPathAnalysis', request.analysesToRun.criticalPathAnalysis.toString());
+    
+    // Add multi-type support fields
+    if (request.selectedInferenceTypes && request.selectedInferenceTypes.length > 0) {
+      formData.append('selectedInferenceTypes', JSON.stringify(request.selectedInferenceTypes));
+    } else if (request.analysesToRun.selectedInferenceTypes && request.analysesToRun.selectedInferenceTypes.length > 0) {
+      formData.append('selectedInferenceTypes', JSON.stringify(request.analysesToRun.selectedInferenceTypes));
+    }
+    
+    if (request.compareResults !== undefined) {
+      formData.append('compareResults', request.compareResults.toString());
+    } else if (request.analysesToRun.compareResults !== undefined) {
+      formData.append('compareResults', request.analysesToRun.compareResults.toString());
+    }
 
     return formData;
   }

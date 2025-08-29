@@ -260,6 +260,58 @@
         max-width: 200px;
       }
       
+      // Multi-type selection styling
+      .input-type-selection {
+        margin-top: 12px;
+        padding: 16px;
+        border: 1px solid var(--outline-variant);
+        border-radius: 8px;
+        background-color: var(--surface-container-low);
+
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--on-surface);
+        }
+
+        .checkbox-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+
+          .type-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+          }
+        }
+
+        .compare-checkbox {
+          display: flex;
+          align-items: center;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid var(--outline-variant);
+          cursor: pointer;
+        }
+
+        .selection-hint {
+          margin: 8px 0 0 0;
+          font-size: 12px;
+          color: var(--error);
+          font-style: italic;
+        }
+
+        .selection-summary {
+          margin: 8px 0 0 0;
+          font-size: 12px;
+          color: var(--primary);
+          font-weight: 500;
+        }
+      }
+      
       .cmp-options {
         display: flex;
         flex-direction: column;

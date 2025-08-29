@@ -580,3 +580,66 @@
   --reachability-dark: #00695C;
   --reachability-darkest: #004D40;
 }
+// Multi-type results styling
+.multi-type-results {
+  margin-bottom: 24px;
+
+  h3 {
+    margin: 0 0 16px 0;
+    color: var(--on-surface);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .processing-summary {
+    margin-bottom: 16px;
+    
+    .mat-mdc-card-content p {
+      margin: 8px 0;
+      font-size: 0.9rem;
+      
+      strong {
+        color: var(--primary);
+      }
+    }
+  }
+
+  .type-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .type-result-card {
+      .mat-mdc-card-title {
+        color: var(--primary);
+        font-size: 1.1rem;
+      }
+
+      .result-summary p {
+        margin: 6px 0;
+        font-size: 0.9rem;
+        
+        strong {
+          color: var(--on-surface);
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .comparative-summary {
+    .mat-mdc-card-title {
+      color: var(--secondary);
+    }
+
+    .mat-mdc-card-content p {
+      margin: 8px 0;
+      font-size: 0.9rem;
+      
+      strong {
+        color: var(--secondary);
+      }
+    }
+  }
+}

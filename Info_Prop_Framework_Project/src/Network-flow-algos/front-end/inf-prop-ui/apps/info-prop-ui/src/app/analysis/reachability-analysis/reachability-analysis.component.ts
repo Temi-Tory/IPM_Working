@@ -15,7 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
 import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { ExactInferenceResult, FloatBelief, IntervalBelief, PboxBelief, NetworkStructureResult } from '../../shared/models/network-analysis.models';
+import { ExactInferenceResult, MultiTypeInferenceResult, FloatBelief, IntervalBelief, PboxBelief, NetworkStructureResult } from '../../shared/models/network-analysis.models';
 
 type BeliefValue = FloatBelief | IntervalBelief | PboxBelief;
 
@@ -39,7 +39,7 @@ type BeliefValue = FloatBelief | IntervalBelief | PboxBelief;
   templateUrl: './reachability-analysis.component.html',
   styleUrl: './reachability-analysis.component.scss'
 })
-export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactInferenceResult> implements OnInit, OnDestroy {
+export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactInferenceResult | MultiTypeInferenceResult> implements OnInit, OnDestroy {
   
   private analysisState = inject(AnalysisStateService);
   private snackBar = inject(MatSnackBar);
@@ -52,6 +52,11 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
   showOnlyReachable = false;
   availableNodes: string[] = [];
   sortOrder: 'asc' | 'desc' | 'none' = 'desc';
+  
+  // Multi-type support
+  hasMultiTypeResults = false;
+  processedTypes: string[] = [];
+  selectedTypeForView = 'float';
 
   constructor() {
     super();
@@ -63,7 +68,8 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
   }
 
   ngOnDestroy(): void {
-    // Cleanup if needed
+    // Component cleanup
+    this.setData(null);
   }
 
   initializeComponent(): void {
@@ -83,26 +89,119 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
     this.setLoading(true);
     
     try {
-      const analysisData: AnalysisComponentData<ExactInferenceResult> = {
-        structure: exactInferenceData.structure,
-        results: exactInferenceData.results
-      };
-      
-      this.availableNodes = Object.keys(exactInferenceData.results.node_beliefs);
-      
-      this.setData(analysisData);
-      this.setLoading(false);
-      
-      this.snackBar.open(
-        `Exact inference loaded: ${this.availableNodes.length} node beliefs (${exactInferenceData.results.data_type})`, 
-        'Close', 
-        { duration: 4000 }
-      );
+      // Check if we have multi-type results
+      const results = exactInferenceData.results;
+      if ('multi_type_inference' in results && results.multi_type_inference) {
+        this.hasMultiTypeResults = true;
+        const multiResults = results.multi_type_inference as MultiTypeInferenceResult;
+        this.processedTypes = multiResults.processing_summary?.processed_types || [];
+        this.selectedTypeForView = this.processedTypes[0] || 'float';
+        
+        // Get nodes from the first available type
+        let firstTypeResults: ExactInferenceResult | undefined;
+        if (multiResults.float) {
+          firstTypeResults = multiResults.float;
+        } else if (multiResults.pbox) {
+          firstTypeResults = multiResults.pbox;
+        } else if (multiResults.interval) {
+          firstTypeResults = multiResults.interval;
+        }
+        
+        if (firstTypeResults?.node_beliefs) {
+          this.availableNodes = Object.keys(firstTypeResults.node_beliefs);
+        }
+        
+        const analysisData: AnalysisComponentData<MultiTypeInferenceResult> = {
+          structure: exactInferenceData.structure,
+          results: multiResults
+        };
+        
+        this.setData(analysisData);
+        this.setLoading(false);
+        
+        this.snackBar.open(
+          `Multi-type inference loaded: ${this.processedTypes.length} types, ${this.availableNodes.length} nodes`,
+          'Close',
+          { duration: 4000 }
+        );
+      } else if ('exact_inference' in results && results.exact_inference) {
+        // Single-type results (backward compatibility)
+        this.hasMultiTypeResults = false;
+        const singleResults = results.exact_inference as ExactInferenceResult;
+        this.availableNodes = Object.keys(singleResults.node_beliefs);
+        
+        const analysisData: AnalysisComponentData<ExactInferenceResult> = {
+          structure: exactInferenceData.structure,
+          results: singleResults
+        };
+        
+        this.setData(analysisData);
+        this.setLoading(false);
+        
+        this.snackBar.open(
+          `Exact inference loaded: ${this.availableNodes.length} node beliefs (${singleResults.data_type})`,
+          'Close',
+          { duration: 4000 }
+        );
+      } else {
+        this.setError('No inference results found in analysis data');
+        this.setLoading(false);
+      }
       
     } catch (error) {
       this.setError(`Failed to load exact inference data: ${error}`);
       this.setLoading(false);
     }
+  }
+
+  switchTypeView(type: string): void {
+    this.selectedTypeForView = type;
+    // Update visualization for the new type if needed
+    // Note: processData expects single-type results, so we skip it for multi-type
+  }
+
+  getBeliefSummary(type: string): string {
+    const data = this.componentData();
+    if (!data || !this.hasMultiTypeResults) return 'N/A';
+    
+    const multiTypeResults = data.results as MultiTypeInferenceResult;
+    let typeResults: ExactInferenceResult | undefined;
+    
+    // Access specific type properties
+    if (type === 'float') {
+      typeResults = multiTypeResults.float;
+    } else if (type === 'pbox') {
+      typeResults = multiTypeResults.pbox;
+    } else if (type === 'interval') {
+      typeResults = multiTypeResults.interval;
+    }
+    
+    if (!typeResults || !typeResults.node_beliefs) return 'N/A';
+    
+    const beliefs = Object.values(typeResults.node_beliefs);
+    const avgBelief = beliefs.reduce((sum: number, belief) => sum + this.extractBeliefValue(belief), 0) / beliefs.length;
+    return `Avg: ${avgBelief.toFixed(3)}`;
+  }
+
+  getUncertaintySummary(type: string): string {
+    const data = this.componentData();
+    if (!data || !this.hasMultiTypeResults) return 'N/A';
+    
+    const multiTypeResults = data.results as MultiTypeInferenceResult;
+    let typeResults: ExactInferenceResult | undefined;
+    
+    // Access specific type properties
+    if (type === 'float') {
+      typeResults = multiTypeResults.float;
+    } else if (type === 'pbox') {
+      typeResults = multiTypeResults.pbox;
+    } else if (type === 'interval') {
+      typeResults = multiTypeResults.interval;
+    }
+    
+    if (!typeResults || !typeResults.belief_statistics) return 'N/A';
+    
+    return `Std: ${typeResults.belief_statistics.std?.toFixed(3) || 'N/A'}`;
   }
 
 
@@ -169,10 +268,14 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
     
     switch (format) {
       case 'json':
-        this.exportAsJson(data.results);
+        if ('node_beliefs' in data.results) {
+          this.exportAsJson(data.results as ExactInferenceResult);
+        }
         break;
       case 'csv':
-        this.exportAsCsv(data.results);
+        if ('node_beliefs' in data.results) {
+          this.exportAsCsv(data.results as ExactInferenceResult);
+        }
         break;
       case 'png':
         this.exportAsPng();
@@ -253,19 +356,68 @@ export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactIn
 
   // Template helper methods
   getNodeBeliefs(): Record<string, BeliefValue> {
-    return this.componentData()?.results?.node_beliefs || {};
+    const results = this.componentData()?.results;
+    if (!results) return {};
+    
+    // Handle single-type results
+    if ('node_beliefs' in results) {
+      return (results as ExactInferenceResult).node_beliefs || {};
+    }
+    
+    // Handle multi-type results - return first available type
+    const multiResults = results as MultiTypeInferenceResult;
+    return multiResults.float?.node_beliefs ||
+           multiResults.pbox?.node_beliefs ||
+           multiResults.interval?.node_beliefs ||
+           {};
   }
 
   getExecutionTime(): number {
-    return this.componentData()?.results?.execution_time || 0;
+    const results = this.componentData()?.results;
+    if (!results) return 0;
+    
+    // Handle single-type results
+    if ('execution_time' in results) {
+      return (results as ExactInferenceResult).execution_time || 0;
+    }
+    
+    // Handle multi-type results - return total from processing summary
+    const multiResults = results as MultiTypeInferenceResult;
+    return multiResults.processing_summary?.total_execution_time || 0;
   }
 
   getDataType(): 'float' | 'interval' | 'pbox' {
-    return this.componentData()?.results?.data_type || 'float';
+    const results = this.componentData()?.results;
+    if (!results) return 'float';
+    
+    // Handle single-type results
+    if ('data_type' in results) {
+      return (results as ExactInferenceResult).data_type || 'float';
+    }
+    
+    // Handle multi-type results - return first available type
+    const multiResults = results as MultiTypeInferenceResult;
+    if (multiResults.float) return 'float';
+    if (multiResults.pbox) return 'pbox';
+    if (multiResults.interval) return 'interval';
+    return 'float';
   }
 
   getAlgorithmType(): string {
-    return this.componentData()?.results?.algorithm_type || 'belief_propagation';
+    const results = this.componentData()?.results;
+    if (!results) return 'belief_propagation';
+    
+    // Handle single-type results
+    if ('algorithm_type' in results) {
+      return (results as ExactInferenceResult).algorithm_type || 'belief_propagation';
+    }
+    
+    // Handle multi-type results - return first available algorithm type
+    const multiResults = results as MultiTypeInferenceResult;
+    return multiResults.float?.algorithm_type ||
+           multiResults.pbox?.algorithm_type ||
+           multiResults.interval?.algorithm_type ||
+           'belief_propagation';
   }
 
   getNodesCount(): number {

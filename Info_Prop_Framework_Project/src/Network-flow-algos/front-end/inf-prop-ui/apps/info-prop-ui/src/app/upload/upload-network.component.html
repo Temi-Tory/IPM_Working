@@ -148,14 +148,44 @@
             <p class="config-description">Probabilistic belief propagation analysis</p>
             
             @if (analysisConfig().exactInference && canEnableInference()) {
-              <mat-select 
-                [value]="analysisConfig().inferenceDataType"
-                (valueChange)="updateAnalysisConfig({ inferenceDataType: $event })"
-                class="data-type-select">
-                @for (dataType of detectedStructure()!.availableDataTypes; track dataType) {
-                  <mat-option [value]="dataType">{{ dataType }}</mat-option>
+              <!-- Multi-Type Selection Interface -->
+              <div class="input-type-selection">
+                <h4>Select Uncertainty Types:</h4>
+                <div class="checkbox-group">
+                  @for (dataType of detectedStructure()!.availableDataTypes; track dataType) {
+                    <label class="type-checkbox">
+                      <mat-checkbox
+                        [checked]="selectedTypes()[dataType]"
+                        (change)="updateSelectedTypes(dataType, $event.checked)">
+                        {{ dataType | titlecase }}
+                      </mat-checkbox>
+                    </label>
+                  }
+                </div>
+                
+                @if (hasMultipleTypesSelected()) {
+                  <label class="compare-checkbox">
+                    <mat-checkbox
+                      [checked]="analysisConfig().compareResults || false"
+                      (change)="updateCompareResults($event.checked)">
+                      Enable Comparative Analysis
+                    </mat-checkbox>
+                  </label>
                 }
-              </mat-select>
+                
+                @if (getSelectedTypesCount() === 0) {
+                  <p class="selection-hint">Please select at least one uncertainty type to proceed.</p>
+                }
+                
+                @if (getSelectedTypesCount() > 0) {
+                  <p class="selection-summary">
+                    Selected: {{ getSelectedTypesCount() }} type(s)
+                    @if (hasMultipleTypesSelected() && analysisConfig().compareResults) {
+                      • Comparative analysis enabled
+                    }
+                  </p>
+                }
+              </div>
             }
           </div>
 
@@ -233,9 +263,9 @@
         Upload Different Network
       </button>
       
-      <button mat-raised-button 
+      <button mat-raised-button
               color="primary"
-              [disabled]="!detectedStructure()?.hasEdgesFile || uploadProgress().uploading || !hasValidFilesForAnalysis()"
+              [disabled]="!detectedStructure()?.hasEdgesFile || uploadProgress().uploading || !hasValidFilesForAnalysis() || (analysisConfig().exactInference && getSelectedTypesCount() === 0)"
               (click)="uploadNetwork()">
         <mat-icon>rocket_launch</mat-icon>
         Start Analysis
