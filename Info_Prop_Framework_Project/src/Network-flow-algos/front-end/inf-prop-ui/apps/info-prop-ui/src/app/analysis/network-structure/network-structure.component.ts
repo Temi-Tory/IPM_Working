@@ -35,6 +35,12 @@ export class NetworkStructureComponent {
   isLoading = computed(() => this.analysisState.isLoading());
   error = computed(() => this.analysisState.error());
 
+  // Computed signals to prevent expression changed errors
+  connectivityDistribution = computed(() => this.getConnectivityDistribution());
+  networkMetrics = computed(() => this.getNetworkMetrics());
+  nodeDetails = computed(() => this.getNodeDetails());
+  edgeDetails = computed(() => this.getEdgeDetails());
+
   // View toggle
   currentView = signal<'dashboard' | 'visual'>('dashboard');
 
@@ -50,28 +56,24 @@ export class NetworkStructureComponent {
     const data = this.networkData();
     if (!data) return [];
 
-    // Calculate total nodes from all unique node IDs
-    const allNodes = new Set<number>();
-    data.edges.forEach(([source, target]) => {
-      allNodes.add(source);
-      allNodes.add(target);
-    });
-    const totalNodes = data.total_nodes || allNodes.size;
-    const totalEdges = data.total_edges || data.edges.length;
+    const diamondJoinNodes = this.getDiamondJoinNodes();
+    const multiTypeNodes = this.getMultiTypeNodes();
 
     return [
-      { metric: 'Total Nodes', value: totalNodes },
-      { metric: 'Total Edges', value: totalEdges },
+      { metric: 'Total Nodes', value: data.total_nodes },
+      { metric: 'Total Edges', value: data.total_edges },
       { metric: 'Source Nodes', value: data.source_nodes.length },
       { metric: 'Sink Nodes', value: data.sink_nodes.length },
       { metric: 'Fork Nodes', value: data.fork_nodes.length },
       { metric: 'Join Nodes', value: data.join_nodes.length },
-      { metric: 'Iteration Sets', value: data.iteration_sets_count || 0 },
+      { metric: 'Diamond Join Nodes', value: diamondJoinNodes.length },
+      { metric: 'Multi-Type Nodes', value: multiTypeNodes.length },
+      { metric: 'Iteration Sets', value: data.iteration_sets_count },
       { metric: 'Computation Time', value: `${data.computation_time.toFixed(4)}s` }
     ];
   }
 
-  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join'): number[] {
+  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join' | 'diamond-join'): number[] {
     const data = this.networkData();
     if (!data) return [];
 
@@ -80,21 +82,77 @@ export class NetworkStructureComponent {
       case 'sink': return data.sink_nodes;
       case 'fork': return data.fork_nodes;
       case 'join': return data.join_nodes;
+      case 'diamond-join': return this.getDiamondJoinNodes();
       default: return [];
     }
+  }
+
+  getDiamondJoinNodes(): number[] {
+    const data = this.networkData();
+    const analysisResults = this.analysisState.analysisResults();
+    
+    if (!data || !analysisResults?.results) return [];
+
+    const diamondJoins = new Set<number>();
+    const analysisData = (analysisResults.results as any).results || analysisResults.results;
+    
+    // Check across all reachability scenarios for diamond analysis
+    if (analysisData.reachability_scenarios) {
+      for (const scenario of Object.values(analysisData.reachability_scenarios) as any[]) {
+        if (scenario.diamond_analysis?.raw_root_diamonds) {
+          const rootDiamonds = scenario.diamond_analysis.raw_root_diamonds;
+          // root_diamonds keys are join node IDs - these are the diamond joins
+          for (const nodeIdStr of Object.keys(rootDiamonds)) {
+            const nodeId = parseInt(nodeIdStr);
+            if (data.join_nodes.includes(nodeId)) {
+              diamondJoins.add(nodeId);
+            }
+          }
+        }
+      }
+    }
+    
+    // Also check standalone diamond analysis
+    if (analysisData.diamond_analysis?.raw_root_diamonds) {
+      const rootDiamonds = analysisData.diamond_analysis.raw_root_diamonds;
+      // root_diamonds keys are join node IDs - these are the diamond joins
+      for (const nodeIdStr of Object.keys(rootDiamonds)) {
+        const nodeId = parseInt(nodeIdStr);
+        if (data.join_nodes.includes(nodeId)) {
+          diamondJoins.add(nodeId);
+        }
+      }
+    }
+    
+    return Array.from(diamondJoins).sort((a, b) => a - b);
+  }
+
+  getMultiTypeNodes(): { nodeId: number; types: string[] }[] {
+    const data = this.networkData();
+    if (!data) return [];
+
+    const allNodes = new Set<number>();
+    data.edges.forEach(([source, target]) => {
+      allNodes.add(source);
+      allNodes.add(target);
+    });
+    const nodes = data.nodes || Array.from(allNodes);
+
+    return nodes
+      .map(nodeId => ({
+        nodeId,
+        types: this.getNodeTypes(nodeId)
+      }))
+      .filter(node => node.types.length > 1 || node.types.includes('Diamond Join'))
+      .sort((a, b) => a.nodeId - b.nodeId);
   }
 
   getNodeDetails(): { node: number; type: string; inDegree: number; outDegree: number }[] {
     const data = this.networkData();
     if (!data) return [];
 
-    // Get all unique nodes from edges if nodes array is not available
-    const allNodes = new Set<number>();
-    data.edges.forEach(([source, target]) => {
-      allNodes.add(source);
-      allNodes.add(target);
-    });
-    const nodes = data.nodes || Array.from(allNodes).sort((a, b) => a - b);
+    // Use the guaranteed nodes array from enhanced NetworkStructure
+    const nodes = data.nodes;
 
     return nodes.map((nodeId: number) => {
       const nodeType = this.getNodeType(nodeId);
@@ -121,15 +179,59 @@ export class NetworkStructureComponent {
     })).sort((a, b) => a.source - b.source || a.target - b.target);
   }
 
-  private getNodeType(nodeId: number): string {
+  private getNodeTypes(nodeId: number): string[] {
     const data = this.networkData();
-    if (!data) return 'regular';
+    const analysisResults = this.analysisState.analysisResults();
+    
+    if (!data) return ['Regular'];
 
-    if (data.source_nodes?.includes(nodeId)) return 'Source';
-    if (data.sink_nodes?.includes(nodeId)) return 'Sink';
-    if (data.fork_nodes?.includes(nodeId)) return 'Fork';
-    if (data.join_nodes?.includes(nodeId)) return 'Join';
-    return 'Regular';
+    const types: string[] = [];
+    
+    // Check all possible node types (nodes can have multiple types)
+    if (data.source_nodes.includes(nodeId)) types.push('Source');
+    if (data.sink_nodes.includes(nodeId)) types.push('Sink');
+    if (data.fork_nodes.includes(nodeId)) types.push('Fork');
+    if (data.join_nodes.includes(nodeId)) types.push('Join');
+    
+    // Check if this join node is also a diamond join
+    if (data.join_nodes.includes(nodeId) && analysisResults?.results) {
+      const analysisData = (analysisResults.results as any).results || analysisResults.results;
+      let isDiamondJoin = false;
+      
+      // Check across all reachability scenarios for diamond analysis  
+      if (analysisData.reachability_scenarios) {
+        for (const scenario of Object.values(analysisData.reachability_scenarios) as any[]) {
+          if (scenario.diamond_analysis?.raw_root_diamonds) {
+            const rootDiamonds = scenario.diamond_analysis.raw_root_diamonds;
+            // root_diamonds keys are join node IDs - check if this node is a diamond join
+            if (rootDiamonds[nodeId.toString()]) {
+              isDiamondJoin = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Also check standalone diamond analysis
+      if (!isDiamondJoin && analysisData.diamond_analysis?.raw_root_diamonds) {
+        const rootDiamonds = analysisData.diamond_analysis.raw_root_diamonds;
+        // root_diamonds keys are join node IDs - check if this node is a diamond join
+        if (rootDiamonds[nodeId.toString()]) {
+          isDiamondJoin = true;
+        }
+      }
+      
+      if (isDiamondJoin) {
+        types.push('Diamond Join');
+      }
+    }
+    
+    return types.length > 0 ? types : ['Regular'];
+  }
+
+  private getNodeType(nodeId: number): string {
+    const types = this.getNodeTypes(nodeId);
+    return types.join(' + ');
   }
 
   private calculateInDegree(nodeId: number): number {
@@ -169,13 +271,8 @@ export class NetworkStructureComponent {
     const data = this.networkData();
     if (!data) return [];
 
-    // Get all unique nodes from edges if nodes array is not available
-    const allNodes = new Set<number>();
-    data.edges.forEach(([source, target]) => {
-      allNodes.add(source);
-      allNodes.add(target);
-    });
-    const nodes = data.nodes || Array.from(allNodes);
+    // Use the guaranteed nodes array from enhanced NetworkStructure
+    const nodes = data.nodes;
 
     const connectivityLevels: { [key: string]: number } = {
       'High (>= 4 connections)': 0,
@@ -199,5 +296,60 @@ export class NetworkStructureComponent {
       count,
       percentage: total > 0 ? (count / total) * 100 : 0
     }));
+  }
+
+  getIterationSetsAnalysis(): { setIndex: number; nodes: number[]; size: number }[] {
+    const data = this.networkData();
+    if (!data) return [];
+
+    return data.iteration_sets.map((nodeSet, index) => ({
+      setIndex: index + 1,
+      nodes: nodeSet.sort((a, b) => a - b),
+      size: nodeSet.length
+    }));
+  }
+
+  getAncestorsDescendantsAnalysis(): { nodeId: number; ancestors: number[]; descendants: number[]; ancestorCount: number; descendantCount: number }[] {
+    const data = this.networkData();
+    if (!data) return [];
+
+    return data.nodes
+      .map(nodeId => {
+        const ancestors = data.ancestors[nodeId.toString()] || [];
+        const descendants = data.descendants[nodeId.toString()] || [];
+        
+        return {
+          nodeId,
+          ancestors: ancestors.sort((a, b) => a - b),
+          descendants: descendants.sort((a, b) => a - b),
+          ancestorCount: ancestors.length,
+          descendantCount: descendants.length
+        };
+      })
+      .sort((a, b) => a.nodeId - b.nodeId);
+  }
+
+  getTopologicalAnalysis(): { metric: string; value: string | number }[] {
+    const data = this.networkData();
+    if (!data) return [];
+
+    const iterationSets = this.getIterationSetsAnalysis();
+    const maxSetSize = Math.max(...iterationSets.map(set => set.size));
+    const avgSetSize = iterationSets.reduce((sum, set) => sum + set.size, 0) / iterationSets.length;
+    const ancestorDescendantData = this.getAncestorsDescendantsAnalysis();
+    const maxAncestors = Math.max(...ancestorDescendantData.map(node => node.ancestorCount));
+    const maxDescendants = Math.max(...ancestorDescendantData.map(node => node.descendantCount));
+    const avgAncestors = ancestorDescendantData.reduce((sum, node) => sum + node.ancestorCount, 0) / ancestorDescendantData.length;
+    const avgDescendants = ancestorDescendantData.reduce((sum, node) => sum + node.descendantCount, 0) / ancestorDescendantData.length;
+
+    return [
+      { metric: 'Total Iteration Sets', value: data.iteration_sets_count },
+      { metric: 'Largest Set Size', value: maxSetSize },
+      { metric: 'Average Set Size', value: avgSetSize.toFixed(2) },
+      { metric: 'Max Ancestors (per node)', value: maxAncestors },
+      { metric: 'Max Descendants (per node)', value: maxDescendants },
+      { metric: 'Avg Ancestors (per node)', value: avgAncestors.toFixed(2) },
+      { metric: 'Avg Descendants (per node)', value: avgDescendants.toFixed(2) }
+    ];
   }
 }

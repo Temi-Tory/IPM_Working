@@ -52,7 +52,7 @@
                     <!-- Network Metrics -->
                     <div class="metrics-section">
                       <h4>Network Topology Metrics</h4>
-                      <table mat-table [dataSource]="getNetworkMetrics()" class="metrics-table">
+                      <table mat-table [dataSource]="networkMetrics()" class="metrics-table">
                         <ng-container matColumnDef="metric">
                           <th mat-header-cell *matHeaderCellDef>Metric</th>
                           <td mat-cell *matCellDef="let row">{{ row.metric }}</td>
@@ -69,7 +69,7 @@
                     <div class="connectivity-section">
                       <h4>Node Connectivity Distribution</h4>
                       <div class="connectivity-stats">
-                        @for (level of getConnectivityDistribution(); track level) {
+                        @for (level of connectivityDistribution(); track level.level) {
                           <div class="connectivity-item">
                             <div class="connectivity-label">{{ level.level }}</div>
                             <div class="connectivity-bar">
@@ -125,7 +125,7 @@
                   <div class="tab-content">
                     <div class="details-section">
                       <h4>Detailed Node Information</h4>
-                      <table mat-table [dataSource]="getNodeDetails()" class="details-table">
+                      <table mat-table [dataSource]="nodeDetails()" class="details-table">
                         <ng-container matColumnDef="node">
                           <th mat-header-cell *matHeaderCellDef>Node ID</th>
                           <td mat-cell *matCellDef="let row">{{ row.node }}</td>
@@ -161,7 +161,7 @@
                           </mat-card-header>
                           <mat-card-content>
                             <mat-chip-set>
-                              @for (node of getNodesByType('source'); track node) {
+                              @for (node of getNodesByType('source'); track $index) {
                                 <mat-chip class="source-chip">{{ node }}</mat-chip>
                               }
                             </mat-chip-set>
@@ -178,7 +178,7 @@
                           </mat-card-header>
                           <mat-card-content>
                             <mat-chip-set>
-                              @for (node of getNodesByType('sink'); track node) {
+                              @for (node of getNodesByType('sink'); track $index) {
                                 <mat-chip class="sink-chip">{{ node }}</mat-chip>
                               }
                             </mat-chip-set>
@@ -195,7 +195,7 @@
                           </mat-card-header>
                           <mat-card-content>
                             <mat-chip-set>
-                              @for (node of getNodesByType('fork'); track node) {
+                              @for (node of getNodesByType('fork'); track $index) {
                                 <mat-chip class="fork-chip">{{ node }}</mat-chip>
                               }
                             </mat-chip-set>
@@ -212,7 +212,7 @@
                           </mat-card-header>
                           <mat-card-content>
                             <mat-chip-set>
-                              @for (node of getNodesByType('join'); track node) {
+                              @for (node of getNodesByType('join'); track $index) {
                                 <mat-chip class="join-chip">{{ node }}</mat-chip>
                               }
                             </mat-chip-set>
@@ -230,7 +230,7 @@
                   <div class="tab-content">
                     <div class="details-section">
                       <h4>Edge Connectivity Information</h4>
-                      <table mat-table [dataSource]="getEdgeDetails()" class="details-table">
+                      <table mat-table [dataSource]="edgeDetails()" class="details-table">
                         <ng-container matColumnDef="source">
                           <th mat-header-cell *matHeaderCellDef>Source Node</th>
                           <td mat-cell *matCellDef="let row">{{ row.source }}</td>
@@ -254,11 +254,11 @@
                       <h4>Edge Statistics</h4>
                       <div class="stats-grid">
                         <div class="stat-item">
-                          <div class="stat-value">{{ getEdgeDetails().length }}</div>
+                          <div class="stat-value">{{ edgeDetails().length }}</div>
                           <div class="stat-label">Total Edges</div>
                         </div>
                         <div class="stat-item">
-                          <div class="stat-value">{{ getEdgeDetails().length > 0 ? (getEdgeDetails().length / (networkData()?.total_nodes || 1)).toFixed(2) : '0.00' }}</div>
+                          <div class="stat-value">{{ edgeDetails().length > 0 ? (edgeDetails().length / (networkData()?.total_nodes || 1)).toFixed(2) : '0.00' }}</div>
                           <div class="stat-label">Avg Edges per Node</div>
                         </div>
                       </div>

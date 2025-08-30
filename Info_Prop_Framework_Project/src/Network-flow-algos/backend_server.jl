@@ -77,6 +77,53 @@ function create_default_node_priors(allnodes::Vector{Int64})
     return Dict{Int64, Float64}(node => 1.0 for node in allnodes)
 end
 
+function serialize_root_diamonds_for_json(root_diamonds_dict)
+    """Helper function to serialize root diamond structures (DiamondsAtNode) for JSON response"""
+    serialized = Dict()
+    for (join_node, diamonds_at_node) in root_diamonds_dict
+        # diamonds_at_node is of type DiamondsAtNode
+        serialized[string(join_node)] = Dict(
+            "join_node" => diamonds_at_node.join_node,
+            "diamond" => Dict(
+                "conditioning_nodes" => collect(diamonds_at_node.diamond.conditioning_nodes),
+                "relevant_nodes" => collect(diamonds_at_node.diamond.relevant_nodes),
+                "edgelist" => collect(diamonds_at_node.diamond.edgelist),
+                "edge_count" => length(diamonds_at_node.diamond.edgelist),
+                "node_count" => length(diamonds_at_node.diamond.relevant_nodes)
+            ),
+            "non_diamond_parents" => collect(diamonds_at_node.non_diamond_parents)
+        )
+    end
+    return serialized
+end
+
+function serialize_unique_diamonds_for_json(unique_diamonds_dict)
+    """Helper function to serialize unique diamond structures (DiamondComputationData) for JSON response"""
+    serialized = Dict()
+    
+    for (diamond_hash, diamond_data) in unique_diamonds_dict
+        # diamond_data is of type DiamondComputationData{T}
+        # Use the is_rootDiamond field from the struct directly!
+        
+        serialized[string(diamond_hash)] = Dict(
+            "diamond_hash" => string(diamond_hash),
+            "is_root_diamond" => diamond_data.is_rootDiamond,  # <-- USE STRUCT FIELD
+            "sub_outgoing_index" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_outgoing_index),
+            "sub_incoming_index" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_incoming_index),
+            "sub_sources" => collect(diamond_data.sub_sources),
+            "sub_fork_nodes" => collect(diamond_data.sub_fork_nodes),
+            "sub_join_nodes" => collect(diamond_data.sub_join_nodes),
+            "sub_ancestors" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_ancestors),
+            "sub_descendants" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_descendants),
+            "sub_iteration_sets" => [collect(s) for s in diamond_data.sub_iteration_sets],
+            "sub_iteration_sets_count" => length(diamond_data.sub_iteration_sets),
+            "sub_node_priors" => Dict(string(k) => v for (k, v) in diamond_data.sub_node_priors),
+            "node_count" => length(diamond_data.sub_node_priors)
+        )
+    end
+    return serialized
+end
+
 function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
     """
     Flexible multi-scenario network analysis.
@@ -234,7 +281,10 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
                     "root_computation_time" => root_computation_time,
                     "unique_computation_time" => unique_computation_time,
                     "total_computation_time" => root_computation_time + unique_computation_time,
-                    "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds))
+                    "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
+                    # **NEW: Raw diamond structures for UI**
+                    "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
+                    "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
                 )
                 
                 # Store for exact inference
@@ -345,7 +395,10 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
             "unique_computation_time" => unique_computation_time,
             "total_computation_time" => root_computation_time + unique_computation_time,
             "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
-            "note" => "Used default node priors (all 1.0) for standalone diamond analysis"
+            "note" => "Used default node priors (all 1.0) for standalone diamond analysis",
+            # **NEW: Raw diamond structures for UI**
+            "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
+            "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
         )
         
         println("  Standalone diamond analysis complete: $(round(root_computation_time + unique_computation_time, digits=4)) seconds")
@@ -433,7 +486,17 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
                 "target_nodes" => collect(targets),
                 "node_capacities_count" => length(node_capacities),
                 "edge_capacities_count" => length(edge_capacities),
-                "input_files" => Dict("capacities_path" => capacities_path)
+                "input_files" => Dict("capacities_path" => capacities_path),
+                # **NEW: Complete raw capacity results**
+                "raw_capacity_result" => Dict(
+                    "node_max_flows" => Dict(string(k) => v for (k, v) in capacity_result.node_max_flows),
+                    "bottlenecks" => Dict(string(k) => v for (k, v) in capacity_result.bottlenecks),
+                    "critical_paths" => Dict(string(k) => v for (k, v) in capacity_result.critical_paths),
+                    "network_utilization" => capacity_result.network_utilization,
+                    "analysis_type" => string(capacity_result.analysis_type),
+                    "computation_time" => capacity_result.computation_time,
+                    "convergence_info" => capacity_result.convergence_info
+                )
             )
             
             results["capacity_scenarios"][scenario_name] = scenario_results

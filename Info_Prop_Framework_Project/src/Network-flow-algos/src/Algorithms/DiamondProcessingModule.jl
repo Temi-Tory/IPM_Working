@@ -77,7 +77,7 @@ module DiamondProcessingModule
         sub_descendants::Dict{Int64, Set{Int64}}
         sub_iteration_sets::Vector{Set{Int64}}
         sub_node_priors::Dict{Int64, T}
-        
+        is_rootDiamond::Bool
         # Ready-to-use inner diamonds for recursive calls
         sub_diamond_structures::Dict{Int64, DiamondsAtNode}
         diamond::Diamond
@@ -1394,6 +1394,7 @@ function build_unique_diamond_storage(
             sub_descendants,
             sub_iteration_sets,
             sub_node_priors,
+            is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             filtered_sub_diamonds,
             current_diamond
         )
@@ -1709,6 +1710,7 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             sub_descendants,
             sub_iteration_sets,
             sub_node_priors,
+            is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             sub_diamonds_dict,
             current_diamond
         )

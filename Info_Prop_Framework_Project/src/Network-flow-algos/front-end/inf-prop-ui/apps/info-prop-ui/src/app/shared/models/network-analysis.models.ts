@@ -26,20 +26,48 @@ export type BeliefValue = number | IntervalData | PboxData;
 
 export interface NetworkStructure {
   computation_time: number;
-  total_nodes?: number;
-  total_edges?: number;
-  nodes?: number[];
+  total_nodes: number;
+  total_edges: number;
+  nodes: number[];
   edges: [number, number][];
   source_nodes: number[];
   sink_nodes: number[];
   fork_nodes: number[];
   join_nodes: number[];
-  iteration_sets?: number[][];
-  iteration_sets_count?: number;
+  iteration_sets: number[][];
+  iteration_sets_count: number;
   ancestors: Record<string, number[]>;
-  descendants?: Record<string, number[]>;
+  descendants: Record<string, number[]>;
   outgoing_index: Record<string, number[]>;
   incoming_index: Record<string, number[]>;
+}
+
+export interface RootDiamondStructure {
+  join_node: number;
+  diamond: {
+    conditioning_nodes: number[];
+    relevant_nodes: number[];
+    edgelist: [number, number][];
+    edge_count: number;
+    node_count: number;
+  };
+  non_diamond_parents: number[];
+}
+
+export interface UniqueDiamondStructure {
+  diamond_hash: string;
+  is_root_diamond: boolean;
+  sub_outgoing_index: Record<string, number[]>;
+  sub_incoming_index: Record<string, number[]>;
+  sub_sources: number[];
+  sub_fork_nodes: number[];
+  sub_join_nodes: number[];
+  sub_ancestors: Record<string, number[]>;
+  sub_descendants: Record<string, number[]>;
+  sub_iteration_sets: number[][];
+  sub_iteration_sets_count: number;
+  sub_node_priors: Record<string, BeliefValue>;
+  node_count: number;
 }
 
 export interface DiamondAnalysisResult {
@@ -51,6 +79,9 @@ export interface DiamondAnalysisResult {
   total_computation_time: number;
   diamond_efficiency: number;
   note?: string;
+  // **NEW: Raw diamond structures (two different types)**
+  raw_root_diamonds?: Record<string, RootDiamondStructure>;
+  raw_unique_diamonds?: Record<string, UniqueDiamondStructure>;
 }
 
 export interface ExactInferenceResult {
@@ -74,6 +105,16 @@ export interface ReachabilityScenario {
   };
 }
 
+export interface RawCapacityResult {
+  node_max_flows: Record<string, number>;
+  bottlenecks: Record<string, any[]>; // Vector of mixed types (nodes, edges, symbols)
+  critical_paths: Record<string, number[][]>; // Multiple paths per target
+  network_utilization: number;
+  analysis_type: string;
+  computation_time: number;
+  convergence_info: Record<string, any>;
+}
+
 export interface CapacityScenario {
   computation_time: number;
   network_utilization: number;
@@ -88,6 +129,8 @@ export interface CapacityScenario {
   input_files: {
     capacities_path: string;
   };
+  // **NEW: Complete raw capacity results**
+  raw_capacity_result?: RawCapacityResult;
 }
 
 export interface CpmScenario {
