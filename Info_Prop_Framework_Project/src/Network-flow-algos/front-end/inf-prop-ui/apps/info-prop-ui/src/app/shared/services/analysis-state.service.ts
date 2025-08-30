@@ -58,40 +58,57 @@ export class AnalysisStateService {
   }
 
   setAnalysisResults(results: AnalysisResponse | null): void {
+    console.log('🔍 setAnalysisResults called with:', results);
     this.analysisResultsSignal.set(results);
     
     if (results?.results) {
+      console.log('✅ Processing results.results:', results.results);
+      
+      // Handle the nested structure: results.results.results contains the actual analysis data
+      const analysisData = (results.results as any).results || results.results;
+      console.log('🔍 Analysis data:', analysisData);
+      console.log('📊 Network structure exists:', !!analysisData.network_structure);
+      console.log('💎 Capacity scenarios:', analysisData.capacity_scenarios);
+      console.log('🔄 Reachability scenarios:', analysisData.reachability_scenarios);
+      console.log('⏱️ CPM scenarios:', analysisData.cpm_scenarios);
+      
       // Update network structure data
-      this.setNetworkData(results.results.network_structure);
+      this.setNetworkData(analysisData.network_structure);
       
       // Mark tabs as completed based on available results
-      if (results.results.network_structure) {
+      if (analysisData.network_structure) {
+        console.log('✅ Marking network-structure as completed');
         this.markTabCompleted('network-structure');
       }
       
-      if (results.results.diamond_analysis || 
-          (results.results.reachability_scenarios && 
-           Object.values(results.results.reachability_scenarios).some(s => s.diamond_analysis))) {
+      if (analysisData.diamond_analysis ||
+          (analysisData.reachability_scenarios &&
+           Object.values(analysisData.reachability_scenarios).some((s: any) => s.diamond_analysis))) {
+        console.log('✅ Marking diamonds as completed');
         this.markTabCompleted('diamonds');
       }
       
-      if (results.results.reachability_scenarios && 
-          Object.values(results.results.reachability_scenarios).some(s => s.exact_inference)) {
+      if (analysisData.reachability_scenarios &&
+          Object.values(analysisData.reachability_scenarios).some((s: any) => s.exact_inference)) {
+        console.log('✅ Marking exact-inference as completed');
         this.markTabCompleted('exact-inference');
       }
       
-      if (results.results.capacity_scenarios && 
-          Object.keys(results.results.capacity_scenarios).length > 0) {
+      if (analysisData.capacity_scenarios &&
+          Object.keys(analysisData.capacity_scenarios).length > 0) {
+        console.log('✅ Marking flow as completed');
         this.markTabCompleted('flow');
       }
       
-      if (results.results.cpm_scenarios && 
-          Object.keys(results.results.cpm_scenarios).length > 0) {
+      if (analysisData.cpm_scenarios &&
+          Object.keys(analysisData.cpm_scenarios).length > 0) {
+        console.log('✅ Marking critical-path as completed');
         this.markTabCompleted('critical-path');
       }
       
       // System profile is completed when we have any analysis results
-      if (results.results) {
+      if (analysisData) {
+        console.log('✅ Marking system-profile as completed');
         this.markTabCompleted('system-profile');
       }
     }
@@ -110,27 +127,35 @@ export class AnalysisStateService {
   }
 
   markTabCompleted(tabName: string): void {
+    console.log(`🎯 markTabCompleted called for: ${tabName}`);
     switch (tabName) {
       case 'upload':
         this.uploadTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Upload tab marked as completed');
         break;
       case 'network-structure':
         this.networkStructureTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Network structure tab marked as completed');
         break;
       case 'diamonds':
         this.diamondAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Diamond analysis tab marked as completed');
         break;
       case 'exact-inference':
         this.exactInferenceTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Exact inference tab marked as completed');
         break;
       case 'flow':
         this.flowAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Flow analysis tab marked as completed');
         break;
       case 'critical-path':
         this.criticalPathTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ Critical path tab marked as completed');
         break;
       case 'system-profile':
         this.systemProfileTabSignal.update(tab => ({ ...tab, completed: true }));
+        console.log('✅ System profile tab marked as completed');
         break;
     }
   }
@@ -144,8 +169,8 @@ export class AnalysisStateService {
     const results = this.analysisResultsSignal();
     const networkPath = this.currentNetworkPathSignal();
     
-    if (results?.network_name) {
-      return { networkName: results.network_name };
+    if (results?.results?.analysis_summary?.network_name) {
+      return { networkName: results.results.analysis_summary.network_name };
     }
     
     if (networkPath) {

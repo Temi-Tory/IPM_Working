@@ -68,7 +68,7 @@ export class NetworkBackendService {
     };
 
     return this.analyzeNetwork(request).pipe(
-      map(response => response.results.network_structure),
+      map(response => response.results?.network_structure),
       catchError(error => {
         console.error('Network validation failed:', error);
         return throwError(() => new Error(`Validation failed: ${error.message}`));
@@ -91,7 +91,12 @@ export class NetworkBackendService {
     };
 
     return this.analyzeNetwork(request).pipe(
-      map(response => response.results.network_structure)
+      map(response => {
+        if (!response.results?.network_structure) {
+          throw new Error('Network structure not found in response');
+        }
+        return response.results.network_structure;
+      })
     );
   }
 }

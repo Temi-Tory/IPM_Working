@@ -1,6 +1,5 @@
 export interface PboxData {
-  left_bounds: number[];
-  right_bounds: number[];
+  type: 'pbox';
   discretization_size: number;
   mean_lower: number;
   mean_upper: number;
@@ -9,6 +8,12 @@ export interface PboxData {
   shape: string;
   name: string;
   bounded: boolean;
+  bounds_summary: {
+    left_min: number;
+    left_max: number;
+    right_min: number;
+    right_max: number;
+  };
 }
 
 export interface IntervalData {
@@ -21,18 +26,18 @@ export type BeliefValue = number | IntervalData | PboxData;
 
 export interface NetworkStructure {
   computation_time: number;
-  total_nodes: number;
-  total_edges: number;
-  nodes: number[];
+  total_nodes?: number;
+  total_edges?: number;
+  nodes?: number[];
   edges: [number, number][];
   source_nodes: number[];
   sink_nodes: number[];
   fork_nodes: number[];
   join_nodes: number[];
-  iteration_sets: number[][];
-  iteration_sets_count: number;
+  iteration_sets?: number[][];
+  iteration_sets_count?: number;
   ancestors: Record<string, number[]>;
-  descendants: Record<string, number[]>;
+  descendants?: Record<string, number[]>;
   outgoing_index: Record<string, number[]>;
   incoming_index: Record<string, number[]>;
 }
@@ -108,13 +113,17 @@ export interface CpmScenario {
 
 export interface AnalysisResponse {
   success: boolean;
-  network_name: string;
-  timestamp: string;
-  analysis_config?: AnalysisRequestConfig;
-  computation_summary?: {
-    total_analysis_time?: number;
+  message: string;
+  network_name?: string;
+  timestamp?: string;
+  analysis_config?: {
+    reachabilityScenarios: ReachabilityScenarioConfig[];
+    capacityScenarios: CapacityScenarioConfig[];
+    cpmScenarios: CpmScenarioConfig[];
+    networkPath: string;
+    analysisConfig: AnalysisRequestConfig;
   };
-  results: {
+  results?: {
     network_structure: NetworkStructure;
     reachability_scenarios?: Record<string, ReachabilityScenario>;
     diamond_analysis?: DiamondAnalysisResult;
@@ -125,7 +134,7 @@ export interface AnalysisResponse {
       total_computation_time: number;
       reachability_scenarios_count: number;
       capacity_scenarios_count: number;
-      cmp_scenarios_count: number;
+      cpm_scenarios_count: number;
       timestamp: string;
     };
   };

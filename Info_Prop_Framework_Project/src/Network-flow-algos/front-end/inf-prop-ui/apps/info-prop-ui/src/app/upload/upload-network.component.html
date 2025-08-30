@@ -28,136 +28,139 @@
         <!-- Folder Upload Input -->
         <div class="upload-section">
           <input #folderInput
-                 type="file" 
-                 webkitdirectory 
-                 multiple 
-                 (change)="onFolderSelected($event)"
-                 class="hidden-input">
-          
-          <button mat-raised-button color="primary" 
-                  (click)="folderInput.click()" 
-                  [disabled]="isProcessingFiles"
-                  class="upload-button">
-            <mat-icon>folder_open</mat-icon>
-            Select Network Folder
-          </button>
-        </div>
+            type="file"
+            webkitdirectory
+            multiple
+            (change)="onFolderSelected($event)"
+            class="hidden-input">
 
-        <div *ngIf="isProcessingFiles" class="progress-section">
-          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-          <p>Processing uploaded files...</p>
-        </div>
-
-        <!-- Network Selection -->
-        <div *ngIf="categorizedNetworks.length > 0" class="network-selection">
-          <h4>Detected Networks</h4>
-          <mat-card *ngFor="let network of categorizedNetworks" 
-                    class="network-card"
-                    [class.selected]="selectedNetwork === network"
-                    (click)="selectNetwork(network)">
-            <mat-card-header>
-              <mat-icon mat-card-avatar 
-                        [class.valid]="network.edgesFile"
-                        [class.invalid]="!network.edgesFile">
-                {{ network.edgesFile ? 'account_tree' : 'error' }}
-              </mat-icon>
-              <mat-card-title>{{ network.name }}</mat-card-title>
-              <mat-card-subtitle>{{ getNetworkSummary(network) }}</mat-card-subtitle>
-            </mat-card-header>
-          </mat-card>
-
-          <!-- File Details for Selected Network -->
-          <div *ngIf="selectedNetwork" class="file-details">
-            <h4>Files in "{{ selectedNetwork.name }}"</h4>
-            <table mat-table [dataSource]="getAllFiles(selectedNetwork)" class="files-table">
-              <ng-container matColumnDef="file">
-                <th mat-header-cell *matHeaderCellDef>File</th>
-                <td mat-cell *matCellDef="let file">{{ file.file.name }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="category">
-                <th mat-header-cell *matHeaderCellDef>Category</th>
-                <td mat-cell *matCellDef="let file">
-                  <mat-chip [class]="'category-' + file.category">{{ file.category }}</mat-chip>
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="scenario">
-                <th mat-header-cell *matHeaderCellDef>Scenario</th>
-                <td mat-cell *matCellDef="let file">{{ file.scenarioType || '-' }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="confidence">
-                <th mat-header-cell *matHeaderCellDef>Confidence</th>
-                <td mat-cell *matCellDef="let file">{{ (file.confidence * 100).toFixed(0) }}%</td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="fileDisplayColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: fileDisplayColumns;"></tr>
-            </table>
+            <button mat-raised-button color="primary"
+              (click)="folderInput.click()"
+              [disabled]="isProcessingFiles"
+              class="upload-button">
+              <mat-icon>folder_open</mat-icon>
+              Select Network Folder
+            </button>
           </div>
-        </div>
 
-        <!-- Analysis Configuration -->
-        <div class="analysis-config" *ngIf="canProceed()">
-          <h3>Analysis Configuration</h3>
-          <p>Select which types of analysis to perform on your network.</p>
-          
-          <form [formGroup]="analysisConfigForm">
-            <div class="analysis-options">
-              <mat-checkbox formControlName="exactInference">
-                <div class="option-content">
-                  <strong>Exact Inference</strong>
-                  <span>Precise belief propagation analysis</span>
-                </div>
-              </mat-checkbox>
-              
-              <mat-checkbox formControlName="diamondAnalysis">
-                <div class="option-content">
-                  <strong>Diamond Analysis</strong>
-                  <span>Identify and analyze diamond structures</span>
-                </div>
-              </mat-checkbox>
-              
-              <mat-checkbox formControlName="flowAnalysis">
-                <div class="option-content">
-                  <strong>Flow Analysis</strong>
-                  <span>Maximum flow capacity analysis</span>
-                </div>
-              </mat-checkbox>
-              
-              <mat-checkbox formControlName="criticalPath">
-                <div class="option-content">
-                  <strong>Critical Path Analysis</strong>
-                  <span>Time and cost optimization</span>
-                </div>
-              </mat-checkbox>
+          @if (isProcessingFiles) {
+            <div class="progress-section">
+              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+              <p>Processing uploaded files...</p>
             </div>
-          </form>
-        </div>
+          }
 
-        <!-- Start Analysis -->
-        <div class="start-section" *ngIf="canProceed()">
-          <div *ngIf="isAnalyzing" class="progress-section">
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <p>Running network analysis...</p>
-          </div>
+          <!-- Network Selection -->
+          @if (categorizedNetworks.length > 0) {
+            <div class="network-selection">
+              <h4>Detected Networks</h4>
+              @for (network of categorizedNetworks; track network) {
+                <mat-card
+                  class="network-card"
+                  [class.selected]="selectedNetwork === network"
+                  (click)="selectNetwork(network)">
+                  <mat-card-header>
+                    <mat-icon mat-card-avatar
+                      [class.valid]="network.edgesFile"
+                      [class.invalid]="!network.edgesFile">
+                      {{ network.edgesFile ? 'account_tree' : 'error' }}
+                    </mat-icon>
+                    <mat-card-title>{{ network.name }}</mat-card-title>
+                    <mat-card-subtitle>{{ getNetworkSummary(network) }}</mat-card-subtitle>
+                  </mat-card-header>
+                </mat-card>
+              }
+              <!-- File Details for Selected Network -->
+              @if (selectedNetwork) {
+                <div class="file-details">
+                  <h4>Files in "{{ selectedNetwork.name }}"</h4>
+                  <table mat-table [dataSource]="getAllFiles(selectedNetwork)" class="files-table">
+                    <ng-container matColumnDef="file">
+                      <th mat-header-cell *matHeaderCellDef>File</th>
+                      <td mat-cell *matCellDef="let file">{{ file.file.name }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="category">
+                      <th mat-header-cell *matHeaderCellDef>Category</th>
+                      <td mat-cell *matCellDef="let file">
+                        <mat-chip [class]="'category-' + file.category">{{ file.category }}</mat-chip>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="scenario">
+                      <th mat-header-cell *matHeaderCellDef>Scenario</th>
+                      <td mat-cell *matCellDef="let file">{{ file.scenarioType || '-' }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="confidence">
+                      <th mat-header-cell *matHeaderCellDef>Confidence</th>
+                      <td mat-cell *matCellDef="let file">{{ (file.confidence * 100).toFixed(0) }}%</td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="fileDisplayColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: fileDisplayColumns;"></tr>
+                  </table>
+                </div>
+              }
+            </div>
+          }
 
-          <div class="action-row">
-            <button mat-button routerLink="/home" [disabled]="isAnalyzing">
-              <mat-icon>arrow_back</mat-icon>
-              Back to Home
-            </button>
-            
-            <button mat-raised-button color="primary" 
-                    (click)="startAnalysis()" 
-                    [disabled]="isAnalyzing || !hasAnalysisSelected()">
-              <mat-icon>play_arrow</mat-icon>
-              Start Analysis
-            </button>
-          </div>
+          <!-- Analysis Configuration -->
+          @if (canProceed()) {
+            <div class="analysis-config">
+              <h3>Analysis Configuration</h3>
+              <p>Select which types of analysis to perform on your network.</p>
+              <form [formGroup]="analysisConfigForm">
+                <div class="analysis-options">
+                  <mat-checkbox formControlName="exactInference">
+                    <div class="option-content">
+                      <strong>Exact Inference</strong>
+                      <span>Precise belief propagation analysis</span>
+                    </div>
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="diamondAnalysis">
+                    <div class="option-content">
+                      <strong>Diamond Analysis</strong>
+                      <span>Identify and analyze diamond structures</span>
+                    </div>
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="flowAnalysis">
+                    <div class="option-content">
+                      <strong>Flow Analysis</strong>
+                      <span>Maximum flow capacity analysis</span>
+                    </div>
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="criticalPath">
+                    <div class="option-content">
+                      <strong>Critical Path Analysis</strong>
+                      <span>Time and cost optimization</span>
+                    </div>
+                  </mat-checkbox>
+                </div>
+              </form>
+            </div>
+          }
+
+          <!-- Start Analysis -->
+          @if (canProceed()) {
+            <div class="start-section">
+              @if (isAnalyzing) {
+                <div class="progress-section">
+                  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                  <p>Running network analysis...</p>
+                </div>
+              }
+              <div class="action-row">
+                <button mat-button routerLink="/home" [disabled]="isAnalyzing">
+                  <mat-icon>arrow_back</mat-icon>
+                  Back to Home
+                </button>
+                <button mat-raised-button color="primary"
+                  (click)="startAnalysis()"
+                  [disabled]="isAnalyzing || !hasAnalysisSelected()">
+                  <mat-icon>play_arrow</mat-icon>
+                  Start Analysis
+                </button>
+              </div>
+            </div>
+          }
         </div>
-      </div>
-    </mat-card-content>
-  </mat-card>
-</div>
+      </mat-card-content>
+    </mat-card>
+  </div>

@@ -18,18 +18,25 @@ const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
 
 function pbox_to_dict(pbox::ProbabilityBoundsAnalysis.pbox)
-    """Convert a Pbox object to a JSON-serializable dictionary"""
+    """Convert a Pbox object to a JSON-serializable dictionary with reduced discretization"""
+    # Only include summary statistics, not full discretization arrays
     return Dict(
-        "left_bounds" => pbox.u,
-        "right_bounds" => pbox.d,
-        "discretization_size" => pbox.n,
+        "type" => "pbox",
         "mean_lower" => pbox.ml,
         "mean_upper" => pbox.mh,
         "var_lower" => pbox.vl,
         "var_upper" => pbox.vh,
         "shape" => string(pbox.shape),
         "name" => pbox.name,
-        "bounded" => pbox.bounded
+        "bounded" => pbox.bounded,
+        "discretization_size" => pbox.n,
+        # Only include first, last, and quartile points instead of full arrays
+        "bounds_summary" => Dict(
+            "left_min" => length(pbox.u) > 0 ? pbox.u[1] : 0.0,
+            "left_max" => length(pbox.u) > 0 ? pbox.u[end] : 0.0,
+            "right_min" => length(pbox.d) > 0 ? pbox.d[1] : 0.0,
+            "right_max" => length(pbox.d) > 0 ? pbox.d[end] : 0.0
+        )
     )
 end
 
@@ -850,12 +857,15 @@ function handle_analysis(req::HTTP.Request)
         println("Converted results type: ", typeof(converted_results))
         println("Pbox objects converted to JSON format...")
         
-        # Wrap results in the expected structure
+        # Flatten the structure to avoid double nesting
+        # converted_results already has the structure we want
         result = Dict(
             "success" => true,
-            "results" => converted_results,
             "message" => "Analysis completed successfully"
         )
+        
+        # Merge the converted_results directly into result to avoid nesting
+        merge!(result, converted_results)
         
         println("Attempting JSON serialization...")
         # Try to serialize the result to catch any JSON issues

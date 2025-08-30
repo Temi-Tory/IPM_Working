@@ -8,13 +8,12 @@ import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { CommonModule } from '@angular/common';
+
 import { AnalysisStateService } from './shared/services/analysis-state.service';
 
 @Component({
   imports: [
-    RouterModule, 
-    CommonModule,
+    RouterModule,
     MatToolbarModule,
     MatSidenavModule,
     MatIconModule,
@@ -23,7 +22,7 @@ import { AnalysisStateService } from './shared/services/analysis-state.service';
     MatSlideToggleModule,
     MatTooltipModule,
     MatSnackBarModule
-  ],
+],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.scss',

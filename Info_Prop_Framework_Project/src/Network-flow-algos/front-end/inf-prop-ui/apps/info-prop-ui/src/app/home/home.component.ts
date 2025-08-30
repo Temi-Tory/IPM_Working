@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,14 +14,13 @@ import { NetworkSessionService } from '../shared/services/network-session.servic
 @Component({
   selector: 'app-home',
   imports: [
-    CommonModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatGridListModule,
     MatChipsModule,
     MatSnackBarModule
-  ],
+],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })

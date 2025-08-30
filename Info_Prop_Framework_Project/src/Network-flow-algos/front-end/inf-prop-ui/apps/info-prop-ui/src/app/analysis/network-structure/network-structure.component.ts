@@ -1,5 +1,5 @@
 import { Component, inject, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
@@ -11,13 +11,11 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
-import { NetworkVisualizationComponent } from '../network-visualization/network-visualization.component';
 
 @Component({
   selector: 'app-network-structure',
   standalone: true,
   imports: [
-    CommonModule,
     MatCardModule,
     MatIconModule,
     MatTableModule,
@@ -25,9 +23,8 @@ import { NetworkVisualizationComponent } from '../network-visualization/network-
     MatTabsModule,
     MatButtonToggleModule,
     MatButtonModule,
-    MatProgressBarModule,
-    NetworkVisualizationComponent
-  ],
+    MatProgressBarModule
+],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
@@ -53,14 +50,23 @@ export class NetworkStructureComponent {
     const data = this.networkData();
     if (!data) return [];
 
+    // Calculate total nodes from all unique node IDs
+    const allNodes = new Set<number>();
+    data.edges.forEach(([source, target]) => {
+      allNodes.add(source);
+      allNodes.add(target);
+    });
+    const totalNodes = data.total_nodes || allNodes.size;
+    const totalEdges = data.total_edges || data.edges.length;
+
     return [
-      { metric: 'Total Nodes', value: data.total_nodes },
-      { metric: 'Total Edges', value: data.total_edges },
+      { metric: 'Total Nodes', value: totalNodes },
+      { metric: 'Total Edges', value: totalEdges },
       { metric: 'Source Nodes', value: data.source_nodes.length },
       { metric: 'Sink Nodes', value: data.sink_nodes.length },
       { metric: 'Fork Nodes', value: data.fork_nodes.length },
       { metric: 'Join Nodes', value: data.join_nodes.length },
-      { metric: 'Iteration Sets', value: data.iteration_sets_count },
+      { metric: 'Iteration Sets', value: data.iteration_sets_count || 0 },
       { metric: 'Computation Time', value: `${data.computation_time.toFixed(4)}s` }
     ];
   }
@@ -80,9 +86,17 @@ export class NetworkStructureComponent {
 
   getNodeDetails(): { node: number; type: string; inDegree: number; outDegree: number }[] {
     const data = this.networkData();
-    if (!data || !data.nodes) return [];
+    if (!data) return [];
 
-    return data.nodes.map((nodeId: number) => {
+    // Get all unique nodes from edges if nodes array is not available
+    const allNodes = new Set<number>();
+    data.edges.forEach(([source, target]) => {
+      allNodes.add(source);
+      allNodes.add(target);
+    });
+    const nodes = data.nodes || Array.from(allNodes).sort((a, b) => a - b);
+
+    return nodes.map((nodeId: number) => {
       const nodeType = this.getNodeType(nodeId);
       const inDegree = this.calculateInDegree(nodeId);
       const outDegree = this.calculateOutDegree(nodeId);
@@ -153,7 +167,15 @@ export class NetworkStructureComponent {
 
   getConnectivityDistribution(): { level: string; count: number; percentage: number }[] {
     const data = this.networkData();
-    if (!data || !data.nodes) return [];
+    if (!data) return [];
+
+    // Get all unique nodes from edges if nodes array is not available
+    const allNodes = new Set<number>();
+    data.edges.forEach(([source, target]) => {
+      allNodes.add(source);
+      allNodes.add(target);
+    });
+    const nodes = data.nodes || Array.from(allNodes);
 
     const connectivityLevels: { [key: string]: number } = {
       'High (>= 4 connections)': 0,
@@ -162,7 +184,7 @@ export class NetworkStructureComponent {
       'Isolated (0 connections)': 0
     };
 
-    data.nodes.forEach((nodeId: number) => {
+    nodes.forEach((nodeId: number) => {
       const totalDegree = this.calculateInDegree(nodeId) + this.calculateOutDegree(nodeId);
       
       if (totalDegree >= 4) connectivityLevels['High (>= 4 connections)']++;
@@ -171,7 +193,7 @@ export class NetworkStructureComponent {
       else connectivityLevels['Isolated (0 connections)']++;
     });
 
-    const total = data.nodes.length;
+    const total = nodes.length;
     return Object.entries(connectivityLevels).map(([level, count]) => ({
       level,
       count,

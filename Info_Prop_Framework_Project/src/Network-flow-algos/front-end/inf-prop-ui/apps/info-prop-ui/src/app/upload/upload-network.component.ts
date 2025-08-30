@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,7 +28,6 @@ import { AnalysisRequest, UploadResponse } from '../shared/models/network-analys
   selector: 'app-upload-network',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
@@ -44,7 +43,7 @@ import { AnalysisRequest, UploadResponse } from '../shared/models/network-analys
     MatExpansionModule,
     MatTableModule,
     MatSelectModule
-  ],
+],
   templateUrl: './upload-network.component.html',
   styleUrls: ['./upload-network.component.scss']
 })
@@ -301,7 +300,7 @@ export class UploadNetworkComponent implements OnInit {
         
         this.sessionService.updateSession({
           analysisResults: response,
-          networkData: response.results.network_structure
+          networkData: response.results?.network_structure
         });
         
         this.snackBar.open('Analysis completed successfully!', 'Close', { duration: 3000 });
