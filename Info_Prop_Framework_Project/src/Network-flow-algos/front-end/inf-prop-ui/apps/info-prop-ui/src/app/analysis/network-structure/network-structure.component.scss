@@ -450,7 +450,7 @@
   }
 
   // Card Base Styles
-  .summary-card, .classification-card, .connectivity-card, .topology-card, .data-card {
+  .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -565,6 +565,11 @@
         &.sink-count { color: #f44336; }
         &.fork-count { color: #ff9800; }
         &.join-count { color: #9c27b0; }
+        &.single-parent-count { color: #2196f3; }
+        &.single-child-count { color: #00bcd4; }
+        &.hub-count { color: #673ab7; }
+        &.orphan-count { color: #607d8b; }
+        &.multi-count { color: #e91e63; }
       }
       
       .classification-label {
@@ -837,34 +842,117 @@
 [data-theme="dark"] {
   .network-structure {
     .structure-header {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), var(--background-color));
+      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
     }
     
     .metric-card,
     .classification-item,
     .multi-type-item,
     .iteration-set {
-      background: rgba(255, 255, 255, 0.03);
-      border-color: rgba(255, 255, 255, 0.1);
+      background: var(--surface-color);
+      border-color: var(--border-color);
+      color: var(--text-primary);
     }
     
-    .summary-card, .classification-card, .connectivity-card, .topology-card, .data-card {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.1);
+    .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card {
+      background: var(--surface-color);
+      border-color: var(--border-color);
+      color: var(--text-primary);
       
       &:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        border-color: rgba(var(--primary-color-rgb), 0.5);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        border-color: var(--primary-color);
       }
       
       .card-header {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-        border-bottom-color: rgba(255, 255, 255, 0.1);
+        background: var(--surface-container);
+        border-bottom-color: var(--border-color);
+        color: var(--text-primary);
+        
+        .card-title {
+          color: var(--text-primary);
+        }
+        
+        .card-subtitle {
+          color: var(--text-secondary);
+        }
+      }
+      
+      .card-content {
+        color: var(--text-primary);
       }
     }
     
-    .data-table th {
-      background: rgba(255, 255, 255, 0.05);
+    .data-table {
+      color: var(--text-primary);
+      
+      th {
+        background: var(--surface-container);
+        color: var(--primary-color);
+      }
+      
+      td {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-color);
+      }
+    }
+    
+    // Fix text colors in different sections
+    .summary-stats .stat-label,
+    .connectivity-info .connectivity-label,
+    .metric-row .metric-name,
+    .topology-metrics .metric-name {
+      color: var(--text-primary);
+    }
+    
+    .connectivity-stats,
+    .metric-data {
+      color: var(--text-secondary);
+    }
+    
+    // Dialog and form field improvements
+    .filters-content {
+      .filter-field {
+        color: var(--text-primary);
+        
+        .mat-mdc-form-field-wrapper {
+          background: var(--surface-container);
+        }
+      }
+      
+      .stats-summary {
+        background: var(--surface-container);
+        border-color: var(--border-color);
+        
+        .stats-header {
+          color: var(--text-primary);
+        }
+        
+        .stat-label {
+          color: var(--text-secondary);
+        }
+        
+        .stat-value {
+          color: var(--primary-color);
+        }
+      }
+      
+      .slider-group .slider-label {
+        color: var(--text-primary);
+        
+        small {
+          color: var(--text-secondary);
+        }
+      }
+      
+      .quick-filters .filters-label {
+        color: var(--text-primary);
+      }
+    }
+    
+    // Table info text
+    .table-info .info-text {
+      color: var(--text-secondary);
     }
   }
 }

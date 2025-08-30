@@ -617,37 +617,111 @@
 }
 
 // Dark theme support
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
   .node-dialog-container {
+    background: var(--surface-color);
+    color: var(--text-primary);
+
     .dialog-header {
-      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-      border-bottom-color: rgba(255, 255, 255, 0.12);
+      background: linear-gradient(135deg, var(--surface-container), var(--surface-color));
+      border-bottom-color: var(--border-color);
 
-      .header-content .title-section h2 {
-        color: #ecf0f1;
-      }
+      .header-content .title-section {
+        h2 {
+          color: var(--text-primary);
+        }
 
-      .connectivity-summary {
-        color: #bdc3c7;
+        .connectivity-summary {
+          color: var(--text-secondary);
+        }
       }
     }
 
     .info-item {
-      border-bottom-color: rgba(255, 255, 255, 0.06);
+      border-bottom-color: var(--border-color);
 
       .label {
-        color: #bdc3c7;
+        color: var(--text-secondary);
       }
 
       .value {
-        color: #ecf0f1;
+        color: var(--text-primary);
       }
     }
 
+    .connectivity-stats .stat-item {
+      .stat-value {
+        color: var(--text-primary);
+      }
+
+      .stat-label {
+        color: var(--text-secondary);
+      }
+    }
+
+    .classification-item {
+      border-color: var(--border-color);
+      background: var(--surface-color);
+
+      &.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color-light);
+      }
+
+      h4 {
+        color: var(--text-primary);
+      }
+
+      p {
+        color: var(--text-secondary);
+      }
+    }
+
+    .topology-item {
+      border-bottom-color: var(--border-color);
+
+      .label {
+        color: var(--text-secondary);
+      }
+
+      .value {
+        color: var(--text-primary);
+      }
+    }
+
+    .score-item .score-label {
+      color: var(--text-secondary);
+    }
+
     .json-display {
-      background-color: #2c3e50;
-      border-color: #34495e;
-      color: #ecf0f1;
+      background-color: var(--surface-container);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .capacity-item,
+    .cmp-item {
+      border-bottom-color: var(--border-color);
+
+      .label {
+        color: var(--text-secondary);
+      }
+
+      .value {
+        color: var(--text-primary);
+      }
+    }
+
+    .loading-container,
+    .error-container {
+      p {
+        color: var(--text-secondary);
+      }
+    }
+
+    .connection-item:hover,
+    .virtual-scroll-item:hover {
+      background-color: rgba(var(--primary-color-rgb), 0.1);
     }
   }
 }

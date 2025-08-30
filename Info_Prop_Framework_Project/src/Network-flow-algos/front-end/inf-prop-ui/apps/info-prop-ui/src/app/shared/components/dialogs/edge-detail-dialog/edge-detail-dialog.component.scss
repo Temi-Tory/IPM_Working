@@ -680,54 +680,117 @@
 }
 
 // Dark theme support
-@media (prefers-color-scheme: dark) {
+[data-theme="dark"] {
   .edge-dialog-container {
+    background: var(--surface-color);
+    color: var(--text-primary);
+
     .dialog-header {
-      background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
-      border-bottom-color: rgba(255, 255, 255, 0.12);
+      background: linear-gradient(135deg, var(--surface-container), var(--surface-color));
+      border-bottom-color: var(--border-color);
 
-      .header-content .title-section h2 {
-        color: #ecf0f1;
-      }
+      .header-content .title-section {
+        h2 {
+          color: var(--text-primary);
+        }
 
-      .connection-summary {
-        color: #bdc3c7;
+        .connection-summary {
+          color: var(--text-secondary);
+        }
       }
     }
 
     .metadata-item,
     .importance-item {
-      border-bottom-color: rgba(255, 255, 255, 0.06);
+      border-bottom-color: var(--border-color);
 
       .label,
       .importance-label {
-        color: #bdc3c7;
+        color: var(--text-secondary);
       }
 
       .value {
-        color: #ecf0f1;
+        color: var(--text-primary);
       }
     }
 
     .json-display {
-      background-color: #2c3e50;
-      border-color: #34495e;
-      color: #ecf0f1;
+      background-color: var(--surface-container);
+      border-color: var(--border-color);
+      color: var(--text-primary);
     }
 
     .node-info {
-      border-color: rgba(255, 255, 255, 0.12);
+      background: var(--surface-color);
+      border-color: var(--border-color);
 
       &:hover {
-        border-color: #66bb6a;
+        border-color: var(--primary-color);
+      }
+
+      .node-header h3 {
+        color: var(--text-secondary);
       }
 
       .node-id {
-        color: #ecf0f1;
+        color: var(--text-primary);
       }
 
       .node-type {
-        color: #bdc3c7;
+        color: var(--text-secondary);
+      }
+    }
+
+    .classification-item {
+      border-color: var(--border-color);
+      background: var(--surface-color);
+
+      &.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color-light);
+      }
+
+      h4 {
+        color: var(--text-primary);
+      }
+
+      p {
+        color: var(--text-secondary);
+      }
+    }
+
+    .connection-strength {
+      .label {
+        color: var(--text-secondary);
+      }
+
+      .value {
+        color: var(--text-primary);
+      }
+    }
+
+    .loading-container,
+    .error-container {
+      p {
+        color: var(--text-secondary);
+      }
+    }
+
+    .related-edge-item:hover {
+      background-color: rgba(var(--primary-color-rgb), 0.1);
+    }
+
+    .capacity-item,
+    .cmp-item,
+    .flow-item {
+      border-bottom-color: var(--border-color);
+
+      .label {
+        color: var(--text-secondary);
+      }
+
+      .value {
+        color: var(--text-primary);
       }
     }
   }

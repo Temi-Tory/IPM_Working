@@ -68,8 +68,6 @@ export class NetworkStructureComponent implements OnInit {
         // Ensure uploaded data summary is populated
         this.ensureUploadedDataSummary(data);
         this.networkDialogService.setNetworkData(data);
-        // Clear computation cache when network data changes
-        this.clearComputationCache();
       }
     });
   }
@@ -140,15 +138,6 @@ export class NetworkStructureComponent implements OnInit {
   nodeDetails = computed(() => this.getNodeDetails());
   edgeDetails = computed(() => this.getEdgeDetails());
   
-  // Enhanced data processing signals
-  advancedNodeMetrics = computed(() => this.getAdvancedNodeMetrics());
-  criticalPathAnalysis = computed(() => this.getCriticalPathAnalysis());
-  structuralPatterns = computed(() => this.getStructuralPatterns());
-  performanceMetrics = computed(() => this.getPerformanceMetrics());
-  
-  // Caching for expensive computations
-  private computationCache = new Map<string, { data: any; timestamp: number; networkHash: string }>();
-  private cacheTimeout = 300000; // 5 minutes
 
   // View toggle
   currentView = signal<'overview' | 'nodes' | 'edges' | 'structure'>('overview');
@@ -176,7 +165,7 @@ export class NetworkStructureComponent implements OnInit {
 
   // Data-driven filter statistics
   degreeStatistics = computed(() => this.calculateDegreeStatistics());
-  dynamicFilters = computed(() => this.generateDynamicFilters());
+  structuralChokepoints = computed(() => this.getStructuralChokepoints());
 
   // Pagination signals
   nodePageSize = signal<number>(50);
@@ -293,52 +282,6 @@ export class NetworkStructureComponent implements OnInit {
     })).sort((a, b) => a.source - b.source || a.target - b.target);
   }
 
-  /**
-   * Get enhanced edge details with comprehensive analysis
-   */
-  getEnhancedEdgeDetails(): {
-    source: number;
-    target: number;
-    edgeType: string;
-    importance: 'high' | 'medium' | 'low';
-    structuralRole: 'bridge' | 'redundant' | 'critical' | 'normal';
-    connectionStrength: number;
-    pathCriticality: number;
-    flowPotential: number;
-    redundancyLevel: number;
-  }[] {
-    const data = this.networkData();
-    if (!data || !data.edges) return [];
-
-    const cacheKey = `enhanced_edge_details_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const enhancedEdges = data.edges.map(([source, target]: [number, number]) => {
-      const edgeType = this.getEdgeType(source, target);
-      const importance = this.calculateEdgeImportance(source, target, data);
-      const structuralRole = this.calculateEdgeStructuralRole(source, target);
-      const connectionStrength = this.calculateConnectionStrength(source, target);
-      const pathCriticality = this.calculateEdgePathCriticality(source, target, data);
-      const flowPotential = this.calculateEdgeFlowPotential(source, target, data);
-      const redundancyLevel = this.calculateEdgeRedundancy(source, target, data);
-
-      return {
-        source,
-        target,
-        edgeType,
-        importance,
-        structuralRole,
-        connectionStrength,
-        pathCriticality,
-        flowPotential,
-        redundancyLevel
-      };
-    }).sort((a, b) => a.source - b.source || a.target - b.target);
-
-    this.setCachedData(cacheKey, enhancedEdges);
-    return enhancedEdges;
-  }
 
   private getNodeTypes(nodeId: number): string[] {
     const data = this.networkData();
@@ -590,9 +533,10 @@ export class NetworkStructureComponent implements OnInit {
         }
       }
 
-      if (quickFilters.includes('bottlenecks')) {
-        // Nodes with high in-degree and low out-degree, or vice versa
-        if (!((node.inDegree >= 2 && node.outDegree <= 1) || (node.outDegree >= 2 && node.inDegree <= 1))) {
+      if (quickFilters.includes('chokepoints')) {
+        // Structural chokepoints: single points of control in topology
+        const isChokepoint = this.isStructuralChokepoint(node.node);
+        if (!isChokepoint) {
           return false;
         }
       }
@@ -660,23 +604,16 @@ export class NetworkStructureComponent implements OnInit {
     return { min, max, median, q1, q3, mean };
   }
 
-  generateDynamicFilters() {
+  getStructuralChokepoints() {
     const stats = this.degreeStatistics();
     const nodeDetails = this.getNodeDetails();
 
     // High connectivity threshold: above 75th percentile of total degree
     const highConnectivityThreshold = stats.totalDegree.q3;
     
-    // Bottleneck detection: nodes with degree ratios that indicate bottlenecks
-    const potentialBottlenecks = nodeDetails.filter(node => {
-      const ratio = node.inDegree > 0 ? node.outDegree / node.inDegree : Infinity;
-      return (ratio < 0.5 && node.inDegree >= 2) || (ratio > 2 && node.outDegree >= 2);
-    });
-
-    // Critical nodes: high-degree nodes that could be critical to flow
-    const criticalNodes = nodeDetails.filter(node => {
-      const totalDegree = node.inDegree + node.outDegree;
-      return totalDegree >= stats.totalDegree.median && (node.inDegree === 1 || node.outDegree === 1);
+    // Structural chokepoints: topology-based critical points
+    const structuralChokepoints = nodeDetails.filter(node => {
+      return this.isStructuralChokepoint(node.node);
     });
 
     // Outlier detection: nodes with degrees significantly above mean
@@ -685,8 +622,7 @@ export class NetworkStructureComponent implements OnInit {
 
     return {
       highConnectivityThreshold,
-      potentialBottlenecks: potentialBottlenecks.length,
-      criticalNodes: criticalNodes.length,
+      structuralChokepoints: structuralChokepoints.length,
       outlierNodes: outlierNodes.length,
       suggestedFilters: [
         { 
@@ -695,14 +631,9 @@ export class NetworkStructureComponent implements OnInit {
           type: 'high-connectivity'
         },
         { 
-          name: `Potential Bottlenecks`, 
-          count: potentialBottlenecks.length,
-          type: 'bottlenecks'
-        },
-        { 
-          name: `Critical Flow Points`, 
-          count: criticalNodes.length,
-          type: 'critical-path'
+          name: `Structural Chokepoints`, 
+          count: structuralChokepoints.length,
+          type: 'chokepoints'
         },
         { 
           name: `Statistical Outliers`, 
@@ -720,10 +651,10 @@ export class NetworkStructureComponent implements OnInit {
     return Math.sqrt(avgSquaredDiff);
   }
 
-  // Update quick filters to use dynamic data
-  getDynamicQuickFilters() {
-    const dynamicFilters = this.dynamicFilters();
-    return dynamicFilters.suggestedFilters.map(filter => ({
+  // Update quick filters to use structural data
+  getStructuralQuickFilters() {
+    const structuralChokepoints = this.structuralChokepoints();
+    return structuralChokepoints.suggestedFilters.map(filter => ({
       id: filter.type,
       label: `${filter.name} (${filter.count})`,
       count: filter.count,
@@ -758,25 +689,17 @@ export class NetworkStructureComponent implements OnInit {
     this.filtersExpanded.set(!this.filtersExpanded());
   }
 
-  // Enhanced node classification with comprehensive analysis
-  getEnhancedNodeClassifications(): {
+  // Basic structural node classification
+  getBasicNodeClassifications(): {
     singleParent: any[], 
     singleChild: any[], 
     orphans: any[], 
-    hubs: any[], 
-    bridges: any[],
-    criticalPath: any[],
-    bottlenecks: any[],
-    chokePoints: any[],
+    hubs: any[],
     counts: {
       singleParent: number,
       singleChild: number,
       orphans: number,
-      hubs: number,
-      bridges: number,
-      criticalPath: number,
-      bottlenecks: number,
-      chokePoints: number
+      hubs: number
     }
   } {
     const data = this.networkData();
@@ -785,18 +708,9 @@ export class NetworkStructureComponent implements OnInit {
       singleChild: [],
       orphans: [],
       hubs: [],
-      bridges: [],
-      criticalPath: [],
-      bottlenecks: [],
-      chokePoints: [],
-      counts: { singleParent: 0, singleChild: 0, orphans: 0, hubs: 0, bridges: 0, criticalPath: 0, bottlenecks: 0, chokePoints: 0 }
+      counts: { singleParent: 0, singleChild: 0, orphans: 0, hubs: 0 }
     };
 
-    const cacheKey = `enhanced_node_classifications_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const nodes = data.nodes;
     const nodeDetails = this.getNodeDetails();
     
     // Calculate degree statistics for thresholds
@@ -808,12 +722,8 @@ export class NetworkStructureComponent implements OnInit {
     const singleChild: any[] = [];
     const orphans: any[] = [];
     const hubs: any[] = [];
-    const bridges: any[] = [];
-    const criticalPath: any[] = [];
-    const bottlenecks: any[] = [];
-    const chokePoints: any[] = [];
 
-    // Classify each node
+    // Classify each node based on structure only
     nodeDetails.forEach(node => {
       const totalDegree = node.inDegree + node.outDegree;
       const nodeData = {
@@ -846,546 +756,33 @@ export class NetworkStructureComponent implements OnInit {
           hubScore: totalDegree / degreeStats.totalDegree.max
         });
       }
-
-      // Bridges (nodes that connect different parts)
-      if (this.isBridgeNode(node.node, data)) {
-        bridges.push({
-          ...nodeData,
-          bridgeImportance: this.calculateBridgeImportance(node.node, data)
-        });
-      }
-
-      // Critical path nodes
-      if (this.isCriticalPathNode(node.node, data)) {
-        criticalPath.push({
-          ...nodeData,
-          pathCriticality: this.calculatePathCriticality(node.node, data)
-        });
-      }
-
-      // Bottlenecks (high in-degree, low out-degree or vice versa)
-      const degreeRatio = node.inDegree > 0 ? node.outDegree / node.inDegree : Infinity;
-      if ((degreeRatio < 0.5 && node.inDegree >= 2) || (degreeRatio > 2 && node.outDegree >= 2)) {
-        bottlenecks.push({
-          ...nodeData,
-          bottleneckSeverity: Math.abs(Math.log(degreeRatio + 0.1))
-        });
-      }
-
-      // Choke points (single points of failure)
-      if (this.isChokePoint(node.node, data)) {
-        chokePoints.push({
-          ...nodeData,
-          chokePointRisk: this.calculateChokePointRisk(node.node, data)
-        });
-      }
     });
 
-    const result = {
+    return {
       singleParent: singleParent.sort((a, b) => a.nodeId - b.nodeId),
       singleChild: singleChild.sort((a, b) => a.nodeId - b.nodeId),
       orphans: orphans.sort((a, b) => a.nodeId - b.nodeId),
       hubs: hubs.sort((a, b) => b.hubScore - a.hubScore),
-      bridges: bridges.sort((a, b) => b.bridgeImportance - a.bridgeImportance),
-      criticalPath: criticalPath.sort((a, b) => b.pathCriticality - a.pathCriticality),
-      bottlenecks: bottlenecks.sort((a, b) => b.bottleneckSeverity - a.bottleneckSeverity),
-      chokePoints: chokePoints.sort((a, b) => b.chokePointRisk - a.chokePointRisk),
       counts: {
         singleParent: singleParent.length,
         singleChild: singleChild.length,
         orphans: orphans.length,
-        hubs: hubs.length,
-        bridges: bridges.length,
-        criticalPath: criticalPath.length,
-        bottlenecks: bottlenecks.length,
-        chokePoints: chokePoints.length
+        hubs: hubs.length
       }
     };
-
-    this.setCachedData(cacheKey, result);
-    return result;
   }
 
-  // Cache management methods
-  private clearComputationCache(): void {
-    this.computationCache.clear();
-  }
 
-  private getNetworkHash(data: any): string {
-    // Create a simple hash of the network structure
-    const nodeCount = data.nodes?.length || 0;
-    const edgeCount = data.edges?.length || 0;
-    const timestamp = data.computation_time || 0;
-    return `${nodeCount}_${edgeCount}_${timestamp}`;
-  }
 
-  private getCachedData(key: string): any {
-    const cached = this.computationCache.get(key);
-    if (!cached) return null;
-    
-    const now = Date.now();
-    if (now - cached.timestamp > this.cacheTimeout) {
-      this.computationCache.delete(key);
-      return null;
-    }
-    
-    const currentNetworkHash = this.getNetworkHash(this.networkData());
-    if (cached.networkHash !== currentNetworkHash) {
-      this.computationCache.delete(key);
-      return null;
-    }
-    
-    return cached.data;
-  }
-
-  private setCachedData(key: string, data: any): void {
-    const networkHash = this.getNetworkHash(this.networkData());
-    this.computationCache.set(key, {
-      data,
-      timestamp: Date.now(),
-      networkHash
-    });
-  }
-
-  // Advanced node analysis methods
-  getAdvancedNodeMetrics(): any {
-    const data = this.networkData();
-    if (!data) return null;
-
-    const cacheKey = `advanced_node_metrics_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const nodeDetails = this.getNodeDetails();
-    const classifications = this.getEnhancedNodeClassifications();
-    
-    const metrics = {
-      totalNodes: data.nodes.length,
-      classifications: classifications.counts,
-      degreeDistribution: this.calculateDegreeDistribution(nodeDetails),
-      connectivityMetrics: this.calculateConnectivityMetrics(nodeDetails),
-      centralityMeasures: this.calculateCentralityMeasures(data),
-      structuralProperties: this.calculateStructuralProperties(data)
-    };
-
-    this.setCachedData(cacheKey, metrics);
-    return metrics;
-  }
-
-  getCriticalPathAnalysis(): any {
-    const data = this.networkData();
-    if (!data) return null;
-
-    const cacheKey = `critical_path_analysis_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const analysis = {
-      longestPaths: this.findLongestPaths(data),
-      criticalNodes: this.findCriticalNodes(data),
-      pathDependencies: this.analyzePathDependencies(data),
-      bottleneckAnalysis: this.analyzeBottlenecks(data)
-    };
-
-    this.setCachedData(cacheKey, analysis);
-    return analysis;
-  }
-
-  getStructuralPatterns(): any {
-    const data = this.networkData();
-    if (!data) return null;
-
-    const cacheKey = `structural_patterns_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const patterns = {
-      parallelPaths: this.findParallelPaths(data),
-      convergencePoints: this.findConvergencePoints(data),
-      divergencePoints: this.findDivergencePoints(data),
-      cyclicPatterns: this.detectCyclicPatterns(data),
-      hierarchicalLevels: this.analyzeHierarchicalLevels(data)
-    };
-
-    this.setCachedData(cacheKey, patterns);
-    return patterns;
-  }
-
-  getPerformanceMetrics(): any {
-    const data = this.networkData();
-    if (!data) return null;
-
-    const cacheKey = `performance_metrics_${this.getNetworkHash(data)}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
-    const startTime = performance.now();
-    
-    const metrics = {
-      computationTime: data.computation_time,
-      networkComplexity: this.calculateNetworkComplexity(data),
-      scalabilityMetrics: this.calculateScalabilityMetrics(data),
-      memoryUsage: this.estimateMemoryUsage(data),
-      processingEfficiency: this.calculateProcessingEfficiency(data),
-      analysisTime: 0
-    };
-
-    const endTime = performance.now();
-    metrics.analysisTime = endTime - startTime;
-
-    this.setCachedData(cacheKey, metrics);
-    return metrics;
-  }
-
-  // Edge analysis methods
-  private calculateEdgeImportance(source: number, target: number, data: any): 'high' | 'medium' | 'low' {
-    const sourceOutDegree = this.calculateOutDegree(source);
-    const targetInDegree = this.calculateInDegree(target);
-    
-    // High importance if connecting critical nodes
-    if (sourceOutDegree === 1 || targetInDegree === 1) return 'high';
-    if (sourceOutDegree <= 2 && targetInDegree <= 2) return 'medium';
-    return 'low';
-  }
-
-  private calculateEdgeStructuralRole(source: number, target: number): 'bridge' | 'redundant' | 'critical' | 'normal' {
-    const sourceOutDegree = this.calculateOutDegree(source);
-    const targetInDegree = this.calculateInDegree(target);
-    
-    if (sourceOutDegree === 1 && targetInDegree === 1) return 'critical';
-    if (sourceOutDegree === 1 || targetInDegree === 1) return 'bridge';
-    if (sourceOutDegree > 3 && targetInDegree > 3) return 'redundant';
-    return 'normal';
-  }
-
-  private calculateConnectionStrength(source: number, target: number): number {
-    const sourceOutDegree = this.calculateOutDegree(source);
-    const targetInDegree = this.calculateInDegree(target);
-    
-    // Strength inversely related to degree (more exclusive connections are stronger)
-    return 1 / (Math.sqrt(sourceOutDegree * targetInDegree) + 1);
-  }
-
-  private calculateEdgePathCriticality(source: number, target: number, data: any): number {
-    // Simple heuristic: criticality based on position in longest paths
-    const sourceAncestors = data.ancestors[source.toString()]?.length || 0;
-    const targetDescendants = data.descendants[target.toString()]?.length || 0;
-    const maxPathLength = Math.max(...data.iteration_sets.map((set: any[]) => set.length));
-    
-    return (sourceAncestors + targetDescendants) / (maxPathLength * 2);
-  }
-
-  private calculateEdgeFlowPotential(source: number, target: number, data: any): number {
-    // Flow potential based on network position and connectivity
-    const sourceConnectivity = this.calculateInDegree(source) + this.calculateOutDegree(source);
-    const targetConnectivity = this.calculateInDegree(target) + this.calculateOutDegree(target);
-    const avgConnectivity = (sourceConnectivity + targetConnectivity) / 2;
-    const maxConnectivity = Math.max(...data.nodes.map((n: number) =>
-      this.calculateInDegree(n) + this.calculateOutDegree(n)
-    ));
-    
-    return avgConnectivity / (maxConnectivity + 1);
-  }
-
-  private calculateEdgeRedundancy(source: number, target: number, data: any): number {
-    // Calculate how many alternative paths exist between source and target
-    const sourceDescendants = data.descendants[source.toString()] || [];
-    const targetAncestors = data.ancestors[target.toString()] || [];
-    const commonNodes = sourceDescendants.filter((n: number) => targetAncestors.includes(n));
-    
-    return Math.min(1, commonNodes.length / 10); // Normalize to 0-1 scale
-  }
-
-  // Node classification helper methods
-  private isBridgeNode(nodeId: number, data: any): boolean {
+  // Simple structural helper methods
+  private isStructuralChokepoint(nodeId: number): boolean {
     const inDegree = this.calculateInDegree(nodeId);
     const outDegree = this.calculateOutDegree(nodeId);
     
-    // A bridge node typically has balanced in/out degrees and connects different parts
-    return inDegree > 0 && outDegree > 0 && Math.abs(inDegree - outDegree) <= 1;
+    // Structural chokepoint: topology-based critical point where flow must pass through
+    return (inDegree === 1 && outDegree > 1) || (outDegree === 1 && inDegree > 1);
   }
 
-  private calculateBridgeImportance(nodeId: number, data: any): number {
-    const ancestors = data.ancestors[nodeId.toString()]?.length || 0;
-    const descendants = data.descendants[nodeId.toString()]?.length || 0;
-    const totalNodes = data.nodes.length;
-    
-    // Importance based on how many nodes this bridge connects
-    return (ancestors * descendants) / (totalNodes * totalNodes);
-  }
-
-  private isCriticalPathNode(nodeId: number, data: any): boolean {
-    // Node is on critical path if it's in the longest path through the network
-    const ancestors = data.ancestors[nodeId.toString()]?.length || 0;
-    const descendants = data.descendants[nodeId.toString()]?.length || 0;
-    const maxPathLength = Math.max(...data.iteration_sets.map((set: any[]) => set.length));
-    
-    return (ancestors + descendants + 1) >= maxPathLength * 0.8;
-  }
-
-  private calculatePathCriticality(nodeId: number, data: any): number {
-    const ancestors = data.ancestors[nodeId.toString()]?.length || 0;
-    const descendants = data.descendants[nodeId.toString()]?.length || 0;
-    const maxPathLength = Math.max(...data.iteration_sets.map((set: any[]) => set.length));
-    
-    return (ancestors + descendants + 1) / maxPathLength;
-  }
-
-  private isChokePoint(nodeId: number, data: any): boolean {
-    const inDegree = this.calculateInDegree(nodeId);
-    const outDegree = this.calculateOutDegree(nodeId);
-    
-    // Choke point: single point that many paths must go through
-    return (inDegree === 1 && outDegree > 2) || (outDegree === 1 && inDegree > 2);
-  }
-
-  private calculateChokePointRisk(nodeId: number, data: any): number {
-    const inDegree = this.calculateInDegree(nodeId);
-    const outDegree = this.calculateOutDegree(nodeId);
-    const ancestors = data.ancestors[nodeId.toString()]?.length || 0;
-    const descendants = data.descendants[nodeId.toString()]?.length || 0;
-    
-    // Risk based on how many nodes would be affected if this choke point fails
-    return (ancestors * descendants) / (data.nodes.length * data.nodes.length);
-  }
-
-  // Additional analysis methods (simplified implementations)
-  private calculateDegreeDistribution(nodeDetails: any[]): any {
-    const degrees = nodeDetails.map(n => n.inDegree + n.outDegree);
-    const distribution: { [key: string]: number } = {};
-    
-    degrees.forEach(degree => {
-      const bucket = Math.floor(degree / 2) * 2; // Group by 2s
-      distribution[`${bucket}-${bucket + 1}`] = (distribution[`${bucket}-${bucket + 1}`] || 0) + 1;
-    });
-    
-    return distribution;
-  }
-
-  private calculateConnectivityMetrics(nodeDetails: any[]): any {
-    const totalDegrees = nodeDetails.map(n => n.inDegree + n.outDegree);
-    const avgDegree = totalDegrees.reduce((sum, d) => sum + d, 0) / totalDegrees.length;
-    const maxDegree = Math.max(...totalDegrees);
-    const minDegree = Math.min(...totalDegrees);
-    
-    return { avgDegree, maxDegree, minDegree, density: avgDegree / (nodeDetails.length - 1) };
-  }
-
-  private calculateCentralityMeasures(data: any): any {
-    // Simplified centrality measures
-    return {
-      degreeCentrality: this.calculateDegreeCentrality(data),
-      closenessCentrality: this.calculateClosenessCentrality(data),
-      betweennessCentrality: this.calculateBetweennessCentrality(data)
-    };
-  }
-
-  private calculateStructuralProperties(data: any): any {
-    return {
-      diameter: this.calculateNetworkDiameter(data),
-      radius: this.calculateNetworkRadius(data),
-      clustering: this.calculateClusteringCoefficient(data),
-      assortativity: this.calculateAssortativity(data)
-    };
-  }
-
-  // Simplified implementations for complex network analysis
-  private findLongestPaths(data: any): any[] {
-    return data.iteration_sets.map((set: any[], index: number) => ({
-      setIndex: index,
-      length: set.length,
-      nodes: set
-    })).sort((a: any, b: any) => b.length - a.length).slice(0, 5);
-  }
-
-  private findCriticalNodes(data: any): any[] {
-    return data.nodes.filter((nodeId: number) => this.isCriticalPathNode(nodeId, data))
-      .map((nodeId: number) => ({
-        nodeId,
-        criticality: this.calculatePathCriticality(nodeId, data)
-      })).sort((a: any, b: any) => b.criticality - a.criticality);
-  }
-
-  private analyzePathDependencies(data: any): any {
-    return {
-      totalPaths: data.iteration_sets.length,
-      avgPathLength: data.iteration_sets.reduce((sum: number, set: any[]) => sum + set.length, 0) / data.iteration_sets.length,
-      maxDependency: Math.max(...data.nodes.map((n: number) => data.ancestors[n.toString()]?.length || 0))
-    };
-  }
-
-  private analyzeBottlenecks(data: any): any[] {
-    return data.nodes.filter((nodeId: number) => this.isChokePoint(nodeId, data))
-      .map((nodeId: number) => ({
-        nodeId,
-        risk: this.calculateChokePointRisk(nodeId, data),
-        inDegree: this.calculateInDegree(nodeId),
-        outDegree: this.calculateOutDegree(nodeId)
-      })).sort((a: any, b: any) => b.risk - a.risk);
-  }
-
-  private findParallelPaths(data: any): any[] {
-    // Simplified: find nodes with multiple outgoing edges
-    return data.nodes.filter((nodeId: number) => this.calculateOutDegree(nodeId) > 1)
-      .map((nodeId: number) => ({
-        nodeId,
-        parallelCount: this.calculateOutDegree(nodeId)
-      }));
-  }
-
-  private findConvergencePoints(data: any): any[] {
-    // Nodes with multiple incoming edges
-    return data.nodes.filter((nodeId: number) => this.calculateInDegree(nodeId) > 1)
-      .map((nodeId: number) => ({
-        nodeId,
-        convergenceCount: this.calculateInDegree(nodeId)
-      }));
-  }
-
-  private findDivergencePoints(data: any): any[] {
-    // Same as parallel paths for DAGs
-    return this.findParallelPaths(data);
-  }
-
-  private detectCyclicPatterns(data: any): any {
-    // DAGs shouldn't have cycles, but we can detect potential feedback patterns
-    return { cycles: [], feedbackLoops: [] };
-  }
-
-  private analyzeHierarchicalLevels(data: any): any {
-    return {
-      levels: data.iteration_sets.length,
-      avgNodesPerLevel: data.nodes.length / data.iteration_sets.length,
-      levelDistribution: data.iteration_sets.map((set: any[], index: number) => ({
-        level: index,
-        nodeCount: set.length
-      }))
-    };
-  }
-
-  private calculateNetworkComplexity(data: any): number {
-    const nodeCount = data.nodes.length;
-    const edgeCount = data.edges.length;
-    const iterationSets = data.iteration_sets.length;
-    
-    // Simple complexity measure
-    return (edgeCount * iterationSets) / (nodeCount * nodeCount);
-  }
-
-  private calculateScalabilityMetrics(data: any): any {
-    const nodeCount = data.nodes.length;
-    const edgeCount = data.edges.length;
-    
-    return {
-      nodeEdgeRatio: edgeCount / nodeCount,
-      density: (2 * edgeCount) / (nodeCount * (nodeCount - 1)),
-      avgDegree: (2 * edgeCount) / nodeCount
-    };
-  }
-
-  private estimateMemoryUsage(data: any): any {
-    const nodeCount = data.nodes.length;
-    const edgeCount = data.edges.length;
-    
-    // Rough estimates in bytes
-    return {
-      nodes: nodeCount * 32, // 32 bytes per node estimate
-      edges: edgeCount * 16, // 16 bytes per edge estimate
-      total: (nodeCount * 32) + (edgeCount * 16)
-    };
-  }
-
-  private calculateProcessingEfficiency(data: any): number {
-    const nodeCount = data.nodes.length;
-    const computationTime = data.computation_time;
-    
-    // Nodes processed per second
-    return nodeCount / (computationTime + 0.001);
-  }
-
-  // Simplified centrality calculations
-  private calculateDegreeCentrality(data: any): any[] {
-    return data.nodes.map((nodeId: number) => ({
-      nodeId,
-      centrality: (this.calculateInDegree(nodeId) + this.calculateOutDegree(nodeId)) / (data.nodes.length - 1)
-    })).sort((a: any, b: any) => b.centrality - a.centrality);
-  }
-
-  private calculateClosenessCentrality(data: any): any[] {
-    // Simplified: use ancestor/descendant counts as proxy for distance
-    return data.nodes.map((nodeId: number) => {
-      const ancestors = data.ancestors[nodeId.toString()]?.length || 0;
-      const descendants = data.descendants[nodeId.toString()]?.length || 0;
-      const reachable = ancestors + descendants;
-      return {
-        nodeId,
-        centrality: reachable / (data.nodes.length - 1)
-      };
-    }).sort((a: any, b: any) => b.centrality - a.centrality);
-  }
-
-  private calculateBetweennessCentrality(data: any): any[] {
-    // Simplified: nodes that are bridges have higher betweenness
-    return data.nodes.map((nodeId: number) => ({
-      nodeId,
-      centrality: this.isBridgeNode(nodeId, data) ? this.calculateBridgeImportance(nodeId, data) : 0
-    })).sort((a: any, b: any) => b.centrality - a.centrality);
-  }
-
-  private calculateNetworkDiameter(data: any): number {
-    // Maximum path length in the network
-    return Math.max(...data.iteration_sets.map((set: any[]) => set.length));
-  }
-
-  private calculateNetworkRadius(data: any): number {
-    // Minimum eccentricity (simplified)
-    return Math.min(...data.iteration_sets.map((set: any[]) => set.length));
-  }
-
-  private calculateClusteringCoefficient(data: any): number {
-    // Simplified clustering coefficient for DAG
-    let totalTriangles = 0;
-    let totalTriplets = 0;
-    
-    data.nodes.forEach((nodeId: number) => {
-      const outNeighbors = data.edges
-        .filter(([source]: [number, number]) => source === nodeId)
-        .map(([, target]: [number, number]) => target);
-      
-      if (outNeighbors.length >= 2) {
-        totalTriplets += outNeighbors.length * (outNeighbors.length - 1) / 2;
-        
-        // Count triangles (simplified)
-        for (let i = 0; i < outNeighbors.length; i++) {
-          for (let j = i + 1; j < outNeighbors.length; j++) {
-            const hasEdge = data.edges.some(([source, target]: [number, number]) =>
-              source === outNeighbors[i] && target === outNeighbors[j]
-            );
-            if (hasEdge) totalTriangles++;
-          }
-        }
-      }
-    });
-    
-    return totalTriplets > 0 ? totalTriangles / totalTriplets : 0;
-  }
-
-  private calculateAssortativity(data: any): number {
-    // Simplified assortativity calculation
-    let numerator = 0;
-    let denominator = 0;
-    const avgDegree = data.edges.length * 2 / data.nodes.length;
-    
-    data.edges.forEach(([source, target]: [number, number]) => {
-      const sourceDegree = this.calculateInDegree(source) + this.calculateOutDegree(source);
-      const targetDegree = this.calculateInDegree(target) + this.calculateOutDegree(target);
-      
-      numerator += (sourceDegree - avgDegree) * (targetDegree - avgDegree);
-      denominator += Math.pow(sourceDegree - avgDegree, 2);
-    });
-    
-    return denominator > 0 ? numerator / denominator : 0;
-  }
 
   // Dialog methods
   openNodeDialog(nodeId: number): void {

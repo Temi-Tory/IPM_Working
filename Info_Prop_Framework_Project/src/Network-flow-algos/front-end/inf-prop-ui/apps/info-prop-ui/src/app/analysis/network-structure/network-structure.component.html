@@ -187,11 +187,11 @@
             <div class="slider-values">{{ outDegreeRange().min }} - {{ outDegreeRange().max }}</div>
           </div>
 
-          <!-- Dynamic Quick Filter Chips -->
+          <!-- Structural Quick Filter Chips -->
           <div class="quick-filters">
-            <div class="filters-label">Smart Filters (Based on Data Analysis)</div>
+            <div class="filters-label">Structural Filters (Topology-Based)</div>
             <mat-chip-set>
-              @for (filter of getDynamicQuickFilters(); track filter.id) {
+              @for (filter of getStructuralQuickFilters(); track filter.id) {
                 <mat-chip-option (click)="applyQuickFilter(filter.id)" 
                                 [selected]="quickFilters().includes(filter.id)"
                                 [disabled]="!filter.enabled">
@@ -263,32 +263,28 @@
             </div>
           </div>
 
-          <!-- Enhanced Node Classification Card -->
-          <div class="enhanced-classification-card">
+          <!-- Structural Node Classification Card -->
+          <div class="structural-classification-card">
             <div class="card-header">
-              <mat-icon class="card-icon">insights</mat-icon>
-              <div class="card-title">Enhanced Classifications</div>
+              <mat-icon class="card-icon">hub</mat-icon>
+              <div class="card-title">Structural Classifications</div>
             </div>
             <div class="card-content">
               <div class="classification-grid">
                 <div class="classification-item">
-                  <div class="classification-count hub-count">{{ getEnhancedNodeClassifications().counts.singleParent || 0 }}</div>
+                  <div class="classification-count single-parent-count">{{ getBasicNodeClassifications().counts.singleParent || 0 }}</div>
                   <div class="classification-label">Single Parent</div>
                 </div>
                 <div class="classification-item">
-                  <div class="classification-count bridge-count">{{ getEnhancedNodeClassifications().counts.singleChild || 0 }}</div>
+                  <div class="classification-count single-child-count">{{ getBasicNodeClassifications().counts.singleChild || 0 }}</div>
                   <div class="classification-label">Single Child</div>
                 </div>
                 <div class="classification-item">
-                  <div class="classification-count critical-count">{{ getEnhancedNodeClassifications().counts.bridges || 0 }}</div>
-                  <div class="classification-label">Bridges</div>
-                </div>
-                <div class="classification-item">
-                  <div class="classification-count hub-count">{{ getEnhancedNodeClassifications().counts.hubs || 0 }}</div>
+                  <div class="classification-count hub-count">{{ getBasicNodeClassifications().counts.hubs || 0 }}</div>
                   <div class="classification-label">Hubs</div>
                 </div>
                 <div class="classification-item">
-                  <div class="classification-count orphan-count">{{ getEnhancedNodeClassifications().counts.orphans || 0 }}</div>
+                  <div class="classification-count orphan-count">{{ getBasicNodeClassifications().counts.orphans || 0 }}</div>
                   <div class="classification-label">Orphans</div>
                 </div>
                 <div class="classification-item">
