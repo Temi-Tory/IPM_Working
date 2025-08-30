@@ -18,7 +18,8 @@
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
       "WebFetch(domain:github.com)",
-      "Bash(nx build)"
+      "Bash(nx build)",
+      "Bash(nx build:*)"
     ],
     "deny": [],
     "ask": []
