@@ -1,584 +1,237 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, KeyValuePipe } from '@angular/common';
+import { Component, inject, computed, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
-import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { DiamondAnalysisResult } from '../../shared/models/network-analysis.models';
-
-interface DiamondTypeInfo {
-  type: 'root' | 'unique';
-  count: number;
-  percentage: number;
-  color: string;
-}
-
-interface ClassificationInfo {
-  id: string;
-  classification: any;
-  type: 'root' | 'unique';
-}
+import { NetworkVisualizationComponent, NodeClickInfo } from '../network-visualization/network-visualization.component';
 
 @Component({
   selector: 'app-diamond-analysis',
+  standalone: true,
   imports: [
     CommonModule,
-    KeyValuePipe,
     MatCardModule,
-    MatButtonModule,
     MatIconModule,
+    MatTableModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    MatExpansionModule,
+    MatProgressBarModule,
+    MatButtonToggleModule,
+    MatSelectModule,
     MatTabsModule,
-    AnalysisViewSwitcherComponent
+    MatButtonModule,
+    MatTooltipModule,
+    NetworkVisualizationComponent
   ],
   templateUrl: './diamond-analysis.component.html',
-  styleUrl: './diamond-analysis.component.scss'
+  styleUrls: ['./diamond-analysis.component.scss']
 })
-export class DiamondAnalysisComponent extends BaseAnalysisComponent<DiamondAnalysisResult> implements OnInit, OnDestroy {
-  
+export class DiamondAnalysisComponent implements OnInit {
   private analysisState = inject(AnalysisStateService);
-  private snackBar = inject(MatSnackBar);
 
-  // Diamond-specific properties
-  private diamondNodes: number[] = [];
-  private diamondTypes: DiamondTypeInfo[] = [];
-  private highlightedDiamondType: string | null = null;
-  private classificationDetails: ClassificationInfo[] = [];
+  networkData = computed(() => this.analysisState.networkData());
+  analysisResults = computed(() => this.analysisState.analysisResults());
+  isLoading = computed(() => this.analysisState.isLoading());
+  error = computed(() => this.analysisState.error());
 
-  constructor() {
-    super();
-  }
+  // View state
+  viewMode = signal<'dashboard' | 'visual'>('dashboard');
+  selectedScenario = signal<string>('');
+  selectedTabIndex = signal(0);
+  
+  // Node selection for info cards
+  selectedNodeInfo = signal<NodeClickInfo | null>(null);
+  
+  displayedColumns: string[] = ['metric', 'value'];
 
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadDiamondData();
-  }
+  getDiamondAnalysis() {
+    const results = this.analysisResults();
+    if (!results?.results) return null;
 
-  ngOnDestroy(): void {
-    // Cleanup if needed
-  }
-
-  initializeComponent(): void {
-    // Set available view modes
-    this.availableViewModes.set({ visual: true, dashboard: true });
-    this.currentViewMode.set('visual');
-  }
-
-  private loadDiamondData(): void {
-    const diamondData = this.analysisState.diamondData();
-    
-    if (!diamondData || !diamondData.results) {
-      this.setError('No diamond analysis data available');
-      return;
+    // Check for standalone diamond analysis
+    if (results.results.diamond_analysis) {
+      return results.results.diamond_analysis;
     }
 
-    const totalDiamonds = diamondData.results.total_classifications || 0;
-    if (totalDiamonds === 0) {
-      this.setError('No diamonds found in the network. Diamond analysis requires networks with diamond structures.');
-      return;
+    // Check for diamond analysis in reachability scenarios
+    const scenarios = results.results.reachability_scenarios;
+    if (scenarios) {
+      const scenarioWithDiamonds = Object.values(scenarios).find(s => s.diamond_analysis);
+      return scenarioWithDiamonds?.diamond_analysis || null;
     }
 
-    this.setLoading(true);
-    
-    try {
-      const analysisData: AnalysisComponentData<DiamondAnalysisResult> = {
-        structure: diamondData.structure,
-        results: diamondData.results
-      };
-      
-      this.setData(analysisData);
-      this.processData(analysisData);
-      this.setLoading(false);
-      
-      const totalCount = analysisData.results.total_classifications || 0;
-      this.snackBar.open(`Diamond analysis loaded: ${totalCount} diamond classifications found`, 'Close', {
-        duration: 3000
-      });
-      
-    } catch (error) {
-      this.setError(`Failed to load diamond data: ${error}`);
-      this.setLoading(false);
-    }
+    return null;
   }
 
-  processData(data: AnalysisComponentData<DiamondAnalysisResult>): void {
-    // Process and prepare data for visualization
-    console.log('Processing diamond analysis data:', data);
-    
-    // Extract diamond nodes from join nodes with diamonds
-    this.diamondNodes = data.results.join_nodes_with_diamonds || [];
+  getScenarioDiamondAnalyses() {
+    const results = this.analysisResults();
+    if (!results?.results?.reachability_scenarios) return [];
 
-    // Calculate diamond type distribution using actual backend data
-    this.diamondTypes = this.calculateDiamondTypes(data.results);
-    
-    // Process classification details for detailed view
-    this.classificationDetails = this.processClassifications(data.results);
-    
-    // Update visualization config based on data
-    this.visualizationConfig.update(config => ({
-      ...config,
-      showLabels: true,
-      highlightNodes: [], // Will be set based on diamond highlighting
-      nodeColors: this.generateDiamondNodeColors(data.results)
-    }));
+    return Object.entries(results.results.reachability_scenarios)
+      .filter(([_, scenario]) => scenario.diamond_analysis)
+      .map(([name, scenario]) => ({
+        name,
+        analysis: scenario.diamond_analysis!
+      }));
   }
 
-  private calculateDiamondTypes(results: DiamondAnalysisResult): DiamondTypeInfo[] {
-    // Use the actual diamond analysis results from the backend
-    const rootDiamonds = results.root_diamonds_count || 0;
-    const uniqueDiamonds = results.unique_diamonds_count || 0;
-    const totalDiamonds = results.total_classifications || 0;
+  getDiamondMetrics(analysis: any): { metric: string; value: string | number }[] {
+    if (!analysis) return [];
 
     return [
+      { metric: 'Root Diamonds', value: analysis.root_diamonds_count },
+      { metric: 'Unique Diamonds', value: analysis.unique_diamonds_count },
+      { metric: 'Join Nodes with Diamonds', value: analysis.join_nodes_with_diamonds?.length || 0 },
+      { metric: 'Diamond Efficiency', value: `${(analysis.diamond_efficiency * 100).toFixed(1)}%` },
+      { metric: 'Root Computation Time', value: `${analysis.root_computation_time.toFixed(4)}s` },
+      { metric: 'Unique Computation Time', value: `${analysis.unique_computation_time.toFixed(4)}s` },
+      { metric: 'Total Computation Time', value: `${analysis.total_computation_time.toFixed(4)}s` }
+    ];
+  }
+
+  getJoinNodesWithDiamonds(analysis: any): number[] {
+    return analysis?.join_nodes_with_diamonds || [];
+  }
+
+  getEfficiencyLevel(efficiency: number): 'high' | 'medium' | 'low' {
+    if (efficiency >= 0.8) return 'high';
+    if (efficiency >= 0.5) return 'medium';
+    return 'low';
+  }
+
+  // Get available scenarios for dropdown
+  getAvailableScenarios(): { value: string; label: string }[] {
+    const results = this.analysisResults();
+    if (!results?.results) return [];
+
+    const scenarios: { value: string; label: string }[] = [];
+    
+    // Add standalone analysis
+    if (results.results.diamond_analysis) {
+      scenarios.push({ value: 'standalone', label: 'Main Analysis' });
+    }
+    
+    // Add scenario-based analyses
+    if (results.results.reachability_scenarios) {
+      Object.entries(results.results.reachability_scenarios)
+        .filter(([_, scenario]) => scenario.diamond_analysis)
+        .forEach(([name]) => {
+          scenarios.push({ value: name, label: name });
+        });
+    }
+    
+    return scenarios;
+  }
+
+  // Get current scenario analysis
+  getCurrentScenarioAnalysis() {
+    const selectedScenario = this.selectedScenario();
+    if (!selectedScenario) return null;
+    
+    const results = this.analysisResults();
+    if (!results?.results) return null;
+    
+    if (selectedScenario === 'standalone') {
+      return results.results.diamond_analysis;
+    }
+    
+    return results.results.reachability_scenarios?.[selectedScenario]?.diamond_analysis;
+  }
+
+  // Get summary statistics for overview
+  getSummaryStats(analysis: any): { metric: string; value: string; description: string }[] {
+    if (!analysis) return [];
+    
+    return [
       {
-        type: 'root',
-        count: rootDiamonds,
-        percentage: totalDiamonds > 0 ? (rootDiamonds / totalDiamonds) * 100 : 0,
-        color: '#9C27B0' // Purple for root diamonds
+        metric: 'Diamond Patterns',
+        value: `${analysis.unique_diamonds_count}/${analysis.root_diamonds_count}`,
+        description: 'Unique patterns found vs total patterns'
       },
       {
-        type: 'unique',
-        count: uniqueDiamonds,
-        percentage: totalDiamonds > 0 ? (uniqueDiamonds / totalDiamonds) * 100 : 0,
-        color: '#673AB7' // Deep purple for unique diamonds
+        metric: 'Optimization Efficiency',
+        value: `${(analysis.diamond_efficiency * 100).toFixed(1)}%`,
+        description: 'How well diamond patterns optimize computation'
+      },
+      {
+        metric: 'Join Nodes Affected',
+        value: `${analysis.join_nodes_with_diamonds?.length || 0}`,
+        description: 'Number of join nodes containing diamond patterns'
+      },
+      {
+        metric: 'Total Computation Time',
+        value: `${analysis.total_computation_time.toFixed(4)}s`,
+        description: 'Time spent on diamond analysis'
       }
     ];
   }
 
-  private processClassifications(results: DiamondAnalysisResult): ClassificationInfo[] {
-    const classifications: ClassificationInfo[] = [];
+  // Get detailed metrics for dashboard
+  getDetailedMetrics(analysis: any): { category: string; metrics: { metric: string; value: string; unit?: string }[] }[] {
+    if (!analysis) return [];
     
-    // Process root classifications
-    if (results.root_classifications) {
-      Object.entries(results.root_classifications).forEach(([id, classification]) => {
-        classifications.push({
-          id,
-          classification,
-          type: 'root'
-        });
-      });
-    }
-    
-    // Process unique classifications
-    if (results.unique_classifications) {
-      Object.entries(results.unique_classifications).forEach(([id, classification]) => {
-        classifications.push({
-          id,
-          classification,
-          type: 'unique'
-        });
-      });
-    }
-    
-    return classifications;
-  }
-
-  private generateDiamondNodeColors(results: DiamondAnalysisResult): Record<number, string> {
-    const nodeColors: Record<number, string> = {};
-    
-    // Color join nodes that have diamonds
-    results.join_nodes_with_diamonds.forEach((nodeId) => {
-      if (!isNaN(nodeId)) {
-        // Use consistent diamond color for all join nodes with diamonds
-        nodeColors[nodeId] = `rgba(156, 39, 176, 0.8)`; // Purple for diamond nodes
+    return [
+      {
+        category: 'Pattern Classification',
+        metrics: [
+          { metric: 'Root Diamonds', value: analysis.root_diamonds_count.toString() },
+          { metric: 'Unique Diamonds', value: analysis.unique_diamonds_count.toString() },
+          { metric: 'Pattern Reduction', value: `${((1 - analysis.diamond_efficiency) * 100).toFixed(1)}`, unit: '%' }
+        ]
+      },
+      {
+        category: 'Performance Metrics',
+        metrics: [
+          { metric: 'Root Computation', value: analysis.root_computation_time.toFixed(4), unit: 's' },
+          { metric: 'Unique Computation', value: analysis.unique_computation_time.toFixed(4), unit: 's' },
+          { metric: 'Total Time', value: analysis.total_computation_time.toFixed(4), unit: 's' }
+        ]
+      },
+      {
+        category: 'Network Impact',
+        metrics: [
+          { metric: 'Affected Join Nodes', value: (analysis.join_nodes_with_diamonds?.length || 0).toString() },
+          { metric: 'Efficiency Level', value: this.getEfficiencyLevel(analysis.diamond_efficiency) },
+          { metric: 'Optimization Score', value: `${(analysis.diamond_efficiency * 100).toFixed(1)}`, unit: '%' }
+        ]
       }
-    });
-    
-    return nodeColors;
-  }
-
-  updateVisualization(config: VisualizationConfig): void {
-    // Update the visualization based on the config
-    console.log('Updating diamond visualization with config:', config);
-    
-    if (this.isVisualMode()) {
-      // Update the graph visualization component
-      // This will be implemented when we add the graph component
-    }
-  }
-
-  exportData(format: 'json' | 'csv' | 'png'): void {
-    const data = this.componentData();
-    if (!data) return;
-    
-    switch (format) {
-      case 'json':
-        this.exportAsJson(data.results);
-        break;
-      case 'csv':
-        this.exportAsCsv(data.results);
-        break;
-      case 'png':
-        this.exportAsPng();
-        break;
-    }
-  }
-
-  private exportAsJson(data: DiamondAnalysisResult): void {
-    const exportData = {
-      total_classifications: data.total_classifications,
-      root_diamonds_count: data.root_diamonds_count,
-      unique_diamonds_count: data.unique_diamonds_count,
-      diamond_efficiency: data.diamond_efficiency,
-      has_complex_diamonds: data.has_complex_diamonds,
-      join_nodes_with_diamonds: data.join_nodes_with_diamonds,
-      root_classifications: data.root_classifications,
-      unique_classifications: data.unique_classifications,
-      diamond_types: this.diamondTypes,
-      classifications: this.classificationDetails,
-      exported_at: new Date().toISOString()
-    };
-
-    const jsonData = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `diamond-analysis-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsCsv(data: DiamondAnalysisResult): void {
-    const csvRows = [
-      ['Metric', 'Value'],
-      ['Total Classifications', data.total_classifications?.toString() || '0'],
-      ['Root Diamonds Count', data.root_diamonds_count?.toString() || '0'],
-      ['Unique Diamonds Count', data.unique_diamonds_count?.toString() || '0'],
-      ['Diamond Efficiency', data.diamond_efficiency?.toString() || '0'],
-      ['Has Complex Diamonds', data.has_complex_diamonds?.toString() || 'false'],
-      ['Join Nodes with Diamonds', data.join_nodes_with_diamonds?.join(';') || 'None']
     ];
-
-    // Add diamond type information
-    this.diamondTypes.forEach(type => {
-      csvRows.push([`${type.type.charAt(0).toUpperCase() + type.type.slice(1)} Diamonds`, type.count.toString()]);
-      csvRows.push([`${type.type.charAt(0).toUpperCase() + type.type.slice(1)} Percentage`, type.percentage.toFixed(2) + '%']);
-    });
-    
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `diamond-analysis-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
-  private exportAsPng(): void {
-    // This would capture the visualization canvas/svg as PNG
-    this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
+  // Handle view mode change
+  onViewModeChange(mode: 'dashboard' | 'visual'): void {
+    this.viewMode.set(mode);
   }
 
-  // Template helper methods
-  getNetworkName(): string {
-    return this.componentData()?.structure?.networkName || 'Network';
+  // Handle scenario selection
+  onScenarioChange(scenario: string): void {
+    this.selectedScenario.set(scenario);
   }
 
-  getTotalClassifications(): number {
-    return this.componentData()?.results?.total_classifications || 0;
+  // Handle node click in visualization
+  onNodeClick(nodeInfo: NodeClickInfo): void {
+    this.selectedNodeInfo.set(nodeInfo);
   }
 
-  getRootDiamondsCount(): number {
-    return this.componentData()?.results?.root_diamonds_count || 0;
+  // Clear node selection
+  clearNodeSelection(): void {
+    this.selectedNodeInfo.set(null);
   }
 
-  getUniqueDiamondsCount(): number {
-    return this.componentData()?.results?.unique_diamonds_count || 0;
-  }
-
-  getDiamondEfficiency(): number {
-    return this.componentData()?.results?.diamond_efficiency || 0;
-  }
-
-  getHasComplexDiamonds(): boolean {
-    return this.componentData()?.results?.has_complex_diamonds || false;
-  }
-
-  getJoinNodesWithDiamonds(): number[] {
-    return this.componentData()?.results?.join_nodes_with_diamonds || [];
-  }
-
-  getClassifications(): ClassificationInfo[] {
-    return this.classificationDetails;
-  }
-
-  getDiamondTypes(): DiamondTypeInfo[] {
-    return this.diamondTypes;
-  }
-
-  getDiamondsFound(): number {
-    return this.getTotalClassifications();
-  }
-
-  getTotalNodeBeliefs(): number {
-    return this.getJoinNodesWithDiamonds().length;
-  }
-
-  highlightHighBeliefNodes(): void {
-    // For diamond analysis, highlight join nodes with diamonds
-    this.highlightJoinNodes();
-  }
-
-  getDataType(): string {
-    return 'diamond';
-  }
-
-  getFormattedExecutionTime(): string {
-    // Diamond analysis doesn't have execution time, return default
-    return '0ms';
-  }
-
-  getAverageNodeBelief(): number {
-    // For diamond analysis, return efficiency as "average belief"
-    return this.getDiamondEfficiency();
-  }
-
-  getMaxNodeBelief(): number {
-    // Return 1.0 for diamond analysis (max efficiency)
-    return 1.0;
-  }
-
-  getMinNodeBelief(): number {
-    // Return 0.0 for diamond analysis (min efficiency)
-    return 0.0;
-  }
-
-  getExecutionTime(): number {
-    // Diamond analysis doesn't have execution time, return 0
-    return 0;
-  }
-
-  getFormattedEfficiency(): string {
-    const efficiency = this.getDiamondEfficiency();
-    return `${(efficiency * 100).toFixed(2)}%`;
-  }
-
-  // New methods for the updated template
-  getTotalRootDiamonds(): number {
-    return this.getRootDiamondsCount();
-  }
-
-  getTotalUniqueDiamonds(): number {
-    return this.getUniqueDiamondsCount();
-  }
-
-  getDiamondEfficiencyPercent(): number {
-    return this.getDiamondEfficiency() * 100;
-  }
-
-  // Diamond highlighting methods for interaction
-  highlightDiamondNodes(): void {
-    this.highlightNodes(this.diamondNodes);
-    this.highlightedDiamondType = null;
-  }
-
-  highlightDiamondType(type: string): void {
-    // In a real implementation, we would have specific nodes for each diamond type
-    // For now, we'll highlight all diamond nodes when any type is selected
-    this.highlightNodes(this.diamondNodes);
-    this.highlightedDiamondType = type;
-  }
-
-  highlightJoinNodes(): void {
-    const joinNodes = this.getJoinNodesWithDiamonds();
-    this.highlightNodes(joinNodes);
-    this.highlightedDiamondType = null;
-  }
-
-  getDiamondNodesList(): string {
-    if (this.diamondNodes.length === 0) return 'None';
-    if (this.diamondNodes.length > 10) {
-      return `${this.diamondNodes.slice(0, 10).join(', ')}... (+${this.diamondNodes.length - 10} more)`;
+  // Initialize scenario selection
+  ngOnInit(): void {
+    // Set default scenario when data loads
+    const scenarios = this.getAvailableScenarios();
+    if (scenarios.length > 0 && !this.selectedScenario()) {
+      this.selectedScenario.set(scenarios[0].value);
     }
-    return this.diamondNodes.join(', ');
-  }
-
-  isHighlightedType(type: string): boolean {
-    return this.highlightedDiamondType === type;
-  }
-
-  // New methods for the redesigned template
-
-  getRootClassifications(): Record<string, any> {
-    return this.componentData()?.results?.root_classifications || {};
-  }
-
-  getUniqueClassifications(): Record<string, any> {
-    return this.componentData()?.results?.unique_classifications || {};
-  }
-
-  getDiamondClassification(classification: any): any {
-    // Return the classification object with structure details
-    // This would be populated by the backend with full DiamondClassification data
-    return {
-      relevant_nodes: classification?.relevant_nodes || [],
-      conditioning_nodes: classification?.conditioning_nodes || [],
-      edge_count: classification?.edge_count || 0,
-      fork_count: classification?.fork_count || 0,
-      subgraph_size: classification?.subgraph_size || 0,
-      internal_forks: classification?.internal_forks || 0,
-      internal_joins: classification?.internal_joins || 0,
-      path_count: classification?.path_count || 0,
-      complexity_score: classification?.complexity_score || 0,
-      fork_structure: classification?.fork_structure || 'Unknown',
-      internal_structure: classification?.internal_structure || 'Unknown',
-      path_topology: classification?.path_topology || 'Unknown',
-      join_structure: classification?.join_structure || 'Unknown',
-      external_connectivity: classification?.external_connectivity || 'Unknown',
-      degeneracy: classification?.degeneracy || 'Unknown',
-      optimization_potential: classification?.optimization_potential || 'Unknown',
-      bottleneck_risk: classification?.bottleneck_risk || 'Unknown',
-      is_maximal: classification?.is_maximal || false
-    };
-  }
-
-  formatNodesList(nodes: number[]): string {
-    if (!nodes || nodes.length === 0) return 'None';
-    if (nodes.length > 6) {
-      return `${nodes.slice(0, 6).join(', ')}... (+${nodes.length - 6} more)`;
-    }
-    return nodes.join(', ');
-  }
-
-  getOptimizationClass(potential: string): string {
-    const classes: Record<string, string> = {
-      'High_Parallelization': 'optimization-high',
-      'Complex_Coordination': 'optimization-medium',
-      'Hierarchical_Optimization': 'optimization-medium',
-      'Complex_Network_Effects': 'optimization-complex',
-      'Merge_Point_Optimization': 'optimization-medium',
-      'Load_Distribution_Optimization': 'optimization-medium',
-      'Complex_Analysis_Required': 'optimization-complex',
-      'Questionable_Pattern': 'optimization-low'
-    };
-    return classes[potential] || 'optimization-unknown';
-  }
-
-  getBottleneckClass(risk: string): string {
-    const classes: Record<string, string> = {
-      'Low': 'bottleneck-low',
-      'Medium': 'bottleneck-medium',
-      'High': 'bottleneck-high',
-      'Very_High': 'bottleneck-very-high'
-    };
-    return classes[risk] || 'bottleneck-unknown';
-  }
-
-  getComplexityPercentage(score: number): number {
-    // Normalize complexity score to percentage (assuming max complexity around 50)
-    return Math.min((score / 50) * 100, 100);
-  }
-
-  getStructureTypeCount(type: 'fork' | 'path' | 'internal'): number {
-    // Count different structure types from classifications
-    const rootClassifications = this.getRootClassifications();
-    const uniqueClassifications = this.getUniqueClassifications();
-    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
-    
-    const typeSet = new Set<string>();
-    
-    allClassifications.forEach((classification: any) => {
-      const diamondClass = this.getDiamondClassification(classification);
-      switch (type) {
-        case 'fork':
-          typeSet.add(diamondClass.fork_structure);
-          break;
-        case 'path':
-          typeSet.add(diamondClass.path_topology);
-          break;
-        case 'internal':
-          typeSet.add(diamondClass.internal_structure);
-          break;
-      }
-    });
-    
-    return typeSet.size;
-  }
-
-  getOptimizationPotentialCount(level: string): number {
-    const rootClassifications = this.getRootClassifications();
-    const uniqueClassifications = this.getUniqueClassifications();
-    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
-    
-    return allClassifications.filter((classification: any) => {
-      const diamondClass = this.getDiamondClassification(classification);
-      return diamondClass.optimization_potential?.includes(level);
-    }).length;
-  }
-
-  getBottleneckRiskCount(level: string): number {
-    const rootClassifications = this.getRootClassifications();
-    const uniqueClassifications = this.getUniqueClassifications();
-    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
-    
-    return allClassifications.filter((classification: any) => {
-      const diamondClass = this.getDiamondClassification(classification);
-      return diamondClass.bottleneck_risk === level;
-    }).length;
-  }
-
-  getDiamondCoverage(): number {
-    const totalJoinNodes = this.getJoinNodesWithDiamonds().length;
-    const totalNodes = this.componentData()?.structure?.nodes?.length || 1;
-    return Math.round((totalJoinNodes / totalNodes) * 100);
-  }
-
-  getAverageComplexity(): number {
-    const rootClassifications = this.getRootClassifications();
-    const uniqueClassifications = this.getUniqueClassifications();
-    const allClassifications = [...Object.values(rootClassifications), ...Object.values(uniqueClassifications)];
-    
-    if (allClassifications.length === 0) return 0;
-    
-    const totalComplexity = allClassifications.reduce((sum: number, classification: any) => {
-      const diamondClass = this.getDiamondClassification(classification);
-      return sum + diamondClass.complexity_score;
-    }, 0);
-    
-    return totalComplexity / allClassifications.length;
-  }
-
-  getCriticalDiamondsCount(): number {
-    return this.getBottleneckRiskCount('High') + this.getBottleneckRiskCount('Very_High');
-  }
-
-  highlightCriticalDiamonds(): void {
-    // Highlight diamonds with high bottleneck risk
-    this.highlightNodes(this.diamondNodes);
-    this.snackBar.open('Critical diamonds highlighted', 'Close', { duration: 2000 });
-  }
-
-  // View mode helpers
-  override switchViewMode(mode: 'visual' | 'dashboard'): void {
-    this.currentViewMode.set(mode);
-  }
-
-  override isVisualMode(): boolean {
-    return this.currentViewMode() === 'visual';
-  }
-
-  override isDashboardMode(): boolean {
-    return this.currentViewMode() === 'dashboard';
   }
 }

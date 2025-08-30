@@ -1,284 +1,215 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { NetworkAnalysisResponse, AnalysisConfiguration, DetectedNetworkStructure, NetworkStructureResult } from '../models/network-analysis.models';
+import { Observable, of } from 'rxjs';
+import { 
+  NetworkStructure, 
+  AnalysisResponse, 
+  TabState,
+  AnalysisRequest 
+} from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
 
-export interface AnalysisTabState {
-  enabled: boolean;
-  completed: boolean;
-  hasData: boolean;
-  error?: string;
-}
-
-export interface AnalysisStateSnapshot {
-  networkName: string;
-  uploadedAt: string;
-  analysisCompletedAt: string;
-  originalConfig: AnalysisConfiguration;
-  networkStructure: DetectedNetworkStructure;
-  analysisResults: NetworkAnalysisResponse;
-  tabStates: {
-    networkStructure: AnalysisTabState;
-    diamondAnalysis: AnalysisTabState;
-    exactInference: AnalysisTabState;
-    flowAnalysis: AnalysisTabState;
-    criticalPath: AnalysisTabState;
-    systemProfile: AnalysisTabState;
-  };
-}
-
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AnalysisStateService {
   private networkBackendService = inject(NetworkBackendService);
-  
-  private currentState = signal<AnalysisStateSnapshot | null>(null);
-  private comprehensiveStructureData = new BehaviorSubject<NetworkStructureResult | null>(null);
 
-  // Computed signals for individual tab states
-  hasActiveAnalysis = computed(() => !!this.currentState());
-  
-  // Upload tab is always completed if we have analysis state 
-  uploadTab = computed(() => ({ enabled: true, completed: !!this.currentState(), hasData: !!this.currentState() }));
-  
-  networkStructureTab = computed(() => this.currentState()?.tabStates.networkStructure || { enabled: false, completed: false, hasData: false });
-  diamondAnalysisTab = computed(() => this.currentState()?.tabStates.diamondAnalysis || { enabled: false, completed: false, hasData: false });
-  exactInferenceTab = computed(() => this.currentState()?.tabStates.exactInference || { enabled: false, completed: false, hasData: false });
-  flowAnalysisTab = computed(() => this.currentState()?.tabStates.flowAnalysis || { enabled: false, completed: false, hasData: false });
-  criticalPathTab = computed(() => this.currentState()?.tabStates.criticalPath || { enabled: false, completed: false, hasData: false });
-  systemProfileTab = computed(() => this.currentState()?.tabStates.systemProfile || { enabled: false, completed: false, hasData: false });
+  // Core state signals
+  private networkDataSignal = signal<NetworkStructure | null>(null);
+  private analysisResultsSignal = signal<AnalysisResponse | null>(null);
+  private isLoadingSignal = signal<boolean>(false);
+  private errorSignal = signal<string | null>(null);
+  private currentNetworkPathSignal = signal<string | null>(null);
 
-  // Computed getters for analysis data
-  networkData = computed(() => {
-    const state = this.currentState();
-    const comprehensive = this.comprehensiveStructureData.value;
-    return state ? {
-      structure: state.networkStructure,
-      results: comprehensive || state.analysisResults.results?.network_structure
-    } : null;
-  });
+  // Tab state signals
+  private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
+  private networkStructureTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private diamondAnalysisTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private exactInferenceTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private flowAnalysisTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private criticalPathTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private systemProfileTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
 
-  // Observable for comprehensive structure data
-  comprehensiveNetworkStructure$ = this.comprehensiveStructureData.asObservable();
+  // Computed signals (read-only)
+  readonly networkData = computed(() => this.networkDataSignal());
+  readonly analysisResults = computed(() => this.analysisResultsSignal());
+  readonly isLoading = computed(() => this.isLoadingSignal());
+  readonly error = computed(() => this.errorSignal());
+  readonly currentNetworkPath = computed(() => this.currentNetworkPathSignal());
 
-  diamondData = computed(() => {
-    const state = this.currentState();
-    return state ? {
-      structure: state.networkStructure,
-      results: state.analysisResults.results?.diamond_analysis
-    } : null;
-  });
+  readonly uploadTab = computed(() => this.uploadTabSignal());
+  readonly networkStructureTab = computed(() => this.networkStructureTabSignal());
+  readonly diamondAnalysisTab = computed(() => this.diamondAnalysisTabSignal());
+  readonly exactInferenceTab = computed(() => this.exactInferenceTabSignal());
+  readonly flowAnalysisTab = computed(() => this.flowAnalysisTabSignal());
+  readonly criticalPathTab = computed(() => this.criticalPathTabSignal());
+  readonly systemProfileTab = computed(() => this.systemProfileTabSignal());
 
-  exactInferenceData = computed(() => {
-    const state = this.currentState();
-    return state ? {
-      structure: state.networkStructure,
-      results: state.analysisResults.results?.exact_inference
-    } : null;
-  });
-
-  flowAnalysisData = computed(() => {
-    const state = this.currentState();
-    return state ? {
-      structure: state.networkStructure,
-      results: state.analysisResults.results?.flow_analysis
-    } : null;
-  });
-
-  criticalPathData = computed(() => {
-    const state = this.currentState();
-    return state ? {
-      structure: state.networkStructure,
-      results: state.analysisResults.results?.critical_path
-    } : null;
-  });
-
-  constructor() {}
-
-  /**
-   * Fetch comprehensive network structure data for the current network
-   */
-  loadComprehensiveNetworkStructure(): Observable<NetworkStructureResult> {
-    const state = this.currentState();
-    if (!state) {
-      throw new Error('No active network analysis to load comprehensive structure for');
+  // State mutations
+  setNetworkData(data: NetworkStructure | null): void {
+    this.networkDataSignal.set(data);
+    
+    if (data) {
+      this.networkStructureTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+      this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
     }
-
-    return this.networkBackendService.getComprehensiveNetworkStructure(state.networkName);
   }
 
-  /**
-   * Update the comprehensive structure data
-   */
-  setComprehensiveStructureData(data: NetworkStructureResult): void {
-    this.comprehensiveStructureData.next(data);
-  }
-
-  /**
-   * Get the current comprehensive structure data
-   */
-  getComprehensiveStructureData(): NetworkStructureResult | null {
-    return this.comprehensiveStructureData.value;
-  }
-
-  /**
-   * Refresh comprehensive structure data from the backend
-   */
-  refreshComprehensiveStructure(): Observable<NetworkStructureResult> {
-    const state = this.currentState();
-    if (!state) {
-      throw new Error('No active network analysis to refresh structure for');
-    }
-
-    const refreshObservable = this.networkBackendService.refreshNetworkStructure(
-      state.networkName, 
-      true // include optional data
-    );
-
-    // Update the local cache when data is received
-    refreshObservable.subscribe({
-      next: (data) => this.setComprehensiveStructureData(data),
-      error: (error) => console.error('Failed to refresh comprehensive structure:', error)
-    });
-
-    return refreshObservable;
-  }
-
-  updateAnalysisResults(
-    networkStructure: DetectedNetworkStructure,
-    originalConfig: AnalysisConfiguration,
-    analysisResults: NetworkAnalysisResponse
-  ): void {
-    const tabStates = this.calculateTabStates(originalConfig, analysisResults);
+  setAnalysisResults(results: AnalysisResponse | null): void {
+    this.analysisResultsSignal.set(results);
     
-    const snapshot: AnalysisStateSnapshot = {
-      networkName: networkStructure.networkName,
-      uploadedAt: new Date().toISOString(),
-      analysisCompletedAt: analysisResults.timestamp,
-      originalConfig,
-      networkStructure,
-      analysisResults,
-      tabStates
-    };
-
-    this.currentState.set(snapshot);
-  }
-
-  private calculateTabStates(
-    config: AnalysisConfiguration,
-    results: NetworkAnalysisResponse
-  ): AnalysisStateSnapshot['tabStates'] {
-    
-    const hasNetworkResults = !!(results.results?.network_structure);
-    const hasInferenceResults = !!(results.results?.exact_inference);
-    const hasFlowResults = !!(results.results?.flow_analysis);
-    const hasCriticalPathResults = !!(results.results?.critical_path);
-    const hasDiamondResults = !!(results.results?.diamond_analysis);
-    
-    const diamondsFound = results.results?.diamond_analysis?.unique_diamonds_count || 0;
-    const hasDiamonds = diamondsFound > 0;
-
-    return {
-      // Network Structure - always enabled if we have basic results
-      networkStructure: {
-        enabled: hasNetworkResults,
-        completed: hasNetworkResults,
-        hasData: hasNetworkResults
-      },
-
-      // Diamond Analysis - enabled if diamonds were found
-      diamondAnalysis: {
-        enabled: hasDiamondResults && hasDiamonds,
-        completed: hasDiamondResults && hasDiamonds,
-        hasData: hasDiamondResults && hasDiamonds
-      },
-
-      // Exact Inference - enabled if inference was requested and completed
-      exactInference: {
-        enabled: config.exactInference && hasInferenceResults,
-        completed: config.exactInference && hasInferenceResults,
-        hasData: config.exactInference && hasInferenceResults
-      },
-
-      // Flow Analysis - enabled if flow analysis was requested and completed
-      flowAnalysis: {
-        enabled: config.flowAnalysis && hasFlowResults,
-        completed: config.flowAnalysis && hasFlowResults,
-        hasData: config.flowAnalysis && hasFlowResults
-      },
-
-      // Critical Path - enabled if CPM analysis was requested and completed
-      criticalPath: {
-        enabled: config.criticalPathAnalysis && hasCriticalPathResults,
-        completed: config.criticalPathAnalysis && hasCriticalPathResults,
-        hasData: config.criticalPathAnalysis && hasCriticalPathResults
-      },
-
-      // System Profile - enabled if any analysis completed successfully
-      systemProfile: {
-        enabled: hasNetworkResults || hasInferenceResults || hasFlowResults || hasCriticalPathResults,
-        completed: true, // Always considered complete if enabled
-        hasData: hasNetworkResults || hasInferenceResults || hasFlowResults || hasCriticalPathResults
+    if (results?.results) {
+      // Update network structure data
+      this.setNetworkData(results.results.network_structure);
+      
+      // Mark tabs as completed based on available results
+      if (results.results.network_structure) {
+        this.markTabCompleted('network-structure');
       }
-    };
+      
+      if (results.results.diamond_analysis || 
+          (results.results.reachability_scenarios && 
+           Object.values(results.results.reachability_scenarios).some(s => s.diamond_analysis))) {
+        this.markTabCompleted('diamonds');
+      }
+      
+      if (results.results.reachability_scenarios && 
+          Object.values(results.results.reachability_scenarios).some(s => s.exact_inference)) {
+        this.markTabCompleted('exact-inference');
+      }
+      
+      if (results.results.capacity_scenarios && 
+          Object.keys(results.results.capacity_scenarios).length > 0) {
+        this.markTabCompleted('flow');
+      }
+      
+      if (results.results.cpm_scenarios && 
+          Object.keys(results.results.cpm_scenarios).length > 0) {
+        this.markTabCompleted('critical-path');
+      }
+      
+      // System profile is completed when we have any analysis results
+      if (results.results) {
+        this.markTabCompleted('system-profile');
+      }
+    }
   }
 
-  clearAnalysisState(): void {
-    this.currentState.set(null);
-    this.comprehensiveStructureData.next(null);
+  setLoading(loading: boolean): void {
+    this.isLoadingSignal.set(loading);
   }
 
-  getCurrentSnapshot(): AnalysisStateSnapshot | null {
-    return this.currentState();
+  setError(error: string | null): void {
+    this.errorSignal.set(error);
   }
 
-  // Helper methods for specific data access
-  getNetworkStructureData(): any {
-    return this.currentState()?.analysisResults.results?.network_structure;
+  setCurrentNetworkPath(path: string | null): void {
+    this.currentNetworkPathSignal.set(path);
   }
 
-  getExactInferenceData(): any {
-    return this.currentState()?.analysisResults.results?.exact_inference;
+  markTabCompleted(tabName: string): void {
+    switch (tabName) {
+      case 'upload':
+        this.uploadTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'network-structure':
+        this.networkStructureTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'diamonds':
+        this.diamondAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'exact-inference':
+        this.exactInferenceTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'flow':
+        this.flowAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'critical-path':
+        this.criticalPathTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+      case 'system-profile':
+        this.systemProfileTabSignal.update(tab => ({ ...tab, completed: true }));
+        break;
+    }
   }
 
-  getDiamondAnalysisData(): any {
-    return this.currentState()?.analysisResults.results?.diamond_analysis;
+  // Helper methods for the app component
+  hasActiveAnalysis(): boolean {
+    return this.networkDataSignal() !== null || this.currentNetworkPathSignal() !== null;
   }
 
-  getFlowAnalysisData(): any {
-    return this.currentState()?.analysisResults.results?.flow_analysis;
+  getCurrentSnapshot(): { networkName: string } | null {
+    const results = this.analysisResultsSignal();
+    const networkPath = this.currentNetworkPathSignal();
+    
+    if (results?.network_name) {
+      return { networkName: results.network_name };
+    }
+    
+    if (networkPath) {
+      // Extract network name from path
+      const pathParts = networkPath.split(/[\\/]/);
+      const networkName = pathParts[pathParts.length - 1] || 'Current Network';
+      return { networkName };
+    }
+    
+    return null;
   }
 
-  getCriticalPathData(): any {
-    return this.currentState()?.analysisResults.results?.critical_path;
+  getComprehensiveStructureData(): NetworkStructure | null {
+    return this.networkDataSignal();
   }
 
-  // Get original network files structure for visualization
-  getNetworkStructure(): DetectedNetworkStructure | null {
-    return this.currentState()?.networkStructure || null;
+  setComprehensiveStructureData(data: NetworkStructure): void {
+    this.setNetworkData(data);
   }
 
-  getAnalysisConfiguration(): AnalysisConfiguration | null {
-    return this.currentState()?.originalConfig || null;
+  loadComprehensiveNetworkStructure(): Observable<NetworkStructure> {
+    const networkPath = this.currentNetworkPathSignal();
+    if (!networkPath) {
+      return of();
+    }
+
+    return this.networkBackendService.quickStructureAnalysis(networkPath);
   }
 
-  // Debug method
-  getStateInfo(): any {
-    const state = this.currentState();
-    if (!state) return null;
+  // Analysis execution methods
+  runAnalysis(request: AnalysisRequest): Observable<AnalysisResponse> {
+    this.setLoading(true);
+    this.setError(null);
 
-    return {
-      networkName: state.networkName,
-      uploadedAt: state.uploadedAt,
-      analysisCompletedAt: state.analysisCompletedAt,
-      enabledTabs: Object.entries(state.tabStates)
-        .filter(([_, tabState]) => tabState.enabled)
-        .map(([tabName, _]) => tabName),
-      completedAnalyses: Object.entries(state.tabStates)
-        .filter(([_, tabState]) => tabState.completed)
-        .map(([tabName, _]) => tabName),
-      hasErrors: Object.values(state.tabStates).some(tab => tab.error)
-    };
+    return new Observable(subscriber => {
+      this.networkBackendService.analyzeNetwork(request).subscribe({
+        next: (response) => {
+          this.setAnalysisResults(response);
+          this.setLoading(false);
+          subscriber.next(response);
+          subscriber.complete();
+        },
+        error: (error) => {
+          this.setError(error.message);
+          this.setLoading(false);
+          subscriber.error(error);
+        }
+      });
+    });
+  }
+
+  clearState(): void {
+    this.networkDataSignal.set(null);
+    this.analysisResultsSignal.set(null);
+    this.isLoadingSignal.set(false);
+    this.errorSignal.set(null);
+    this.currentNetworkPathSignal.set(null);
+
+    // Reset all tabs
+    this.uploadTabSignal.set({ enabled: true, completed: false, hasData: false });
+    this.networkStructureTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.diamondAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.exactInferenceTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.flowAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.criticalPathTabSignal.set({ enabled: false, completed: false, hasData: false });
   }
 }

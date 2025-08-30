@@ -1,589 +1,324 @@
 <div class="system-profile-container">
-  
-  <!-- Header Section -->
-  <div class="analysis-header">
-    <div class="header-content">
-      <div class="header-info">
-        <h1>
-          <mat-icon class="header-icon">dashboard</mat-icon>
-          System Analysis Profile
-        </h1>
-        <p class="network-description">
-          @if (getSystemSnapshot()) {
-            {{ getSystemSnapshot()?.networkName }} - Comprehensive Analysis Dashboard
-          } @else {
-            Executive Analysis Summary
-          }
-        </p>
-      </div>
-      
-      <div class="header-actions">
-        <app-analysis-view-switcher 
-          [currentMode]="currentViewMode()"
-          [availableModes]="availableViewModes()"
-          (modeChange)="switchViewMode($event)">
-        </app-analysis-view-switcher>
-        
-        <button mat-button [matMenuTriggerFor]="exportMenu">
-          <mat-icon>download</mat-icon>
-          Export
-        </button>
-        
-        <mat-menu #exportMenu="matMenu">
-          <button mat-menu-item (click)="exportData('json')">
-            <mat-icon>code</mat-icon>
-            <span>Export Complete Profile (JSON)</span>
-          </button>
-          <button mat-menu-item (click)="exportData('csv')">
-            <mat-icon>table_chart</mat-icon>
-            <span>Export Executive Summary (CSV)</span>
-          </button>
-        </mat-menu>
-      </div>
-    </div>
+  <div *ngIf="error()" class="error-message">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner></mat-spinner>
-      <p>Compiling system analysis profile...</p>
-    </div>
-  }
+  <div *ngIf="!analysisResults() && !isLoading() && !error()" class="no-data">
+    <mat-icon>dashboard</mat-icon>
+    <p>No system analysis data available. Please run a complete network analysis to see the system profile.</p>
+  </div>
 
-  <!-- Error State -->
-  @if (error()) {
-    <mat-card class="error-card">
+  <div *ngIf="isLoading()" class="loading-section">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Loading system profile...</p>
+  </div>
+
+  <div *ngIf="analysisResults() && getSystemSummary() as summary" class="system-profile-content">
+    
+    <!-- System Health Overview -->
+    <mat-card class="health-overview-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>health_and_safety</mat-icon>
+        <mat-card-title>System Health Overview</mat-card-title>
+        <mat-card-subtitle>Comprehensive analysis status and performance metrics</mat-card-subtitle>
+      </mat-card-header>
       <mat-card-content>
-        <div class="error-content">
-          <mat-icon class="error-icon">error</mat-icon>
-          <div>
-            <h3>Error Loading System Profile</h3>
-            <p>{{ error() }}</p>
+        <div class="health-metrics">
+          <!-- Health Score -->
+          <div class="health-score-section">
+            <div class="health-score-circle">
+              <div class="score-value">{{ getHealthScore() }}</div>
+              <div class="score-label">Health Score</div>
+            </div>
+            <div class="health-details">
+              <mat-chip [class]="'health-level-' + getHealthLevel()">
+                {{ getHealthLevel() | titlecase }} Health
+              </mat-chip>
+              <div class="completeness-info">
+                <span class="completeness-text">
+                  Analysis Completeness: {{ getAnalysisCompleteness().completed }} / {{ getAnalysisCompleteness().total }}
+                </span>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="getAnalysisCompleteness().percentage"
+                  [class]="'completeness-' + getHealthLevel()">
+                </mat-progress-bar>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <h4>Quick Actions</h4>
+            <div class="action-buttons">
+              <button mat-raised-button color="primary" (click)="exportSystemReport()">
+                <mat-icon>download</mat-icon>
+                Export Report
+              </button>
+              <button mat-stroked-button (click)="refreshAnalysis()">
+                <mat-icon>refresh</mat-icon>
+                Refresh Analysis
+              </button>
+            </div>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
-  }
 
-  <!-- Main Content -->
-  @if (!isLoading() && !error() && componentData()) {
-    
-    <!-- Visual Mode - Comprehensive Network Visualization -->
-    @if (isVisualMode()) {
-      <div class="visual-mode">
-        
-        <!-- Executive Summary Header -->
-        <div class="executive-summary-banner">
-          <mat-card class="summary-banner-card">
-            <mat-card-content>
-              <div class="banner-content">
-                <div class="network-overview">
-                  <div class="network-basics">
-                    <h2>{{ getNetworkName() }}</h2>
-                    <div class="network-metrics">
-                      <span class="metric"><mat-icon>hub</mat-icon>{{ getTotalNodes() }} nodes</span>
-                      <span class="metric"><mat-icon>timeline</mat-icon>{{ getTotalEdges() }} edges</span>
-                      <span class="metric"><mat-icon>device_hub</mat-icon>{{ getNetworkTopologyType() }}</span>
-                    </div>
+    <!-- System Overview -->
+    <mat-card class="overview-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>dashboard</mat-icon>
+        <mat-card-title>System Overview</mat-card-title>
+        <mat-card-subtitle>Complete network and analysis metrics</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-tab-group>
+          <!-- Network Structure Tab -->
+          <mat-tab label="Network Structure">
+            <div class="tab-content">
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <mat-icon>account_tree</mat-icon>
                   </div>
-                  <div class="system-health">
-                    <div class="health-score">
-                      <div class="health-circle" [style.background]="getHealthScoreGradient()">
-                        <span class="health-value">{{ (getOverallHealthScore() * 100).toFixed(0) }}%</span>
-                      </div>
-                      <span class="health-label">System Health</span>
-                    </div>
+                  <div class="metric-details">
+                    <div class="metric-value">{{ summary.networkStructure.totalNodes }}</div>
+                    <div class="metric-label">Total Nodes</div>
                   </div>
                 </div>
-                
-                <div class="analysis-status-overview">
-                  <div class="status-grid">
-                    <div class="status-item" [class.completed]="isAnalysisCompleted('networkStructure')">
-                      <mat-icon>{{ isAnalysisCompleted('networkStructure') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span>Network Structure</span>
-                    </div>
-                    <div class="status-item" [class.completed]="isAnalysisCompleted('diamondAnalysis')">
-                      <mat-icon>{{ isAnalysisCompleted('diamondAnalysis') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span>Diamond Analysis</span>
-                    </div>
-                    <div class="status-item" [class.completed]="isAnalysisCompleted('exactInference')">
-                      <mat-icon>{{ isAnalysisCompleted('exactInference') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span>Exact Inference</span>
-                    </div>
-                    <div class="status-item" [class.completed]="isAnalysisCompleted('flowAnalysis')">
-                      <mat-icon>{{ isAnalysisCompleted('flowAnalysis') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span>Flow Analysis</span>
-                    </div>
-                    <div class="status-item" [class.completed]="isAnalysisCompleted('criticalPath')">
-                      <mat-icon>{{ isAnalysisCompleted('criticalPath') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                      <span>Critical Path</span>
-                    </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <mat-icon>linear_scale</mat-icon>
+                  </div>
+                  <div class="metric-details">
+                    <div class="metric-value">{{ summary.networkStructure.totalEdges }}</div>
+                    <div class="metric-label">Total Edges</div>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <mat-icon>input</mat-icon>
+                  </div>
+                  <div class="metric-details">
+                    <div class="metric-value">{{ summary.networkStructure.sourceNodes }}</div>
+                    <div class="metric-label">Source Nodes</div>
+                  </div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-icon">
+                    <mat-icon>output</mat-icon>
+                  </div>
+                  <div class="metric-details">
+                    <div class="metric-value">{{ summary.networkStructure.sinkNodes }}</div>
+                    <div class="metric-label">Sink Nodes</div>
                   </div>
                 </div>
               </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
+            </div>
+          </mat-tab>
 
-        <!-- Comprehensive Analysis Grid -->
-        <div class="comprehensive-analysis-grid">
-          
-          <!-- Network Structural Analysis -->
-          <mat-card class="analysis-summary-card network-structure">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>account_tree</mat-icon>
-                Network Structure
-              </mat-card-title>
-              <mat-card-subtitle>Topology & Connectivity Analysis</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              @if (isAnalysisCompleted('networkStructure')) {
-                <div class="analysis-metrics">
-                  <div class="metric-row">
-                    <span class="label">Source Nodes:</span>
-                    <span class="value">{{ getNetworkStructureMetric('sourceNodes') }}</span>
+          <!-- Analysis Coverage Tab -->
+          <mat-tab label="Analysis Coverage">
+            <div class="tab-content">
+              <div class="coverage-grid">
+                <div class="coverage-item">
+                  <div class="coverage-header">
+                    <mat-icon>psychology</mat-icon>
+                    <span>Exact Inference</span>
                   </div>
-                  <div class="metric-row">
-                    <span class="label">Join Nodes:</span>
-                    <span class="value">{{ getNetworkStructureMetric('joinNodes') }}</span>
+                  <div class="coverage-value">
+                    {{ summary.analysisResults.reachabilityScenarios }} scenarios
                   </div>
-                  <div class="metric-row">
-                    <span class="label">Fork Nodes:</span>
-                    <span class="value">{{ getNetworkStructureMetric('forkNodes') }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Complexity:</span>
-                    <span class="value complexity">{{ getNetworkComplexityScore() }}</span>
-                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.analysisResults.reachabilityScenarios > 0 ? 100 : 0">
+                  </mat-progress-bar>
                 </div>
-                <div class="analysis-insights">
-                  <mat-chip-set>
-                    <mat-chip class="insight-chip">{{ getNetworkTopologyType() }}</mat-chip>
-                    <mat-chip class="insight-chip">{{ getConnectivityType() }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              } @else {
-                <div class="analysis-not-available">
-                  <mat-icon>info</mat-icon>
-                  <span>Network structure analysis not performed</span>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
 
-          <!-- Diamond Analysis Summary -->
-          <mat-card class="analysis-summary-card diamond-analysis">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>diamond</mat-icon>
-                Diamond Structures
-              </mat-card-title>
-              <mat-card-subtitle>Structural Pattern Analysis</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              @if (isAnalysisCompleted('diamondAnalysis')) {
-                <div class="analysis-metrics">
-                  <div class="metric-row highlight">
-                    <span class="label">Total Diamonds:</span>
-                    <span class="value primary">{{ getDiamondAnalysisMetric('totalClassifications') }}</span>
+                <div class="coverage-item">
+                  <div class="coverage-header">
+                    <mat-icon>auto_awesome</mat-icon>
+                    <span>Diamond Analysis</span>
                   </div>
-                  <div class="metric-row">
-                    <span class="label">Root Diamonds:</span>
-                    <span class="value">{{ getDiamondAnalysisMetric('rootDiamondsCount') }}</span>
+                  <div class="coverage-value">
+                    {{ summary.analysisResults.diamondAnalysis ? 'Enabled' : 'Disabled' }}
                   </div>
-                  <div class="metric-row">
-                    <span class="label">Unique Diamonds:</span>
-                    <span class="value">{{ getDiamondAnalysisMetric('uniqueDiamondsCount') }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Efficiency:</span>
-                    <span class="value efficiency">{{ getDiamondEfficiencyFormatted() }}</span>
-                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.analysisResults.diamondAnalysis ? 100 : 0">
+                  </mat-progress-bar>
                 </div>
-                <div class="analysis-insights">
-                  <mat-chip-set>
-                    @if (getDiamondAnalysisMetric('hasComplexDiamonds')) {
-                      <mat-chip class="insight-chip complex">Complex Patterns</mat-chip>
-                    } @else {
-                      <mat-chip class="insight-chip simple">Simple Patterns</mat-chip>
-                    }
-                    <mat-chip class="insight-chip">{{ getDiamondCoveragePercent() }}% Coverage</mat-chip>
-                  </mat-chip-set>
-                </div>
-              } @else {
-                <div class="analysis-not-available">
-                  <mat-icon>info</mat-icon>
-                  <span>Diamond analysis not performed or no diamonds found</span>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
 
-          <!-- Belief Propagation Summary -->
-          <mat-card class="analysis-summary-card exact-inference">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>psychology</mat-icon>
-                Belief Propagation
-              </mat-card-title>
-              <mat-card-subtitle>Exact Inference Results</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              @if (isAnalysisCompleted('exactInference')) {
-                <div class="analysis-metrics">
-                  <div class="metric-row">
-                    <span class="label">Data Type:</span>
-                    <span class="value data-type">{{ getInferenceDataType() }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Nodes with Beliefs:</span>
-                    <span class="value">{{ getInferenceMetric('totalNodes') }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Avg Belief:</span>
-                    <span class="value belief">{{ getInferenceMetric('averageBelief') | number:'1.3-3' }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Convergence:</span>
-                    <span class="value" [class.success]="getInferenceConvergence()">{{ getInferenceConvergence() ? 'Converged' : 'Partial' }}</span>
-                  </div>
-                </div>
-                <div class="analysis-insights">
-                  <mat-chip-set>
-                    <mat-chip class="insight-chip">{{ getUncertaintyType() }}</mat-chip>
-                    <mat-chip class="insight-chip">{{ getInferenceComplexity() }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              } @else {
-                <div class="analysis-not-available">
-                  <mat-icon>info</mat-icon>
-                  <span>Exact inference analysis not performed</span>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Flow Analysis Summary -->
-          <mat-card class="analysis-summary-card flow-analysis">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>water_drop</mat-icon>
-                Flow Analysis
-              </mat-card-title>
-              <mat-card-subtitle>Network Flow & Capacity</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              @if (isAnalysisCompleted('flowAnalysis')) {
-                <div class="analysis-metrics">
-                  <div class="metric-row">
-                    <span class="label">Max Flow Value:</span>
-                    <span class="value flow">{{ getFlowAnalysisMetric('maxFlowValue') | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Active Sources:</span>
-                    <span class="value">{{ getFlowAnalysisMetric('activeSources') }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Bottlenecks:</span>
-                    <span class="value" [class.warning]="getFlowBottlenecks() > 0">{{ getFlowBottlenecks() }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Utilization:</span>
-                    <span class="value utilization">{{ getFlowUtilizationPercent() }}%</span>
-                  </div>
-                </div>
-                <div class="analysis-insights">
-                  <mat-chip-set>
-                    <mat-chip class="insight-chip" [class]="getFlowEfficiencyClass()">{{ getFlowEfficiencyLevel() }}</mat-chip>
-                    <mat-chip class="insight-chip">{{ getFlowPatternType() }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              } @else {
-                <div class="analysis-not-available">
-                  <mat-icon>info</mat-icon>
-                  <span>Flow analysis not performed</span>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Critical Path Summary -->
-          <mat-card class="analysis-summary-card critical-path">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>route</mat-icon>
-                Critical Path
-              </mat-card-title>
-              <mat-card-subtitle>Schedule & Resource Analysis</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              @if (isAnalysisCompleted('criticalPath')) {
-                <div class="analysis-metrics">
-                  <div class="metric-row">
-                    <span class="label">Critical Duration:</span>
-                    <span class="value duration">{{ getCriticalPathMetric('duration') | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Critical Nodes:</span>
-                    <span class="value">{{ getCriticalPathMetric('criticalNodes') }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Total Cost:</span>
-                    <span class="value cost">{{ getCriticalPathMetric('totalCost') | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="metric-row">
-                    <span class="label">Float Available:</span>
-                    <span class="value" [class.success]="getCriticalPathFloat() > 0">{{ getCriticalPathFloat() | number:'1.1-1' }}</span>
-                  </div>
-                </div>
-                <div class="analysis-insights">
-                  <mat-chip-set>
-                    <mat-chip class="insight-chip" [class]="getCriticalPathRiskClass()">{{ getCriticalPathRiskLevel() }}</mat-chip>
-                    <mat-chip class="insight-chip">{{ getResourceConstraintLevel() }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              } @else {
-                <div class="analysis-not-available">
-                  <mat-icon>info</mat-icon>
-                  <span>Critical path analysis not performed</span>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Performance & Optimization Summary -->
-          <mat-card class="analysis-summary-card performance-overview">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>insights</mat-icon>
-                Analysis Summary
-              </mat-card-title>
-              <mat-card-subtitle>Combined Analysis Insights</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="analysis-insights">
-                <div class="insight-row">
-                  <span class="label">Network Connectivity:</span>
-                  <span class="value connectivity">{{ getNetworkConnectivitySummary() }}</span>
-                </div>
-                <div class="insight-row">
-                  <span class="label">Diamond Structures:</span>
-                  <span class="value diamonds">{{ getDiamondStructureSummary() }}</span>
-                </div>
-                <div class="insight-row">
-                  <span class="label">Information Flow:</span>
-                  <span class="value flow">{{ getInformationFlowSummary() }}</span>
-                </div>
-                <div class="insight-row">
-                  <span class="label">Critical Paths:</span>
-                  <span class="value critical">{{ getCriticalPathSummary() }}</span>
-                </div>
-                <div class="insight-row">
-                  <span class="label">Belief Propagation:</span>
-                  <span class="value beliefs">{{ getBeliefPropagationSummary() }}</span>
-                </div>
-                <div class="insight-row secondary">
-                  <span class="label">Processing Time:</span>
-                  <span class="value execution-time">{{ getTotalExecutionTime() }}ms</span>
-                </div>
-              </div>
-              <div class="performance-breakdown">
-                <h4>Analysis Performance Breakdown</h4>
-                <div class="performance-bars">
-                  @for (analysis of getPerformanceBreakdown(); track analysis.name) {
-                    <div class="performance-bar-item">
-                      <span class="bar-label">{{ analysis.name }}</span>
-                      <div class="performance-bar">
-                        <div class="bar-fill" [style.width.%]="analysis.percentage" [class]="analysis.performanceClass"></div>
-                      </div>
-                      <span class="bar-value">{{ analysis.time }}ms</span>
-                    </div>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-
-        <!-- System Recommendations -->
-        <div class="system-recommendations">
-          <mat-card class="recommendations-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>lightbulb</mat-icon>
-                System Optimization Recommendations
-              </mat-card-title>
-              <mat-card-subtitle>Based on comprehensive analysis results</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="recommendations-grid">
-                @for (recommendation of getSystemRecommendations(); track recommendation.id) {
-                  <div class="recommendation-item" [class]="recommendation.priority">
-                    <div class="recommendation-header">
-                      <mat-icon [class]="recommendation.iconClass">{{ recommendation.icon }}</mat-icon>
-                      <h4>{{ recommendation.title }}</h4>
-                      <mat-chip class="priority-chip" [class]="recommendation.priority">{{ recommendation.priority }}</mat-chip>
-                    </div>
-                    <p class="recommendation-description">{{ recommendation.description }}</p>
-                    <div class="recommendation-impact">
-                      <span class="impact-label">Expected Impact:</span>
-                      <span class="impact-value" [class]="recommendation.impactClass">{{ recommendation.impact }}</span>
-                    </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-
-    <!-- Dashboard Mode - Executive Summary -->
-    @if (isDashboardMode()) {
-      <div class="dashboard-mode">
-        
-        <!-- Executive Summary Cards -->
-        <div class="executive-dashboard">
-          
-          <!-- Key Performance Indicators -->
-          <mat-card class="kpi-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>assessment</mat-icon>
-                Key Performance Indicators
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="kpi-grid">
-                <div class="kpi-item system-health">
-                  <div class="kpi-icon">
-                    <mat-icon [style.color]="getHealthScoreColor(getOverallHealthScore())">favorite</mat-icon>
-                  </div>
-                  <div class="kpi-content">
-                    <div class="kpi-value">{{ (getOverallHealthScore() * 100).toFixed(0) }}%</div>
-                    <div class="kpi-label">System Health</div>
-                  </div>
-                </div>
-                
-                <div class="kpi-item analysis-coverage">
-                  <div class="kpi-icon">
-                    <mat-icon>analytics</mat-icon>
-                  </div>
-                  <div class="kpi-content">
-                    <div class="kpi-value">{{ getAnalysisCoverage() }}%</div>
-                    <div class="kpi-label">Analysis Coverage</div>
-                  </div>
-                </div>
-                
-                <div class="kpi-item optimization-potential">
-                  <div class="kpi-icon">
+                <div class="coverage-item">
+                  <div class="coverage-header">
                     <mat-icon>trending_up</mat-icon>
+                    <span>Flow Analysis</span>
                   </div>
-                  <div class="kpi-content">
-                    <div class="kpi-value">{{ getOptimizationPotential() }}%</div>
-                    <div class="kpi-label">Optimization Potential</div>
+                  <div class="coverage-value">
+                    {{ summary.analysisResults.capacityScenarios }} scenarios
+                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.analysisResults.capacityScenarios > 0 ? 100 : 0">
+                  </mat-progress-bar>
+                </div>
+
+                <div class="coverage-item">
+                  <div class="coverage-header">
+                    <mat-icon>timeline</mat-icon>
+                    <span>Critical Path</span>
+                  </div>
+                  <div class="coverage-value">
+                    {{ summary.analysisResults.cpmScenarios }} scenarios
+                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.analysisResults.cpmScenarios > 0 ? 100 : 0">
+                  </mat-progress-bar>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Performance Metrics Tab -->
+          <mat-tab label="Performance">
+            <div class="tab-content">
+              <div class="performance-metrics">
+                <div *ngIf="summary.performanceMetrics.averageBeliefValue !== undefined" class="performance-item">
+                  <div class="performance-header">
+                    <mat-icon>analytics</mat-icon>
+                    <span>Average Belief Value</span>
+                  </div>
+                  <div class="performance-value">
+                    {{ summary.performanceMetrics.averageBeliefValue.toFixed(4) }}
+                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.performanceMetrics.averageBeliefValue * 100">
+                  </mat-progress-bar>
+                </div>
+
+                <div *ngIf="summary.performanceMetrics.networkUtilization !== undefined" class="performance-item">
+                  <div class="performance-header">
+                    <mat-icon>data_usage</mat-icon>
+                    <span>Network Utilization</span>
+                  </div>
+                  <div class="performance-value">
+                    {{ (summary.performanceMetrics.networkUtilization * 100).toFixed(1) }}%
+                  </div>
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="summary.performanceMetrics.networkUtilization * 100">
+                  </mat-progress-bar>
+                </div>
+
+                <div *ngIf="summary.performanceMetrics.criticalTimeValue !== undefined" class="performance-item">
+                  <div class="performance-header">
+                    <mat-icon>schedule</mat-icon>
+                    <span>Critical Time Value</span>
+                  </div>
+                  <div class="performance-value">
+                    {{ summary.performanceMetrics.criticalTimeValue.toFixed(2) }}
                   </div>
                 </div>
-                
-                <div class="kpi-item risk-assessment">
-                  <div class="kpi-icon">
-                    <mat-icon [style.color]="getRiskColor()">warning</mat-icon>
+
+                <div *ngIf="summary.performanceMetrics.criticalCostValue !== undefined" class="performance-item">
+                  <div class="performance-header">
+                    <mat-icon>attach_money</mat-icon>
+                    <span>Critical Cost Value</span>
                   </div>
-                  <div class="kpi-content">
-                    <div class="kpi-value">{{ getOverallRiskScore() }}</div>
-                    <div class="kpi-label">Risk Level</div>
+                  <div class="performance-value">
+                    {{ summary.performanceMetrics.criticalCostValue.toFixed(2) }}
                   </div>
                 </div>
               </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </mat-tab>
 
-          <!-- Analysis Completion Status -->
-          <mat-card class="completion-status-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>task_alt</mat-icon>
-                Analysis Completion Status
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="completion-overview">
-                <div class="completion-summary">
-                  <div class="completion-circle">
-                    <svg class="progress-ring" width="100" height="100">
-                      <circle
-                        class="progress-ring-background"
-                        stroke="#e0e0e0"
-                        stroke-width="8"
-                        fill="transparent"
-                        r="42"
-                        cx="50"
-                        cy="50"/>
-                      <circle
-                        class="progress-ring-progress"
-                        stroke="#4caf50"
-                        stroke-width="8"
-                        fill="transparent"
-                        r="42"
-                        cx="50"
-                        cy="50"
-                        [style.stroke-dasharray]="getCompletionCircumference()"
-                        [style.stroke-dashoffset]="getCompletionOffset()"/>
-                    </svg>
-                    <div class="completion-text">
-                      <span class="completion-percentage">{{ getCompletionPercentage() }}%</span>
-                      <span class="completion-label">Complete</span>
+          <!-- Computation Times Tab -->
+          <mat-tab label="Computation">
+            <div class="tab-content">
+              <div class="computation-metrics">
+                <div class="time-breakdown">
+                  <div class="time-item">
+                    <div class="time-header">
+                      <mat-icon>memory</mat-icon>
+                      <span>Network Analysis</span>
+                    </div>
+                    <div class="time-value">
+                      {{ summary.networkStructure.computationTime.toFixed(4) }}s
+                    </div>
+                  </div>
+
+                  <div class="time-item total-time">
+                    <div class="time-header">
+                      <mat-icon>timer</mat-icon>
+                      <span>Total Analysis Time</span>
+                    </div>
+                    <div class="time-value">
+                      {{ summary.analysisResults.totalComputationTime.toFixed(4) }}s
                     </div>
                   </div>
                 </div>
-                <div class="completion-details">
-                  <div class="completion-breakdown">
-                    @for (analysis of getAnalysisBreakdown(); track analysis.name) {
-                      <div class="analysis-status-row" [class.completed]="analysis.completed">
-                        <mat-icon class="status-icon">{{ analysis.completed ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                        <span class="analysis-name">{{ analysis.name }}</span>
-                        <span class="analysis-time" [class.fast]="analysis.time < 100">{{ analysis.time }}ms</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
 
-          <!-- System Insights -->
-          <mat-card class="insights-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>insights</mat-icon>
-                System Insights
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="insights-content">
-                <div class="insight-item" [class]="getTopInsight().severity">
-                  <div class="insight-header">
-                    <mat-icon>{{ getTopInsight().icon }}</mat-icon>
-                    <h4>{{ getTopInsight().title }}</h4>
+                <div class="computation-efficiency">
+                  <h5>Efficiency Metrics</h5>
+                  <div class="efficiency-item">
+                    <span>Nodes per second:</span>
+                    <span class="efficiency-value">
+                      {{ (summary.networkStructure.totalNodes / summary.analysisResults.totalComputationTime).toFixed(0) }}
+                    </span>
                   </div>
-                  <p>{{ getTopInsight().description }}</p>
-                </div>
-                
-                <div class="additional-insights">
-                  @for (insight of getAdditionalInsights(); track insight.id) {
-                    <div class="mini-insight" [class]="insight.type">
-                      <mat-icon>{{ insight.icon }}</mat-icon>
-                      <span>{{ insight.text }}</span>
-                    </div>
-                  }
+                  <div class="efficiency-item">
+                    <span>Edges per second:</span>
+                    <span class="efficiency-value">
+                      {{ (summary.networkStructure.totalEdges / summary.analysisResults.totalComputationTime).toFixed(0) }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-  }
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Detailed Metrics Table -->
+    <mat-card class="detailed-metrics-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>table_chart</mat-icon>
+        <mat-card-title>Detailed System Metrics</mat-card-title>
+        <mat-card-subtitle>Complete breakdown of all system measurements</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="getSystemOverviewData()" class="system-metrics-table">
+          <ng-container matColumnDef="metric">
+            <th mat-header-cell *matHeaderCellDef>Metric</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="metric-cell">
+                <span class="metric-name">{{ row.metric }}</span>
+                <mat-chip class="category-chip" [class]="'category-' + row.category.toLowerCase()">
+                  {{ row.category }}
+                </mat-chip>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="value">
+            <th mat-header-cell *matHeaderCellDef>Value</th>
+            <td mat-cell *matCellDef="let row">{{ row.value }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
 </div>

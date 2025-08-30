@@ -1,291 +1,285 @@
 <div class="network-structure-container">
-  
-  <!-- Header Section -->
-  <div class="analysis-header">
-    <div class="header-content">
-      <div class="header-info">
-        <h1>Network Structure Analysis</h1>
-        <p class="network-name">{{ getNetworkName() }}</p>
-      </div>
-      
-      <div class="header-actions">
-        <app-analysis-view-switcher 
-          [currentMode]="currentViewMode()"
-          [availableModes]="availableViewModes()"
-          (modeChange)="switchViewMode($event)">
-        </app-analysis-view-switcher>
-        
-        <button mat-button [matMenuTriggerFor]="exportMenu">
-          <mat-icon>download</mat-icon>
-          Export
-        </button>
-        
-        <mat-menu #exportMenu="matMenu">
-          <button mat-menu-item (click)="exportData('json')">
-            <mat-icon>code</mat-icon>
-            <span>Export JSON</span>
-          </button>
-          <button mat-menu-item (click)="exportData('csv')">
-            <mat-icon>table_chart</mat-icon>
-            <span>Export CSV</span>
-          </button>
-          <button mat-menu-item (click)="exportData('png')">
-            <mat-icon>image</mat-icon>
-            <span>Export PNG</span>
-          </button>
-        </mat-menu>
-      </div>
-    </div>
+  <div *ngIf="error()" class="error-message">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner></mat-spinner>
-      <p>Loading network structure...</p>
+  <div *ngIf="!networkData() && !isLoading() && !error()" class="no-data">
+    <mat-icon>account_tree</mat-icon>
+    <p>No network data available. Please upload and analyze a network first.</p>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-section">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Loading network structure analysis...</p>
+  </div>
+
+  <div *ngIf="networkData()" class="structure-content">
+    <!-- View Toggle -->
+    <div class="view-toggle-container">
+      <mat-button-toggle-group [value]="currentView()" (change)="switchView($event.value)">
+        <mat-button-toggle value="dashboard">
+          <mat-icon>dashboard</mat-icon>
+          Dashboard
+        </mat-button-toggle>
+        <mat-button-toggle value="visual">
+          <mat-icon>account_tree</mat-icon>
+          Visual
+        </mat-button-toggle>
+      </mat-button-toggle-group>
     </div>
-  }
 
-  <!-- Error State -->
-  @if (error()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon class="error-icon">error</mat-icon>
-          <div>
-            <h3>Error Loading Network Structure</h3>
-            <p>{{ error() }}</p>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
+    <!-- Dashboard View -->
+    <div *ngIf="currentView() === 'dashboard'" class="dashboard-view">
+      <mat-card class="structure-dashboard-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>account_tree</mat-icon>
+          <mat-card-title>Network Structure Analysis</mat-card-title>
+          <mat-card-subtitle>Comprehensive topology and connectivity analysis</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-tab-group>
+            <!-- Overview Tab -->
+            <mat-tab label="Overview">
+              <div class="tab-content">
+                <!-- Network Metrics -->
+                <div class="metrics-section">
+                  <h4>Network Topology Metrics</h4>
+                  <table mat-table [dataSource]="getNetworkMetrics()" class="metrics-table">
+                    <ng-container matColumnDef="metric">
+                      <th mat-header-cell *matHeaderCellDef>Metric</th>
+                      <td mat-cell *matCellDef="let row">{{ row.metric }}</td>
+                    </ng-container>
 
-  <!-- Main Content -->
-  @if (!isLoading() && !error() && componentData()) {
-    
-    <!-- Visual Mode -->
-    @if (isVisualMode()) {
-      <div class="visual-mode">
-        <div class="visual-content">
-          
-          <!-- Network Visualization Component -->
+                    <ng-container matColumnDef="value">
+                      <th mat-header-cell *matHeaderCellDef>Value</th>
+                      <td mat-cell *matCellDef="let row">{{ row.value }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                  </table>
+                </div>
+
+                <!-- Connectivity Distribution -->
+                <div class="connectivity-section">
+                  <h4>Node Connectivity Distribution</h4>
+                  <div class="connectivity-stats">
+                    <div *ngFor="let level of getConnectivityDistribution()" class="connectivity-item">
+                      <div class="connectivity-label">{{ level.level }}</div>
+                      <div class="connectivity-bar">
+                        <mat-progress-bar 
+                          mode="determinate" 
+                          [value]="level.percentage"
+                          class="connectivity-progress">
+                        </mat-progress-bar>
+                        <span class="connectivity-text">{{ level.count }} ({{ level.percentage.toFixed(1) }}%)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Node Classification Summary -->
+                <div class="node-classification-summary">
+                  <h4>Node Classification Summary</h4>
+                  <div class="classification-grid">
+                    <div class="classification-item">
+                      <div class="classification-header">
+                        <mat-icon>input</mat-icon>
+                        <span>Source Nodes</span>
+                      </div>
+                      <div class="classification-count">{{ getNodesByType('source').length }}</div>
+                    </div>
+                    <div class="classification-item">
+                      <div class="classification-header">
+                        <mat-icon>output</mat-icon>
+                        <span>Sink Nodes</span>
+                      </div>
+                      <div class="classification-count">{{ getNodesByType('sink').length }}</div>
+                    </div>
+                    <div class="classification-item">
+                      <div class="classification-header">
+                        <mat-icon>call_split</mat-icon>
+                        <span>Fork Nodes</span>
+                      </div>
+                      <div class="classification-count">{{ getNodesByType('fork').length }}</div>
+                    </div>
+                    <div class="classification-item">
+                      <div class="classification-header">
+                        <mat-icon>call_merge</mat-icon>
+                        <span>Join Nodes</span>
+                      </div>
+                      <div class="classification-count">{{ getNodesByType('join').length }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
+            <!-- Node Details Tab -->
+            <mat-tab label="Node Details">
+              <div class="tab-content">
+                <div class="details-section">
+                  <h4>Detailed Node Information</h4>
+                  <table mat-table [dataSource]="getNodeDetails()" class="details-table">
+                    <ng-container matColumnDef="node">
+                      <th mat-header-cell *matHeaderCellDef>Node ID</th>
+                      <td mat-cell *matCellDef="let row">{{ row.node }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="type">
+                      <th mat-header-cell *matHeaderCellDef>Type</th>
+                      <td mat-cell *matCellDef="let row">
+                        <span class="node-type-badge" [class]="'type-' + row.type.toLowerCase()">
+                          {{ row.type }}
+                        </span>
+                      </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="inDegree">
+                      <th mat-header-cell *matHeaderCellDef>In-Degree</th>
+                      <td mat-cell *matCellDef="let row">{{ row.inDegree }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="outDegree">
+                      <th mat-header-cell *matHeaderCellDef>Out-Degree</th>
+                      <td mat-cell *matCellDef="let row">{{ row.outDegree }}</td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="nodeDetailsColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: nodeDetailsColumns;"></tr>
+                  </table>
+                </div>
+
+                <!-- Node Classification Details -->
+                <div class="node-classification-details">
+                  <div class="node-classification">
+                    <mat-card class="node-card">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar class="source-icon">input</mat-icon>
+                        <mat-card-title>Source Nodes</mat-card-title>
+                        <mat-card-subtitle>Network entry points</mat-card-subtitle>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <mat-chip-set>
+                          <mat-chip *ngFor="let node of getNodesByType('source')" class="source-chip">{{ node }}</mat-chip>
+                        </mat-chip-set>
+                        <p *ngIf="getNodesByType('source').length === 0" class="empty-list">No source nodes</p>
+                      </mat-card-content>
+                    </mat-card>
+
+                    <mat-card class="node-card">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar class="sink-icon">output</mat-icon>
+                        <mat-card-title>Sink Nodes</mat-card-title>
+                        <mat-card-subtitle>Network exit points</mat-card-subtitle>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <mat-chip-set>
+                          <mat-chip *ngFor="let node of getNodesByType('sink')" class="sink-chip">{{ node }}</mat-chip>
+                        </mat-chip-set>
+                        <p *ngIf="getNodesByType('sink').length === 0" class="empty-list">No sink nodes</p>
+                      </mat-card-content>
+                    </mat-card>
+
+                    <mat-card class="node-card">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar class="fork-icon">call_split</mat-icon>
+                        <mat-card-title>Fork Nodes</mat-card-title>
+                        <mat-card-subtitle>Information distribution points</mat-card-subtitle>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <mat-chip-set>
+                          <mat-chip *ngFor="let node of getNodesByType('fork')" class="fork-chip">{{ node }}</mat-chip>
+                        </mat-chip-set>
+                        <p *ngIf="getNodesByType('fork').length === 0" class="empty-list">No fork nodes</p>
+                      </mat-card-content>
+                    </mat-card>
+
+                    <mat-card class="node-card">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar class="join-icon">call_merge</mat-icon>
+                        <mat-card-title>Join Nodes</mat-card-title>
+                        <mat-card-subtitle>Information aggregation points</mat-card-subtitle>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <mat-chip-set>
+                          <mat-chip *ngFor="let node of getNodesByType('join')" class="join-chip">{{ node }}</mat-chip>
+                        </mat-chip-set>
+                        <p *ngIf="getNodesByType('join').length === 0" class="empty-list">No join nodes</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
+            <!-- Edge Details Tab -->
+            <mat-tab label="Edge Details">
+              <div class="tab-content">
+                <div class="details-section">
+                  <h4>Edge Connectivity Information</h4>
+                  <table mat-table [dataSource]="getEdgeDetails()" class="details-table">
+                    <ng-container matColumnDef="source">
+                      <th mat-header-cell *matHeaderCellDef>Source Node</th>
+                      <td mat-cell *matCellDef="let row">{{ row.source }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="target">
+                      <th mat-header-cell *matHeaderCellDef>Target Node</th>
+                      <td mat-cell *matCellDef="let row">{{ row.target }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="edgeType">
+                      <th mat-header-cell *matHeaderCellDef>Edge Type</th>
+                      <td mat-cell *matCellDef="let row">
+                        <span class="edge-type-badge">{{ row.edgeType }}</span>
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="edgeDetailsColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: edgeDetailsColumns;"></tr>
+                  </table>
+                </div>
+
+                <!-- Edge Statistics -->
+                <div class="edge-statistics">
+                  <h4>Edge Statistics</h4>
+                  <div class="stats-grid">
+                    <div class="stat-item">
+                      <div class="stat-value">{{ getEdgeDetails().length }}</div>
+                      <div class="stat-label">Total Edges</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-value">{{ getEdgeDetails().length > 0 ? (getEdgeDetails().length / (networkData()?.total_nodes || 1)).toFixed(2) : '0.00' }}</div>
+                      <div class="stat-label">Avg Edges per Node</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Visual View -->
+    <div *ngIf="currentView() === 'visual'" class="visual-view">
+      <mat-card class="visualization-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>account_tree</mat-icon>
+          <mat-card-title>Network Structure Visualization</mat-card-title>
+          <mat-card-subtitle>Interactive topology view with node type filters and connectivity analysis</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
           <app-network-visualization 
-            [networkData]="componentData()?.results"
-            [width]="800"
-            [height]="600"
-            (nodeSelected)="onNodeSelected($event)"
-            (edgeSelected)="onEdgeSelected($event)"
-            (canvasClicked)="onCanvasClicked($event)">
+            [networkData]="networkData()"
+            [visualizationMode]="'structure'"
+            [height]="'600px'"
+            [filterConfig]="{ nodeTypeFilters: ['source', 'sink', 'fork', 'join', 'regular'] }">
           </app-network-visualization>
-
-          <!-- Visual Controls -->
-          <mat-card class="controls-panel">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>tune</mat-icon>
-                Visualization Controls
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              
-              <!-- Node Type Highlighting -->
-              <div class="control-section">
-                <h4>Highlight Node Types</h4>
-                <div class="highlight-buttons">
-                  <button mat-stroked-button 
-                          class="source-button"
-                          (click)="highlightSourceNodes()">
-                    <mat-icon>play_arrow</mat-icon>
-                    Sources ({{ getSourceNodes().length }})
-                  </button>
-                  
-                  <button mat-stroked-button 
-                          class="sink-button"
-                          (click)="highlightSinkNodes()">
-                    <mat-icon>stop</mat-icon>
-                    Sinks ({{ getSinkNodes().length }})
-                  </button>
-                  
-                  <button mat-stroked-button 
-                          class="fork-button"
-                          (click)="highlightForkNodes()">
-                    <mat-icon>call_split</mat-icon>
-                    Forks ({{ getForkNodes().length }})
-                  </button>
-                  
-                  <button mat-stroked-button 
-                          class="join-button"
-                          (click)="highlightJoinNodes()">
-                    <mat-icon>call_merge</mat-icon>
-                    Joins ({{ getJoinNodes().length }})
-                  </button>
-                  
-                  <button mat-stroked-button (click)="resetHighlights()">
-                    <mat-icon>clear</mat-icon>
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              <!-- Node IDs Display -->
-              <div class="control-section">
-                <h4>Node IDs by Type</h4>
-                <div class="node-ids">
-                  @if (getSourceNodes().length > 0) {
-                    <div class="node-type-row">
-                      <span class="node-type-label source">Sources:</span>
-                      <span class="node-ids-list">{{ getSourceNodes().join(', ') }}</span>
-                    </div>
-                  }
-                  
-                  @if (getSinkNodes().length > 0) {
-                    <div class="node-type-row">
-                      <span class="node-type-label sink">Sinks:</span>
-                      <span class="node-ids-list">{{ getSinkNodes().join(', ') }}</span>
-                    </div>
-                  }
-                  
-                  @if (getForkNodes().length > 0) {
-                    <div class="node-type-row">
-                      <span class="node-type-label fork">Forks:</span>
-                      <span class="node-ids-list">{{ getForkNodes().join(', ') }}</span>
-                    </div>
-                  }
-                  
-                  @if (getJoinNodes().length > 0) {
-                    <div class="node-type-row">
-                      <span class="node-type-label join">Joins:</span>
-                      <span class="node-ids-list">{{ getJoinNodes().join(', ') }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-
-    <!-- Dashboard Mode -->
-    @if (isDashboardMode()) {
-      <div class="dashboard-mode">
-        <div class="dashboard-grid">
-          
-          <!-- Basic Statistics -->
-          <mat-card class="stat-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>analytics</mat-icon>
-                Network Statistics
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="stat-grid">
-                <div class="stat-item">
-                  <div class="stat-value">{{ getTotalNodes() }}</div>
-                  <div class="stat-label">Total Nodes</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getTotalEdges() }}</div>
-                  <div class="stat-label">Total Edges</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getIterationSetsCount() }}</div>
-                  <div class="stat-label">Iteration Sets</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getTotalEdges() > 0 ? (getTotalEdges() / getTotalNodes()).toFixed(2) : '0' }}</div>
-                  <div class="stat-label">Avg Edges/Node</div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Node Type Distribution -->
-          <mat-card class="distribution-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>pie_chart</mat-icon>
-                Node Type Distribution
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="node-type-stats">
-                <div class="node-type-stat source">
-                  <div class="type-info">
-                    <mat-icon>play_arrow</mat-icon>
-                    <span class="type-name">Source Nodes</span>
-                  </div>
-                  <div class="type-count">{{ getSourceNodes().length }}</div>
-                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getSourceNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
-                </div>
-                
-                <div class="node-type-stat sink">
-                  <div class="type-info">
-                    <mat-icon>stop</mat-icon>
-                    <span class="type-name">Sink Nodes</span>
-                  </div>
-                  <div class="type-count">{{ getSinkNodes().length }}</div>
-                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getSinkNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
-                </div>
-                
-                <div class="node-type-stat fork">
-                  <div class="type-info">
-                    <mat-icon>call_split</mat-icon>
-                    <span class="type-name">Fork Nodes</span>
-                  </div>
-                  <div class="type-count">{{ getForkNodes().length }}</div>
-                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getForkNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
-                </div>
-                
-                <div class="node-type-stat join">
-                  <div class="type-info">
-                    <mat-icon>call_merge</mat-icon>
-                    <span class="type-name">Join Nodes</span>
-                  </div>
-                  <div class="type-count">{{ getJoinNodes().length }}</div>
-                  <div class="type-percentage">{{ getTotalNodes() > 0 ? ((getJoinNodes().length / getTotalNodes()) * 100).toFixed(1) : 0 }}%</div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Network Properties -->
-          <mat-card class="properties-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>info</mat-icon>
-                Network Properties
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="properties-list">
-                <div class="property-item">
-                  <span class="property-label">Network Type:</span>
-                  <span class="property-value">Directed Acyclic Graph (DAG)</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Has Sources:</span>
-                  <span class="property-value">{{ getSourceNodes().length > 0 ? 'Yes' : 'No' }}</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Has Sinks:</span>
-                  <span class="property-value">{{ getSinkNodes().length > 0 ? 'Yes' : 'No' }}</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Has Parallelism:</span>
-                  <span class="property-value">{{ (getForkNodes().length > 0 || getJoinNodes().length > 0) ? 'Yes' : 'No' }}</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Node Mapping:</span>
-                  <span class="property-value">{{ componentData()?.structure?.hasNodeMapping ? 'Available' : 'Not Available' }}</span>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-  }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
 </div>

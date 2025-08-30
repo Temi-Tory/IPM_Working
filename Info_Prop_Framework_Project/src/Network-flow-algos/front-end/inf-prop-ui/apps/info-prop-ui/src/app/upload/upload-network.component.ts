@@ -1,428 +1,316 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormsModule } from '@angular/forms';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTableModule } from '@angular/material/table';
+import { MatSelectModule } from '@angular/material/select';
 
-import { 
-  DetectedNetworkStructure, 
-  AnalysisConfiguration, 
-  NetworkAnalysisRequest,
-  UploadProgress,
-  DataType,
-  ValidationResult
-} from '../shared/models/network-analysis.models';
-import { NetworkValidationService } from '../shared/services/network-validation.service';
-import { NetworkSessionService } from '../shared/services/network-session.service';
-import { NetworkBackendService } from '../shared/services/network-backend.service';
 import { AnalysisStateService } from '../shared/services/analysis-state.service';
+import { NetworkBackendService } from '../shared/services/network-backend.service';
+import { NetworkValidationService, ValidationResult } from '../shared/services/network-validation.service';
+import { NetworkSessionService } from '../shared/services/network-session.service';
+import { FileCategorizationService, NetworkFolder, CategorizedFile } from '../shared/services/file-categorization.service';
+import { AnalysisRequest, UploadResponse } from '../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-upload-network',
+  standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
+    ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule,
-    MatSelectModule,
+    MatInputModule,
+    MatFormFieldModule,
     MatProgressBarModule,
-    MatDividerModule,
+    MatSnackBarModule,
+    MatCheckboxModule,
+    MatStepperModule,
+    MatTabsModule,
     MatChipsModule,
-    MatSnackBarModule
+    MatExpansionModule,
+    MatTableModule,
+    MatSelectModule
   ],
   templateUrl: './upload-network.component.html',
-  styleUrl: './upload-network.component.scss'
+  styleUrls: ['./upload-network.component.scss']
 })
-export class UploadNetworkComponent {
-  // Signals for reactive state management
-  detectedStructure = signal<DetectedNetworkStructure | null>(null);
-  analysisConfig = signal<AnalysisConfiguration>({
-    basicStructure: true,
-    diamondAnalysis: true,
-    exactInference: false,
-    flowAnalysis: false,
-    criticalPathAnalysis: false,
-    nodeVisualization: true, // Always true - we'll use mapping if available
-    inferenceDataType: 'float',
-    selectedInferenceTypes: [],
-    compareResults: false,
-    criticalPathOptions: {
-      enableTime: true,
-      enableCost: true
-    }
-  });
+export class UploadNetworkComponent implements OnInit {
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('folderInput') folderInput!: ElementRef<HTMLInputElement>;
 
-  // Multi-type selection state
-  selectedTypes = signal<{[key in DataType]: boolean}>({
-    float: false,
-    pbox: false,
-    interval: false
-  });
-  uploadProgress = signal<UploadProgress>({
-    uploading: false,
-    progress: 0,
-    message: ''
-  });
+  private router = inject(Router);
+  private formBuilder = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
+  private analysisState = inject(AnalysisStateService);
+  private networkBackend = inject(NetworkBackendService);
+  private validationService = inject(NetworkValidationService);
+  private sessionService = inject(NetworkSessionService);
+  private fileCategorizationService = inject(FileCategorizationService);
 
-  isDragOver = signal(false);
-  isValidating = signal(false);
+  analysisConfigForm: FormGroup;
+  
+  isAnalyzing = false;
+  isProcessingFiles = false;
+  
+  categorizedNetworks: NetworkFolder[] = [];
+  selectedNetwork: NetworkFolder | null = null;
+  private originalFiles: FileList | null = null;
+  private normalizedPathMap: Map<string, string> = new Map(); // Map original paths to normalized paths
+  fileDisplayColumns = ['file', 'category', 'scenario', 'confidence'];
 
-  constructor(
-    private validationService: NetworkValidationService,
-    public sessionService: NetworkSessionService, // Make public for template access
-    private snackBar: MatSnackBar,
-    private backendService: NetworkBackendService,
-    private analysisStateService: AnalysisStateService
-  ) {
-    // Disable session loading for now - require fresh uploads
-    // this.loadExistingSession();
+  constructor() {
+    this.analysisConfigForm = this.formBuilder.group({
+      exactInference: [true],
+      diamondAnalysis: [true],
+      flowAnalysis: [false],
+      criticalPath: [false]
+    });
   }
 
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(true);
+  ngOnInit(): void {
+    // Component initialization
   }
 
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
+  get folderStructureGuide(): string {
+    return this.fileCategorizationService.getRecommendedFolderStructure();
   }
 
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
-
-    const items = event.dataTransfer?.items;
-    if (items) {
-      this.handleDroppedItems(items);
-    }
-  }
-
-  onFileSelect(event: Event) {
+  async onFolderSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const files = input.files;
-    if (files && files.length > 0) {
-      this.handleSelectedFiles(files);
+    if (!input.files || input.files.length === 0) return;
+
+    this.isProcessingFiles = true;
+    try {
+      // Use the new normalization method
+      const { networks, normalizedFiles, pathMap } = await this.fileCategorizationService.normalizeAndCategorizeFiles(input.files);
+      
+      // Store normalized files for upload instead of original files
+      this.originalFiles = this.createFileList(normalizedFiles);
+      this.categorizedNetworks = networks;
+      this.normalizedPathMap = pathMap;
+      
+      if (this.categorizedNetworks.length === 0) {
+        this.snackBar.open('No valid network files found', 'Close', { duration: 5000 });
+      } else if (this.categorizedNetworks.length === 1) {
+        this.selectedNetwork = this.categorizedNetworks[0];
+        this.snackBar.open(`Network "${this.selectedNetwork.name}" detected and normalized`, 'Close', { duration: 3000 });
+      } else {
+        this.snackBar.open(`${this.categorizedNetworks.length} networks detected. Please select one.`, 'Close', { duration: 3000 });
+      }
+      
+    } catch (error) {
+      this.snackBar.open('Error processing files', 'Close', { duration: 5000 });
+    } finally {
+      this.isProcessingFiles = false;
     }
   }
 
-  private async handleDroppedItems(items: DataTransferItemList) {
-    this.isValidating.set(true);
-    
-    try {
-      const files: File[] = [];
-      
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.kind === 'file') {
-          const file = item.getAsFile();
-          if (file) files.push(file);
+  private createFileList(files: File[]): FileList {
+    // Create a FileList-like object from an array of Files
+    const fileList = {
+      length: files.length,
+      item: (index: number) => files[index] || null,
+      [Symbol.iterator]: function* () {
+        for (const file of files) {
+          yield file;
         }
       }
-      
-      if (files.length === 0) {
-        this.snackBar.open('No files detected. Please try again.', 'Close', { duration: 3000 });
-        return;
-      }
-
-      await this.validateNetworkFiles(files);
-    } catch (error) {
-      this.snackBar.open('Error processing files: ' + error, 'Close', { duration: 5000 });
-    } finally {
-      this.isValidating.set(false);
-    }
-  }
-
-  private async handleSelectedFiles(files: FileList) {
-    this.isValidating.set(true);
-    
-    try {
-      const fileArray = Array.from(files);
-      await this.validateNetworkFiles(fileArray);
-    } catch (error) {
-      this.snackBar.open('Error processing files: ' + error, 'Close', { duration: 5000 });
-    } finally {
-      this.isValidating.set(false);
-    }
-  }
-
-  private async validateNetworkFiles(files: File[]) {
-    const result = await this.validationService.validateNetworkStructure(files);
-    
-    if (result.isValid && result.structure) {
-      this.detectedStructure.set(result.structure);
-      this.updateAnalysisConfigBasedOnStructure(result.structure);
-      this.snackBar.open(`Network "${result.networkName}" detected successfully!`, 'Close', { duration: 3000 });
-    } else {
-      this.snackBar.open(`Validation failed: ${result.errors.join(', ')}`, 'Close', { duration: 5000 });
-    }
-  }
-
-  private updateAnalysisConfigBasedOnStructure(structure: DetectedNetworkStructure) {
-    const config = this.analysisConfig();
-    
-    // Update available options based on detected files
-    const updatedConfig: AnalysisConfiguration = {
-      ...config,
-      basicStructure: structure.hasEdgesFile,
-      diamondAnalysis: structure.hasEdgesFile,
-      exactInference: false, // Let user choose
-      flowAnalysis: false,   // Let user choose
-      criticalPathAnalysis: false, // Let user choose
-      nodeVisualization: true, // Always true - use mapping if available
-      inferenceDataType: structure.availableDataTypes[0] || 'float',
-      selectedInferenceTypes: [],
-      compareResults: false
     };
-
-    this.analysisConfig.set(updatedConfig);
     
-    // Reset selected types based on available types
-    const newSelectedTypes: {[key in DataType]: boolean} = {
-      float: false,
-      pbox: false,
-      interval: false
-    };
-    this.selectedTypes.set(newSelectedTypes);
-  }
-
-  updateAnalysisConfig(updates: Partial<AnalysisConfiguration>) {
-    this.analysisConfig.update(config => ({ ...config, ...updates }));
-  }
-
-  updateSelectedTypes(type: DataType, selected: boolean) {
-    this.selectedTypes.update(types => ({ ...types, [type]: selected }));
+    // Add indexed properties
+    files.forEach((file, index) => {
+      (fileList as any)[index] = file;
+    });
     
-    // Update analysis config with selected types
-    const selectedTypesList = Object.entries(this.selectedTypes())
-      .filter(([_, isSelected]) => isSelected)
-      .map(([type, _]) => type as DataType);
+    return fileList as FileList;
+  }
+
+  selectNetwork(network: NetworkFolder): void {
+    this.selectedNetwork = network;
+    this.snackBar.open(`Selected network: ${network.name}`, 'Close', { duration: 2000 });
+  }
+
+
+  hasAnalysisSelected(): boolean {
+    const config = this.analysisConfigForm.value;
+    return config.exactInference || config.diamondAnalysis || 
+           config.flowAnalysis || config.criticalPath;
+  }
+
+  getNetworkSummary(network: NetworkFolder): string {
+    const parts = [];
+    if (network.edgesFile) parts.push('Structure');
     
-    this.analysisConfig.update(config => ({
-      ...config,
-      selectedInferenceTypes: selectedTypesList,
-      // If only one type selected, also set as primary type for backward compatibility
-      inferenceDataType: selectedTypesList.length === 1 ? selectedTypesList[0] : config.inferenceDataType
-    }));
-  }
-
-  updateCompareResults(compare: boolean) {
-    this.analysisConfig.update(config => ({ ...config, compareResults: compare }));
-  }
-
-  getSelectedTypesCount(): number {
-    return Object.values(this.selectedTypes()).filter(Boolean).length;
-  }
-
-  hasMultipleTypesSelected(): boolean {
-    return this.getSelectedTypesCount() > 1;
-  }
-
-  updateCriticalPathOption(option: 'enableTime' | 'enableCost', value: boolean) {
-    const config = this.analysisConfig();
-    const currentOptions = config.criticalPathOptions || { enableTime: true, enableCost: true };
-    const updatedOptions = {
-      ...currentOptions,
-      [option]: value
-    };
-    this.analysisConfig.update(c => ({ 
-      ...c, 
-      criticalPathOptions: updatedOptions 
-    }));
-  }
-
-  onBrowseClick() {
-    const input = document.getElementById('fileInput') as HTMLInputElement;
-    input?.click();
-  }
-
-  private loadExistingSession() {
-    if (this.sessionService.hasActiveSession()) {
-      const session = this.sessionService.getCurrentNetwork();
-      if (session) {
-        // Restore structure and config from session
-        this.detectedStructure.set(session.structure);
-        this.analysisConfig.set(session.analysisConfig);
-        
-        this.snackBar.open(`Restored session: ${session.networkName}`, 'Close', { 
-          duration: 3000 
-        });
-      }
-    }
-  }
-
-  canEnableInference(): boolean {
-    const structure = this.detectedStructure();
-    return !!(structure?.availableDataTypes.length);
-  }
-
-  canEnableFlowAnalysis(): boolean {
-    const structure = this.detectedStructure();
-    return !!(structure?.hasCapacityData);
-  }
-
-  canEnableCriticalPath(): boolean {
-    const structure = this.detectedStructure();
-    return !!(structure?.hasCPMData);
-  }
-
-  hasValidFilesForAnalysis(): boolean {
-    const structure = this.detectedStructure();
-    return !!(structure?.detectedFiles.edges?.file);
-  }
-
-
-  async uploadNetwork() {
-    const structure = this.detectedStructure();
-    const config = this.analysisConfig();
+    const reachScenarios = Object.keys(network.reachabilityScenarios).length;
+    if (reachScenarios > 0) parts.push(`${reachScenarios} Reachability`);
     
-    if (!structure) {
-      this.snackBar.open('No network detected. Please upload files first.', 'Close', { duration: 3000 });
-      return;
+    const capScenarios = Object.keys(network.capacityScenarios).length;
+    if (capScenarios > 0) parts.push(`${capScenarios} Capacity`);
+    
+    const cpmScenarios = Object.keys(network.cpmScenarios).length;
+    if (cpmScenarios > 0) parts.push(`${cpmScenarios} CPM`);
+    
+    return parts.join(' • ') || 'No scenarios';
+  }
+
+  getAllFiles(network: NetworkFolder): CategorizedFile[] {
+    const files: CategorizedFile[] = [];
+    
+    if (network.edgesFile) files.push(network.edgesFile);
+    
+    Object.values(network.reachabilityScenarios).forEach(scenario => {
+      if (scenario.nodepriors) files.push(scenario.nodepriors);
+      if (scenario.linkprobs) files.push(scenario.linkprobs);
+    });
+    
+    Object.values(network.capacityScenarios).forEach(scenario => {
+      if (scenario.capacities) files.push(scenario.capacities);
+    });
+    
+    Object.values(network.cpmScenarios).forEach(scenario => {
+      if (scenario.cpm) files.push(scenario.cpm);
+    });
+    
+    files.push(...network.unknownFiles);
+    
+    return files;
+  }
+
+  canProceed(): boolean {
+    return this.selectedNetwork !== null && !!this.selectedNetwork.edgesFile;
+  }
+
+  private async uploadNetworkFiles(): Promise<UploadResponse> {
+    if (!this.originalFiles) {
+      throw new Error('No files selected for upload');
     }
 
-    // Check if this is a restored session without actual file objects
-    if (!structure.detectedFiles.edges?.file) {
-      this.snackBar.open('Files are no longer available in memory. Please upload the network files again.', 'Close', { 
-        duration: 5000 
-      });
-      return;
-    }
-
-    try {
-      this.uploadProgress.update(p => ({ ...p, uploading: true, progress: 0, message: 'Preparing upload...' }));
-
-      const request = await this.buildAnalysisRequest(structure, config);
-      
-      // Disabled session storage for now - keep it simple
-      // this.sessionService.saveNetworkSession(structure, config, request.files);
-      
-      this.uploadProgress.update(p => ({ ...p, progress: 20, message: 'Uploading to backend...' }));
-      
-      // Send to backend API
-      this.backendService.uploadAndAnalyzeNetwork(request).subscribe({
+    return new Promise((resolve, reject) => {
+      this.networkBackend.uploadNetworkFiles(this.originalFiles!).subscribe({
         next: (response) => {
-          this.uploadProgress.update(p => ({ ...p, progress: 100, message: 'Analysis complete!' }));
-          
-          // Update analysis state service with results
-          this.analysisStateService.updateAnalysisResults(structure, config, response);
-          
-          // Disabled session storage for now - keep it simple
-          // this.sessionService.saveAnalysisResults(response);
-          
-          this.snackBar.open(`Network "${structure.networkName}" analyzed successfully!`, 'Close', { duration: 3000 });
-          
-          // Log results for debugging
-          console.log('Backend Analysis Results:', response);
-          console.log('Analysis State Updated:', this.analysisStateService.getStateInfo());
-          
-          // TODO: Navigate to network structure view to show results
-          
+          resolve(response);
         },
-        error: (error: any) => {
-          this.uploadProgress.update(p => ({ 
-            ...p, 
-            error: error.error || 'Analysis failed', 
-            uploading: false,
-            progress: 0,
-            message: 'Analysis failed'
-          }));
-          this.snackBar.open('Analysis failed: ' + (error.error || error.message), 'Close', { duration: 5000 });
-          console.error('Backend error:', error);
+        error: (error) => {
+          reject(error);
         }
       });
-      
-    } catch (error) {
-      this.uploadProgress.update(p => ({ ...p, error: error as string, uploading: false }));
-      this.snackBar.open('Upload failed: ' + error, 'Close', { duration: 5000 });
-    }
+    });
   }
 
-  private async buildAnalysisRequest(
-    structure: DetectedNetworkStructure, 
-    config: AnalysisConfiguration
-  ): Promise<NetworkAnalysisRequest> {
-    
-    const request: NetworkAnalysisRequest = {
-      networkName: structure.networkName,
-      files: {
-        edges: structure.detectedFiles.edges!.file
+  startAnalysis(): void {
+    if (!this.hasAnalysisSelected()) {
+      this.snackBar.open('Please select at least one analysis type', 'Close', { duration: 3000 });
+      return;
+    }
+
+    if (!this.selectedNetwork || !this.selectedNetwork.edgesFile) {
+      this.snackBar.open('Please select a valid network with structure file', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isAnalyzing = true;
+    this.snackBar.open('Uploading network files...', 'Close', { duration: 2000 });
+
+    // Step 1: Upload all files to backend
+    this.uploadNetworkFiles()
+      .then(uploadResponse => {
+        if (uploadResponse.success && uploadResponse.network_path) {
+          // Step 2: Use uploaded files path for analysis
+          const request: AnalysisRequest = {
+            networkPath: uploadResponse.network_path,
+            reachabilityScenarios: this.buildReachabilityScenarios(),
+            capacityScenarios: this.buildCapacityScenarios(),
+            cpmScenarios: this.buildCpmScenarios(),
+            analysisConfig: this.analysisConfigForm.value
+          };
+
+          this.snackBar.open('Files uploaded, starting analysis...', 'Close', { duration: 2000 });
+          this.executeAnalysis(request);
+        } else {
+          throw new Error(uploadResponse.message || 'Upload failed');
+        }
+      })
+      .catch(error => {
+        console.error('File upload failed:', error);
+        this.snackBar.open(`Upload failed: ${error.message}`, 'Close', { duration: 5000 });
+        this.isAnalyzing = false;
+      });
+  }
+
+
+  private buildReachabilityScenarios(): any[] {
+    if (!this.selectedNetwork) return [];
+
+    return Object.entries(this.selectedNetwork.reachabilityScenarios)
+      .filter(([_, scenario]) => scenario.nodepriors && scenario.linkprobs)
+      .map(([name, scenario]) => ({
+        name: name,
+        nodepriors_path: this.normalizedPathMap.get(scenario.nodepriors?.relativePath || '') || '',
+        linkprobs_path: this.normalizedPathMap.get(scenario.linkprobs?.relativePath || '') || ''
+      }));
+  }
+
+  private buildCapacityScenarios(): any[] {
+    if (!this.selectedNetwork) return [];
+
+    return Object.entries(this.selectedNetwork.capacityScenarios)
+      .filter(([_, scenario]) => scenario.capacities)
+      .map(([name, scenario]) => ({
+        name: name,
+        capacities_path: this.normalizedPathMap.get(scenario.capacities?.relativePath || '') || ''
+      }));
+  }
+
+  private buildCpmScenarios(): any[] {
+    if (!this.selectedNetwork) return [];
+
+    return Object.entries(this.selectedNetwork.cpmScenarios)
+      .filter(([_, scenario]) => scenario.cpm)
+      .map(([name, scenario]) => ({
+        name: name,
+        cpm_path: this.normalizedPathMap.get(scenario.cpm?.relativePath || '') || ''
+      }));
+  }
+
+  private executeAnalysis(request: AnalysisRequest): void {
+    const session = this.sessionService.createNewSession(request.networkPath);
+    this.analysisState.setCurrentNetworkPath(request.networkPath);
+
+    this.analysisState.runAnalysis(request).subscribe({
+      next: (response) => {
+        console.log('Analysis response received:', response);
+        console.log('Response.results:', response.results);
+        console.log('Available keys in response.results:', Object.keys(response.results || {}));
+        
+        this.isAnalyzing = false;
+        this.analysisState.markTabCompleted('upload');
+        
+        this.sessionService.updateSession({
+          analysisResults: response,
+          networkData: response.results.network_structure
+        });
+        
+        this.snackBar.open('Analysis completed successfully!', 'Close', { duration: 3000 });
+        this.router.navigate(['/structure']);
       },
-      analysesToRun: config
-    };
-
-    // Add optional files based on availability (always include if available)
-    if (structure.detectedFiles.nodeMapping) {
-      request.files.nodeMapping = structure.detectedFiles.nodeMapping.file;
-    }
-
-    if (config.exactInference && config.inferenceDataType && structure.detectedFiles.inference?.[config.inferenceDataType]) {
-      const inferenceFiles = structure.detectedFiles.inference[config.inferenceDataType];
-      if (inferenceFiles?.nodepriors && inferenceFiles?.linkprobabilities) {
-        request.files.inference = {
-          dataType: config.inferenceDataType,
-          nodepriors: inferenceFiles.nodepriors.file,
-          linkprobabilities: inferenceFiles.linkprobabilities.file
-        };
-      }
-    }
-
-    if (config.flowAnalysis && structure.detectedFiles.capacity) {
-      request.files.capacity = {
-        capacities: structure.detectedFiles.capacity.file
-      };
-    }
-
-    if (config.criticalPathAnalysis && structure.detectedFiles.criticalPath && config.criticalPathOptions) {
-      request.files.criticalPath = {
-        enableTime: config.criticalPathOptions.enableTime,
-        enableCost: config.criticalPathOptions.enableCost,
-        cpmInputs: structure.detectedFiles.criticalPath.file
-      };
-    }
-
-    return request;
-  }
-
-  resetUpload() {
-    // Disabled session storage for now - keep it simple
-    // this.sessionService.clearSession();
-    
-    // Clear analysis state
-    this.analysisStateService.clearAnalysisState();
-    
-    this.detectedStructure.set(null);
-    this.analysisConfig.set({
-      basicStructure: true,
-      diamondAnalysis: true,
-      exactInference: false,
-      flowAnalysis: false,
-      criticalPathAnalysis: false,
-      nodeVisualization: true, // Always true
-      inferenceDataType: 'float',
-      criticalPathOptions: {
-        enableTime: true,
-        enableCost: true
+      error: (error) => {
+        this.isAnalyzing = false;
+        this.snackBar.open(`Analysis failed: ${error.message}`, 'Close', { duration: 5000 });
       }
     });
-    this.uploadProgress.set({
-      uploading: false,
-      progress: 0,
-      message: ''
-    });
-    
-    this.snackBar.open('Upload cleared', 'Close', { duration: 2000 });
   }
 }

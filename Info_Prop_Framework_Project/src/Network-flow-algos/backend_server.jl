@@ -4,13 +4,47 @@
 
 using HTTP, JSON
 using Dates, UUIDs
+using ProbabilityBoundsAnalysis
 
 # Include the IPAFramework module
 include("src/IPAFramework.jl")
 using .IPAFramework
 
+# Import types for type checking
+const pbox = ProbabilityBoundsAnalysis.pbox
+const Interval = IPAFramework.Interval
+
 const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
+
+function pbox_to_dict(pbox::ProbabilityBoundsAnalysis.pbox)
+    """Convert a Pbox object to a JSON-serializable dictionary"""
+    return Dict(
+        "left_bounds" => pbox.u,
+        "right_bounds" => pbox.d,
+        "discretization_size" => pbox.n,
+        "mean_lower" => pbox.ml,
+        "mean_upper" => pbox.mh,
+        "var_lower" => pbox.vl,
+        "var_upper" => pbox.vh,
+        "shape" => string(pbox.shape),
+        "name" => pbox.name,
+        "bounded" => pbox.bounded
+    )
+end
+
+function convert_pbox_values(obj)
+    """Recursively convert any Pbox objects in a data structure to dictionaries"""
+    if isa(obj, ProbabilityBoundsAnalysis.pbox)
+        return pbox_to_dict(obj)
+    elseif isa(obj, Dict)
+        return Dict(k => convert_pbox_values(v) for (k, v) in obj)
+    elseif isa(obj, Array)
+        return [convert_pbox_values(item) for item in obj]
+    else
+        return obj
+    end
+end
 
 function setup_server()
     # Create upload directory if it doesn't exist
@@ -230,7 +264,18 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
                 # Convert beliefs to serializable format
                 beliefs_dict = Dict()
                 for (node, belief) in output
-                    beliefs_dict[string(node)] = Float64(belief)
+                    beliefs_dict[string(node)] = belief  # Don't force convert - let convert_pbox_values handle it
+                end
+                
+                # Calculate statistics only for Float64 values (skip pbox and interval objects)
+                numeric_beliefs = []
+                for belief in values(output)
+                    if isa(belief, Float64)
+                        push!(numeric_beliefs, belief)
+                    elseif isa(belief, Real) && !isa(belief, pbox) && !isa(belief, Interval)
+                        # Convert other real numbers (Int, etc.) but not pbox or Interval
+                        push!(numeric_beliefs, Float64(belief))
+                    end
                 end
                 
                 scenario_results["exact_inference"] = Dict(
@@ -238,9 +283,11 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
                     "computation_time" => inference_computation_time,
                     "total_nodes_processed" => length(output),
                     "belief_statistics" => Dict(
-                        "mean" => length(output) > 0 ? sum(values(output)) / length(output) : 0.0,
-                        "min" => length(output) > 0 ? minimum(values(output)) : 0.0,
-                        "max" => length(output) > 0 ? maximum(values(output)) : 0.0
+                        "mean" => length(numeric_beliefs) > 0 ? sum(numeric_beliefs) / length(numeric_beliefs) : 0.0,
+                        "min" => length(numeric_beliefs) > 0 ? minimum(numeric_beliefs) : 0.0,
+                        "max" => length(numeric_beliefs) > 0 ? maximum(numeric_beliefs) : 0.0,
+                        "numeric_count" => length(numeric_beliefs),
+                        "total_count" => length(output)
                     )
                 )
             end
@@ -415,7 +462,7 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
             cpm_start_time = time()
             
             # Load CPM data
-            cmp_data = JSON.parsefile(full_cpm_path)
+            cpm_data = JSON.parsefile(full_cpm_path)
             time_analysis = cpm_data["time_analysis"]
             cost_analysis = cpm_data["cost_analysis"]
             
@@ -489,7 +536,7 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
             )
             
             results["cpm_scenarios"][scenario_name] = scenario_results
-            println("    CPM scenario $scenario_name complete: $(round(cmp_computation_time, digits=4)) seconds")
+            println("    CPM scenario $scenario_name complete: $(round(cpm_computation_time, digits=4)) seconds")
         end
     end
     
@@ -507,7 +554,7 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
         "total_computation_time" => total_time,
         "reachability_scenarios_count" => length(get(results, "reachability_scenarios", Dict())),
         "capacity_scenarios_count" => length(get(results, "capacity_scenarios", Dict())),
-        "cpm_scenarios_count" => length(get(results, "cmp_scenarios", Dict())),
+        "cpm_scenarios_count" => length(get(results, "cpm_scenarios", Dict())),
         "timestamp" => Dates.now()
     )
     
@@ -517,62 +564,339 @@ function run_conditional_network_analysis(request_data::Dict, temp_dir::String)
 end
 
 function process_network_analysis_with_config(network_path::String, network_name::String, analysis_config::Dict)
-    try
-        # Create request data format expected by run_conditional_network_analysis
-        request_data = merge(analysis_config, Dict("networkPath" => network_path))
+    # Create request data format expected by run_conditional_network_analysis
+    request_data = merge(analysis_config, Dict("networkPath" => network_path))
+    
+    # Run the flexible multi-scenario analysis
+    analysis_results = run_conditional_network_analysis(request_data, "")
+    
+    return Dict(
+        "success" => true,
+        "network_name" => network_name,
+        "timestamp" => Dates.now(),
+        "analysis_config" => analysis_config,
+        "results" => analysis_results
+    )
+end
+
+function parse_multipart_data(body_str::String, boundary::String, upload_path::String)
+    """Parse multipart/form-data and save files to upload directory"""
+    uploaded_files = String[]
+    
+    # Split by boundary
+    parts = split(body_str, "--" * boundary)
+    
+    for part in parts
+        part = strip(part)
+        if isempty(part) || part == "--" continue end
         
-        # Run the flexible multi-scenario analysis
-        analysis_results = run_conditional_network_analysis(request_data, "")
+        # Split headers from content
+        header_end = findfirst("\r\n\r\n", part)
+        if header_end === nothing
+            header_end = findfirst("\n\n", part)
+            if header_end === nothing continue end
+        end
         
-        return Dict(
-            "success" => true,
-            "network_name" => network_name,
-            "timestamp" => Dates.now(),
-            "analysis_config" => analysis_config,
-            "results" => analysis_results
+        headers = part[1:header_end[1]-1]
+        content = part[header_end[end]+1:end]
+        
+        # Extract filename from Content-Disposition header
+        filename_pattern = r"filename=\"([^\"]+)\""
+        filename_match = match(filename_pattern, headers)
+        if filename_match === nothing continue end
+        
+        filename = filename_match.captures[1]
+        
+        # Skip empty files
+        if isempty(strip(content)) continue end
+        
+        # Clean up content (remove trailing boundary markers)
+        content = rstrip(content, ['\r', '\n', '-'])
+        
+        # Save file to upload directory
+        file_path = joinpath(upload_path, filename)
+        
+        # Create subdirectories if needed
+        file_dir = dirname(file_path)
+        if file_dir != upload_path
+            mkpath(file_dir)
+        end
+        
+        # Write file
+        open(file_path, "w") do io
+            write(io, content)
+        end
+        
+        push!(uploaded_files, filename)
+        println("Saved uploaded file: $filename ($(length(content)) bytes)")
+    end
+    
+    return uploaded_files
+end
+
+function organize_uploaded_files(upload_path::String, uploaded_files::Vector{String})
+    """Organize uploaded files and detect network structure"""
+    
+    # Find .EDGES files (these define networks)
+    edges_files = filter(f -> endswith(f, ".EDGES"), uploaded_files)
+    
+    if isempty(edges_files)
+        return nothing
+    end
+    
+    # Use the first .EDGES file to determine network name
+    edges_file = edges_files[1]
+    # Extract just the filename without directory path and extension
+    network_name = basename(replace(edges_file, ".EDGES" => ""))
+    
+    # Create network directory structure
+    network_path = joinpath(upload_path, network_name)
+    mkpath(network_path)
+    
+    # Move and organize files
+    organized_files = String[]
+    
+    for filename in uploaded_files
+        original_path = joinpath(upload_path, filename)
+        
+        # Determine target location based on file type and structure
+        target_path = determine_file_location(network_path, filename, network_name)
+        
+        # Create target directory if needed
+        target_dir = dirname(target_path)
+        if target_dir != network_path
+            mkpath(target_dir)
+        end
+        
+        # Move file to organized location (only if paths are different)
+        if original_path != target_path && isfile(original_path) && !isfile(target_path)
+            mv(original_path, target_path, force=true)
+        elseif original_path == target_path
+            # File is already in the correct location - no move needed
+            println("File already correctly positioned: $filename")
+        end
+        
+        push!(organized_files, target_path)
+    end
+    
+    # Validate network structure
+    is_valid, message = validate_network_structure(network_path)
+    
+    return Dict(
+        "network_name" => network_name,
+        "network_path" => network_path,
+        "organized_files" => organized_files,
+        "validation" => Dict(
+            "is_valid" => is_valid,
+            "message" => message
         )
-        
-    catch e
-        return Dict(
-            "success" => false,
-            "error" => string(e),
-            "timestamp" => Dates.now(),
-            "network_name" => network_name
-        )
+    )
+end
+
+function determine_file_location(network_path::String, filename::String, network_name::String)
+    """Determine where to place an uploaded file based on its name and type"""
+    
+    # Main network file goes to root
+    if endswith(filename, ".EDGES") && contains(filename, network_name)
+        return joinpath(network_path, basename(filename))
+    end
+    
+    # Scenario files go to appropriate subdirectories
+    if contains(filename, "nodepriors") || contains(filename, "linkprob")
+        if contains(filename, "float")
+            return joinpath(network_path, "float", basename(filename))
+        elseif contains(filename, "pbox")
+            return joinpath(network_path, "pbox", basename(filename))
+        elseif contains(filename, "interval")
+            return joinpath(network_path, "interval", basename(filename))
+        else
+            return joinpath(network_path, "float", basename(filename))  # Default to float
+        end
+    elseif contains(filename, "capacities")
+        return joinpath(network_path, "capacity", basename(filename))
+    elseif contains(filename, "cpm")
+        return joinpath(network_path, "cpm", basename(filename))
+    else
+        # Unknown files go to root
+        return joinpath(network_path, filename)
     end
 end
 
 # HTTP request handlers
 function handle_upload(req::HTTP.Request)
+    # Define CORS headers outside try block for catch access
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
     try
-        # Handle file upload logic here
-        # This is a placeholder - implement based on your upload requirements
-        return HTTP.Response(200, JSON.json(Dict("message" => "Upload endpoint ready")))
+        # Generate unique upload session ID
+        upload_id = string(uuid4())
+        upload_path = joinpath(UPLOAD_DIR, upload_id)
+        
+        # Create upload directory
+        mkpath(upload_path)
+        
+        # Parse multipart form data
+        content_type = HTTP.header(req, "Content-Type")
+        if !startswith(content_type, "multipart/form-data")
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Expected multipart/form-data"
+            )))
+        end
+        
+        # Extract boundary from content-type
+        boundary_match = match(r"boundary=([^;]+)", content_type)
+        if boundary_match === nothing
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Missing boundary in multipart data"
+            )))
+        end
+        
+        boundary = String(boundary_match.captures[1])
+        body_str = String(req.body)
+        
+        # Parse multipart data
+        uploaded_files = parse_multipart_data(body_str, boundary, upload_path)
+        
+        if isempty(uploaded_files)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "No files uploaded"
+            )))
+        end
+        
+        # Detect network structure and organize files
+        network_info = organize_uploaded_files(upload_path, uploaded_files)
+        
+        if network_info === nothing
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "No valid network structure found. Please upload .EDGES files and associated scenario files."
+            )))
+        end
+        
+        println("Upload successful: $(length(uploaded_files)) files uploaded to $upload_path")
+        println("Network detected: $(network_info["network_name"])")
+        println("Network path: $(network_info["network_path"])")
+        
+        headers = [
+            "Access-Control-Allow-Origin" => "*",
+            "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+            "Content-Type" => "application/json"
+        ]
+        
+        response_data = Dict(
+            "success" => true,
+            "message" => "Files uploaded successfully",
+            "network_path" => network_info["network_path"],
+            "upload_id" => upload_id,
+            "files_count" => length(uploaded_files),
+            "network_name" => network_info["network_name"],
+            "validation_results" => network_info["validation"]
+        )
+        
+        println("Returning upload response: ", JSON.json(response_data))
+        
+        return HTTP.Response(200, headers, JSON.json(response_data))
+        
     catch e
-        return HTTP.Response(500, JSON.json(Dict("error" => string(e))))
+        println("Upload error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Upload failed due to server error"
+        )))
     end
 end
 
 function handle_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    local request_data = Dict()  # Initialize to avoid scope issues
+    
     try
         # Parse request body
         request_data = JSON.parse(String(req.body))
+        
+        println("Analysis request received:")
+        println("Request data: ", JSON.json(request_data, 2))
         
         # Extract network path and analysis config
         network_path = get(request_data, "networkPath", "")
         network_name = basename(network_path)
         
         # Process the analysis
-        result = process_network_analysis_with_config(network_path, network_name, request_data)
+        println("Starting analysis processing...")
+        analysis_results = process_network_analysis_with_config(network_path, network_name, request_data)
+        println("Analysis completed, preparing response...")
         
-        return HTTP.Response(200, JSON.json(result))
+        # Convert any Pbox objects to JSON-serializable format
+        println("Analysis results type: ", typeof(analysis_results))
+        println("Analysis results keys: ", keys(analysis_results))
+        println("Converting Pbox objects...")
+        converted_results = convert_pbox_values(analysis_results)
+        println("Converted results type: ", typeof(converted_results))
+        println("Pbox objects converted to JSON format...")
+        
+        # Wrap results in the expected structure
+        result = Dict(
+            "success" => true,
+            "results" => converted_results,
+            "message" => "Analysis completed successfully"
+        )
+        
+        println("Attempting JSON serialization...")
+        # Try to serialize the result to catch any JSON issues
+        local response_json
+        try
+            response_json = JSON.json(result)
+            println("Response JSON prepared successfully, sending to client...")
+        catch e
+            println("JSON serialization error: ", e)
+            # Try to identify problematic objects
+            for (key, value) in converted_results
+                try
+                    JSON.json(value)
+                    println("✓ Key '$key' serializes OK")
+                catch err
+                    println("✗ Key '$key' failed serialization: $err")
+                end
+            end
+            rethrow(e)
+        end
+        
+        return HTTP.Response(200, cors_headers, response_json)
     catch e
+        println("OUTER CATCH: Exception occurred: ", e)
+        println("OUTER CATCH: Exception type: ", typeof(e))
+        
+        # Safe access to request_data for error response
+        network_name = "unknown"
+        try
+            network_name = get(request_data, "networkPath", "unknown") |> basename
+        catch
+            # If request_data access fails, use default
+        end
+        
         error_response = Dict(
             "success" => false,
             "error" => string(e),
+            "network_name" => network_name,
             "timestamp" => Dates.now()
         )
-        return HTTP.Response(500, JSON.json(error_response))
+        return HTTP.Response(500, cors_headers, JSON.json(error_response))
     end
 end
 
@@ -605,7 +929,12 @@ function start_server()
     HTTP.register!(router, "POST", "/analyze", handle_analysis)
     
     # Health check
-    HTTP.register!(router, "GET", "/health", req -> HTTP.Response(200, JSON.json(Dict("status" => "healthy"))))
+    HTTP.register!(router, "GET", "/health", req -> HTTP.Response(200, [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ], JSON.json(Dict("status" => "healthy"))))
     
     # Start server
     println("Starting flexible multi-scenario backend server...")
@@ -616,6 +945,5 @@ end
 export start_server, run_conditional_network_analysis, process_network_analysis_with_config
 
 # Start server if run directly
-if abspath(PROGRAM_FILE) == @__FILE__
-    start_server()
-end
+ start_server()
+ 

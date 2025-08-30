@@ -1,665 +1,589 @@
 .critical-path-container {
-  padding: 24px;
+  padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 
-  // Header Section
-  .analysis-header {
-    margin-bottom: 32px;
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
 
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 24px;
+.error-message, .no-data {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
 
-      .header-info {
-        h1 {
-          font-size: 2rem;
-          font-weight: 300;
-          margin: 0 0 8px 0;
-          color: #FF9800; // Orange theme primary
-        }
+  mat-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+    color: var(--error-color);
+  }
 
-        .network-name {
-          font-size: 1.1rem;
-          color: #666;
-          margin: 0;
-        }
-      }
+  &.no-data mat-icon {
+    color: var(--primary-color);
+  }
+}
 
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
+.loading-section {
+  text-align: center;
+  padding: 2rem;
+  
+  p {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+  }
+}
+
+.critical-path-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+// Header Controls
+.analysis-controls {
+  .controls-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: stretch;
     }
   }
 
-  // Loading and Error States
-  .loading-container {
+  .control-group {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px;
-    text-align: center;
+    gap: 0.5rem;
 
-    mat-spinner {
-      margin-bottom: 16px;
+    label {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9rem;
     }
 
-    p {
-      color: #666;
-      font-size: 1.1rem;
-    }
-  }
-
-  .error-card {
-    margin: 32px 0;
-
-    .error-content {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-
-      .error-icon {
-        color: #F44336;
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-      }
-
-      h3 {
-        color: #F44336;
-        margin: 0 0 8px 0;
-      }
-
-      p {
-        margin: 0;
-        color: #666;
-      }
-    }
-  }
-
-  // Visual Mode
-  .visual-mode {
-    .visual-content {
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      gap: 24px;
-      align-items: start;
-
-      @media (max-width: 1200px) {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .graph-container {
-      min-height: 600px;
-
-      .graph-placeholder {
+    mat-button-toggle-group {
+      border: 1px solid var(--border-color);
+      
+      mat-button-toggle {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        min-height: 500px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        text-align: center;
-
-        .graph-icon {
-          font-size: 64px;
-          width: 64px;
-          height: 64px;
-          color: #FF9800;
-          margin-bottom: 16px;
-        }
-
-        h3 {
-          color: #333;
-          margin: 0 0 8px 0;
-        }
-
-        p {
-          color: #666;
-          margin: 0 0 16px 0;
-        }
-
-        .graph-stats {
-          display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-          justify-content: center;
-
-          span {
-            padding: 4px 8px;
-            background: rgba(255, 152, 0, 0.1);
-            border-radius: 4px;
-            font-size: 0.9rem;
-            color: #FF9800;
-
-            &.time-stat {
-              background: rgba(255, 152, 0, 0.15);
-              color: #FF9800;
-            }
-
-            &.cost-stat {
-              background: rgba(255, 193, 7, 0.15);
-              color: #FFC107;
-            }
-
-            &.path-length {
-              background: rgba(158, 158, 158, 0.15);
-              color: #666;
-            }
-          }
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        
+        &.mat-button-toggle-checked {
+          background: var(--primary-color);
+          color: white;
         }
       }
     }
 
-    .controls-panel {
-      .control-section {
-        margin-bottom: 24px;
+    mat-select {
+      min-width: 200px;
+    }
+  }
+}
 
-        h4 {
-          font-size: 1.1rem;
-          margin: 0 0 12px 0;
-          color: #333;
-          font-weight: 500;
-        }
+// Dashboard View
+.dashboard-view {
+  .dashboard-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    
+    mat-icon[mat-card-avatar] {
+      background: var(--primary-color);
+      color: white;
+      font-size: 28px;
+    }
+  }
 
-        .highlight-buttons {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+  .tab-content {
+    padding: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+}
 
-          button {
-            justify-content: flex-start;
-            text-align: left;
+// Visual View
+.visual-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 
-            &.highlighted {
-              background: rgba(255, 152, 0, 0.1);
-              color: #FF9800;
-              border-color: #FF9800;
-            }
+  .visual-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-            &.time-path-button.highlighted {
-              background: rgba(255, 152, 0, 0.1);
-              color: #FF9800;
-              border-color: #FF9800;
-            }
+  .filters-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    
+    mat-icon[mat-card-avatar] {
+      background: var(--accent-color);
+      color: white;
+    }
 
-            &.cost-path-button.highlighted {
-              background: rgba(255, 193, 7, 0.1);
-              color: #FFC107;
-              border-color: #FFC107;
-            }
+    .filters-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      align-items: start;
+    }
 
-            &.both-paths-button.highlighted {
-              background: rgba(255, 87, 34, 0.1);
-              color: #FF5722;
-              border-color: #FF5722;
-            }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
 
-            &.optimization-button.highlighted {
-              background: rgba(76, 175, 80, 0.1);
-              color: #4CAF50;
-              border-color: #4CAF50;
-            }
-          }
-        }
+      label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+      }
 
-        .path-info {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+      .slider-value {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+      }
 
-          .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
+      .time-slider ::ng-deep .mat-slider-thumb {
+        background: #2196f3;
+      }
 
-            .info-label {
-              font-weight: 500;
-              color: #666;
-            }
-
-            .info-value {
-              font-weight: 500;
-              color: #333;
-
-              &.nodes-list {
-                max-width: 200px;
-                text-align: right;
-                word-wrap: break-word;
-                font-size: 0.9rem;
-              }
-            }
-          }
-        }
-
-        .path-analysis {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-
-          .analysis-metric {
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #FF9800;
-
-            .metric-header {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 8px;
-
-              mat-icon {
-                color: #FF9800;
-              }
-
-              span {
-                font-weight: 500;
-                color: #333;
-              }
-            }
-
-            .metric-value {
-              font-size: 1.5rem;
-              font-weight: 600;
-              color: #FF9800;
-              margin-bottom: 4px;
-            }
-
-            .metric-details {
-              display: flex;
-              flex-direction: column;
-              gap: 4px;
-
-              span {
-                font-size: 0.9rem;
-                color: #666;
-              }
-            }
-          }
-        }
-
-        .critical-nodes {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-
-          .critical-node-item {
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #eee;
-
-            .node-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 8px;
-
-              .node-id {
-                font-weight: 500;
-                color: #333;
-              }
-
-              .criticality-chip {
-                font-size: 0.8rem;
-                color: white;
-              }
-            }
-
-            .node-details {
-              display: flex;
-              gap: 16px;
-              margin-bottom: 8px;
-
-              span {
-                font-size: 0.9rem;
-                color: #666;
-
-                &.time-value {
-                  color: #FF9800;
-                }
-
-                &.cost-value {
-                  color: #FFC107;
-                }
-              }
-            }
-
-            .criticality-bar {
-              width: 100%;
-              height: 4px;
-              background: #eee;
-              border-radius: 2px;
-              overflow: hidden;
-
-              .criticality-fill {
-                height: 100%;
-                transition: width 0.3s ease;
-              }
-            }
-          }
-
-          .no-critical-nodes {
-            text-align: center;
-            padding: 24px;
-            color: #666;
-          }
-        }
+      .cost-slider ::ng-deep .mat-slider-thumb {
+        background: #4caf50;
       }
     }
   }
 
-  // Dashboard Mode
-  .dashboard-mode {
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 24px;
-      align-items: start;
+  .visualization-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    min-height: 650px;
+  }
+
+  .node-details-card {
+    background: var(--surface-color);
+    border: 2px solid var(--primary-color);
+    position: relative;
+    
+    mat-icon[mat-card-avatar] {
+      background: var(--info-color);
+      color: white;
     }
 
-    .stat-card {
-      .stat-grid {
+    .close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      color: var(--text-secondary);
+      
+      &:hover {
+        color: var(--error-color);
+      }
+    }
+
+    .node-info {
+      .node-stats {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
 
         .stat-item {
-          text-align: center;
-
-          .stat-value {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #FF9800;
-            display: block;
-          }
-
-          .stat-label {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 4px;
-          }
-        }
-      }
-    }
-
-    .path-analysis-card {
-      .path-overview {
-        text-align: center;
-
-        .gauge-container {
-          .gauge-category {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-          }
-
-          .gauge-type {
-            font-size: 1.2rem;
-            color: #666;
-            margin-bottom: 16px;
-          }
-
-          .gauge-metrics {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-
-            span {
-              font-size: 1rem;
-              color: #666;
-
-              &.time-efficiency {
-                color: #FF9800;
-              }
-
-              &.cost-efficiency {
-                color: #FFC107;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .time-analysis-card,
-    .cost-analysis-card {
-      .time-analysis,
-      .cost-analysis {
-        .time-summary,
-        .cost-summary {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-
-          .summary-stat {
-            text-align: center;
-
-            .summary-value {
-              font-size: 1.5rem;
-              font-weight: 600;
-              color: #FF9800;
-            }
-
-            .summary-label {
-              font-size: 0.9rem;
-              color: #666;
-              margin-top: 4px;
-            }
-          }
-        }
-
-        .time-nodes,
-        .cost-nodes {
-          h5 {
-            margin: 0 0 12px 0;
-            color: #333;
-          }
-
-          .node-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-
-            .time-node-item,
-            .cost-node-item {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 8px;
-              background: #f8f9fa;
-              border-radius: 4px;
-
-              .time-icon,
-              .cost-icon {
-                color: #FF9800;
-              }
-
-              .node-name {
-                flex: 1;
-                font-weight: 500;
-              }
-
-              .node-value {
-                font-weight: 600;
-                color: #FF9800;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .optimization-card {
-      .optimization-opportunities {
-        .opportunities-summary {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-bottom: 16px;
-
-          .summary-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-
-            .summary-label {
-              color: #666;
-            }
-
-            .summary-value {
-              font-weight: 600;
-              color: #333;
-            }
-          }
-        }
-
-        .top-opportunities {
-          h5 {
-            margin: 0 0 12px 0;
-            color: #333;
-          }
-
-          .opportunity-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            margin-bottom: 8px;
-
-            .opportunity-info {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              min-width: 120px;
-
-              .opportunity-node {
-                font-weight: 500;
-              }
-
-              .opportunity-type {
-                font-size: 0.8rem;
-
-                &.time-type {
-                  background: #FF9800;
-                  color: white;
-                }
-
-                &.cost-type {
-                  background: #FFC107;
-                  color: white;
-                }
-              }
-            }
-
-            .opportunity-impact-bar {
-              flex: 1;
-              height: 8px;
-              background: #eee;
-              border-radius: 4px;
-              overflow: hidden;
-
-              .impact-progress {
-                height: 100%;
-                transition: width 0.3s ease;
-
-                &.time-impact {
-                  background: #FF9800;
-                }
-
-                &.cost-impact {
-                  background: #FFC107;
-                }
-              }
-            }
-
-            .opportunity-value {
-              font-weight: 600;
-              color: #333;
-              min-width: 50px;
-              text-align: right;
-            }
-          }
-
-          .no-opportunities {
-            text-align: center;
-            padding: 24px;
-            color: #666;
-          }
-        }
-      }
-    }
-
-    .properties-card {
-      .properties-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        .property-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 0;
-          border-bottom: 1px solid #eee;
+          padding: 0.75rem;
+          background: var(--background-color);
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
 
-          .property-label {
-            font-weight: 500;
-            color: #666;
+          label {
+            font-weight: 600;
+            color: var(--text-secondary);
           }
 
-          .property-value {
-            font-weight: 500;
-            color: #333;
+          .time-value {
+            color: #2196f3;
+            font-weight: 600;
+          }
 
-            &.warning {
-              color: #F44336;
-            }
+          .cost-value {
+            color: #4caf50;
+            font-weight: 600;
+          }
+
+          .node-type {
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: capitalize;
+          }
+
+          .critical-status {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
           }
         }
       }
     }
   }
+}
 
-  // Responsive Design
-  @media (max-width: 768px) {
-    padding: 16px;
+// Summary Section (used in both views)
+.summary-section {
+  margin-bottom: 2rem;
+}
 
-    .analysis-header {
-      .header-content {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 16px;
+.critical-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
 
-        .header-actions {
-          justify-content: flex-end;
-        }
-      }
+.critical-value-card {
+  background: var(--background-color);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &.time {
+    border-left-color: #2196f3;
+  }
+
+  &.cost {
+    border-left-color: #4caf50;
+  }
+
+  .value-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 1.5rem;
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  }
+
+  .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+
+  .critical-nodes {
+    mat-chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
-    .visual-mode {
-      .visual-content {
-        grid-template-columns: 1fr;
-      }
+    mat-chip {
+      background: var(--primary-color);
+      color: white;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// Tables
+.metrics-section, .analysis-section {
+  h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+}
+
+.overview-table, .time-analysis-table, .cost-analysis-table {
+  width: 100%;
+  background: transparent;
+  
+  th {
+    background: var(--background-color);
+    font-weight: 600;
+    color: var(--primary-color);
+
+    &.time-header, &.cost-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+  
+  td {
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    
+    &:first-child {
+      font-weight: 500;
+      color: var(--text-primary);
     }
 
-    .dashboard-mode {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
+    &.time-value {
+      color: #2196f3;
+      font-weight: 600;
+    }
+
+    &.cost-value {
+      color: #4caf50;
+      font-weight: 600;
+    }
+  }
+}
+
+.node-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .node-id {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .criticality-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    mat-chip {
+      font-size: 0.75rem;
+      min-height: 24px;
+      
+      &.time-critical {
+        background: #2196f3;
+        color: white;
+      }
+      
+      &.cost-critical {
+        background: #4caf50;
+        color: white;
       }
     }
+  }
+}
+
+// Analysis-specific styling
+.slack-zero {
+  color: var(--error-color);
+  font-weight: 700;
+}
+
+.slack-positive {
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.efficiency-high {
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.efficiency-medium {
+  color: var(--warning-color);
+  font-weight: 600;
+}
+
+.efficiency-low {
+  color: var(--error-color);
+  font-weight: 600;
+}
+
+.optimization-optimal {
+  background: var(--success-color);
+  color: white;
+}
+
+.optimization-moderate {
+  background: var(--warning-color);
+  color: white;
+}
+
+.optimization-high-cost {
+  background: var(--error-color);
+  color: white;
+}
+
+// Legacy table styles (for backward compatibility)
+.metrics-table, .nodes-table {
+  width: 100%;
+  background: transparent;
+  
+  th {
+    background: var(--background-color);
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+  
+  td {
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    
+    &:first-child {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  }
+}
+
+.metrics-table td:last-child {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.value-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .value-number {
+    min-width: 80px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+  }
+
+  mat-progress-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    
+    &.criticality-high ::ng-deep .mat-progress-bar-fill::after {
+      background-color: #f44336;
+    }
+    
+    &.criticality-medium ::ng-deep .mat-progress-bar-fill::after {
+      background-color: #ff9800;
+    }
+    
+    &.criticality-low ::ng-deep .mat-progress-bar-fill::after {
+      background-color: #4caf50;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .critical-values {
+    grid-template-columns: 1fr;
+  }
+
+  .critical-value-card {
+    padding: 1rem;
+
+    .value {
+      font-size: 1.5rem;
+    }
+  }
+
+  .filters-card .filters-row {
+    grid-template-columns: 1fr;
+  }
+
+  .node-details-card .node-info .node-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .node-cell {
+    .criticality-badges {
+      mat-chip {
+        font-size: 0.7rem;
+        min-height: 20px;
+      }
+    }
+  }
+
+  .value-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    .value-number {
+      min-width: auto;
+      text-align: left;
+    }
+
+    mat-progress-bar {
+      width: 100%;
+    }
+  }
+
+  .overview-table, .time-analysis-table, .cost-analysis-table,
+  .metrics-table, .nodes-table {
+    font-size: 0.9rem;
+    
+    td {
+      padding: 0.75rem 0.25rem;
+    }
+  }
+}
+
+// Animation
+.critical-path-content {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Dark theme adjustments
+[data-theme="dark"] {
+  .overview-table th, .time-analysis-table th, .cost-analysis-table th,
+  .metrics-table th, .nodes-table th {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .critical-value-card {
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+    
+    &:hover {
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .filters-card .filter-group .stat-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .node-details-card .node-info .node-stats .stat-item {
+    background: rgba(255, 255, 255, 0.05);
   }
 }

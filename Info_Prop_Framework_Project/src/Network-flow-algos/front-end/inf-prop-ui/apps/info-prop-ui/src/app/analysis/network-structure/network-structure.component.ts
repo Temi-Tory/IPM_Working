@@ -1,420 +1,181 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
-import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { NetworkVisualizationComponent, NodeSelectionEvent, EdgeSelectionEvent } from '../network-visualization/network-visualization.component';
-
-import { NetworkStructureResult } from '../../shared/models/network-analysis.models';
+import { NetworkStructure } from '../../shared/models/network-analysis.models';
+import { NetworkVisualizationComponent } from '../network-visualization/network-visualization.component';
 
 @Component({
   selector: 'app-network-structure',
+  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,
-    MatButtonModule,
     MatIconModule,
+    MatTableModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    AnalysisViewSwitcherComponent,
+    MatTabsModule,
+    MatButtonToggleModule,
+    MatButtonModule,
+    MatProgressBarModule,
     NetworkVisualizationComponent
   ],
   templateUrl: './network-structure.component.html',
-  styleUrl: './network-structure.component.scss'
+  styleUrls: ['./network-structure.component.scss']
 })
-export class NetworkStructureComponent extends BaseAnalysisComponent<NetworkStructureResult> implements OnInit, OnDestroy {
-  
+export class NetworkStructureComponent {
   private analysisState = inject(AnalysisStateService);
-  private snackBar = inject(MatSnackBar);
 
-  constructor() {
-    super();
+  networkData = computed(() => this.analysisState.networkData());
+  isLoading = computed(() => this.analysisState.isLoading());
+  error = computed(() => this.analysisState.error());
+
+  // View toggle
+  currentView = signal<'dashboard' | 'visual'>('dashboard');
+
+  displayedColumns: string[] = ['metric', 'value'];
+  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree'];
+  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType'];
+
+  switchView(view: 'dashboard' | 'visual'): void {
+    this.currentView.set(view);
   }
 
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadNetworkData();
-  }
+  getNetworkMetrics(): { metric: string; value: string | number }[] {
+    const data = this.networkData();
+    if (!data) return [];
 
-  ngOnDestroy(): void {
-    // Cleanup if needed
-  }
-
-  initializeComponent(): void {
-    // Set available view modes
-    this.availableViewModes.set({ visual: true, dashboard: true });
-    this.currentViewMode.set('visual');
-  }
-
-  private loadNetworkData(): void {
-    const networkData = this.analysisState.networkData();
-    
-    if (!networkData || !networkData.results) {
-      this.setError('No network analysis data available');
-      return;
-    }
-
-    this.setLoading(true);
-    
-    // Check if we have comprehensive structure data, if not try to load it
-    const comprehensiveData = this.analysisState.getComprehensiveStructureData();
-    
-    if (!comprehensiveData && networkData.structure) {
-      // Try to load comprehensive structure data
-      this.analysisState.loadComprehensiveNetworkStructure().subscribe({
-        next: (comprehensive) => {
-          this.processComprehensiveData(comprehensive, networkData.structure);
-        },
-        error: (error) => {
-          console.warn('Could not load comprehensive structure data, using basic data:', error);
-          this.processBasicData(networkData);
-        }
-      });
-    } else if (comprehensiveData) {
-      this.processComprehensiveData(comprehensiveData, networkData.structure);
-    } else {
-      this.processBasicData(networkData);
-    }
-  }
-
-  private processComprehensiveData(comprehensive: NetworkStructureResult, structure: any): void {
-    try {
-      const analysisData: AnalysisComponentData<NetworkStructureResult> = {
-        structure: structure,
-        results: comprehensive
-      };
-      
-      this.setData(analysisData);
-      this.setLoading(false);
-      
-      this.snackBar.open(
-        `Comprehensive network structure loaded: ${comprehensive.total_nodes} nodes, ${comprehensive.total_edges} edges, ${comprehensive.edgelist.length} edge connections`, 
-        'Close', 
-        { duration: 3000 }
-      );
-      
-    } catch (error) {
-      this.setError(`Failed to process comprehensive network data: ${error}`);
-      this.setLoading(false);
-    }
-  }
-
-  private processBasicData(networkData: any): void {
-    try {
-      const analysisData: AnalysisComponentData<NetworkStructureResult> = {
-        structure: networkData.structure,
-        results: networkData.results
-      };
-      
-      this.setData(analysisData);
-      this.setLoading(false);
-      
-      this.snackBar.open(
-        `Basic network structure loaded: ${analysisData.results.total_nodes} nodes, ${analysisData.results.total_edges} edges`, 
-        'Close', 
-        { duration: 3000 }
-      );
-      
-    } catch (error) {
-      this.setError(`Failed to load network data: ${error}`);
-      this.setLoading(false);
-    }
-  }
-
-  processData(data: AnalysisComponentData<NetworkStructureResult>): void {
-    // Process and prepare data for visualization
-    console.log('Processing network structure data:', data);
-    
-    // Update visualization config based on data
-    this.visualizationConfig.update(config => ({
-      ...config,
-      showLabels: true,
-      highlightNodes: [], // Will be set based on node types
-      nodeColors: this.generateNodeColors(data.results)
-    }));
-  }
-
-  private generateNodeColors(results: NetworkStructureResult): Record<number, string> {
-    const nodeColors: Record<number, string> = {};
-    
-    // Color nodes by type
-    results.source_nodes?.forEach(nodeId => {
-      nodeColors[nodeId] = '#4CAF50'; // Green for sources
-    });
-    
-    results.sink_nodes?.forEach(nodeId => {
-      nodeColors[nodeId] = '#F44336'; // Red for sinks
-    });
-    
-    results.fork_nodes?.forEach(nodeId => {
-      nodeColors[nodeId] = '#FF9800'; // Orange for forks
-    });
-    
-    results.join_nodes?.forEach(nodeId => {
-      nodeColors[nodeId] = '#2196F3'; // Blue for joins
-    });
-    
-    return nodeColors;
-  }
-
-  updateVisualization(config: VisualizationConfig): void {
-    // Update the visualization based on the config
-    console.log('Updating visualization with config:', config);
-    
-    if (this.isVisualMode()) {
-      // Update the graph visualization component
-      // This will be implemented when we add the graph component
-    }
-  }
-
-  exportData(format: 'json' | 'csv' | 'png'): void {
-    const data = this.componentData();
-    if (!data) return;
-    
-    switch (format) {
-      case 'json':
-        this.exportAsJson(data.results);
-        break;
-      case 'csv':
-        this.exportAsCsv(data.results);
-        break;
-      case 'png':
-        this.exportAsPng();
-        break;
-    }
-  }
-
-  private exportAsJson(data: NetworkStructureResult): void {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `network-structure-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsCsv(data: NetworkStructureResult): void {
-    const csvRows = [
-      ['Metric', 'Value'],
-      ['Total Nodes', data.total_nodes?.toString() || '0'],
-      ['Total Edges', data.total_edges?.toString() || '0'],
-      ['Source Nodes', data.source_nodes?.length.toString() || '0'],
-      ['Sink Nodes', data.sink_nodes?.length.toString() || '0'],
-      ['Fork Nodes', data.fork_nodes?.length.toString() || '0'],
-      ['Join Nodes', data.join_nodes?.length.toString() || '0'],
-      ['Iteration Sets', data.iteration_sets_count?.toString() || '0']
+    return [
+      { metric: 'Total Nodes', value: data.total_nodes },
+      { metric: 'Total Edges', value: data.total_edges },
+      { metric: 'Source Nodes', value: data.source_nodes.length },
+      { metric: 'Sink Nodes', value: data.sink_nodes.length },
+      { metric: 'Fork Nodes', value: data.fork_nodes.length },
+      { metric: 'Join Nodes', value: data.join_nodes.length },
+      { metric: 'Iteration Sets', value: data.iteration_sets_count },
+      { metric: 'Computation Time', value: `${data.computation_time.toFixed(4)}s` }
     ];
+  }
+
+  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join'): number[] {
+    const data = this.networkData();
+    if (!data) return [];
+
+    switch (type) {
+      case 'source': return data.source_nodes;
+      case 'sink': return data.sink_nodes;
+      case 'fork': return data.fork_nodes;
+      case 'join': return data.join_nodes;
+      default: return [];
+    }
+  }
+
+  getNodeDetails(): { node: number; type: string; inDegree: number; outDegree: number }[] {
+    const data = this.networkData();
+    if (!data || !data.nodes) return [];
+
+    return data.nodes.map((nodeId: number) => {
+      const nodeType = this.getNodeType(nodeId);
+      const inDegree = this.calculateInDegree(nodeId);
+      const outDegree = this.calculateOutDegree(nodeId);
+
+      return {
+        node: nodeId,
+        type: nodeType,
+        inDegree,
+        outDegree
+      };
+    }).sort((a, b) => a.node - b.node);
+  }
+
+  getEdgeDetails(): { source: number; target: number; edgeType: string }[] {
+    const data = this.networkData();
+    if (!data || !data.edges) return [];
+
+    return data.edges.map(([source, target]: [number, number]) => ({
+      source,
+      target,
+      edgeType: this.getEdgeType(source, target)
+    })).sort((a, b) => a.source - b.source || a.target - b.target);
+  }
+
+  private getNodeType(nodeId: number): string {
+    const data = this.networkData();
+    if (!data) return 'regular';
+
+    if (data.source_nodes?.includes(nodeId)) return 'Source';
+    if (data.sink_nodes?.includes(nodeId)) return 'Sink';
+    if (data.fork_nodes?.includes(nodeId)) return 'Fork';
+    if (data.join_nodes?.includes(nodeId)) return 'Join';
+    return 'Regular';
+  }
+
+  private calculateInDegree(nodeId: number): number {
+    const data = this.networkData();
+    if (!data || !data.edges) return 0;
+
+    return data.edges.filter(([_, target]: [number, number]) => target === nodeId).length;
+  }
+
+  private calculateOutDegree(nodeId: number): number {
+    const data = this.networkData();
+    if (!data || !data.edges) return 0;
+
+    return data.edges.filter(([source, _]: [number, number]) => source === nodeId).length;
+  }
+
+  private getEdgeType(source: number, target: number): string {
+    const data = this.networkData();
+    if (!data) return 'Regular';
+
+    const sourceType = this.getNodeType(source).toLowerCase();
+    const targetType = this.getNodeType(target).toLowerCase();
+
+    if (sourceType === 'source') return 'Source → ' + this.capitalize(targetType);
+    if (targetType === 'sink') return this.capitalize(sourceType) + ' → Sink';
+    if (sourceType === 'fork') return 'Fork → ' + this.capitalize(targetType);
+    if (targetType === 'join') return this.capitalize(sourceType) + ' → Join';
     
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `network-structure-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return 'Regular';
   }
 
-  private exportAsPng(): void {
-    // This would capture the visualization canvas/svg as PNG
-    this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
+  private capitalize(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
-  // Template helper methods
-  getNetworkName(): string {
-    return this.componentData()?.structure?.networkName || 'Network';
-  }
+  getConnectivityDistribution(): { level: string; count: number; percentage: number }[] {
+    const data = this.networkData();
+    if (!data || !data.nodes) return [];
 
-  getTotalNodes(): number {
-    return this.componentData()?.results?.total_nodes || 0;
-  }
+    const connectivityLevels: { [key: string]: number } = {
+      'High (>= 4 connections)': 0,
+      'Medium (2-3 connections)': 0,
+      'Low (1 connection)': 0,
+      'Isolated (0 connections)': 0
+    };
 
-  getTotalEdges(): number {
-    return this.componentData()?.results?.total_edges || 0;
-  }
-
-  getSourceNodes(): number[] {
-    return this.componentData()?.results?.source_nodes || [];
-  }
-
-  getSinkNodes(): number[] {
-    return this.componentData()?.results?.sink_nodes || [];
-  }
-
-  getForkNodes(): number[] {
-    return this.componentData()?.results?.fork_nodes || [];
-  }
-
-  getJoinNodes(): number[] {
-    return this.componentData()?.results?.join_nodes || [];
-  }
-
-  getIterationSetsCount(): number {
-    return this.componentData()?.results?.iteration_sets_count || 0;
-  }
-
-  // New methods for comprehensive structure data
-  getAllNodes(): number[] {
-    return this.componentData()?.results?.all_nodes || [];
-  }
-
-  getEdgeList(): [number, number][] {
-    return this.componentData()?.results?.edgelist || [];
-  }
-
-  getOutgoingIndex(): Record<number, number[]> {
-    return this.componentData()?.results?.outgoing_index || {};
-  }
-
-  getIncomingIndex(): Record<number, number[]> {
-    return this.componentData()?.results?.incoming_index || {};
-  }
-
-  getIterationSets(): number[][] {
-    return this.componentData()?.results?.iteration_sets || [];
-  }
-
-  getAncestors(): Record<number, number[]> {
-    return this.componentData()?.results?.ancestors || {};
-  }
-
-  getDescendants(): Record<number, number[]> {
-    return this.componentData()?.results?.descendants || {};
-  }
-
-  getNodePriors(): Record<number, number> | undefined {
-    return this.componentData()?.results?.node_priors;
-  }
-
-  getEdgeProbabilities(): Record<string, number> | undefined {
-    return this.componentData()?.results?.edge_probabilities;
-  }
-
-  getCpmData(): any | undefined {
-    return this.componentData()?.results?.cpm_data;
-  }
-
-  getCapacityData(): Record<number, number> | undefined {
-    return this.componentData()?.results?.capacity_data;
-  }
-
-  hasComprehensiveData(): boolean {
-    const data = this.componentData()?.results;
-    return !!(data?.edgelist && data?.outgoing_index && data?.incoming_index);
-  }
-
-  hasOptionalData(): boolean {
-    const data = this.componentData()?.results;
-    return !!(data?.node_priors || data?.edge_probabilities || data?.cpm_data || data?.capacity_data);
-  }
-
-  // Highlighting methods for interaction
-  highlightSourceNodes(): void {
-    this.highlightNodes(this.getSourceNodes());
-  }
-
-  highlightSinkNodes(): void {
-    this.highlightNodes(this.getSinkNodes());
-  }
-
-  highlightForkNodes(): void {
-    this.highlightNodes(this.getForkNodes());
-  }
-
-  highlightJoinNodes(): void {
-    this.highlightNodes(this.getJoinNodes());
-  }
-
-  // Methods for refreshing comprehensive data
-  refreshComprehensiveData(): void {
-    this.setLoading(true);
-    
-    this.analysisState.refreshComprehensiveStructure().subscribe({
-      next: (comprehensive) => {
-        this.processComprehensiveData(comprehensive, this.componentData()?.structure);
-        this.snackBar.open('Comprehensive structure data refreshed', 'Close', { duration: 2000 });
-      },
-      error: (error) => {
-        this.setError(`Failed to refresh comprehensive data: ${error}`);
-        this.setLoading(false);
-      }
+    data.nodes.forEach((nodeId: number) => {
+      const totalDegree = this.calculateInDegree(nodeId) + this.calculateOutDegree(nodeId);
+      
+      if (totalDegree >= 4) connectivityLevels['High (>= 4 connections)']++;
+      else if (totalDegree >= 2) connectivityLevels['Medium (2-3 connections)']++;
+      else if (totalDegree === 1) connectivityLevels['Low (1 connection)']++;
+      else connectivityLevels['Isolated (0 connections)']++;
     });
-  }
 
-  // Utility methods for comprehensive analysis
-  getAncestorsForNode(nodeId: number): number[] {
-    const ancestors = this.getAncestors();
-    return ancestors[nodeId] || [];
-  }
-
-  getDescendantsForNode(nodeId: number): number[] {
-    const descendants = this.getDescendants();
-    return descendants[nodeId] || [];
-  }
-
-  getOutgoingEdgesForNode(nodeId: number): number[] {
-    const outgoing = this.getOutgoingIndex();
-    return outgoing[nodeId] || [];
-  }
-
-  getIncomingEdgesForNode(nodeId: number): number[] {
-    const incoming = this.getIncomingIndex();
-    return incoming[nodeId] || [];
-  }
-
-  // Get edge probability by edge key
-  getEdgeProbability(fromNode: number, toNode: number): number | undefined {
-    const edgeProbs = this.getEdgeProbabilities();
-    return edgeProbs ? edgeProbs[`${fromNode}_${toNode}`] : undefined;
-  }
-
-  // Get node prior probability
-  getNodePrior(nodeId: number): number | undefined {
-    const nodePriors = this.getNodePriors();
-    return nodePriors ? nodePriors[nodeId] : undefined;
-  }
-
-  // Event handlers for network visualization
-  onNodeSelected(event: NodeSelectionEvent): void {
-    console.log('Node selected:', event.node);
-    this.snackBar.open(
-      `Node ${event.node.id} selected (${event.node.role})`,
-      'Close',
-      { duration: 2000 }
-    );
-  }
-
-  onEdgeSelected(event: EdgeSelectionEvent): void {
-    console.log('Edge selected:', event.link);
-    const sourceId = typeof event.link.source === 'object' ? event.link.source.id : event.link.source;
-    const targetId = typeof event.link.target === 'object' ? event.link.target.id : event.link.target;
-    this.snackBar.open(
-      `Edge ${sourceId} → ${targetId} selected`,
-      'Close',
-      { duration: 2000 }
-    );
-  }
-
-  onCanvasClicked(event: MouseEvent): void {
-    console.log('Canvas clicked');
-    // Clear any selections or perform other actions
+    const total = data.nodes.length;
+    return Object.entries(connectivityLevels).map(([level, count]) => ({
+      level,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0
+    }));
   }
 }

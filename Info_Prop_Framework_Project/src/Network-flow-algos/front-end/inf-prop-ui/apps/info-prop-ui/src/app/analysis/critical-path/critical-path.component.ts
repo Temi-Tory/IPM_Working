@@ -1,620 +1,245 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSliderModule } from '@angular/material/slider';
+import { FormsModule } from '@angular/forms';
 
-import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
-import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { CriticalPathResult } from '../../shared/models/network-analysis.models';
-
-interface PathMetrics {
-  criticalDuration: number;
-  totalCost: number;
-  criticalPathLength: number;
-  timeEfficiency: number;
-  costEfficiency: number;
-  analysisType: 'time' | 'cost' | 'both' | 'none';
-  pathCategory: 'short' | 'moderate' | 'long' | 'complex';
-}
-
-interface NodeCriticality {
-  nodeId: number;
-  timeValue: number;
-  costValue: number;
-  isCriticalForTime: boolean;
-  isCriticalForCost: boolean;
-  criticalityScore: number;
-  bottleneckPotential: 'low' | 'moderate' | 'high' | 'critical';
-}
+import { NetworkVisualizationComponent, NodeClickInfo } from '../network-visualization/network-visualization.component';
+import { CpmScenario } from '../../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-critical-path',
+  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,
-    MatButtonModule,
     MatIconModule,
+    MatTableModule,
+    MatTabsModule,
+    MatProgressBarModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    AnalysisViewSwitcherComponent
+    MatSelectModule,
+    MatButtonToggleModule,
+    MatSliderModule,
+    FormsModule,
+    NetworkVisualizationComponent
   ],
   templateUrl: './critical-path.component.html',
-  styleUrl: './critical-path.component.scss'
+  styleUrls: ['./critical-path.component.scss']
 })
-export class CriticalPathComponent extends BaseAnalysisComponent<CriticalPathResult> implements OnInit, OnDestroy {
-  
+export class CriticalPathComponent {
   private analysisState = inject(AnalysisStateService);
-  private snackBar = inject(MatSnackBar);
 
-  // Critical path-specific properties
-  private pathMetrics: PathMetrics | null = null;
-  private nodeCriticality: NodeCriticality[] = [];
-  private criticalTimeNodes: number[] = [];
-  private criticalCostNodes: number[] = [];
-  private optimizationOpportunities: Array<{nodeId: number, type: 'time' | 'cost', impact: number}> = [];
-  private highlightedPathType: string | null = null;
+  analysisResults = computed(() => this.analysisState.analysisResults());
+  isLoading = computed(() => this.analysisState.isLoading());
+  error = computed(() => this.analysisState.error());
+  networkData = computed(() => this.analysisState.networkData());
 
-  constructor() {
-    super();
-  }
+  // View state
+  viewMode = signal<'dashboard' | 'visual'>('dashboard');
+  selectedScenario = signal<string>('');
+  selectedTab = signal<number>(0);
 
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadCriticalPathData();
-  }
+  // Filter state for visual view
+  criticalPathFilter = signal<'all' | 'critical-only' | 'non-critical'>('all');
+  timeLevelFilter = signal<number>(0);
+  costLevelFilter = signal<number>(0);
+  selectedNode = signal<NodeClickInfo | null>(null);
 
-  ngOnDestroy(): void {
-    // Cleanup if needed
-  }
+  displayedColumns: string[] = ['metric', 'value'];
+  nodeValueColumns: string[] = ['node', 'timeValue', 'costValue'];
+  overviewColumns: string[] = ['metric', 'time', 'cost'];
+  timeAnalysisColumns: string[] = ['node', 'timeValue', 'earlyStart', 'lateFinish', 'slack'];
+  costAnalysisColumns: string[] = ['node', 'costValue', 'costEfficiency', 'optimization'];
 
-  initializeComponent(): void {
-    // Set available view modes
-    this.availableViewModes.set({ visual: true, dashboard: true });
-    this.currentViewMode.set('visual');
-  }
+  getCpmScenarios() {
+    const results = this.analysisResults();
+    if (!results?.results?.cpm_scenarios) return [];
 
-  private loadCriticalPathData(): void {
-    const criticalPathData = this.analysisState.criticalPathData();
-    
-    if (!criticalPathData || !criticalPathData.results) {
-      this.setError('No critical path analysis data available');
-      return;
-    }
-
-
-    this.setLoading(true);
-    
-    try {
-      const analysisData: AnalysisComponentData<CriticalPathResult> = {
-        structure: criticalPathData.structure,
-        results: criticalPathData.results
-      };
-      
-      this.setData(analysisData);
-      this.setLoading(false);
-      
-      const duration = this.getCriticalDuration();
-      const cost = this.getTotalCost();
-      let message = 'Critical path analysis loaded';
-      
-      if (duration > 0 && cost > 0) {
-        message += `: ${duration.toFixed(1)} time units, ${cost.toFixed(1)} cost units`;
-      } else if (duration > 0) {
-        message += `: ${duration.toFixed(1)} time units`;
-      } else if (cost > 0) {
-        message += `: ${cost.toFixed(1)} cost units`;
-      }
-      
-      this.snackBar.open(message, 'Close', {
-        duration: 3000
-      });
-      
-    } catch (error) {
-      this.setError(`Failed to load critical path data: ${error}`);
-      this.setLoading(false);
-    }
-  }
-
-  processData(data: AnalysisComponentData<CriticalPathResult>): void {
-    // Process and prepare data for visualization
-    console.log('Processing critical path analysis data:', data);
-    
-    // Calculate path metrics
-    this.pathMetrics = this.calculatePathMetrics(data.results);
-    
-    // Process node criticality information
-    this.nodeCriticality = this.calculateNodeCriticality(data.results);
-    
-    // Identify critical nodes for time and cost
-    this.criticalTimeNodes = data.results.time_analysis?.critical_nodes || [];
-    this.criticalCostNodes = data.results.cost_analysis?.critical_nodes || [];
-    
-    // Identify optimization opportunities
-    this.optimizationOpportunities = this.identifyOptimizationOpportunities(data.results);
-    
-    // Update visualization config based on data
-    this.visualizationConfig.update(config => ({
-      ...config,
-      showLabels: true,
-      highlightNodes: [], // Will be set based on path highlighting
-      nodeColors: this.generateCriticalPathNodeColors(data.results)
+    return Object.entries(results.results.cpm_scenarios).map(([name, scenario]) => ({
+      name,
+      scenario
     }));
   }
 
-  private calculatePathMetrics(results: CriticalPathResult): PathMetrics {
-    const timeAnalysis = results.time_analysis;
-    const costAnalysis = results.cost_analysis;
-    
-    const criticalDuration = timeAnalysis?.critical_duration || 0;
-    const totalCost = costAnalysis?.total_cost || 0;
-    const criticalPathLength = Math.max(
-      timeAnalysis?.critical_nodes?.length || 0,
-      costAnalysis?.critical_nodes?.length || 0
-    );
-    
-    // Calculate efficiency metrics (higher is better)
-    const timeEfficiency = criticalDuration > 0 ? 1 / Math.log(criticalDuration + 1) : 0;
-    const costEfficiency = totalCost > 0 ? 1 / Math.log(totalCost + 1) : 0;
-    
-    // Determine analysis type
-    let analysisType: 'time' | 'cost' | 'both' | 'none';
-    if (timeAnalysis && costAnalysis) {
-      analysisType = 'both';
-    } else if (timeAnalysis) {
-      analysisType = 'time';
-    } else if (costAnalysis) {
-      analysisType = 'cost';
-    } else {
-      analysisType = 'none';
-    }
-    
-    // Categorize path complexity
-    let pathCategory: 'short' | 'moderate' | 'long' | 'complex';
-    if (criticalPathLength < 5) {
-      pathCategory = 'short';
-    } else if (criticalPathLength < 15) {
-      pathCategory = 'moderate';
-    } else if (criticalPathLength < 30) {
-      pathCategory = 'long';
-    } else {
-      pathCategory = 'complex';
-    }
+  getCriticalPathMetrics(scenario: any): { metric: string; value: string | number }[] {
+    if (!scenario) return [];
 
-    return {
-      criticalDuration,
-      totalCost,
-      criticalPathLength,
-      timeEfficiency,
-      costEfficiency,
-      analysisType,
-      pathCategory
-    };
-  }
-
-  private calculateNodeCriticality(results: CriticalPathResult): NodeCriticality[] {
-    const criticality: NodeCriticality[] = [];
-    const timeNodes = results.time_analysis?.critical_nodes || [];
-    const costNodes = results.cost_analysis?.critical_nodes || [];
-    const timeValues = results.time_analysis?.node_values || {};
-    const costValues = results.cost_analysis?.node_values || {};
-    
-    // Get all unique nodes from both analyses
-    const allNodes = new Set([...timeNodes, ...costNodes]);
-    
-    allNodes.forEach(nodeId => {
-      const timeValue = typeof timeValues[nodeId.toString()] === 'number' ? timeValues[nodeId.toString()] : parseFloat(String(timeValues[nodeId.toString()] || 0));
-      const costValue = typeof costValues[nodeId.toString()] === 'number' ? costValues[nodeId.toString()] : parseFloat(String(costValues[nodeId.toString()] || 0));
-      const isCriticalForTime = timeNodes.includes(nodeId);
-      const isCriticalForCost = costNodes.includes(nodeId);
-      
-      // Calculate criticality score (0-1, higher is more critical)
-      let criticalityScore = 0;
-      if (isCriticalForTime) criticalityScore += 0.5;
-      if (isCriticalForCost) criticalityScore += 0.5;
-      
-      // Add value-based scoring
-      const maxTimeValue = Math.max(...Object.values(timeValues).map(v => typeof v === 'number' ? v : parseFloat(String(v || 0))));
-      const maxCostValue = Math.max(...Object.values(costValues).map(v => typeof v === 'number' ? v : parseFloat(String(v || 0))));
-      
-      if (maxTimeValue > 0) {
-        criticalityScore += (timeValue / maxTimeValue) * 0.25;
-      }
-      if (maxCostValue > 0) {
-        criticalityScore += (costValue / maxCostValue) * 0.25;
-      }
-      
-      criticalityScore = Math.min(1, criticalityScore);
-      
-      // Determine bottleneck potential
-      let bottleneckPotential: 'low' | 'moderate' | 'high' | 'critical';
-      if (criticalityScore < 0.25) {
-        bottleneckPotential = 'low';
-      } else if (criticalityScore < 0.5) {
-        bottleneckPotential = 'moderate';
-      } else if (criticalityScore < 0.75) {
-        bottleneckPotential = 'high';
-      } else {
-        bottleneckPotential = 'critical';
-      }
-      
-      criticality.push({
-        nodeId,
-        timeValue,
-        costValue,
-        isCriticalForTime,
-        isCriticalForCost,
-        criticalityScore,
-        bottleneckPotential
-      });
-    });
-    
-    // Sort by criticality score descending
-    return criticality.sort((a, b) => b.criticalityScore - a.criticalityScore);
-  }
-
-  private identifyOptimizationOpportunities(results: CriticalPathResult): Array<{nodeId: number, type: 'time' | 'cost', impact: number}> {
-    const opportunities: Array<{nodeId: number, type: 'time' | 'cost', impact: number}> = [];
-    
-    // Identify high-impact time optimization opportunities
-    const timeValues = results.time_analysis?.node_values || {};
-    const criticalTimeNodes = results.time_analysis?.critical_nodes || [];
-    
-    Object.entries(timeValues).forEach(([nodeIdStr, value]) => {
-      const nodeId = parseInt(nodeIdStr, 10);
-      const numValue = typeof value === 'number' ? value : parseFloat(String(value || 0));
-      
-      if (!isNaN(nodeId) && criticalTimeNodes.includes(nodeId) && numValue > 0) {
-        // Impact is proportional to the time value and position in critical path
-        const impact = numValue / (results.time_analysis?.critical_duration || 1);
-        opportunities.push({ nodeId, type: 'time', impact });
-      }
-    });
-    
-    // Identify high-impact cost optimization opportunities
-    const costValues = results.cost_analysis?.node_values || {};
-    const criticalCostNodes = results.cost_analysis?.critical_nodes || [];
-    
-    Object.entries(costValues).forEach(([nodeIdStr, value]) => {
-      const nodeId = parseInt(nodeIdStr, 10);
-      const numValue = typeof value === 'number' ? value : parseFloat(String(value || 0));
-      
-      if (!isNaN(nodeId) && criticalCostNodes.includes(nodeId) && numValue > 0) {
-        // Impact is proportional to the cost value and relative to total cost
-        const impact = numValue / (results.cost_analysis?.total_cost || 1);
-        opportunities.push({ nodeId, type: 'cost', impact });
-      }
-    });
-    
-    // Sort by impact descending and take top opportunities
-    return opportunities.sort((a, b) => b.impact - a.impact).slice(0, 10);
-  }
-
-  private generateCriticalPathNodeColors(results: CriticalPathResult): Record<number, string> {
-    const nodeColors: Record<number, string> = {};
-    
-    // Orange theme colors for critical path
-    const criticalTimeColor = '#FF9800'; // Orange
-    const criticalCostColor = '#FFC107'; // Amber
-    const bothCriticalColor = '#FF5722'; // Deep Orange
-    const nonCriticalColor = '#E0E0E0'; // Light Grey
-    
-    const timeNodes = results.time_analysis?.critical_nodes || [];
-    const costNodes = results.cost_analysis?.critical_nodes || [];
-    
-    // Color nodes based on criticality
-    timeNodes.forEach(nodeId => {
-      if (costNodes.includes(nodeId)) {
-        nodeColors[nodeId] = bothCriticalColor; // Critical for both time and cost
-      } else {
-        nodeColors[nodeId] = criticalTimeColor; // Critical for time only
-      }
-    });
-    
-    costNodes.forEach(nodeId => {
-      if (!nodeColors[nodeId]) { // Not already colored as both critical
-        nodeColors[nodeId] = criticalCostColor; // Critical for cost only
-      }
-    });
-    
-    return nodeColors;
-  }
-
-  updateVisualization(config: VisualizationConfig): void {
-    // Update the visualization based on the config
-    console.log('Updating critical path visualization with config:', config);
-    
-    if (this.isVisualMode()) {
-      // Update the graph visualization component
-      // This will be implemented when we add the graph component
-    }
-  }
-
-  exportData(format: 'json' | 'csv' | 'png'): void {
-    const data = this.componentData();
-    if (!data) return;
-    
-    switch (format) {
-      case 'json':
-        this.exportAsJson(data.results);
-        break;
-      case 'csv':
-        this.exportAsCsv(data.results);
-        break;
-      case 'png':
-        this.exportAsPng();
-        break;
-    }
-  }
-
-  private exportAsJson(data: CriticalPathResult): void {
-    const exportData = {
-      time_analysis: data.time_analysis,
-      cost_analysis: data.cost_analysis,
-      execution_time: data.execution_time,
-      path_metrics: this.pathMetrics,
-      node_criticality: this.nodeCriticality,
-      optimization_opportunities: this.optimizationOpportunities,
-      exported_at: new Date().toISOString()
-    };
-
-    const jsonData = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `critical-path-analysis-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsCsv(data: CriticalPathResult): void {
-    const csvRows = [
-      ['Metric', 'Value'],
-      ['Critical Duration', data.time_analysis?.critical_duration?.toString() || '0'],
-      ['Total Cost', data.cost_analysis?.total_cost?.toString() || '0'],
-      ['Critical Path Length (Time)', data.time_analysis?.critical_nodes?.length?.toString() || '0'],
-      ['Critical Path Length (Cost)', data.cost_analysis?.critical_nodes?.length?.toString() || '0'],
-      ['Time Efficiency', this.pathMetrics?.timeEfficiency?.toFixed(4) || '0'],
-      ['Cost Efficiency', this.pathMetrics?.costEfficiency?.toFixed(4) || '0'],
-      ['Path Category', this.pathMetrics?.pathCategory || 'unknown'],
-      ['Analysis Type', this.pathMetrics?.analysisType || 'unknown'],
-      ['Execution Time (s)', data.execution_time?.toString() || '0']
+    return [
+      { metric: 'Critical Time', value: scenario.time_result.critical_value.toFixed(2) },
+      { metric: 'Critical Cost', value: scenario.cost_result.critical_value.toFixed(2) },
+      { metric: 'Time Critical Nodes', value: scenario.time_result.critical_nodes.length },
+      { metric: 'Cost Critical Nodes', value: scenario.cost_result.critical_nodes.length },
+      { metric: 'Total Nodes Analyzed', value: Object.keys(scenario.time_result.node_values).length },
+      { metric: 'Computation Time', value: `${scenario.computation_time.toFixed(4)}s` }
     ];
+  }
 
-    // Add critical nodes
-    const timeNodes = data.time_analysis?.critical_nodes || [];
-    const costNodes = data.cost_analysis?.critical_nodes || [];
+  getTopNodesByValue(nodeValues: Record<string, number>, count: number = 10): { node: string; value: number }[] {
+    return Object.entries(nodeValues)
+      .map(([node, value]) => ({ node, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, count);
+  }
+
+  getCombinedNodeData(scenario: any): { node: string; timeValue: number; costValue: number; isTimeCritical: boolean; isCostCritical: boolean }[] {
+    if (!scenario?.time_result?.node_values || !scenario?.cost_result?.node_values) return [];
+
+    const allNodes = new Set([
+      ...Object.keys(scenario.time_result.node_values),
+      ...Object.keys(scenario.cost_result.node_values)
+    ]);
+
+    return Array.from(allNodes).map(node => ({
+      node,
+      timeValue: scenario.time_result.node_values[node] || 0,
+      costValue: scenario.cost_result.node_values[node] || 0,
+      isTimeCritical: scenario.time_result.critical_nodes.includes(parseInt(node)),
+      isCostCritical: scenario.cost_result.critical_nodes.includes(parseInt(node))
+    })).sort((a, b) => {
+      if (a.isTimeCritical && !b.isTimeCritical) return -1;
+      if (!a.isTimeCritical && b.isTimeCritical) return 1;
+      if (a.isCostCritical && !b.isCostCritical) return -1;
+      if (!a.isCostCritical && b.isCostCritical) return 1;
+      return b.timeValue - a.timeValue;
+    });
+  }
+
+  getMaxValue(values: Record<string, number>): number {
+    return Math.max(...Object.values(values));
+  }
+
+  isCriticalNode(nodeId: string, criticalNodes: number[]): boolean {
+    return criticalNodes.includes(parseInt(nodeId));
+  }
+
+  getCriticalityLevel(timeValue: number, costValue: number, maxTime: number, maxCost: number): 'high' | 'medium' | 'low' {
+    const timeRatio = timeValue / maxTime;
+    const costRatio = costValue / maxCost;
+    const avgRatio = (timeRatio + costRatio) / 2;
+
+    if (avgRatio >= 0.8) return 'high';
+    if (avgRatio >= 0.5) return 'medium';
+    return 'low';
+  }
+
+  getCurrentScenario(): { name: string; scenario: CpmScenario } | null {
+    const scenarios = this.getCpmScenarios();
+    if (scenarios.length === 0) return null;
     
-    csvRows.push(['Critical Time Nodes', timeNodes.join('; ')]);
-    csvRows.push(['Critical Cost Nodes', costNodes.join('; ')]);
-    
-    // Add node values
-    if (data.time_analysis?.node_values) {
-      Object.entries(data.time_analysis.node_values).forEach(([nodeId, value]) => {
-        csvRows.push([`Time Node ${nodeId}`, value.toString()]);
-      });
+    const selectedName = this.selectedScenario();
+    if (selectedName) {
+      return scenarios.find(s => s.name === selectedName) || scenarios[0];
     }
-    
-    if (data.cost_analysis?.node_values) {
-      Object.entries(data.cost_analysis.node_values).forEach(([nodeId, value]) => {
-        csvRows.push([`Cost Node ${nodeId}`, value.toString()]);
-      });
-    }
-    
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `critical-path-analysis-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return scenarios[0];
   }
 
-  private exportAsPng(): void {
-    // This would capture the visualization canvas/svg as PNG
-    this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
+  onScenarioChange(scenarioName: string): void {
+    this.selectedScenario.set(scenarioName);
+    this.selectedNode.set(null); // Reset selected node
   }
 
-  // Template helper methods
-  getNetworkName(): string {
-    return this.componentData()?.structure?.networkName || 'Network';
+  getOverviewMetrics(scenario: any): { metric: string; time: string | number; cost: string | number }[] {
+    if (!scenario) return [];
+
+    return [
+      {
+        metric: 'Critical Value',
+        time: scenario.time_result.critical_value.toFixed(2),
+        cost: scenario.cost_result.critical_value.toFixed(2)
+      },
+      {
+        metric: 'Critical Nodes Count',
+        time: scenario.time_result.critical_nodes.length,
+        cost: scenario.cost_result.critical_nodes.length
+      },
+      {
+        metric: 'Average Node Value',
+        time: (Object.values(scenario.time_result.node_values).reduce((a: number, b: any) => a + b, 0) / Object.keys(scenario.time_result.node_values).length).toFixed(2),
+        cost: (Object.values(scenario.cost_result.node_values).reduce((a: number, b: any) => a + b, 0) / Object.keys(scenario.cost_result.node_values).length).toFixed(2)
+      },
+      {
+        metric: 'Max Node Value',
+        time: this.getMaxValue(scenario.time_result.node_values).toFixed(2),
+        cost: this.getMaxValue(scenario.cost_result.node_values).toFixed(2)
+      }
+    ];
   }
 
-  getCriticalDuration(): number {
-    return this.componentData()?.results?.time_analysis?.critical_duration || 0;
+  getTimeAnalysisData(scenario: any): { node: string; timeValue: number; earlyStart: number; lateFinish: number; slack: number; isCritical: boolean }[] {
+    if (!scenario?.time_result?.node_values) return [];
+
+    return Object.entries(scenario.time_result.node_values).map(([node, timeValue]: [string, any]) => {
+      const isCritical = scenario.time_result.critical_nodes.includes(parseInt(node));
+      const maxTime = this.getMaxValue(scenario.time_result.node_values);
+      
+      return {
+        node,
+        timeValue: timeValue,
+        earlyStart: timeValue * 0.8, // Placeholder calculation
+        lateFinish: timeValue * 1.2, // Placeholder calculation
+        slack: isCritical ? 0 : (maxTime - timeValue) * 0.1,
+        isCritical
+      };
+    }).sort((a, b) => b.timeValue - a.timeValue);
   }
 
-  getTotalCost(): number {
-    return this.componentData()?.results?.cost_analysis?.total_cost || 0;
+  getCostAnalysisData(scenario: any): { node: string; costValue: number; costEfficiency: number; optimization: string; isCritical: boolean }[] {
+    if (!scenario?.cost_result?.node_values) return [];
+
+    const maxCost = this.getMaxValue(scenario.cost_result.node_values);
+
+    return Object.entries(scenario.cost_result.node_values).map(([node, costValue]: [string, any]) => {
+      const isCritical = scenario.cost_result.critical_nodes.includes(parseInt(node));
+      const efficiency = (maxCost - costValue) / maxCost * 100;
+      
+      let optimization = 'Optimal';
+      if (efficiency < 20) optimization = 'High Cost';
+      else if (efficiency < 50) optimization = 'Moderate';
+      
+      return {
+        node,
+        costValue: costValue,
+        costEfficiency: efficiency,
+        optimization,
+        isCritical
+      };
+    }).sort((a, b) => b.costValue - a.costValue);
   }
 
-  getCriticalTimeNodes(): number[] {
-    return this.criticalTimeNodes;
+  onNodeClick(nodeInfo: NodeClickInfo): void {
+    this.selectedNode.set(nodeInfo);
   }
 
-  getCriticalCostNodes(): number[] {
-    return this.criticalCostNodes;
+  onTimeLevelFilterChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.timeLevelFilter.set(+target.value);
+    this.onFilterChange();
   }
 
-  getTimeNodeValues(): Record<string, number> {
-    return this.componentData()?.results?.time_analysis?.node_values || {};
+  onCostLevelFilterChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.costLevelFilter.set(+target.value);
+    this.onFilterChange();
   }
 
-  getCostNodeValues(): Record<string, number> {
-    return this.componentData()?.results?.cost_analysis?.node_values || {};
-  }
-
-  getExecutionTime(): number {
-    return this.componentData()?.results?.execution_time || 0;
-  }
-
-  getDataType(): string {
-    return 'critical_path';
-  }
-
-  getPathMetrics(): PathMetrics | null {
-    return this.pathMetrics;
-  }
-
-  getNodeCriticality(): NodeCriticality[] {
-    return this.nodeCriticality;
-  }
-
-  getOptimizationOpportunities(): Array<{nodeId: number, type: 'time' | 'cost', impact: number}> {
-    return this.optimizationOpportunities;
-  }
-
-  getFormattedExecutionTime(): string {
-    const time = this.getExecutionTime();
-    if (time < 1) {
-      return `${(time * 1000).toFixed(0)}ms`;
-    } else if (time < 60) {
-      return `${time.toFixed(2)}s`;
-    } else {
-      const minutes = Math.floor(time / 60);
-      const seconds = (time % 60).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
-  }
-
-  hasTimeAnalysis(): boolean {
-    return !!(this.componentData()?.results?.time_analysis);
-  }
-
-  hasCostAnalysis(): boolean {
-    return !!(this.componentData()?.results?.cost_analysis);
-  }
-
-  hasBothAnalyses(): boolean {
-    return this.hasTimeAnalysis() && this.hasCostAnalysis();
-  }
-
-  getAnalysisType(): string {
-    return this.pathMetrics?.analysisType || 'none';
-  }
-
-  getPathCategory(): string {
-    return this.pathMetrics?.pathCategory || 'unknown';
-  }
-
-  getPathCategoryColor(): string {
-    const category = this.getPathCategory();
-    switch (category) {
-      case 'short': return '#4CAF50'; // Green
-      case 'moderate': return '#FF9800'; // Orange
-      case 'long': return '#F44336'; // Red
-      case 'complex': return '#9C27B0'; // Purple
-      default: return '#9E9E9E'; // Grey
+  onFilterChange(): void {
+    // Emit filter changes for network visualization
+    const currentScenario = this.getCurrentScenario();
+    if (currentScenario) {
+      // Update filters based on current selection
     }
   }
 
-  getCriticalPathLength(): number {
-    return this.pathMetrics?.criticalPathLength || 0;
-  }
-
-  getTimeEfficiency(): number {
-    return this.pathMetrics?.timeEfficiency || 0;
-  }
-
-  getCostEfficiency(): number {
-    return this.pathMetrics?.costEfficiency || 0;
-  }
-
-  // Path highlighting methods for interaction
-  highlightTimeCriticalPath(): void {
-    this.highlightNodes(this.getCriticalTimeNodes());
-    this.highlightedPathType = 'time';
-  }
-
-  highlightCostCriticalPath(): void {
-    this.highlightNodes(this.getCriticalCostNodes());
-    this.highlightedPathType = 'cost';
-  }
-
-  highlightBothCriticalPaths(): void {
-    const combinedNodes = [...new Set([...this.getCriticalTimeNodes(), ...this.getCriticalCostNodes()])];
-    this.highlightNodes(combinedNodes);
-    this.highlightedPathType = 'both';
-  }
-
-  highlightOptimizationTargets(): void {
-    const targets = this.getOptimizationOpportunities()
-      .slice(0, Math.ceil(this.getOptimizationOpportunities().length * 0.3)) // Top 30%
-      .map(opp => opp.nodeId);
-    
-    this.highlightNodes(targets);
-    this.highlightedPathType = 'optimization';
-  }
-
-  isHighlightedPathType(type: string): boolean {
-    return this.highlightedPathType === type;
-  }
-
-  getCriticalTimeNodesList(): string {
-    const nodes = this.getCriticalTimeNodes();
-    if (nodes.length === 0) return 'None';
-    if (nodes.length > 10) {
-      return `${nodes.slice(0, 10).join(', ')}... (+${nodes.length - 10} more)`;
-    }
-    return nodes.join(', ');
-  }
-
-  getCriticalCostNodesList(): string {
-    const nodes = this.getCriticalCostNodes();
-    if (nodes.length === 0) return 'None';
-    if (nodes.length > 10) {
-      return `${nodes.slice(0, 10).join(', ')}... (+${nodes.length - 10} more)`;
-    }
-    return nodes.join(', ');
-  }
-
-  getTopCriticalNodes(): NodeCriticality[] {
-    return this.nodeCriticality.slice(0, 8);
-  }
-
-  hasOptimizationOpportunities(): boolean {
-    return this.optimizationOpportunities.length > 0;
-  }
-
-  getTopOptimizationOpportunities(): Array<{nodeId: number, type: 'time' | 'cost', impact: number}> {
-    return this.optimizationOpportunities.slice(0, 6);
-  }
-
-  getBottleneckColorForPotential(potential: string): string {
-    switch (potential) {
-      case 'low': return '#4CAF50'; // Green
-      case 'moderate': return '#FF9800'; // Orange
-      case 'high': return '#F44336'; // Red
-      case 'critical': return '#9C27B0'; // Purple
-      default: return '#9E9E9E'; // Grey
-    }
-  }
-
-  // Helper methods for template expressions (to avoid filter in bindings)
-  getTimeCriticalNodes(): NodeCriticality[] {
-    return this.nodeCriticality.filter(n => n.isCriticalForTime);
-  }
-
-  getCostCriticalNodes(): NodeCriticality[] {
-    return this.nodeCriticality.filter(n => n.isCriticalForCost);
-  }
-
-  getHighImpactOpportunities(): Array<{nodeId: number, type: 'time' | 'cost', impact: number}> {
-    return this.optimizationOpportunities.filter(o => o.impact > 0.1);
+  clearSelectedNode(): void {
+    this.selectedNode.set(null);
   }
 }

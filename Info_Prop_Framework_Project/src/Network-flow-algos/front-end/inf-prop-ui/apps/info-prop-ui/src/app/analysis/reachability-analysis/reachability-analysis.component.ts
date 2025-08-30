@@ -1,822 +1,224 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSliderModule } from '@angular/material/slider';
 import { FormsModule } from '@angular/forms';
 
-import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
-import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
-import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { ExactInferenceResult, MultiTypeInferenceResult, FloatBelief, IntervalBelief, PboxBelief, NetworkStructureResult } from '../../shared/models/network-analysis.models';
+import { NetworkVisualizationComponent, NodeClickInfo, FilterConfig } from '../network-visualization/network-visualization.component';
 
-type BeliefValue = FloatBelief | IntervalBelief | PboxBelief;
+import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+import { BeliefValue, IntervalData, PboxData } from '../../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-reachability-analysis',
+  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,
-    MatButtonModule,
     MatIconModule,
+    MatTableModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatSnackBarModule,
+    MatProgressBarModule,
+    MatTabsModule,
+    MatButtonToggleModule,
     MatSelectModule,
-    MatFormFieldModule,
-    MatSlideToggleModule,
+    MatSliderModule,
     FormsModule,
-    AnalysisViewSwitcherComponent
+    NetworkVisualizationComponent
   ],
   templateUrl: './reachability-analysis.component.html',
-  styleUrl: './reachability-analysis.component.scss'
+  styleUrls: ['./reachability-analysis.component.scss']
 })
-export class ReachabilityAnalysisComponent extends BaseAnalysisComponent<ExactInferenceResult | MultiTypeInferenceResult> implements OnInit, OnDestroy {
-  
+export class ReachabilityAnalysisComponent {
   private analysisState = inject(AnalysisStateService);
-  private snackBar = inject(MatSnackBar);
 
-  // UI state
-  selectedNode: string | null = null;
-  selectedSourceNode: string | null = null;
-  selectedTargetNode: string | null = null;
-  showHighBeliefsOnly = false;
-  showOnlyReachable = false;
-  availableNodes: string[] = [];
-  sortOrder: 'asc' | 'desc' | 'none' = 'desc';
+  networkData = computed(() => this.analysisState.networkData());
+  analysisResults = computed(() => this.analysisState.analysisResults());
+  isLoading = computed(() => this.analysisState.isLoading());
+  error = computed(() => this.analysisState.error());
+
+  // View mode and state
+  viewMode = signal<'dashboard' | 'visual'>('dashboard');
+  selectedScenario = signal<string>('');
   
-  // Multi-type support
-  hasMultiTypeResults = false;
-  processedTypes: string[] = [];
-  selectedTypeForView = 'float';
+  // Visual view filters
+  beliefRangeMin = signal<number>(0);
+  beliefRangeMax = signal<number>(1);
+  selectedNodeTypes = signal<string[]>(['source', 'sink', 'fork', 'join', 'regular']);
+  
+  // Table columns
+  displayedColumns: string[] = ['metric', 'value'];
+  beliefsDisplayedColumns: string[] = ['node', 'belief'];
+  
+  // Node type options for filtering
+  nodeTypeOptions = ['source', 'sink', 'fork', 'join', 'regular'];
 
-  constructor() {
-    super();
+  getReachabilityScenarios() {
+    const results = this.analysisResults();
+    if (!results?.results?.reachability_scenarios) return [];
+
+    return Object.entries(results.results.reachability_scenarios)
+      .filter(([_, scenario]) => scenario.exact_inference)
+      .map(([name, scenario]) => ({
+        name,
+        scenario
+      }));
   }
 
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadExactInferenceData();
+  getInferenceMetrics(inference: any): { metric: string; value: string | number }[] {
+    if (!inference) return [];
+
+    return [
+      { metric: 'Total Nodes Processed', value: inference.total_nodes_processed },
+      { metric: 'Computation Time', value: `${inference.computation_time.toFixed(4)}s` },
+      { metric: 'Mean Belief', value: inference.belief_statistics.mean.toFixed(4) },
+      { metric: 'Min Belief', value: inference.belief_statistics.min.toFixed(4) },
+      { metric: 'Max Belief', value: inference.belief_statistics.max.toFixed(4) }
+    ];
   }
 
-  ngOnDestroy(): void {
-    // Component cleanup
-    this.setData(null);
-  }
-
-  initializeComponent(): void {
-    // Set available view modes
-    this.availableViewModes.set({ visual: true, dashboard: true });
-    this.currentViewMode.set('visual');
-  }
-
-  private loadExactInferenceData(): void {
-    const exactInferenceData = this.analysisState.exactInferenceData();
-    
-    if (!exactInferenceData || !exactInferenceData.results) {
-      this.setError('No exact inference data available');
-      return;
-    }
-
-    this.setLoading(true);
-    
-    try {
-      // Check if we have multi-type results
-      const results = exactInferenceData.results;
-      if ('multi_type_inference' in results && results.multi_type_inference) {
-        this.hasMultiTypeResults = true;
-        const multiResults = results.multi_type_inference as MultiTypeInferenceResult;
-        this.processedTypes = multiResults.processing_summary?.processed_types || [];
-        this.selectedTypeForView = this.processedTypes[0] || 'float';
-        
-        // Get nodes from the first available type
-        let firstTypeResults: ExactInferenceResult | undefined;
-        if (multiResults.float) {
-          firstTypeResults = multiResults.float;
-        } else if (multiResults.pbox) {
-          firstTypeResults = multiResults.pbox;
-        } else if (multiResults.interval) {
-          firstTypeResults = multiResults.interval;
-        }
-        
-        if (firstTypeResults?.node_beliefs) {
-          this.availableNodes = Object.keys(firstTypeResults.node_beliefs);
-        }
-        
-        const analysisData: AnalysisComponentData<MultiTypeInferenceResult> = {
-          structure: exactInferenceData.structure,
-          results: multiResults
-        };
-        
-        this.setData(analysisData);
-        this.setLoading(false);
-        
-        this.snackBar.open(
-          `Multi-type inference loaded: ${this.processedTypes.length} types, ${this.availableNodes.length} nodes`,
-          'Close',
-          { duration: 4000 }
-        );
-      } else if ('exact_inference' in results && results.exact_inference) {
-        // Single-type results (backward compatibility)
-        this.hasMultiTypeResults = false;
-        const singleResults = results.exact_inference as ExactInferenceResult;
-        this.availableNodes = Object.keys(singleResults.node_beliefs);
-        
-        const analysisData: AnalysisComponentData<ExactInferenceResult> = {
-          structure: exactInferenceData.structure,
-          results: singleResults
-        };
-        
-        this.setData(analysisData);
-        this.setLoading(false);
-        
-        this.snackBar.open(
-          `Exact inference loaded: ${this.availableNodes.length} node beliefs (${singleResults.data_type})`,
-          'Close',
-          { duration: 4000 }
-        );
-      } else {
-        this.setError('No inference results found in analysis data');
-        this.setLoading(false);
-      }
-      
-    } catch (error) {
-      this.setError(`Failed to load exact inference data: ${error}`);
-      this.setLoading(false);
-    }
-  }
-
-  switchTypeView(type: string): void {
-    this.selectedTypeForView = type;
-    // Update visualization for the new type if needed
-    // Note: processData expects single-type results, so we skip it for multi-type
-  }
-
-  getBeliefSummary(type: string): string {
-    const data = this.componentData();
-    if (!data || !this.hasMultiTypeResults) return 'N/A';
-    
-    const multiTypeResults = data.results as MultiTypeInferenceResult;
-    let typeResults: ExactInferenceResult | undefined;
-    
-    // Access specific type properties
-    if (type === 'float') {
-      typeResults = multiTypeResults.float;
-    } else if (type === 'pbox') {
-      typeResults = multiTypeResults.pbox;
-    } else if (type === 'interval') {
-      typeResults = multiTypeResults.interval;
-    }
-    
-    if (!typeResults || !typeResults.node_beliefs) return 'N/A';
-    
-    const beliefs = Object.values(typeResults.node_beliefs);
-    const avgBelief = beliefs.reduce((sum: number, belief) => sum + this.extractBeliefValue(belief), 0) / beliefs.length;
-    return `Avg: ${avgBelief.toFixed(3)}`;
-  }
-
-  getUncertaintySummary(type: string): string {
-    const data = this.componentData();
-    if (!data || !this.hasMultiTypeResults) return 'N/A';
-    
-    const multiTypeResults = data.results as MultiTypeInferenceResult;
-    let typeResults: ExactInferenceResult | undefined;
-    
-    // Access specific type properties
-    if (type === 'float') {
-      typeResults = multiTypeResults.float;
-    } else if (type === 'pbox') {
-      typeResults = multiTypeResults.pbox;
-    } else if (type === 'interval') {
-      typeResults = multiTypeResults.interval;
-    }
-    
-    if (!typeResults || !typeResults.belief_statistics) return 'N/A';
-    
-    return `Std: ${typeResults.belief_statistics.std?.toFixed(3) || 'N/A'}`;
-  }
-
-
-  processData(data: AnalysisComponentData<ExactInferenceResult>): void {
-    console.log('Processing exact inference data:', data);
-    
-    // Update visualization config based on belief values
-    this.visualizationConfig.update(config => ({
-      ...config,
-      showLabels: true,
-      highlightNodes: [],
-      nodeColors: this.generateBeliefNodeColors(data.results)
-    }));
-  }
-
-  private generateBeliefNodeColors(results: ExactInferenceResult): Record<number, string> {
-    const nodeColors: Record<number, string> = {};
-    
-    // Generate colors based on belief values (blue/teal theme)
-    Object.entries(results.node_beliefs).forEach(([nodeId, belief]) => {
-      const numNodeId = parseInt(nodeId);
-      if (isNaN(numNodeId)) return;
-      
-      const beliefValue = this.extractBeliefValue(belief);
-      const intensity = Math.min(beliefValue, 1.0); // Cap at 1.0
-      
-      if (intensity < 0.3) {
-        nodeColors[numNodeId] = '#E0F2F1'; // Very light teal for low beliefs
-      } else if (intensity < 0.6) {
-        nodeColors[numNodeId] = '#80CBC4'; // Light teal for medium beliefs
-      } else if (intensity < 0.8) {
-        nodeColors[numNodeId] = '#009688'; // Primary teal for high beliefs
-      } else {
-        nodeColors[numNodeId] = '#00695C'; // Dark teal for very high beliefs
-      }
-    });
-    
-    return nodeColors;
-  }
-
-  private extractBeliefValue(belief: BeliefValue): number {
-    if (typeof belief === 'number') {
-      return belief; // FloatBelief
-    } else if ('lower' in belief && 'upper' in belief) {
-      return (belief.lower + belief.upper) / 2; // IntervalBelief midpoint
-    } else if ('mean_lower' in belief && 'mean_upper' in belief) {
-      return (belief.mean_lower + belief.mean_upper) / 2; // PboxBelief midpoint
+  // Utility methods for handling different belief value types
+  private getNumericValue(beliefValue: BeliefValue): number {
+    if (typeof beliefValue === 'number') {
+      return beliefValue;
+    } else if ('lower' in beliefValue && 'upper' in beliefValue) {
+      // Interval: use midpoint
+      return (beliefValue.lower + beliefValue.upper) / 2;
+    } else if ('mean_lower' in beliefValue && 'mean_upper' in beliefValue) {
+      // Pbox: use midpoint of mean bounds
+      return (beliefValue.mean_lower + beliefValue.mean_upper) / 2;
     }
     return 0;
   }
 
-  updateVisualization(config: VisualizationConfig): void {
-    console.log('Updating exact inference visualization with config:', config);
-    
-    if (this.isVisualMode()) {
-      // Update the graph visualization to show belief values
-      // This will highlight nodes based on their belief values
+  private formatBeliefValue(beliefValue: BeliefValue): string {
+    if (typeof beliefValue === 'number') {
+      return beliefValue.toFixed(4);
+    } else if ('lower' in beliefValue && 'upper' in beliefValue) {
+      return `[${beliefValue.lower.toFixed(3)}, ${beliefValue.upper.toFixed(3)}]`;
+    } else if ('mean_lower' in beliefValue && 'mean_upper' in beliefValue) {
+      return `Pbox(μ:[${beliefValue.mean_lower.toFixed(3)}, ${beliefValue.mean_upper.toFixed(3)}])`;
     }
+    return 'Unknown';
   }
 
-  exportData(format: 'json' | 'csv' | 'png'): void {
-    const data = this.componentData();
-    if (!data) return;
+  getBeliefsData(beliefs: Record<string, BeliefValue>): { node: string; belief: BeliefValue; numericValue: number; displayValue: string }[] {
+    return Object.entries(beliefs)
+      .map(([node, belief]) => ({ 
+        node, 
+        belief,
+        numericValue: this.getNumericValue(belief),
+        displayValue: this.formatBeliefValue(belief)
+      }))
+      .sort((a, b) => b.numericValue - a.numericValue); // Sort by numeric value descending
+  }
+
+  getBeliefLevel(beliefValue: BeliefValue): 'high' | 'medium' | 'low' {
+    const numericValue = this.getNumericValue(beliefValue);
+    if (numericValue >= 0.7) return 'high';
+    if (numericValue >= 0.4) return 'medium';
+    return 'low';
+  }
+
+  getTopBeliefs(beliefs: Record<string, BeliefValue>, count: number = 10) {
+    return this.getBeliefsData(beliefs).slice(0, count);
+  }
+
+  getBottomBeliefs(beliefs: Record<string, BeliefValue>, count: number = 10) {
+    const sorted = this.getBeliefsData(beliefs);
+    return sorted.slice(-count).reverse();
+  }
+
+  // View mode handlers
+  onViewModeChange(mode: 'dashboard' | 'visual'): void {
+    this.viewMode.set(mode);
+  }
+
+  onScenarioChange(scenarioName: string): void {
+    this.selectedScenario.set(scenarioName);
+  }
+
+  // Get current scenario data
+  getCurrentScenario() {
+    const scenarios = this.getReachabilityScenarios();
+    const selectedName = this.selectedScenario();
     
-    switch (format) {
-      case 'json':
-        if ('node_beliefs' in data.results) {
-          this.exportAsJson(data.results as ExactInferenceResult);
-        }
-        break;
-      case 'csv':
-        if ('node_beliefs' in data.results) {
-          this.exportAsCsv(data.results as ExactInferenceResult);
-        }
-        break;
-      case 'png':
-        this.exportAsPng();
-        break;
-    }
-  }
-
-  private exportAsJson(data: ExactInferenceResult): void {
-    const jsonData = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `exact-inference-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsCsv(data: ExactInferenceResult): void {
-    const csvRows = [
-      ['Node ID', 'Belief Value', 'Belief Type', 'Details']
-    ];
-    
-    Object.entries(data.node_beliefs).forEach(([nodeId, belief]) => {
-      const beliefValue = this.extractBeliefValue(belief);
-      const beliefType = this.getBeliefType(belief);
-      const details = this.getBeliefDetails(belief);
-      
-      csvRows.push([
-        nodeId,
-        beliefValue.toString(),
-        beliefType,
-        details
-      ]);
-    });
-    
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `exact-inference-beliefs-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsPng(): void {
-    this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
-  }
-
-  private getBeliefType(belief: BeliefValue): string {
-    if (typeof belief === 'number') {
-      return 'float';
-    } else if ('lower' in belief && 'upper' in belief) {
-      return 'interval';
-    } else if ('type' in belief && belief.type === 'pbox') {
-      return 'pbox';
-    }
-    return 'unknown';
-  }
-
-  private getBeliefDetails(belief: BeliefValue): string {
-    if (typeof belief === 'number') {
-      return belief.toString();
-    } else if ('lower' in belief && 'upper' in belief) {
-      return `[${belief.lower}, ${belief.upper}]`;
-    } else if ('type' in belief && belief.type === 'pbox') {
-      return `mean[${belief.mean_lower}, ${belief.mean_upper}] var[${belief.var_lower}, ${belief.var_upper}]`;
-    }
-    return 'N/A';
-  }
-
-  // Template helper methods
-  getNodeBeliefs(): Record<string, BeliefValue> {
-    const results = this.componentData()?.results;
-    if (!results) return {};
-    
-    // Handle single-type results
-    if ('node_beliefs' in results) {
-      return (results as ExactInferenceResult).node_beliefs || {};
+    if (!selectedName || !scenarios.length) {
+      return scenarios[0] || null;
     }
     
-    // Handle multi-type results - return first available type
-    const multiResults = results as MultiTypeInferenceResult;
-    return multiResults.float?.node_beliefs ||
-           multiResults.pbox?.node_beliefs ||
-           multiResults.interval?.node_beliefs ||
-           {};
+    return scenarios.find(s => s.name === selectedName) || scenarios[0];
   }
 
-  getExecutionTime(): number {
-    const results = this.componentData()?.results;
-    if (!results) return 0;
-    
-    // Handle single-type results
-    if ('execution_time' in results) {
-      return (results as ExactInferenceResult).execution_time || 0;
-    }
-    
-    // Handle multi-type results - return total from processing summary
-    const multiResults = results as MultiTypeInferenceResult;
-    return multiResults.processing_summary?.total_execution_time || 0;
+  // Visual view handlers
+  onNodeClick(nodeInfo: NodeClickInfo): void {
+    console.log('Node clicked:', nodeInfo);
   }
 
-  getDataType(): 'float' | 'interval' | 'pbox' {
-    const results = this.componentData()?.results;
-    if (!results) return 'float';
-    
-    // Handle single-type results
-    if ('data_type' in results) {
-      return (results as ExactInferenceResult).data_type || 'float';
-    }
-    
-    // Handle multi-type results - return first available type
-    const multiResults = results as MultiTypeInferenceResult;
-    if (multiResults.float) return 'float';
-    if (multiResults.pbox) return 'pbox';
-    if (multiResults.interval) return 'interval';
-    return 'float';
+  onBeliefRangeChange(): void {
+    // Filter update is handled by template binding
   }
 
-  getAlgorithmType(): string {
-    const results = this.componentData()?.results;
-    if (!results) return 'belief_propagation';
-    
-    // Handle single-type results
-    if ('algorithm_type' in results) {
-      return (results as ExactInferenceResult).algorithm_type || 'belief_propagation';
-    }
-    
-    // Handle multi-type results - return first available algorithm type
-    const multiResults = results as MultiTypeInferenceResult;
-    return multiResults.float?.algorithm_type ||
-           multiResults.pbox?.algorithm_type ||
-           multiResults.interval?.algorithm_type ||
-           'belief_propagation';
+  onNodeTypeFilterChange(): void {
+    // Filter update is handled by template binding
   }
 
-  getNodesCount(): number {
-    return Object.keys(this.getNodeBeliefs()).length;
-  }
-
-  getAverageBeliefValue(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    if (beliefs.length === 0) return 0;
-    
-    const sum = beliefs.reduce((acc: number, belief) => acc + this.extractBeliefValue(belief), 0);
-    return sum / beliefs.length;
-  }
-
-  getMaxBeliefValue(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    if (beliefs.length === 0) return 0;
-    
-    return Math.max(...beliefs.map(belief => this.extractBeliefValue(belief)));
-  }
-
-  getMinBeliefValue(): number {
-    const beliefs = Object.values(this.getNodeBeliefs());
-    if (beliefs.length === 0) return 0;
-    
-    return Math.min(...beliefs.map(belief => this.extractBeliefValue(belief)));
-  }
-
-  getFormattedExecutionTime(): string {
-    const time = this.getExecutionTime();
-    if (time < 1) {
-      return `${(time * 1000).toFixed(0)}ms`;
-    } else if (time < 60) {
-      return `${time.toFixed(2)}s`;
-    } else {
-      const minutes = Math.floor(time / 60);
-      const seconds = (time % 60).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
-  }
-
-  getSortedNodeEntries(): Array<[string, BeliefValue]> {
-    const entries = Object.entries(this.getNodeBeliefs());
-    
-    if (this.sortOrder === 'none') {
-      return entries;
-    }
-    
-    return entries.sort((a, b) => {
-      const valueA = this.extractBeliefValue(a[1]);
-      const valueB = this.extractBeliefValue(b[1]);
-      
-      if (this.sortOrder === 'asc') {
-        return valueA - valueB;
-      } else {
-        return valueB - valueA;
-      }
-    });
-  }
-
-  getFilteredNodeEntries(): Array<[string, BeliefValue]> {
-    let entries = this.getSortedNodeEntries();
-    
-    if (this.showHighBeliefsOnly) {
-      const avgBelief = this.getAverageBeliefValue();
-      entries = entries.filter(([_, belief]) => this.extractBeliefValue(belief) > avgBelief);
-    }
-    
-    return entries;
-  }
-
-  // Interactive belief analysis
-  onNodeSelection(nodeId: string | null): void {
-    this.selectedNode = nodeId;
-    this.updateNodeHighlight();
-  }
-
-  onSortOrderChange(order: 'asc' | 'desc' | 'none'): void {
-    this.sortOrder = order;
-  }
-
-  onHighBeliefsToggle(showHighOnly: boolean): void {
-    this.showHighBeliefsOnly = showHighOnly;
-  }
-
-  private updateNodeHighlight(): void {
-    if (this.selectedNode !== null) {
-      const numNodeId = parseInt(this.selectedNode);
-      if (!isNaN(numNodeId)) {
-        this.highlightNodes([numNodeId]);
-      }
-    } else {
-      this.highlightNodes([]);
-    }
-  }
-
-  highlightHighBeliefNodes(): void {
-    const avgBelief = this.getAverageBeliefValue();
-    const highBeliefNodes: number[] = [];
-    
-    Object.entries(this.getNodeBeliefs()).forEach(([nodeId, belief]) => {
-      const beliefValue = this.extractBeliefValue(belief);
-      if (beliefValue > avgBelief) {
-        const numNodeId = parseInt(nodeId);
-        if (!isNaN(numNodeId)) {
-          highBeliefNodes.push(numNodeId);
-        }
-      }
-    });
-    
-    this.highlightNodes(highBeliefNodes);
-    this.selectedNode = null;
-  }
-
-  highlightLowBeliefNodes(): void {
-    const avgBelief = this.getAverageBeliefValue();
-    const lowBeliefNodes: number[] = [];
-    
-    Object.entries(this.getNodeBeliefs()).forEach(([nodeId, belief]) => {
-      const beliefValue = this.extractBeliefValue(belief);
-      if (beliefValue < avgBelief) {
-        const numNodeId = parseInt(nodeId);
-        if (!isNaN(numNodeId)) {
-          lowBeliefNodes.push(numNodeId);
-        }
-      }
-    });
-    
-    this.highlightNodes(lowBeliefNodes);
-    this.selectedNode = null;
-  }
-
-  clearHighlights(): void {
-    this.highlightNodes([]);
-    this.selectedNode = null;
-  }
-
-  getNodeBelief(nodeId: string): BeliefValue | null {
-    return this.getNodeBeliefs()[nodeId] || null;
-  }
-
-  formatBeliefValue(belief: BeliefValue): string {
-    if (typeof belief === 'number') {
-      return belief.toFixed(4);
-    } else if ('lower' in belief && 'upper' in belief) {
-      return `[${belief.lower.toFixed(4)}, ${belief.upper.toFixed(4)}]`;
-    } else if ('type' in belief && belief.type === 'pbox') {
-      return `μ[${belief.mean_lower.toFixed(4)}, ${belief.mean_upper.toFixed(4)}]`;
-    }
-    return 'N/A';
-  }
-
-  // Legacy methods for backward compatibility with templates
-  getReachablePairsCount(): number {
-    return this.getNodesCount();
-  }
-
-  getTotalPairsCount(): number {
-    const nodeCount = this.getNodesCount();
-    return nodeCount * (nodeCount - 1);
-  }
-
-  getReachabilityRatio(): number {
-    const total = this.getTotalPairsCount();
-    return total > 0 ? this.getReachablePairsCount() / total : 0;
-  }
-
-  getConnectedComponentsCount(): number {
-    // For exact inference, we assume all nodes are connected
-    return 1;
-  }
-
-  getMaxDistance(): number {
-    // For exact inference, return max belief value as "distance"
-    return this.getMaxBeliefValue();
-  }
-
-  getAverageDistance(): number {
-    // For exact inference, return average belief value as "distance"  
-    return this.getAverageBeliefValue();
-  }
-
-  getReachabilityMatrix(): any[][] {
-    // For exact inference, return empty matrix as we don't have reachability
-    return [];
-  }
-
-  getStronglyConnectedComponents(): number[][] {
-    // For exact inference, return all nodes as one component
-    const allNodes = Object.keys(this.getNodeBeliefs()).map(id => parseInt(id)).filter(id => !isNaN(id));
-    return allNodes.length > 0 ? [allNodes] : [];
-  }
-
-  // Legacy methods for backward compatibility with templates
-  onSourceNodeChange(nodeId: string | null): void {
-    this.selectedSourceNode = nodeId;
-  }
-
-  onTargetNodeChange(nodeId: string | null): void {
-    this.selectedTargetNode = nodeId;
-  }
-
-
-  isNodeReachable(source: string | null, target: string | null): boolean {
-    // For exact inference, just check if both nodes exist
-    return source !== null && target !== null && source !== target;
-  }
-
-  getDistance(source: string | null, target: string | null): number {
-    // For exact inference, return 1 if both nodes exist, otherwise 0
-    return this.isNodeReachable(source, target) ? 1 : 0;
-  }
-
-  getPath(source: string | null, target: string | null): number[] {
-    // Try to use comprehensive structure data for accurate path finding
-    const comprehensiveData = this.getComprehensiveStructureData();
-    
-    if (comprehensiveData && source && target) {
-      const sourceId = parseInt(source);
-      const targetId = parseInt(target);
-      
-      if (!isNaN(sourceId) && !isNaN(targetId)) {
-        return this.findPathInComprehensiveData(sourceId, targetId, comprehensiveData);
-      }
-    }
-    
-    // Fallback to simple path for exact inference
-    if (this.isNodeReachable(source, target)) {
-      const sourceId = parseInt(source!);
-      const targetId = parseInt(target!);
-      if (!isNaN(sourceId) && !isNaN(targetId)) {
-        return [sourceId, targetId];
-      }
-    }
-    return [];
-  }
-
-  // Methods for accessing comprehensive structure data
-  getComprehensiveStructureData(): NetworkStructureResult | null {
-    return this.analysisState.getComprehensiveStructureData();
-  }
-
-  hasComprehensiveStructureData(): boolean {
-    const data = this.getComprehensiveStructureData();
-    return !!(data?.edgelist && data?.outgoing_index && data?.incoming_index);
-  }
-
-  // Enhanced reachability analysis using comprehensive structure data
-  isNodeReachableInNetwork(sourceId: number, targetId: number): boolean {
-    const comprehensiveData = this.getComprehensiveStructureData();
-    
-    if (!comprehensiveData) {
-      // Fallback to basic check
-      return sourceId !== targetId;
-    }
-    
-    // Use descendants data if available
-    const descendants = comprehensiveData.descendants;
-    if (descendants && descendants[sourceId]) {
-      return descendants[sourceId].includes(targetId);
-    }
-    
-    // Use BFS on edge list
-    return this.bfsReachability(sourceId, targetId, comprehensiveData.edgelist);
-  }
-
-  private bfsReachability(sourceId: number, targetId: number, edgelist: [number, number][]): boolean {
-    if (sourceId === targetId) return true;
-    
-    // Build adjacency list
-    const adjacency: Record<number, number[]> = {};
-    edgelist.forEach(([from, to]) => {
-      if (!adjacency[from]) adjacency[from] = [];
-      adjacency[from].push(to);
-    });
-    
-    // BFS
-    const visited = new Set<number>();
-    const queue = [sourceId];
-    visited.add(sourceId);
-    
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      
-      if (current === targetId) return true;
-      
-      const neighbors = adjacency[current] || [];
-      for (const neighbor of neighbors) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    }
-    
-    return false;
-  }
-
-  private findPathInComprehensiveData(sourceId: number, targetId: number, data: NetworkStructureResult): number[] {
-    if (sourceId === targetId) return [sourceId];
-    
-    // Build adjacency list
-    const adjacency: Record<number, number[]> = {};
-    data.edgelist.forEach(([from, to]) => {
-      if (!adjacency[from]) adjacency[from] = [];
-      adjacency[from].push(to);
-    });
-    
-    // BFS with path tracking
-    const visited = new Set<number>();
-    const queue: Array<{node: number, path: number[]}> = [{node: sourceId, path: [sourceId]}];
-    visited.add(sourceId);
-    
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      
-      if (current.node === targetId) {
-        return current.path;
-      }
-      
-      const neighbors = adjacency[current.node] || [];
-      for (const neighbor of neighbors) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push({
-            node: neighbor,
-            path: [...current.path, neighbor]
-          });
-        }
-      }
-    }
-    
-    return []; // No path found
-  }
-
-  // Get ancestors and descendants from comprehensive data
-  getNodeAncestors(nodeId: number): number[] {
-    const comprehensiveData = this.getComprehensiveStructureData();
-    return comprehensiveData?.ancestors?.[nodeId] || [];
-  }
-
-  getNodeDescendants(nodeId: number): number[] {
-    const comprehensiveData = this.getComprehensiveStructureData();
-    return comprehensiveData?.descendants?.[nodeId] || [];
-  }
-
-  // Enhanced analysis methods using comprehensive data
-  getOutgoingNodes(nodeId: number): number[] {
-    const comprehensiveData = this.getComprehensiveStructureData();
-    return comprehensiveData?.outgoing_index?.[nodeId] || [];
-  }
-
-  getIncomingNodes(nodeId: number): number[] {
-    const comprehensiveData = this.getComprehensiveStructureData();
-    return comprehensiveData?.incoming_index?.[nodeId] || [];
-  }
-
-  getNodeConnectivity(nodeId: number): {incoming: number, outgoing: number, total: number} {
-    const incoming = this.getIncomingNodes(nodeId).length;
-    const outgoing = this.getOutgoingNodes(nodeId).length;
+  // Get filter config for visualization
+  getVisualizationFilters(): FilterConfig {
     return {
-      incoming,
-      outgoing, 
-      total: incoming + outgoing
+      nodeTypeFilters: this.selectedNodeTypes(),
+      valueRange: {
+        min: this.beliefRangeMin(),
+        max: this.beliefRangeMax()
+      }
     };
   }
 
-  // Update reachability highlighting with comprehensive data
-  highlightReachableFrom(sourceNode: number | string | null): void {
-    if (sourceNode === null) return;
+  // Get belief distribution statistics
+  getBeliefDistribution(beliefs: Record<string, BeliefValue>) {
+    if (!beliefs) return null;
     
-    const nodeId = typeof sourceNode === 'string' ? parseInt(sourceNode) : sourceNode;
-    if (isNaN(nodeId)) return;
+    const numericValues = Object.values(beliefs).map(v => this.getNumericValue(v));
+    const sorted = numericValues.sort((a, b) => a - b);
+    const length = numericValues.length;
     
-    const comprehensiveData = this.getComprehensiveStructureData();
-    if (comprehensiveData) {
-      // Highlight all descendants
-      const descendants = this.getNodeDescendants(nodeId);
-      this.highlightNodes([nodeId, ...descendants]);
-    } else {
-      // Fallback to basic highlighting
-      this.highlightNodes([nodeId]);
-    }
+    return {
+      count: length,
+      median: length % 2 === 0 
+        ? (sorted[length / 2 - 1] + sorted[length / 2]) / 2 
+        : sorted[Math.floor(length / 2)],
+      q1: sorted[Math.floor(length * 0.25)],
+      q3: sorted[Math.floor(length * 0.75)],
+      highCount: numericValues.filter(v => v >= 0.7).length,
+      mediumCount: numericValues.filter(v => v >= 0.4 && v < 0.7).length,
+      lowCount: numericValues.filter(v => v < 0.4).length
+    };
   }
 
-  highlightReachableTo(targetNode: number | string | null): void {
-    if (targetNode === null) return;
-    
-    const nodeId = typeof targetNode === 'string' ? parseInt(targetNode) : targetNode;
-    if (isNaN(nodeId)) return;
-    
-    const comprehensiveData = this.getComprehensiveStructureData();
-    if (comprehensiveData) {
-      // Highlight all ancestors
-      const ancestors = this.getNodeAncestors(nodeId);
-      this.highlightNodes([nodeId, ...ancestors]);
-    } else {
-      // Fallback to basic highlighting
-      this.highlightNodes([nodeId]);
+  onBeliefRangeMinChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.beliefRangeMin.set(+target.value);
+    this.onBeliefRangeChange();
+  }
+
+  onBeliefRangeMaxChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.beliefRangeMax.set(+target.value);
+    this.onBeliefRangeChange();
+  }
+
+  // Initialize selected scenario on data load
+  ngOnInit(): void {
+    const scenarios = this.getReachabilityScenarios();
+    if (scenarios.length > 0 && !this.selectedScenario()) {
+      this.selectedScenario.set(scenarios[0].name);
     }
   }
 }

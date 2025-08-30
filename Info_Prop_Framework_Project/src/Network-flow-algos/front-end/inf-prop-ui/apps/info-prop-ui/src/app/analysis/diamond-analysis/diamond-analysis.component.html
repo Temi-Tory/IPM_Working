@@ -1,647 +1,354 @@
 <div class="diamond-analysis-container">
-  
-  <!-- Header Section -->
-  <div class="analysis-header">
-    <div class="header-content">
-      <div class="header-info">
-        <h1><mat-icon>diamond</mat-icon> Diamond Structure Analysis</h1>
-        <p class="network-name">{{ componentData()?.structure?.networkName || 'Network' }}</p>
-        <div class="header-stats">
-          <span class="stat-badge">{{ getRootDiamondsCount() }} Root Diamonds</span>
-          <span class="stat-badge">{{ getUniqueDiamondsCount() }} Unique Structures</span>
-          <span class="stat-badge">{{ getFormattedEfficiency() }} Efficiency</span>
+  <!-- Error state -->
+  <div *ngIf="error()" class="error-message">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading()" class="loading-section">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Loading diamond analysis...</p>
+  </div>
+
+  <!-- No data state -->
+  <div *ngIf="!analysisResults() && !isLoading() && !error()" class="no-data">
+    <mat-icon>diamond</mat-icon>
+    <p>No diamond analysis data available. Please run an analysis first.</p>
+  </div>
+
+  <!-- Main content when data is available -->
+  <div *ngIf="analysisResults() && getAvailableScenarios().length > 0" class="diamond-content">
+    <!-- Header controls -->
+    <div class="analysis-header">
+      <div class="header-content">
+        <div class="title-section">
+          <mat-icon class="header-icon">diamond</mat-icon>
+          <div>
+            <h1>Diamond Structure Analysis</h1>
+            <p class="subtitle">Network optimization through diamond pattern recognition</p>
+          </div>
+        </div>
+        
+        <div class="header-controls">
+          <!-- Scenario selector -->
+          <mat-select 
+            [value]="selectedScenario()" 
+            (selectionChange)="onScenarioChange($event.value)"
+            class="scenario-selector"
+            placeholder="Select scenario">
+            <mat-option *ngFor="let scenario of getAvailableScenarios()" [value]="scenario.value">
+              {{ scenario.label }}
+            </mat-option>
+          </mat-select>
+
+          <!-- View mode toggle -->
+          <mat-button-toggle-group 
+            [value]="viewMode()" 
+            (change)="onViewModeChange($event.value)"
+            class="view-toggle">
+            <mat-button-toggle value="dashboard">
+              <mat-icon>dashboard</mat-icon>
+              Dashboard
+            </mat-button-toggle>
+            <mat-button-toggle value="visual">
+              <mat-icon>account_tree</mat-icon>
+              Visual
+            </mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
       </div>
-      
-      <div class="header-actions">
-        <app-analysis-view-switcher 
-          [currentMode]="currentViewMode()"
-          [availableModes]="availableViewModes()"
-          (modeChange)="switchViewMode($event)">
-        </app-analysis-view-switcher>
-        
-        <button mat-button [matMenuTriggerFor]="exportMenu">
-          <mat-icon>download</mat-icon>
-          Export
-        </button>
-        
-        <mat-menu #exportMenu="matMenu">
-          <button mat-menu-item (click)="exportData('json')">
-            <mat-icon>code</mat-icon>
-            <span>Export JSON</span>
-          </button>
-          <button mat-menu-item (click)="exportData('csv')">
-            <mat-icon>table_chart</mat-icon>
-            <span>Export CSV</span>
-          </button>
-        </mat-menu>
+    </div>
+
+    <!-- Dashboard View -->
+    <div *ngIf="viewMode() === 'dashboard' && getCurrentScenarioAnalysis() as analysis" class="dashboard-view">
+      <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="analysis-tabs">
+        <!-- Overview Tab -->
+        <mat-tab label="Overview">
+          <div class="tab-content">
+            <div class="overview-grid">
+              <!-- Summary Cards -->
+              <div class="summary-cards">
+                <mat-card *ngFor="let stat of getSummaryStats(analysis)" class="summary-card">
+                  <mat-card-content>
+                    <div class="metric-header">
+                      <span class="metric-label">{{ stat.metric }}</span>
+                    </div>
+                    <div class="metric-value">{{ stat.value }}</div>
+                    <div class="metric-description">{{ stat.description }}</div>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+
+              <!-- Efficiency Visualization -->
+              <mat-card class="efficiency-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>speed</mat-icon>
+                  <mat-card-title>Diamond Efficiency</mat-card-title>
+                  <mat-card-subtitle>Pattern optimization effectiveness</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="efficiency-display">
+                    <div class="efficiency-chart">
+                      <div class="efficiency-circle" [class]="'level-' + getEfficiencyLevel(analysis.diamond_efficiency)">
+                        <span class="efficiency-percentage">{{ (analysis.diamond_efficiency * 100).toFixed(0) }}%</span>
+                      </div>
+                    </div>
+                    <div class="efficiency-details">
+                      <div class="efficiency-breakdown">
+                        <div class="breakdown-item">
+                          <span class="label">Unique Patterns:</span>
+                          <span class="value">{{ analysis.unique_diamonds_count }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                          <span class="label">Total Patterns:</span>
+                          <span class="value">{{ analysis.root_diamonds_count }}</span>
+                        </div>
+                        <div class="breakdown-item">
+                          <span class="label">Reduction:</span>
+                          <span class="value">{{ analysis.root_diamonds_count - analysis.unique_diamonds_count }} patterns</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <!-- Join Nodes Overview -->
+              <mat-card class="join-nodes-card" *ngIf="getJoinNodesWithDiamonds(analysis).length > 0">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>merge_type</mat-icon>
+                  <mat-card-title>Affected Join Nodes</mat-card-title>
+                  <mat-card-subtitle>Nodes containing diamond patterns</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="join-nodes-overview">
+                    <div class="nodes-count">
+                      <span class="count-number">{{ getJoinNodesWithDiamonds(analysis).length }}</span>
+                      <span class="count-label">join nodes affected</span>
+                    </div>
+                    <mat-chip-set class="nodes-chips">
+                      <mat-chip *ngFor="let node of getJoinNodesWithDiamonds(analysis)">
+                        Node {{ node }}
+                      </mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Diamond Metrics Tab -->
+        <mat-tab label="Diamond Metrics">
+          <div class="tab-content">
+            <div class="metrics-grid">
+              <mat-card *ngFor="let category of getDetailedMetrics(analysis)" class="metrics-category-card">
+                <mat-card-header>
+                  <mat-card-title>{{ category.category }}</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <table mat-table [dataSource]="category.metrics" class="metrics-table">
+                    <ng-container matColumnDef="metric">
+                      <th mat-header-cell *matHeaderCellDef>Metric</th>
+                      <td mat-cell *matCellDef="let row">{{ row.metric }}</td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="value">
+                      <th mat-header-cell *matHeaderCellDef>Value</th>
+                      <td mat-cell *matCellDef="let row">
+                        {{ row.value }}<span *ngIf="row.unit" class="unit">{{ row.unit }}</span>
+                      </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                  </table>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Efficiency Stats Tab -->
+        <mat-tab label="Efficiency Stats">
+          <div class="tab-content">
+            <div class="efficiency-stats">
+              <!-- Performance Timeline -->
+              <mat-card class="performance-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>timeline</mat-icon>
+                  <mat-card-title>Computation Performance</mat-card-title>
+                  <mat-card-subtitle>Time breakdown for diamond analysis</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="performance-breakdown">
+                    <div class="performance-item">
+                      <div class="performance-label">Root Diamond Computation</div>
+                      <div class="performance-bar">
+                        <div class="bar-fill root-bar" [style.width.%]="(analysis.root_computation_time / analysis.total_computation_time) * 100"></div>
+                      </div>
+                      <div class="performance-time">{{ analysis.root_computation_time.toFixed(4) }}s</div>
+                    </div>
+                    <div class="performance-item">
+                      <div class="performance-label">Unique Diamond Computation</div>
+                      <div class="performance-bar">
+                        <div class="bar-fill unique-bar" [style.width.%]="(analysis.unique_computation_time / analysis.total_computation_time) * 100"></div>
+                      </div>
+                      <div class="performance-time">{{ analysis.unique_computation_time.toFixed(4) }}s</div>
+                    </div>
+                    <div class="performance-item total">
+                      <div class="performance-label">Total Analysis Time</div>
+                      <div class="performance-bar">
+                        <div class="bar-fill total-bar" style="width: 100%"></div>
+                      </div>
+                      <div class="performance-time">{{ analysis.total_computation_time.toFixed(4) }}s</div>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <!-- Optimization Insights -->
+              <mat-card class="insights-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>insights</mat-icon>
+                  <mat-card-title>Optimization Insights</mat-card-title>
+                  <mat-card-subtitle>Analysis recommendations</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="insights-content">
+                    <div class="insight-item" [class]="'level-' + getEfficiencyLevel(analysis.diamond_efficiency)">
+                      <mat-icon>{{ getEfficiencyLevel(analysis.diamond_efficiency) === 'high' ? 'thumb_up' : getEfficiencyLevel(analysis.diamond_efficiency) === 'medium' ? 'thumbs_up_down' : 'thumb_down' }}</mat-icon>
+                      <div class="insight-text">
+                        <div class="insight-title">Efficiency Level: {{ getEfficiencyLevel(analysis.diamond_efficiency) | titlecase }}</div>
+                        <div class="insight-description">
+                          <span *ngIf="getEfficiencyLevel(analysis.diamond_efficiency) === 'high'">
+                            Excellent optimization! The network shows high diamond pattern consolidation.
+                          </span>
+                          <span *ngIf="getEfficiencyLevel(analysis.diamond_efficiency) === 'medium'">
+                            Good optimization with room for improvement. Some diamond patterns could be better consolidated.
+                          </span>
+                          <span *ngIf="getEfficiencyLevel(analysis.diamond_efficiency) === 'low'">
+                            Limited optimization detected. Consider network restructuring to improve diamond pattern efficiency.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="insight-item" *ngIf="analysis.note">
+                      <mat-icon>info</mat-icon>
+                      <div class="insight-text">
+                        <div class="insight-title">Analysis Notes</div>
+                        <div class="insight-description">{{ analysis.note }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <!-- Visual View -->
+    <div *ngIf="viewMode() === 'visual'" class="visual-view">
+      <div class="visualization-container">
+        <!-- Visualization Component -->
+        <div class="network-visualization">
+          <app-network-visualization
+            [networkData]="networkData()"
+            [analysisResults]="analysisResults()"
+            [visualizationMode]="'structure'"
+            [height]="'600px'"
+            [showFilters]="true"
+            [filterConfig]="{
+              nodeTypeFilters: ['join'],
+              showCriticalOnly: false,
+              highlightThreshold: 0.5
+            }"
+            (nodeClick)="onNodeClick($event)">
+          </app-network-visualization>
+        </div>
+
+        <!-- Node Info Panel -->
+        <div *ngIf="selectedNodeInfo() as nodeInfo" class="node-info-panel">
+          <mat-card class="info-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>info</mat-icon>
+              <mat-card-title>Node {{ nodeInfo.id }} Details</mat-card-title>
+              <mat-card-subtitle>{{ nodeInfo.type | titlecase }} Node</mat-card-subtitle>
+              <button mat-icon-button (click)="clearNodeSelection()" class="close-button">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="node-details">
+                <div class="detail-item">
+                  <span class="detail-label">Node Type:</span>
+                  <span class="detail-value">{{ nodeInfo.type | titlecase }}</span>
+                </div>
+                <div class="detail-item" *ngIf="nodeInfo.value !== undefined">
+                  <span class="detail-label">Value:</span>
+                  <span class="detail-value">{{ nodeInfo.value }}</span>
+                </div>
+                <div class="detail-item" *ngIf="nodeInfo.isCritical">
+                  <span class="detail-label">Status:</span>
+                  <span class="detail-value critical">Critical Node</span>
+                </div>
+              </div>
+
+              <!-- Diamond-specific info for join nodes -->
+              <div *ngIf="nodeInfo.type === 'join' && getCurrentScenarioAnalysis() as analysis" class="diamond-info">
+                <div class="diamond-status">
+                  <mat-icon [class]="getJoinNodesWithDiamonds(analysis).includes(nodeInfo.id) ? 'has-diamond' : 'no-diamond'">
+                    {{ getJoinNodesWithDiamonds(analysis).includes(nodeInfo.id) ? 'diamond' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span class="diamond-label">
+                    {{ getJoinNodesWithDiamonds(analysis).includes(nodeInfo.id) ? 'Contains diamond patterns' : 'No diamond patterns' }}
+                  </span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
       </div>
+
+      <!-- Visual Analysis Filters -->
+      <mat-card class="filter-panel">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>filter_list</mat-icon>
+          <mat-card-title>Diamond Analysis Filters</mat-card-title>
+          <mat-card-subtitle>Customize visualization focus</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="filter-options">
+            <div class="filter-group">
+              <label class="filter-label">Highlight:</label>
+              <div class="filter-controls">
+                <button mat-stroked-button color="primary" class="filter-button active">
+                  <mat-icon>diamond</mat-icon>
+                  Diamond Patterns
+                </button>
+                <button mat-stroked-button class="filter-button">
+                  <mat-icon>merge_type</mat-icon>
+                  Join Nodes
+                </button>
+                <button mat-stroked-button class="filter-button">
+                  <mat-icon>speed</mat-icon>
+                  Efficiency Levels
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner></mat-spinner>
-      <p>Analyzing diamond structures...</p>
-    </div>
-  }
-
-  <!-- Error State -->
-  @if (error()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon class="error-icon">error</mat-icon>
-          <div>
-            <h3>Diamond Analysis Error</h3>
-            <p>{{ error() }}</p>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Main Content -->
-  @if (!isLoading() && !error() && componentData()) {
-    
-    <!-- Visual Mode - Diamond Structure Details -->
-    @if (isVisualMode()) {
-      <div class="visual-mode">
-        
-        <!-- Diamond Inventory Summary -->
-        <div class="diamond-summary-section">
-          <mat-card class="diamond-summary-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>inventory</mat-icon>
-                Diamond Inventory
-              </mat-card-title>
-              <mat-card-subtitle>{{ getTotalClassifications() }} unique diamond structures detected</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="summary-stats">
-                <div class="stat-item primary">
-                  <div class="stat-value">{{ getRootDiamondsCount() }}</div>
-                  <div class="stat-label">Root Diamonds</div>
-                </div>
-                <div class="stat-item secondary">
-                  <div class="stat-value">{{ getUniqueDiamondsCount() }}</div>
-                  <div class="stat-label">Unique Diamonds</div>
-                </div>
-                <div class="stat-item accent">
-                  <div class="stat-value">{{ getFormattedEfficiency() }}</div>
-                  <div class="stat-label">Diamond Efficiency</div>
-                </div>
-                <div class="stat-item" [class.warning]="getHasComplexDiamonds()">
-                  <div class="stat-value">{{ getHasComplexDiamonds() ? 'Yes' : 'No' }}</div>
-                  <div class="stat-label">Complex Structures</div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-
-        <!-- Diamond Structure Details -->
-        <div class="diamond-details-section">
-          <mat-card class="diamond-details-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>account_tree</mat-icon>
-                Diamond Structure Details
-              </mat-card-title>
-              <mat-card-subtitle>Detailed analysis of each diamond structure with classification</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <mat-accordion class="diamond-accordion" multi="true">
-                
-                <!-- Root Diamonds -->
-                @if (getRootClassifications() | keyvalue; as rootDiamonds) {
-                  @for (diamond of rootDiamonds; track diamond.key) {
-                    <mat-expansion-panel class="diamond-panel root-diamond">
-                      <mat-expansion-panel-header>
-                        <mat-panel-title>
-                          <div class="diamond-title">
-                            <mat-icon class="diamond-type-icon">diamond</mat-icon>
-                            <span>Root Diamond {{ diamond.key }}</span>
-                            @if (getDiamondClassification(diamond.value)?.is_maximal) {
-                              <mat-chip class="maximal-chip">Maximal</mat-chip>
-                            } @else {
-                              <mat-chip class="unique-chip">Unique</mat-chip>
-                            }
-                          </div>
-                        </mat-panel-title>
-                        <mat-panel-description>
-                          <div class="diamond-summary">
-                            <span class="summary-item">
-                              <mat-icon>account_tree</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.edge_count || 0 }} edges
-                            </span>
-                            <span class="summary-item">
-                              <mat-icon>hub</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.conditioning_nodes?.length || 0 }} conditioning nodes
-                            </span>
-                            <span class="summary-item">
-                              <mat-icon>speed</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.complexity_score || 0 | number:'1.1-1' }} complexity
-                            </span>
-                          </div>
-                        </mat-panel-description>
-                      </mat-expansion-panel-header>
-                      
-                      <div class="diamond-detail-content">
-                        <div class="diamond-info-tabs">
-                          <mat-tab-group>
-                            <!-- Structure Tab -->
-                            <mat-tab label="Structure">
-                              <div class="structure-info">
-                                <div class="info-grid">
-                                  <div class="info-section">
-                                    <h4><mat-icon>hub</mat-icon> Node Information</h4>
-                                    <div class="node-lists">
-                                      <div class="node-list-item">
-                                        <span class="label">Relevant Nodes:</span>
-                                        <div class="nodes-container">
-                                          <mat-chip-set>
-                                            @for (node of getDiamondClassification(diamond.value)?.relevant_nodes || []; track node) {
-                                              <mat-chip class="node-chip relevant">{{ node }}</mat-chip>
-                                            }
-                                          </mat-chip-set>
-                                        </div>
-                                      </div>
-                                      <div class="node-list-item">
-                                        <span class="label">Conditioning Nodes:</span>
-                                        <div class="nodes-container">
-                                          <mat-chip-set>
-                                            @for (node of getDiamondClassification(diamond.value)?.conditioning_nodes || []; track node) {
-                                              <mat-chip class="node-chip conditioning">{{ node }}</mat-chip>
-                                            }
-                                          </mat-chip-set>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div class="info-section">
-                                    <h4><mat-icon>analytics</mat-icon> Metrics</h4>
-                                    <div class="metrics-grid">
-                                      <div class="metric-item">
-                                        <span class="metric-label">Edge Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.edge_count || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Fork Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.fork_count || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Subgraph Size:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.subgraph_size || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Internal Forks:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.internal_forks || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Internal Joins:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.internal_joins || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Path Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.path_count || 0 }}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-
-                            <!-- Classification Tab -->
-                            <mat-tab label="Classification">
-                              <div class="classification-info">
-                                <div class="classification-grid">
-                                  <div class="classification-category">
-                                    <h4><mat-icon>category</mat-icon> Structural Classification</h4>
-                                    <div class="classification-items">
-                                      <div class="classification-item">
-                                        <span class="classification-label">Fork Structure:</span>
-                                        <mat-chip class="classification-chip fork-structure">{{ getDiamondClassification(diamond.value)?.fork_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Internal Structure:</span>
-                                        <mat-chip class="classification-chip internal-structure">{{ getDiamondClassification(diamond.value)?.internal_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Path Topology:</span>
-                                        <mat-chip class="classification-chip path-topology">{{ getDiamondClassification(diamond.value)?.path_topology || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Join Structure:</span>
-                                        <mat-chip class="classification-chip join-structure">{{ getDiamondClassification(diamond.value)?.join_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">External Connectivity:</span>
-                                        <mat-chip class="classification-chip external-connectivity">{{ getDiamondClassification(diamond.value)?.external_connectivity || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Degeneracy:</span>
-                                        <mat-chip class="classification-chip degeneracy" [class.valid]="getDiamondClassification(diamond.value)?.degeneracy === 'VALID'">{{ getDiamondClassification(diamond.value)?.degeneracy || 'Unknown' }}</mat-chip>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-
-                            <!-- Performance Tab -->
-                            <mat-tab label="Performance">
-                              <div class="performance-info">
-                                <div class="performance-grid">
-                                  <div class="performance-section">
-                                    <h4><mat-icon>speed</mat-icon> Performance Metrics</h4>
-                                    <div class="performance-items">
-                                      <div class="performance-item">
-                                        <span class="performance-label">Complexity Score:</span>
-                                        <div class="performance-value-container">
-                                          <span class="performance-value">{{ getDiamondClassification(diamond.value)?.complexity_score || 0 | number:'1.2-2' }}</span>
-                                          <div class="complexity-bar">
-                                            <div class="complexity-fill" [style.width.%]="getComplexityPercentage(getDiamondClassification(diamond.value)?.complexity_score || 0)"></div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div class="performance-item">
-                                        <span class="performance-label">Optimization Potential:</span>
-                                        <mat-chip [class]="getOptimizationClass(getDiamondClassification(diamond.value)?.optimization_potential)">{{ getDiamondClassification(diamond.value)?.optimization_potential || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="performance-item">
-                                        <span class="performance-label">Bottleneck Risk:</span>
-                                        <mat-chip [class]="getBottleneckClass(getDiamondClassification(diamond.value)?.bottleneck_risk)">{{ getDiamondClassification(diamond.value)?.bottleneck_risk || 'Unknown' }}</mat-chip>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-                          </mat-tab-group>
-                        </div>
-                      </div>
-                    </mat-expansion-panel>
-                  }
-                }
-
-                <!-- Unique Diamonds -->
-                @if (getUniqueClassifications() | keyvalue; as uniqueDiamonds) {
-                  @for (diamond of uniqueDiamonds; track diamond.key) {
-                    <mat-expansion-panel class="diamond-panel unique-diamond">
-                      <mat-expansion-panel-header>
-                        <mat-panel-title>
-                          <div class="diamond-title">
-                            <mat-icon class="diamond-type-icon">crop_free</mat-icon>
-                            <span>Unique Diamond {{ diamond.key }}</span>
-                            <mat-chip class="unique-chip">Unique</mat-chip>
-                          </div>
-                        </mat-panel-title>
-                        <mat-panel-description>
-                          <div class="diamond-summary">
-                            <span class="summary-item">
-                              <mat-icon>account_tree</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.edge_count || 0 }} edges
-                            </span>
-                            <span class="summary-item">
-                              <mat-icon>hub</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.conditioning_nodes?.length || 0 }} conditioning nodes
-                            </span>
-                            <span class="summary-item">
-                              <mat-icon>speed</mat-icon>
-                              {{ getDiamondClassification(diamond.value)?.complexity_score || 0 | number:'1.1-1' }} complexity
-                            </span>
-                          </div>
-                        </mat-panel-description>
-                      </mat-expansion-panel-header>
-                      
-                      <!-- Same detailed content structure as root diamonds -->
-                      <div class="diamond-detail-content">
-                        <div class="diamond-info-tabs">
-                          <mat-tab-group>
-                            <mat-tab label="Structure">
-                              <!-- Same structure content as root diamonds -->
-                              <div class="structure-info">
-                                <div class="info-grid">
-                                  <div class="info-section">
-                                    <h4><mat-icon>hub</mat-icon> Node Information</h4>
-                                    <div class="node-lists">
-                                      <div class="node-list-item">
-                                        <span class="label">Relevant Nodes:</span>
-                                        <div class="nodes-container">
-                                          <mat-chip-set>
-                                            @for (node of getDiamondClassification(diamond.value)?.relevant_nodes || []; track node) {
-                                              <mat-chip class="node-chip relevant">{{ node }}</mat-chip>
-                                            }
-                                          </mat-chip-set>
-                                        </div>
-                                      </div>
-                                      <div class="node-list-item">
-                                        <span class="label">Conditioning Nodes:</span>
-                                        <div class="nodes-container">
-                                          <mat-chip-set>
-                                            @for (node of getDiamondClassification(diamond.value)?.conditioning_nodes || []; track node) {
-                                              <mat-chip class="node-chip conditioning">{{ node }}</mat-chip>
-                                            }
-                                          </mat-chip-set>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div class="info-section">
-                                    <h4><mat-icon>analytics</mat-icon> Metrics</h4>
-                                    <div class="metrics-grid">
-                                      <div class="metric-item">
-                                        <span class="metric-label">Edge Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.edge_count || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Fork Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.fork_count || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Subgraph Size:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.subgraph_size || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Internal Forks:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.internal_forks || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Internal Joins:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.internal_joins || 0 }}</span>
-                                      </div>
-                                      <div class="metric-item">
-                                        <span class="metric-label">Path Count:</span>
-                                        <span class="metric-value">{{ getDiamondClassification(diamond.value)?.path_count || 0 }}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-                            <mat-tab label="Classification">
-                              <!-- Same classification content -->
-                              <div class="classification-info">
-                                <div class="classification-grid">
-                                  <div class="classification-category">
-                                    <h4><mat-icon>category</mat-icon> Structural Classification</h4>
-                                    <div class="classification-items">
-                                      <div class="classification-item">
-                                        <span class="classification-label">Fork Structure:</span>
-                                        <mat-chip class="classification-chip fork-structure">{{ getDiamondClassification(diamond.value)?.fork_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Internal Structure:</span>
-                                        <mat-chip class="classification-chip internal-structure">{{ getDiamondClassification(diamond.value)?.internal_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Path Topology:</span>
-                                        <mat-chip class="classification-chip path-topology">{{ getDiamondClassification(diamond.value)?.path_topology || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Join Structure:</span>
-                                        <mat-chip class="classification-chip join-structure">{{ getDiamondClassification(diamond.value)?.join_structure || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">External Connectivity:</span>
-                                        <mat-chip class="classification-chip external-connectivity">{{ getDiamondClassification(diamond.value)?.external_connectivity || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="classification-item">
-                                        <span class="classification-label">Degeneracy:</span>
-                                        <mat-chip class="classification-chip degeneracy" [class.valid]="getDiamondClassification(diamond.value)?.degeneracy === 'VALID'">{{ getDiamondClassification(diamond.value)?.degeneracy || 'Unknown' }}</mat-chip>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-                            <mat-tab label="Performance">
-                              <!-- Same performance content -->
-                              <div class="performance-info">
-                                <div class="performance-grid">
-                                  <div class="performance-section">
-                                    <h4><mat-icon>speed</mat-icon> Performance Metrics</h4>
-                                    <div class="performance-items">
-                                      <div class="performance-item">
-                                        <span class="performance-label">Complexity Score:</span>
-                                        <div class="performance-value-container">
-                                          <span class="performance-value">{{ getDiamondClassification(diamond.value)?.complexity_score || 0 | number:'1.2-2' }}</span>
-                                          <div class="complexity-bar">
-                                            <div class="complexity-fill" [style.width.%]="getComplexityPercentage(getDiamondClassification(diamond.value)?.complexity_score || 0)"></div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div class="performance-item">
-                                        <span class="performance-label">Optimization Potential:</span>
-                                        <mat-chip [class]="getOptimizationClass(getDiamondClassification(diamond.value)?.optimization_potential)">{{ getDiamondClassification(diamond.value)?.optimization_potential || 'Unknown' }}</mat-chip>
-                                      </div>
-                                      <div class="performance-item">
-                                        <span class="performance-label">Bottleneck Risk:</span>
-                                        <mat-chip [class]="getBottleneckClass(getDiamondClassification(diamond.value)?.bottleneck_risk)">{{ getDiamondClassification(diamond.value)?.bottleneck_risk || 'Unknown' }}</mat-chip>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </mat-tab>
-                          </mat-tab-group>
-                        </div>
-                      </div>
-                    </mat-expansion-panel>
-                  }
-                }
-
-                @if (getTotalClassifications() === 0) {
-                  <div class="no-diamonds-message">
-                    <mat-icon>info</mat-icon>
-                    <h3>No Diamond Structures Found</h3>
-                    <p>The network analysis did not detect any diamond structures. This could indicate a simpler network topology or specific structural characteristics.</p>
-                  </div>
-                }
-              </mat-accordion>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-
-    <!-- Dashboard Mode - High-Level Overview -->
-    @if (isDashboardMode()) {
-      <div class="dashboard-mode">
-        
-        <!-- Executive Summary -->
-        <div class="executive-summary">
-          <mat-card class="executive-summary-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>summarize</mat-icon>
-                Diamond Analysis Executive Summary
-              </mat-card-title>
-              <mat-card-subtitle>{{ getNetworkName() }} - Structural Analysis Overview</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="summary-content">
-                <p class="summary-text">
-                  Analysis identified <strong>{{ getTotalClassifications() }} diamond structures</strong> in the network, 
-                  including <strong>{{ getRootDiamondsCount() }} root diamonds</strong> and 
-                  <strong>{{ getUniqueDiamondsCount() }} unique diamonds</strong>.
-                  @if (getHasComplexDiamonds()) {
-                    Complex diamond patterns indicate sophisticated network topology with advanced structural relationships.
-                  } @else {
-                    The network exhibits relatively straightforward diamond patterns with standard structural characteristics.
-                  }
-                </p>
-                <div class="key-findings">
-                  <h4><mat-icon>lightbulb</mat-icon> Key Findings</h4>
-                  <ul class="findings-list">
-                    <li>Diamond efficiency: <strong>{{ getFormattedEfficiency() }}</strong></li>
-                    <li>Join nodes with diamonds: <strong>{{ getJoinNodesWithDiamonds().length }}</strong></li>
-                    <li>Structural complexity: <strong>{{ getHasComplexDiamonds() ? 'High - Advanced patterns detected' : 'Standard - Typical diamond structures' }}</strong></li>
-                    <li>Network coverage: <strong>{{ getDiamondCoverage() }}%</strong> of join nodes contain diamonds</li>
-                  </ul>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-          <!-- Classification Overview -->
-          <mat-card class="dashboard-card classification-overview">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>category</mat-icon>
-                Structural Classification Overview
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="classification-summary">
-                <div class="classification-stats">
-                  <div class="classification-stat">
-                    <div class="stat-icon"><mat-icon>fork_right</mat-icon></div>
-                    <div class="stat-info">
-                      <div class="stat-label">Fork Structures</div>
-                      <div class="stat-value">{{ getStructureTypeCount('fork') }}</div>
-                      <div class="stat-detail">Different fork patterns</div>
-                    </div>
-                  </div>
-                  <div class="classification-stat">
-                    <div class="stat-icon"><mat-icon>timeline</mat-icon></div>
-                    <div class="stat-info">
-                      <div class="stat-label">Path Topologies</div>
-                      <div class="stat-value">{{ getStructureTypeCount('path') }}</div>
-                      <div class="stat-detail">Path organization patterns</div>
-                    </div>
-                  </div>
-                  <div class="classification-stat">
-                    <div class="stat-icon"><mat-icon>architecture</mat-icon></div>
-                    <div class="stat-info">
-                      <div class="stat-label">Internal Structures</div>
-                      <div class="stat-value">{{ getStructureTypeCount('internal') }}</div>
-                      <div class="stat-detail">Internal organization types</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Performance Analysis -->
-          <mat-card class="dashboard-card performance-analysis">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>speed</mat-icon>
-                Performance & Optimization Analysis
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="performance-overview">
-                <div class="performance-metrics">
-                  <div class="performance-metric high-optimization">
-                    <div class="metric-icon"><mat-icon>trending_up</mat-icon></div>
-                    <div class="metric-info">
-                      <div class="metric-value">{{ getOptimizationPotentialCount('High') }}</div>
-                      <div class="metric-label">High Optimization Potential</div>
-                    </div>
-                  </div>
-                  <div class="performance-metric medium-risk">
-                    <div class="metric-icon"><mat-icon>warning</mat-icon></div>
-                    <div class="metric-info">
-                      <div class="metric-value">{{ getBottleneckRiskCount('Medium') }}</div>
-                      <div class="metric-label">Medium Bottleneck Risk</div>
-                    </div>
-                  </div>
-                  <div class="performance-metric high-risk">
-                    <div class="metric-icon"><mat-icon>error</mat-icon></div>
-                    <div class="metric-info">
-                      <div class="metric-value">{{ getBottleneckRiskCount('High') }}</div>
-                      <div class="metric-label">High Bottleneck Risk</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="complexity-overview">
-                  <div class="complexity-info">
-                    <span class="complexity-label">Average Complexity:</span>
-                    <span class="complexity-value">{{ getAverageComplexity() | number:'1.1-1' }}</span>
-                  </div>
-                  <div class="complexity-bar-container">
-                    <div class="complexity-bar">
-                      <div class="complexity-fill" [style.width.%]="getComplexityPercentage(getAverageComplexity())"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Network Impact -->
-          <mat-card class="dashboard-card network-impact">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>hub</mat-icon>
-                Network Impact Analysis
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="impact-analysis">
-                <div class="impact-metrics">
-                  <div class="impact-metric">
-                    <div class="impact-label">Diamond Coverage</div>
-                    <div class="impact-value">{{ getDiamondCoverage() }}%</div>
-                    <div class="impact-detail">of join nodes contain diamonds</div>
-                  </div>
-                  <div class="impact-metric">
-                    <div class="impact-label">Critical Diamonds</div>
-                    <div class="impact-value">{{ getCriticalDiamondsCount() }}</div>
-                    <div class="impact-detail">high-impact structures</div>
-                  </div>
-                  <div class="impact-metric">
-                    <div class="impact-label">Efficiency Score</div>
-                    <div class="impact-value">{{ getFormattedEfficiency() }}</div>
-                    <div class="impact-detail">overall diamond efficiency</div>
-                  </div>
-                </div>
-                <div class="action-buttons">
-                  <button mat-raised-button color="primary" (click)="highlightJoinNodes()">
-                    <mat-icon>highlight</mat-icon>
-                    Highlight Join Nodes
-                  </button>
-                  <button mat-raised-button color="accent" (click)="highlightCriticalDiamonds()">
-                    <mat-icon>priority_high</mat-icon>
-                    Highlight Critical Diamonds
-                  </button>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-  }
+  <!-- No Diamond Analysis Message -->
+  <div *ngIf="analysisResults() && getAvailableScenarios().length === 0" class="no-data">
+    <mat-icon>diamond</mat-icon>
+    <p>No diamond analysis was performed. Enable diamond analysis in the configuration to see results.</p>
+  </div>
 </div>

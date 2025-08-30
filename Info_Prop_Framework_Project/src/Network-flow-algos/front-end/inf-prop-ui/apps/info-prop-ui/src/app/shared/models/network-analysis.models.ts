@@ -1,269 +1,236 @@
-export type DataType = 'float' | 'interval' | 'pbox';
-
-export interface NetworkFile {
-  file: File;
-  path: string;
-  isValid: boolean;
-  error?: string;
-}
-
-export interface DetectedNetworkStructure {
-  networkName: string;
-  hasEdgesFile: boolean;
-  hasNodeMapping: boolean;
-  availableDataTypes: DataType[];
-  hasCapacityData: boolean;
-  hasCPMData: boolean;
-  detectedFiles: {
-    edges?: NetworkFile;
-    nodeMapping?: NetworkFile;
-    inference?: {
-      [K in DataType]?: {
-        nodepriors?: NetworkFile;
-        linkprobabilities?: NetworkFile;
-      };
-    };
-    capacity?: NetworkFile;
-    criticalPath?: NetworkFile;
-  };
-  errors: string[];
-  warnings: string[];
-}
-
-export interface AnalysisConfiguration {
-  basicStructure: boolean;
-  diamondAnalysis: boolean;
-  exactInference: boolean;
-  flowAnalysis: boolean;
-  criticalPathAnalysis: boolean;
-  nodeVisualization: boolean;
-  inferenceDataType?: DataType;
-  selectedInferenceTypes?: DataType[];
-  compareResults?: boolean;
-  criticalPathOptions?: {
-    enableTime: boolean;
-    enableCost: boolean;
-  };
-}
-
-export interface NetworkAnalysisRequest {
-  networkName: string;
-  files: {
-    edges: File;
-    nodeMapping?: File;
-    inference?: {
-      dataType: DataType;
-      nodepriors: File;
-      linkprobabilities: File;
-    };
-    capacity?: {
-      capacities: File;
-    };
-    criticalPath?: {
-      enableTime: boolean;
-      enableCost: boolean;
-      cpmInputs: File;
-    };
-  };
-  analysesToRun: AnalysisConfiguration;
-  selectedInferenceTypes?: DataType[];
-  compareResults?: boolean;
-}
-
-export interface UploadProgress {
-  uploading: boolean;
-  progress: number;
-  message: string;
-  error?: string;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  networkName?: string;
-  errors: string[];
-  warnings: string[];
-  structure?: DetectedNetworkStructure;
-}
-
-// API Response Interfaces
-
-export interface AnalysisConfig {
-  exactInference: boolean;
-  flowAnalysis: boolean;
-  diamondAnalysis: boolean;
-  inference_data_type: 'float' | 'interval' | 'pbox';
-  inferenceDataType: 'float' | 'interval' | 'pbox';
-  networkName: string;
-  criticalPathAnalysis: boolean;
-  basicStructure: boolean;
-}
-
-export interface NetworkStructureResult {
-  // Basic counts
-  total_nodes: number;
-  total_edges: number;
-
-  // Node classifications
-  source_nodes: number[];
-  sink_nodes: number[];
-  fork_nodes: number[];
-  join_nodes: number[];
-  all_nodes: number[];
-
-  // Network topology
-  edgelist: [number, number][];
-  outgoing_index: Record<number, number[]>;
-  incoming_index: Record<number, number[]>;
-
-  // Analysis metadata
-  iteration_sets: number[][];
-  iteration_sets_count: number;
-  ancestors: Record<number, number[]>;
-  descendants: Record<number, number[]>;
-
-  // Probabilistic data
-  node_priors?: Record<number, number>;
-  edge_probabilities?: Record<string, number>; // key format: "from_to"
-
-  // Optional analysis data
-  cpm_data?: {
-    time_values?: Record<number, number>;
-    cost_values?: Record<number, number>;
-    [key: string]: any;
-  };
-  capacity_data?: Record<number, number>;
-}
-
-export interface DiamondClassification {
-  fork_count: number;
-  relevant_nodes: number[];
-  fork_nodes: number[];
-  fork_structure: string;
-  internal_joins: number;
-  complexity_score: number;
-  internal_structure: string;
-  external_connectivity: string;
-  subgraph_size: number;
-  degeneracy: string;
-  path_count: number;
-  source_nodes: number[];
-  conditioning_nodes: number[];
-  bottleneck_risk: string;
-  path_topology: string;
-  edge_count: number;
-  is_maximal: boolean;
-  internal_forks: number;
-  join_structure: string;
-  optimization_potential: string;
-}
-
-export interface DiamondAnalysisResult {
-  diamond_efficiency: number;
-  has_complex_diamonds: boolean;
-  total_classifications: number;
-  join_nodes_with_diamonds: number[];
-  unique_diamonds_count: number;
-  root_diamonds_count: number;
-  root_classifications: Record<string, DiamondClassification>;
-  unique_classifications: Record<string, DiamondClassification>;
-}
-
-export type FloatBelief = number;
-
-export interface IntervalBelief {
-  lower: number;
-  upper: number;
-}
-
-export interface PboxBelief {
-  type: 'pbox';
+export interface PboxData {
+  left_bounds: number[];
+  right_bounds: number[];
+  discretization_size: number;
   mean_lower: number;
   mean_upper: number;
   var_lower: number;
   var_upper: number;
   shape: string;
-  n: number;
   name: string;
+  bounded: boolean;
+}
+
+export interface IntervalData {
+  lower: number;
+  upper: number;
+  type: 'interval';
+}
+
+export type BeliefValue = number | IntervalData | PboxData;
+
+export interface NetworkStructure {
+  computation_time: number;
+  total_nodes: number;
+  total_edges: number;
+  nodes: number[];
+  edges: [number, number][];
+  source_nodes: number[];
+  sink_nodes: number[];
+  fork_nodes: number[];
+  join_nodes: number[];
+  iteration_sets: number[][];
+  iteration_sets_count: number;
+  ancestors: Record<string, number[]>;
+  descendants: Record<string, number[]>;
+  outgoing_index: Record<string, number[]>;
+  incoming_index: Record<string, number[]>;
+}
+
+export interface DiamondAnalysisResult {
+  root_diamonds_count: number;
+  unique_diamonds_count: number;
+  join_nodes_with_diamonds: number[];
+  root_computation_time: number;
+  unique_computation_time: number;
+  total_computation_time: number;
+  diamond_efficiency: number;
+  note?: string;
 }
 
 export interface ExactInferenceResult {
-  node_beliefs: Record<string, FloatBelief | IntervalBelief | PboxBelief>;
-  execution_time: number;
-  data_type: 'float' | 'interval' | 'pbox';
-  algorithm_type: 'belief_propagation';
-  belief_statistics?: any;
-  convergence_analysis?: any;
-  uncertainty_propagation?: any;
-  total_nodes_analyzed?: number;
-}
-
-export interface MultiTypeInferenceResult {
-  float?: ExactInferenceResult;
-  pbox?: ExactInferenceResult;
-  interval?: ExactInferenceResult;
-  comparative_analysis?: {
-    types_compared: string[];
-    comparison_metrics: any;
-    belief_statistics_comparison?: Record<string, any>;
-    uncertainty_propagation_comparison?: Record<string, any>;
-    execution_time_comparison?: Record<string, number>;
-  };
-  processing_summary?: {
-    requested_types: string[];
-    available_types: string[];
-    processed_types: string[];
-    successful_types: string[];
-    missing_types: string[];
-    total_execution_time: number;
+  beliefs: Record<string, BeliefValue>;
+  computation_time: number;
+  total_nodes_processed: number;
+  belief_statistics: {
+    mean: number;
+    min: number;
+    max: number;
   };
 }
 
-export interface FlowAnalysisResult {
-  network_utilization: number;
-  total_source_input: number;
-  active_sources: number[];
-  total_target_output: number;
-  target_flows: Record<string, number>;
-  execution_time: number;
-}
-
-export interface CriticalPathResult {
-  time_analysis: {
-    critical_duration: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
-  cost_analysis: {
-    total_cost: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
-  execution_time: number;
-}
-
-export interface NetworkAnalysisResults {
-  network_structure: NetworkStructureResult;
+export interface ReachabilityScenario {
   diamond_analysis?: DiamondAnalysisResult;
   exact_inference?: ExactInferenceResult;
-  multi_type_inference?: MultiTypeInferenceResult;
-  flow_analysis?: FlowAnalysisResult;
-  critical_path?: CriticalPathResult;
+  scenario_computation_time: number;
+  input_files: {
+    nodepriors_path: string;
+    linkprobs_path: string;
+  };
 }
 
-export interface NetworkAnalysisResponse {
+export interface CapacityScenario {
+  computation_time: number;
+  network_utilization: number;
+  total_source_input: number;
+  total_target_output: number;
+  target_flows: Record<string, number>;
+  source_inputs?: Record<string, number>;
+  active_sources: number[];
+  target_nodes: number[];
+  node_capacities_count: number;
+  edge_capacities_count: number;
+  input_files: {
+    capacities_path: string;
+  };
+}
+
+export interface CpmScenario {
+  computation_time: number;
+  time_result: {
+    critical_value: number;
+    critical_nodes: number[];
+    node_values: Record<string, number>;
+  };
+  cost_result: {
+    critical_value: number;
+    critical_nodes: number[];
+    node_values: Record<string, number>;
+  };
+  node_durations_count: number;
+  edge_delays_count: number;
+  node_costs_count: number;
+  edge_costs_count: number;
+  input_files: {
+    cpm_path: string;
+  };
+}
+
+export interface AnalysisResponse {
   success: boolean;
   network_name: string;
   timestamp: string;
-  analysis_config: AnalysisConfig;
-  results: NetworkAnalysisResults;
+  analysis_config?: AnalysisRequestConfig;
+  computation_summary?: {
+    total_analysis_time?: number;
+  };
+  results: {
+    network_structure: NetworkStructure;
+    reachability_scenarios?: Record<string, ReachabilityScenario>;
+    diamond_analysis?: DiamondAnalysisResult;
+    capacity_scenarios?: Record<string, CapacityScenario>;
+    cpm_scenarios?: Record<string, CpmScenario>;
+    analysis_summary: {
+      network_name: string;
+      total_computation_time: number;
+      reachability_scenarios_count: number;
+      capacity_scenarios_count: number;
+      cmp_scenarios_count: number;
+      timestamp: string;
+    };
+  };
   error?: string;
 }
 
-export interface BackendHealthResponse {
-  status: 'healthy' | 'error';
-  timestamp: string;
-  server?: string;
-  version?: string;
-  error?: string;
-  details?: any;
+export interface ReachabilityScenarioConfig {
+  name: string;
+  nodepriors_path: string;
+  linkprobs_path: string;
+}
+
+export interface CapacityScenarioConfig {
+  name: string;
+  capacities_path: string;
+}
+
+export interface CpmScenarioConfig {
+  name: string;
+  cpm_path: string;
+}
+
+export interface AnalysisRequestConfig {
+  exactInference: boolean;
+  diamondAnalysis: boolean;
+  flowAnalysis: boolean;
+  criticalPath: boolean;
+}
+
+export interface AnalysisRequest {
+  networkPath: string;
+  reachabilityScenarios: ReachabilityScenarioConfig[];
+  capacityScenarios: CapacityScenarioConfig[];
+  cpmScenarios: CpmScenarioConfig[];
+  analysisConfig: AnalysisRequestConfig;
+}
+
+export interface HealthResponse {
+  status: string;
+}
+
+export interface UploadResponse {
+  success: boolean;
+  message: string;
+  network_path?: string;
+  validation_results?: {
+    is_valid: boolean;
+    message: string;
+    structure_info?: {
+      total_nodes: number;
+      total_edges: number;
+      source_nodes: number[];
+      sink_nodes: number[];
+    };
+  };
+}
+
+export interface TabState {
+  enabled: boolean;
+  completed: boolean;
+  hasData: boolean;
+}
+
+export interface AnalysisState {
+  currentStep: string;
+  completedSteps: Set<string>;
+  networkData: NetworkStructure | null;
+  analysisResults: AnalysisResponse | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface NetworkNode {
+  id: number;
+  type: 'source' | 'sink' | 'fork' | 'join' | 'regular';
+  x?: number;
+  y?: number;
+  belief?: BeliefValue;
+  flow?: number;
+  capacity?: number;
+  duration?: number;
+  cost?: number;
+  isCritical?: boolean;
+}
+
+export interface NetworkEdge {
+  source: number;
+  target: number;
+  probability?: number;
+  capacity?: number;
+  delay?: number;
+  cost?: number;
+  flow?: number;
+  isCritical?: boolean;
+}
+
+export type VisualizationMode = 'structure' | 'beliefs' | 'flows' | 'critical-path';
+
+export interface ChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    backgroundColor?: string[];
+    borderColor?: string[];
+    borderWidth?: number;
+  }[];
 }

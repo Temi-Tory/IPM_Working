@@ -1,502 +1,240 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSliderModule } from '@angular/material/slider';
+import { FormsModule } from '@angular/forms';
 
-import { BaseAnalysisComponent, AnalysisComponentData, VisualizationConfig } from '../../shared/interfaces/analysis-component.interface';
-import { AnalysisViewSwitcherComponent } from '../../shared/components/analysis-view-switcher/analysis-view-switcher.component';
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { FlowAnalysisResult } from '../../shared/models/network-analysis.models';
-
-interface FlowMetrics {
-  utilizationPercentage: number;
-  flowEfficiency: number;
-  activeSourcesCount: number;
-  totalTargets: number;
-  averageTargetFlow: number;
-  maxTargetFlow: number;
-  utilizationCategory: 'low' | 'moderate' | 'high' | 'saturated';
-}
-
-interface SourceInfo {
-  nodeId: number;
-  contribution: number;
-  isActive: boolean;
-  utilizationImpact: number;
-}
+import { NetworkVisualizationComponent, NodeClickInfo } from '../network-visualization/network-visualization.component';
 
 @Component({
   selector: 'app-flow-analysis',
+  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,
-    MatButtonModule,
     MatIconModule,
+    MatTableModule,
+    MatTabsModule,
+    MatProgressBarModule,
+    MatButtonToggleModule,
+    MatButtonModule,
+    NetworkVisualizationComponent,
+    MatSelectModule,
+    MatFormFieldModule,
     MatChipsModule,
-    MatProgressSpinnerModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    AnalysisViewSwitcherComponent
+    MatSliderModule,
+    FormsModule
   ],
   templateUrl: './flow-analysis.component.html',
-  styleUrl: './flow-analysis.component.scss'
+  styleUrls: ['./flow-analysis.component.scss']
 })
-export class FlowAnalysisComponent extends BaseAnalysisComponent<FlowAnalysisResult> implements OnInit, OnDestroy {
-  
+export class FlowAnalysisComponent {
   private analysisState = inject(AnalysisStateService);
-  private snackBar = inject(MatSnackBar);
 
-  // Flow-specific properties
-  private flowMetrics: FlowMetrics | null = null;
-  private sourcesInfo: SourceInfo[] = [];
-  private targetFlowsList: Array<{nodeId: string, flow: number}> = [];
-  private bottleneckNodes: number[] = [];
-  private highlightedFlowType: string | null = null;
+  analysisResults = computed(() => this.analysisState.analysisResults());
+  networkData = computed(() => this.analysisState.networkData());
+  isLoading = computed(() => this.analysisState.isLoading());
+  error = computed(() => this.analysisState.error());
 
-  constructor() {
-    super();
+  // View toggle
+  currentView = signal<'dashboard' | 'visual'>('dashboard');
+  
+  // Scenario selection
+  selectedScenario = signal<string>('');
+  
+  // Dashboard tab selection
+  activeTab = signal<'overview' | 'metrics' | 'utilization'>('overview');
+  
+  // Visual filters
+  flowThresholdFilter = signal<number>(0.1);
+  showBottlenecks = signal<boolean>(true);
+  utilizationThreshold = signal<number>(0.8);
+  selectedNode = signal<string | null>(null);
+
+  displayedColumns: string[] = ['metric', 'value'];
+  flowsDisplayedColumns: string[] = ['node', 'flow'];
+  capacityDisplayedColumns: string[] = ['edge', 'capacity', 'flow', 'utilization'];
+  bottleneckDisplayedColumns: string[] = ['edge', 'capacity', 'flow', 'bottleneck_severity'];
+
+  switchView(view: 'dashboard' | 'visual'): void {
+    this.currentView.set(view);
   }
 
-  ngOnInit(): void {
-    this.initializeComponent();
-    this.loadFlowData();
-  }
+  getCapacityScenarios() {
+    const results = this.analysisResults();
+    if (!results?.results?.capacity_scenarios) return [];
 
-  ngOnDestroy(): void {
-    // Cleanup if needed
-  }
-
-  initializeComponent(): void {
-    // Set available view modes
-    this.availableViewModes.set({ visual: true, dashboard: true });
-    this.currentViewMode.set('visual');
-  }
-
-  private loadFlowData(): void {
-    const flowData = this.analysisState.flowAnalysisData();
-    
-    if (!flowData || !flowData.results) {
-      this.setError('No flow analysis data available');
-      return;
-    }
-
-
-    this.setLoading(true);
-    
-    try {
-      const analysisData: AnalysisComponentData<FlowAnalysisResult> = {
-        structure: flowData.structure,
-        results: flowData.results
-      };
-      
-      this.setData(analysisData);
-      this.setLoading(false);
-      
-      this.snackBar.open(`Flow analysis loaded: ${(this.getNetworkUtilization() * 100).toFixed(1)}% network utilization`, 'Close', {
-        duration: 3000
-      });
-      
-    } catch (error) {
-      this.setError(`Failed to load flow data: ${error}`);
-      this.setLoading(false);
-    }
-  }
-
-  processData(data: AnalysisComponentData<FlowAnalysisResult>): void {
-    // Process and prepare data for visualization
-    console.log('Processing flow analysis data:', data);
-    
-    // Calculate flow metrics
-    this.flowMetrics = this.calculateFlowMetrics(data.results);
-    
-    // Process source information
-    this.sourcesInfo = this.calculateSourcesInfo(data.results);
-    
-    // Process target flows
-    this.targetFlowsList = Object.entries(data.results.target_flows || {})
-      .map(([nodeId, flow]) => ({nodeId, flow}))
-      .sort((a, b) => b.flow - a.flow);
-    
-    // Identify potential bottlenecks (sources with high utilization impact)
-    this.bottleneckNodes = this.identifyBottlenecks(data.results);
-    
-    // Update visualization config based on data
-    this.visualizationConfig.update(config => ({
-      ...config,
-      showLabels: true,
-      highlightNodes: [], // Will be set based on flow highlighting
-      nodeColors: this.generateFlowNodeColors(data.results)
+    return Object.entries(results.results.capacity_scenarios).map(([name, scenario]) => ({
+      name,
+      scenario
     }));
   }
 
-  private calculateFlowMetrics(results: FlowAnalysisResult): FlowMetrics {
-    const utilization = results.network_utilization || 0;
-    const utilizationPercentage = utilization * 100;
-    
-    // Calculate flow efficiency (output/input ratio)
-    const flowEfficiency = results.total_source_input > 0 
-      ? results.total_target_output / results.total_source_input 
-      : 0;
-    
-    const targetFlows = Object.values(results.target_flows || {});
-    const averageTargetFlow = targetFlows.length > 0 
-      ? targetFlows.reduce((sum, flow) => sum + flow, 0) / targetFlows.length 
-      : 0;
-    
-    const maxTargetFlow = targetFlows.length > 0 ? Math.max(...targetFlows) : 0;
-    
-    // Categorize utilization
-    let utilizationCategory: 'low' | 'moderate' | 'high' | 'saturated';
-    if (utilizationPercentage < 25) {
-      utilizationCategory = 'low';
-    } else if (utilizationPercentage < 65) {
-      utilizationCategory = 'moderate';
-    } else if (utilizationPercentage < 90) {
-      utilizationCategory = 'high';
-    } else {
-      utilizationCategory = 'saturated';
-    }
+  getFlowMetrics(scenario: any): { metric: string; value: string | number }[] {
+    if (!scenario) return [];
 
-    return {
-      utilizationPercentage,
-      flowEfficiency,
-      activeSourcesCount: results.active_sources?.length || 0,
-      totalTargets: Object.keys(results.target_flows || {}).length,
-      averageTargetFlow,
-      maxTargetFlow,
-      utilizationCategory
-    };
-  }
-
-  private calculateSourcesInfo(results: FlowAnalysisResult): SourceInfo[] {
-    const activeSources = results.active_sources || [];
-    const totalInput = results.total_source_input || 1; // Avoid division by zero
-    
-    return activeSources.map(nodeId => {
-      // In a real implementation, we would have individual source contributions
-      // For now, we'll estimate based on equal distribution
-      const estimatedContribution = totalInput / activeSources.length;
-      const utilizationImpact = estimatedContribution / totalInput;
-      
-      return {
-        nodeId,
-        contribution: estimatedContribution,
-        isActive: true,
-        utilizationImpact
-      };
-    });
-  }
-
-  private identifyBottlenecks(results: FlowAnalysisResult): number[] {
-    // Identify potential bottlenecks based on flow patterns
-    // In a real implementation, this would be more sophisticated
-    const bottlenecks: number[] = [];
-    
-    // High-utilization active sources could be bottlenecks
-    const activeSources = results.active_sources || [];
-    if (results.network_utilization > 0.8 && activeSources.length < 3) {
-      bottlenecks.push(...activeSources);
-    }
-    
-    // Targets with significantly lower flow than input could indicate bottlenecks
-    const targetFlows = Object.values(results.target_flows || {});
-    const totalOutput = results.total_target_output || 0;
-    const totalInput = results.total_source_input || 0;
-    
-    if (totalInput > totalOutput * 1.5) {
-      // Potential flow restriction - add targets as potential bottlenecks
-      const targetNodes = Object.keys(results.target_flows || {})
-        .map(nodeId => parseInt(nodeId, 10))
-        .filter(nodeId => !isNaN(nodeId));
-      bottlenecks.push(...targetNodes);
-    }
-    
-    return [...new Set(bottlenecks)]; // Remove duplicates
-  }
-
-  private generateFlowNodeColors(results: FlowAnalysisResult): Record<number, string> {
-    const nodeColors: Record<number, string> = {};
-    
-    // Color active sources with green intensity based on contribution
-    const activeSources = results.active_sources || [];
-    const totalInput = results.total_source_input || 1;
-    
-    activeSources.forEach(nodeId => {
-      // Estimate contribution (in a real implementation, this would be precise)
-      const estimatedContribution = totalInput / activeSources.length;
-      const intensity = Math.max(0.3, Math.min(1.0, estimatedContribution / (totalInput * 0.5)));
-      nodeColors[nodeId] = `rgba(76, 175, 80, ${intensity})`; // Green with varying alpha
-    });
-    
-    // Color target nodes based on flow volume
-    const targetFlows = results.target_flows || {};
-    const maxFlow = Math.max(...Object.values(targetFlows));
-    
-    Object.entries(targetFlows).forEach(([nodeIdStr, flow]) => {
-      const nodeId = parseInt(nodeIdStr, 10);
-      if (!isNaN(nodeId)) {
-        const intensity = maxFlow > 0 ? Math.max(0.3, flow / maxFlow) : 0.3;
-        nodeColors[nodeId] = `rgba(139, 195, 74, ${intensity})`; // Light green for targets
-      }
-    });
-    
-    return nodeColors;
-  }
-
-  updateVisualization(config: VisualizationConfig): void {
-    // Update the visualization based on the config
-    console.log('Updating flow visualization with config:', config);
-    
-    if (this.isVisualMode()) {
-      // Update the graph visualization component
-      // This will be implemented when we add the graph component
-    }
-  }
-
-  exportData(format: 'json' | 'csv' | 'png'): void {
-    const data = this.componentData();
-    if (!data) return;
-    
-    switch (format) {
-      case 'json':
-        this.exportAsJson(data.results);
-        break;
-      case 'csv':
-        this.exportAsCsv(data.results);
-        break;
-      case 'png':
-        this.exportAsPng();
-        break;
-    }
-  }
-
-  private exportAsJson(data: FlowAnalysisResult): void {
-    const exportData = {
-      network_utilization: data.network_utilization,
-      total_source_input: data.total_source_input,
-      total_target_output: data.total_target_output,
-      active_sources: data.active_sources,
-      target_flows: data.target_flows,
-      execution_time: data.execution_time,
-      flow_metrics: this.flowMetrics,
-      sources_info: this.sourcesInfo,
-      bottleneck_nodes: this.bottleneckNodes,
-      exported_at: new Date().toISOString()
-    };
-
-    const jsonData = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `flow-analysis-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  private exportAsCsv(data: FlowAnalysisResult): void {
-    const csvRows = [
-      ['Metric', 'Value'],
-      ['Network Utilization (%)', (data.network_utilization * 100).toFixed(2)],
-      ['Total Source Input', data.total_source_input?.toString() || '0'],
-      ['Total Target Output', data.total_target_output?.toString() || '0'],
-      ['Flow Efficiency (%)', ((this.flowMetrics?.flowEfficiency || 0) * 100).toFixed(2)],
-      ['Active Sources Count', data.active_sources?.length?.toString() || '0'],
-      ['Total Targets', Object.keys(data.target_flows || {}).length.toString()],
-      ['Average Target Flow', this.flowMetrics?.averageTargetFlow?.toFixed(2) || '0'],
-      ['Max Target Flow', this.flowMetrics?.maxTargetFlow?.toString() || '0'],
-      ['Execution Time (s)', data.execution_time?.toString() || '0'],
-      ['Utilization Category', this.flowMetrics?.utilizationCategory || 'unknown']
+    return [
+      { metric: 'Network Utilization', value: `${(scenario.network_utilization * 100).toFixed(1)}%` },
+      { metric: 'Total Source Input', value: scenario.total_source_input.toFixed(2) },
+      { metric: 'Total Target Output', value: scenario.total_target_output.toFixed(2) },
+      { metric: 'Active Sources', value: scenario.active_sources.length },
+      { metric: 'Target Nodes', value: scenario.target_nodes.length },
+      { metric: 'Computation Time', value: `${scenario.computation_time.toFixed(4)}s` }
     ];
+  }
 
-    // Add active sources
-    csvRows.push(['Active Sources', (data.active_sources || []).join('; ')]);
+  getFlowsData(flows: Record<string, number>): { node: string; flow: number }[] {
+    return Object.entries(flows)
+      .map(([node, flow]) => ({ node, flow }))
+      .sort((a, b) => b.flow - a.flow);
+  }
+
+  getUtilizationLevel(utilization: number): 'high' | 'medium' | 'low' {
+    if (utilization >= 0.8) return 'high';
+    if (utilization >= 0.5) return 'medium';
+    return 'low';
+  }
+
+  // Scenario management
+  onScenarioChange(scenarioName: string): void {
+    this.selectedScenario.set(scenarioName);
+    // Reset tabs when switching scenarios
+    this.activeTab.set('overview');
+  }
+
+  getSelectedScenarioData() {
+    const scenarios = this.getCapacityScenarios();
+    const selectedName = this.selectedScenario();
     
-    // Add target flows
-    Object.entries(data.target_flows || {}).forEach(([nodeId, flow]) => {
-      csvRows.push([`Target ${nodeId} Flow`, flow.toString()]);
-    });
+    if (!selectedName && scenarios.length > 0) {
+      // Auto-select first scenario if none selected
+      this.selectedScenario.set(scenarios[0].name);
+      return scenarios[0];
+    }
     
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    return scenarios.find(s => s.name === selectedName) || scenarios[0];
+  }
+
+  getCurrentScenarioIndex(): number {
+    const scenarios = this.getCapacityScenarios();
+    const selectedName = this.selectedScenario();
+    const index = scenarios.findIndex(s => s.name === selectedName);
+    return index >= 0 ? index + 1 : 1;
+  }
+
+  // Dashboard tab management
+  switchTab(tab: 'overview' | 'metrics' | 'utilization'): void {
+    this.activeTab.set(tab);
+  }
+
+  onTabChange(index: number): void {
+    const tabs: ('overview' | 'metrics' | 'utilization')[] = ['overview', 'metrics', 'utilization'];
+    this.switchTab(tabs[index]);
+  }
+
+  // Enhanced data processing for tabs
+  getOverviewData(scenario: any) {
+    if (!scenario) return null;
     
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `flow-analysis-${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return {
+      networkUtilization: scenario.network_utilization,
+      totalInput: scenario.total_source_input,
+      totalOutput: scenario.total_target_output,
+      activeSources: scenario.active_sources.length,
+      targetNodes: scenario.target_nodes.length,
+      computationTime: scenario.computation_time,
+      efficiency: scenario.total_target_output / scenario.total_source_input
+    };
   }
 
-  private exportAsPng(): void {
-    // This would capture the visualization canvas/svg as PNG
-    this.snackBar.open('PNG export not yet implemented', 'Close', { duration: 3000 });
-  }
-
-  // Template helper methods
-  getNetworkName(): string {
-    return this.componentData()?.structure?.networkName || 'Network';
-  }
-
-  getNetworkUtilization(): number {
-    return this.componentData()?.results?.network_utilization || 0;
-  }
-
-  getUtilizationPercentage(): number {
-    return this.getNetworkUtilization() * 100;
-  }
-
-  getTotalSourceInput(): number {
-    return this.componentData()?.results?.total_source_input || 0;
-  }
-
-  getTotalTargetOutput(): number {
-    return this.componentData()?.results?.total_target_output || 0;
-  }
-
-  getActiveSources(): number[] {
-    return this.componentData()?.results?.active_sources || [];
-  }
-
-  getActiveSourcesCount(): number {
-    return this.getActiveSources().length;
-  }
-
-  getTargetFlows(): Record<string, number> {
-    return this.componentData()?.results?.target_flows || {};
-  }
-
-  getTargetFlowsList(): Array<{nodeId: string, flow: number}> {
-    return this.targetFlowsList;
-  }
-
-  getExecutionTime(): number {
-    return this.componentData()?.results?.execution_time || 0;
-  }
-
-  getDataType(): string {
-    return 'flow_analysis';
-  }
-
-  getFlowMetrics(): FlowMetrics | null {
-    return this.flowMetrics;
-  }
-
-  getFlowEfficiency(): number {
-    return this.flowMetrics?.flowEfficiency || 0;
-  }
-
-  getFlowEfficiencyPercentage(): number {
-    return this.getFlowEfficiency() * 100;
-  }
-
-  getUtilizationCategory(): string {
-    return this.flowMetrics?.utilizationCategory || 'unknown';
-  }
-
-  getUtilizationCategoryColor(): string {
-    const category = this.getUtilizationCategory();
-    switch (category) {
-      case 'low': return '#8BC34A'; // Light green
-      case 'moderate': return '#4CAF50'; // Green
-      case 'high': return '#FF9800'; // Orange
-      case 'saturated': return '#F44336'; // Red
-      default: return '#9E9E9E'; // Grey
-    }
-  }
-
-  getSourcesInfo(): SourceInfo[] {
-    return this.sourcesInfo;
-  }
-
-  getBottleneckNodes(): number[] {
-    return this.bottleneckNodes;
-  }
-
-  getFormattedExecutionTime(): string {
-    const time = this.getExecutionTime();
-    if (time < 1) {
-      return `${(time * 1000).toFixed(0)}ms`;
-    } else if (time < 60) {
-      return `${time.toFixed(2)}s`;
-    } else {
-      const minutes = Math.floor(time / 60);
-      const seconds = (time % 60).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
-  }
-
-  // Flow highlighting methods for interaction
-  highlightActiveSources(): void {
-    this.highlightNodes(this.getActiveSources());
-    this.highlightedFlowType = 'sources';
-  }
-
-  highlightTargetNodes(): void {
-    const targetNodes = Object.keys(this.getTargetFlows())
-      .map(nodeId => parseInt(nodeId, 10))
-      .filter(nodeId => !isNaN(nodeId));
-    this.highlightNodes(targetNodes);
-    this.highlightedFlowType = 'targets';
-  }
-
-  highlightBottlenecks(): void {
-    this.highlightNodes(this.getBottleneckNodes());
-    this.highlightedFlowType = 'bottlenecks';
-  }
-
-  highlightHighFlowTargets(): void {
-    const highFlowTargets = this.targetFlowsList
-      .slice(0, Math.ceil(this.targetFlowsList.length * 0.3)) // Top 30%
-      .map(target => parseInt(target.nodeId, 10))
-      .filter(nodeId => !isNaN(nodeId));
+  getCapacityData(scenario: any): { edge: string; capacity: number; flow: number; utilization: number }[] {
+    if (!scenario?.edge_capacities || !scenario?.edge_flows) return [];
     
-    this.highlightNodes(highFlowTargets);
-    this.highlightedFlowType = 'high-flow';
+    return Object.entries(scenario.edge_capacities)
+      .map(([edge, capacity]: [string, any]) => {
+        const flow = scenario.edge_flows[edge] || 0;
+        return {
+          edge,
+          capacity: capacity as number,
+          flow: flow as number,
+          utilization: capacity > 0 ? (flow as number) / (capacity as number) : 0
+        };
+      })
+      .sort((a, b) => b.utilization - a.utilization);
   }
 
-  getActiveSourcesList(): string {
-    const sources = this.getActiveSources();
-    if (sources.length === 0) return 'None';
-    if (sources.length > 10) {
-      return `${sources.slice(0, 10).join(', ')}... (+${sources.length - 10} more)`;
-    }
-    return sources.join(', ');
+  getBottleneckData(scenario: any): { edge: string; capacity: number; flow: number; bottleneck_severity: number }[] {
+    if (!scenario?.bottlenecks) return [];
+    
+    return Object.entries(scenario.bottlenecks)
+      .map(([edge, severity]: [string, any]) => {
+        const capacity = scenario.edge_capacities?.[edge] || 0;
+        const flow = scenario.edge_flows?.[edge] || 0;
+        return {
+          edge,
+          capacity,
+          flow,
+          bottleneck_severity: severity as number
+        };
+      })
+      .sort((a, b) => b.bottleneck_severity - a.bottleneck_severity);
   }
 
-  getTargetNodesList(): string {
-    const targets = Object.keys(this.getTargetFlows());
-    if (targets.length === 0) return 'None';
-    if (targets.length > 10) {
-      return `${targets.slice(0, 10).join(', ')}... (+${targets.length - 10} more)`;
-    }
-    return targets.join(', ');
+  // Visual view enhancements
+  onNodeClick(nodeInfo: NodeClickInfo): void {
+    const nodeId = nodeInfo.id.toString();
+    this.selectedNode.set(this.selectedNode() === nodeId ? null : nodeId);
   }
 
-  isHighlightedFlowType(type: string): boolean {
-    return this.highlightedFlowType === type;
+  getNodeFlowInfo(nodeId: string) {
+    const scenario = this.getSelectedScenarioData();
+    if (!scenario || !nodeId) return null;
+    
+    const targetFlow = scenario.scenario.target_flows?.[nodeId];
+    const sourceFlow = scenario.scenario.source_inputs?.[nodeId];
+    
+    return {
+      nodeId,
+      targetFlow: targetFlow || 0,
+      sourceFlow: sourceFlow || 0,
+      isSource: scenario.scenario.active_sources.includes(+nodeId),
+      isTarget: scenario.scenario.target_nodes.includes(+nodeId)
+    };
   }
 
-  hasBottlenecks(): boolean {
-    return this.getBottleneckNodes().length > 0;
+  // Filter methods
+  getFilteredFlowData(flows: Record<string, number>): { node: string; flow: number }[] {
+    const threshold = this.flowThresholdFilter();
+    return Object.entries(flows)
+      .filter(([_, flow]) => flow >= threshold)
+      .map(([node, flow]) => ({ node, flow }))
+      .sort((a, b) => b.flow - a.flow);
   }
 
-  getBottlenecksList(): string {
-    const bottlenecks = this.getBottleneckNodes();
-    if (bottlenecks.length === 0) return 'None detected';
-    if (bottlenecks.length > 5) {
-      return `${bottlenecks.slice(0, 5).join(', ')}... (+${bottlenecks.length - 5} more)`;
-    }
-    return bottlenecks.join(', ');
+  onFlowThresholdChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.flowThresholdFilter.set(+target.value || 0.1);
+  }
+
+  onUtilizationThresholdChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.utilizationThreshold.set(+target.value || 0.8);
+  }
+
+  resetFilters(): void {
+    this.flowThresholdFilter.set(0.1);
+    this.showBottlenecks.set(true);
+    this.utilizationThreshold.set(0.8);
+    this.selectedNode.set(null);
   }
 }

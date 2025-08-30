@@ -1,478 +1,388 @@
 <div class="flow-analysis-container">
-  
-  <!-- Header Section -->
-  <div class="analysis-header">
-    <div class="header-content">
-      <div class="header-info">
-        <h1>Flow Analysis</h1>
-        <p class="network-name">{{ getNetworkName() }}</p>
-      </div>
-      
-      <div class="header-actions">
-        <app-analysis-view-switcher 
-          [currentMode]="currentViewMode()"
-          [availableModes]="availableViewModes()"
-          (modeChange)="switchViewMode($event)">
-        </app-analysis-view-switcher>
-        
-        <button mat-button [matMenuTriggerFor]="exportMenu">
-          <mat-icon>download</mat-icon>
-          Export
-        </button>
-        
-        <mat-menu #exportMenu="matMenu">
-          <button mat-menu-item (click)="exportData('json')">
-            <mat-icon>code</mat-icon>
-            <span>Export JSON</span>
-          </button>
-          <button mat-menu-item (click)="exportData('csv')">
-            <mat-icon>table_chart</mat-icon>
-            <span>Export CSV</span>
-          </button>
-          <button mat-menu-item (click)="exportData('png')">
-            <mat-icon>image</mat-icon>
-            <span>Export PNG</span>
-          </button>
-        </mat-menu>
-      </div>
-    </div>
+  <div *ngIf="error()" class="error-message">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner></mat-spinner>
-      <p>Loading flow analysis...</p>
+  <div *ngIf="!analysisResults() && !isLoading() && !error()" class="no-data">
+    <mat-icon>trending_up</mat-icon>
+    <p>No flow analysis data available. Please run an analysis with flow analysis enabled.</p>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-section">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Loading flow analysis results...</p>
+  </div>
+
+  <div *ngIf="analysisResults()" class="flow-content">
+    <!-- Scenario Selector -->
+    <div *ngIf="getCapacityScenarios().length > 1" class="scenario-selector-container">
+      <mat-form-field appearance="outline" class="scenario-selector">
+        <mat-label>Select Scenario</mat-label>
+        <mat-select 
+          [value]="selectedScenario()" 
+          (selectionChange)="onScenarioChange($event.value)">
+          <mat-option *ngFor="let scenario of getCapacityScenarios()" [value]="scenario.name">
+            {{ scenario.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
-  }
 
-  <!-- Error State -->
-  @if (error()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon class="error-icon">error</mat-icon>
-          <div>
-            <h3>Error Loading Flow Analysis</h3>
-            <p>{{ error() }}</p>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
+    <!-- View Toggle -->
+    <div class="view-toggle-container">
+      <mat-button-toggle-group [value]="currentView()" (change)="switchView($event.value)">
+        <mat-button-toggle value="dashboard">
+          <mat-icon>dashboard</mat-icon>
+          Dashboard
+        </mat-button-toggle>
+        <mat-button-toggle value="visual">
+          <mat-icon>account_tree</mat-icon>
+          Visual
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
 
-  <!-- Main Content -->
-  @if (!isLoading() && !error() && componentData()) {
-    
-    <!-- Visual Mode -->
-    @if (isVisualMode()) {
-      <div class="visual-mode">
-        <div class="visual-content">
-          
-          <!-- Graph Visualization Container -->
-          <mat-card class="graph-container">
-            <mat-card-content>
-              <div class="graph-placeholder">
-                <mat-icon class="graph-icon">device_hub</mat-icon>
-                <h3>Interactive Flow Graph</h3>
-                <p>Network flow visualization will be implemented here</p>
-                <p class="graph-stats">{{ getUtilizationPercentage().toFixed(1) }}% utilization • {{ getActiveSourcesCount() }} active sources</p>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Visual Controls -->
-          <mat-card class="controls-panel">
+    <!-- Dashboard View -->
+    <div *ngIf="currentView() === 'dashboard'" class="dashboard-view">
+      <div *ngIf="getCapacityScenarios().length > 0; else noFlowData">
+        <div *ngIf="getSelectedScenarioData() as selectedScenario">
+          <mat-card class="dashboard-card">
             <mat-card-header>
-              <mat-card-title>
-                <mat-icon>tune</mat-icon>
-                Flow Controls
-              </mat-card-title>
+              <mat-icon mat-card-avatar>trending_up</mat-icon>
+              <mat-card-title>Flow Analysis Dashboard</mat-card-title>
+              <mat-card-subtitle>
+                {{ (getSelectedScenarioData() || {}).name || 'Flow Analysis' }} - 
+                <span *ngIf="getCapacityScenarios().length === 1">Maximum flow capacity analysis</span>
+                <span *ngIf="getCapacityScenarios().length > 1">Scenario {{ getCurrentScenarioIndex() }} of {{ getCapacityScenarios().length }}</span>
+              </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
-              
-              <!-- Flow Highlighting -->
-              <div class="control-section">
-                <h4>Highlight Flow Elements</h4>
-                <div class="highlight-buttons">
-                  <button mat-stroked-button 
-                          class="sources-button"
-                          [class.highlighted]="isHighlightedFlowType('sources')"
-                          (click)="highlightActiveSources()">
-                    <mat-icon>input</mat-icon>
-                    Active Sources ({{ getActiveSourcesCount() }})
-                  </button>
-                  
-                  <button mat-stroked-button 
-                          class="targets-button"
-                          [class.highlighted]="isHighlightedFlowType('targets')"
-                          (click)="highlightTargetNodes()">
-                    <mat-icon>output</mat-icon>
-                    Target Nodes ({{ getTargetFlowsList().length }})
-                  </button>
-                  
-                  <button mat-stroked-button 
-                          class="high-flow-button"
-                          [class.highlighted]="isHighlightedFlowType('high-flow')"
-                          (click)="highlightHighFlowTargets()">
-                    <mat-icon>trending_up</mat-icon>
-                    High Flow Targets
-                  </button>
-                  
-                  @if (hasBottlenecks()) {
-                    <button mat-stroked-button 
-                            class="bottleneck-button"
-                            [class.highlighted]="isHighlightedFlowType('bottlenecks')"
-                            (click)="highlightBottlenecks()">
-                      <mat-icon>warning</mat-icon>
-                      Potential Bottlenecks ({{ getBottleneckNodes().length }})
-                    </button>
-                  }
-                  
-                  <button mat-stroked-button (click)="resetHighlights()">
-                    <mat-icon>clear</mat-icon>
-                    Clear Highlights
-                  </button>
-                </div>
-              </div>
-
-              <!-- Flow Information -->
-              <div class="control-section">
-                <h4>Flow Information</h4>
-                <div class="flow-info">
-                  <div class="info-item">
-                    <span class="info-label">Network Utilization:</span>
-                    <span class="info-value utilization" [style.color]="getUtilizationCategoryColor()">
-                      {{ getUtilizationPercentage().toFixed(1) }}%
-                    </span>
-                  </div>
-                  
-                  <div class="info-item">
-                    <span class="info-label">Flow Efficiency:</span>
-                    <span class="info-value">{{ getFlowEfficiencyPercentage().toFixed(1) }}%</span>
-                  </div>
-                  
-                  <div class="info-item">
-                    <span class="info-label">Total Input:</span>
-                    <span class="info-value">{{ getTotalSourceInput() }}</span>
-                  </div>
-                  
-                  <div class="info-item">
-                    <span class="info-label">Total Output:</span>
-                    <span class="info-value">{{ getTotalTargetOutput() }}</span>
-                  </div>
-                  
-                  <div class="info-item">
-                    <span class="info-label">Execution Time:</span>
-                    <span class="info-value">{{ getFormattedExecutionTime() }}</span>
-                  </div>
-                  
-                  <div class="info-item">
-                    <span class="info-label">Active Sources:</span>
-                    <span class="info-value nodes-list">{{ getActiveSourcesList() }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Utilization Analysis -->
-              <div class="control-section">
-                <h4>Utilization Analysis</h4>
-                <div class="utilization-analysis">
-                  <div class="utilization-indicator">
-                    <div class="utilization-bar">
-                      <div class="utilization-fill" 
-                           [style.width.%]="getUtilizationPercentage()"
-                           [style.background-color]="getUtilizationCategoryColor()">
-                      </div>
-                    </div>
-                    <div class="utilization-label">
-                      <span class="utilization-category">{{ getUtilizationCategory() | titlecase }}</span>
-                      <span class="utilization-value">{{ getUtilizationPercentage().toFixed(1) }}%</span>
-                    </div>
-                  </div>
-                  
-                  @if (hasBottlenecks()) {
-                    <div class="bottleneck-warning">
-                      <mat-icon class="warning-icon">warning</mat-icon>
-                      <div class="warning-text">
-                        <strong>Potential Bottlenecks Detected</strong>
-                        <p>Nodes: {{ getBottlenecksList() }}</p>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <!-- Target Flow Distribution -->
-              <div class="control-section">
-                <h4>Target Flow Distribution</h4>
-                <div class="target-flows">
-                  @for (target of getTargetFlowsList().slice(0, 5); track target.nodeId) {
-                    <div class="target-flow-item">
-                      <span class="target-id">Node {{ target.nodeId }}</span>
-                      <div class="flow-bar">
-                        <div class="flow-fill" 
-                             [style.width.%]="(target.flow / (getFlowMetrics()?.maxTargetFlow || 1)) * 100">
-                        </div>
-                      </div>
-                      <span class="flow-value">{{ target.flow.toFixed(1) }}</span>
-                    </div>
-                  }
-                  
-                  @if (getTargetFlowsList().length > 5) {
-                    <div class="more-targets">
-                      <span>... and {{ getTargetFlowsList().length - 5 }} more targets</span>
-                    </div>
-                  }
-                  
-                  @if (getTargetFlowsList().length === 0) {
-                    <div class="no-targets">
-                      <p>No target flows detected</p>
-                    </div>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </div>
-    }
-
-    <!-- Dashboard Mode -->
-    @if (isDashboardMode()) {
-      <div class="dashboard-mode">
-        <div class="dashboard-grid">
-          
-          <!-- Flow Statistics -->
-          <mat-card class="stat-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>device_hub</mat-icon>
-                Flow Statistics
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="stat-grid">
-                <div class="stat-item">
-                  <div class="stat-value" [style.color]="getUtilizationCategoryColor()">
-                    {{ getUtilizationPercentage().toFixed(1) }}%
-                  </div>
-                  <div class="stat-label">Network Utilization</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getFlowEfficiencyPercentage().toFixed(1) }}%</div>
-                  <div class="stat-label">Flow Efficiency</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getActiveSourcesCount() }}</div>
-                  <div class="stat-label">Active Sources</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ getFormattedExecutionTime() }}</div>
-                  <div class="stat-label">Execution Time</div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Utilization Analysis -->
-          <mat-card class="utilization-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>speed</mat-icon>
-                Network Utilization
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="utilization-dashboard">
-                <div class="utilization-gauge">
-                  <div class="gauge-container">
-                    <div class="gauge-bg"></div>
-                    <div class="gauge-fill" 
-                         [style.background]="'conic-gradient(' + getUtilizationCategoryColor() + ' 0deg, ' + getUtilizationCategoryColor() + ' ' + (getUtilizationPercentage() * 3.6) + 'deg, #e0e0e0 ' + (getUtilizationPercentage() * 3.6) + 'deg)'">
-                    </div>
-                    <div class="gauge-center">
-                      <span class="gauge-value">{{ getUtilizationPercentage().toFixed(0) }}%</span>
-                      <span class="gauge-label">{{ getUtilizationCategory() | titlecase }}</span>
-                    </div>
-                  </div>
-                </div>
+              <!-- Dashboard Tabs -->
+              <mat-tab-group [selectedIndex]="activeTab() === 'overview' ? 0 : activeTab() === 'metrics' ? 1 : 2" 
+                           (selectedTabChange)="onTabChange($event.index)">
                 
-                <div class="utilization-breakdown">
-                  <div class="breakdown-item">
-                    <span class="breakdown-label">Source Input:</span>
-                    <span class="breakdown-value">{{ getTotalSourceInput() }}</span>
-                  </div>
-                  <div class="breakdown-item">
-                    <span class="breakdown-label">Target Output:</span>
-                    <span class="breakdown-value">{{ getTotalTargetOutput() }}</span>
-                  </div>
-                  <div class="breakdown-item">
-                    <span class="breakdown-label">Efficiency:</span>
-                    <span class="breakdown-value">{{ getFlowEfficiencyPercentage().toFixed(1) }}%</span>
-                  </div>
-                  
-                  @if (hasBottlenecks()) {
-                    <div class="breakdown-item warning">
-                      <span class="breakdown-label">
-                        <mat-icon>warning</mat-icon>
-                        Bottlenecks:
-                      </span>
-                      <span class="breakdown-value">{{ getBottleneckNodes().length }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Source Analysis -->
-          <mat-card class="sources-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>input</mat-icon>
-                Source Analysis
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="sources-analysis">
-                <div class="source-summary">
-                  <div class="summary-stat">
-                    <div class="summary-value">{{ getActiveSourcesCount() }}</div>
-                    <div class="summary-label">Active Sources</div>
-                  </div>
-                  <div class="summary-stat">
-                    <div class="summary-value">{{ getTotalSourceInput() }}</div>
-                    <div class="summary-label">Total Input</div>
-                  </div>
-                  <div class="summary-stat">
-                    <div class="summary-value">{{ (getTotalSourceInput() / getActiveSourcesCount()).toFixed(1) }}</div>
-                    <div class="summary-label">Avg per Source</div>
-                  </div>
-                </div>
-
-                <!-- Source List -->
-                <div class="source-list">
-                  <h5>Active Sources</h5>
-                  <div class="source-items">
-                    @for (source of getActiveSources().slice(0, 8); track source) {
-                      <div class="source-item">
-                        <mat-icon class="source-icon">radio_button_checked</mat-icon>
-                        <span class="source-id">Node {{ source }}</span>
+                <!-- Overview Tab -->
+                <mat-tab label="Overview">
+                  <div class="tab-content" *ngIf="getOverviewData(selectedScenario.scenario) as overview">
+                    <!-- Network Utilization Summary -->
+                    <div class="overview-cards">
+                      <div class="metric-card">
+                        <div class="metric-header">
+                          <mat-icon>trending_up</mat-icon>
+                          <h4>Network Utilization</h4>
+                        </div>
+                        <div class="metric-value">
+                          {{ (overview.networkUtilization * 100).toFixed(1) }}%
+                        </div>
+                        <mat-progress-bar 
+                          mode="determinate" 
+                          [value]="overview.networkUtilization * 100"
+                          [class]="'utilization-' + getUtilizationLevel(overview.networkUtilization)">
+                        </mat-progress-bar>
                       </div>
-                    }
-                    
-                    @if (getActiveSources().length > 8) {
-                      <div class="more-sources">
-                        <span>... and {{ getActiveSources().length - 8 }} more</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Target Flow Analysis -->
-          <mat-card class="targets-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>output</mat-icon>
-                Target Flow Analysis
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="targets-analysis">
-                <div class="target-summary">
-                  <div class="summary-item">
-                    <span class="summary-label">Total Targets:</span>
-                    <span class="summary-value">{{ getTargetFlowsList().length }}</span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">Total Output:</span>
-                    <span class="summary-value">{{ getTotalTargetOutput() }}</span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">Avg Flow:</span>
-                    <span class="summary-value">{{ (getFlowMetrics()?.averageTargetFlow || 0).toFixed(1) }}</span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="summary-label">Max Flow:</span>
-                    <span class="summary-value">{{ (getFlowMetrics()?.maxTargetFlow || 0).toFixed(1) }}</span>
-                  </div>
-                </div>
-
-                <!-- Top Target Flows -->
-                <div class="top-targets">
-                  <h5>Top Target Flows</h5>
-                  @for (target of getTargetFlowsList().slice(0, 6); track target.nodeId) {
-                    <div class="target-flow-row">
-                      <span class="target-name">Node {{ target.nodeId }}</span>
-                      <div class="target-flow-bar">
-                        <div class="flow-progress" 
-                             [style.width.%]="(target.flow / (getFlowMetrics()?.maxTargetFlow || 1)) * 100">
+                      
+                      <div class="metric-card">
+                        <div class="metric-header">
+                          <mat-icon>input</mat-icon>
+                          <h4>Total Input</h4>
+                        </div>
+                        <div class="metric-value">
+                          {{ overview.totalInput.toFixed(2) }}
                         </div>
                       </div>
-                      <span class="target-value">{{ target.flow.toFixed(1) }}</span>
+                      
+                      <div class="metric-card">
+                        <div class="metric-header">
+                          <mat-icon>output</mat-icon>
+                          <h4>Total Output</h4>
+                        </div>
+                        <div class="metric-value">
+                          {{ overview.totalOutput.toFixed(2) }}
+                        </div>
+                      </div>
+                      
+                      <div class="metric-card">
+                        <div class="metric-header">
+                          <mat-icon>speed</mat-icon>
+                          <h4>Efficiency</h4>
+                        </div>
+                        <div class="metric-value">
+                          {{ (overview.efficiency * 100).toFixed(1) }}%
+                        </div>
+                      </div>
                     </div>
-                  }
-                  
-                  @if (getTargetFlowsList().length === 0) {
-                    <div class="no-data">
-                      <p>No target flows detected</p>
+                    
+                    <!-- Quick Summary -->
+                    <div class="summary-section">
+                      <h4>Summary</h4>
+                      <div class="summary-grid">
+                        <div class="summary-item">
+                          <span class="label">Active Sources:</span>
+                          <span class="value">{{ overview.activeSources }}</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="label">Target Nodes:</span>
+                          <span class="value">{{ overview.targetNodes }}</span>
+                        </div>
+                        <div class="summary-item">
+                          <span class="label">Computation Time:</span>
+                          <span class="value">{{ overview.computationTime.toFixed(4) }}s</span>
+                        </div>
+                      </div>
                     </div>
-                  }
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Analysis Properties -->
-          <mat-card class="properties-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>info</mat-icon>
-                Analysis Properties
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="properties-list">
-                <div class="property-item">
-                  <span class="property-label">Analysis Type:</span>
-                  <span class="property-value">Network Flow Analysis</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Data Type:</span>
-                  <span class="property-value">{{ getDataType() | titlecase }}</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Utilization Level:</span>
-                  <span class="property-value" [style.color]="getUtilizationCategoryColor()">
-                    {{ getUtilizationCategory() | titlecase }} ({{ getUtilizationPercentage().toFixed(1) }}%)
-                  </span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Has Active Sources:</span>
-                  <span class="property-value">{{ getActiveSourcesCount() > 0 ? 'Yes (' + getActiveSourcesCount() + ')' : 'No' }}</span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Has Bottlenecks:</span>
-                  <span class="property-value" [class.warning]="hasBottlenecks()">
-                    {{ hasBottlenecks() ? 'Yes (' + getBottleneckNodes().length + ')' : 'No' }}
-                  </span>
-                </div>
-                <div class="property-item">
-                  <span class="property-label">Performance:</span>
-                  <span class="property-value">
-                    {{ getExecutionTime() < 1 ? 'Fast' : getExecutionTime() < 10 ? 'Good' : 'Slow' }}
-                    ({{ getFormattedExecutionTime() }})
-                  </span>
-                </div>
-              </div>
+                  </div>
+                </mat-tab>
+                
+                <!-- Flow Metrics Tab -->
+                <mat-tab label="Flow Metrics">
+                  <div class="tab-content">
+                    <!-- Detailed Flow Metrics -->
+                    <div class="metrics-section">
+                      <h4>Detailed Flow Statistics</h4>
+                      <table mat-table [dataSource]="getFlowMetrics(selectedScenario.scenario)" class="metrics-table">
+                        <ng-container matColumnDef="metric">
+                          <th mat-header-cell *matHeaderCellDef>Metric</th>
+                          <td mat-cell *matCellDef="let row">{{ row.metric }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="value">
+                          <th mat-header-cell *matHeaderCellDef>Value</th>
+                          <td mat-cell *matCellDef="let row">{{ row.value }}</td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                      </table>
+                    </div>
+                    
+                    <!-- Target Node Flows -->
+                    <div class="flows-section">
+                      <h4>Target Node Flow Distribution</h4>
+                      <table mat-table [dataSource]="getFlowsData(selectedScenario.scenario.target_flows)" class="flows-table">
+                        <ng-container matColumnDef="node">
+                          <th mat-header-cell *matHeaderCellDef>Node</th>
+                          <td mat-cell *matCellDef="let row">{{ row.node }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="flow">
+                          <th mat-header-cell *matHeaderCellDef>Flow</th>
+                          <td mat-cell *matCellDef="let row">
+                            <div class="flow-cell">
+                              <span class="flow-value">{{ row.flow.toFixed(2) }}</span>
+                              <mat-progress-bar 
+                                mode="determinate" 
+                                [value]="(row.flow / selectedScenario.scenario.total_target_output) * 100">
+                              </mat-progress-bar>
+                            </div>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="flowsDisplayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: flowsDisplayedColumns;"></tr>
+                      </table>
+                    </div>
+                  </div>
+                </mat-tab>
+                
+                <!-- Utilization Stats Tab -->
+                <mat-tab label="Utilization Stats">
+                  <div class="tab-content">
+                    <!-- Capacity Analysis -->
+                    <div class="capacity-section" *ngIf="getCapacityData(selectedScenario.scenario) as capacityData">
+                      <h4>Edge Capacity & Utilization</h4>
+                      <table mat-table [dataSource]="capacityData" class="capacity-table">
+                        <ng-container matColumnDef="edge">
+                          <th mat-header-cell *matHeaderCellDef>Edge</th>
+                          <td mat-cell *matCellDef="let row">{{ row.edge }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="capacity">
+                          <th mat-header-cell *matHeaderCellDef>Capacity</th>
+                          <td mat-cell *matCellDef="let row">{{ row.capacity.toFixed(2) }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="flow">
+                          <th mat-header-cell *matHeaderCellDef>Flow</th>
+                          <td mat-cell *matCellDef="let row">{{ row.flow.toFixed(2) }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="utilization">
+                          <th mat-header-cell *matHeaderCellDef>Utilization</th>
+                          <td mat-cell *matCellDef="let row">
+                            <div class="utilization-cell">
+                              <span class="utilization-value">{{ (row.utilization * 100).toFixed(1) }}%</span>
+                              <mat-progress-bar 
+                                mode="determinate" 
+                                [value]="row.utilization * 100"
+                                [class]="'utilization-' + getUtilizationLevel(row.utilization)">
+                              </mat-progress-bar>
+                            </div>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="capacityDisplayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: capacityDisplayedColumns;"></tr>
+                      </table>
+                    </div>
+                    
+                    <!-- Bottleneck Analysis -->
+                    <div class="bottleneck-section" *ngIf="getBottleneckData(selectedScenario.scenario) as bottleneckData">
+                      <h4>Network Bottlenecks</h4>
+                      <table mat-table [dataSource]="bottleneckData" class="bottleneck-table" *ngIf="bottleneckData.length > 0; else noBottlenecks">
+                        <ng-container matColumnDef="edge">
+                          <th mat-header-cell *matHeaderCellDef>Edge</th>
+                          <td mat-cell *matCellDef="let row">{{ row.edge }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="capacity">
+                          <th mat-header-cell *matHeaderCellDef>Capacity</th>
+                          <td mat-cell *matCellDef="let row">{{ row.capacity.toFixed(2) }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="flow">
+                          <th mat-header-cell *matHeaderCellDef>Flow</th>
+                          <td mat-cell *matCellDef="let row">{{ row.flow.toFixed(2) }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="bottleneck_severity">
+                          <th mat-header-cell *matHeaderCellDef>Severity</th>
+                          <td mat-cell *matCellDef="let row">
+                            <mat-chip [class]="'severity-' + (row.bottleneck_severity > 0.8 ? 'high' : row.bottleneck_severity > 0.5 ? 'medium' : 'low')">
+                              {{ (row.bottleneck_severity * 100).toFixed(1) }}%
+                            </mat-chip>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="bottleneckDisplayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: bottleneckDisplayedColumns;"></tr>
+                      </table>
+                      
+                      <ng-template #noBottlenecks>
+                        <div class="no-bottlenecks">
+                          <mat-icon>check_circle</mat-icon>
+                          <p>No significant bottlenecks detected in this scenario.</p>
+                        </div>
+                      </ng-template>
+                    </div>
+                  </div>
+                </mat-tab>
+              </mat-tab-group>
             </mat-card-content>
           </mat-card>
         </div>
       </div>
-    }
-  }
-</div>
+
+      <ng-template #noFlowData>
+        <div class="no-data">
+          <mat-icon>trending_up</mat-icon>
+          <p>No flow analysis was performed. Enable flow analysis in the configuration to see capacity results.</p>
+        </div>
+      </ng-template>
+      </div>
+    </div>
+
+    <!-- Visual View -->
+    <div *ngIf="currentView() === 'visual'" class="visual-view">
+      <!-- Analysis Filters -->
+      <mat-card class="filters-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>tune</mat-icon>
+          <mat-card-title>Analysis Filters</mat-card-title>
+          <mat-card-subtitle>Customize visualization parameters</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="filters-grid">
+            <div class="filter-group">
+              <label>Flow Threshold: {{ flowThresholdFilter().toFixed(2) }}</label>
+              <input type="range" 
+                min="0" 
+                max="1" 
+                step="0.05" 
+                [value]="flowThresholdFilter()" 
+                (input)="onFlowThresholdChange($event)">
+            </div>
+            
+            <div class="filter-group">
+              <label>Utilization Threshold: {{ (utilizationThreshold() * 100).toFixed(0) }}%</label>
+              <input type="range" 
+                min="0.1" 
+                max="1" 
+                step="0.05" 
+                [value]="utilizationThreshold()" 
+                (input)="onUtilizationThresholdChange($event)">
+            </div>
+            
+            <div class="filter-group">
+              <div class="toggle-filters">
+                <mat-chip-listbox>
+                  <mat-chip-option 
+                    [selected]="showBottlenecks()" 
+                    (click)="showBottlenecks.set(!showBottlenecks())">
+                    <mat-icon>warning</mat-icon>
+                    Highlight Bottlenecks
+                  </mat-chip-option>
+                </mat-chip-listbox>
+              </div>
+            </div>
+            
+            <div class="filter-actions">
+              <button mat-button (click)="resetFilters()">
+                <mat-icon>refresh</mat-icon>
+                Reset Filters
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <!-- Network Visualization -->
+      <mat-card class="visualization-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>account_tree</mat-icon>
+          <mat-card-title>Flow Analysis Visualization</mat-card-title>
+          <mat-card-subtitle>
+            Interactive network view - 
+            <span *ngIf="getSelectedScenarioData() as scenario">{{ scenario.name }}</span>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="visualization-container">
+            <app-network-visualization 
+              [networkData]="networkData()"
+              [analysisResults]="analysisResults()"
+              [visualizationMode]="'flows'"
+              [height]="'600px'"
+              (nodeClick)="onNodeClick($event)">
+            </app-network-visualization>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      
+      <!-- Node Info Card -->
+      <mat-card *ngIf="selectedNode() && getNodeFlowInfo(selectedNode()!) as nodeInfo" class="node-info-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>info</mat-icon>
+          <mat-card-title>Node Information</mat-card-title>
+          <mat-card-subtitle>{{ nodeInfo.nodeId }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="node-info-grid">
+            <div class="info-item">
+              <span class="label">Node Type:</span>
+              <span class="value">
+                <mat-chip *ngIf="nodeInfo.isSource" class="source-chip">Source</mat-chip>
+                <mat-chip *ngIf="nodeInfo.isTarget" class="target-chip">Target</mat-chip>
+                <mat-chip *ngIf="!nodeInfo.isSource && !nodeInfo.isTarget" class="intermediate-chip">Intermediate</mat-chip>
+              </span>
+            </div>
+            
+            <div class="info-item" *ngIf="nodeInfo.targetFlow > 0">
+              <span class="label">Target Flow:</span>
+              <span class="value flow-value">{{ nodeInfo.targetFlow.toFixed(2) }}</span>
+            </div>
+            
+            <div class="info-item" *ngIf="nodeInfo.sourceFlow > 0">
+              <span class="label">Source Input:</span>
+              <span class="value flow-value">{{ nodeInfo.sourceFlow.toFixed(2) }}</span>
+            </div>
+          </div>
+          
+          <div class="close-info">
+            <button mat-button (click)="selectedNode.set(null)">
+              <mat-icon>close</mat-icon>
+              Close
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
