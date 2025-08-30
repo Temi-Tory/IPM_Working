@@ -1,0 +1,569 @@
+<div class="edge-dialog-container" [class.mobile]="isMobile()" [class.tablet]="isTablet()">
+  <!-- Dialog Header -->
+  <div class="dialog-header" mat-dialog-title>
+    <div class="header-content">
+      <div class="title-section">
+        <mat-icon class="edge-icon">arrow_forward</mat-icon>
+        <h2>{{ dialogTitle() }}</h2>
+        <div class="connection-summary">
+          <mat-icon>info</mat-icon>
+          <span>{{ connectionSummary() }}</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button mat-icon-button 
+                matTooltip="Export edge data" 
+                (click)="exportEdgeData()"
+                [disabled]="isLoading()">
+          <mat-icon>download</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Minimize" 
+                (click)="onMinimize()"
+                [disabled]="isLoading()">
+          <mat-icon>minimize</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Close" 
+                (click)="onClose()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Classification Chips -->
+    <div class="classification-chips" *ngIf="!isLoading() && edgeData()">
+      <mat-chip-listbox>
+        <mat-chip-option 
+          *ngFor="let chip of classificationChips()" 
+          [color]="chip.color"
+          selected>
+          <mat-icon *ngIf="chip.icon" matChipAvatar>{{ chip.icon }}</mat-icon>
+          {{ chip.label }}
+        </mat-chip-option>
+      </mat-chip-listbox>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-container" mat-dialog-content>
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading edge details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !isLoading()" class="error-container" mat-dialog-content>
+    <mat-icon color="warn">error</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-button color="primary" (click)="loadEdgeData()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading() && !error() && edgeData()" class="dialog-content" mat-dialog-content>
+    <mat-tab-group 
+      [selectedIndex]="selectedTabIndex()" 
+      (selectedIndexChange)="onTabChange($event)"
+      [class.vertical-tabs]="isMobile()">
+      
+      <!-- Connection Information Tab -->
+      <mat-tab label="Connection">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="connection-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>device_hub</mat-icon>
+                  Connection Details
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="connection-flow">
+                  <!-- Source Node -->
+                  <div class="node-info source-node" (click)="navigateToSourceNode()">
+                    <div class="node-header">
+                      <mat-icon>input</mat-icon>
+                      <h3>Source Node</h3>
+                    </div>
+                    <div class="node-details">
+                      <div class="node-id">{{ edgeData()?.connection?.sourceNodeId }}</div>
+                      <div class="node-type">{{ edgeData()?.connection?.sourceType }}</div>
+                    </div>
+                    <mat-icon class="navigate-icon">arrow_forward</mat-icon>
+                  </div>
+                  
+                  <!-- Connection Arrow -->
+                  <div class="connection-arrow">
+                    <mat-icon>trending_flat</mat-icon>
+                    <div class="connection-strength">
+                      <span class="label">Strength:</span>
+                      <span class="value">{{ formatPercentage(edgeData()?.connection?.connectionStrength || 0) }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Target Node -->
+                  <div class="node-info target-node" (click)="navigateToTargetNode()">
+                    <div class="node-header">
+                      <mat-icon>output</mat-icon>
+                      <h3>Target Node</h3>
+                    </div>
+                    <div class="node-details">
+                      <div class="node-id">{{ edgeData()?.connection?.targetNodeId }}</div>
+                      <div class="node-type">{{ edgeData()?.connection?.targetType }}</div>
+                    </div>
+                    <mat-icon class="navigate-icon">arrow_forward</mat-icon>
+                  </div>
+                </div>
+                
+                <mat-divider></mat-divider>
+                
+                <div class="connection-metadata">
+                  <div class="metadata-item">
+                    <span class="label">Edge Type:</span>
+                    <span class="value">{{ edgeData()?.connection?.edgeType }}</span>
+                  </div>
+                  
+                  <div class="metadata-item">
+                    <span class="label">Network Size:</span>
+                    <span class="value">{{ formatNumber(edgeData()?.metadata?.networkSize || 0) }} nodes</span>
+                  </div>
+                  
+                  <div class="metadata-item">
+                    <span class="label">Load Time:</span>
+                    <span class="value">{{ edgeData()?.metadata?.loadTime?.toFixed(2) }}ms</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Classification Tab -->
+      <mat-tab label="Classification">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="classification-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>category</mat-icon>
+                  Edge Classification
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="classification-grid">
+                  <!-- Critical Path -->
+                  <div class="classification-item"
+                       [class.active]="edgeData()?.classification?.isCriticalPath">
+                    <mat-icon [color]="edgeData()?.classification?.isCriticalPath ? 'warn' : ''">
+                      priority_high
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Critical Path</h4>
+                      <p>Edge is part of the critical path for network flow or timing</p>
+                    </div>
+                    <mat-icon class="status-icon"
+                             [color]="edgeData()?.classification?.isCriticalPath ? 'warn' : ''">
+                      {{ edgeData()?.classification?.isCriticalPath ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                  
+                  <!-- Bottleneck -->
+                  <div class="classification-item"
+                       [class.active]="edgeData()?.classification?.isBottleneck">
+                    <mat-icon [color]="edgeData()?.classification?.isBottleneck ? 'warn' : ''">
+                      warning
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Bottleneck Edge</h4>
+                      <p>Edge that may restrict flow due to limited connectivity</p>
+                    </div>
+                    <mat-icon class="status-icon"
+                             [color]="edgeData()?.classification?.isBottleneck ? 'warn' : ''">
+                      {{ edgeData()?.classification?.isBottleneck ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                </div>
+                
+                <mat-divider></mat-divider>
+                
+                <!-- Importance Metrics -->
+                <div class="importance-section">
+                  <h4>Importance Metrics</h4>
+                  
+                  <div class="importance-item">
+                    <div class="importance-header">
+                      <mat-icon [color]="getImportanceColor(edgeData()?.classification?.flowImportance || 'low')">
+                        {{ getImportanceIcon(edgeData()?.classification?.flowImportance || 'low') }}
+                      </mat-icon>
+                      <span class="importance-label">Flow Importance</span>
+                    </div>
+                    <div class="importance-value"
+                         [class]="getImportanceColor(edgeData()?.classification?.flowImportance || 'low')">
+                      {{ edgeData()?.classification?.flowImportance?.toUpperCase() }}
+                    </div>
+                  </div>
+                  
+                  <div class="importance-item">
+                    <div class="importance-header">
+                      <mat-icon [color]="getImportanceColor(edgeData()?.classification?.topologicalImportance || 'low')">
+                        timeline
+                      </mat-icon>
+                      <span class="importance-label">Topological Importance</span>
+                    </div>
+                    <div class="importance-value"
+                         [class]="getImportanceColor(edgeData()?.classification?.topologicalImportance || 'low')">
+                      {{ edgeData()?.classification?.topologicalImportance?.toUpperCase() }}
+                    </div>
+                  </div>
+                  
+                  <div class="importance-item">
+                    <div class="importance-header">
+                      <mat-icon [color]="getStructuralRoleColor(edgeData()?.classification?.structuralRole || 'normal')">
+                        {{ getStructuralRoleIcon(edgeData()?.classification?.structuralRole || 'normal') }}
+                      </mat-icon>
+                      <span class="importance-label">Structural Role</span>
+                    </div>
+                    <div class="importance-value"
+                         [class]="getStructuralRoleColor(edgeData()?.classification?.structuralRole || 'normal')">
+                      {{ edgeData()?.classification?.structuralRole?.toUpperCase() }}
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Navigation Tab -->
+      <mat-tab label="Navigation">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="navigation-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>explore</mat-icon>
+                  Navigation Options
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <!-- Node Navigation -->
+                <div class="navigation-section">
+                  <h4>Navigate to Nodes</h4>
+                  
+                  <div class="navigation-buttons">
+                    <button mat-raised-button
+                            color="primary"
+                            (click)="navigateToSourceNode()"
+                            [disabled]="!edgeData()?.navigation?.canNavigateToSource">
+                      <mat-icon>input</mat-icon>
+                      Go to Source Node {{ edgeData()?.connection?.sourceNodeId }}
+                    </button>
+                    
+                    <button mat-raised-button
+                            color="accent"
+                            (click)="navigateToTargetNode()"
+                            [disabled]="!edgeData()?.navigation?.canNavigateToTarget">
+                      <mat-icon>output</mat-icon>
+                      Go to Target Node {{ edgeData()?.connection?.targetNodeId }}
+                    </button>
+                  </div>
+                </div>
+                
+                <mat-divider></mat-divider>
+                
+                <!-- Related Edges -->
+                <div class="related-edges-section" *ngIf="edgeData()?.navigation?.relatedEdges?.length">
+                  <h4>Related Edges</h4>
+                  
+                  <mat-list class="related-edges-list">
+                    <mat-list-item
+                      *ngFor="let relatedEdge of edgeData()?.navigation?.relatedEdges"
+                      class="related-edge-item"
+                      (click)="navigateToRelatedEdge(relatedEdge.sourceId, relatedEdge.targetId)">
+                      
+                      <mat-icon matListItemIcon>
+                        {{ relatedEdge.relationship === 'parallel' ? 'call_split' : 
+                           relatedEdge.relationship === 'series' ? 'trending_flat' : 'alt_route' }}
+                      </mat-icon>
+                      
+                      <div matListItemTitle>
+                        Edge {{ relatedEdge.sourceId }} → {{ relatedEdge.targetId }}
+                      </div>
+                      
+                      <div matListItemLine>
+                        {{ relatedEdge.relationship | titlecase }} relationship
+                      </div>
+                      
+                      <button mat-icon-button matListItemMeta>
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    </mat-list-item>
+                  </mat-list>
+                </div>
+                
+                <div class="no-related-edges" *ngIf="!edgeData()?.navigation?.relatedEdges?.length">
+                  <mat-icon>block</mat-icon>
+                  <p>No related edges found</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Raw Data Tab -->
+      <mat-tab label="Raw Data" *ngIf="edgeData()?.rawData?.hasLinkProbabilities || edgeData()?.rawData?.hasCapacityData || edgeData()?.rawData?.hasCpmData || edgeData()?.rawData?.uploadedEdgeData">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="raw-data-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>data_object</mat-icon>
+                  Raw Edge Data
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <!-- Uploaded Edge Data -->
+                <div *ngIf="edgeData()?.rawData?.uploadedEdgeData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>cloud_upload</mat-icon>
+                    Uploaded Edge Data
+                  </h4>
+                  
+                  <!-- Float Data -->
+                  <div *ngIf="edgeData()?.rawData?.uploadedEdgeData?.float !== undefined" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>decimal_increase</mat-icon>
+                          Float Probability
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ edgeData()?.rawData?.uploadedEdgeData?.float }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Probability:</span>
+                          <span class="value number">{{ edgeData()?.rawData?.uploadedEdgeData?.float }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Float (Precise probability)</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- Interval Data -->
+                  <div *ngIf="edgeData()?.rawData?.uploadedEdgeData?.interval" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>linear_scale</mat-icon>
+                          Interval Probability
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          [{{ edgeData()?.rawData?.uploadedEdgeData?.interval?.lower }}, {{ edgeData()?.rawData?.uploadedEdgeData?.interval?.upper }}]
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Lower Bound:</span>
+                          <span class="value number">{{ edgeData()?.rawData?.uploadedEdgeData?.interval?.lower }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Upper Bound:</span>
+                          <span class="value number">{{ edgeData()?.rawData?.uploadedEdgeData?.interval?.upper }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Interval (Imprecise probability)</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- P-Box Data -->
+                  <div *ngIf="edgeData()?.rawData?.uploadedEdgeData?.pbox" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>analytics</mat-icon>
+                          P-Box Probability
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.name || 'P-Box Distribution' }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item" *ngIf="edgeData()?.rawData?.uploadedEdgeData?.pbox?.name">
+                          <span class="label">Name:</span>
+                          <span class="value">{{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.name }}</span>
+                        </div>
+                        <div class="data-item" *ngIf="edgeData()?.rawData?.uploadedEdgeData?.pbox?.shape">
+                          <span class="label">Shape:</span>
+                          <span class="value">{{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.shape }}</span>
+                        </div>
+                        <div class="data-item" *ngIf="edgeData()?.rawData?.uploadedEdgeData?.pbox?.mean_lower !== undefined">
+                          <span class="label">Mean Range:</span>
+                          <span class="value number">[{{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.mean_lower }}, {{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.mean_upper }}]</span>
+                        </div>
+                        <div class="data-item" *ngIf="edgeData()?.rawData?.uploadedEdgeData?.pbox?.var_lower !== undefined">
+                          <span class="label">Variance Range:</span>
+                          <span class="value number">[{{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.var_lower }}, {{ edgeData()?.rawData?.uploadedEdgeData?.pbox?.var_upper }}]</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">P-Box (Probability box)</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Full Data:</span>
+                          <pre class="json-display">{{ edgeData()?.rawData?.uploadedEdgeData?.pbox | json }}</pre>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- Capacity Data -->
+                  <div *ngIf="edgeData()?.rawData?.uploadedEdgeData?.capacity !== undefined" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>speed</mat-icon>
+                          Capacity Value
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ edgeData()?.rawData?.uploadedEdgeData?.capacity }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Capacity:</span>
+                          <span class="value number">{{ edgeData()?.rawData?.uploadedEdgeData?.capacity }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Edge Capacity</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- CPM Data -->
+                  <div *ngIf="edgeData()?.rawData?.uploadedEdgeData?.cpm" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>schedule</mat-icon>
+                          CPM Data
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          Critical Path Method Analysis
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Critical Path Method</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Full Data:</span>
+                          <pre class="json-display">{{ edgeData()?.rawData?.uploadedEdgeData?.cpm | json }}</pre>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                </div>
+                
+                <mat-divider *ngIf="edgeData()?.rawData?.uploadedEdgeData && (edgeData()?.rawData?.hasLinkProbabilities || edgeData()?.rawData?.hasCapacityData || edgeData()?.rawData?.hasCpmData)"></mat-divider>
+                
+                <!-- Legacy Link Probabilities -->
+                <div *ngIf="edgeData()?.rawData?.hasLinkProbabilities" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy Link Probability
+                  </h4>
+                  <div class="probability-info">
+                    <span class="label">Probability:</span>
+                    <span class="value number">{{ edgeData()?.rawData?.probability }}</span>
+                  </div>
+                </div>
+                
+                <!-- Legacy Capacity Data -->
+                <div *ngIf="edgeData()?.rawData?.hasCapacityData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy Capacity Data
+                  </h4>
+                  <div class="capacity-info">
+                    <div class="capacity-item">
+                      <span class="label">Capacity:</span>
+                      <span class="value number">{{ edgeData()?.rawData?.capacity }}</span>
+                    </div>
+                    <div class="capacity-item" *ngIf="edgeData()?.rawData?.utilization !== undefined">
+                      <span class="label">Utilization:</span>
+                      <span class="value">{{ formatPercentage(edgeData()?.rawData?.utilization || 0) }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Legacy CPM Data -->
+                <div *ngIf="edgeData()?.rawData?.hasCpmData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy CPM Data
+                  </h4>
+                  <div class="cpm-info">
+                    <div class="cpm-item">
+                      <span class="label">Delay:</span>
+                      <span class="value number">{{ edgeData()?.rawData?.delay }}</span>
+                    </div>
+                    <div class="cpm-item">
+                      <span class="label">Cost:</span>
+                      <span class="value number">{{ edgeData()?.rawData?.cost }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Flow Data -->
+                <div *ngIf="edgeData()?.rawData?.hasFlowData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>trending_up</mat-icon>
+                    Flow Data
+                  </h4>
+                  <div class="flow-info">
+                    <div class="flow-item">
+                      <span class="label">Flow:</span>
+                      <span class="value number">{{ edgeData()?.rawData?.flow }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Additional Metrics -->
+                <div *ngIf="edgeData()?.rawData?.additionalMetrics" class="raw-data-section">
+                  <h4>
+                    <mat-icon>insights</mat-icon>
+                    Additional Metrics
+                  </h4>
+                  <pre class="json-display">{{ edgeData()?.rawData?.additionalMetrics | json }}</pre>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

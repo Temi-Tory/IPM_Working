@@ -24,6 +24,51 @@ export interface IntervalData {
 
 export type BeliefValue = number | IntervalData | PboxData;
 
+// New interfaces for uploaded data types
+export interface UploadedFloatData {
+  node_priors?: Record<string, number>;
+  edge_probabilities?: Record<string, number>;
+}
+
+export interface UploadedPboxData {
+  node_priors?: Record<string, PboxData>;
+  edge_probabilities?: Record<string, PboxData>;
+}
+
+export interface UploadedIntervalData {
+  node_priors?: Record<string, IntervalData>;
+  edge_probabilities?: Record<string, IntervalData>;
+}
+
+export interface UploadedCapacityData {
+  capacities: {
+    nodes?: Record<string, number>;
+    edges?: Record<string, number>;
+    source_rates?: Record<string, number>;
+  };
+}
+
+export interface UploadedCpmData {
+  cmp_data: any; // Complete CPM analysis data structure
+}
+
+export interface UploadedData {
+  float?: UploadedFloatData;
+  pbox?: UploadedPboxData;
+  interval?: UploadedIntervalData;
+  capacity?: UploadedCapacityData;
+  cpm?: UploadedCpmData;
+}
+
+export interface UploadedDataSummary {
+  available_data_types: string[];
+  data_types_count: number;
+  has_node_priors: boolean;
+  has_edge_probabilities: boolean;
+  has_capacities: boolean;
+  has_cmp_data: boolean;
+}
+
 export interface NetworkStructure {
   computation_time: number;
   total_nodes: number;
@@ -46,6 +91,9 @@ export interface NetworkStructure {
     edge_probabilities?: Record<string, any>;
     additional_metrics?: any;
   };
+  // NEW: Rich uploaded data from backend
+  uploaded_data?: UploadedData;
+  uploaded_data_summary?: UploadedDataSummary;
 }
 
 export interface RootDiamondStructure {

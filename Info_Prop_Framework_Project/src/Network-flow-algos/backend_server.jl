@@ -792,6 +792,92 @@ function determine_file_location(network_path::String, filename::String, network
     end
 end
 
+function load_uploaded_data_files(network_path::String)
+    """Load all available uploaded data files from the network directory"""
+    uploaded_data = Dict()
+    
+    # Define data type directories and their corresponding file patterns
+    data_types = [
+        ("float", ["nodepriors", "linkprobabilities"]),
+        ("interval", ["nodepriors", "linkprobabilities"]),
+        ("pbox", ["nodepriors", "linkprobabilities"]),
+        ("capacity", ["capacities"]),
+        ("cpm", ["cpm-inputs"])
+    ]
+    
+    for (data_type, file_patterns) in data_types
+        type_dir = joinpath(network_path, data_type)
+        if isdir(type_dir)
+            uploaded_data[data_type] = Dict()
+            
+            for pattern in file_patterns
+                # Find files matching the pattern
+                matching_files = filter(readdir(type_dir)) do filename
+                    contains(filename, pattern) && endswith(filename, ".json")
+                end
+                
+                if !isempty(matching_files)
+                    file_path = joinpath(type_dir, matching_files[1])  # Use first match
+                    try
+                        if pattern == "nodepriors"
+                            data = read_node_priors_from_json(file_path)
+                            uploaded_data[data_type]["node_priors"] = Dict(string(k) => v for (k, v) in data)
+                        elseif pattern == "linkprobabilities"
+                            data = read_edge_probabilities_from_json(file_path)
+                            uploaded_data[data_type]["edge_probabilities"] = Dict("$(k[1])->$(k[2])" => v for (k, v) in data)
+                        elseif pattern == "capacities"
+                            raw_data = JSON.parsefile(file_path)
+                            capacities = raw_data["capacities"]
+                            uploaded_data[data_type]["capacities"] = Dict(
+                                "nodes" => capacities["nodes"],
+                                "edges" => capacities["edges"],
+                                "source_rates" => capacities["source_rates"]
+                            )
+                        elseif pattern == "cpm-inputs"
+                            raw_data = JSON.parsefile(file_path)
+                            uploaded_data[data_type]["cpm_data"] = raw_data
+                        end
+                    catch e
+                        println("Warning: Failed to load $pattern from $file_path: $e")
+                        # Continue loading other files even if one fails
+                    end
+                end
+            end
+            
+            # Remove empty data type entries
+            if isempty(uploaded_data[data_type])
+                delete!(uploaded_data, data_type)
+            end
+        end
+    end
+    
+    return uploaded_data
+end
+
+function serialize_uploaded_data_for_json(uploaded_data::Dict)
+    """Convert uploaded data to JSON-serializable format, handling special types"""
+    serialized = Dict()
+    
+    for (data_type, type_data) in uploaded_data
+        serialized[data_type] = Dict()
+        
+        for (data_category, data_values) in type_data
+            if data_category in ["node_priors", "edge_probabilities"]
+                # Handle different value types (Float64, pbox, Interval)
+                serialized[data_type][data_category] = Dict()
+                for (key, value) in data_values
+                    serialized[data_type][data_category][key] = convert_pbox_values(value)
+                end
+            else
+                # For capacities and cpm_data, serialize as-is
+                serialized[data_type][data_category] = convert_pbox_values(data_values)
+            end
+        end
+    end
+    
+    return serialized
+end
+
 # Individual Analysis Endpoint Handlers
 
 function handle_network_structure(req::HTTP.Request)
@@ -837,8 +923,17 @@ function handle_network_structure(req::HTTP.Request)
         
         computation_time = time() - start_time
         
+        # Load uploaded data files
+        uploaded_data_start_time = time()
+        uploaded_data = load_uploaded_data_files(network_path)
+        uploaded_data_time = time() - uploaded_data_start_time
+        
+        # Serialize uploaded data for JSON response
+        serialized_uploaded_data = serialize_uploaded_data_for_json(uploaded_data)
+        
         network_structure = Dict(
             "computation_time" => computation_time,
+            "uploaded_data_time" => uploaded_data_time,
             "total_nodes" => length(allnodes),
             "total_edges" => length(edgelist),
             "nodes" => allnodes,
@@ -852,7 +947,17 @@ function handle_network_structure(req::HTTP.Request)
             "ancestors" => Dict(string(k) => collect(v) for (k, v) in ancestors),
             "descendants" => Dict(string(k) => collect(v) for (k, v) in descendants),
             "outgoing_index" => Dict(string(k) => collect(v) for (k, v) in outgoing_index),
-            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index)
+            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index),
+            # NEW: Include uploaded data
+            "uploaded_data" => serialized_uploaded_data,
+            "uploaded_data_summary" => Dict(
+                "available_data_types" => collect(keys(serialized_uploaded_data)),
+                "data_types_count" => length(serialized_uploaded_data),
+                "has_node_priors" => any(haskey(get(type_data, "node_priors", Dict()), "1") for type_data in values(serialized_uploaded_data) if haskey(type_data, "node_priors")),
+                "has_edge_probabilities" => any(haskey(get(type_data, "edge_probabilities", Dict()), "1->2") for type_data in values(serialized_uploaded_data) if haskey(type_data, "edge_probabilities")),
+                "has_capacities" => any(haskey(type_data, "capacities") for type_data in values(serialized_uploaded_data)),
+                "has_cpm_data" => any(haskey(type_data, "cpm_data") for type_data in values(serialized_uploaded_data))
+            )
         )
         
         result = Dict(

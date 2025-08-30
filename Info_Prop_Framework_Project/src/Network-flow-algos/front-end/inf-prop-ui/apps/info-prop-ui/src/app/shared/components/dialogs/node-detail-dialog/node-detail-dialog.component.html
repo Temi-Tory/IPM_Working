@@ -1,0 +1,768 @@
+<div class="node-dialog-container" [class.mobile]="isMobile()" [class.tablet]="isTablet()">
+  <!-- Dialog Header -->
+  <div class="dialog-header" mat-dialog-title>
+    <div class="header-content">
+      <div class="title-section">
+        <mat-icon class="node-icon">account_tree</mat-icon>
+        <h2>{{ dialogTitle() }}</h2>
+        <div class="connectivity-summary">
+          <mat-icon>info</mat-icon>
+          <span>{{ connectivitySummary() }}</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button mat-icon-button 
+                matTooltip="Export node data" 
+                (click)="exportNodeData()"
+                [disabled]="isLoading()">
+          <mat-icon>download</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Minimize" 
+                (click)="onMinimize()"
+                [disabled]="isLoading()">
+          <mat-icon>minimize</mat-icon>
+        </button>
+        
+        <button mat-icon-button 
+                matTooltip="Close" 
+                (click)="onClose()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Classification Chips -->
+    <div class="classification-chips" *ngIf="!isLoading() && nodeData()">
+      <mat-chip-listbox>
+        <mat-chip-option 
+          *ngFor="let chip of classificationChips()" 
+          [color]="chip.color"
+          selected>
+          <mat-icon *ngIf="chip.icon" matChipAvatar>{{ chip.icon }}</mat-icon>
+          {{ chip.label }}
+        </mat-chip-option>
+      </mat-chip-listbox>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-container" mat-dialog-content>
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading node details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error() && !isLoading()" class="error-container" mat-dialog-content>
+    <mat-icon color="warn">error</mat-icon>
+    <p>{{ error() }}</p>
+    <button mat-button color="primary" (click)="loadNodeData()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading() && !error() && nodeData()" class="dialog-content" mat-dialog-content>
+    <mat-tab-group 
+      [selectedIndex]="selectedTabIndex()" 
+      (selectedIndexChange)="onTabChange($event)"
+      [class.vertical-tabs]="isMobile()">
+      
+      <!-- Basic Information Tab -->
+      <mat-tab label="Basic Info">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>info</mat-icon>
+                  Node Information
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="label">Node ID:</span>
+                    <span class="value">{{ nodeData()?.nodeId }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="label">Display Name:</span>
+                    <span class="value">{{ nodeData()?.displayName }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="label">Primary Type:</span>
+                    <span class="value type-badge" [class]="getTypeColor(nodeData()?.classification?.primaryType || '')">
+                      {{ nodeData()?.classification?.primaryType?.toUpperCase() }}
+                    </span>
+                  </div>
+                  
+                  <div class="info-item" *ngIf="nodeData()?.classification?.isMultiType">
+                    <span class="label">All Types:</span>
+                    <span class="value">{{ nodeData()?.classification?.allTypes?.join(', ') }}</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="label">Network Size:</span>
+                    <span class="value">{{ formatNumber(nodeData()?.metadata?.networkSize || 0) }} nodes</span>
+                  </div>
+                  
+                  <div class="info-item">
+                    <span class="label">Load Time:</span>
+                    <span class="value">{{ nodeData()?.metadata?.loadTime?.toFixed(2) }}ms</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Connectivity Tab -->
+      <mat-tab label="Connectivity">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <!-- Connectivity Overview -->
+            <mat-card class="connectivity-overview">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>device_hub</mat-icon>
+                  Connectivity Overview
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="connectivity-stats">
+                  <div class="stat-item">
+                    <mat-icon>input</mat-icon>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ nodeData()?.connectivity?.inDegree }}</span>
+                      <span class="stat-label">In-Degree</span>
+                    </div>
+                  </div>
+                  
+                  <div class="stat-item">
+                    <mat-icon>output</mat-icon>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ nodeData()?.connectivity?.outDegree }}</span>
+                      <span class="stat-label">Out-Degree</span>
+                    </div>
+                  </div>
+                  
+                  <div class="stat-item">
+                    <mat-icon>hub</mat-icon>
+                    <div class="stat-content">
+                      <span class="stat-value">{{ nodeData()?.connectivity?.totalDegree }}</span>
+                      <span class="stat-label">Total Degree</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Direct Connections -->
+            <div class="connections-section">
+              <!-- Direct Parents -->
+              <mat-expansion-panel 
+                [expanded]="isSectionExpanded('parents')"
+                (opened)="toggleSection('parents')"
+                (closed)="toggleSection('parents')">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>arrow_downward</mat-icon>
+                    Direct Parents
+                    <mat-chip [matBadge]="nodeData()?.connectivity?.directParents?.length || 0" matBadgeOverlap="false">
+                      {{ nodeData()?.connectivity?.directParents?.length || 0 }}
+                    </mat-chip>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                
+                <div class="connection-list">
+                  <mat-list *ngIf="nodeData()?.connectivity?.directParents?.length; else noParents">
+                    <mat-list-item
+                      *ngFor="let parentId of nodeData()?.connectivity?.directParents"
+                      class="connection-item"
+                      (click)="navigateToNode(parentId)">
+                      <mat-icon matListItemIcon>account_tree</mat-icon>
+                      <div matListItemTitle>Node {{ parentId }}</div>
+                      <button mat-icon-button matListItemMeta>
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    </mat-list-item>
+                  </mat-list>
+                  
+                  <ng-template #noParents>
+                    <div class="empty-state">
+                      <mat-icon>block</mat-icon>
+                      <p>No direct parents</p>
+                    </div>
+                  </ng-template>
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Direct Children -->
+              <mat-expansion-panel 
+                [expanded]="isSectionExpanded('children')"
+                (opened)="toggleSection('children')"
+                (closed)="toggleSection('children')">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>arrow_upward</mat-icon>
+                    Direct Children
+                    <mat-chip [matBadge]="nodeData()?.connectivity?.directChildren?.length || 0" matBadgeOverlap="false">
+                      {{ nodeData()?.connectivity?.directChildren?.length || 0 }}
+                    </mat-chip>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                
+                <div class="connection-list">
+                  <mat-list *ngIf="nodeData()?.connectivity?.directChildren?.length; else noChildren">
+                    <mat-list-item
+                      *ngFor="let childId of nodeData()?.connectivity?.directChildren"
+                      class="connection-item"
+                      (click)="navigateToNode(childId)">
+                      <mat-icon matListItemIcon>account_tree</mat-icon>
+                      <div matListItemTitle>Node {{ childId }}</div>
+                      <button mat-icon-button matListItemMeta>
+                        <mat-icon>arrow_forward</mat-icon>
+                      </button>
+                    </mat-list-item>
+                  </mat-list>
+                  
+                  <ng-template #noChildren>
+                    <div class="empty-state">
+                      <mat-icon>block</mat-icon>
+                      <p>No direct children</p>
+                    </div>
+                  </ng-template>
+                </div>
+              </mat-expansion-panel>
+            </div>
+
+            <!-- Ancestors and Descendants -->
+            <div class="extended-connections">
+              <!-- Ancestors -->
+              <mat-expansion-panel 
+                [expanded]="isSectionExpanded('ancestors')"
+                (opened)="toggleSection('ancestors')"
+                (closed)="toggleSection('ancestors')">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>trending_down</mat-icon>
+                    All Ancestors
+                    <mat-chip [matBadge]="nodeData()?.connectivity?.ancestorCount || 0" matBadgeOverlap="false">
+                      {{ formatNumber(nodeData()?.connectivity?.ancestorCount || 0) }}
+                    </mat-chip>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                
+                <div class="ancestor-list">
+                  <!-- Virtual Scrolling for large lists -->
+                  <cdk-virtual-scroll-viewport
+                    *ngIf="shouldUseVirtualScrolling() && nodeData()?.connectivity?.ancestorCount; else regularAncestorList"
+                    #ancestorsViewport
+                    [itemSize]="virtualScrollConfig.itemSize"
+                    class="virtual-scroll-viewport"
+                    (scrolledIndexChange)="onAncestorsScrolled($event)">
+                    
+                    <div 
+                      *cdkVirtualFor="let ancestor of ancestorsItems()" 
+                      class="virtual-scroll-item connection-item"
+                      (click)="navigateToNode(ancestor.id)">
+                      <mat-icon>account_tree</mat-icon>
+                      <span>{{ ancestor.displayText }}</span>
+                      <mat-icon class="navigate-icon">arrow_forward</mat-icon>
+                    </div>
+                  </cdk-virtual-scroll-viewport>
+                  
+                  <!-- Regular list for smaller datasets -->
+                  <ng-template #regularAncestorList>
+                    <mat-list *ngIf="nodeData()?.connectivity?.ancestors?.length; else noAncestors">
+                      <mat-list-item
+                        *ngFor="let ancestorId of nodeData()?.connectivity?.ancestors"
+                        class="connection-item"
+                        (click)="navigateToNode(ancestorId)">
+                        <mat-icon matListItemIcon>account_tree</mat-icon>
+                        <div matListItemTitle>Node {{ ancestorId }}</div>
+                        <button mat-icon-button matListItemMeta>
+                          <mat-icon>arrow_forward</mat-icon>
+                        </button>
+                      </mat-list-item>
+                    </mat-list>
+                    
+                    <ng-template #noAncestors>
+                      <div class="empty-state">
+                        <mat-icon>block</mat-icon>
+                        <p>No ancestors</p>
+                      </div>
+                    </ng-template>
+                  </ng-template>
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Descendants -->
+              <mat-expansion-panel 
+                [expanded]="isSectionExpanded('descendants')"
+                (opened)="toggleSection('descendants')"
+                (closed)="toggleSection('descendants')">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>trending_up</mat-icon>
+                    All Descendants
+                    <mat-chip [matBadge]="nodeData()?.connectivity?.descendantCount || 0" matBadgeOverlap="false">
+                      {{ formatNumber(nodeData()?.connectivity?.descendantCount || 0) }}
+                    </mat-chip>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                
+                <div class="descendant-list">
+                  <!-- Virtual Scrolling for large lists -->
+                  <cdk-virtual-scroll-viewport
+                    *ngIf="shouldUseVirtualScrolling() && nodeData()?.connectivity?.descendantCount; else regularDescendantList"
+                    #descendantsViewport
+                    [itemSize]="virtualScrollConfig.itemSize"
+                    class="virtual-scroll-viewport"
+                    (scrolledIndexChange)="onDescendantsScrolled($event)">
+                    
+                    <div 
+                      *cdkVirtualFor="let descendant of descendantsItems()" 
+                      class="virtual-scroll-item connection-item"
+                      (click)="navigateToNode(descendant.id)">
+                      <mat-icon>account_tree</mat-icon>
+                      <span>{{ descendant.displayText }}</span>
+                      <mat-icon class="navigate-icon">arrow_forward</mat-icon>
+                    </div>
+                  </cdk-virtual-scroll-viewport>
+                  
+                  <!-- Regular list for smaller datasets -->
+                  <ng-template #regularDescendantList>
+                    <mat-list *ngIf="nodeData()?.connectivity?.descendants?.length; else noDescendants">
+                      <mat-list-item
+                        *ngFor="let descendantId of nodeData()?.connectivity?.descendants"
+                        class="connection-item"
+                        (click)="navigateToNode(descendantId)">
+                        <mat-icon matListItemIcon>account_tree</mat-icon>
+                        <div matListItemTitle>Node {{ descendantId }}</div>
+                        <button mat-icon-button matListItemMeta>
+                          <mat-icon>arrow_forward</mat-icon>
+                        </button>
+                      </mat-list-item>
+                    </mat-list>
+                    
+                    <ng-template #noDescendants>
+                      <div class="empty-state">
+                        <mat-icon>block</mat-icon>
+                        <p>No descendants</p>
+                      </div>
+                    </ng-template>
+                  </ng-template>
+                </div>
+              </mat-expansion-panel>
+            </div>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Topology Tab -->
+      <mat-tab label="Topology">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="topology-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>timeline</mat-icon>
+                  Topological Analysis
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="topology-info">
+                  <div class="topology-item">
+                    <span class="label">Topological Level:</span>
+                    <span class="value">{{ nodeData()?.topology?.topologicalLevel }}</span>
+                  </div>
+                  
+                  <div class="topology-item">
+                    <span class="label">Iteration Sets:</span>
+                    <div class="iteration-sets">
+                      <mat-chip-listbox>
+                        <mat-chip-option
+                          *ngFor="let setId of nodeData()?.topology?.iterationSets"
+                          color="primary">
+                          Set {{ setId }}
+                        </mat-chip-option>
+                      </mat-chip-listbox>
+                    </div>
+                  </div>
+                </div>
+                
+                <mat-divider></mat-divider>
+                
+                <div class="topology-scores">
+                  <h4>Structural Scores</h4>
+                  
+                  <div class="score-item">
+                    <span class="score-label">Bottleneck Score:</span>
+                    <div class="score-bar">
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="(nodeData()?.topology?.bottleneckScore || 0) * 100"
+                        [color]="getScoreColor(nodeData()?.topology?.bottleneckScore || 0)">
+                      </mat-progress-bar>
+                      <span class="score-value">{{ formatScore(nodeData()?.topology?.bottleneckScore || 0) }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="score-item">
+                    <span class="score-label">Hub Score:</span>
+                    <div class="score-bar">
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="(nodeData()?.topology?.hubScore || 0) * 100"
+                        [color]="getScoreColor(nodeData()?.topology?.hubScore || 0)">
+                      </mat-progress-bar>
+                      <span class="score-value">{{ formatScore(nodeData()?.topology?.hubScore || 0) }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="score-item">
+                    <span class="score-label">Bridge Score:</span>
+                    <div class="score-bar">
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="(nodeData()?.topology?.bridgeScore || 0) * 100"
+                        [color]="getScoreColor(nodeData()?.topology?.bridgeScore || 0)">
+                      </mat-progress-bar>
+                      <span class="score-value">{{ formatScore(nodeData()?.topology?.bridgeScore || 0) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Classifications Tab -->
+      <mat-tab label="Classifications">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="classifications-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>category</mat-icon>
+                  Node Classifications
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="classification-grid">
+                  <div class="classification-item" 
+                       [class.active]="nodeData()?.classification?.specialClassifications?.isHub">
+                    <mat-icon [color]="nodeData()?.classification?.specialClassifications?.isHub ? 'accent' : ''">
+                      hub
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Hub Node</h4>
+                      <p>High connectivity node that serves as a central connection point</p>
+                    </div>
+                    <mat-icon class="status-icon" 
+                             [color]="nodeData()?.classification?.specialClassifications?.isHub ? 'accent' : ''">
+                      {{ nodeData()?.classification?.specialClassifications?.isHub ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                  
+                  <div class="classification-item" 
+                       [class.active]="nodeData()?.classification?.specialClassifications?.isBridge">
+                    <mat-icon [color]="nodeData()?.classification?.specialClassifications?.isBridge ? 'warn' : ''">
+                      compare_arrows
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Bridge Node</h4>
+                      <p>Critical connection point with exactly one input and one output</p>
+                    </div>
+                    <mat-icon class="status-icon" 
+                             [color]="nodeData()?.classification?.specialClassifications?.isBridge ? 'warn' : ''">
+                      {{ nodeData()?.classification?.specialClassifications?.isBridge ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                  
+                  <div class="classification-item" 
+                       [class.active]="nodeData()?.classification?.specialClassifications?.isBottleneck">
+                    <mat-icon [color]="nodeData()?.classification?.specialClassifications?.isBottleneck ? 'warn' : ''">
+                      warning
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Bottleneck Node</h4>
+                      <p>Potential flow restriction point with imbalanced in/out degrees</p>
+                    </div>
+                    <mat-icon class="status-icon" 
+                             [color]="nodeData()?.classification?.specialClassifications?.isBottleneck ? 'warn' : ''">
+                      {{ nodeData()?.classification?.specialClassifications?.isBottleneck ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                  
+                  <div class="classification-item" 
+                       [class.active]="nodeData()?.classification?.specialClassifications?.isCriticalPath">
+                    <mat-icon [color]="nodeData()?.classification?.specialClassifications?.isCriticalPath ? 'warn' : ''">
+                      priority_high
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Critical Path Node</h4>
+                      <p>Node on the critical path for network flow or timing</p>
+                    </div>
+                    <mat-icon class="status-icon" 
+                             [color]="nodeData()?.classification?.specialClassifications?.isCriticalPath ? 'warn' : ''">
+                      {{ nodeData()?.classification?.specialClassifications?.isCriticalPath ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                  
+                  <div class="classification-item" 
+                       [class.active]="nodeData()?.classification?.specialClassifications?.isOrphan">
+                    <mat-icon [color]="nodeData()?.classification?.specialClassifications?.isOrphan ? 'basic' : ''">
+                      block
+                    </mat-icon>
+                    <div class="classification-content">
+                      <h4>Orphan Node</h4>
+                      <p>Isolated node with no connections to other nodes</p>
+                    </div>
+                    <mat-icon class="status-icon" 
+                             [color]="nodeData()?.classification?.specialClassifications?.isOrphan ? 'basic' : ''">
+                      {{ nodeData()?.classification?.specialClassifications?.isOrphan ? 'check_circle' : 'radio_button_unchecked' }}
+                    </mat-icon>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Raw Data Tab -->
+      <mat-tab label="Raw Data" *ngIf="nodeData()?.rawData?.hasNodePriors || nodeData()?.rawData?.hasCapacityData || nodeData()?.rawData?.hasCpmData || nodeData()?.rawData?.uploadedNodeData">
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <mat-card class="raw-data-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>data_object</mat-icon>
+                  Raw Data
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <!-- Uploaded Node Data -->
+                <div *ngIf="nodeData()?.rawData?.uploadedNodeData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>cloud_upload</mat-icon>
+                    Uploaded Node Data
+                  </h4>
+                  
+                  <!-- Float Data -->
+                  <div *ngIf="nodeData()?.rawData?.uploadedNodeData?.float !== undefined" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>decimal_increase</mat-icon>
+                          Float Value
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ nodeData()?.rawData?.uploadedNodeData?.float }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Value:</span>
+                          <span class="value number">{{ nodeData()?.rawData?.uploadedNodeData?.float }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Float (Precise probability)</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- Interval Data -->
+                  <div *ngIf="nodeData()?.rawData?.uploadedNodeData?.interval" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>linear_scale</mat-icon>
+                          Interval Value
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          [{{ nodeData()?.rawData?.uploadedNodeData?.interval?.lower }}, {{ nodeData()?.rawData?.uploadedNodeData?.interval?.upper }}]
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Lower Bound:</span>
+                          <span class="value number">{{ nodeData()?.rawData?.uploadedNodeData?.interval?.lower }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Upper Bound:</span>
+                          <span class="value number">{{ nodeData()?.rawData?.uploadedNodeData?.interval?.upper }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Interval (Imprecise probability)</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- P-Box Data -->
+                  <div *ngIf="nodeData()?.rawData?.uploadedNodeData?.pbox" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>analytics</mat-icon>
+                          P-Box Value
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ nodeData()?.rawData?.uploadedNodeData?.pbox?.name || 'P-Box Distribution' }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item" *ngIf="nodeData()?.rawData?.uploadedNodeData?.pbox?.name">
+                          <span class="label">Name:</span>
+                          <span class="value">{{ nodeData()?.rawData?.uploadedNodeData?.pbox?.name }}</span>
+                        </div>
+                        <div class="data-item" *ngIf="nodeData()?.rawData?.uploadedNodeData?.pbox?.shape">
+                          <span class="label">Shape:</span>
+                          <span class="value">{{ nodeData()?.rawData?.uploadedNodeData?.pbox?.shape }}</span>
+                        </div>
+                        <div class="data-item" *ngIf="nodeData()?.rawData?.uploadedNodeData?.pbox?.mean_lower !== undefined">
+                          <span class="label">Mean Range:</span>
+                          <span class="value number">[{{ nodeData()?.rawData?.uploadedNodeData?.pbox?.mean_lower }}, {{ nodeData()?.rawData?.uploadedNodeData?.pbox?.mean_upper }}]</span>
+                        </div>
+                        <div class="data-item" *ngIf="nodeData()?.rawData?.uploadedNodeData?.pbox?.var_lower !== undefined">
+                          <span class="label">Variance Range:</span>
+                          <span class="value number">[{{ nodeData()?.rawData?.uploadedNodeData?.pbox?.var_lower }}, {{ nodeData()?.rawData?.uploadedNodeData?.pbox?.var_upper }}]</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">P-Box (Probability box)</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Full Data:</span>
+                          <pre class="json-display">{{ nodeData()?.rawData?.uploadedNodeData?.pbox | json }}</pre>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- Capacity Data -->
+                  <div *ngIf="nodeData()?.rawData?.uploadedNodeData?.capacity !== undefined" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>speed</mat-icon>
+                          Capacity Value
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          {{ nodeData()?.rawData?.uploadedNodeData?.capacity }}
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Capacity:</span>
+                          <span class="value number">{{ nodeData()?.rawData?.uploadedNodeData?.capacity }}</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Node Capacity</span>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                  
+                  <!-- CPM Data -->
+                  <div *ngIf="nodeData()?.rawData?.uploadedNodeData?.cpm" class="data-type-section">
+                    <mat-expansion-panel>
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>schedule</mat-icon>
+                          CPM Data
+                        </mat-panel-title>
+                        <mat-panel-description>
+                          Critical Path Method Analysis
+                        </mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="data-display">
+                        <div class="data-item">
+                          <span class="label">Type:</span>
+                          <span class="value">Critical Path Method</span>
+                        </div>
+                        <div class="data-item">
+                          <span class="label">Full Data:</span>
+                          <pre class="json-display">{{ nodeData()?.rawData?.uploadedNodeData?.cpm | json }}</pre>
+                        </div>
+                      </div>
+                    </mat-expansion-panel>
+                  </div>
+                </div>
+                
+                <mat-divider *ngIf="nodeData()?.rawData?.uploadedNodeData && (nodeData()?.rawData?.hasNodePriors || nodeData()?.rawData?.hasCapacityData || nodeData()?.rawData?.hasCpmData)"></mat-divider>
+                
+                <!-- Legacy Node Priors -->
+                <div *ngIf="nodeData()?.rawData?.hasNodePriors" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy Node Priors
+                  </h4>
+                  <pre class="json-display">{{ nodeData()?.rawData?.nodePriors | json }}</pre>
+                </div>
+                
+                <!-- Legacy Capacity Data -->
+                <div *ngIf="nodeData()?.rawData?.hasCapacityData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy Capacity Data
+                  </h4>
+                  <div class="capacity-info">
+                    <span class="label">Capacity:</span>
+                    <span class="value">{{ nodeData()?.rawData?.capacity }}</span>
+                  </div>
+                </div>
+                
+                <!-- Legacy CPM Data -->
+                <div *ngIf="nodeData()?.rawData?.hasCpmData" class="raw-data-section">
+                  <h4>
+                    <mat-icon>storage</mat-icon>
+                    Legacy CPM Data
+                  </h4>
+                  <div class="cpm-info">
+                    <div class="cpm-item">
+                      <span class="label">Duration:</span>
+                      <span class="value">{{ nodeData()?.rawData?.duration }}</span>
+                    </div>
+                    <div class="cpm-item">
+                      <span class="label">Cost:</span>
+                      <span class="value">{{ nodeData()?.rawData?.cost }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Additional Metrics -->
+                <div *ngIf="nodeData()?.rawData?.additionalMetrics" class="raw-data-section">
+                  <h4>
+                    <mat-icon>insights</mat-icon>
+                    Additional Metrics
+                  </h4>
+                  <pre class="json-display">{{ nodeData()?.rawData?.additionalMetrics | json }}</pre>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
