@@ -85,6 +85,38 @@ export class NetworkDialogService {
       isNodeIdValid: nodeId !== null && nodeId !== undefined && !isNaN(nodeId)
     });
 
+    // Critical validation and conversion of nodeId
+    if (nodeId === null || nodeId === undefined) {
+      console.error('🚨 [NetworkDialogService] CRITICAL ERROR: nodeId is null or undefined:', nodeId);
+      return null;
+    }
+
+    // Convert nodeId to number if it's not already
+    let validNodeId: number;
+    if (typeof nodeId === 'number') {
+      validNodeId = nodeId;
+    } else if (typeof nodeId === 'string') {
+      validNodeId = parseInt(nodeId, 10);
+    } else if (typeof nodeId === 'object' && nodeId !== null) {
+      console.error('🚨 [NetworkDialogService] CRITICAL ERROR: nodeId is an object:', {
+        nodeId: nodeId,
+        nodeIdType: typeof nodeId,
+        nodeIdConstructor: (nodeId as any).constructor?.name,
+        nodeIdKeys: Object.keys(nodeId as any)
+      });
+      return null;
+    } else {
+      validNodeId = parseInt(String(nodeId), 10);
+    }
+
+    if (isNaN(validNodeId)) {
+      console.error('🚨 [NetworkDialogService] CRITICAL ERROR: Could not convert nodeId to valid number:', {
+        originalNodeId: nodeId,
+        convertedNodeId: validNodeId
+      });
+      return null;
+    }
+
     const networkData = this.currentNetworkData();
     console.log('🔍 [NetworkDialogService] Current network data:', {
       hasNetworkData: !!networkData,
@@ -93,7 +125,7 @@ export class NetworkDialogService {
 
     if (!networkData) return null;
 
-    const cacheKey = `node_${nodeId}_${this.networkHash()}`;
+    const cacheKey = `node_${validNodeId}_${this.networkHash()}`;
     
     // Check cache first
     const cached = this.nodeCache.get(cacheKey);
@@ -107,8 +139,8 @@ export class NetworkDialogService {
     try {
       // Build node dialog data
       console.log('🔍 [NetworkDialogService] About to call buildNodeConnectivity with:', {
-        nodeId: nodeId,
-        nodeIdType: typeof nodeId,
+        nodeId: validNodeId,
+        nodeIdType: typeof validNodeId,
         networkDataStructure: {
           hasAncestors: !!networkData.ancestors,
           hasDescendants: !!networkData.descendants,
@@ -117,14 +149,14 @@ export class NetworkDialogService {
         }
       });
 
-      const connectivity = await this.buildNodeConnectivity(nodeId, networkData);
-      const topology = this.buildNodeTopology(nodeId, networkData);
-      const classification = this.buildNodeClassification(nodeId, networkData);
-      const rawData = await this.buildNodeRawData(nodeId, networkData);
+      const connectivity = await this.buildNodeConnectivity(validNodeId, networkData);
+      const topology = this.buildNodeTopology(validNodeId, networkData);
+      const classification = this.buildNodeClassification(validNodeId, networkData);
+      const rawData = await this.buildNodeRawData(validNodeId, networkData);
       
       const dialogData: NodeDialogData = {
-        nodeId,
-        displayName: `Node ${nodeId}`,
+        nodeId: validNodeId,
+        displayName: `Node ${validNodeId}`,
         connectivity,
         topology,
         classification,
@@ -143,8 +175,8 @@ export class NetworkDialogService {
     } catch (error) {
       console.error('🚨 [NetworkDialogService] Error building node dialog data:', {
         error: error,
-        nodeId: nodeId,
-        nodeIdType: typeof nodeId,
+        nodeId: validNodeId,
+        nodeIdType: typeof validNodeId,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
         errorStack: error instanceof Error ? error.stack : 'No stack trace'
       });
@@ -833,36 +865,90 @@ export class NetworkDialogService {
   }
 
   /**
-   * Calculate maximum depth from sources to a node
+   * Calculate maximum depth from sources to a node with cycle detection
    */
-  private calculateMaxDepthFromSources(nodeId: number, networkData: NetworkStructure): number {
-    if (networkData.source_nodes.includes(nodeId)) return 0;
+  private calculateMaxDepthFromSources(nodeId: number, networkData: NetworkStructure, visited: Set<number> = new Set()): number {
+    // Validate nodeId parameter
+    if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
+      console.error('🚨 [NetworkDialogService] Invalid nodeId in calculateMaxDepthFromSources:', nodeId);
+      return 0;
+    }
+
+    // Convert to number if it's somehow not a number
+    const validNodeId = typeof nodeId === 'number' ? nodeId : parseInt(String(nodeId), 10);
+    if (isNaN(validNodeId)) {
+      console.error('🚨 [NetworkDialogService] Could not convert nodeId to number:', nodeId);
+      return 0;
+    }
+
+    // Check for cycles
+    if (visited.has(validNodeId)) {
+      console.warn('🔄 [NetworkDialogService] Cycle detected in calculateMaxDepthFromSources for node:', validNodeId);
+      return 0;
+    }
+
+    if (networkData.source_nodes.includes(validNodeId)) return 0;
     
-    const ancestors = networkData.ancestors[nodeId.toString()] || [];
+    const ancestors = networkData.ancestors[validNodeId.toString()] || [];
     if (ancestors.length === 0) return 0;
+    
+    // Add current node to visited set
+    const newVisited = new Set(visited);
+    newVisited.add(validNodeId);
     
     let maxDepth = 0;
     ancestors.forEach(ancestorId => {
-      const depth = this.calculateMaxDepthFromSources(ancestorId, networkData) + 1;
-      maxDepth = Math.max(maxDepth, depth);
+      // Validate ancestorId
+      const validAncestorId = typeof ancestorId === 'number' ? ancestorId : parseInt(String(ancestorId), 10);
+      if (!isNaN(validAncestorId)) {
+        const depth = this.calculateMaxDepthFromSources(validAncestorId, networkData, newVisited) + 1;
+        maxDepth = Math.max(maxDepth, depth);
+      }
     });
     
     return maxDepth;
   }
 
   /**
-   * Calculate maximum depth from a node to sinks
+   * Calculate maximum depth from a node to sinks with cycle detection
    */
-  private calculateMaxDepthToSinks(nodeId: number, networkData: NetworkStructure): number {
-    if (networkData.sink_nodes.includes(nodeId)) return 0;
+  private calculateMaxDepthToSinks(nodeId: number, networkData: NetworkStructure, visited: Set<number> = new Set()): number {
+    // Validate nodeId parameter
+    if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
+      console.error('🚨 [NetworkDialogService] Invalid nodeId in calculateMaxDepthToSinks:', nodeId);
+      return 0;
+    }
+
+    // Convert to number if it's somehow not a number
+    const validNodeId = typeof nodeId === 'number' ? nodeId : parseInt(String(nodeId), 10);
+    if (isNaN(validNodeId)) {
+      console.error('🚨 [NetworkDialogService] Could not convert nodeId to number:', nodeId);
+      return 0;
+    }
+
+    // Check for cycles
+    if (visited.has(validNodeId)) {
+      console.warn('🔄 [NetworkDialogService] Cycle detected in calculateMaxDepthToSinks for node:', validNodeId);
+      return 0;
+    }
+
+    if (networkData.sink_nodes.includes(validNodeId)) return 0;
     
-    const descendants = networkData.descendants[nodeId.toString()] || [];
+    const descendants = networkData.descendants[validNodeId.toString()] || [];
     if (descendants.length === 0) return 0;
+    
+    // Add current node to visited set
+    const newVisited = new Set(visited);
+    newVisited.add(validNodeId);
     
     let maxDepth = 0;
     descendants.forEach(descendantId => {
-      const depth = this.calculateMaxDepthToSinks(descendantId, networkData) + 1;
-      maxDepth = Math.max(maxDepth, depth);
+      // Validate descendantId
+      const validDescendantId = typeof descendantId === 'number' ? descendantId : parseInt(String(descendantId), 10);
+      if (!isNaN(validDescendantId)) {
+        const depth = this.calculateMaxDepthToSinks(validDescendantId, networkData, newVisited) + 1;
+        maxDepth = Math.max(maxDepth, depth);
+      }
     });
     
     return maxDepth;

@@ -65,11 +65,73 @@ export class NetworkStructureComponent implements OnInit {
     effect(() => {
       const data = this.networkData();
       if (data) {
+        // Ensure uploaded data summary is populated
+        this.ensureUploadedDataSummary(data);
         this.networkDialogService.setNetworkData(data);
         // Clear computation cache when network data changes
         this.clearComputationCache();
       }
     });
+  }
+
+  /**
+   * Ensure uploaded data summary is populated for display
+   */
+  private ensureUploadedDataSummary(data: NetworkStructure): void {
+    if (!data.uploaded_data_summary && data.uploaded_data) {
+      console.log('🔧 [NetworkStructureComponent] Generating missing uploaded_data_summary');
+      
+      const availableTypes: string[] = [];
+      let hasNodePriors = false;
+      let hasEdgeProbabilities = false;
+      let hasCapacities = false;
+      let hasCmpData = false;
+
+      // Check float data
+      if (data.uploaded_data.float) {
+        availableTypes.push('Float');
+        if (data.uploaded_data.float.node_priors) hasNodePriors = true;
+        if (data.uploaded_data.float.edge_probabilities) hasEdgeProbabilities = true;
+      }
+
+      // Check interval data
+      if (data.uploaded_data.interval) {
+        availableTypes.push('Interval');
+        if (data.uploaded_data.interval.node_priors) hasNodePriors = true;
+        if (data.uploaded_data.interval.edge_probabilities) hasEdgeProbabilities = true;
+      }
+
+      // Check pbox data
+      if (data.uploaded_data.pbox) {
+        availableTypes.push('P-Box');
+        if (data.uploaded_data.pbox.node_priors) hasNodePriors = true;
+        if (data.uploaded_data.pbox.edge_probabilities) hasEdgeProbabilities = true;
+      }
+
+      // Check capacity data
+      if (data.uploaded_data.capacity) {
+        availableTypes.push('Capacity');
+        hasCapacities = true;
+      }
+
+      // Check CPM data
+      if (data.uploaded_data.cpm) {
+        availableTypes.push('CPM');
+        hasCmpData = true;
+      }
+
+      // Create the summary
+      data.uploaded_data_summary = {
+        available_data_types: availableTypes,
+        data_types_count: availableTypes.length,
+        has_node_priors: hasNodePriors,
+        has_edge_probabilities: hasEdgeProbabilities,
+        has_capacities: hasCapacities,
+        has_cmp_data: hasCmpData
+      };
+
+      console.log('✅ [NetworkStructureComponent] Generated uploaded_data_summary:', data.uploaded_data_summary);
+    }
   }
 
   // Computed signals to prevent expression changed errors
@@ -1327,24 +1389,66 @@ export class NetworkStructureComponent implements OnInit {
 
   // Dialog methods
   openNodeDialog(nodeId: number): void {
-    const nodeData = this.networkDialogService.getNodeDialogData(nodeId);
-    if (nodeData) {
-      this.dialog.open(NodeDetailDialogComponent, {
-        data: nodeData,
-        width: '800px',
-        maxHeight: '90vh'
-      });
+    console.log('🔍 [NetworkStructureComponent] openNodeDialog called with:', {
+      nodeId: nodeId,
+      nodeIdType: typeof nodeId
+    });
+
+    // Validate nodeId before passing to dialog
+    if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
+      console.error('🚨 [NetworkStructureComponent] Invalid nodeId passed to openNodeDialog:', nodeId);
+      return;
     }
+
+    // Convert to number if needed
+    const validNodeId = typeof nodeId === 'number' ? nodeId : parseInt(String(nodeId), 10);
+    if (isNaN(validNodeId)) {
+      console.error('🚨 [NetworkStructureComponent] Could not convert nodeId to number:', nodeId);
+      return;
+    }
+
+    this.dialog.open(NodeDetailDialogComponent, {
+      data: {
+        nodeId: validNodeId,
+        networkName: 'Current Network'
+      },
+      width: '800px',
+      maxHeight: '90vh'
+    });
   }
 
   openEdgeDialog(source: number, target: number): void {
-    const edgeData = this.networkDialogService.getEdgeDialogData(source, target);
-    if (edgeData) {
-      this.dialog.open(EdgeDetailDialogComponent, {
-        data: edgeData,
-        width: '700px',
-        maxHeight: '90vh'
-      });
+    console.log('🔍 [NetworkStructureComponent] openEdgeDialog called with:', {
+      source: source,
+      target: target,
+      sourceType: typeof source,
+      targetType: typeof target
+    });
+
+    // Validate source and target before passing to dialog
+    if (source === null || source === undefined || isNaN(source) ||
+        target === null || target === undefined || isNaN(target)) {
+      console.error('🚨 [NetworkStructureComponent] Invalid source or target passed to openEdgeDialog:', { source, target });
+      return;
     }
+
+    // Convert to numbers if needed
+    const validSource = typeof source === 'number' ? source : parseInt(String(source), 10);
+    const validTarget = typeof target === 'number' ? target : parseInt(String(target), 10);
+    
+    if (isNaN(validSource) || isNaN(validTarget)) {
+      console.error('🚨 [NetworkStructureComponent] Could not convert source/target to numbers:', { source, target });
+      return;
+    }
+
+    this.dialog.open(EdgeDetailDialogComponent, {
+      data: {
+        sourceId: validSource,
+        targetId: validTarget,
+        networkName: 'Current Network'
+      },
+      width: '700px',
+      maxHeight: '90vh'
+    });
   }
 }
