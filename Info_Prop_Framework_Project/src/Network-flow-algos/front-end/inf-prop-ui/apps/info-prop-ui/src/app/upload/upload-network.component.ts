@@ -289,21 +289,19 @@ export class UploadNetworkComponent implements OnInit {
     const session = this.sessionService.createNewSession(request.networkPath);
     this.analysisState.setCurrentNetworkPath(request.networkPath);
 
-    this.analysisState.runAnalysis(request).subscribe({
-      next: (response) => {
-        console.log('Analysis response received:', response);
-        console.log('Response.results:', response.results);
-        console.log('Available keys in response.results:', Object.keys(response.results || {}));
+    // Load network structure immediately and navigate
+    this.analysisState.loadNetworkStructure(request.networkPath).subscribe({
+      next: () => {
+        console.log('Network structure loaded successfully');
         
         this.isAnalyzing = false;
         this.analysisState.markTabCompleted('upload');
         
         this.sessionService.updateSession({
-          analysisResults: response,
-          networkData: response.results?.network_structure
+          networkData: this.analysisState.networkData()
         });
         
-        this.snackBar.open('Analysis completed successfully!', 'Close', { duration: 3000 });
+        this.snackBar.open('Network structure loaded successfully!', 'Close', { duration: 3000 });
         this.router.navigate(['/structure']);
       },
       error: (error) => {

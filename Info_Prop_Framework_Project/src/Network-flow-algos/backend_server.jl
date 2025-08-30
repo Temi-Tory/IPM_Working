@@ -792,6 +792,592 @@ function determine_file_location(network_path::String, filename::String, network
     end
 end
 
+# Individual Analysis Endpoint Handlers
+
+function handle_network_structure(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        
+        if isempty(network_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path required"
+            )))
+        end
+        
+        # Validate network structure
+        is_valid, message = validate_network_structure(network_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network structure: $message"
+            )))
+        end
+        
+        network_name = basename(network_path)
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        # Network Structure Analysis Only
+        start_time = time()
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        allnodes = collect(keys(incoming_index))
+        sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
+        
+        # Identify network structure
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        computation_time = time() - start_time
+        
+        network_structure = Dict(
+            "computation_time" => computation_time,
+            "total_nodes" => length(allnodes),
+            "total_edges" => length(edgelist),
+            "nodes" => allnodes,
+            "edges" => [(e[1], e[2]) for e in edgelist],
+            "source_nodes" => collect(source_nodes),
+            "sink_nodes" => collect(sink_nodes),
+            "fork_nodes" => collect(fork_nodes),
+            "join_nodes" => collect(join_nodes),
+            "iteration_sets" => [collect(s) for s in iteration_sets],
+            "iteration_sets_count" => length(iteration_sets),
+            "ancestors" => Dict(string(k) => collect(v) for (k, v) in ancestors),
+            "descendants" => Dict(string(k) => collect(v) for (k, v) in descendants),
+            "outgoing_index" => Dict(string(k) => collect(v) for (k, v) in outgoing_index),
+            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index)
+        )
+        
+        result = Dict(
+            "success" => true,
+            "message" => "Network structure analysis completed",
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "network_structure" => network_structure
+        )
+        
+        return HTTP.Response(200, cors_headers, JSON.json(result))
+        
+    catch e
+        println("Network structure analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Network structure analysis failed"
+        )))
+    end
+end
+
+function handle_diamond_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        use_default_priors = get(request_data, "useDefaultPriors", true)
+        
+        if isempty(network_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path required"
+            )))
+        end
+        
+        # Get network structure first
+        network_name = basename(network_path)
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        allnodes = collect(keys(incoming_index))
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Diamond Analysis
+        start_time = time()
+        
+        # Create default node priors or use provided ones
+        node_priors = if use_default_priors
+            create_default_node_priors(allnodes)
+        else
+            # TODO: Load from provided file path
+            create_default_node_priors(allnodes)
+        end
+        
+        # Root diamonds
+        root_diamonds = identify_and_group_diamonds(
+            join_nodes, incoming_index, ancestors, descendants,
+            source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+        )
+        root_computation_time = time() - start_time
+        
+        # Unique diamonds
+        unique_start_time = time()
+        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+            root_diamonds, node_priors, ancestors, descendants, iteration_sets
+        )
+        unique_computation_time = time() - unique_start_time
+        
+        diamond_analysis = Dict(
+            "root_diamonds_count" => length(root_diamonds),
+            "unique_diamonds_count" => length(unique_diamonds),
+            "join_nodes_with_diamonds" => collect(keys(root_diamonds)),
+            "root_computation_time" => root_computation_time,
+            "unique_computation_time" => unique_computation_time,
+            "total_computation_time" => root_computation_time + unique_computation_time,
+            "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
+            "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
+            "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
+        )
+        
+        result = Dict(
+            "success" => true,
+            "message" => "Diamond analysis completed",
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "diamond_analysis" => diamond_analysis
+        )
+        
+        return HTTP.Response(200, cors_headers, JSON.json(result))
+        
+    catch e
+        println("Diamond analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Diamond analysis failed"
+        )))
+    end
+end
+
+function handle_reachability_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        nodepriors_path = get(request_data, "nodepriorsPath", "")
+        linkprobs_path = get(request_data, "linkprobsPath", "")
+        include_exact_inference = get(request_data, "includeExactInference", true)
+        include_diamond_analysis = get(request_data, "includeDiamondAnalysis", false)
+        
+        if isempty(network_path) || isempty(nodepriors_path) || isempty(linkprobs_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path, nodepriors path, and linkprobs path required"
+            )))
+        end
+        
+        # Get network structure
+        network_name = basename(network_path)
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        allnodes = collect(keys(incoming_index))
+        sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Load scenario data
+        full_nodepriors_path = joinpath(network_path, nodepriors_path)
+        full_linkprobs_path = joinpath(network_path, linkprobs_path)
+        
+        if !isfile(full_nodepriors_path) || !isfile(full_linkprobs_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Input files not found"
+            )))
+        end
+        
+        node_priors = read_node_priors_from_json(full_nodepriors_path)
+        edge_probabilities = read_edge_probabilities_from_json(full_linkprobs_path)
+        
+        scenario_start_time = time()
+        result_data = Dict()
+        
+        # Diamond Analysis (if requested)
+        if include_diamond_analysis
+            diamond_start_time = time()
+            root_diamonds = identify_and_group_diamonds(
+                join_nodes, incoming_index, ancestors, descendants,
+                source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+            )
+            
+            unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+                root_diamonds, node_priors, ancestors, descendants, iteration_sets
+            )
+            diamond_computation_time = time() - diamond_start_time
+            
+            result_data["diamond_analysis"] = Dict(
+                "root_diamonds_count" => length(root_diamonds),
+                "unique_diamonds_count" => length(unique_diamonds),
+                "join_nodes_with_diamonds" => collect(keys(root_diamonds)),
+                "computation_time" => diamond_computation_time,
+                "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
+                "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
+            )
+        end
+        
+        # Exact Inference (if requested)
+        if include_exact_inference
+            inference_start_time = time()
+            
+            # Get diamonds if not already computed
+            if !haskey(result_data, "diamond_analysis")
+                root_diamonds = identify_and_group_diamonds(
+                    join_nodes, incoming_index, ancestors, descendants,
+                    source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+                )
+                unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+                    root_diamonds, node_priors, ancestors, descendants, iteration_sets
+                )
+            else
+                # TODO: Extract from previous computation
+                root_diamonds = Dict()  # Would need to deserialize
+                unique_diamonds = Dict()  # Would need to deserialize
+            end
+            
+            output = IPAFramework.update_beliefs_iterative(
+                edgelist, iteration_sets, outgoing_index, incoming_index,
+                source_nodes, node_priors, edge_probabilities,
+                descendants, ancestors, root_diamonds, join_nodes, fork_nodes, unique_diamonds
+            )
+            
+            inference_computation_time = time() - inference_start_time
+            
+            # Convert beliefs to serializable format
+            beliefs_dict = Dict()
+            for (node, belief) in output
+                beliefs_dict[string(node)] = belief
+            end
+            
+            # Calculate statistics for numeric beliefs only
+            numeric_beliefs = []
+            for belief in values(output)
+                if isa(belief, Float64)
+                    push!(numeric_beliefs, belief)
+                elseif isa(belief, Real) && !isa(belief, pbox) && !isa(belief, Interval)
+                    push!(numeric_beliefs, Float64(belief))
+                end
+            end
+            
+            result_data["exact_inference"] = Dict(
+                "beliefs" => beliefs_dict,
+                "computation_time" => inference_computation_time,
+                "total_nodes_processed" => length(output),
+                "belief_statistics" => Dict(
+                    "mean" => length(numeric_beliefs) > 0 ? sum(numeric_beliefs) / length(numeric_beliefs) : 0.0,
+                    "min" => length(numeric_beliefs) > 0 ? minimum(numeric_beliefs) : 0.0,
+                    "max" => length(numeric_beliefs) > 0 ? maximum(numeric_beliefs) : 0.0,
+                    "numeric_count" => length(numeric_beliefs),
+                    "total_count" => length(output)
+                )
+            )
+        end
+        
+        total_time = time() - scenario_start_time
+        result_data["scenario_computation_time"] = total_time
+        result_data["input_files"] = Dict(
+            "nodepriors_path" => nodepriors_path,
+            "linkprobs_path" => linkprobs_path
+        )
+        
+        # Convert Pbox values
+        converted_result = convert_pbox_values(result_data)
+        
+        result = Dict(
+            "success" => true,
+            "message" => "Reachability analysis completed",
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "reachability_result" => converted_result
+        )
+        
+        return HTTP.Response(200, cors_headers, JSON.json(result))
+        
+    catch e
+        println("Reachability analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Reachability analysis failed"
+        )))
+    end
+end
+
+function handle_capacity_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        capacities_path = get(request_data, "capacitiesPath", "")
+        
+        if isempty(network_path) || isempty(capacities_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path and capacities path required"
+            )))
+        end
+        
+        # Get network structure
+        network_name = basename(network_path)
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        allnodes = collect(keys(incoming_index))
+        sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Load capacity data
+        full_capacities_path = joinpath(network_path, capacities_path)
+        if !isfile(full_capacities_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Capacities file not found"
+            )))
+        end
+        
+        capacity_data = JSON.parsefile(full_capacities_path)
+        node_caps_raw = capacity_data["capacities"]["nodes"]
+        edge_caps_raw = capacity_data["capacities"]["edges"]
+        source_rates_raw = capacity_data["capacities"]["source_rates"]
+        
+        # Convert to proper types
+        node_capacities = Dict{Int64,Float64}()
+        for (k, v) in node_caps_raw
+            node_capacities[parse(Int64, k)] = Float64(v)
+        end
+        
+        edge_capacities = Dict{Tuple{Int64,Int64},Float64}()
+        for (k, v) in edge_caps_raw
+            cleaned_key = replace(k, "(" => "", ")" => "")
+            parts = split(cleaned_key, ",")
+            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+            edge_capacities[edge_key] = Float64(v)
+        end
+        
+        source_rates = Dict{Int64,Float64}()
+        for (k, v) in source_rates_raw
+            rate = Float64(v)
+            if rate > 0.0
+                source_rates[parse(Int64, k)] = rate
+            end
+        end
+        
+        # Target nodes are sink nodes
+        targets = Set{Int64}(sink_nodes)
+        
+        # Run capacity analysis
+        capacity_start_time = time()
+        capacity_params = CapacityParameters(node_capacities, edge_capacities, source_rates, targets)
+        capacity_result = maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
+        capacity_computation_time = time() - capacity_start_time
+        
+        # Extract flow results
+        target_flows = Dict()
+        for target in targets
+            if haskey(capacity_result.node_max_flows, target)
+                target_flows[string(target)] = capacity_result.node_max_flows[target]
+            end
+        end
+        
+        result_data = Dict(
+            "computation_time" => capacity_computation_time,
+            "network_utilization" => capacity_result.network_utilization,
+            "total_source_input" => sum(values(source_rates)),
+            "total_target_output" => sum(values(target_flows)),
+            "target_flows" => target_flows,
+            "active_sources" => collect(keys(source_rates)),
+            "target_nodes" => collect(targets),
+            "node_capacities_count" => length(node_capacities),
+            "edge_capacities_count" => length(edge_capacities),
+            "input_files" => Dict("capacities_path" => capacities_path),
+            "raw_capacity_result" => Dict(
+                "node_max_flows" => Dict(string(k) => v for (k, v) in capacity_result.node_max_flows),
+                "bottlenecks" => Dict(string(k) => v for (k, v) in capacity_result.bottlenecks),
+                "critical_paths" => Dict(string(k) => v for (k, v) in capacity_result.critical_paths),
+                "network_utilization" => capacity_result.network_utilization,
+                "analysis_type" => string(capacity_result.analysis_type),
+                "computation_time" => capacity_result.computation_time,
+                "convergence_info" => capacity_result.convergence_info
+            )
+        )
+        
+        result = Dict(
+            "success" => true,
+            "message" => "Capacity analysis completed",
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "capacity_result" => result_data
+        )
+        
+        return HTTP.Response(200, cors_headers, JSON.json(result))
+        
+    catch e
+        println("Capacity analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Capacity analysis failed"
+        )))
+    end
+end
+
+function handle_cpm_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+    
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        cpm_path = get(request_data, "cpmPath", "")
+        
+        if isempty(network_path) || isempty(cpm_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path and CPM path required"
+            )))
+        end
+        
+        # Get network structure
+        network_name = basename(network_path)
+        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        allnodes = collect(keys(incoming_index))
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+        
+        # Load CPM data
+        full_cpm_path = joinpath(network_path, cpm_path)
+        if !isfile(full_cpm_path)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "CPM file not found"
+            )))
+        end
+        
+        cpm_data = JSON.parsefile(full_cpm_path)
+        time_analysis = cpm_data["time_analysis"]
+        cost_analysis = cpm_data["cost_analysis"]
+        
+        # Convert time analysis data
+        node_durations_raw = time_analysis["node_durations"]
+        edge_delays_raw = time_analysis["edge_delays"]
+        
+        node_durations = Dict{Int64,Float64}()
+        for (k, v) in node_durations_raw
+            node_durations[parse(Int64, k)] = Float64(v)
+        end
+        
+        edge_delays = Dict{Tuple{Int64,Int64},Float64}()
+        for (k, v) in edge_delays_raw
+            cleaned_key = replace(k, "(" => "", ")" => "")
+            parts = split(cleaned_key, ",")
+            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+            edge_delays[edge_key] = Float64(v)
+        end
+        
+        # Convert cost analysis data
+        node_costs_raw = cost_analysis["node_costs"]
+        edge_costs_raw = cost_analysis["edge_costs"]
+        
+        node_costs = Dict{Int64,Float64}()
+        for (k, v) in node_costs_raw
+            node_costs[parse(Int64, k)] = Float64(v)
+        end
+        
+        edge_costs = Dict{Tuple{Int64,Int64},Float64}()
+        for (k, v) in edge_costs_raw
+            cleaned_key = replace(k, "(" => "", ")" => "")
+            parts = split(cleaned_key, ",")
+            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+            edge_costs[edge_key] = Float64(v)
+        end
+        
+        # Run CPM analysis
+        cpm_start_time = time()
+        
+        # Time-based critical path analysis
+        time_params = CriticalPathParameters(
+            node_durations, edge_delays, 0.0,
+            max_combination, additive_propagation, additive_propagation
+        )
+        time_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, time_params)
+        
+        # Cost-based critical path analysis
+        cost_params = CriticalPathParameters(
+            node_costs, edge_costs, 0.0,
+            max_combination, additive_propagation, additive_propagation
+        )
+        cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
+        
+        cpm_computation_time = time() - cpm_start_time
+        
+        result_data = Dict(
+            "computation_time" => cpm_computation_time,
+            "time_result" => Dict(
+                "critical_value" => time_result.critical_value,
+                "critical_nodes" => collect(time_result.critical_nodes),
+                "node_values" => Dict(string(k) => v for (k, v) in time_result.node_values)
+            ),
+            "cost_result" => Dict(
+                "critical_value" => cost_result.critical_value,
+                "critical_nodes" => collect(cost_result.critical_nodes),
+                "node_values" => Dict(string(k) => v for (k, v) in cost_result.node_values)
+            ),
+            "node_durations_count" => length(node_durations),
+            "edge_delays_count" => length(edge_delays),
+            "node_costs_count" => length(node_costs),
+            "edge_costs_count" => length(edge_costs),
+            "input_files" => Dict("cpm_path" => cpm_path)
+        )
+        
+        result = Dict(
+            "success" => true,
+            "message" => "CPM analysis completed",
+            "network_name" => network_name,
+            "timestamp" => Dates.now(),
+            "cpm_result" => result_data
+        )
+        
+        return HTTP.Response(200, cors_headers, JSON.json(result))
+        
+    catch e
+        println("CPM analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "CPM analysis failed"
+        )))
+    end
+end
+
 # HTTP request handlers
 function handle_upload(req::HTTP.Request)
     # Define CORS headers outside try block for catch access
@@ -886,92 +1472,6 @@ function handle_upload(req::HTTP.Request)
     end
 end
 
-function handle_analysis(req::HTTP.Request)
-    cors_headers = [
-        "Access-Control-Allow-Origin" => "*",
-        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
-        "Content-Type" => "application/json"
-    ]
-    
-    local request_data = Dict()  # Initialize to avoid scope issues
-    
-    try
-        # Parse request body
-        request_data = JSON.parse(String(req.body))
-        
-        println("Analysis request received:")
-        println("Request data: ", JSON.json(request_data, 2))
-        
-        # Extract network path and analysis config
-        network_path = get(request_data, "networkPath", "")
-        network_name = basename(network_path)
-        
-        # Process the analysis
-        println("Starting analysis processing...")
-        analysis_results = process_network_analysis_with_config(network_path, network_name, request_data)
-        println("Analysis completed, preparing response...")
-        
-        # Convert any Pbox objects to JSON-serializable format
-        println("Analysis results type: ", typeof(analysis_results))
-        println("Analysis results keys: ", keys(analysis_results))
-        println("Converting Pbox objects...")
-        converted_results = convert_pbox_values(analysis_results)
-        println("Converted results type: ", typeof(converted_results))
-        println("Pbox objects converted to JSON format...")
-        
-        # Flatten the structure to avoid double nesting
-        # converted_results already has the structure we want
-        result = Dict(
-            "success" => true,
-            "message" => "Analysis completed successfully"
-        )
-        
-        # Merge the converted_results directly into result to avoid nesting
-        merge!(result, converted_results)
-        
-        println("Attempting JSON serialization...")
-        # Try to serialize the result to catch any JSON issues
-        local response_json
-        try
-            response_json = JSON.json(result)
-            println("Response JSON prepared successfully, sending to client...")
-        catch e
-            println("JSON serialization error: ", e)
-            # Try to identify problematic objects
-            for (key, value) in converted_results
-                try
-                    JSON.json(value)
-                    println("✓ Key '$key' serializes OK")
-                catch err
-                    println("✗ Key '$key' failed serialization: $err")
-                end
-            end
-            rethrow(e)
-        end
-        
-        return HTTP.Response(200, cors_headers, response_json)
-    catch e
-        println("OUTER CATCH: Exception occurred: ", e)
-        println("OUTER CATCH: Exception type: ", typeof(e))
-        
-        # Safe access to request_data for error response
-        network_name = "unknown"
-        try
-            network_name = get(request_data, "networkPath", "unknown") |> basename
-        catch
-            # If request_data access fails, use default
-        end
-        
-        error_response = Dict(
-            "success" => false,
-            "error" => string(e),
-            "network_name" => network_name,
-            "timestamp" => Dates.now()
-        )
-        return HTTP.Response(500, cors_headers, JSON.json(error_response))
-    end
-end
 
 function handle_cors(req::HTTP.Request)
     headers = [
@@ -999,7 +1499,12 @@ function start_server()
     
     # API routes
     HTTP.register!(router, "POST", "/upload", handle_upload)
-    HTTP.register!(router, "POST", "/analyze", handle_analysis)
+    # Individual Analysis Endpoints
+    HTTP.register!(router, "POST", "/network-structure", handle_network_structure)
+    HTTP.register!(router, "POST", "/diamond-analysis", handle_diamond_analysis)
+    HTTP.register!(router, "POST", "/reachability-analysis", handle_reachability_analysis)
+    HTTP.register!(router, "POST", "/capacity-analysis", handle_capacity_analysis)
+    HTTP.register!(router, "POST", "/cpm-analysis", handle_cpm_analysis)
     
     # Health check
     HTTP.register!(router, "GET", "/health", req -> HTTP.Response(200, [

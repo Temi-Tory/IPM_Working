@@ -98,6 +98,28 @@ $dark-theme: mat.m2-define-dark-theme((
 // Define custom CSS variables for consistent theming
 :root {
   // Light theme variables - muted pastel tones
+  --primary-color: #6366f1;
+  --primary-color-dark: #4f46e5;
+  --primary-color-light: #e0e7ff;
+  --primary-color-rgb: 99, 102, 241;
+  
+  --secondary-color: #d946ef;
+  --secondary-color-light: #fce7f3;
+  --accent-color: #06b6d4;
+  
+  --background-color: #fafbfc;
+  --surface-color: #ffffff;
+  --border-color: #e2e8f0;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-disabled: #94a3b8;
+  
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+  --success-color: #10b981;
+  
+  // Material Design 3 compatible names (for existing Material components)
   --primary: #6366f1;
   --primary-container: #e0e7ff;
   --on-primary: #ffffff;
@@ -126,6 +148,29 @@ $dark-theme: mat.m2-define-dark-theme((
 
 // Dark theme variables
 [data-theme="dark"] {
+  // Dark theme - accessible colors
+  --primary-color: #818cf8;
+  --primary-color-dark: #6366f1;
+  --primary-color-light: #312e81;
+  --primary-color-rgb: 129, 140, 248;
+  
+  --secondary-color: #f472b6;
+  --secondary-color-light: #831843;
+  --accent-color: #22d3ee;
+  
+  --background-color: #0f172a;
+  --surface-color: #1e293b;
+  --border-color: #475569;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-disabled: #64748b;
+  
+  --error-color: #f87171;
+  --warning-color: #fbbf24;
+  --success-color: #34d399;
+  
+  // Material Design 3 compatible names (for existing Material components)
   --primary: #818cf8;
   --primary-container: #312e81;
   --on-primary: #1e1b4b;
@@ -173,8 +218,8 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--surface-background);
-  color: var(--on-surface);
+  background-color: var(--background-color);
+  color: var(--text-primary);
   font-family: inherit;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -183,21 +228,107 @@ body {
 .mat-mdc-card {
   border-radius: 12px !important;
   box-shadow: 0 1px 3px var(--shadow) !important;
-  border: 1px solid var(--outline-variant) !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--surface-color) !important;
 }
 
 .mat-mdc-button {
   border-radius: 8px !important;
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
 }
 
 .mat-mdc-raised-button {
   box-shadow: 0 1px 3px var(--shadow) !important;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px) !important;
+  }
+}
+
+.mat-mdc-outlined-button {
+  border-color: var(--border-color) !important;
+  color: var(--primary-color) !important;
+  
+  &:hover {
+    background: var(--primary-color-light) !important;
+    border-color: var(--primary-color) !important;
+  }
 }
 
 // Remove excessive shadows and borders for cleaner look
 .mat-mdc-dialog-container {
   border-radius: 16px !important;
   box-shadow: 0 4px 24px var(--shadow) !important;
+  background: var(--surface-color) !important;
+}
+
+// Table improvements
+.mat-mdc-table {
+  background: var(--surface-color) !important;
+  
+  .mat-mdc-header-row {
+    background: var(--background-color) !important;
+  }
+  
+  .mat-mdc-row:hover {
+    background: rgba(var(--primary-color-rgb), 0.05) !important;
+  }
+}
+
+// Form field improvements
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    background: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+  }
+  
+  &:hover .mat-mdc-text-field-wrapper {
+    border-color: var(--primary-color) !important;
+  }
+  
+  &.mat-focused .mat-mdc-text-field-wrapper {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.1) !important;
+  }
+}
+
+// Tab improvements
+.mat-mdc-tab-group {
+  .mat-mdc-tab-header {
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  
+  .mat-mdc-tab {
+    color: var(--text-secondary) !important;
+    
+    &.mdc-tab--active {
+      color: var(--primary-color) !important;
+    }
+  }
+}
+
+// Button toggle improvements
+.mat-button-toggle-group {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  
+  .mat-button-toggle {
+    border: none !important;
+    color: var(--text-secondary) !important;
+    background: var(--surface-color) !important;
+    
+    &.mat-button-toggle-checked {
+      background: var(--primary-color) !important;
+      color: white !important;
+    }
+    
+    &:hover:not(.mat-button-toggle-checked) {
+      background: var(--background-color) !important;
+    }
+  }
 }

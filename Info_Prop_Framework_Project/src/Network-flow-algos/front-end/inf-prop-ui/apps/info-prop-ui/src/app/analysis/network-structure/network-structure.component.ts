@@ -1,13 +1,23 @@
 import { Component, inject, computed, signal } from '@angular/core';
+import { RouterModule } from '@angular/router';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatButtonToggleModule, MatButtonToggleChange } from '@angular/material/button-toggle';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { FormsModule } from '@angular/forms';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
@@ -16,6 +26,7 @@ import { NetworkStructure } from '../../shared/models/network-analysis.models';
   selector: 'app-network-structure',
   standalone: true,
   imports: [
+    RouterModule,
     MatCardModule,
     MatIconModule,
     MatTableModule,
@@ -23,13 +34,23 @@ import { NetworkStructure } from '../../shared/models/network-analysis.models';
     MatTabsModule,
     MatButtonToggleModule,
     MatButtonModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatSliderModule,
+    MatPaginatorModule,
+    MatExpansionModule,
+    MatDialogModule,
+    MatTooltipModule,
+    FormsModule
 ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
 export class NetworkStructureComponent {
   private analysisState = inject(AnalysisStateService);
+  private dialog = inject(MatDialog);
 
   networkData = computed(() => this.analysisState.networkData());
   isLoading = computed(() => this.analysisState.isLoading());
@@ -42,21 +63,46 @@ export class NetworkStructureComponent {
   edgeDetails = computed(() => this.getEdgeDetails());
 
   // View toggle
-  currentView = signal<'dashboard' | 'visual'>('dashboard');
+  currentView = signal<'overview' | 'nodes' | 'edges' | 'structure'>('overview');
+
+  // BI-style filtering signals
+  nodeSearchTerm = signal<string>('');
+  selectedNodeTypes = signal<string[]>([]);
+  inDegreeRange = signal<{min: number, max: number}>({min: 0, max: 10});
+  outDegreeRange = signal<{min: number, max: number}>({min: 0, max: 10});
+  quickFilters = signal<string[]>([]);
+
+  // Data-driven filter statistics
+  degreeStatistics = computed(() => this.calculateDegreeStatistics());
+  dynamicFilters = computed(() => this.generateDynamicFilters());
+
+  // Pagination signals
+  nodePageSize = signal<number>(50);
+  nodePageIndex = signal<number>(0);
+  edgePageSize = signal<number>(100);
+  edgePageIndex = signal<number>(0);
+  filtersExpanded = signal<boolean>(false);
+
+  // Filtered data computed properties
+  filteredNodeDetails = computed(() => this.applyNodeFilters());
+  filteredEdgeDetails = computed(() => this.applyEdgeFilters());
+  
+  // Paginated data computed properties
+  paginatedNodeDetails = computed(() => this.getPaginatedNodes());
+  paginatedEdgeDetails = computed(() => this.getPaginatedEdges());
 
   displayedColumns: string[] = ['metric', 'value'];
-  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree'];
-  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType'];
+  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree', 'actions'];
+  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType', 'actions'];
 
-  switchView(view: 'dashboard' | 'visual'): void {
-    this.currentView.set(view);
+  switchView(event: MatButtonToggleChange): void {
+    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'structure');
   }
 
   getNetworkMetrics(): { metric: string; value: string | number }[] {
     const data = this.networkData();
     if (!data) return [];
 
-    const diamondJoinNodes = this.getDiamondJoinNodes();
     const multiTypeNodes = this.getMultiTypeNodes();
 
     return [
@@ -66,14 +112,13 @@ export class NetworkStructureComponent {
       { metric: 'Sink Nodes', value: data.sink_nodes.length },
       { metric: 'Fork Nodes', value: data.fork_nodes.length },
       { metric: 'Join Nodes', value: data.join_nodes.length },
-      { metric: 'Diamond Join Nodes', value: diamondJoinNodes.length },
       { metric: 'Multi-Type Nodes', value: multiTypeNodes.length },
       { metric: 'Iteration Sets', value: data.iteration_sets_count },
       { metric: 'Computation Time', value: `${data.computation_time.toFixed(4)}s` }
     ];
   }
 
-  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join' | 'diamond-join'): number[] {
+  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join'): number[] {
     const data = this.networkData();
     if (!data) return [];
 
@@ -82,50 +127,10 @@ export class NetworkStructureComponent {
       case 'sink': return data.sink_nodes;
       case 'fork': return data.fork_nodes;
       case 'join': return data.join_nodes;
-      case 'diamond-join': return this.getDiamondJoinNodes();
       default: return [];
     }
   }
 
-  getDiamondJoinNodes(): number[] {
-    const data = this.networkData();
-    const analysisResults = this.analysisState.analysisResults();
-    
-    if (!data || !analysisResults?.results) return [];
-
-    const diamondJoins = new Set<number>();
-    const analysisData = (analysisResults.results as any).results || analysisResults.results;
-    
-    // Check across all reachability scenarios for diamond analysis
-    if (analysisData.reachability_scenarios) {
-      for (const scenario of Object.values(analysisData.reachability_scenarios) as any[]) {
-        if (scenario.diamond_analysis?.raw_root_diamonds) {
-          const rootDiamonds = scenario.diamond_analysis.raw_root_diamonds;
-          // root_diamonds keys are join node IDs - these are the diamond joins
-          for (const nodeIdStr of Object.keys(rootDiamonds)) {
-            const nodeId = parseInt(nodeIdStr);
-            if (data.join_nodes.includes(nodeId)) {
-              diamondJoins.add(nodeId);
-            }
-          }
-        }
-      }
-    }
-    
-    // Also check standalone diamond analysis
-    if (analysisData.diamond_analysis?.raw_root_diamonds) {
-      const rootDiamonds = analysisData.diamond_analysis.raw_root_diamonds;
-      // root_diamonds keys are join node IDs - these are the diamond joins
-      for (const nodeIdStr of Object.keys(rootDiamonds)) {
-        const nodeId = parseInt(nodeIdStr);
-        if (data.join_nodes.includes(nodeId)) {
-          diamondJoins.add(nodeId);
-        }
-      }
-    }
-    
-    return Array.from(diamondJoins).sort((a, b) => a - b);
-  }
 
   getMultiTypeNodes(): { nodeId: number; types: string[] }[] {
     const data = this.networkData();
@@ -143,7 +148,7 @@ export class NetworkStructureComponent {
         nodeId,
         types: this.getNodeTypes(nodeId)
       }))
-      .filter(node => node.types.length > 1 || node.types.includes('Diamond Join'))
+      .filter(node => node.types.length > 1)
       .sort((a, b) => a.nodeId - b.nodeId);
   }
 
@@ -181,7 +186,6 @@ export class NetworkStructureComponent {
 
   private getNodeTypes(nodeId: number): string[] {
     const data = this.networkData();
-    const analysisResults = this.analysisState.analysisResults();
     
     if (!data) return ['Regular'];
 
@@ -192,39 +196,6 @@ export class NetworkStructureComponent {
     if (data.sink_nodes.includes(nodeId)) types.push('Sink');
     if (data.fork_nodes.includes(nodeId)) types.push('Fork');
     if (data.join_nodes.includes(nodeId)) types.push('Join');
-    
-    // Check if this join node is also a diamond join
-    if (data.join_nodes.includes(nodeId) && analysisResults?.results) {
-      const analysisData = (analysisResults.results as any).results || analysisResults.results;
-      let isDiamondJoin = false;
-      
-      // Check across all reachability scenarios for diamond analysis  
-      if (analysisData.reachability_scenarios) {
-        for (const scenario of Object.values(analysisData.reachability_scenarios) as any[]) {
-          if (scenario.diamond_analysis?.raw_root_diamonds) {
-            const rootDiamonds = scenario.diamond_analysis.raw_root_diamonds;
-            // root_diamonds keys are join node IDs - check if this node is a diamond join
-            if (rootDiamonds[nodeId.toString()]) {
-              isDiamondJoin = true;
-              break;
-            }
-          }
-        }
-      }
-      
-      // Also check standalone diamond analysis
-      if (!isDiamondJoin && analysisData.diamond_analysis?.raw_root_diamonds) {
-        const rootDiamonds = analysisData.diamond_analysis.raw_root_diamonds;
-        // root_diamonds keys are join node IDs - check if this node is a diamond join
-        if (rootDiamonds[nodeId.toString()]) {
-          isDiamondJoin = true;
-        }
-      }
-      
-      if (isDiamondJoin) {
-        types.push('Diamond Join');
-      }
-    }
     
     return types.length > 0 ? types : ['Regular'];
   }
@@ -351,5 +322,400 @@ export class NetworkStructureComponent {
       { metric: 'Avg Ancestors (per node)', value: avgAncestors.toFixed(2) },
       { metric: 'Avg Descendants (per node)', value: avgDescendants.toFixed(2) }
     ];
+  }
+
+  // BI-style filtering methods
+  setNodeSearchTerm(event: any): void {
+    this.nodeSearchTerm.set(event.target.value);
+  }
+
+  setNodeTypeFilter(event: any): void {
+    this.selectedNodeTypes.set(event.value);
+  }
+
+  setInDegreeMin(event: any): void {
+    const current = this.inDegreeRange();
+    this.inDegreeRange.set({...current, min: parseInt(event.target.value)});
+  }
+
+  setInDegreeMax(event: any): void {
+    const current = this.inDegreeRange();
+    this.inDegreeRange.set({...current, max: parseInt(event.target.value)});
+  }
+
+  setOutDegreeMin(event: any): void {
+    const current = this.outDegreeRange();
+    this.outDegreeRange.set({...current, min: parseInt(event.target.value)});
+  }
+
+  setOutDegreeMax(event: any): void {
+    const current = this.outDegreeRange();
+    this.outDegreeRange.set({...current, max: parseInt(event.target.value)});
+  }
+
+  applyQuickFilter(filterType: string): void {
+    const current = this.quickFilters();
+    if (current.includes(filterType)) {
+      this.quickFilters.set(current.filter(f => f !== filterType));
+    } else {
+      this.quickFilters.set([...current, filterType]);
+    }
+  }
+
+  clearAllFilters(): void {
+    this.nodeSearchTerm.set('');
+    this.selectedNodeTypes.set([]);
+    const stats = this.degreeStatistics();
+    this.inDegreeRange.set({min: stats.inDegree.min, max: stats.inDegree.max});
+    this.outDegreeRange.set({min: stats.outDegree.min, max: stats.outDegree.max});
+    this.quickFilters.set([]);
+  }
+
+  getMaxInDegree(): number {
+    const data = this.networkData();
+    if (!data) return 10;
+    const degrees = data.nodes.map(nodeId => this.calculateInDegree(nodeId));
+    return degrees.length > 0 ? Math.max(...degrees) : 10;
+  }
+
+  getMaxOutDegree(): number {
+    const data = this.networkData();
+    if (!data) return 10;
+    const degrees = data.nodes.map(nodeId => this.calculateOutDegree(nodeId));
+    return degrees.length > 0 ? Math.max(...degrees) : 10;
+  }
+
+  getFilteredNodeCount(): number {
+    return this.filteredNodeDetails().length;
+  }
+
+  getFilteredEdgeCount(): number {
+    return this.filteredEdgeDetails().length;
+  }
+
+  // Advanced filtering logic
+  applyNodeFilters(): { node: number; type: string; inDegree: number; outDegree: number }[] {
+    const allNodes = this.getNodeDetails();
+    const searchTerm = this.nodeSearchTerm().toLowerCase();
+    const selectedTypes = this.selectedNodeTypes();
+    const inRange = this.inDegreeRange();
+    const outRange = this.outDegreeRange();
+    const quickFilters = this.quickFilters();
+
+    return allNodes.filter(node => {
+      // Text search filter
+      if (searchTerm && !(
+        node.node.toString().includes(searchTerm) ||
+        node.type.toLowerCase().includes(searchTerm)
+      )) {
+        return false;
+      }
+
+      // Node type filter
+      if (selectedTypes.length > 0) {
+        const nodeTypes = node.type.split(' + ');
+        if (!selectedTypes.some(selectedType => nodeTypes.includes(selectedType))) {
+          return false;
+        }
+      }
+
+      // Degree range filters
+      if (node.inDegree < inRange.min || node.inDegree > inRange.max) {
+        return false;
+      }
+      if (node.outDegree < outRange.min || node.outDegree > outRange.max) {
+        return false;
+      }
+
+      // Quick filters
+      if (quickFilters.includes('high-connectivity')) {
+        if (node.inDegree + node.outDegree < 4) {
+          return false;
+        }
+      }
+
+      if (quickFilters.includes('bottlenecks')) {
+        // Nodes with high in-degree and low out-degree, or vice versa
+        if (!((node.inDegree >= 2 && node.outDegree <= 1) || (node.outDegree >= 2 && node.inDegree <= 1))) {
+          return false;
+        }
+      }
+
+      if (quickFilters.includes('multi-type')) {
+        if (!node.type.includes(' + ')) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  applyEdgeFilters(): { source: number; target: number; edgeType: string }[] {
+    const allEdges = this.getEdgeDetails();
+    const filteredNodeIds = new Set(this.filteredNodeDetails().map(n => n.node));
+    
+    return allEdges.filter(edge => {
+      // Only show edges where both source and target nodes are in the filtered node set
+      return filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target);
+    });
+  }
+
+  // Data-driven statistical analysis
+  calculateDegreeStatistics() {
+    const data = this.networkData();
+    if (!data) {
+      return {
+        inDegree: { min: 0, max: 10, median: 2, q1: 1, q3: 4, mean: 2.5 },
+        outDegree: { min: 0, max: 10, median: 2, q1: 1, q3: 4, mean: 2.5 },
+        totalDegree: { min: 0, max: 20, median: 4, q1: 2, q3: 8, mean: 5 }
+      };
+    }
+
+    const nodeDetails = this.getNodeDetails();
+    const inDegrees = nodeDetails.map(n => n.inDegree).sort((a, b) => a - b);
+    const outDegrees = nodeDetails.map(n => n.outDegree).sort((a, b) => a - b);
+    const totalDegrees = nodeDetails.map(n => n.inDegree + n.outDegree).sort((a, b) => a - b);
+
+    return {
+      inDegree: this.calculateStats(inDegrees),
+      outDegree: this.calculateStats(outDegrees),
+      totalDegree: this.calculateStats(totalDegrees)
+    };
+  }
+
+  private calculateStats(sortedArray: number[]) {
+    const n = sortedArray.length;
+    if (n === 0) return { min: 0, max: 0, median: 0, q1: 0, q3: 0, mean: 0 };
+
+    const min = sortedArray[0];
+    const max = sortedArray[n - 1];
+    const median = n % 2 === 0 
+      ? (sortedArray[Math.floor(n/2) - 1] + sortedArray[Math.floor(n/2)]) / 2
+      : sortedArray[Math.floor(n/2)];
+    
+    const q1Index = Math.floor(n * 0.25);
+    const q3Index = Math.floor(n * 0.75);
+    const q1 = sortedArray[q1Index];
+    const q3 = sortedArray[q3Index];
+    
+    const mean = sortedArray.reduce((sum, val) => sum + val, 0) / n;
+
+    return { min, max, median, q1, q3, mean };
+  }
+
+  generateDynamicFilters() {
+    const stats = this.degreeStatistics();
+    const nodeDetails = this.getNodeDetails();
+
+    // High connectivity threshold: above 75th percentile of total degree
+    const highConnectivityThreshold = stats.totalDegree.q3;
+    
+    // Bottleneck detection: nodes with degree ratios that indicate bottlenecks
+    const potentialBottlenecks = nodeDetails.filter(node => {
+      const ratio = node.inDegree > 0 ? node.outDegree / node.inDegree : Infinity;
+      return (ratio < 0.5 && node.inDegree >= 2) || (ratio > 2 && node.outDegree >= 2);
+    });
+
+    // Critical nodes: high-degree nodes that could be critical to flow
+    const criticalNodes = nodeDetails.filter(node => {
+      const totalDegree = node.inDegree + node.outDegree;
+      return totalDegree >= stats.totalDegree.median && (node.inDegree === 1 || node.outDegree === 1);
+    });
+
+    // Outlier detection: nodes with degrees significantly above mean
+    const outlierThreshold = stats.totalDegree.mean + (2 * this.calculateStandardDeviation(nodeDetails.map(n => n.inDegree + n.outDegree)));
+    const outlierNodes = nodeDetails.filter(node => (node.inDegree + node.outDegree) > outlierThreshold);
+
+    return {
+      highConnectivityThreshold,
+      potentialBottlenecks: potentialBottlenecks.length,
+      criticalNodes: criticalNodes.length,
+      outlierNodes: outlierNodes.length,
+      suggestedFilters: [
+        { 
+          name: `High Connectivity (≥${highConnectivityThreshold})`, 
+          count: nodeDetails.filter(n => (n.inDegree + n.outDegree) >= highConnectivityThreshold).length,
+          type: 'high-connectivity'
+        },
+        { 
+          name: `Potential Bottlenecks`, 
+          count: potentialBottlenecks.length,
+          type: 'bottlenecks'
+        },
+        { 
+          name: `Critical Flow Points`, 
+          count: criticalNodes.length,
+          type: 'critical-path'
+        },
+        { 
+          name: `Statistical Outliers`, 
+          count: outlierNodes.length,
+          type: 'outliers'
+        }
+      ]
+    };
+  }
+
+  private calculateStandardDeviation(values: number[]): number {
+    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+    const avgSquaredDiff = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
+    return Math.sqrt(avgSquaredDiff);
+  }
+
+  // Update quick filters to use dynamic data
+  getDynamicQuickFilters() {
+    const dynamicFilters = this.dynamicFilters();
+    return dynamicFilters.suggestedFilters.map(filter => ({
+      id: filter.type,
+      label: `${filter.name} (${filter.count})`,
+      count: filter.count,
+      enabled: filter.count > 0
+    }));
+  }
+
+  // Pagination methods
+  getPaginatedNodes() {
+    const filtered = this.filteredNodeDetails();
+    const start = this.nodePageIndex() * this.nodePageSize();
+    return filtered.slice(start, start + this.nodePageSize());
+  }
+
+  getPaginatedEdges() {
+    const filtered = this.filteredEdgeDetails();
+    const start = this.edgePageIndex() * this.edgePageSize();
+    return filtered.slice(start, start + this.edgePageSize());
+  }
+
+  onNodePageChange(event: any): void {
+    this.nodePageIndex.set(event.pageIndex);
+    this.nodePageSize.set(event.pageSize);
+  }
+
+  onEdgePageChange(event: any): void {
+    this.edgePageIndex.set(event.pageIndex);
+    this.edgePageSize.set(event.pageSize);
+  }
+
+  toggleFiltersPanel(): void {
+    this.filtersExpanded.set(!this.filtersExpanded());
+  }
+
+  // Enhanced node classification including single parent/child patterns
+  getEnhancedNodeClassifications(): {
+    singleParent: any[], 
+    singleChild: any[], 
+    orphans: any[], 
+    hubs: any[], 
+    bridges: any[],
+    counts: {
+      singleParent: number,
+      singleChild: number,
+      orphans: number,
+      hubs: number,
+      bridges: number
+    }
+  } {
+    const data = this.networkData();
+    if (!data) return {
+      singleParent: [],
+      singleChild: [],
+      orphans: [],
+      hubs: [],
+      bridges: [],
+      counts: { singleParent: 0, singleChild: 0, orphans: 0, hubs: 0, bridges: 0 }
+    };
+
+    const nodeDetails = this.getNodeDetails();
+    const classifications = {
+      singleParent: nodeDetails.filter(n => n.inDegree === 1),
+      singleChild: nodeDetails.filter(n => n.outDegree === 1),
+      orphans: nodeDetails.filter(n => n.inDegree === 0 && n.outDegree === 0),
+      hubs: nodeDetails.filter(n => n.inDegree + n.outDegree >= this.degreeStatistics().totalDegree.q3),
+      bridges: nodeDetails.filter(n => n.inDegree === 1 && n.outDegree === 1)
+    };
+
+    return {
+      ...classifications,
+      counts: {
+        singleParent: classifications.singleParent.length,
+        singleChild: classifications.singleChild.length,
+        orphans: classifications.orphans.length,
+        hubs: classifications.hubs.length,
+        bridges: classifications.bridges.length
+      }
+    };
+  }
+
+  // Dialog methods for detailed node/edge information
+  openNodeDialog(nodeId: number): void {
+    const data = this.networkData();
+    if (!data) return;
+
+    const nodeDetails = this.getNodeDetails().find(n => n.node === nodeId);
+    if (!nodeDetails) return;
+
+    const nodeInfo = {
+      id: nodeId,
+      type: nodeDetails.type,
+      inDegree: nodeDetails.inDegree,
+      outDegree: nodeDetails.outDegree,
+      ancestors: data.ancestors[nodeId.toString()] || [],
+      descendants: data.descendants[nodeId.toString()] || [],
+      parents: this.getDirectParents(nodeId),
+      children: this.getDirectChildren(nodeId),
+      nodeClassifications: this.getNodeTypes(nodeId),
+      iterationSets: this.getNodeIterationSets(nodeId),
+      rawData: {
+        // Add node priors and other raw data here when available
+        hasRawData: false
+      }
+    };
+
+    // For now, just show a simple alert - will create proper dialog component next
+    console.log('Node Details:', nodeInfo);
+    alert(`Node ${nodeId} Details:\nType: ${nodeInfo.type}\nIn-Degree: ${nodeInfo.inDegree}\nOut-Degree: ${nodeInfo.outDegree}\nAncestors: ${nodeInfo.ancestors.length}\nDescendants: ${nodeInfo.descendants.length}`);
+  }
+
+  openEdgeDialog(sourceId: number, targetId: number): void {
+    const data = this.networkData();
+    if (!data) return;
+
+    const edgeInfo = {
+      source: sourceId,
+      target: targetId,
+      sourceType: this.getNodeType(sourceId),
+      targetType: this.getNodeType(targetId),
+      edgeType: this.getEdgeType(sourceId, targetId),
+      rawData: {
+        // Add edge probabilities and other raw data here when available
+        hasRawData: false
+      }
+    };
+
+    console.log('Edge Details:', edgeInfo);
+    alert(`Edge ${sourceId} → ${targetId} Details:\nSource Type: ${edgeInfo.sourceType}\nTarget Type: ${edgeInfo.targetType}\nEdge Type: ${edgeInfo.edgeType}`);
+  }
+
+  private getDirectParents(nodeId: number): number[] {
+    const data = this.networkData();
+    if (!data) return [];
+    return data.edges.filter(([_, target]) => target === nodeId).map(([source, _]) => source);
+  }
+
+  private getDirectChildren(nodeId: number): number[] {
+    const data = this.networkData();
+    if (!data) return [];
+    return data.edges.filter(([source, _]) => source === nodeId).map(([_, target]) => target);
+  }
+
+  private getNodeIterationSets(nodeId: number): number[] {
+    const data = this.networkData();
+    if (!data) return [];
+    return data.iteration_sets
+      .map((set, index) => ({ set, index }))
+      .filter(({ set }) => set.includes(nodeId))
+      .map(({ index }) => index + 1);
   }
 }

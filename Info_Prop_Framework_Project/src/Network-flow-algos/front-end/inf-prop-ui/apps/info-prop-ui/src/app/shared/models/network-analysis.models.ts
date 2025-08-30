@@ -40,6 +40,12 @@ export interface NetworkStructure {
   descendants: Record<string, number[]>;
   outgoing_index: Record<string, number[]>;
   incoming_index: Record<string, number[]>;
+  // Raw adjacency information for complete network analysis
+  raw_data?: {
+    node_priors?: Record<string, any>;
+    edge_probabilities?: Record<string, any>;
+    additional_metrics?: any;
+  };
 }
 
 export interface RootDiamondStructure {
@@ -213,6 +219,75 @@ export interface AnalysisRequest {
   capacityScenarios: CapacityScenarioConfig[];
   cpmScenarios: CpmScenarioConfig[];
   analysisConfig: AnalysisRequestConfig;
+}
+
+// Individual Endpoint Request/Response DTOs
+
+export interface NetworkStructureRequest {
+  networkPath: string;
+}
+
+export interface NetworkStructureResponse {
+  success: boolean;
+  message: string;
+  network_name: string;
+  timestamp: string;
+  network_structure: NetworkStructure;
+}
+
+export interface DiamondAnalysisRequest {
+  networkPath: string;
+  useDefaultPriors?: boolean;
+}
+
+export interface DiamondAnalysisResponse {
+  success: boolean;
+  message: string;
+  network_name: string;
+  timestamp: string;
+  diamond_analysis: DiamondAnalysisResult;
+}
+
+export interface ReachabilityAnalysisRequest {
+  networkPath: string;
+  nodepriorsPath: string;
+  linkprobsPath: string;
+  includeExactInference?: boolean;
+  includeDiamondAnalysis?: boolean;
+}
+
+export interface ReachabilityAnalysisResponse {
+  success: boolean;
+  message: string;
+  network_name: string;
+  timestamp: string;
+  reachability_result: ReachabilityScenario;
+}
+
+export interface CapacityAnalysisRequest {
+  networkPath: string;
+  capacitiesPath: string;
+}
+
+export interface CapacityAnalysisResponse {
+  success: boolean;
+  message: string;
+  network_name: string;
+  timestamp: string;
+  capacity_result: CapacityScenario;
+}
+
+export interface CpmAnalysisRequest {
+  networkPath: string;
+  cpmPath: string;
+}
+
+export interface CpmAnalysisResponse {
+  success: boolean;
+  message: string;
+  network_name: string;
+  timestamp: string;
+  cmp_result: CpmScenario;
 }
 
 export interface HealthResponse {

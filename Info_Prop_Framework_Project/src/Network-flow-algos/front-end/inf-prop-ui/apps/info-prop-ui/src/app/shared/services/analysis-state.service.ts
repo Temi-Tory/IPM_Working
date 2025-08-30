@@ -7,10 +7,12 @@ import {
   AnalysisRequest 
 } from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
+import { NetworkStructureService } from './network-structure.service';
 
 @Injectable({ providedIn: 'root' })
 export class AnalysisStateService {
   private networkBackendService = inject(NetworkBackendService);
+  private networkStructureService = inject(NetworkStructureService);
 
   // Core state signals
   private networkDataSignal = signal<NetworkStructure | null>(null);
@@ -222,6 +224,38 @@ export class AnalysisStateService {
     });
   }
 
+  // New method to load just network structure using individual endpoint
+  loadNetworkStructure(networkPath: string): Observable<void> {
+    this.setLoading(true);
+    this.setError(null);
+    this.setCurrentNetworkPath(networkPath);
+
+    return new Observable(observer => {
+      this.networkStructureService.analyzeNetworkStructure({ networkPath })
+        .subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.networkDataSignal.set(response.network_structure);
+              this.markTabCompleted('network-structure');
+              observer.next();
+              observer.complete();
+            } else {
+              const error = `Network structure analysis failed: ${response.message}`;
+              this.setError(error);
+              observer.error(error);
+            }
+            this.setLoading(false);
+          },
+          error: (error) => {
+            const errorMessage = `Failed to analyze network structure: ${error.message || error}`;
+            this.setError(errorMessage);
+            this.setLoading(false);
+            observer.error(error);
+          }
+        });
+    });
+  }
+
   clearState(): void {
     this.networkDataSignal.set(null);
     this.analysisResultsSignal.set(null);
@@ -236,5 +270,6 @@ export class AnalysisStateService {
     this.exactInferenceTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.flowAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.criticalPathTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.systemProfileTabSignal.set({ enabled: false, completed: false, hasData: false });
   }
 }
