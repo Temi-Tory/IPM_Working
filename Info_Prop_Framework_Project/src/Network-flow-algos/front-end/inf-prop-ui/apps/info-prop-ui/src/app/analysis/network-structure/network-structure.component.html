@@ -180,14 +180,14 @@
           </div>
 
           <div class="slider-group">
-            <label class="slider-label">
-              Out-Degree Range 
-              <small>(Q1: {{ degreeStatistics().outDegree.q1 }}, Median: {{ degreeStatistics().outDegree.median }}, Q3: {{ degreeStatistics().outDegree.q3 }})</small>
-            </label>
-            <mat-slider [min]="degreeStatistics().outDegree.min" [max]="degreeStatistics().outDegree.max" [step]="1" class="degree-slider">
-              <input matSliderStartThumb [value]="outDegreeRange().min" (input)="setOutDegreeMin($event)">
-              <input matSliderEndThumb [value]="outDegreeRange().max" (input)="setOutDegreeMax($event)">
-            </mat-slider>
+            <label for="outDegreeSlider" class="slider-label">
+                Out-Degree Range 
+                <small>(Q1: {{ degreeStatistics().outDegree.q1 }}, Median: {{ degreeStatistics().outDegree.median }}, Q3: {{ degreeStatistics().outDegree.q3 }})</small>
+              </label>
+              <mat-slider id="outDegreeSlider" [min]="degreeStatistics().outDegree.min" [max]="degreeStatistics().outDegree.max" [step]="1" class="degree-slider">
+                <input matSliderStartThumb [value]="outDegreeRange().min" (input)="setOutDegreeMin($event)">
+                <input matSliderEndThumb [value]="outDegreeRange().max" (input)="setOutDegreeMax($event)">
+              </mat-slider>
             <div class="slider-values">{{ outDegreeRange().min }} - {{ outDegreeRange().max }}</div>
           </div>
 
@@ -472,12 +472,12 @@
 
                   <!-- Custom Node Template -->
                   <ng-template #nodeTemplate let-node>
-                    <svg:g class="node" [attr.transform]="node.transform">
-                      <!-- Node Shape - Circle centered on the node position -->
+                    <svg:g class="node">
+                      <!-- Node Shape - Circle properly positioned -->
                       <svg:circle
-                        [attr.cx]="0"
-                        [attr.cy]="0"
-                        [attr.r]="mathMin(node.dimension.width, node.dimension.height) / 2"
+                        [attr.cx]="node.dimension.width / 2"
+                        [attr.cy]="node.dimension.height / 2"
+                        [attr.r]="mathMin(node.dimension.width, node.dimension.height) / 2 - 2"
                         [attr.fill]="getNodeColor(node.data?.type || 'Regular')"
                         [attr.stroke]="'#666'"
                         [attr.stroke-width]="1"
@@ -487,8 +487,8 @@
                       
                       <!-- Node Label -->
                       <svg:text
-                        [attr.x]="0"
-                        [attr.y]="0"
+                        [attr.x]="node.dimension.width / 2"
+                        [attr.y]="node.dimension.height / 2"
                         text-anchor="middle"
                         dominant-baseline="middle"
                         class="node-label"
@@ -499,8 +499,8 @@
                       
                       <!-- Node Type Badge -->
                       <svg:text
-                        [attr.x]="0"
-                        [attr.y]="mathMin(node.dimension.width, node.dimension.height) / 2 + 15"
+                        [attr.x]="node.dimension.width / 2"
+                        [attr.y]="node.dimension.height + 12"
                         text-anchor="middle"
                         class="node-type-badge"
                         [attr.font-size]="8"

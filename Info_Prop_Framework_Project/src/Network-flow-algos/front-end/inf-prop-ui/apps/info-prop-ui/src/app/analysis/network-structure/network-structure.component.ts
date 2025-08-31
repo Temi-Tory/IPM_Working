@@ -32,8 +32,8 @@ interface NgxGraphZoomOptions {
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { NetworkDialogService } from '../../shared/services/network-dialog.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
-import { NodeDetailDialogComponent, NodeDetailDialogData } from '../../shared/components/dialogs/node-detail-dialog/node-detail-dialog.component';
-import { EdgeDetailDialogComponent, EdgeDetailDialogData } from '../../shared/components/dialogs/edge-detail-dialog/edge-detail-dialog.component';
+import { NodeDetailDialogComponent } from '../../shared/components/dialogs/node-detail-dialog/node-detail-dialog.component';
+import { EdgeDetailDialogComponent } from '../../shared/components/dialogs/edge-detail-dialog/edge-detail-dialog.component';
 
 @Component({
   selector: 'app-network-structure',
@@ -161,9 +161,9 @@ export class NetworkStructureComponent implements OnInit {
     orientation: 'TB', // Top to Bottom
     marginX: 20,
     marginY: 20,
-    edgePadding: 100,
-    rankPadding: 100,
-    nodePadding: 50,
+    edgePadding: 30,
+    rankPadding: 50,
+    nodePadding: 20,
   };
 
   // Subject for triggering zoom to fit
@@ -243,8 +243,8 @@ export class NetworkStructureComponent implements OnInit {
         originalId: nodeDetail.node
       },
       dimension: {
-        width: 80,
-        height: 40
+        width: 60,
+        height: 60
       }
     }));
   }
