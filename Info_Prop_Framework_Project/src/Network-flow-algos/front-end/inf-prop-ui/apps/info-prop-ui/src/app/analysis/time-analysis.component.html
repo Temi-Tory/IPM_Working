@@ -1,0 +1,417 @@
+<div class="time-analysis-dashboard">
+  
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">schedule</mat-icon>
+          Time-based CPM Analysis
+        </h1>
+        <p class="page-subtitle">Critical Path Method analysis with project scheduling and time optimization</p>
+      </div>
+      
+      @if (projectSummary(); as summary) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.projectDuration.toFixed(2) }}</div>
+            <div class="stat-label">Duration ({{ summary.timeUnit }})</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.criticalActivities }}</div>
+            <div class="stat-label">Critical</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.totalActivities }}</div>
+            <div class="stat-label">Total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ (summary.computationTime * 1000).toFixed(0) }}ms</div>
+            <div class="stat-label">Analysis Time</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-icon class="loading-spinner">refresh</mat-icon>
+      <h3>Analyzing Critical Path...</h3>
+      <p>Please wait while we calculate project scheduling and time optimization</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!cpmScenarios() || Object.keys(cpmScenarios()).length === 0 && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">schedule</mat-icon>
+      <h3>No CPM Data Available</h3>
+      <p>Upload a network with CPM data to perform time-based critical path analysis</p>
+      <button mat-raised-button color="primary" routerLink="/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Network
+      </button>
+    </div>
+  }
+
+  <!-- Main Dashboard Content -->
+  @if (scenarioNames().length > 0) {
+    <div class="dashboard-content">
+      
+      <!-- Scenario and Unit Controls -->
+      <div class="control-section">
+        <div class="controls-row">
+          <mat-form-field appearance="outline" class="scenario-field">
+            <mat-label>CPM Scenario</mat-label>
+            <mat-select [value]="selectedScenario()" 
+                       (selectionChange)="onScenarioChange($event.value)">
+              @for (scenario of scenarioNames(); track scenario) {
+                <mat-option [value]="scenario">{{ scenario }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>Time Unit</mat-label>
+            <mat-select [value]="selectedTimeUnit()" 
+                       (selectionChange)="onTimeUnitChange($event.value)">
+              @for (unit of timeUnits; track unit) {
+                <mat-option [value]="unit">{{ unit }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="completion-times">
+            <mat-icon>schedule</mat-icon>
+            Completion Times
+          </mat-button-toggle>
+          <mat-button-toggle value="critical-path">
+            <mat-icon>timeline</mat-icon>
+            Critical Path
+          </mat-button-toggle>
+          <mat-button-toggle value="slack-analysis">
+            <mat-icon>hourglass_empty</mat-icon>
+            Slack Analysis
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Project Summary Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>schedule</mat-icon>
+                <mat-card-title>Project Summary</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (projectSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Total Duration</span>
+                      <span class="metric-value">{{ summary.projectDuration.toFixed(2) }} {{ summary.timeUnit }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Critical Path Length</span>
+                      <span class="metric-value">{{ summary.criticalPathLength }} nodes</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Network Utilization</span>
+                      <span class="metric-value">{{ (summary.networkUtilization * 100).toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Activity Breakdown Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>grain</mat-icon>
+                <mat-card-title>Activity Breakdown</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (projectSummary(); as summary) {
+                  <div class="activity-breakdown">
+                    <div class="activity-type critical">
+                      <div class="activity-count">{{ summary.criticalActivities }}</div>
+                      <div class="activity-label">Critical Activities</div>
+                      <div class="activity-percentage">{{ ((summary.criticalActivities / summary.totalActivities) * 100).toFixed(1) }}%</div>
+                    </div>
+                    <div class="activity-type non-critical">
+                      <div class="activity-count">{{ summary.nonCriticalActivities }}</div>
+                      <div class="activity-label">Non-Critical Activities</div>
+                      <div class="activity-percentage">{{ ((summary.nonCriticalActivities / summary.totalActivities) * 100).toFixed(1) }}%</div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Time Distribution Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>timeline</mat-icon>
+                <mat-card-title>Time Distribution</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (criticalPathAnalysis(); as analysis) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Critical Path</span>
+                      <span class="metric-value critical-time">{{ formatTime(analysis.totalDuration) }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Avg Completion Time</span>
+                      <span class="metric-value">{{ formatTime(Object.values(analysis.completionTimes).reduce((a, b) => a + b, 0) / Object.keys(analysis.completionTimes).length) }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Max Slack Available</span>
+                      <span class="metric-value slack-time">{{ formatTime(Math.max(...Object.values(analysis.slackTimes))) }}</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Performance Metrics Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>speed</mat-icon>
+                <mat-card-title>Performance</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (selectedScenarioData(); as scenario) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Computation Time</span>
+                      <span class="metric-value">{{ (scenario.computation_time * 1000).toFixed(2) }}ms</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Node Durations</span>
+                      <span class="metric-value">{{ scenario.node_durations_count }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Edge Delays</span>
+                      <span class="metric-value">{{ scenario.edge_delays_count }}</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Time Insights Card -->
+          @if (timeInsights().length > 0) {
+            <mat-card class="insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>lightbulb</mat-icon>
+                <mat-card-title>Scheduling Insights</mat-card-title>
+                <mat-card-subtitle>Critical path and time optimization recommendations</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="insights-list">
+                  @for (insight of timeInsights(); track insight.message) {
+                    <div class="insight-item" [class]="'insight-' + insight.type">
+                      <mat-icon class="insight-icon">
+                        @switch (insight.type) {
+                          @case ('success') { check_circle }
+                          @case ('warning') { warning }
+                          @case ('info') { info }
+                          @default { help }
+                        }
+                      </mat-icon>
+                      <div class="insight-content">
+                        <div class="insight-message">{{ insight.message }}</div>
+                        <div class="insight-detail">{{ insight.detail }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Completion Times / Critical Path / Slack Analysis Tabs -->
+      @if (currentView() !== 'overview') {
+        <div class="table-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Nodes</mat-label>
+                  <input matInput 
+                         [value]="nodeSearchTerm()" 
+                         (input)="onNodeSearch($event)"
+                         placeholder="Enter node ID">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <div class="toggle-section">
+                  <mat-slide-toggle 
+                    [checked]="showCriticalOnly()"
+                    (change)="onCriticalFilter($event.checked)">
+                    Show Critical Path Only
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="filter-info">
+                  Showing {{ filteredNodeTimeDetails().length }} of {{ nodeTimeDetails().length }} nodes
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Time Analysis Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>
+                @switch (currentView()) {
+                  @case ('completion-times') { schedule }
+                  @case ('critical-path') { timeline }
+                  @case ('slack-analysis') { hourglass_empty }
+                  @default { schedule }
+                }
+              </mat-icon>
+              <mat-card-title>
+                @switch (currentView()) {
+                  @case ('completion-times') { Node Completion Times }
+                  @case ('critical-path') { Critical Path Analysis }
+                  @case ('slack-analysis') { Slack Time Analysis }
+                  @default { Time Analysis }
+                }
+              </mat-card-title>
+              <mat-card-subtitle>
+                @switch (currentView()) {
+                  @case ('completion-times') { When each activity is expected to complete }
+                  @case ('critical-path') { Nodes that determine project duration }
+                  @case ('slack-analysis') { Available scheduling flexibility per activity }
+                  @default { Activity timing and scheduling information }
+                }
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedNodeTimeDetails()" class="time-table">
+                  
+                  <ng-container matColumnDef="node">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="node-cell">
+                        <mat-icon [class]="'node-type-' + element.type">{{ getNodeTypeIcon(element.type) }}</mat-icon>
+                        <span class="node-id">{{ element.nodeId }}</span>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="type-chip" [class]="'type-' + element.type">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="completionTime">
+                    <th mat-header-cell *matHeaderCellDef>Completion Time</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="time-value completion">{{ formatTime(element.completionTime) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="slack">
+                    <th mat-header-cell *matHeaderCellDef>Slack Time</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="time-value slack" [class.zero-slack]="element.slack === 0">
+                        {{ formatTime(element.slack) }}
+                      </span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="earlyStart">
+                    <th mat-header-cell *matHeaderCellDef>Early Start</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="time-value early">{{ formatTime(element.earlyStart) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="lateStart">
+                    <th mat-header-cell *matHeaderCellDef>Late Start</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="time-value late">{{ formatTime(element.lateStart) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="status-cell">
+                        <mat-icon [class]="element.isCritical ? 'critical-icon' : 'regular-icon'">
+                          {{ getStatusIcon(element.isCritical) }}
+                        </mat-icon>
+                        <mat-chip class="status-chip" [class]="element.isCritical ? 'critical-status' : 'regular-status'">
+                          {{ element.isCritical ? 'Critical' : 'Regular' }}
+                        </mat-chip>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="nodeTimeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: nodeTimeColumns;" 
+                      class="time-row"
+                      [class.critical-row]="row.isCritical"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredNodeTimeDetails().length"
+                  [pageSize]="nodePageSize()"
+                  [pageIndex]="nodePageIndex()"
+                  [pageSizeOptions]="[25, 50, 100, 250]"
+                  (page)="onNodePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+    </div>
+  }
+</div>

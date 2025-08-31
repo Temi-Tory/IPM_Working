@@ -183,6 +183,7 @@ export interface ReachabilityScenario {
 
 export interface RawCapacityResult {
   node_max_flows: Record<string, number>;
+  edge_flows?: Record<string, number>; // Optional edge flow data
   bottlenecks: Record<string, any[]>; // Vector of mixed types (nodes, edges, symbols)
   critical_paths: Record<string, number[][]>; // Multiple paths per target
   network_utilization: number;

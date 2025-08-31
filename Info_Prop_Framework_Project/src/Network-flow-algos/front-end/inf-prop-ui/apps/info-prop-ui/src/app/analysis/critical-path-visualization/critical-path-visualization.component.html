@@ -1,0 +1,353 @@
+<div class="critical-path-analysis">
+  <!-- Header with Controls -->
+  <div class="analysis-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h2 class="analysis-title">
+          <mat-icon>timeline</mat-icon>
+          Critical Path Analysis
+        </h2>
+        <p class="analysis-subtitle">Visual project scheduling and critical path exploration</p>
+      </div>
+
+      <!-- Main View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="visualizationMode()" 
+          (change)="onVisualizationModeChange($event.value)"
+          class="view-toggle">
+          <mat-button-toggle value="network">
+            <mat-icon>account_tree</mat-icon>
+            Network View
+          </mat-button-toggle>
+          <mat-button-toggle value="timeline">
+            <mat-icon>gantt_chart</mat-icon>
+            Timeline View
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+    </div>
+
+    <!-- Advanced Controls -->
+    <div class="advanced-controls">
+      <!-- Scenario Selection -->
+      <div class="control-group" *ngIf="scenarioNames().length > 0">
+        <mat-form-field appearance="outline" class="scenario-select">
+          <mat-label>CPM Scenario</mat-label>
+          <mat-select 
+            [value]="selectedScenario()" 
+            (selectionChange)="onScenarioChange($event.value)">
+            @for (scenario of scenarioNames(); track scenario) {
+              <mat-option [value]="scenario">{{scenario}}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Path View Mode -->
+      <div class="control-group">
+        <mat-form-field appearance="outline" class="path-mode-select">
+          <mat-label>Path Display</mat-label>
+          <mat-select 
+            [value]="pathViewMode()" 
+            (selectionChange)="onPathViewModeChange($event.value)">
+            <mat-option value="critical-only">Critical Path Only</mat-option>
+            <mat-option value="with-slack">Critical + Slack</mat-option>
+            <mat-option value="all-paths">All Paths</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Display Options -->
+      <div class="control-group display-options">
+        <mat-slide-toggle 
+          [checked]="showTimingLabels()" 
+          (change)="onTimingLabelsToggle($event.checked)"
+          color="primary">
+          Timing Labels
+        </mat-slide-toggle>
+        
+        <mat-slide-toggle 
+          [checked]="showSlackIndicators()" 
+          (change)="onSlackIndicatorsToggle($event.checked)"
+          color="accent">
+          Slack Indicators
+        </mat-slide-toggle>
+
+        <mat-slide-toggle 
+          [checked]="animateCriticalPath()" 
+          (change)="onAnimationToggle($event.checked)"
+          color="warn">
+          Animate Path
+        </mat-slide-toggle>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="control-group action-buttons">
+        <button mat-icon-button (click)="centerView()" matTooltip="Center View">
+          <mat-icon>center_focus_strong</mat-icon>
+        </button>
+        <button mat-icon-button (click)="resetSimulation()" matTooltip="Reset Layout">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-card class="loading-card">
+        <mat-card-content>
+          <div class="loading-content">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Preparing critical path visualization...</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- No Data State -->
+  @else if (!hasData()) {
+    <div class="no-data-container">
+      <mat-card class="no-data-card">
+        <mat-card-content>
+          <div class="no-data-content">
+            <mat-icon class="no-data-icon">timeline</mat-icon>
+            <h3>No Critical Path Data Available</h3>
+            <p>Upload a network with CPM analysis to visualize critical paths and scheduling.</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- Main Visualization Container -->
+  @else {
+    <div class="visualization-container">
+      <!-- Project Summary Panel -->
+      <div class="summary-panel" *ngIf="projectSummary">
+        <mat-card class="summary-card">
+          <mat-card-content>
+            <div class="summary-grid">
+              <div class="summary-item critical">
+                <div class="summary-value">{{projectSummary.totalDuration | number:'1.1-1'}}</div>
+                <div class="summary-label">Project Duration</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-value">{{projectSummary.criticalActivities}}</div>
+                <div class="summary-label">Critical Activities</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-value">{{projectSummary.totalActivities}}</div>
+                <div class="summary-label">Total Activities</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-value">{{projectSummary.averageSlack | number:'1.1-1'}}</div>
+                <div class="summary-label">Avg. Slack</div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Dual View Container -->
+      <div class="dual-view-container">
+        <!-- Network Visualization -->
+        <div class="network-view" 
+             [class.active]="visualizationMode() === 'network'"
+             [class.hidden]="visualizationMode() !== 'network'">
+          <mat-card class="visualization-card network-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>account_tree</mat-icon>
+                Network Critical Path
+              </mat-card-title>
+              <mat-card-subtitle>
+                Interactive network with critical path highlighting
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="network-container" #networkContainer></div>
+              
+              <!-- Network Legend -->
+              <div class="network-legend">
+                <div class="legend-item">
+                  <div class="legend-marker critical-node"></div>
+                  <span>Critical Path</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-marker non-critical-node"></div>
+                  <span>Non-Critical</span>
+                </div>
+                <div class="legend-item" *ngIf="showSlackIndicators()">
+                  <div class="legend-marker slack-node"></div>
+                  <span>Has Slack</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Timeline Visualization -->
+        <div class="timeline-view" 
+             [class.active]="visualizationMode() === 'timeline'"
+             [class.hidden]="visualizationMode() !== 'timeline'">
+          <mat-card class="visualization-card timeline-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>gantt_chart</mat-icon>
+                Project Timeline
+              </mat-card-title>
+              <mat-card-subtitle>
+                Gantt-style scheduling with critical path and slack visualization
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="timeline-container" #timelineContainer></div>
+              
+              <!-- Timeline Legend -->
+              <div class="timeline-legend">
+                <div class="legend-item">
+                  <div class="legend-marker critical-bar"></div>
+                  <span>Critical Activity</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-marker non-critical-bar"></div>
+                  <span>Non-Critical Activity</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-marker slack-bar"></div>
+                  <span>Available Slack</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Node Details Panel -->
+      <div class="details-panel" *ngIf="selectedNodeData">
+        <mat-card class="details-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>info</mat-icon>
+              Activity Details
+            </mat-card-title>
+            <div class="close-details">
+              <button mat-icon-button (click)="selectedNodeId.set(null)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="details-grid">
+              <div class="detail-item">
+                <span class="detail-label">Node ID:</span>
+                <span class="detail-value">{{selectedNodeData.nodeId}}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Type:</span>
+                <mat-chip [class]="selectedNodeData.nodeType + '-chip'">
+                  <mat-icon>{{getNodeTypeIcon(selectedNodeData.nodeType)}}</mat-icon>
+                  {{selectedNodeData.nodeType | titlecase}}
+                </mat-chip>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Completion Time:</span>
+                <span class="detail-value">{{selectedNodeData.completionTime | number:'1.1-2'}}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Early Start:</span>
+                <span class="detail-value">{{selectedNodeData.earlyStart | number:'1.1-2'}}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Late Start:</span>
+                <span class="detail-value">{{selectedNodeData.lateStart | number:'1.1-2'}}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Slack:</span>
+                <span class="detail-value" [class.no-slack]="selectedNodeData.slack === 0">
+                  {{selectedNodeData.slack | number:'1.1-2'}}
+                </span>
+              </div>
+              <div class="detail-item status-item">
+                <span class="detail-label">Status:</span>
+                <mat-chip [color]="selectedNodeData.isCritical ? 'warn' : 'primary'">
+                  <mat-icon>{{selectedNodeData.isCritical ? 'priority_high' : 'schedule'}}</mat-icon>
+                  {{selectedNodeData.isCritical ? 'Critical' : 'Non-Critical'}}
+                </mat-chip>
+              </div>
+              <div class="detail-item" *ngIf="selectedNodeData.criticalPath">
+                <span class="detail-label">Critical Path:</span>
+                <mat-chip color="accent">
+                  <mat-icon>timeline</mat-icon>
+                  On Critical Path
+                </mat-chip>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Insights Panel -->
+    <div class="insights-panel" *ngIf="projectSummary">
+      <mat-card class="insights-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>lightbulb</mat-icon>
+            Project Insights
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="insights-grid">
+            <div class="insight-item">
+              <mat-icon class="insight-icon scheduling">schedule</mat-icon>
+              <div class="insight-content">
+                <h4>Scheduling Flexibility</h4>
+                <p *ngIf="projectSummary.averageSlack > 2">
+                  Good scheduling flexibility with average slack of {{projectSummary.averageSlack | number:'1.1-1'}} time units.
+                </p>
+                <p *ngIf="projectSummary.averageSlack <= 2 && projectSummary.averageSlack > 0.5">
+                  Limited scheduling flexibility. Monitor critical path closely.
+                </p>
+                <p *ngIf="projectSummary.averageSlack <= 0.5">
+                  Very tight schedule with minimal slack. Any delay will impact project completion.
+                </p>
+              </div>
+            </div>
+
+            <div class="insight-item">
+              <mat-icon class="insight-icon critical">priority_high</mat-icon>
+              <div class="insight-content">
+                <h4>Critical Path Analysis</h4>
+                <p>
+                  {{((projectSummary.criticalActivities / projectSummary.totalActivities) * 100) | number:'1.0-0'}}% of activities are critical.
+                  Critical path length: {{projectSummary.criticalPathLength}} nodes.
+                </p>
+              </div>
+            </div>
+
+            <div class="insight-item">
+              <mat-icon class="insight-icon complexity">complexity</mat-icon>
+              <div class="insight-content">
+                <h4>Project Complexity</h4>
+                <p *ngIf="projectSummary.totalActivities > 50">
+                  Complex project with {{projectSummary.totalActivities}} activities requiring careful coordination.
+                </p>
+                <p *ngIf="projectSummary.totalActivities <= 50 && projectSummary.totalActivities > 20">
+                  Medium complexity project with {{projectSummary.totalActivities}} activities.
+                </p>
+                <p *ngIf="projectSummary.totalActivities <= 20">
+                  Simple project structure with {{projectSummary.totalActivities}} activities.
+                </p>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>

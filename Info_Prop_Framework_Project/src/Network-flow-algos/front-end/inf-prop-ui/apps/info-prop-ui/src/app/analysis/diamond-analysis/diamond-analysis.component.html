@@ -1,0 +1,396 @@
+<div class="diamond-analysis-visual">
+  
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">diamond</mat-icon>
+          Diamond Analysis Visualization
+        </h1>
+        <p class="page-subtitle">Interactive network visualization of diamond subgraph structures</p>
+      </div>
+      
+      @if (diamondSummary(); as summary) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.rootDiamondsCount }}</div>
+            <div class="stat-label">Root Diamonds</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.uniqueDiamondsCount }}</div>
+            <div class="stat-label">Unique Diamonds</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ (summary.diamondEfficiency * 100).toFixed(0) }}%</div>
+            <div class="stat-label">Efficiency</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.joinNodesWithDiamonds }}</div>
+            <div class="stat-label">Join Nodes</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <h3>Analyzing Diamond Structures...</h3>
+      <p>Please wait while we identify computational diamonds</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Diamond Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!diamondAnalysis() && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">diamond</mat-icon>
+      <h3>No Diamond Analysis Data</h3>
+      <p>Run diamond analysis to identify computational optimization opportunities</p>
+      <button mat-raised-button color="primary" routerLink="/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Network
+      </button>
+    </div>
+  }
+
+  <!-- Main Visualization Content -->
+  @if (hasVisualizationData()) {
+    <div class="visualization-container">
+      
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="network">
+            <mat-icon>hub</mat-icon>
+            Network Visualization
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Network Statistics Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Network Statistics</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (networkStats(); as stats) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Total Nodes</span>
+                      <span class="metric-value">{{ stats.totalNodes }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Total Edges</span>
+                      <span class="metric-value">{{ stats.totalEdges }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Total Diamonds</span>
+                      <span class="metric-value">{{ stats.totalDiamonds }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Diamond Coverage</span>
+                      <span class="metric-value">{{ stats.diamondCoverage }}%</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Efficiency Metrics Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar [ngClass]="'efficiency-' + getEfficiencyColor(diamondSummary()?.diamondEfficiency || 0)">
+                  {{ getEfficiencyIcon(diamondSummary()?.diamondEfficiency || 0) }}
+                </mat-icon>
+                <mat-card-title>Optimization Metrics</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="efficiency-display">
+                    <div class="efficiency-circle" [attr.data-efficiency]="(summary.diamondEfficiency * 100).toFixed(0)">
+                      <div class="efficiency-value">{{ (summary.diamondEfficiency * 100).toFixed(0) }}%</div>
+                      <div class="efficiency-label">Diamond Efficiency</div>
+                    </div>
+                    <div class="efficiency-details">
+                      <div class="detail-item">
+                        <span class="detail-label">Potential Savings</span>
+                        <span class="detail-value">{{ (summary.diamondEfficiency * 100).toFixed(1) }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Diamond Types Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>category</mat-icon>
+                <mat-card-title>Diamond Types</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="diamond-types">
+                    <div class="type-item root">
+                      <div class="type-indicator"></div>
+                      <div class="type-info">
+                        <div class="type-count">{{ summary.rootDiamondsCount }}</div>
+                        <div class="type-label">Root Diamonds</div>
+                        <div class="type-description">Original diamond structures at join nodes</div>
+                      </div>
+                    </div>
+                    <div class="type-item unique">
+                      <div class="type-indicator"></div>
+                      <div class="type-info">
+                        <div class="type-count">{{ summary.uniqueDiamondsCount }}</div>
+                        <div class="type-label">Unique Diamonds</div>
+                        <div class="type-description">Distinct diamond patterns for reuse</div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Visual Legend Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>palette</mat-icon>
+                <mat-card-title>Visual Legend</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="visual-legend">
+                  <div class="legend-item">
+                    <div class="legend-shape diamond root"></div>
+                    <span class="legend-label">Join Nodes (Root Diamonds)</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-shape circle conditioning"></div>
+                    <span class="legend-label">Conditioning Nodes</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-shape circle root"></div>
+                    <span class="legend-label">Root Diamond Nodes</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-shape circle unique"></div>
+                    <span class="legend-label">Unique Diamond Nodes</span>
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-shape circle regular"></div>
+                    <span class="legend-label">Regular Network Nodes</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Instructions Card -->
+          <mat-card class="instructions-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>help_outline</mat-icon>
+              <mat-card-title>How to Use the Diamond Visualization</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="instruction-list">
+                <div class="instruction-item">
+                  <mat-icon>visibility</mat-icon>
+                  <span>Switch to Network Visualization to see diamond structures overlaid on the network graph</span>
+                </div>
+                <div class="instruction-item">
+                  <mat-icon>mouse</mat-icon>
+                  <span>Click diamond-shaped nodes (join nodes) to view detailed diamond information</span>
+                </div>
+                <div class="instruction-item">
+                  <mat-icon>pan_tool</mat-icon>
+                  <span>Drag nodes to reposition and explore diamond substructures</span>
+                </div>
+                <div class="instruction-item">
+                  <mat-icon>zoom_in</mat-icon>
+                  <span>Use mouse wheel to zoom in and focus on specific diamond patterns</span>
+                </div>
+                <div class="instruction-item">
+                  <mat-icon>tune</mat-icon>
+                  <span>Toggle diamond types and highlighting to focus on specific structures</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Network Visualization Tab -->
+      @if (currentView() === 'network') {
+        <div class="network-visualization-content">
+          
+          <!-- Visualization Controls -->
+          <div class="visualization-controls">
+            <mat-card class="controls-card">
+              <mat-card-content>
+                <div class="controls-row">
+                  
+                  <!-- Diamond Type Toggles -->
+                  <div class="control-group">
+                    <h4>Diamond Types</h4>
+                    <div class="toggle-controls">
+                      <mat-slide-toggle 
+                        [checked]="showRootDiamonds()" 
+                        (change)="toggleRootDiamonds()"
+                        color="primary">
+                        <span class="toggle-label">
+                          <div class="color-indicator root"></div>
+                          Root Diamonds
+                        </span>
+                      </mat-slide-toggle>
+                      <mat-slide-toggle 
+                        [checked]="showUniqueDiamonds()" 
+                        (change)="toggleUniqueDiamonds()"
+                        color="primary">
+                        <span class="toggle-label">
+                          <div class="color-indicator unique"></div>
+                          Unique Diamonds
+                        </span>
+                      </mat-slide-toggle>
+                    </div>
+                  </div>
+
+                  <mat-divider [vertical]="true"></mat-divider>
+
+                  <!-- Highlighting Options -->
+                  <div class="control-group">
+                    <h4>Highlighting</h4>
+                    <div class="toggle-controls">
+                      <mat-slide-toggle 
+                        [checked]="highlightConditioningNodes()" 
+                        (change)="toggleConditioningHighlight()"
+                        color="accent">
+                        <span class="toggle-label">
+                          <div class="color-indicator conditioning"></div>
+                          Conditioning Nodes
+                        </span>
+                      </mat-slide-toggle>
+                    </div>
+                  </div>
+
+                  <mat-divider [vertical]="true"></mat-divider>
+
+                  <!-- Graph Controls -->
+                  <div class="control-group">
+                    <h4>Graph Controls</h4>
+                    <div class="button-controls">
+                      <button mat-icon-button (click)="centerGraph()" matTooltip="Center Graph">
+                        <mat-icon>center_focus_strong</mat-icon>
+                      </button>
+                      <button mat-icon-button (click)="restartSimulation()" matTooltip="Restart Layout">
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Network Visualization Container -->
+          <div class="network-container">
+            <div #networkContainer class="network-canvas"></div>
+            
+            <!-- Selected Diamond Info -->
+            @if (selectedDiamondId()) {
+              <div class="selected-diamond-info">
+                <mat-card class="selection-card">
+                  <mat-card-header>
+                    <mat-icon mat-card-avatar>diamond</mat-icon>
+                    <mat-card-title>Selected Diamond</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <p>Diamond ID: {{ selectedDiamondId() }}</p>
+                    <button mat-button color="primary" (click)="selectedDiamondId.set(null)">
+                      <mat-icon>clear</mat-icon>
+                      Clear Selection
+                    </button>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+            }
+          </div>
+
+          <!-- Network Statistics Panel -->
+          <div class="network-stats-panel">
+            <mat-card class="stats-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Live Network Stats</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (networkStats(); as stats) {
+                  <div class="live-stats">
+                    <div class="stat-item">
+                      <div class="stat-icon"><mat-icon>grain</mat-icon></div>
+                      <div class="stat-content">
+                        <div class="stat-number">{{ stats.totalDiamonds }}</div>
+                        <div class="stat-text">Total Diamonds</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon"><mat-icon>hub</mat-icon></div>
+                      <div class="stat-content">
+                        <div class="stat-number">{{ stats.totalNodes }}</div>
+                        <div class="stat-text">Network Nodes</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon"><mat-icon>timeline</mat-icon></div>
+                      <div class="stat-content">
+                        <div class="stat-number">{{ stats.totalEdges }}</div>
+                        <div class="stat-text">Network Edges</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon"><mat-icon>donut_small</mat-icon></div>
+                      <div class="stat-content">
+                        <div class="stat-number">{{ stats.diamondCoverage }}%</div>
+                        <div class="stat-text">Diamond Coverage</div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -115,6 +115,54 @@
         </div>
       </a>
       
+      <a mat-list-item
+         routerLink="/exact-inference"
+         [class.disabled]="!analysisState.exactInferenceTab().enabled"
+         [class.completed]="analysisState.exactInferenceTab().completed"
+         [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'Exact Inference - Belief propagation analysis' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>psychology</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Exact Inference</div>
+          <div class="nav-subtitle">Belief propagation analysis</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.exactInferenceTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.exactInferenceTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
+      </a>
+      
+      <a mat-list-item
+         routerLink="/time-analysis"
+         [class.disabled]="!analysisState.criticalPathTab().enabled"
+         [class.completed]="analysisState.criticalPathTab().completed"
+         [attr.tabindex]="!analysisState.criticalPathTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'Critical Path Analysis - Time-based scheduling analysis' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>schedule</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Critical Path Analysis</div>
+          <div class="nav-subtitle">Time-based scheduling analysis</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.criticalPathTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.criticalPathTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
+      </a>
+      
    
     </mat-nav-list>
   </mat-sidenav>

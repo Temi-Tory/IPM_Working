@@ -127,6 +127,9 @@ export class AnalysisStateService {
       // Update network structure data
       this.setNetworkData(analysisData.network_structure);
       
+      // Extract and set individual analysis results
+      this.extractAnalysisResults(analysisData);
+      
       // Mark tabs as completed based on available results
       if (analysisData.network_structure) {
         console.log('✅ Marking network-structure as completed');
@@ -306,12 +309,119 @@ export class AnalysisStateService {
     });
   }
 
+  // Method to load diamond analysis using individual endpoint
+  loadDiamondAnalysis(networkPath: string, useDefaultPriors: boolean = true): Observable<void> {
+    this.setLoading(true);
+    this.setError(null);
+    this.setCurrentNetworkPath(networkPath);
+
+    return new Observable(observer => {
+      this.diamondAnalysisService.analyzeDiamonds({ networkPath, useDefaultPriors })
+        .subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.diamondAnalysisSignal.set(response);
+              this.markTabCompleted('diamonds');
+              observer.next();
+              observer.complete();
+            } else {
+              const error = `Diamond analysis failed: ${response.message}`;
+              this.setError(error);
+              observer.error(error);
+            }
+            this.setLoading(false);
+          },
+          error: (error) => {
+            const errorMessage = `Failed to analyze diamonds: ${error.message || error}`;
+            this.setError(errorMessage);
+            this.setLoading(false);
+            observer.error(error);
+          }
+        });
+    });
+  }
+
+  // Extract and set individual analysis results from comprehensive analysis
+  private extractAnalysisResults(analysisData: any): void {
+    console.log('🔍 Extracting individual analysis results...');
+    
+    // Extract diamond analysis (either direct or from first reachability scenario)
+    let diamondAnalysis = analysisData.diamond_analysis;
+    if (!diamondAnalysis && analysisData.reachability_scenarios) {
+      const firstScenario = Object.values(analysisData.reachability_scenarios)[0] as any;
+      diamondAnalysis = firstScenario?.diamond_analysis;
+    }
+    
+    if (diamondAnalysis) {
+      console.log('💎 Setting diamond analysis data:', diamondAnalysis);
+      this.diamondAnalysisSignal.set({
+        success: true,
+        message: 'Diamond analysis completed',
+        network_name: analysisData.network_name || 'Current Network',
+        timestamp: new Date().toISOString(),
+        diamond_analysis: diamondAnalysis
+      });
+    }
+    
+    // Extract reachability analysis
+    if (analysisData.reachability_scenarios) {
+      console.log('🔄 Setting reachability analysis data');
+      // For now, we'll set the first scenario as the primary reachability analysis
+      const firstScenarioKey = Object.keys(analysisData.reachability_scenarios)[0];
+      const firstScenario = analysisData.reachability_scenarios[firstScenarioKey];
+      
+      this.reachabilityAnalysisSignal.set({
+        success: true,
+        message: 'Reachability analysis completed',
+        network_name: analysisData.network_name || 'Current Network',
+        timestamp: new Date().toISOString(),
+        reachability_result: firstScenario
+      });
+    }
+    
+    // Extract capacity analysis
+    if (analysisData.capacity_scenarios) {
+      console.log('🔄 Setting capacity analysis data');
+      const firstScenarioKey = Object.keys(analysisData.capacity_scenarios)[0];
+      const firstScenario = analysisData.capacity_scenarios[firstScenarioKey];
+      
+      this.capacityAnalysisSignal.set({
+        success: true,
+        message: 'Capacity analysis completed',
+        network_name: analysisData.network_name || 'Current Network',
+        timestamp: new Date().toISOString(),
+        capacity_result: firstScenario
+      });
+    }
+    
+    // Extract CPM analysis
+    if (analysisData.cpm_scenarios) {
+      console.log('⏱️ Setting CPM analysis data');
+      const firstScenarioKey = Object.keys(analysisData.cpm_scenarios)[0];
+      const firstScenario = analysisData.cpm_scenarios[firstScenarioKey];
+      
+      this.cpmAnalysisSignal.set({
+        success: true,
+        message: 'CPM analysis completed',
+        network_name: analysisData.network_name || 'Current Network',
+        timestamp: new Date().toISOString(),
+        cmp_result: firstScenario
+      });
+    }
+  }
+
   clearState(): void {
     this.networkDataSignal.set(null);
     this.analysisResultsSignal.set(null);
     this.isLoadingSignal.set(false);
     this.errorSignal.set(null);
     this.currentNetworkPathSignal.set(null);
+    
+    // Clear individual analysis results
+    this.diamondAnalysisSignal.set(null);
+    this.reachabilityAnalysisSignal.set(null);
+    this.capacityAnalysisSignal.set(null);
+    this.cpmAnalysisSignal.set(null);
 
     // Reset all tabs
     this.uploadTabSignal.set({ enabled: true, completed: false, hasData: false });

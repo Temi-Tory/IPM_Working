@@ -1,0 +1,638 @@
+<div class="cost-analysis-dashboard">
+  
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">account_balance</mat-icon>
+          Cost-based CPM Analysis
+        </h1>
+        <p class="page-subtitle">Critical Path Method cost analysis with budget optimization insights</p>
+      </div>
+      
+      @if (costSummary(); as summary) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ formatCurrency(summary.totalProjectCost) }}</div>
+            <div class="stat-label">Total Cost</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ formatCurrency(summary.mostExpensivePathCost) }}</div>
+            <div class="stat-label">Critical Path</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ formatCurrency(summary.averageNodeCost) }}</div>
+            <div class="stat-label">Avg Node Cost</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ formatPercentage(summary.budgetEfficiency) }}</div>
+            <div class="stat-label">Budget Efficiency</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-icon class="loading-spinner">refresh</mat-icon>
+      <h3>Analyzing Cost Structure...</h3>
+      <p>Please wait while we process your CPM cost data</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!currentScenario() && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">account_balance</mat-icon>
+      <h3>No Cost Analysis Data</h3>
+      <p>Upload a network with CPM cost data to begin cost analysis</p>
+      <button mat-raised-button color="primary" routerLink="/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Network
+      </button>
+    </div>
+  }
+
+  <!-- Main Dashboard Content -->
+  @if (currentScenario(); as scenario) {
+    <div class="dashboard-content">
+      
+      <!-- Scenario Selection -->
+      @if (availableScenarios().length > 1) {
+        <div class="scenario-selector">
+          <mat-form-field appearance="outline">
+            <mat-label>Cost Analysis Scenario</mat-label>
+            <mat-select [value]="selectedScenario()" (selectionChange)="onScenarioChange($event.value)">
+              @for (scenario of availableScenarios(); track scenario.key) {
+                <mat-option [value]="scenario.key">{{ scenario.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
+      
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="breakdown">
+            <mat-icon>receipt</mat-icon>
+            Cost Breakdown
+          </mat-button-toggle>
+          <mat-button-toggle value="paths">
+            <mat-icon>route</mat-icon>
+            Cost Paths
+          </mat-button-toggle>
+          <mat-button-toggle value="optimization">
+            <mat-icon>tune</mat-icon>
+            Optimization
+          </mat-button-toggle>
+          @if (timeCostComparison().hasTimeData) {
+            <mat-button-toggle value="comparison">
+              <mat-icon>compare_arrows</mat-icon>
+              Time vs Cost
+            </mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Cost Summary Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_balance_wallet</mat-icon>
+                <mat-card-title>Cost Summary</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (costSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Most Expensive Path</span>
+                      <span class="metric-value">{{ formatCurrency(summary.mostExpensivePathCost) }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Cost Variance</span>
+                      <span class="metric-value">{{ formatCurrency(Math.sqrt(summary.costVariance)) }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Budget Efficiency</span>
+                      <span class="metric-value">{{ formatPercentage(summary.budgetEfficiency) }}</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Critical Path Cost Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>timeline</mat-icon>
+                <mat-card-title>Critical Path</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (costSummary(); as summary) {
+                  <div class="critical-path-info">
+                    <div class="path-cost">
+                      <span class="cost-value">{{ formatCurrency(summary.mostExpensivePathCost) }}</span>
+                      <span class="cost-label">Critical Path Cost</span>
+                    </div>
+                    <div class="path-nodes">
+                      <div class="nodes-label">Path Nodes:</div>
+                      <div class="nodes-chips">
+                        @for (nodeId of summary.mostExpensivePath; track nodeId) {
+                          <mat-chip class="path-node-chip critical">{{ nodeId }}</mat-chip>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Resource Cost Analysis Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Resource Analysis</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (scenario.cost_result) {
+                  <div class="resource-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Nodes with Cost Data</span>
+                      <span class="metric-value">{{ scenario.node_costs_count }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Edges with Cost Data</span>
+                      <span class="metric-value">{{ scenario.edge_costs_count }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Analysis Time</span>
+                      <span class="metric-value">{{ (scenario.computation_time * 1000).toFixed(0) }}ms</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Budget Analysis Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>pie_chart</mat-icon>
+                <mat-card-title>Budget Distribution</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (costSummary(); as summary) {
+                  <div class="budget-distribution">
+                    <div class="distribution-item critical-path">
+                      <div class="item-label">Critical Path</div>
+                      <div class="item-bar">
+                        <div class="bar-fill critical" [style.width.%]="summary.budgetEfficiency"></div>
+                      </div>
+                      <div class="item-value">{{ formatPercentage(summary.budgetEfficiency) }}</div>
+                    </div>
+                    <div class="distribution-item non-critical">
+                      <div class="item-label">Non-Critical</div>
+                      <div class="item-bar">
+                        <div class="bar-fill non-critical" [style.width.%]="100 - summary.budgetEfficiency"></div>
+                      </div>
+                      <div class="item-value">{{ formatPercentage(100 - summary.budgetEfficiency) }}</div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+      }
+
+      <!-- Cost Breakdown Tab -->
+      @if (currentView() === 'breakdown') {
+        <div class="breakdown-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Nodes</mat-label>
+                  <input matInput 
+                         [value]="costSearchTerm()" 
+                         (input)="onCostSearch($event)"
+                         placeholder="Enter node ID">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Cost Range</mat-label>
+                  <mat-select [value]="selectedCostRange()" 
+                             (selectionChange)="onCostRangeFilter($event.value)">
+                    <mat-option value="all">All Costs</mat-option>
+                    <mat-option value="high">High Cost (>150% avg)</mat-option>
+                    <mat-option value="medium">Medium Cost (50%-150% avg)</mat-option>
+                    <mat-option value="low">Low Cost (<50% avg)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-slide-toggle
+                  [checked]="showOnlyCriticalPath()"
+                  (change)="onCriticalPathToggle($event.checked)"
+                  class="critical-filter">
+                  Critical Path Only
+                </mat-slide-toggle>
+
+                <div class="filter-info">
+                  Showing {{ filteredCostBreakdown().length }} of {{ costBreakdown().length }} nodes
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Cost Breakdown Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>receipt</mat-icon>
+              <mat-card-title>Cost Breakdown</mat-card-title>
+              <mat-card-subtitle>Detailed node-by-node cost analysis</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedCostBreakdown()" class="breakdown-table">
+                  
+                  <ng-container matColumnDef="nodeId">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="node-cell">
+                        <mat-icon [class.critical]="element.isOnCriticalPath">grain</mat-icon>
+                        <span class="node-id">{{ element.nodeId }}</span>
+                        @if (element.isOnCriticalPath) {
+                          <mat-chip class="critical-chip">Critical</mat-chip>
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="nodeCost">
+                    <th mat-header-cell *matHeaderCellDef>Node Cost</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="cost-value">{{ formatCurrency(element.nodeCost) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="accumulatedCost">
+                    <th mat-header-cell *matHeaderCellDef>Accumulated Cost</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="cost-value accumulated">{{ formatCurrency(element.accumulatedCost) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="contribution">
+                    <th mat-header-cell *matHeaderCellDef>Budget %</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="contribution-cell">
+                        <div class="contribution-bar">
+                          <div class="bar-fill" [style.width.%]="element.costContribution"></div>
+                        </div>
+                        <span class="contribution-value">{{ formatPercentage(element.costContribution) }}</span>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="critical">
+                    <th mat-header-cell *matHeaderCellDef>Critical</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-icon [class.critical]="element.isOnCriticalPath">
+                        {{ element.isOnCriticalPath ? 'check_circle' : 'radio_button_unchecked' }}
+                      </mat-icon>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="type-chip" [class]="'type-' + element.nodeType.toLowerCase().replace(' + ', '-')">
+                        {{ element.nodeType }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              matTooltip="View node details">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="breakdownColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: breakdownColumns;" class="breakdown-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredCostBreakdown().length"
+                  [pageSize]="breakdownPageSize()"
+                  [pageIndex]="breakdownPageIndex()"
+                  [pageSizeOptions]="[25, 50, 100, 250]"
+                  (page)="onBreakdownPageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Cost Paths Tab -->
+      @if (currentView() === 'paths') {
+        <div class="paths-content">
+          
+          <!-- Cost Paths Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>route</mat-icon>
+              <mat-card-title>Cost Path Analysis</mat-card-title>
+              <mat-card-subtitle>Most expensive paths through the network</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedCostPaths()" class="paths-table">
+                  
+                  <ng-container matColumnDef="path">
+                    <th mat-header-cell *matHeaderCellDef>Path</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="path-nodes">
+                        @for (nodeId of element.path; track nodeId; let last = $last) {
+                          <span class="path-node">{{ nodeId }}</span>
+                          @if (!last) {
+                            <mat-icon class="path-arrow">arrow_forward</mat-icon>
+                          }
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="totalCost">
+                    <th mat-header-cell *matHeaderCellDef>Total Cost</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="cost-value total">{{ formatCurrency(element.totalCost) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="length">
+                    <th mat-header-cell *matHeaderCellDef>Length</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="path-length">{{ element.pathLength }} nodes</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="avgCost">
+                    <th mat-header-cell *matHeaderCellDef>Avg Cost/Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="cost-value avg">{{ formatCurrency(element.averageCostPerNode) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="efficiency">
+                    <th mat-header-cell *matHeaderCellDef>Efficiency</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="efficiency-cell">
+                        <div class="efficiency-bar">
+                          <div class="bar-fill" [style.width.%]="(element.costEfficiency / (costPaths()[0].costEfficiency || 1)) * 100"></div>
+                        </div>
+                        <span class="efficiency-value">{{ formatCurrency(element.costEfficiency) }}/node</span>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              matTooltip="Analyze path">
+                        <mat-icon>analytics</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="pathColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: pathColumns;" class="path-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="costPaths().length"
+                  [pageSize]="pathsPageSize()"
+                  [pageIndex]="pathsPageIndex()"
+                  [pageSizeOptions]="[10, 25, 50, 100]"
+                  (page)="onPathsPageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Optimization Tab -->
+      @if (currentView() === 'optimization') {
+        <div class="optimization-content">
+          
+          <!-- Cost Optimization Insights -->
+          <mat-card class="insights-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>tune</mat-icon>
+              <mat-card-title>Cost Optimization Insights</mat-card-title>
+              <mat-card-subtitle>Actionable recommendations for cost reduction</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="insights-list">
+                @for (insight of costOptimizationInsights(); track insight.title) {
+                  <mat-expansion-panel class="insight-panel" [class]="'insight-' + insight.type">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon class="insight-icon">
+                          @switch (insight.type) {
+                            @case ('optimization') { tune }
+                            @case ('warning') { warning }
+                            @case ('success') { check_circle }
+                            @case ('info') { info }
+                            @default { help }
+                          }
+                        </mat-icon>
+                        <span class="insight-title">{{ insight.title }}</span>
+                        <mat-chip class="impact-chip" [class]="'impact-' + insight.impact">
+                          {{ insight.impact | titlecase }} Impact
+                        </mat-chip>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <div class="insight-content">
+                      <p class="insight-description">{{ insight.description }}</p>
+                      @if (insight.recommendedAction) {
+                        <div class="recommended-action">
+                          <strong>Recommended Action:</strong>
+                          <p>{{ insight.recommendedAction }}</p>
+                        </div>
+                      }
+                      @if (insight.nodeIds && insight.nodeIds.length > 0) {
+                        <div class="affected-nodes">
+                          <strong>Affected Nodes:</strong>
+                          <div class="node-chips">
+                            @for (nodeId of insight.nodeIds; track nodeId) {
+                              <mat-chip class="node-chip">{{ nodeId }}</mat-chip>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Time vs Cost Comparison Tab -->
+      @if (currentView() === 'comparison' && timeCostComparison().hasTimeData) {
+        <div class="comparison-content">
+          
+          <!-- Comparison Overview -->
+          <mat-card class="comparison-overview-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>compare_arrows</mat-icon>
+              <mat-card-title>Time vs Cost Analysis</mat-card-title>
+              <mat-card-subtitle>Understanding time-cost relationships</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              @if (timeCostComparison(); as comparison) {
+                <div class="comparison-metrics">
+                  <div class="correlation-section">
+                    <div class="correlation-value">
+                      <span class="correlation-number">{{ comparison.correlationCoefficient.toFixed(3) }}</span>
+                      <span class="correlation-label">Correlation Coefficient</span>
+                    </div>
+                    <div class="correlation-interpretation">
+                      @if (comparison.correlationCoefficient > 0.7) {
+                        <span class="interpretation strong-positive">Strong Positive Correlation</span>
+                      } @else if (comparison.correlationCoefficient > 0.3) {
+                        <span class="interpretation moderate-positive">Moderate Positive Correlation</span>
+                      } @else if (comparison.correlationCoefficient > -0.3) {
+                        <span class="interpretation weak">Weak Correlation</span>
+                      } @else if (comparison.correlationCoefficient > -0.7) {
+                        <span class="interpretation moderate-negative">Moderate Negative Correlation</span>
+                      } @else {
+                        <span class="interpretation strong-negative">Strong Negative Correlation</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="insights-section">
+                    <h4>Tradeoff Insights:</h4>
+                    <ul class="insights-list">
+                      @for (insight of comparison.tradeoffInsights; track insight) {
+                        <li>{{ insight }}</li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Comparison Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>table_chart</mat-icon>
+              <mat-card-title>Node Comparison</mat-card-title>
+              <mat-card-subtitle>Time and cost values for each node</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="timeCostComparison().nodeComparisons" class="comparison-table">
+                  
+                  <ng-container matColumnDef="nodeId">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="node-id">{{ element.nodeId }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="timeValue">
+                    <th mat-header-cell *matHeaderCellDef>Time Value</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="time-value">{{ element.timeValue.toFixed(2) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="costValue">
+                    <th mat-header-cell *matHeaderCellDef>Cost Value</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="cost-value">{{ formatCurrency(element.costValue) }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="timeRank">
+                    <th mat-header-cell *matHeaderCellDef>Time Rank</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="rank-value">{{ element.timeRank }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="costRank">
+                    <th mat-header-cell *matHeaderCellDef>Cost Rank</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="rank-value">{{ element.costRank }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="tradeoff">
+                    <th mat-header-cell *matHeaderCellDef>Tradeoff Score</th>
+                    <td mat-cell *matCellDef="let element">
+                      <div class="tradeoff-cell">
+                        <div class="tradeoff-bar">
+                          <div class="bar-fill" [style.width.%]="(element.tradeoffScore / (timeCostComparison().nodeComparisons[0].tradeoffScore || 1)) * 100"></div>
+                        </div>
+                        <span class="tradeoff-value">{{ element.tradeoffScore }}</span>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="['nodeId', 'timeValue', 'costValue', 'timeRank', 'costRank', 'tradeoff']"></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['nodeId', 'timeValue', 'costValue', 'timeRank', 'costRank', 'tradeoff'];" class="comparison-row"></tr>
+                </table>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+    </div>
+  }
+</div>

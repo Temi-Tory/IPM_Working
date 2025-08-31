@@ -1,0 +1,319 @@
+.root-diamond-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+
+  .dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f5f5f5;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .header-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: #1976d2;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 500;
+          color: #333;
+        }
+
+        p {
+          margin: 4px 0 0 0;
+          color: #666;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .dialog-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .property-card {
+      margin-bottom: 0;
+
+      mat-card-header {
+        margin-bottom: 16px;
+
+        mat-icon[mat-card-avatar] {
+          background: #1976d2;
+          color: white;
+          font-size: 20px;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+
+      .property-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+
+        .property-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .property-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 500;
+          }
+
+          .property-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+
+            &.join-node {
+              color: #1976d2;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+
+      .node-chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+
+        .conditioning-chip {
+          background: #e3f2fd;
+          color: #1976d2;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #bbdefb;
+            transform: translateY(-1px);
+          }
+
+          mat-icon {
+            color: #1976d2;
+          }
+        }
+
+        .relevant-chip {
+          background: #f3e5f5;
+          color: #7b1fa2;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #e1bee7;
+            transform: translateY(-1px);
+          }
+
+          mat-icon {
+            color: #7b1fa2;
+          }
+        }
+
+        .parent-chip {
+          background: #fff3e0;
+          color: #f57c00;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #ffe0b2;
+            transform: translateY(-1px);
+          }
+
+          mat-icon {
+            color: #f57c00;
+          }
+        }
+      }
+
+      .empty-state {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        font-style: italic;
+        padding: 16px;
+        background: #f9f9f9;
+        border-radius: 4px;
+
+        mat-icon {
+          color: #999;
+        }
+      }
+
+      .edges-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+
+        .edge-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: #f5f5f5;
+          border-radius: 4px;
+          font-family: monospace;
+
+          .edge-source,
+          .edge-target {
+            font-weight: 500;
+            color: #333;
+          }
+
+          .edge-arrow {
+            color: #666;
+            font-size: 16px;
+          }
+        }
+
+        .more-edges {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          color: #666;
+          font-style: italic;
+          justify-content: center;
+          background: #fafafa;
+          border-radius: 4px;
+        }
+      }
+
+      &.analysis-summary {
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 16px;
+
+          .summary-item {
+            text-align: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+
+            .summary-value {
+              font-size: 20px;
+              font-weight: 600;
+              color: #1976d2;
+              margin-bottom: 4px;
+            }
+
+            .summary-label {
+              font-size: 12px;
+              color: #666;
+              text-transform: uppercase;
+            }
+          }
+        }
+
+        .summary-description {
+          margin-top: 16px;
+
+          p {
+            margin: 0;
+            line-height: 1.6;
+            color: #555;
+          }
+        }
+      }
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    background: #fafafa;
+
+    button {
+      min-width: 120px;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .root-diamond-dialog {
+    .dialog-content {
+      padding: 12px 16px;
+
+      .property-card {
+        .property-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .node-chips-container {
+          gap: 6px;
+        }
+
+        &.analysis-summary {
+          .summary-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+        }
+      }
+    }
+
+    .dialog-header {
+      padding: 12px 16px;
+
+      .header-content {
+        gap: 12px;
+
+        .header-icon {
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
+
+        .header-text {
+          h2 {
+            font-size: 20px;
+          }
+        }
+      }
+    }
+
+    .dialog-actions {
+      padding: 12px 16px;
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

@@ -35,7 +35,8 @@
       "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui\\apps\\info-prop-ui\\src\\app\\analysis\\network-structure/**)",
       "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui/**)",
       "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui\\apps\\info-prop-ui\\src\\app\\shared/**)",
-      "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project/**)"
+      "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project/**)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
