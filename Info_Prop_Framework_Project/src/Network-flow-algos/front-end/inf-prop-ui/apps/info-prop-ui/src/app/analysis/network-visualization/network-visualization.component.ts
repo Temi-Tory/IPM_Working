@@ -339,8 +339,8 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
         if (!event.active && this.simulation) {
           this.simulation.alphaTarget(0);
         }
-        d.fx = null;
-        d.fy = null;
+        // Keep the node fixed at its dragged position
+        // Don't set fx and fy to null - this allows nodes to stay where dragged
       });
   }
 
@@ -463,6 +463,11 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
 
   restartSimulation(): void {
     if (this.simulation) {
+      // Release all fixed positions to allow natural force simulation
+      this.nodes.forEach(node => {
+        node.fx = null;
+        node.fy = null;
+      });
       this.simulation.alpha(1).restart();
     }
   }
