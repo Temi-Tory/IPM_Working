@@ -1,6 +1,6 @@
-import { Component, inject, computed, signal, effect, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,25 +9,24 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatButtonToggleModule, MatButtonToggleChange } from '@angular/material/button-toggle';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSliderModule } from '@angular/material/slider';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 
-
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { NetworkStructure, EnhancedNetworkStructure } from '../../shared/models/network-analysis.models';
-import { EnhancedDataParsingService } from '../../shared/services/enhanced-data-parsing.service';
+import { NetworkStructure } from '../../shared/models/network-analysis.models';
+import { NodeDetailsDialogComponent } from './node-details-dialog.component';
+import { EdgeDetailsDialogComponent } from './edge-details-dialog.component';
 
 @Component({
   selector: 'app-network-structure',
   standalone: true,
   imports: [
+    CommonModule,
     RouterModule,
     MatCardModule,
     MatIconModule,
@@ -36,235 +35,227 @@ import { EnhancedDataParsingService } from '../../shared/services/enhanced-data-
     MatTabsModule,
     MatButtonToggleModule,
     MatButtonModule,
-    MatProgressBarModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatSliderModule,
     MatPaginatorModule,
-    MatExpansionModule,
     MatTooltipModule,
+    MatDialogModule,
     FormsModule
-],
+  ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
-export class NetworkStructureComponent/*  implements OnInit  */{
+export class NetworkStructureComponent {
   private analysisState = inject(AnalysisStateService);
-  private elementRef = inject(ElementRef);
-  private enhancedDataParsingService = inject(EnhancedDataParsingService);
-  
-  // Focus management
-  private previousFocusElement: HTMLElement | null = null;
+  private dialog = inject(MatDialog);
 
+  // Core data signals
   networkData = computed(() => this.analysisState.networkData());
-  enhancedNetworkData = computed(() => this.analysisState.enhancedNetworkData());
   isLoading = computed(() => this.analysisState.isLoading());
   error = computed(() => this.analysisState.error());
 
-  // Computed data summary based on available_data_files
-  dataSummary = computed(() => this.generateDataSummary());
+  // View state
+  currentView = signal<'overview' | 'nodes' | 'edges'>('overview');
+  
+  // Pagination
+  nodePageSize = signal(50);
+  nodePageIndex = signal(0);
+  edgePageSize = signal(100);
+  edgePageIndex = signal(0);
 
-  constructor() {
-    // No need for effect - we'll use computed properties
-  }
+  // Filters
+  nodeSearchTerm = signal('');
+  selectedNodeTypes = signal<string[]>([]);
 
-  /**
-   * Generate data summary based on available_data_files from backend
-   */
-  private generateDataSummary(): {
-    available_data_types: string[];
-    data_types_count: number;
-    has_node_priors: boolean;
-    has_edge_probabilities: boolean;
-    has_capacities: boolean;
-    has_cmp_data: boolean;
-  } {
+  // Table columns
+  nodeColumns = ['node', 'type', 'inDegree', 'outDegree', 'actions'];
+  edgeColumns = ['source', 'target', 'type', 'actions'];
+
+  // Computed properties for dashboard
+  networkSummary = computed(() => {
+    const data = this.networkData();
+    if (!data) return null;
+
+    return {
+      totalNodes: data.total_nodes,
+      totalEdges: data.total_edges,
+      sourceNodes: data.source_nodes.length,
+      sinkNodes: data.sink_nodes.length,
+      forkNodes: data.fork_nodes.length,
+      joinNodes: data.join_nodes.length,
+      layers: data.iteration_sets_count,
+      computationTime: data.computation_time
+    };
+  });
+
+  // Network insights
+  networkInsights = computed(() => {
+    const data = this.networkData();
+    if (!data) return [];
+
+    const insights: Array<{type: 'info' | 'warning' | 'success', message: string, detail: string}> = [];
+    
+    const totalNodes = data.total_nodes;
+    const sourceNodes = data.source_nodes.length;
+    const sinkNodes = data.sink_nodes.length;
+    const forkNodes = data.fork_nodes.length;
+    const joinNodes = data.join_nodes.length;
+
+    // Network density
+    const maxEdges = totalNodes * (totalNodes - 1);
+    const density = maxEdges > 0 ? data.total_edges / maxEdges : 0;
+    
+    if (density < 0.1) {
+      insights.push({
+        type: 'info',
+        message: `Sparse Network (${(density * 100).toFixed(1)}% density)`,
+        detail: 'Few connections relative to potential - efficient for sequential processing'
+      });
+    } else if (density > 0.5) {
+      insights.push({
+        type: 'info',
+        message: `Dense Network (${(density * 100).toFixed(1)}% density)`,
+        detail: 'Highly interconnected - may benefit from parallel processing'
+      });
+    }
+
+    // Source/sink analysis
+    if (sourceNodes === 0) {
+      insights.push({
+        type: 'warning',
+        message: 'No Source Nodes',
+        detail: 'Network lacks clear entry points'
+      });
+    } else if (sourceNodes === 1) {
+      insights.push({
+        type: 'success',
+        message: 'Single Source Structure',
+        detail: 'Clear single entry point - ideal for hierarchical flow'
+      });
+    }
+
+    if (sinkNodes === 0) {
+      insights.push({
+        type: 'warning',
+        message: 'No Sink Nodes',
+        detail: 'Network lacks clear endpoints'
+      });
+    }
+
+    // Fork/join balance
+    const forkJoinRatio = joinNodes > 0 ? forkNodes / joinNodes : (forkNodes > 0 ? Infinity : 1);
+    if (forkJoinRatio > 1.5) {
+      insights.push({
+        type: 'info',
+        message: 'Divergent Structure',
+        detail: `${forkNodes} forks vs ${joinNodes} joins - information spreads more than consolidates`
+      });
+    } else if (forkJoinRatio < 0.67 && joinNodes > 0) {
+      insights.push({
+        type: 'info',
+        message: 'Convergent Structure',
+        detail: `${joinNodes} joins vs ${forkNodes} forks - information consolidates more than spreads`
+      });
+    }
+
+    return insights;
+  });
+
+  // Structural metrics
+  structuralMetrics = computed(() => {
+    const data = this.networkData();
+    if (!data) return null;
+
+    const totalNodes = data.total_nodes;
+    const totalEdges = data.total_edges;
+    const layers = data.iteration_sets_count;
+    
+    const edgeToNodeRatio = totalNodes > 0 ? totalEdges / totalNodes : 0;
+    const avgDegree = totalNodes > 0 ? (totalEdges * 2) / totalNodes : 0;
+    const layerEfficiency = layers > 0 ? totalNodes / layers : 0;
+    
+    const maxPossibleEdges = totalNodes * (totalNodes - 1);
+    const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
+    
+    const boundaryNodes = data.source_nodes.length + data.sink_nodes.length;
+    const boundaryRatio = totalNodes > 0 ? boundaryNodes / totalNodes : 0;
+    
+    return {
+      edgeToNodeRatio: Number(edgeToNodeRatio.toFixed(2)),
+      averageDegree: Number(avgDegree.toFixed(2)),
+      networkDensity: Number((density * 100).toFixed(2)),
+      layerEfficiency: Number(layerEfficiency.toFixed(1)),
+      boundaryNodeRatio: Number((boundaryRatio * 100).toFixed(1))
+    };
+  });
+
+  // Available data summary
+  dataSummary = computed(() => {
     const data = this.networkData();
     if (!data?.available_data_files) {
       return {
-        available_data_types: [],
-        data_types_count: 0,
-        has_node_priors: false,
-        has_edge_probabilities: false,
-        has_capacities: false,
-        has_cmp_data: false
+        dataTypesCount: 0,
+        hasNodePriors: false,
+        hasEdgeProbabilities: false,
+        hasCapacities: false,
+        hasCmpData: false,
+        availableDataTypes: []
       };
     }
 
-    const availableTypes: string[] = [];
+    const files = data.available_data_files;
+    const dataTypes: string[] = [];
+    
     let hasNodePriors = false;
     let hasEdgeProbabilities = false;
     let hasCapacities = false;
     let hasCmpData = false;
 
-    const files = data.available_data_files;
-
-    // Check float data
     if (files.float) {
-      availableTypes.push('Float');
+      dataTypes.push('Float');
       if (files.float.nodepriors) hasNodePriors = true;
       if (files.float.linkprobabilities) hasEdgeProbabilities = true;
     }
 
-    // Check interval data
     if (files.interval) {
-      availableTypes.push('Interval');
+      dataTypes.push('Interval');
       if (files.interval.nodepriors) hasNodePriors = true;
       if (files.interval.linkprobabilities) hasEdgeProbabilities = true;
     }
 
-    // Check pbox data
     if (files.pbox) {
-      availableTypes.push('P-Box');
+      dataTypes.push('P-Box');
       if (files.pbox.nodepriors) hasNodePriors = true;
       if (files.pbox.linkprobabilities) hasEdgeProbabilities = true;
     }
 
-    // Check capacity data
     if (files.capacity) {
-      availableTypes.push('Capacity');
+      dataTypes.push('Capacity');
       hasCapacities = true;
     }
 
-    // Check CPM data
     if (files.cpm) {
-      availableTypes.push('CPM');
+      dataTypes.push('CPM');
       hasCmpData = true;
     }
 
     return {
-      available_data_types: availableTypes,
-      data_types_count: availableTypes.length,
-      has_node_priors: hasNodePriors,
-      has_edge_probabilities: hasEdgeProbabilities,
-      has_capacities: hasCapacities,
-      has_cmp_data: hasCmpData
+      dataTypesCount: dataTypes.length,
+      hasNodePriors,
+      hasEdgeProbabilities,
+      hasCapacities,
+      hasCmpData,
+      availableDataTypes: dataTypes
     };
-  }
+  });
 
-  // Computed signals to prevent expression changed errors
-  connectivityDistribution = computed(() => this.getConnectivityDistribution());
-  networkMetrics = computed(() => this.getNetworkMetrics());
-  nodeDetails = computed(() => this.getNodeDetails());
-  edgeDetails = computed(() => this.getEdgeDetails());
-  
-
-  // View toggle
-  currentView = signal<'overview' | 'nodes' | 'edges' | 'structure'>('overview');
-
-  // BI-style filtering signals
-  nodeSearchTerm = signal<string>('');
-  selectedNodeTypes = signal<string[]>([]);
-  inDegreeRange = signal<{min: number, max: number}>({min: 0, max: 10});
-  outDegreeRange = signal<{min: number, max: number}>({min: 0, max: 10});
-  quickFilters = signal<string[]>([]);
-
-  /**
-   * Get icon for data type
-   */
-  getDataTypeIcon(dataType: string): string {
-    const iconMap: Record<string, string> = {
-      'float': 'decimal_increase',
-      'interval': 'linear_scale',
-      'pbox': 'analytics',
-      'capacity': 'speed',
-      'cpm': 'schedule'
-    };
-    return iconMap[dataType.toLowerCase()] || 'data_object';
-  }
-
-  // Data-driven filter statistics
-  degreeStatistics = computed(() => this.calculateDegreeStatistics());
-  structuralChokepoints = computed(() => this.getStructuralChokepoints());
-
-  // Pagination signals
-  nodePageSize = signal<number>(50);
-  nodePageIndex = signal<number>(0);
-  edgePageSize = signal<number>(100);
-  edgePageIndex = signal<number>(0);
-  filtersExpanded = signal<boolean>(false);
-
-  // Filtered data computed properties
-  filteredNodeDetails = computed(() => this.applyNodeFilters());
-  filteredEdgeDetails = computed(() => this.applyEdgeFilters());
-  
-  // Paginated data computed properties
-  paginatedNodeDetails = computed(() => this.getPaginatedNodes());
-  paginatedEdgeDetails = computed(() => this.getPaginatedEdges());
-
-  displayedColumns: string[] = ['metric', 'value'];
-  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree'];
-  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType'];
-
-
-
-
-  switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'structure');
-  }
-
-
-  getNetworkMetrics(): { metric: string; value: string | number }[] {
+  // Node details for table
+  nodeDetails = computed(() => {
     const data = this.networkData();
     if (!data) return [];
 
-    const multiTypeNodes = this.getMultiTypeNodes();
-
-    return [
-      { metric: 'Total Nodes', value: data.total_nodes },
-      { metric: 'Total Edges', value: data.total_edges },
-      { metric: 'Source Nodes', value: data.source_nodes.length },
-      { metric: 'Sink Nodes', value: data.sink_nodes.length },
-      { metric: 'Fork Nodes', value: data.fork_nodes.length },
-      { metric: 'Join Nodes', value: data.join_nodes.length },
-      { metric: 'Multi-Type Nodes', value: multiTypeNodes.length },
-      { metric: 'Iteration Sets', value: data.iteration_sets_count },
-      { metric: 'Computation Time', value: `${data.computation_time.toFixed(4)}s` }
-    ];
-  }
-
-  getNodesByType(type: 'source' | 'sink' | 'fork' | 'join'): number[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    switch (type) {
-      case 'source': return data.source_nodes;
-      case 'sink': return data.sink_nodes;
-      case 'fork': return data.fork_nodes;
-      case 'join': return data.join_nodes;
-      default: return [];
-    }
-  }
-
-  getMultiTypeNodes(): { nodeId: number; types: string[] }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    const allNodes = new Set<number>();
-    data.edges.forEach(([source, target]) => {
-      allNodes.add(source);
-      allNodes.add(target);
-    });
-    const nodes = data.nodes || Array.from(allNodes);
-
-    return nodes
-      .map(nodeId => ({
-        nodeId,
-        types: this.getNodeTypes(nodeId)
-      }))
-      .filter(node => node.types.length > 1)
-      .sort((a, b) => a.nodeId - b.nodeId);
-  }
-
-  getNodeDetails(): { node: number; type: string; inDegree: number; outDegree: number }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    // Use the guaranteed nodes array from enhanced NetworkStructure
-    const nodes = data.nodes;
-
-    return nodes.map((nodeId: number) => {
+    return data.nodes.map((nodeId: number) => {
       const nodeType = this.getNodeType(nodeId);
       const inDegree = this.calculateInDegree(nodeId);
       const outDegree = this.calculateOutDegree(nodeId);
@@ -276,582 +267,291 @@ export class NetworkStructureComponent/*  implements OnInit  */{
         outDegree
       };
     }).sort((a, b) => a.node - b.node);
-  }
+  });
 
-  getEdgeDetails(): { source: number; target: number; edgeType: string }[] {
+  // Edge details for table
+  edgeDetails = computed(() => {
     const data = this.networkData();
-    if (!data || !data.edges) return [];
+    if (!data?.edges) return [];
 
     return data.edges.map(([source, target]: [number, number]) => ({
       source,
       target,
-      edgeType: this.getEdgeType(source, target)
+      type: this.getEdgeType(source, target)
     })).sort((a, b) => a.source - b.source || a.target - b.target);
-  }
+  });
 
-  private getNodeTypes(nodeId: number): string[] {
+  // Filtered and paginated data
+  filteredNodeDetails = computed(() => {
+    const nodes = this.nodeDetails();
+    const searchTerm = this.nodeSearchTerm().toLowerCase();
+    const selectedTypes = this.selectedNodeTypes();
+
+    return nodes.filter(node => {
+      const matchesSearch = !searchTerm || node.node.toString().includes(searchTerm);
+      const matchesType = selectedTypes.length === 0 || selectedTypes.includes(node.type);
+      return matchesSearch && matchesType;
+    });
+  });
+
+  paginatedNodeDetails = computed(() => {
+    const filtered = this.filteredNodeDetails();
+    const pageSize = this.nodePageSize();
+    const pageIndex = this.nodePageIndex();
+    const start = pageIndex * pageSize;
+    return filtered.slice(start, start + pageSize);
+  });
+
+  paginatedEdgeDetails = computed(() => {
+    const edges = this.edgeDetails();
+    const pageSize = this.edgePageSize();
+    const pageIndex = this.edgePageIndex();
+    const start = pageIndex * pageSize;
+    return edges.slice(start, start + pageSize);
+  });
+
+  // Helper methods
+  private getNodeType(nodeId: number): string {
     const data = this.networkData();
-    
-    if (!data) return ['Regular'];
+    if (!data) return 'Unknown';
 
     const types: string[] = [];
     
-    // Check all possible node types (nodes can have multiple types)
     if (data.source_nodes.includes(nodeId)) types.push('Source');
     if (data.sink_nodes.includes(nodeId)) types.push('Sink');
     if (data.fork_nodes.includes(nodeId)) types.push('Fork');
     if (data.join_nodes.includes(nodeId)) types.push('Join');
     
-    return types.length > 0 ? types : ['Regular'];
-  }
-
-  private getNodeType(nodeId: number): string {
-    const types = this.getNodeTypes(nodeId);
-    return types.join(' + ');
+    return types.length > 0 ? types.join(' + ') : 'Regular';
   }
 
   private calculateInDegree(nodeId: number): number {
     const data = this.networkData();
-    if (!data || !data.edges) return 0;
-
-    return data.edges.filter(([_, target]: [number, number]) => target === nodeId).length;
+    if (!data?.edges) return 0;
+    return data.edges.filter(([_, target]) => target === nodeId).length;
   }
 
   private calculateOutDegree(nodeId: number): number {
     const data = this.networkData();
-    if (!data || !data.edges) return 0;
-
-    return data.edges.filter(([source, _]: [number, number]) => source === nodeId).length;
+    if (!data?.edges) return 0;
+    return data.edges.filter(([source, _]) => source === nodeId).length;
   }
 
   private getEdgeType(source: number, target: number): string {
-    const data = this.networkData();
-    if (!data) return 'Regular';
-
-    const sourceType = this.getNodeType(source).toLowerCase();
-    const targetType = this.getNodeType(target).toLowerCase();
-
-    if (sourceType === 'source') return 'Source → ' + this.capitalize(targetType);
-    if (targetType === 'sink') return this.capitalize(sourceType) + ' → Sink';
-    if (sourceType === 'fork') return 'Fork → ' + this.capitalize(targetType);
-    if (targetType === 'join') return this.capitalize(sourceType) + ' → Join';
+    const sourceType = this.getNodeType(source);
+    const targetType = this.getNodeType(target);
     
-    return 'Regular';
+    if (sourceType.includes('Source') && targetType.includes('Sink')) return 'Source→Sink';
+    if (sourceType.includes('Fork') && targetType.includes('Join')) return 'Fork→Join';
+    if (sourceType.includes('Source')) return 'Source→';
+    if (targetType.includes('Sink')) return '→Sink';
+    return 'Internal';
   }
 
-  private capitalize(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  // Event handlers
+  switchView(event: MatButtonToggleChange): void {
+    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges');
   }
 
-  getConnectivityDistribution(): { level: string; count: number; percentage: number }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    // Use the guaranteed nodes array from enhanced NetworkStructure
-    const nodes = data.nodes;
-
-    const connectivityLevels: { [key: string]: number } = {
-      'High (>= 4 connections)': 0,
-      'Medium (2-3 connections)': 0,
-      'Low (1 connection)': 0,
-      'Isolated (0 connections)': 0
-    };
-
-    nodes.forEach((nodeId: number) => {
-      const totalDegree = this.calculateInDegree(nodeId) + this.calculateOutDegree(nodeId);
-      
-      if (totalDegree >= 4) connectivityLevels['High (>= 4 connections)']++;
-      else if (totalDegree >= 2) connectivityLevels['Medium (2-3 connections)']++;
-      else if (totalDegree === 1) connectivityLevels['Low (1 connection)']++;
-      else connectivityLevels['Isolated (0 connections)']++;
-    });
-
-    const total = nodes.length;
-    return Object.entries(connectivityLevels).map(([level, count]) => ({
-      level,
-      count,
-      percentage: total > 0 ? (count / total) * 100 : 0
-    }));
-  }
-
-  getIterationSetsAnalysis(): { setIndex: number; nodes: number[]; size: number }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    return data.iteration_sets.map((nodeSet, index) => ({
-      setIndex: index + 1,
-      nodes: nodeSet.sort((a, b) => a - b),
-      size: nodeSet.length
-    }));
-  }
-
-  getAncestorsDescendantsAnalysis(): { nodeId: number; ancestors: number[]; descendants: number[]; ancestorCount: number; descendantCount: number }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    return data.nodes
-      .map(nodeId => {
-        const ancestors = data.ancestors[nodeId.toString()] || [];
-        const descendants = data.descendants[nodeId.toString()] || [];
-        
-        return {
-          nodeId,
-          ancestors: ancestors.sort((a, b) => a - b),
-          descendants: descendants.sort((a, b) => a - b),
-          ancestorCount: ancestors.length,
-          descendantCount: descendants.length
-        };
-      })
-      .sort((a, b) => a.nodeId - b.nodeId);
-  }
-
-  getTopologicalAnalysis(): { metric: string; value: string | number }[] {
-    const data = this.networkData();
-    if (!data) return [];
-
-    const iterationSets = this.getIterationSetsAnalysis();
-    const maxSetSize = Math.max(...iterationSets.map(set => set.size));
-    const avgSetSize = iterationSets.reduce((sum, set) => sum + set.size, 0) / iterationSets.length;
-    const ancestorDescendantData = this.getAncestorsDescendantsAnalysis();
-    const maxAncestors = Math.max(...ancestorDescendantData.map(node => node.ancestorCount));
-    const maxDescendants = Math.max(...ancestorDescendantData.map(node => node.descendantCount));
-    const avgAncestors = ancestorDescendantData.reduce((sum, node) => sum + node.ancestorCount, 0) / ancestorDescendantData.length;
-    const avgDescendants = ancestorDescendantData.reduce((sum, node) => sum + node.descendantCount, 0) / ancestorDescendantData.length;
-
-    return [
-      { metric: 'Total Iteration Sets', value: data.iteration_sets_count },
-      { metric: 'Largest Set Size', value: maxSetSize },
-      { metric: 'Average Set Size', value: avgSetSize.toFixed(2) },
-      { metric: 'Max Ancestors (per node)', value: maxAncestors },
-      { metric: 'Max Descendants (per node)', value: maxDescendants },
-      { metric: 'Avg Ancestors (per node)', value: avgAncestors.toFixed(2) },
-      { metric: 'Avg Descendants (per node)', value: avgDescendants.toFixed(2) }
-    ];
-  }
-
-  // BI-style filtering methods
-  setNodeSearchTerm(event: any): void {
-    this.nodeSearchTerm.set(event.target.value);
-  }
-
-  setNodeTypeFilter(event: any): void {
-    this.selectedNodeTypes.set(event.value);
-  }
-
-  setInDegreeMin(event: any): void {
-    const current = this.inDegreeRange();
-    this.inDegreeRange.set({...current, min: parseInt(event.target.value)});
-  }
-
-  setInDegreeMax(event: any): void {
-    const current = this.inDegreeRange();
-    this.inDegreeRange.set({...current, max: parseInt(event.target.value)});
-  }
-
-  setOutDegreeMin(event: any): void {
-    const current = this.outDegreeRange();
-    this.outDegreeRange.set({...current, min: parseInt(event.target.value)});
-  }
-
-  setOutDegreeMax(event: any): void {
-    const current = this.outDegreeRange();
-    this.outDegreeRange.set({...current, max: parseInt(event.target.value)});
-  }
-
-  applyQuickFilter(filterType: string): void {
-    const current = this.quickFilters();
-    if (current.includes(filterType)) {
-      this.quickFilters.set(current.filter(f => f !== filterType));
-    } else {
-      this.quickFilters.set([...current, filterType]);
-    }
-  }
-
-  clearAllFilters(): void {
-    this.nodeSearchTerm.set('');
-    this.selectedNodeTypes.set([]);
-    const stats = this.degreeStatistics();
-    this.inDegreeRange.set({min: stats.inDegree.min, max: stats.inDegree.max});
-    this.outDegreeRange.set({min: stats.outDegree.min, max: stats.outDegree.max});
-    this.quickFilters.set([]);
-  }
-
-  getMaxInDegree(): number {
-    const data = this.networkData();
-    if (!data) return 10;
-    const degrees = data.nodes.map(nodeId => this.calculateInDegree(nodeId));
-    return degrees.length > 0 ? Math.max(...degrees) : 10;
-  }
-
-  getMaxOutDegree(): number {
-    const data = this.networkData();
-    if (!data) return 10;
-    const degrees = data.nodes.map(nodeId => this.calculateOutDegree(nodeId));
-    return degrees.length > 0 ? Math.max(...degrees) : 10;
-  }
-
-  getFilteredNodeCount(): number {
-    return this.filteredNodeDetails().length;
-  }
-
-  getFilteredEdgeCount(): number {
-    return this.filteredEdgeDetails().length;
-  }
-
-  // Advanced filtering logic
-  applyNodeFilters(): { node: number; type: string; inDegree: number; outDegree: number }[] {
-    const allNodes = this.getNodeDetails();
-    const searchTerm = this.nodeSearchTerm().toLowerCase();
-    const selectedTypes = this.selectedNodeTypes();
-    const inRange = this.inDegreeRange();
-    const outRange = this.outDegreeRange();
-    const quickFilters = this.quickFilters();
-
-    return allNodes.filter(node => {
-      // Text search filter
-      if (searchTerm && !(
-        node.node.toString().includes(searchTerm) ||
-        node.type.toLowerCase().includes(searchTerm)
-      )) {
-        return false;
-      }
-
-      // Node type filter
-      if (selectedTypes.length > 0) {
-        const nodeTypes = node.type.split(' + ');
-        if (!selectedTypes.some(selectedType => nodeTypes.includes(selectedType))) {
-          return false;
-        }
-      }
-
-      // Degree range filters
-      if (node.inDegree < inRange.min || node.inDegree > inRange.max) {
-        return false;
-      }
-      if (node.outDegree < outRange.min || node.outDegree > outRange.max) {
-        return false;
-      }
-
-      // Quick filters
-      if (quickFilters.includes('high-connectivity')) {
-        if (node.inDegree + node.outDegree < 4) {
-          return false;
-        }
-      }
-
-      if (quickFilters.includes('chokepoints')) {
-        // Structural chokepoints: single points of control in topology
-        const isChokepoint = this.isStructuralChokepoint(node.node);
-        if (!isChokepoint) {
-          return false;
-        }
-      }
-
-      if (quickFilters.includes('multi-type')) {
-        if (!node.type.includes(' + ')) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
-
-  applyEdgeFilters(): { source: number; target: number; edgeType: string }[] {
-    const allEdges = this.getEdgeDetails();
-    const filteredNodeIds = new Set(this.filteredNodeDetails().map(n => n.node));
-    
-    return allEdges.filter(edge => {
-      // Only show edges where both source and target nodes are in the filtered node set
-      return filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target);
-    });
-  }
-
-  // Data-driven statistical analysis
-  calculateDegreeStatistics() {
-    const data = this.networkData();
-    if (!data) {
-      return {
-        inDegree: { min: 0, max: 10, median: 2, q1: 1, q3: 4, mean: 2.5 },
-        outDegree: { min: 0, max: 10, median: 2, q1: 1, q3: 4, mean: 2.5 },
-        totalDegree: { min: 0, max: 20, median: 4, q1: 2, q3: 8, mean: 5 }
-      };
-    }
-
-    const nodeDetails = this.getNodeDetails();
-    const inDegrees = nodeDetails.map(n => n.inDegree).sort((a, b) => a - b);
-    const outDegrees = nodeDetails.map(n => n.outDegree).sort((a, b) => a - b);
-    const totalDegrees = nodeDetails.map(n => n.inDegree + n.outDegree).sort((a, b) => a - b);
-
-    return {
-      inDegree: this.calculateStats(inDegrees),
-      outDegree: this.calculateStats(outDegrees),
-      totalDegree: this.calculateStats(totalDegrees)
-    };
-  }
-
-  private calculateStats(sortedArray: number[]) {
-    const n = sortedArray.length;
-    if (n === 0) return { min: 0, max: 0, median: 0, q1: 0, q3: 0, mean: 0 };
-
-    const min = sortedArray[0];
-    const max = sortedArray[n - 1];
-    const median = n % 2 === 0 
-      ? (sortedArray[Math.floor(n/2) - 1] + sortedArray[Math.floor(n/2)]) / 2
-      : sortedArray[Math.floor(n/2)];
-    
-    const q1Index = Math.floor(n * 0.25);
-    const q3Index = Math.floor(n * 0.75);
-    const q1 = sortedArray[q1Index];
-    const q3 = sortedArray[q3Index];
-    
-    const mean = sortedArray.reduce((sum, val) => sum + val, 0) / n;
-
-    return { min, max, median, q1, q3, mean };
-  }
-
-  getStructuralChokepoints() {
-    const stats = this.degreeStatistics();
-    const nodeDetails = this.getNodeDetails();
-
-    // High connectivity threshold: above 75th percentile of total degree
-    const highConnectivityThreshold = stats.totalDegree.q3;
-    
-    // Structural chokepoints: topology-based critical points
-    const structuralChokepoints = nodeDetails.filter(node => {
-      return this.isStructuralChokepoint(node.node);
-    });
-
-    // Outlier detection: nodes with degrees significantly above mean
-    const outlierThreshold = stats.totalDegree.mean + (2 * this.calculateStandardDeviation(nodeDetails.map(n => n.inDegree + n.outDegree)));
-    const outlierNodes = nodeDetails.filter(node => (node.inDegree + node.outDegree) > outlierThreshold);
-
-    return {
-      highConnectivityThreshold,
-      structuralChokepoints: structuralChokepoints.length,
-      outlierNodes: outlierNodes.length,
-      suggestedFilters: [
-        { 
-          name: `High Connectivity (≥${highConnectivityThreshold})`, 
-          count: nodeDetails.filter(n => (n.inDegree + n.outDegree) >= highConnectivityThreshold).length,
-          type: 'high-connectivity'
-        },
-        { 
-          name: `Structural Chokepoints`, 
-          count: structuralChokepoints.length,
-          type: 'chokepoints'
-        },
-        { 
-          name: `Statistical Outliers`, 
-          count: outlierNodes.length,
-          type: 'outliers'
-        }
-      ]
-    };
-  }
-
-  private calculateStandardDeviation(values: number[]): number {
-    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-    const avgSquaredDiff = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
-    return Math.sqrt(avgSquaredDiff);
-  }
-
-  // Update quick filters to use structural data
-  getStructuralQuickFilters() {
-    const structuralChokepoints = this.structuralChokepoints();
-    return structuralChokepoints.suggestedFilters.map(filter => ({
-      id: filter.type,
-      label: `${filter.name} (${filter.count})`,
-      count: filter.count,
-      enabled: filter.count > 0
-    }));
-  }
-
-  // Pagination methods
-  getPaginatedNodes() {
-    const filtered = this.filteredNodeDetails();
-    const start = this.nodePageIndex() * this.nodePageSize();
-    return filtered.slice(start, start + this.nodePageSize());
-  }
-
-  getPaginatedEdges() {
-    const filtered = this.filteredEdgeDetails();
-    const start = this.edgePageIndex() * this.edgePageSize();
-    return filtered.slice(start, start + this.edgePageSize());
-  }
-
-  onNodePageChange(event: any): void {
+  onNodePageChange(event: PageEvent): void {
     this.nodePageIndex.set(event.pageIndex);
     this.nodePageSize.set(event.pageSize);
   }
 
-  onEdgePageChange(event: any): void {
+  onEdgePageChange(event: PageEvent): void {
     this.edgePageIndex.set(event.pageIndex);
     this.edgePageSize.set(event.pageSize);
   }
 
-  toggleFiltersPanel(): void {
-    this.filtersExpanded.set(!this.filtersExpanded());
+  onNodeSearch(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.nodeSearchTerm.set(target.value);
+    this.nodePageIndex.set(0); // Reset to first page
   }
 
-  // Basic structural node classification
-  getBasicNodeClassifications(): {
-    singleParent: any[], 
-    singleChild: any[], 
-    orphans: any[], 
-    hubs: any[],
-    counts: {
-      singleParent: number,
-      singleChild: number,
-      orphans: number,
-      hubs: number
-    }
-  } {
+  onNodeTypeFilter(types: string[]): void {
+    this.selectedNodeTypes.set(types);
+    this.nodePageIndex.set(0); // Reset to first page
+  }
+
+  // Modal methods
+  openNodeDetailsModal(nodeId: number): void {
     const data = this.networkData();
-    if (!data) return {
-      singleParent: [],
-      singleChild: [],
-      orphans: [],
-      hubs: [],
-      counts: { singleParent: 0, singleChild: 0, orphans: 0, hubs: 0 }
-    };
+    if (!data) return;
 
-    const nodeDetails = this.getNodeDetails();
+    const nodeDetails = this.getDetailedNodeInfo(nodeId);
     
-    // Calculate degree statistics for thresholds
-    const degreeStats = this.calculateDegreeStatistics();
-    const hubThreshold = Math.max(4, degreeStats.totalDegree.q3);
-    
-    // Initialize classification arrays
-    const singleParent: any[] = [];
-    const singleChild: any[] = [];
-    const orphans: any[] = [];
-    const hubs: any[] = [];
-
-    // Classify each node based on structure only
-    nodeDetails.forEach(node => {
-      const totalDegree = node.inDegree + node.outDegree;
-      const nodeData = {
-        nodeId: node.node,
-        inDegree: node.inDegree,
-        outDegree: node.outDegree,
-        totalDegree,
-        type: node.type
-      };
-
-      // Single parent (only one incoming edge)
-      if (node.inDegree === 1 && node.outDegree > 0) {
-        singleParent.push(nodeData);
-      }
-
-      // Single child (only one outgoing edge)
-      if (node.outDegree === 1 && node.inDegree > 0) {
-        singleChild.push(nodeData);
-      }
-
-      // Orphans (isolated nodes)
-      if (totalDegree === 0) {
-        orphans.push(nodeData);
-      }
-
-      // Hubs (high connectivity)
-      if (totalDegree >= hubThreshold) {
-        hubs.push({
-          ...nodeData,
-          hubScore: totalDegree / degreeStats.totalDegree.max
-        });
+    const dialogRef = this.dialog.open(NodeDetailsDialogComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      data: {
+        nodeId,
+        nodeDetails,
+        networkData: data
       }
     });
 
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.navigateToNode) {
+        this.openNodeDetailsModal(result.navigateToNode);
+      }
+    });
+  }
+
+  openEdgeDetailsModal(source: number, target: number): void {
+    const data = this.networkData();
+    if (!data) return;
+
+    const edgeDetails = this.getDetailedEdgeInfo(source, target);
+    
+    const dialogRef = this.dialog.open(EdgeDetailsDialogComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      data: {
+        source,
+        target,
+        edgeDetails,
+        networkData: data
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.navigateToNode) {
+        this.openNodeDetailsModal(result.navigateToNode);
+      }
+    });
+  }
+
+  private getDetailedNodeInfo(nodeId: number) {
+    const data = this.networkData();
+    if (!data) return null;
+
+    const nodeTypes = this.getNodeType(nodeId).split(' + ');
+    const inDegree = this.calculateInDegree(nodeId);
+    const outDegree = this.calculateOutDegree(nodeId);
+
+    const parents = data.edges
+      .filter(([_, target]) => target === nodeId)
+      .map(([source, _]) => source);
+
+    const children = data.edges
+      .filter(([source, _]) => source === nodeId)
+      .map(([_, target]) => target);
+
+    const ancestors = this.getAncestors(nodeId, data);
+    const descendants = this.getDescendants(nodeId, data);
+
     return {
-      singleParent: singleParent.sort((a, b) => a.nodeId - b.nodeId),
-      singleChild: singleChild.sort((a, b) => a.nodeId - b.nodeId),
-      orphans: orphans.sort((a, b) => a.nodeId - b.nodeId),
-      hubs: hubs.sort((a, b) => b.hubScore - a.hubScore),
-      counts: {
-        singleParent: singleParent.length,
-        singleChild: singleChild.length,
-        orphans: orphans.length,
-        hubs: hubs.length
+      nodeId,
+      types: nodeTypes,
+      inDegree,
+      outDegree,
+      parents,
+      children,
+      ancestors,
+      descendants,
+      iterationSet: this.getNodeIterationSet(nodeId, data),
+      isChokepoint: inDegree === 1 || outDegree === 1,
+      connectivity: {
+        totalConnections: inDegree + outDegree,
+        connectivityRatio: data.total_nodes > 0 ? (inDegree + outDegree) / (data.total_nodes - 1) : 0
       }
     };
   }
 
-  // Simple structural helper methods
-  private isStructuralChokepoint(nodeId: number): boolean {
-    const inDegree = this.calculateInDegree(nodeId);
-    const outDegree = this.calculateOutDegree(nodeId);
-    
-    // Structural chokepoint: topology-based critical point where flow must pass through
-    return (inDegree === 1 && outDegree > 1) || (outDegree === 1 && inDegree > 1);
+  private getDetailedEdgeInfo(source: number, target: number) {
+    const data = this.networkData();
+    if (!data) return null;
+
+    const sourceTypes = this.getNodeType(source).split(' + ');
+    const targetTypes = this.getNodeType(target).split(' + ');
+    const edgeType = this.getEdgeType(source, target);
+
+    const targetParents = data.edges.filter(([_, t]) => t === target).length;
+    const isCritical = targetParents === 1;
+
+    return {
+      source,
+      target,
+      sourceTypes,
+      targetTypes,
+      edgeType,
+      isCritical,
+      pathLength: 1, // Direct connection
+      sourceIterationSet: this.getNodeIterationSet(source, data),
+      targetIterationSet: this.getNodeIterationSet(target, data),
+      crossesLayers: Math.abs(
+        this.getNodeIterationSet(source, data) - this.getNodeIterationSet(target, data)
+      ) > 1
+    };
   }
 
-  // Dialog methods
-  
-  /**
-   * Handle keyboard navigation
-   */
-  @HostListener('keydown', ['$event'])
-  onKeyDown(event: KeyboardEvent): void {
-    // Handle tab navigation for mode toggles
-    if (event.key === 'Tab') {
-      this.handleTabNavigation(event);
-    }
-  }
-  
-  /**
-   * Handle tab key navigation for better accessibility
-   */
-  private handleTabNavigation(event: KeyboardEvent): void {
-    const focusableElements = this.elementRef.nativeElement.querySelectorAll(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
-    );
+  private getAncestors(nodeId: number, data: any): number[] {
+    const ancestors = new Set<number>();
+    const visited = new Set<number>();
     
-    const focusArray = Array.from(focusableElements) as HTMLElement[];
-    const currentIndex = focusArray.indexOf(document.activeElement as HTMLElement);
+    const dfs = (currentNode: number) => {
+      if (visited.has(currentNode)) return;
+      visited.add(currentNode);
+      
+      const parents = data.edges
+        .filter(([, target]: [number, number]) => target === currentNode)
+        .map(([source]: [number, number]) => source);
+      
+      for (const parent of parents) {
+        ancestors.add(parent);
+        dfs(parent);
+      }
+    };
     
-    if (event.shiftKey) {
-      // Shift+Tab - go backward
-      if (currentIndex === 0) {
-        focusArray[focusArray.length - 1].focus();
-        event.preventDefault();
-      }
-    } else {
-      // Tab - go forward
-      if (currentIndex === focusArray.length - 1) {
-        focusArray[0].focus();
-        event.preventDefault();
-      }
-    }
+    dfs(nodeId);
+    return Array.from(ancestors).sort((a, b) => a - b);
   }
-  
-  /**
-   * Retry analysis function for error state
-   */
+
+  private getDescendants(nodeId: number, data: any): number[] {
+    const descendants = new Set<number>();
+    const visited = new Set<number>();
+    
+    const dfs = (currentNode: number) => {
+      if (visited.has(currentNode)) return;
+      visited.add(currentNode);
+      
+      const children = data.edges
+        .filter(([source]: [number, number]) => source === currentNode)
+        .map(([, target]: [number, number]) => target);
+      
+      for (const child of children) {
+        descendants.add(child);
+        dfs(child);
+      }
+    };
+    
+    dfs(nodeId);
+    return Array.from(descendants).sort((a, b) => a - b);
+  }
+
+  private getNodeIterationSet(nodeId: number, data: any): number {
+    // Simple approximation - would need proper topological sorting for accuracy
+    const sources = data.source_nodes;
+    if (sources.includes(nodeId)) return 0;
+    
+    const ancestors = this.getAncestors(nodeId, data);
+    return ancestors.length > 0 ? Math.max(...ancestors.map(a => this.getNodeIterationSet(a, data))) + 1 : 0;
+  }
+
   retryAnalysis(): void {
-    // Implementation would call the analysis service to retry
+    // Retry analysis - would need to implement proper retry logic
     console.log('Retrying network analysis...');
-    this.announceToScreenReader('Retrying network analysis...');
   }
-  
-  /**
-   * Announce messages to screen readers
-   */
-  private announceToScreenReader(message: string): void {
-    const announcement = document.createElement('div');
-    announcement.setAttribute('aria-live', 'assertive');
-    announcement.setAttribute('aria-atomic', 'true');
-    announcement.className = 'sr-only';
-    announcement.textContent = message;
-    
-    document.body.appendChild(announcement);
-    
-    // Remove after announcement
-    setTimeout(() => {
-      document.body.removeChild(announcement);
-    }, 1000);
-  }
-  
 
+  getDataTypeIcon(dataType: string): string {
+    const iconMap: Record<string, string> = {
+      'float': 'decimal_increase',
+      'interval': 'linear_scale',
+      'p-box': 'analytics',
+      'capacity': 'speed',
+      'cpm': 'schedule'
+    };
+    return iconMap[dataType.toLowerCase()] || 'data_object';
+  }
 }
