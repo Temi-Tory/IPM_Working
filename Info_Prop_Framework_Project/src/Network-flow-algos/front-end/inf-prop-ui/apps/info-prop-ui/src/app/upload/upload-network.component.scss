@@ -1,38 +1,56 @@
 .upload-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 3rem 2rem;
+  width: 100%;
+  margin: 0;
+  height: 100%; // Take full height of app-main container
+  overflow-y: auto; // Component maintains its own scrollbar
+  overflow-x: hidden;
   
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 2rem 1rem;
   }
 }
 
 .upload-card {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+  }
   
   mat-card-header {
+    padding: 2rem 2rem 1.5rem;
+    
     mat-icon[mat-card-avatar] {
-      background: var(--primary-color);
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
       color: white;
-      font-size: 28px;
-      width: 56px;
-      height: 56px;
+      font-size: 32px;
+      width: 64px;
+      height: 64px;
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
     }
     
     mat-card-title {
-      font-size: 1.5rem;
-      font-weight: 600;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
     }
     
     mat-card-subtitle {
       color: var(--text-secondary);
-      margin-top: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 1.1rem;
+      font-weight: 400;
     }
   }
 }
@@ -306,8 +324,28 @@
 }
 
 .upload-button {
-  font-size: 1.1rem;
-  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  padding: 1.2rem 2.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.4);
+  }
+  
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3);
+  }
+  
+  mat-icon {
+    margin-right: 0.75rem;
+    font-size: 1.3rem;
+  }
 }
 
 .hidden-input {
@@ -396,10 +434,13 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+  background: var(--surface-color);
+  border-radius: 12px;
   
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
   }
   
   &.selected {
@@ -409,12 +450,12 @@
   
   mat-icon[mat-card-avatar] {
     &.valid {
-      background: #4caf50;
+      background: var(--success-color);
       color: white;
     }
     
     &.invalid {
-      background: #f44336;
+      background: var(--error-color);
       color: white;
     }
   }

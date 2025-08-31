@@ -1,7 +1,8 @@
 <mat-sidenav-container class="app-container">
-  <mat-sidenav 
-    #drawer 
-    class="app-sidenav" 
+  <mat-sidenav
+    #drawer
+    class="app-sidenav"
+    [class.collapsed]="isSidenavCollapsed"
     fixedInViewport="true"
     [opened]="isDrawerOpen"
     [mode]="getDrawerMode()"
@@ -37,14 +38,21 @@
     </div>
 
     <mat-nav-list>
-      <a mat-list-item routerLink="/home">
+      <a mat-list-item routerLink="/home"
+         [matTooltip]="isSidenavCollapsed ? 'Home' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
         <mat-icon matListItemIcon>home</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Home</div>
         </div>
       </a>
       
-      <a mat-list-item routerLink="/upload" [class.completed]="analysisState.uploadTab().completed">
+      <a mat-list-item routerLink="/upload"
+         [class.completed]="analysisState.uploadTab().completed"
+         [matTooltip]="isSidenavCollapsed ? 'Upload Network - Import network files' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
         <mat-icon matListItemIcon>cloud_upload</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Upload Network</div>
@@ -59,11 +67,14 @@
         </div>
       </a>
       
-      <a mat-list-item 
-         routerLink="/structure" 
+      <a mat-list-item
+         routerLink="/structure"
          [class.disabled]="!analysisState.networkStructureTab().enabled"
          [class.completed]="analysisState.networkStructureTab().completed"
-         [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0">
+         [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'Network Structure - Graph topology & analysis' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <div matListItemTitle>
           <div class="nav-title">Network Structure</div>
@@ -84,14 +95,15 @@
     </mat-nav-list>
   </mat-sidenav>
   
-  <mat-sidenav-content class="app-content">
+  <mat-sidenav-content class="app-content" [class.sidenav-collapsed]="isSidenavCollapsed">
     <mat-toolbar class="app-toolbar">
-      <button 
-        mat-icon-button 
+      <button
+        mat-icon-button
         class="menu-button"
-        (click)="toggleDrawer()"
-        aria-label="Toggle navigation">
-        <mat-icon>menu</mat-icon>
+        (click)="toggleSidenavCollapse()"
+        [matTooltip]="isSidenavCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        aria-label="Toggle sidebar collapse">
+        <mat-icon>{{ isSidenavCollapsed ? 'menu_open' : 'menu' }}</mat-icon>
       </button>
       
       <span class="app-title">{{ title }}</span>

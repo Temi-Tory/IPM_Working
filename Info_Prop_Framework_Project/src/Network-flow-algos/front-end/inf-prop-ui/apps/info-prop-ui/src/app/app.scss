@@ -2,12 +2,60 @@
 .app-container {
   height: 100vh;
   background-color: var(--surface-background);
+  overflow: hidden; // Prevent app-wide scrolling
 }
 
 .app-sidenav {
   width: 320px;
   background-color: var(--surface-container);
   border-right: 1px solid var(--outline-variant);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  
+  &.collapsed {
+    width: 80px;
+    
+    .nav-header {
+      .nav-header-title,
+      .progress-text,
+      .network-name {
+        opacity: 0;
+        transform: translateX(-20px);
+        pointer-events: none;
+      }
+      
+      .quick-stats {
+        opacity: 0;
+        transform: scale(0.8);
+        pointer-events: none;
+      }
+      
+      .progress-bar {
+        width: 48px;
+        margin: 0 auto;
+      }
+    }
+    
+    .mat-mdc-nav-list {
+      .mat-mdc-list-item {
+        justify-content: center;
+        margin: 2px 8px;
+        width: 64px;
+        
+        .nav-title,
+        .nav-subtitle,
+        .nav-status {
+          opacity: 0;
+          transform: translateX(-20px);
+          pointer-events: none;
+        }
+        
+        .mat-icon {
+          margin-right: 0;
+        }
+      }
+    }
+  }
   
   // Progress header styles
   .nav-header {
@@ -220,11 +268,22 @@
   .menu-button {
     margin-right: 16px;
     color: var(--on-surface);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     .mat-icon {
       font-size: 24px;
       width: 24px;
       height: 24px;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    &:hover {
+      background: var(--surface-container-high);
+      transform: scale(1.05);
+    }
+    
+    &:active {
+      transform: scale(0.95);
     }
   }
   
@@ -274,17 +333,38 @@
 
 .app-content {
   background-color: var(--surface-background);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  // Force content to expand when sidenav is collapsed
+  &.sidenav-collapsed {
+    margin-left: 80px !important; // Override Angular Material's automatic margin
+  }
+  
+  // When expanded, use normal sidenav margin
+  &:not(.sidenav-collapsed) {
+    margin-left: 320px !important; // Override Angular Material's automatic margin
+  }
+  
+  // Mobile responsive - no margin on small screens
+  @media (max-width: 1199px) {
+    &.sidenav-collapsed,
+    &:not(.sidenav-collapsed) {
+      margin-left: 0 !important;
+    }
+  }
 }
 
 .app-main {
-  padding: 24px;
-  min-height: calc(100vh - 64px);
+  padding: 0; // No padding - components handle their own
+  height: calc(100vh - 64px); // Fixed height so navbar stays visible
   background-color: var(--surface-background);
+  overflow: hidden; // No app-level scrolling - components scroll internally
   
   // Allow visualization mode to break out of padding constraints
   &.visualization-mode {
     padding: 0;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     
     // Hide the main content padding for full-screen visualization
     .network-structure.visualization-mode {

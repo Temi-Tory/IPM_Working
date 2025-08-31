@@ -1,25 +1,30 @@
 .network-structure {
-  min-height: calc(100vh - 64px);
-  background: var(--background-color);
+  height: 100%; // Take full height of app-main container
+  background: var(--surface-background);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; // Component maintains its own scrollbar
+  overflow-x: hidden;
 
   // Header Section
   .structure-header {
-    background: linear-gradient(135deg, var(--surface-color), var(--background-color));
-    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--surface), var(--surface-background));
+    border-bottom: 1px solid var(--outline-variant);
+    flex-shrink: 0;
+    z-index: 20; // Above content, below sticky tabs
     
     .header-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 2rem;
+      width: 100%;
+      padding: 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 2rem;
+      gap: 1.5rem;
       
       @media (max-width: 968px) {
         flex-direction: column;
         text-align: center;
-        padding: 1.5rem;
+        padding: 1rem;
       }
     }
     
@@ -192,18 +197,34 @@
 
   // Main Content
   .structure-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
+    flex: 1;
+    padding: 0;
     
-    @media (max-width: 768px) {
-      padding: 1rem;
+    // Inner content with padding
+    > * {
+      padding: 2rem;
+      
+      @media (max-width: 768px) {
+        padding: 1rem;
+      }
     }
   }
 
-  // View Controls
+  // View Controls - Make sticky
   .view-controls {
-    margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    background: var(--surface-background);
+    border-bottom: 1px solid var(--outline-variant);
+    padding: 1rem 2rem;
+    margin: 0 -2rem 2rem -2rem;
+    z-index: 30; // Above content and header
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    
+    @media (max-width: 768px) {
+      padding: 1rem;
+      margin: 0 -1rem 1rem -1rem;
+    }
     
     .view-toggle {
       display: flex;
@@ -247,52 +268,32 @@
     }
   }
 
-  // BI-style Filters Panel
+  // BI-style Filters Panel - Also sticky when expanded
   .filters-panel {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     margin-bottom: 2rem;
     overflow: hidden;
+    z-index: 25; // Between content and view controls
     
-    .filters-header {
-      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
-      border-bottom: 1px solid var(--border-color);
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      
-      mat-icon {
-        color: var(--primary-color);
-        font-size: 1.2rem;
-      }
-      
-      span {
-        font-weight: 600;
-        color: var(--text-primary);
-        flex: 1;
-      }
-      
-      button {
-        color: var(--text-secondary);
-        
-        &:hover {
-          color: var(--primary-color);
-        }
-      }
+    &.mat-expanded {
+      position: sticky;
+      top: 80px; // Below sticky view controls
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
     
     .filters-content {
       padding: 1.5rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem;
       align-items: start;
       
       @media (max-width: 768px) {
         grid-template-columns: 1fr;
         padding: 1rem;
+        gap: 1rem;
       }
       
       .filter-field {
@@ -440,7 +441,7 @@
   // Overview Grid
   .overview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 1.5rem;
     
     @media (max-width: 768px) {
@@ -453,44 +454,52 @@
   .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     
     &:hover {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      border-color: rgba(var(--primary-color-rgb), 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+      border-color: var(--primary-color);
     }
     
     .card-header {
-      padding: 1.5rem 1.5rem 1rem;
+      padding: 2rem 2rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
       background: linear-gradient(135deg, var(--surface-color), var(--background-color));
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 1rem;
       
       .card-icon {
-        font-size: 1.5rem;
+        font-size: 1.75rem;
         color: var(--primary-color);
+        background: var(--primary-color-light);
+        padding: 0.75rem;
+        border-radius: 12px;
       }
       
       .card-title {
-        font-size: 1.2rem;
-        font-weight: 600;
+        font-size: 1.3rem;
+        font-weight: 700;
         color: var(--text-primary);
         margin: 0;
+        letter-spacing: -0.01em;
       }
       
       .card-subtitle {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: var(--text-secondary);
         margin-left: auto;
+        font-weight: 500;
       }
     }
     
     .card-content {
-      padding: 1.5rem;
+      padding: 2rem;
     }
   }
 

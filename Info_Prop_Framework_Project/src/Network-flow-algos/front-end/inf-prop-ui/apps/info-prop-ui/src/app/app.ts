@@ -30,6 +30,7 @@ import { AnalysisStateService } from './shared/services/analysis-state.service';
 export class App implements OnInit {
   protected title = 'Information Propagation Framework';
   protected isDrawerOpen = false;
+  protected isSidenavCollapsed = false; // For collapsible sidenav functionality
   protected isDarkTheme = true; // Default to dark mode
   protected isMobile = false;
 
@@ -81,6 +82,10 @@ export class App implements OnInit {
 
   toggleDrawer() {
     this.isDrawerOpen = !this.isDrawerOpen;
+  }
+
+  toggleSidenavCollapse() {
+    this.isSidenavCollapsed = !this.isSidenavCollapsed;
   }
 
   toggleTheme() {

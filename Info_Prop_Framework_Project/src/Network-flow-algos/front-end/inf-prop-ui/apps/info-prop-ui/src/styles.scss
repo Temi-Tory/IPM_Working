@@ -334,35 +334,56 @@ body {
 
 // Material Design 3 inspired adjustments for minimal noise
 .mat-mdc-card {
-  border-radius: 12px !important;
-  box-shadow: 0 1px 3px var(--shadow) !important;
-  border: 1px solid var(--border-color) !important;
-  background: var(--surface-color) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid var(--outline-variant) !important;
+  background: var(--surface) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    transform: translateY(-2px) !important;
+  }
 }
 
 .mat-mdc-button {
-  border-radius: 8px !important;
-  font-weight: 500 !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
   letter-spacing: 0.01em !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: none !important;
 }
 
 .mat-mdc-raised-button {
-  box-shadow: 0 1px 3px var(--shadow) !important;
+  box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.25) !important;
   
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.35) !important;
+    transform: translateY(-2px) !important;
+  }
+  
+  &:active {
     transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.25) !important;
   }
 }
 
 .mat-mdc-outlined-button {
-  border-color: var(--border-color) !important;
-  color: var(--primary-color) !important;
+  border-color: var(--outline) !important;
+  color: var(--primary) !important;
+  border-width: 2px !important;
   
   &:hover {
-    background: var(--primary-color-light) !important;
-    border-color: var(--primary-color) !important;
+    background: var(--primary) !important;
+    color: var(--on-primary) !important;
+    border-color: var(--primary) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.2) !important;
+  }
+  
+  &:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(var(--primary-color-rgb), 0.15) !important;
   }
 }
 
@@ -439,4 +460,86 @@ body {
       background: var(--background-color) !important;
     }
   }
+}
+
+// Z-index hierarchy for proper layering
+// Base content: z-index 1
+// Sticky elements: z-index 10-50
+// Modals/overlays: z-index 100+
+// Tooltips: z-index 1000+
+
+// Sidenav tooltip styling
+.sidenav-tooltip {
+  background: var(--surface-container-high) !important;
+  color: var(--on-surface) !important;
+  border: 1px solid var(--outline-variant) !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  max-width: 200px !important;
+  z-index: 1001 !important;
+  
+  .mat-mdc-tooltip-surface {
+    background: var(--surface-container-high) !important;
+    color: var(--on-surface) !important;
+  }
+}
+
+// Toolbar button improvements
+.app-toolbar {
+  .menu-button,
+  .collapse-button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    
+    &:hover {
+      background: var(--surface-container-high) !important;
+      transform: scale(1.05) !important;
+    }
+    
+    &:active {
+      transform: scale(0.95) !important;
+    }
+  }
+  
+  .collapse-button {
+    margin-left: 8px !important;
+    
+    mat-icon {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+  }
+}
+
+// Sticky elements z-index management
+.view-controls {
+  z-index: 30 !important;
+}
+
+.filters-panel.mat-expanded {
+  z-index: 25 !important;
+}
+
+// Scrollbar styling for better UX
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-variant);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline);
+  border-radius: 4px;
+  
+  &:hover {
+    background: var(--on-surface-variant);
+  }
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--surface-variant);
 }
