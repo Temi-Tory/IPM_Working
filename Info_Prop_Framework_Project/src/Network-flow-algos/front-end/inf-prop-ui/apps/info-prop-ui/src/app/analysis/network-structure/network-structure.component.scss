@@ -449,6 +449,258 @@
     }
   }
 
+  // NEW: Visual View Styles
+  .visual-view {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 0;
+  }
+
+  // Graph Controls Card
+  .graph-controls-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-color: rgba(var(--primary-color-rgb), 0.3);
+    }
+    
+    .card-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      .card-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+      }
+      
+      .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      
+      @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+    }
+    
+    .layout-field,
+    .orientation-field {
+      min-width: 160px;
+      flex: 1;
+      
+      @media (max-width: 768px) {
+        min-width: unset;
+      }
+    }
+    
+    .fit-button {
+      height: 48px;
+      white-space: nowrap;
+      
+      mat-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  // Graph Card
+  .graph-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-height: 600px;
+    
+    &:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-color: rgba(var(--primary-color-rgb), 0.3);
+    }
+    
+    .card-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      .card-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+      }
+      
+      .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+      
+      .card-subtitle {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-left: auto;
+      }
+    }
+    
+    .graph-container {
+      position: relative;
+      height: 600px;
+      padding: 0 !important;
+      
+      @media (max-width: 768px) {
+        height: 400px;
+      }
+    }
+    
+    .chart-container {
+      height: 100%;
+      width: 100%;
+      background: var(--background-color);
+      border-radius: 0 0 12px 12px;
+    }
+  }
+
+  // No Graph Data State
+  .no-graph-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: var(--text-disabled);
+      margin-bottom: 1rem;
+    }
+    
+    h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    p {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 300px;
+    }
+  }
+
+  // Legend Card
+  .legend-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border-color: rgba(var(--primary-color-rgb), 0.3);
+    }
+    
+    .card-header {
+      padding: 1.5rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      .card-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+      }
+      
+      .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+      }
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+    }
+    
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
+    
+    .legend-label {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+    
+    .legend-count {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      background: var(--background-color);
+      padding: 0.1rem 0.4rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+  }
+
   // Card Base Styles
   .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card {
     background: var(--surface-color);
@@ -828,6 +1080,85 @@
   }
 }
 
+// NEW: NGX Graph Styling
+::ng-deep {
+  // Graph Node Styles
+  .ngx-graph {
+    .node {
+      cursor: pointer;
+      
+      .node-rect {
+        transition: all 0.2s ease;
+        
+        &:hover {
+          stroke-width: 2 !important;
+          stroke: var(--primary-color) !important;
+          filter: brightness(1.1);
+        }
+        
+        &.selected {
+          stroke-width: 3 !important;
+          stroke: var(--primary-color) !important;
+        }
+      }
+      
+      .node-label {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 500;
+        pointer-events: none;
+        font-size: 12px !important;
+      }
+      
+      .node-type-badge {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 400;
+        pointer-events: none;
+        font-size: 10px !important;
+      }
+    }
+    
+    // Graph Edge Styles
+    .edge {
+      cursor: pointer;
+      
+      .line {
+        transition: stroke-width 0.2s ease;
+        
+        &:hover {
+          stroke-width: 3 !important;
+          stroke: var(--primary-color) !important;
+        }
+      }
+      
+      .edge-label {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 400;
+        pointer-events: none;
+        font-size: 10px !important;
+      }
+    }
+    
+    // Mini-map styling
+    .minimap {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 4px !important;
+    }
+    
+    // Zoom controls
+    .zoom-to-fit {
+      background: var(--surface-color) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-primary) !important;
+      
+      &:hover {
+        background: var(--primary-color) !important;
+        color: white !important;
+      }
+    }
+  }
+}
+
 // Animations
 @keyframes spin {
   from {
@@ -854,7 +1185,8 @@
       color: var(--text-primary);
     }
     
-    .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card {
+    .summary-card, .classification-card, .structural-classification-card, .connectivity-card, .topology-card, .data-card,
+    .graph-controls-card, .graph-card, .legend-card {
       background: var(--surface-color);
       border-color: var(--border-color);
       color: var(--text-primary);
@@ -881,6 +1213,27 @@
       .card-content {
         color: var(--text-primary);
       }
+    }
+    
+    // Graph specific dark theme
+    .chart-container {
+      background: var(--surface-color) !important;
+    }
+    
+    .no-graph-data {
+      color: var(--text-secondary);
+      
+      h3 {
+        color: var(--text-primary);
+      }
+      
+      .empty-icon {
+        color: var(--text-disabled);
+      }
+    }
+    
+    .legend-color {
+      border-color: var(--border-color);
     }
     
     .data-table {
@@ -955,6 +1308,22 @@
       color: var(--text-secondary);
     }
   }
+  
+  // NGX Graph dark theme
+  ::ng-deep {
+    .ngx-graph {
+      .minimap {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border-color: var(--border-color) !important;
+      }
+      
+      .zoom-to-fit {
+        background: var(--surface-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-primary) !important;
+      }
+    }
+  }
 }
 
 // Responsive adjustments
@@ -966,6 +1335,14 @@
     
     .primary-card {
       grid-column: span 1;
+    }
+    
+    .visual-view {
+      gap: 1.5rem;
+    }
+    
+    .graph-card .graph-container {
+      height: 400px;
     }
   }
 }
@@ -986,6 +1363,25 @@
       th, td {
         padding: 0.5rem 0.25rem;
       }
+    }
+    
+    .visual-view {
+      gap: 1rem;
+    }
+    
+    .legend-items {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .control-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    
+    .layout-field,
+    .orientation-field {
+      min-width: unset !important;
     }
   }
 }

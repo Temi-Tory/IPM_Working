@@ -1,5 +1,6 @@
 import { Component, inject, computed, signal, effect, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +19,15 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
+
+// Add NGX Graph imports
+import { NgxGraphModule, Node, Edge, Layout } from '@swimlane/ngx-graph';
+
+// Add the NgxGraphZoomOptions interface import
+interface NgxGraphZoomOptions {
+  autoCenter?: boolean;
+  force?: boolean;
+}
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { NetworkDialogService } from '../../shared/services/network-dialog.service';
@@ -46,7 +56,8 @@ import { EdgeDetailDialogComponent, EdgeDetailDialogData } from '../../shared/co
     MatExpansionModule,
     MatDialogModule,
     MatTooltipModule,
-    FormsModule
+    FormsModule,
+    NgxGraphModule // Add this
 ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
@@ -138,9 +149,28 @@ export class NetworkStructureComponent implements OnInit {
   nodeDetails = computed(() => this.getNodeDetails());
   edgeDetails = computed(() => this.getEdgeDetails());
   
+  // NEW: Graph visualization signals
+  graphNodes = computed(() => this.transformToGraphNodes());
+  graphEdges = computed(() => this.transformToGraphEdges());
+  
+  // Graph layout configuration
+  graphLayout: string | Layout = 'dagre';
+  
+  // Graph layout settings
+  graphLayoutSettings: any = {
+    orientation: 'TB', // Top to Bottom
+    marginX: 20,
+    marginY: 20,
+    edgePadding: 100,
+    rankPadding: 100,
+    nodePadding: 50,
+  };
 
-  // View toggle
-  currentView = signal<'overview' | 'nodes' | 'edges' | 'structure'>('overview');
+  // Subject for triggering zoom to fit
+  zoomToFit$ = new Subject<NgxGraphZoomOptions>();
+
+  // View toggle - UPDATE to include 'visual'
+  currentView = signal<'overview' | 'visual' | 'nodes' | 'edges' | 'structure'>('overview');
 
   // BI-style filtering signals
   nodeSearchTerm = signal<string>('');
@@ -194,8 +224,117 @@ export class NetworkStructureComponent implements OnInit {
     }
   }
 
+  // NEW: Graph transformation methods
+  private transformToGraphNodes(): Node[] {
+    const filteredNodes = this.filteredNodeDetails();
+    
+    // Safety check to ensure we have valid data
+    if (!filteredNodes || !Array.isArray(filteredNodes)) {
+      return [];
+    }
+    
+    return filteredNodes.map(nodeDetail => ({
+      id: `node-${nodeDetail.node}`, // Prefix with 'node-' to make valid CSS selector
+      label: nodeDetail.node.toString(),
+      data: {
+        type: nodeDetail.type,
+        inDegree: nodeDetail.inDegree,
+        outDegree: nodeDetail.outDegree,
+        originalId: nodeDetail.node
+      },
+      dimension: {
+        width: 80,
+        height: 40
+      }
+    }));
+  }
+
+  private transformToGraphEdges(): Edge[] {
+    const filteredEdges = this.filteredEdgeDetails();
+    
+    // Safety check to ensure we have valid data
+    if (!filteredEdges || !Array.isArray(filteredEdges)) {
+      return [];
+    }
+    
+    return filteredEdges.map(edgeDetail => ({
+      id: `edge-${edgeDetail.source}-${edgeDetail.target}`, // Prefix with 'edge-'
+      source: `node-${edgeDetail.source}`, // Match the node ID format
+      target: `node-${edgeDetail.target}`, // Match the node ID format
+      label: '', // You can add edge labels if needed
+      data: {
+        type: edgeDetail.edgeType,
+        sourceId: edgeDetail.source,
+        targetId: edgeDetail.target
+      }
+    }));
+  }
+
+  // NEW: Graph interaction methods
+  onNodeSelect(event: any): void {
+    console.log('Selected node:', event);
+    if (event && event.data && event.data.originalId) {
+      this.openNodeDialog(event.data.originalId);
+    }
+  }
+
+  onEdgeSelect(event: any): void {
+    console.log('Selected edge:', event);
+    if (event && event.data && event.data.sourceId && event.data.targetId) {
+      this.openEdgeDialog(event.data.sourceId, event.data.targetId);
+    }
+  }
+
+  // NEW: Graph control methods
+  updateGraphLayout(): void {
+    // Trigger re-layout by updating the layout settings
+    this.graphLayoutSettings = { ...this.graphLayoutSettings };
+  }
+
+  fitGraphToView(): void {
+    this.zoomToFit$.next({ autoCenter: true, force: true });
+  }
+
+  // NEW: Get node color based on type
+  getNodeColor(nodeType: string): string {
+    const colorMap: { [key: string]: string } = {
+      'Source': '#4CAF50',      // Green
+      'Sink': '#F44336',        // Red  
+      'Fork': '#FF9800',        // Orange
+      'Join': '#2196F3',        // Blue
+      'Regular': '#9E9E9E',     // Gray
+      'Source + Fork': '#8BC34A',
+      'Sink + Join': '#3F51B5',
+      // Add more combinations as needed
+    };
+    return colorMap[nodeType] || '#9E9E9E';
+  }
+
+  // NEW: Get unique node types for legend
+  getUniqueNodeTypes(): string[] {
+    const filteredNodes = this.filteredNodeDetails();
+    const types = new Set<string>();
+    
+    filteredNodes.forEach(node => {
+      types.add(node.type);
+    });
+
+    return Array.from(types).sort();
+  }
+
+  // NEW: Get node count by type for legend
+  getNodeCountByType(nodeType: string): number {
+    const filteredNodes = this.filteredNodeDetails();
+    return filteredNodes.filter(node => node.type === nodeType).length;
+  }
+
+  // Helper method to access Math.min in template
+  mathMin(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
   switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'structure');
+    this.currentView.set(event.value as 'overview' | 'visual' | 'nodes' | 'edges' | 'structure');
   }
 
   getNetworkMetrics(): { metric: string; value: string | number }[] {
@@ -281,7 +420,6 @@ export class NetworkStructureComponent implements OnInit {
       edgeType: this.getEdgeType(source, target)
     })).sort((a, b) => a.source - b.source || a.target - b.target);
   }
-
 
   private getNodeTypes(nodeId: number): string[] {
     const data = this.networkData();
@@ -772,8 +910,6 @@ export class NetworkStructureComponent implements OnInit {
     };
   }
 
-
-
   // Simple structural helper methods
   private isStructuralChokepoint(nodeId: number): boolean {
     const inDegree = this.calculateInDegree(nodeId);
@@ -782,7 +918,6 @@ export class NetworkStructureComponent implements OnInit {
     // Structural chokepoint: topology-based critical point where flow must pass through
     return (inDegree === 1 && outDegree > 1) || (outDegree === 1 && inDegree > 1);
   }
-
 
   // Dialog methods
   openNodeDialog(nodeId: number): void {
