@@ -1,6 +1,4 @@
 <div class="network-structure" 
-     [class.dashboard-mode]="displayMode() === 'dashboard'" 
-     [class.visualization-mode]="displayMode() === 'visualization'"
      role="main" 
      aria-labelledby="network-structure-title">
   <!-- Header Section -->
@@ -77,47 +75,9 @@
 
   <!-- Main Content -->
   @if (networkData(); as data) {
-    <!-- Mode Toggle -->
-    <div class="mode-toggle-container">
-      <div class="mode-toggle-wrapper">
-        <mat-button-toggle-group 
-          [value]="displayMode()" 
-          (change)="switchDisplayMode($event.value)"
-          class="mode-toggle"
-          role="tablist"
-          aria-label="Display mode selection">
-          <mat-button-toggle value="dashboard" 
-                           role="tab"
-                           [attr.aria-selected]="displayMode() === 'dashboard'"
-                           [attr.tabindex]="displayMode() === 'dashboard' ? 0 : -1"
-                           aria-label="Dashboard mode - comprehensive analysis with tabbed interface">
-            <mat-icon aria-hidden="true">dashboard</mat-icon>
-            <span>Dashboard</span>
-          </mat-button-toggle>
-          <mat-button-toggle value="visualization" 
-                           role="tab"
-                           [attr.aria-selected]="displayMode() === 'visualization'"
-                           [attr.tabindex]="displayMode() === 'visualization' ? 0 : -1"
-                           aria-label="Visualization mode - full-viewport network visualization"
-                           (keydown.escape)="exitVisualizationMode()">
-            <mat-icon aria-hidden="true">fullscreen</mat-icon>
-            <span>Visualization</span>
-          </mat-button-toggle>
-        </mat-button-toggle-group>
-        
-        <div class="mode-description" aria-live="polite">
-          @if (displayMode() === 'dashboard') {
-            <span class="mode-desc-text">Comprehensive analysis with tabbed interface</span>
-          } @else {
-            <span class="mode-desc-text">Full-viewport network visualization (Press Escape to exit)</span>
-          }
-        </div>
-      </div>
-    </div>
 
     <!-- Dashboard Mode -->
-    @if (displayMode() === 'dashboard') {
-      <div class="structure-content dashboard-content">
+    <div class="structure-content dashboard-content">
         
         <!-- View Controls - UPDATED to include Visual toggle -->
         <div class="view-controls" role="navigation" aria-label="View selection">
@@ -133,13 +93,6 @@
             aria-label="Overview tab - shows network summary and statistics">
             <mat-icon aria-hidden="true">dashboard</mat-icon>
             <span>Overview</span>
-          </mat-button-toggle>
-          <mat-button-toggle value="visual" role="tab" 
-            [attr.aria-selected]="currentView() === 'visual'"
-            [attr.tabindex]="currentView() === 'visual' ? 0 : -1"
-            aria-label="Visual Graph tab - interactive network visualization">
-            <mat-icon aria-hidden="true">device_hub</mat-icon>
-            <span>Visual Graph</span>
           </mat-button-toggle>
           <mat-button-toggle value="nodes" role="tab" 
             [attr.aria-selected]="currentView() === 'nodes'"
@@ -473,17 +426,6 @@
         </div>
       }
 
-      <!-- Visual Graph Tab -->
-      @if (currentView() === 'visual') {
-        <app-d3-network-graph
-          [nodes]="filteredNodeDetails()"
-          [edges]="filteredEdgeDetails()"
-          [filteredNodeCount]="getFilteredNodeCount()"
-          [filteredEdgeCount]="getFilteredEdgeCount()"
-          (nodeSelected)="onNodeSelected($event)"
-          (edgeSelected)="onEdgeSelected($event)">
-        </app-d3-network-graph>
-      }
 
       <!-- Nodes Tab -->
       @if (currentView() === 'nodes') {
@@ -535,19 +477,6 @@
                     </td>
                   </ng-container>
 
-                  <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef>Details</th>
-                    <td mat-cell *matCellDef="let element">
-                      <button mat-icon-button 
-                              (click)="openNodeDialog(element.node)" 
-                              matTooltip="View detailed node information"
-                              [attr.aria-label]="'View details for node ' + element.node"
-                              class="details-button">
-                        <mat-icon aria-hidden="true">visibility</mat-icon>
-                        <span class="sr-only">View details</span>
-                      </button>
-                    </td>
-                  </ng-container>
 
                   <tr mat-header-row *matHeaderRowDef="nodeDetailsColumns"></tr>
                   <tr mat-row *matRowDef="let row; columns: nodeDetailsColumns;"></tr>
@@ -610,19 +539,6 @@
                     </td>
                   </ng-container>
 
-                  <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef>Details</th>
-                    <td mat-cell *matCellDef="let element">
-                      <button mat-icon-button 
-                              (click)="openEdgeDialog(element.source, element.target)" 
-                              matTooltip="View detailed edge information"
-                              [attr.aria-label]="'View details for edge from ' + element.source + ' to ' + element.target"
-                              class="details-button">
-                        <mat-icon aria-hidden="true">visibility</mat-icon>
-                        <span class="sr-only">View details</span>
-                      </button>
-                    </td>
-                  </ng-container>
 
                   <tr mat-header-row *matHeaderRowDef="edgeDetailsColumns"></tr>
                   <tr mat-row *matRowDef="let row; columns: edgeDetailsColumns;"></tr>
@@ -706,21 +622,6 @@
       }
 
       </div>
-    }
-
-    <!-- Visualization Mode -->
-    @if (displayMode() === 'visualization') {
-      <div class="visualization-content">
-        <app-d3-network-graph
-          [nodes]="filteredNodeDetails()"
-          [edges]="filteredEdgeDetails()"
-          [filteredNodeCount]="getFilteredNodeCount()"
-          [filteredEdgeCount]="getFilteredEdgeCount()"
-          (nodeSelected)="onNodeSelected($event)"
-          (edgeSelected)="onEdgeSelected($event)">
-        </app-d3-network-graph>
-      </div>
-    }
 
   }
 

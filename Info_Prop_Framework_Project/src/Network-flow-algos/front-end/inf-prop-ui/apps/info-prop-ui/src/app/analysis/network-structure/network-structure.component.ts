@@ -16,17 +16,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { NetworkDialogService } from '../../shared/services/network-dialog.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
-import { NodeDetailDialogComponent } from '../../shared/components/dialogs/node-detail-dialog/node-detail-dialog.component';
-import { EdgeDetailDialogComponent } from '../../shared/components/dialogs/edge-detail-dialog/edge-detail-dialog.component';
-import { D3NetworkGraphComponent } from '../../shared/components/d3-network-graph/d3-network-graph.component';
 
 @Component({
   selector: 'app-network-structure',
@@ -47,18 +42,14 @@ import { D3NetworkGraphComponent } from '../../shared/components/d3-network-grap
     MatSliderModule,
     MatPaginatorModule,
     MatExpansionModule,
-    MatDialogModule,
     MatTooltipModule,
-    FormsModule,
-    D3NetworkGraphComponent
+    FormsModule
 ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
-export class NetworkStructureComponent implements OnInit {
+export class NetworkStructureComponent/*  implements OnInit  */{
   private analysisState = inject(AnalysisStateService);
-  private dialog = inject(MatDialog);
-  private networkDialogService = inject(NetworkDialogService);
   private elementRef = inject(ElementRef);
   
   // Focus management
@@ -75,7 +66,6 @@ export class NetworkStructureComponent implements OnInit {
       if (data) {
         // Ensure uploaded data summary is populated
         this.ensureUploadedDataSummary(data);
-        this.networkDialogService.setNetworkData(data);
       }
     });
   }
@@ -147,11 +137,8 @@ export class NetworkStructureComponent implements OnInit {
   edgeDetails = computed(() => this.getEdgeDetails());
   
 
-  // Mode toggle - Dashboard vs Visualization
-  displayMode = signal<'dashboard' | 'visualization'>('dashboard');
-  
-  // View toggle - UPDATE to include 'visual'
-  currentView = signal<'overview' | 'visual' | 'nodes' | 'edges' | 'structure'>('overview');
+  // View toggle
+  currentView = signal<'overview' | 'nodes' | 'edges' | 'structure'>('overview');
 
   // BI-style filtering signals
   nodeSearchTerm = signal<string>('');
@@ -194,59 +181,16 @@ export class NetworkStructureComponent implements OnInit {
   paginatedEdgeDetails = computed(() => this.getPaginatedEdges());
 
   displayedColumns: string[] = ['metric', 'value'];
-  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree', 'actions'];
-  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType', 'actions'];
+  nodeDetailsColumns: string[] = ['node', 'type', 'inDegree', 'outDegree'];
+  edgeDetailsColumns: string[] = ['source', 'target', 'edgeType'];
 
-  ngOnInit(): void {
-    // Initialize the network dialog service with current network data
-    const networkData = this.networkData();
-    if (networkData) {
-      this.networkDialogService.setNetworkData(networkData);
-    }
-  }
 
-  // Graph interaction methods - now handle events from child component
-  onNodeSelected(nodeId: number): void {
-    console.log('Selected node:', nodeId);
-    this.openNodeDialog(nodeId);
-  }
 
-  onEdgeSelected(event: {sourceId: number, targetId: number}): void {
-    console.log('Selected edge:', event);
-    this.openEdgeDialog(event.sourceId, event.targetId);
-  }
 
   switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'visual' | 'nodes' | 'edges' | 'structure');
+    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'structure');
   }
 
-  switchDisplayMode(mode: 'dashboard' | 'visualization'): void {
-    // Store current focus for restoration
-    if (mode === 'visualization') {
-      this.previousFocusElement = document.activeElement as HTMLElement;
-    }
-    
-    this.displayMode.set(mode);
-    
-    // Auto-switch to visual view when entering visualization mode
-    if (mode === 'visualization') {
-      this.currentView.set('visual');
-      // Announce mode change to screen readers
-      this.announceToScreenReader('Switched to visualization mode. Press Escape to exit.');
-    } else if (mode === 'dashboard' && this.currentView() === 'visual') {
-      // When leaving visualization mode, switch to overview if currently on visual
-      this.currentView.set('overview');
-      this.announceToScreenReader('Switched to dashboard mode.');
-      
-      // Restore focus
-      if (this.previousFocusElement) {
-        setTimeout(() => {
-          this.previousFocusElement?.focus();
-          this.previousFocusElement = null;
-        }, 100);
-      }
-    }
-  }
 
   getNetworkMetrics(): { metric: string; value: string | number }[] {
     const data = this.networkData();
@@ -831,26 +775,12 @@ export class NetworkStructureComponent implements OnInit {
   }
 
   // Dialog methods
-  /**
-   * Exit visualization mode when Escape key is pressed
-   */
-  exitVisualizationMode(): void {
-    if (this.displayMode() === 'visualization') {
-      this.switchDisplayMode('dashboard');
-    }
-  }
   
   /**
    * Handle keyboard navigation
    */
   @HostListener('keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
-    // Handle Escape key in visualization mode
-    if (event.key === 'Escape' && this.displayMode() === 'visualization') {
-      this.exitVisualizationMode();
-      event.preventDefault();
-    }
-    
     // Handle tab navigation for mode toggles
     if (event.key === 'Tab') {
       this.handleTabNavigation(event);
@@ -910,73 +840,5 @@ export class NetworkStructureComponent implements OnInit {
     }, 1000);
   }
   
-  openNodeDialog(nodeId: number): void {
-    console.log('🔍 [NetworkStructureComponent] openNodeDialog called with:', {
-      nodeId: nodeId,
-      nodeIdType: typeof nodeId
-    });
 
-    // Validate nodeId before passing to dialog
-    if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
-      console.error('🚨 [NetworkStructureComponent] Invalid nodeId passed to openNodeDialog:', nodeId);
-      return;
-    }
-
-    // Convert to number if needed
-    const validNodeId = typeof nodeId === 'number' ? nodeId : parseInt(String(nodeId), 10);
-    if (isNaN(validNodeId)) {
-      console.error('🚨 [NetworkStructureComponent] Could not convert nodeId to number:', nodeId);
-      return;
-    }
-
-    this.dialog.open(NodeDetailDialogComponent, {
-      data: {
-        nodeId: validNodeId,
-        networkName: 'Current Network'
-      },
-      width: '800px',
-      maxHeight: '90vh',
-      // Improve dialog accessibility
-      ariaLabel: `Node ${validNodeId} details`,
-      restoreFocus: true
-    });
-  }
-
-  openEdgeDialog(source: number, target: number): void {
-    console.log('🔍 [NetworkStructureComponent] openEdgeDialog called with:', {
-      source: source,
-      target: target,
-      sourceType: typeof source,
-      targetType: typeof target
-    });
-
-    // Validate source and target before passing to dialog
-    if (source === null || source === undefined || isNaN(source) ||
-        target === null || target === undefined || isNaN(target)) {
-      console.error('🚨 [NetworkStructureComponent] Invalid source or target passed to openEdgeDialog:', { source, target });
-      return;
-    }
-
-    // Convert to numbers if needed
-    const validSource = typeof source === 'number' ? source : parseInt(String(source), 10);
-    const validTarget = typeof target === 'number' ? target : parseInt(String(target), 10);
-    
-    if (isNaN(validSource) || isNaN(validTarget)) {
-      console.error('🚨 [NetworkStructureComponent] Could not convert source/target to numbers:', { source, target });
-      return;
-    }
-
-    this.dialog.open(EdgeDetailDialogComponent, {
-      data: {
-        sourceId: validSource,
-        targetId: validTarget,
-        networkName: 'Current Network'
-      },
-      width: '700px',
-      maxHeight: '90vh',
-      // Improve dialog accessibility
-      ariaLabel: `Edge from ${validSource} to ${validTarget} details`,
-      restoreFocus: true
-    });
-  }
 }
