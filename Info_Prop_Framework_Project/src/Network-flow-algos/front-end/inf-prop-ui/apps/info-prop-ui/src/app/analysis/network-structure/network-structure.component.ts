@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, effect, OnInit } from '@angular/core';
+import { Component, inject, computed, signal, effect, OnInit, HostListener, ElementRef } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 
@@ -26,7 +26,7 @@ import { NetworkDialogService } from '../../shared/services/network-dialog.servi
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
 import { NodeDetailDialogComponent } from '../../shared/components/dialogs/node-detail-dialog/node-detail-dialog.component';
 import { EdgeDetailDialogComponent } from '../../shared/components/dialogs/edge-detail-dialog/edge-detail-dialog.component';
-import { NetworkGraphVisualizationComponent } from '../../shared/components/network-graph-visualization/network-graph-visualization.component';
+import { D3NetworkGraphComponent } from '../../shared/components/d3-network-graph/d3-network-graph.component';
 
 @Component({
   selector: 'app-network-structure',
@@ -50,7 +50,7 @@ import { NetworkGraphVisualizationComponent } from '../../shared/components/netw
     MatDialogModule,
     MatTooltipModule,
     FormsModule,
-    NetworkGraphVisualizationComponent
+    D3NetworkGraphComponent
 ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
@@ -59,6 +59,10 @@ export class NetworkStructureComponent implements OnInit {
   private analysisState = inject(AnalysisStateService);
   private dialog = inject(MatDialog);
   private networkDialogService = inject(NetworkDialogService);
+  private elementRef = inject(ElementRef);
+  
+  // Focus management
+  private previousFocusElement: HTMLElement | null = null;
 
   networkData = computed(() => this.analysisState.networkData());
   isLoading = computed(() => this.analysisState.isLoading());
@@ -143,6 +147,9 @@ export class NetworkStructureComponent implements OnInit {
   edgeDetails = computed(() => this.getEdgeDetails());
   
 
+  // Mode toggle - Dashboard vs Visualization
+  displayMode = signal<'dashboard' | 'visualization'>('dashboard');
+  
   // View toggle - UPDATE to include 'visual'
   currentView = signal<'overview' | 'visual' | 'nodes' | 'edges' | 'structure'>('overview');
 
@@ -211,6 +218,34 @@ export class NetworkStructureComponent implements OnInit {
 
   switchView(event: MatButtonToggleChange): void {
     this.currentView.set(event.value as 'overview' | 'visual' | 'nodes' | 'edges' | 'structure');
+  }
+
+  switchDisplayMode(mode: 'dashboard' | 'visualization'): void {
+    // Store current focus for restoration
+    if (mode === 'visualization') {
+      this.previousFocusElement = document.activeElement as HTMLElement;
+    }
+    
+    this.displayMode.set(mode);
+    
+    // Auto-switch to visual view when entering visualization mode
+    if (mode === 'visualization') {
+      this.currentView.set('visual');
+      // Announce mode change to screen readers
+      this.announceToScreenReader('Switched to visualization mode. Press Escape to exit.');
+    } else if (mode === 'dashboard' && this.currentView() === 'visual') {
+      // When leaving visualization mode, switch to overview if currently on visual
+      this.currentView.set('overview');
+      this.announceToScreenReader('Switched to dashboard mode.');
+      
+      // Restore focus
+      if (this.previousFocusElement) {
+        setTimeout(() => {
+          this.previousFocusElement?.focus();
+          this.previousFocusElement = null;
+        }, 100);
+      }
+    }
   }
 
   getNetworkMetrics(): { metric: string; value: string | number }[] {
@@ -796,6 +831,85 @@ export class NetworkStructureComponent implements OnInit {
   }
 
   // Dialog methods
+  /**
+   * Exit visualization mode when Escape key is pressed
+   */
+  exitVisualizationMode(): void {
+    if (this.displayMode() === 'visualization') {
+      this.switchDisplayMode('dashboard');
+    }
+  }
+  
+  /**
+   * Handle keyboard navigation
+   */
+  @HostListener('keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    // Handle Escape key in visualization mode
+    if (event.key === 'Escape' && this.displayMode() === 'visualization') {
+      this.exitVisualizationMode();
+      event.preventDefault();
+    }
+    
+    // Handle tab navigation for mode toggles
+    if (event.key === 'Tab') {
+      this.handleTabNavigation(event);
+    }
+  }
+  
+  /**
+   * Handle tab key navigation for better accessibility
+   */
+  private handleTabNavigation(event: KeyboardEvent): void {
+    const focusableElements = this.elementRef.nativeElement.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
+    );
+    
+    const focusArray = Array.from(focusableElements) as HTMLElement[];
+    const currentIndex = focusArray.indexOf(document.activeElement as HTMLElement);
+    
+    if (event.shiftKey) {
+      // Shift+Tab - go backward
+      if (currentIndex === 0) {
+        focusArray[focusArray.length - 1].focus();
+        event.preventDefault();
+      }
+    } else {
+      // Tab - go forward
+      if (currentIndex === focusArray.length - 1) {
+        focusArray[0].focus();
+        event.preventDefault();
+      }
+    }
+  }
+  
+  /**
+   * Retry analysis function for error state
+   */
+  retryAnalysis(): void {
+    // Implementation would call the analysis service to retry
+    console.log('Retrying network analysis...');
+    this.announceToScreenReader('Retrying network analysis...');
+  }
+  
+  /**
+   * Announce messages to screen readers
+   */
+  private announceToScreenReader(message: string): void {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'assertive');
+    announcement.setAttribute('aria-atomic', 'true');
+    announcement.className = 'sr-only';
+    announcement.textContent = message;
+    
+    document.body.appendChild(announcement);
+    
+    // Remove after announcement
+    setTimeout(() => {
+      document.body.removeChild(announcement);
+    }, 1000);
+  }
+  
   openNodeDialog(nodeId: number): void {
     console.log('🔍 [NetworkStructureComponent] openNodeDialog called with:', {
       nodeId: nodeId,
@@ -821,7 +935,10 @@ export class NetworkStructureComponent implements OnInit {
         networkName: 'Current Network'
       },
       width: '800px',
-      maxHeight: '90vh'
+      maxHeight: '90vh',
+      // Improve dialog accessibility
+      ariaLabel: `Node ${validNodeId} details`,
+      restoreFocus: true
     });
   }
 
@@ -856,7 +973,10 @@ export class NetworkStructureComponent implements OnInit {
         networkName: 'Current Network'
       },
       width: '700px',
-      maxHeight: '90vh'
+      maxHeight: '90vh',
+      // Improve dialog accessibility
+      ariaLabel: `Edge from ${validSource} to ${validTarget} details`,
+      restoreFocus: true
     });
   }
 }

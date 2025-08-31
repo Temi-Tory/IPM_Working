@@ -1,29 +1,33 @@
-<div class="network-structure">
+<div class="network-structure" 
+     [class.dashboard-mode]="displayMode() === 'dashboard'" 
+     [class.visualization-mode]="displayMode() === 'visualization'"
+     role="main" 
+     aria-labelledby="network-structure-title">
   <!-- Header Section -->
   <div class="structure-header">
     <div class="header-content">
       <div class="header-main">
-        <h1 class="page-title">Network Structure</h1>
-        <p class="page-subtitle">Comprehensive topology analysis and structural insights</p>
+        <h1 id="network-structure-title" class="page-title">Network Structure</h1>
+        <p class="page-subtitle" aria-describedby="network-structure-title">Comprehensive topology analysis and structural insights</p>
       </div>
       
       @if (networkData(); as data) {
-        <div class="quick-metrics">
-          <div class="metric-card">
-            <div class="metric-value">{{ data.total_nodes }}</div>
-            <div class="metric-label">Nodes</div>
+        <div class="quick-metrics" role="group" aria-label="Network Statistics">
+          <div class="metric-card" role="group" aria-labelledby="nodes-metric-label">
+            <div class="metric-value" aria-describedby="nodes-metric-label">{{ data.total_nodes }}</div>
+            <div class="metric-label" id="nodes-metric-label">Nodes</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value">{{ data.total_edges }}</div>
-            <div class="metric-label">Edges</div>
+          <div class="metric-card" role="group" aria-labelledby="edges-metric-label">
+            <div class="metric-value" aria-describedby="edges-metric-label">{{ data.total_edges }}</div>
+            <div class="metric-label" id="edges-metric-label">Edges</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value">{{ data.iteration_sets_count }}</div>
-            <div class="metric-label">Layers</div>
+          <div class="metric-card" role="group" aria-labelledby="layers-metric-label">
+            <div class="metric-value" aria-describedby="layers-metric-label">{{ data.iteration_sets_count }}</div>
+            <div class="metric-label" id="layers-metric-label">Layers</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-value">{{ (data.computation_time * 1000).toFixed(0) }}ms</div>
-            <div class="metric-label">Analysis</div>
+          <div class="metric-card" role="group" aria-labelledby="analysis-metric-label">
+            <div class="metric-value" aria-describedby="analysis-metric-label">{{ (data.computation_time * 1000).toFixed(0) }}ms</div>
+            <div class="metric-label" id="analysis-metric-label">Analysis Time</div>
           </div>
         </div>
       }
@@ -32,22 +36,27 @@
 
   <!-- Loading State -->
   @if (isLoading()) {
-    <div class="loading-container">
-      <div class="loading-spinner">
-        <mat-icon class="spinning">refresh</mat-icon>
+    <div class="loading-container" role="status" aria-live="polite" aria-label="Loading network analysis">
+      <div class="loading-spinner" aria-hidden="true">
+        <mat-icon class="spinning" aria-hidden="true">refresh</mat-icon>
       </div>
       <p class="loading-text">Analyzing network structure...</p>
+      <span class="sr-only">Please wait while we analyze your network structure</span>
     </div>
   }
 
   <!-- Error State -->
   @if (error()) {
-    <div class="error-container">
-      <mat-icon class="error-icon">error_outline</mat-icon>
-      <h3 class="error-title">Analysis Failed</h3>
-      <p class="error-message">{{ error() }}</p>
-      <button mat-stroked-button class="retry-button">
-        <mat-icon>refresh</mat-icon>
+    <div class="error-container" role="alert" aria-live="assertive">
+      <mat-icon class="error-icon" aria-hidden="true">error_outline</mat-icon>
+      <h3 class="error-title" id="error-title">Analysis Failed</h3>
+      <p class="error-message" aria-describedby="error-title">{{ error() }}</p>
+      <button mat-stroked-button 
+              class="retry-button" 
+              (click)="retryAnalysis()"
+              [attr.aria-describedby]="'error-title'"
+              aria-label="Retry network analysis">
+        <mat-icon aria-hidden="true">refresh</mat-icon>
         Retry Analysis
       </button>
     </div>
@@ -55,12 +64,12 @@
 
   <!-- Empty State -->
   @if (!networkData() && !isLoading() && !error()) {
-    <div class="empty-container">
-      <mat-icon class="empty-icon">account_tree</mat-icon>
-      <h3 class="empty-title">No Network Loaded</h3>
-      <p class="empty-message">Upload a network file to begin structural analysis</p>
-      <button mat-flat-button routerLink="/upload" class="upload-button">
-        <mat-icon>cloud_upload</mat-icon>
+    <div class="empty-container" role="status">
+      <mat-icon class="empty-icon" aria-hidden="true">account_tree</mat-icon>
+      <h3 class="empty-title" id="empty-state-title">No Network Loaded</h3>
+      <p class="empty-message" aria-describedby="empty-state-title">Upload a network file to begin structural analysis</p>
+      <button mat-flat-button routerLink="/upload" class="upload-button" aria-label="Navigate to upload page to upload network file">
+        <mat-icon aria-hidden="true">cloud_upload</mat-icon>
         Upload Network
       </button>
     </div>
@@ -68,32 +77,89 @@
 
   <!-- Main Content -->
   @if (networkData(); as data) {
-    <div class="structure-content">
-      
-      <!-- View Controls - UPDATED to include Visual toggle -->
-      <div class="view-controls">
+    <!-- Mode Toggle -->
+    <div class="mode-toggle-container">
+      <div class="mode-toggle-wrapper">
+        <mat-button-toggle-group 
+          [value]="displayMode()" 
+          (change)="switchDisplayMode($event.value)"
+          class="mode-toggle"
+          role="tablist"
+          aria-label="Display mode selection">
+          <mat-button-toggle value="dashboard" 
+                           role="tab"
+                           [attr.aria-selected]="displayMode() === 'dashboard'"
+                           [attr.tabindex]="displayMode() === 'dashboard' ? 0 : -1"
+                           aria-label="Dashboard mode - comprehensive analysis with tabbed interface">
+            <mat-icon aria-hidden="true">dashboard</mat-icon>
+            <span>Dashboard</span>
+          </mat-button-toggle>
+          <mat-button-toggle value="visualization" 
+                           role="tab"
+                           [attr.aria-selected]="displayMode() === 'visualization'"
+                           [attr.tabindex]="displayMode() === 'visualization' ? 0 : -1"
+                           aria-label="Visualization mode - full-viewport network visualization"
+                           (keydown.escape)="exitVisualizationMode()">
+            <mat-icon aria-hidden="true">fullscreen</mat-icon>
+            <span>Visualization</span>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+        
+        <div class="mode-description" aria-live="polite">
+          @if (displayMode() === 'dashboard') {
+            <span class="mode-desc-text">Comprehensive analysis with tabbed interface</span>
+          } @else {
+            <span class="mode-desc-text">Full-viewport network visualization (Press Escape to exit)</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Mode -->
+    @if (displayMode() === 'dashboard') {
+      <div class="structure-content dashboard-content">
+        
+        <!-- View Controls - UPDATED to include Visual toggle -->
+        <div class="view-controls" role="navigation" aria-label="View selection">
         <mat-button-toggle-group 
           [value]="currentView()" 
           (change)="switchView($event)"
-          class="view-toggle">
-          <mat-button-toggle value="overview">
-            <mat-icon>dashboard</mat-icon>
+          class="view-toggle"
+          role="tablist"
+          aria-label="Select analysis view">
+          <mat-button-toggle value="overview" role="tab" 
+            [attr.aria-selected]="currentView() === 'overview'"
+            [attr.tabindex]="currentView() === 'overview' ? 0 : -1"
+            aria-label="Overview tab - shows network summary and statistics">
+            <mat-icon aria-hidden="true">dashboard</mat-icon>
             <span>Overview</span>
           </mat-button-toggle>
-          <mat-button-toggle value="visual">
-            <mat-icon>device_hub</mat-icon>
+          <mat-button-toggle value="visual" role="tab" 
+            [attr.aria-selected]="currentView() === 'visual'"
+            [attr.tabindex]="currentView() === 'visual' ? 0 : -1"
+            aria-label="Visual Graph tab - interactive network visualization">
+            <mat-icon aria-hidden="true">device_hub</mat-icon>
             <span>Visual Graph</span>
           </mat-button-toggle>
-          <mat-button-toggle value="nodes">
-            <mat-icon>grain</mat-icon>
+          <mat-button-toggle value="nodes" role="tab" 
+            [attr.aria-selected]="currentView() === 'nodes'"
+            [attr.tabindex]="currentView() === 'nodes' ? 0 : -1"
+            [attr.aria-label]="'Nodes tab - detailed node analysis, showing ' + getFilteredNodeCount() + ' nodes'">
+            <mat-icon aria-hidden="true">grain</mat-icon>
             <span>Nodes ({{ getFilteredNodeCount() }})</span>
           </mat-button-toggle>
-          <mat-button-toggle value="edges">
-            <mat-icon>timeline</mat-icon>
+          <mat-button-toggle value="edges" role="tab" 
+            [attr.aria-selected]="currentView() === 'edges'"
+            [attr.tabindex]="currentView() === 'edges' ? 0 : -1"
+            [attr.aria-label]="'Edges tab - detailed edge analysis, showing ' + getFilteredEdgeCount() + ' edges'">
+            <mat-icon aria-hidden="true">timeline</mat-icon>
             <span>Edges ({{ getFilteredEdgeCount() }})</span>
           </mat-button-toggle>
-          <mat-button-toggle value="structure">
-            <mat-icon>account_tree</mat-icon>
+          <mat-button-toggle value="structure" role="tab" 
+            [attr.aria-selected]="currentView() === 'structure'"
+            [attr.tabindex]="currentView() === 'structure' ? 0 : -1"
+            aria-label="DAG Structure tab - directed acyclic graph analysis">
+            <mat-icon aria-hidden="true">account_tree</mat-icon>
             <span>DAG Structure</span>
           </mat-button-toggle>
         </mat-button-toggle-group>
@@ -409,14 +475,14 @@
 
       <!-- Visual Graph Tab -->
       @if (currentView() === 'visual') {
-        <app-network-graph-visualization
+        <app-d3-network-graph
           [nodes]="filteredNodeDetails()"
           [edges]="filteredEdgeDetails()"
           [filteredNodeCount]="getFilteredNodeCount()"
           [filteredEdgeCount]="getFilteredEdgeCount()"
           (nodeSelected)="onNodeSelected($event)"
           (edgeSelected)="onEdgeSelected($event)">
-        </app-network-graph-visualization>
+        </app-d3-network-graph>
       }
 
       <!-- Nodes Tab -->
@@ -475,8 +541,10 @@
                       <button mat-icon-button 
                               (click)="openNodeDialog(element.node)" 
                               matTooltip="View detailed node information"
+                              [attr.aria-label]="'View details for node ' + element.node"
                               class="details-button">
-                        <mat-icon>visibility</mat-icon>
+                        <mat-icon aria-hidden="true">visibility</mat-icon>
+                        <span class="sr-only">View details</span>
                       </button>
                     </td>
                   </ng-container>
@@ -548,8 +616,10 @@
                       <button mat-icon-button 
                               (click)="openEdgeDialog(element.source, element.target)" 
                               matTooltip="View detailed edge information"
+                              [attr.aria-label]="'View details for edge from ' + element.source + ' to ' + element.target"
                               class="details-button">
-                        <mat-icon>visibility</mat-icon>
+                        <mat-icon aria-hidden="true">visibility</mat-icon>
+                        <span class="sr-only">View details</span>
                       </button>
                     </td>
                   </ng-container>
@@ -635,7 +705,23 @@
         </div>
       }
 
-    </div>
+      </div>
+    }
+
+    <!-- Visualization Mode -->
+    @if (displayMode() === 'visualization') {
+      <div class="visualization-content">
+        <app-d3-network-graph
+          [nodes]="filteredNodeDetails()"
+          [edges]="filteredEdgeDetails()"
+          [filteredNodeCount]="getFilteredNodeCount()"
+          [filteredEdgeCount]="getFilteredEdgeCount()"
+          (nodeSelected)="onNodeSelected($event)"
+          (edgeSelected)="onEdgeSelected($event)">
+        </app-d3-network-graph>
+      </div>
+    }
+
   }
 
 </div>

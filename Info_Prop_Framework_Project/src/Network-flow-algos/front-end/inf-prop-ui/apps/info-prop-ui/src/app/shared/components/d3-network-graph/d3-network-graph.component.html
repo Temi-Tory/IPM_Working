@@ -1,0 +1,237 @@
+<div class="d3-network-graph" 
+     role="application" 
+     aria-label="Interactive network visualization">
+  <div class="graph-container">
+    <!-- SVG Container -->
+    <svg #svgElement 
+         class="graph-svg"
+         role="img"
+         [attr.aria-label]="'Network graph with ' + nodes().length + ' nodes and ' + edges().length + ' edges'"
+         tabindex="0"
+         (keydown)="onSvgKeydown($event)"></svg>
+    
+    <!-- Loading Overlay -->
+    @if (isLoading()) {
+      <div class="loading-overlay">
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <div class="loading-text">Rendering graph...</div>
+        </div>
+      </div>
+    }
+    
+    <!-- Controls -->
+    <div class="controls">
+      <!-- Layout Selector -->
+      <div class="layout-selector">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Layout</mat-label>
+          <mat-select [value]="selectedLayout()" 
+                     (selectionChange)="onLayoutChange($event.value)"
+                     aria-label="Select graph layout algorithm">
+            <mat-option value="sugiyama" 
+                       aria-label="Hierarchical layout - nodes arranged in layers based on dependencies">Hierarchical</mat-option>
+            <mat-option value="force" 
+                       aria-label="Force-directed layout - nodes positioned by simulated physical forces">Force-Directed</mat-option>
+            <mat-option value="grid" 
+                       aria-label="Grid layout - nodes arranged in a regular grid pattern">Grid</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <!-- Zoom Controls -->
+      <div class="zoom-controls">
+        <button mat-mini-fab 
+                color="primary" 
+                (click)="zoomIn()" 
+                [disabled]="isLoading()" 
+                matTooltip="Zoom In" 
+                matTooltipPosition="right"
+                aria-label="Zoom in on network graph">
+          <mat-icon aria-hidden="true">zoom_in</mat-icon>
+        </button>
+        <button mat-mini-fab 
+                color="primary" 
+                (click)="zoomOut()" 
+                [disabled]="isLoading()"
+                matTooltip="Zoom Out" 
+                matTooltipPosition="right"
+                aria-label="Zoom out of network graph">
+          <mat-icon aria-hidden="true">zoom_out</mat-icon>
+        </button>
+        <button mat-mini-fab 
+                color="primary" 
+                (click)="resetZoom()" 
+                [disabled]="isLoading()"
+                matTooltip="Reset Zoom" 
+                matTooltipPosition="right"
+                aria-label="Reset zoom to fit entire graph">
+          <mat-icon aria-hidden="true">center_focus_strong</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Side Panel -->
+  <div class="side-panel">
+    <div class="panel-header">
+      <h3 id="side-panel-title">{{ selectedNode() ? 'Node Details' : 'Graph Information' }}</h3>
+    </div>
+    
+    <div class="panel-content" 
+         role="region" 
+         [attr.aria-labelledby]="'side-panel-title'">
+      <!-- Node Details (when node is selected) -->
+      @if (selectedNode(); as node) {
+        <div class="info-section">
+          <h4>Selected Node</h4>
+          <div class="node-details">
+            <div class="node-id">{{ node.id }}</div>
+            
+            <div class="info-list">
+              <div class="info-item">
+                <span class="label">Type</span>
+                <span class="value" [attr.aria-label]="'Node type: ' + (node.data?.type || 'Unknown')">{{ node.data?.type || 'Unknown' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Position</span>
+                <span class="value">{{ formatPosition(node.x, node.y) }}</span>
+              </div>
+              @if (node.data?.label) {
+                <div class="info-item">
+                  <span class="label">Label</span>
+                  <span class="value">{{ node.data.label }}</span>
+                </div>
+              }
+              @if (node.data?.description) {
+                <div class="info-item">
+                  <span class="label">Description</span>
+                  <span class="value">{{ node.data.description }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        
+        <!-- Node Connections -->
+        <div class="info-section">
+          <h4>Connections</h4>
+          <div class="connections">
+            @if (getNodeConnections(node.id); as connections) {
+              @if (connections.incoming.length > 0) {
+                <div class="info-item">
+                  <span class="label">Incoming ({{ connections.incoming.length }})</span>
+                  <div class="connection-list" 
+                       role="list" 
+                       [attr.aria-label]="'Incoming connections: ' + connections.incoming.length + ' items'">
+                    @for (conn of connections.incoming; track conn) {
+                      <div class="connection-item" role="listitem">{{ conn }}</div>
+                    }
+                  </div>
+                </div>
+              }
+              
+              @if (connections.outgoing.length > 0) {
+                <div class="info-item">
+                  <span class="label">Outgoing ({{ connections.outgoing.length }})</span>
+                  <div class="connection-list" 
+                       role="list" 
+                       [attr.aria-label]="'Outgoing connections: ' + connections.outgoing.length + ' items'">
+                    @for (conn of connections.outgoing; track conn) {
+                      <div class="connection-item" role="listitem">{{ conn }}</div>
+                    }
+                  </div>
+                </div>
+              }
+              
+              @if (connections.incoming.length === 0 && connections.outgoing.length === 0) {
+                <div class="info-item">
+                  <span class="value">No connections</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      } @else {
+        <!-- General Graph Information (when no node is selected) -->
+        <div class="info-section">
+          <h4>Graph Statistics</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Total Nodes</span>
+              <span class="value">{{ nodes().length }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Total Edges</span>
+              <span class="value">{{ edges().length }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Filtered Nodes</span>
+              <span class="value">{{ filteredNodeCount() || nodes().length }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Filtered Edges</span>
+              <span class="value">{{ filteredEdgeCount() || edges().length }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="info-section">
+          <h4>Layout Information</h4>
+          <div class="info-list">
+            <div class="info-item">
+              <span class="label">Current Layout</span>
+              <span class="value">{{ getLayoutDisplayName(selectedLayout()) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Graph Width</span>
+              <span class="value">{{ graphDimensions().width }}px</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Graph Height</span>
+              <span class="value">{{ graphDimensions().height }}px</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Zoom Level</span>
+              <span class="value">{{ formatZoomLevel(currentZoom()) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        @if (nodes().length > 0) {
+          <div class="info-section">
+            <h4>Node Types</h4>
+            <div class="info-list">
+              @for (typeInfo of getNodeTypeStats(); track typeInfo.type) {
+                <div class="info-item">
+                  <span class="label">{{ typeInfo.type || 'Unknown' }}</span>
+                  <span class="value">{{ typeInfo.count }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+        
+        @if (edges().length > 0) {
+          <div class="info-section">
+            <h4>Graph Properties</h4>
+            <div class="info-list">
+              <div class="info-item">
+                <span class="label">Is Acyclic</span>
+                <span class="value">{{ isAcyclic() ? 'Yes' : 'No' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Connected Components</span>
+                <span class="value">{{ getConnectedComponents() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Max Depth</span>
+                <span class="value">{{ getMaxDepth() }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

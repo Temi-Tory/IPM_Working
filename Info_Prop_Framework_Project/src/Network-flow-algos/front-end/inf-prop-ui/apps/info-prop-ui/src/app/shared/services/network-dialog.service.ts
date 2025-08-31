@@ -444,7 +444,7 @@ export class NetworkDialogService {
                           !!(uploadedData?.pbox?.node_priors?.[nodeKey]);
     
     // Get node priors from uploaded data (prioritize uploaded data over legacy)
-    let nodePriors = uploadedData?.float?.node_priors?.[nodeKey] ||
+    const nodePriors = uploadedData?.float?.node_priors?.[nodeKey] ||
                      uploadedData?.interval?.node_priors?.[nodeKey] ||
                      uploadedData?.pbox?.node_priors?.[nodeKey] ||
                      rawData?.node_priors?.[nodeKey];
@@ -867,7 +867,7 @@ export class NetworkDialogService {
   /**
    * Calculate maximum depth from sources to a node with cycle detection
    */
-  private calculateMaxDepthFromSources(nodeId: number, networkData: NetworkStructure, visited: Set<number> = new Set()): number {
+  private calculateMaxDepthFromSources(nodeId: number, networkData: NetworkStructure, memo: Map<number, number> = new Map(), recursionStack: Set<number> = new Set()): number {
     // Validate nodeId parameter
     if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
       console.error('🚨 [NetworkDialogService] Invalid nodeId in calculateMaxDepthFromSources:', nodeId);
@@ -881,30 +881,50 @@ export class NetworkDialogService {
       return 0;
     }
 
-    // Check for cycles
-    if (visited.has(validNodeId)) {
-      console.warn('🔄 [NetworkDialogService] Cycle detected in calculateMaxDepthFromSources for node:', validNodeId);
+    // Return memoized result if available (before cycle check to avoid redundant work)
+    if (memo.has(validNodeId)) {
+      return memo.get(validNodeId)!;
+    }
+
+    // Check for actual cycles (only during current recursion path)
+    if (recursionStack.has(validNodeId)) {
+      // Cycle detected - return 0 and don't memoize to avoid infinite loops
       return 0;
     }
 
-    if (networkData.source_nodes.includes(validNodeId)) return 0;
+    // Source nodes have depth 0
+    if (networkData.source_nodes.includes(validNodeId)) {
+      memo.set(validNodeId, 0);
+      return 0;
+    }
     
     const ancestors = networkData.ancestors[validNodeId.toString()] || [];
-    if (ancestors.length === 0) return 0;
+    if (ancestors.length === 0) {
+      memo.set(validNodeId, 0);
+      return 0;
+    }
     
-    // Add current node to visited set
-    const newVisited = new Set(visited);
-    newVisited.add(validNodeId);
+    // Add current node to recursion stack
+    recursionStack.add(validNodeId);
     
     let maxDepth = 0;
-    ancestors.forEach(ancestorId => {
-      // Validate ancestorId
-      const validAncestorId = typeof ancestorId === 'number' ? ancestorId : parseInt(String(ancestorId), 10);
-      if (!isNaN(validAncestorId)) {
-        const depth = this.calculateMaxDepthFromSources(validAncestorId, networkData, newVisited) + 1;
-        maxDepth = Math.max(maxDepth, depth);
-      }
-    });
+    try {
+      ancestors.forEach(ancestorId => {
+        // Validate ancestorId
+        const validAncestorId = typeof ancestorId === 'number' ? ancestorId : parseInt(String(ancestorId), 10);
+        if (!isNaN(validAncestorId)) {
+          const depth = this.calculateMaxDepthFromSources(validAncestorId, networkData, memo, recursionStack) + 1;
+          maxDepth = Math.max(maxDepth, depth);
+        }
+      });
+    } finally {
+      // Always remove from recursion stack, even if an error occurs
+      recursionStack.delete(validNodeId);
+    }
+    
+    // Memoize result
+    recursionStack.delete(validNodeId);
+    memo.set(validNodeId, maxDepth);
     
     return maxDepth;
   }
@@ -912,7 +932,7 @@ export class NetworkDialogService {
   /**
    * Calculate maximum depth from a node to sinks with cycle detection
    */
-  private calculateMaxDepthToSinks(nodeId: number, networkData: NetworkStructure, visited: Set<number> = new Set()): number {
+  private calculateMaxDepthToSinks(nodeId: number, networkData: NetworkStructure, memo: Map<number, number> = new Map(), recursionStack: Set<number> = new Set()): number {
     // Validate nodeId parameter
     if (nodeId === null || nodeId === undefined || isNaN(nodeId)) {
       console.error('🚨 [NetworkDialogService] Invalid nodeId in calculateMaxDepthToSinks:', nodeId);
@@ -926,30 +946,49 @@ export class NetworkDialogService {
       return 0;
     }
 
-    // Check for cycles
-    if (visited.has(validNodeId)) {
-      console.warn('🔄 [NetworkDialogService] Cycle detected in calculateMaxDepthToSinks for node:', validNodeId);
+    // Return memoized result if available (before cycle check to avoid redundant work)
+    if (memo.has(validNodeId)) {
+      return memo.get(validNodeId)!;
+    }
+
+    // Check for actual cycles (only during current recursion path)
+    if (recursionStack.has(validNodeId)) {
+      // Cycle detected - return 0 and don't memoize to avoid infinite loops
       return 0;
     }
 
-    if (networkData.sink_nodes.includes(validNodeId)) return 0;
+    // Sink nodes have depth 0
+    if (networkData.sink_nodes.includes(validNodeId)) {
+      memo.set(validNodeId, 0);
+      return 0;
+    }
     
     const descendants = networkData.descendants[validNodeId.toString()] || [];
-    if (descendants.length === 0) return 0;
+    if (descendants.length === 0) {
+      memo.set(validNodeId, 0);
+      return 0;
+    }
     
-    // Add current node to visited set
-    const newVisited = new Set(visited);
-    newVisited.add(validNodeId);
+    // Add current node to recursion stack
+    recursionStack.add(validNodeId);
     
     let maxDepth = 0;
-    descendants.forEach(descendantId => {
-      // Validate descendantId
-      const validDescendantId = typeof descendantId === 'number' ? descendantId : parseInt(String(descendantId), 10);
-      if (!isNaN(validDescendantId)) {
-        const depth = this.calculateMaxDepthToSinks(validDescendantId, networkData, newVisited) + 1;
-        maxDepth = Math.max(maxDepth, depth);
-      }
-    });
+    try {
+      descendants.forEach(descendantId => {
+        // Validate descendantId
+        const validDescendantId = typeof descendantId === 'number' ? descendantId : parseInt(String(descendantId), 10);
+        if (!isNaN(validDescendantId)) {
+          const depth = this.calculateMaxDepthToSinks(validDescendantId, networkData, memo, recursionStack) + 1;
+          maxDepth = Math.max(maxDepth, depth);
+        }
+      });
+    } finally {
+      // Always remove from recursion stack, even if an error occurs
+      recursionStack.delete(validNodeId);
+    }
+    
+    // Memoize result
+    memo.set(validNodeId, maxDepth);
     
     return maxDepth;
   }
