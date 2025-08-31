@@ -68,6 +68,30 @@
       </a>
       
       <a mat-list-item
+         routerLink="/visualization"
+         [class.disabled]="!analysisState.networkStructureTab().enabled"
+         [class.completed]="analysisState.networkStructureTab().completed"
+         [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'Network Visualization - Interactive graph visualization' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>bubble_chart</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Network Visualization</div>
+          <div class="nav-subtitle">Interactive graph visualization</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.networkStructureTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.networkStructureTab().enabled) {
+            <mat-icon class="status-icon available">play_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
+      </a>
+      
+      <a mat-list-item
          routerLink="/structure"
          [class.disabled]="!analysisState.networkStructureTab().enabled"
          [class.completed]="analysisState.networkStructureTab().completed"

@@ -302,7 +302,7 @@ export class UploadNetworkComponent implements OnInit {
         });
         
         this.snackBar.open('Network structure loaded successfully!', 'Close', { duration: 3000 });
-        this.router.navigate(['/structure']);
+        this.router.navigate(['/visualization']);
       },
       error: (error) => {
         this.isAnalyzing = false;

@@ -140,9 +140,9 @@ export class HomeComponent implements OnInit {
       
       // Navigate to appropriate page based on session state
       if (session.analysisResults) {
-        this.router.navigate(['/structure']);
+        this.router.navigate(['/visualization']);
       } else if (session.networkData) {
-        this.router.navigate(['/structure']);
+        this.router.navigate(['/visualization']);
       } else {
         this.router.navigate(['/upload']);
       }

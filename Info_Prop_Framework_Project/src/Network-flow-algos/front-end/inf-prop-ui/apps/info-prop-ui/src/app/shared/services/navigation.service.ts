@@ -51,13 +51,22 @@ export class NavigationService {
       order: 1
     },
     {
+      id: 'network-visualization',
+      route: '/visualization',
+      title: 'Network Visualization',
+      subtitle: 'Interactive graph visualization',
+      icon: 'bubble_chart',
+      requiredData: 'networkData',
+      order: 2
+    },
+    {
       id: 'network-structure',
       route: '/structure',
       title: 'Network Structure',
       subtitle: 'Graph topology & analysis',
       icon: 'account_tree',
       requiredData: 'networkData',
-      order: 2
+      order: 3
     },
     {
       id: 'diamond-analysis',
@@ -66,7 +75,7 @@ export class NavigationService {
       subtitle: 'Structural optimization patterns',
       icon: 'diamond',
       requiredData: 'networkData',
-      order: 3
+      order: 4
     },
     {
       id: 'exact-inference',
@@ -75,7 +84,7 @@ export class NavigationService {
       subtitle: 'Belief propagation analysis',
       icon: 'psychology',
       requiredData: 'networkData',
-      order: 4
+      order: 5
     },
     {
       id: 'flow-analysis',
@@ -84,7 +93,7 @@ export class NavigationService {
       subtitle: 'Capacity & throughput analysis',
       icon: 'timeline',
       requiredData: 'networkData',
-      order: 5
+      order: 6
     },
     {
       id: 'critical-path',
@@ -93,7 +102,7 @@ export class NavigationService {
       subtitle: 'Time & cost analysis',
       icon: 'route',
       requiredData: 'networkData',
-      order: 6
+      order: 7
     },
     {
       id: 'system-profile',

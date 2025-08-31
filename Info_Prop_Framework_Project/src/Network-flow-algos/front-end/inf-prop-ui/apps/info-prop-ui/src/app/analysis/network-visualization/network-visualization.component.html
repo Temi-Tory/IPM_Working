@@ -1,0 +1,206 @@
+<div class="network-visualization-container">
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading network visualization...</p>
+    </div>
+  }
+
+  <!-- Main Content -->
+  @if (!isLoading() && hasData()) {
+    <div class="visualization-content">
+      <!-- Graph Visualization Area -->
+      <div class="graph-container">
+        <div #svgContainer class="svg-container"></div>
+        
+        <!-- Graph Controls -->
+        <div class="graph-controls">
+          <button mat-icon-button (click)="centerGraph()" matTooltip="Center Graph">
+            <mat-icon>center_focus_strong</mat-icon>
+          </button>
+          <button mat-icon-button (click)="restartSimulation()" matTooltip="Restart Simulation">
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <button mat-icon-button (click)="resetSelection()" matTooltip="Clear Selection">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Information Panel -->
+      <div class="info-panel">
+        <!-- Network Stats Card -->
+        <mat-card class="stats-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>analytics</mat-icon>
+              Network Overview
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Nodes</span>
+                <span class="stat-value">{{ networkStats().totalNodes }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Edges</span>
+                <span class="stat-value">{{ networkStats().totalEdges }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Avg Degree</span>
+                <span class="stat-value">{{ networkStats().avgDegree }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Density</span>
+                <span class="stat-value">{{ networkStats().density }}%</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Node Details Card -->
+        <mat-card class="node-details-card" [class.expanded]="selectedNodeData()">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>grain</mat-icon>
+              @if (!selectedNodeData()) {
+                <span>Node Information</span>
+              } @else {
+                <span>Node {{ selectedNodeData().id }}</span>
+              }
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <!-- No Selection State -->
+            @if (!selectedNodeData()) {
+              <div class="no-selection">
+                <mat-icon class="large-icon">touch_app</mat-icon>
+                <p>Click on a node in the graph to view its details</p>
+              </div>
+            }
+
+            <!-- Selected Node Details -->
+            @if (selectedNodeData()) {
+              <div class="node-info">
+                <!-- Connectivity Information -->
+                <div class="connectivity-section">
+                  <h4>
+                    <mat-icon>device_hub</mat-icon>
+                    Connectivity
+                  </h4>
+                  <div class="connectivity-stats">
+                    <div class="connectivity-item">
+                      <span class="connectivity-label">In-Degree</span>
+                      <span class="connectivity-value">{{ selectedNodeData().inDegree }}</span>
+                    </div>
+                    <div class="connectivity-item">
+                      <span class="connectivity-label">Out-Degree</span>
+                      <span class="connectivity-value">{{ selectedNodeData().outDegree }}</span>
+                    </div>
+                    <div class="connectivity-item">
+                      <span class="connectivity-label">Total Degree</span>
+                      <span class="connectivity-value">{{ selectedNodeData().totalDegree }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- Parent Nodes -->
+                @if (selectedNodeData().parents.length > 0) {
+                  <div class="relationships-section">
+                    <h4>
+                      <mat-icon>arrow_downward</mat-icon>
+                      Parent Nodes ({{ selectedNodeData().parents.length }})
+                    </h4>
+                    <div class="node-chips">
+                      @for (parent of selectedNodeData().parents; track trackByParentId($index, parent)) {
+                        <mat-chip
+                          class="parent-chip"
+                          (click)="selectNode(parent)">
+                          {{ parent }}
+                        </mat-chip>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- Child Nodes -->
+                @if (selectedNodeData().children.length > 0) {
+                  <div class="relationships-section">
+                    <h4>
+                      <mat-icon>arrow_upward</mat-icon>
+                      Child Nodes ({{ selectedNodeData().children.length }})
+                    </h4>
+                    <div class="node-chips">
+                      @for (child of selectedNodeData().children; track trackByChildId($index, child)) {
+                        <mat-chip
+                          class="child-chip"
+                          (click)="selectNode(child)">
+                          {{ child }}
+                        </mat-chip>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- No Connections -->
+                @if (selectedNodeData().parents.length === 0 && selectedNodeData().children.length === 0) {
+                  <div class="no-connections">
+                    <mat-icon>info</mat-icon>
+                    <p>This node has no connections</p>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Instructions Card -->
+        <mat-card class="instructions-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>help_outline</mat-icon>
+              Interaction Guide
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="instruction-list">
+              <div class="instruction-item">
+                <mat-icon>mouse</mat-icon>
+                <span>Click nodes to view details</span>
+              </div>
+              <div class="instruction-item">
+                <mat-icon>pan_tool</mat-icon>
+                <span>Drag nodes to reposition</span>
+              </div>
+              <div class="instruction-item">
+                <mat-icon>zoom_in</mat-icon>
+                <span>Scroll to zoom in/out</span>
+              </div>
+              <div class="instruction-item">
+                <mat-icon>visibility</mat-icon>
+                <span>Hover to highlight connections</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+
+  <!-- No Data State -->
+  @if (!isLoading() && !hasData()) {
+    <div class="no-data-container">
+      <mat-icon class="large-icon">cloud_upload</mat-icon>
+      <h3>No Network Data Available</h3>
+      <p>Please upload a network file to visualize the graph structure.</p>
+      <button mat-raised-button color="primary" routerLink="/upload">
+        <mat-icon>upload</mat-icon>
+        Upload Network
+      </button>
+    </div>
+  }
+</div>
