@@ -21,7 +21,9 @@
       "Bash(nx build)",
       "Bash(nx build:*)",
       "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui\\apps\\info-prop-ui\\src\\app\\analysis\\network-structure/**)",
-      "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui\\apps\\info-prop-ui\\src\\app\\analysis\\network-structure/**)"
+      "Read(c:\\Users\\ohian\\OneDrive - University of Strathclyde\\Documents\\Programmming Files\\Julia Files\\InformationPropagation\\Info_Prop_Framework_Project\\src\\Network-flow-algos\\front-end\\inf-prop-ui\\apps\\info-prop-ui\\src\\app\\analysis\\network-structure/**)",
+      "WebSearch",
+      "WebFetch(domain:swimlane.github.io)"
     ],
     "deny": [],
     "ask": []

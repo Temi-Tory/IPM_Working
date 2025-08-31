@@ -20,20 +20,13 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
-// Add NGX Graph imports
-import { NgxGraphModule, Node, Edge, Layout } from '@swimlane/ngx-graph';
-
-// Add the NgxGraphZoomOptions interface import
-interface NgxGraphZoomOptions {
-  autoCenter?: boolean;
-  force?: boolean;
-}
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { NetworkDialogService } from '../../shared/services/network-dialog.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
 import { NodeDetailDialogComponent } from '../../shared/components/dialogs/node-detail-dialog/node-detail-dialog.component';
 import { EdgeDetailDialogComponent } from '../../shared/components/dialogs/edge-detail-dialog/edge-detail-dialog.component';
+import { NetworkGraphVisualizationComponent } from '../../shared/components/network-graph-visualization/network-graph-visualization.component';
 
 @Component({
   selector: 'app-network-structure',
@@ -57,7 +50,7 @@ import { EdgeDetailDialogComponent } from '../../shared/components/dialogs/edge-
     MatDialogModule,
     MatTooltipModule,
     FormsModule,
-    NgxGraphModule // Add this
+    NetworkGraphVisualizationComponent
 ],
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
@@ -149,25 +142,6 @@ export class NetworkStructureComponent implements OnInit {
   nodeDetails = computed(() => this.getNodeDetails());
   edgeDetails = computed(() => this.getEdgeDetails());
   
-  // NEW: Graph visualization signals
-  graphNodes = computed(() => this.transformToGraphNodes());
-  graphEdges = computed(() => this.transformToGraphEdges());
-  
-  // Graph layout configuration
-  graphLayout: string | Layout = 'dagre';
-  
-  // Graph layout settings
-  graphLayoutSettings: any = {
-    orientation: 'TB', // Top to Bottom
-    marginX: 20,
-    marginY: 20,
-    edgePadding: 30,
-    rankPadding: 50,
-    nodePadding: 20,
-  };
-
-  // Subject for triggering zoom to fit
-  zoomToFit$ = new Subject<NgxGraphZoomOptions>();
 
   // View toggle - UPDATE to include 'visual'
   currentView = signal<'overview' | 'visual' | 'nodes' | 'edges' | 'structure'>('overview');
@@ -224,113 +198,15 @@ export class NetworkStructureComponent implements OnInit {
     }
   }
 
-  // NEW: Graph transformation methods
-  private transformToGraphNodes(): Node[] {
-    const filteredNodes = this.filteredNodeDetails();
-    
-    // Safety check to ensure we have valid data
-    if (!filteredNodes || !Array.isArray(filteredNodes)) {
-      return [];
-    }
-    
-    return filteredNodes.map(nodeDetail => ({
-      id: `node-${nodeDetail.node}`, // Prefix with 'node-' to make valid CSS selector
-      label: nodeDetail.node.toString(),
-      data: {
-        type: nodeDetail.type,
-        inDegree: nodeDetail.inDegree,
-        outDegree: nodeDetail.outDegree,
-        originalId: nodeDetail.node
-      },
-      dimension: {
-        width: 60,
-        height: 60
-      }
-    }));
+  // Graph interaction methods - now handle events from child component
+  onNodeSelected(nodeId: number): void {
+    console.log('Selected node:', nodeId);
+    this.openNodeDialog(nodeId);
   }
 
-  private transformToGraphEdges(): Edge[] {
-    const filteredEdges = this.filteredEdgeDetails();
-    
-    // Safety check to ensure we have valid data
-    if (!filteredEdges || !Array.isArray(filteredEdges)) {
-      return [];
-    }
-    
-    return filteredEdges.map(edgeDetail => ({
-      id: `edge-${edgeDetail.source}-${edgeDetail.target}`, // Prefix with 'edge-'
-      source: `node-${edgeDetail.source}`, // Match the node ID format
-      target: `node-${edgeDetail.target}`, // Match the node ID format
-      label: '', // You can add edge labels if needed
-      data: {
-        type: edgeDetail.edgeType,
-        sourceId: edgeDetail.source,
-        targetId: edgeDetail.target
-      }
-    }));
-  }
-
-  // NEW: Graph interaction methods
-  onNodeSelect(event: any): void {
-    console.log('Selected node:', event);
-    if (event && event.data && event.data.originalId) {
-      this.openNodeDialog(event.data.originalId);
-    }
-  }
-
-  onEdgeSelect(event: any): void {
+  onEdgeSelected(event: {sourceId: number, targetId: number}): void {
     console.log('Selected edge:', event);
-    if (event && event.data && event.data.sourceId && event.data.targetId) {
-      this.openEdgeDialog(event.data.sourceId, event.data.targetId);
-    }
-  }
-
-  // NEW: Graph control methods
-  updateGraphLayout(): void {
-    // Trigger re-layout by updating the layout settings
-    this.graphLayoutSettings = { ...this.graphLayoutSettings };
-  }
-
-  fitGraphToView(): void {
-    this.zoomToFit$.next({ autoCenter: true, force: true });
-  }
-
-  // NEW: Get node color based on type
-  getNodeColor(nodeType: string): string {
-    const colorMap: { [key: string]: string } = {
-      'Source': '#4CAF50',      // Green
-      'Sink': '#F44336',        // Red  
-      'Fork': '#FF9800',        // Orange
-      'Join': '#2196F3',        // Blue
-      'Regular': '#9E9E9E',     // Gray
-      'Source + Fork': '#8BC34A',
-      'Sink + Join': '#3F51B5',
-      // Add more combinations as needed
-    };
-    return colorMap[nodeType] || '#9E9E9E';
-  }
-
-  // NEW: Get unique node types for legend
-  getUniqueNodeTypes(): string[] {
-    const filteredNodes = this.filteredNodeDetails();
-    const types = new Set<string>();
-    
-    filteredNodes.forEach(node => {
-      types.add(node.type);
-    });
-
-    return Array.from(types).sort();
-  }
-
-  // NEW: Get node count by type for legend
-  getNodeCountByType(nodeType: string): number {
-    const filteredNodes = this.filteredNodeDetails();
-    return filteredNodes.filter(node => node.type === nodeType).length;
-  }
-
-  // Helper method to access Math.min in template
-  mathMin(a: number, b: number): number {
-    return Math.min(a, b);
+    this.openEdgeDialog(event.sourceId, event.targetId);
   }
 
   switchView(event: MatButtonToggleChange): void {
