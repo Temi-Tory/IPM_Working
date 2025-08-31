@@ -24,23 +24,45 @@ export interface IntervalData {
 
 export type BeliefValue = number | IntervalData | PboxData;
 
-// New interfaces for uploaded data types
-export interface UploadedFloatData {
+// New interfaces for available data files (paths only, not content)
+export interface AvailableDataFiles {
+  float?: {
+    nodepriors?: string;
+    linkprobabilities?: string;
+  };
+  pbox?: {
+    nodepriors?: string;
+    linkprobabilities?: string;
+  };
+  interval?: {
+    nodepriors?: string;
+    linkprobabilities?: string;
+  };
+  capacity?: {
+    capacities?: string;
+  };
+  cpm?: {
+    'cpm-inputs'?: string;
+  };
+}
+
+// Interfaces for locally parsed data content
+export interface ParsedFloatData {
   node_priors?: Record<string, number>;
   edge_probabilities?: Record<string, number>;
 }
 
-export interface UploadedPboxData {
+export interface ParsedPboxData {
   node_priors?: Record<string, PboxData>;
   edge_probabilities?: Record<string, PboxData>;
 }
 
-export interface UploadedIntervalData {
+export interface ParsedIntervalData {
   node_priors?: Record<string, IntervalData>;
   edge_probabilities?: Record<string, IntervalData>;
 }
 
-export interface UploadedCapacityData {
+export interface ParsedCapacityData {
   capacities: {
     nodes?: Record<string, number>;
     edges?: Record<string, number>;
@@ -48,29 +70,14 @@ export interface UploadedCapacityData {
   };
 }
 
-export interface UploadedCpmData {
-  cmp_data: any; // Complete CPM analysis data structure
+export interface ParsedCpmData {
+  cpm_data: any; // Complete CPM analysis data structure
 }
 
-export interface UploadedData {
-  float?: UploadedFloatData;
-  pbox?: UploadedPboxData;
-  interval?: UploadedIntervalData;
-  capacity?: UploadedCapacityData;
-  cpm?: UploadedCpmData;
-}
-
-export interface UploadedDataSummary {
-  available_data_types: string[];
-  data_types_count: number;
-  has_node_priors: boolean;
-  has_edge_probabilities: boolean;
-  has_capacities: boolean;
-  has_cmp_data: boolean;
-}
-
+// Core NetworkStructure - matches what /network-structure endpoint actually returns
 export interface NetworkStructure {
   computation_time: number;
+  uploaded_data_time?: number;
   total_nodes: number;
   total_edges: number;
   nodes: number[];
@@ -85,15 +92,30 @@ export interface NetworkStructure {
   descendants: Record<string, number[]>;
   outgoing_index: Record<string, number[]>;
   incoming_index: Record<string, number[]>;
-  // Raw adjacency information for complete network analysis
-  raw_data?: {
-    node_priors?: Record<string, any>;
-    edge_probabilities?: Record<string, any>;
-    additional_metrics?: any;
+  // Available data file paths from backend (only what backend actually returns)
+  available_data_files?: AvailableDataFiles;
+}
+
+// Enhanced NetworkStructure with fast lookup capabilities for UI components
+export interface EnhancedNetworkStructure extends NetworkStructure {
+  // Fast lookup maps for UI components
+  node_lookup: {
+    [nodeId: string]: {
+      float_prior?: number;
+      interval_prior?: IntervalData;
+      pbox_prior?: PboxData;
+      capacity?: number;
+      type: 'source' | 'sink' | 'fork' | 'join' | 'regular';
+    };
   };
-  // NEW: Rich uploaded data from backend
-  uploaded_data?: UploadedData;
-  uploaded_data_summary?: UploadedDataSummary;
+  edge_lookup: {
+    [edgeKey: string]: { // Format: "(source,target)" - keep original format!
+      float_probability?: number;
+      interval_probability?: IntervalData;
+      pbox_probability?: PboxData;
+      capacity?: number;
+    };
+  };
 }
 
 export interface RootDiamondStructure {

@@ -1,25 +1,50 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { 
-  NetworkStructure, 
-  AnalysisResponse, 
+import {
+  NetworkStructure,
+  AnalysisResponse,
   TabState,
-  AnalysisRequest 
+  AnalysisRequest,
+  EnhancedNetworkStructure,
+  DiamondAnalysisResponse,
+  ReachabilityAnalysisResponse,
+  CapacityAnalysisResponse,
+  CpmAnalysisResponse
 } from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
 import { NetworkStructureService } from './network-structure.service';
+import { DiamondAnalysisService } from './diamond-analysis.service';
+import { ReachabilityAnalysisService } from './reachability-analysis.service';
+import { CapacityAnalysisService } from './capacity-analysis.service';
+import { CpmAnalysisService } from './cpm-analysis.service';
+import { EnhancedDataParsingService } from './enhanced-data-parsing.service';
 
 @Injectable({ providedIn: 'root' })
 export class AnalysisStateService {
   private networkBackendService = inject(NetworkBackendService);
   private networkStructureService = inject(NetworkStructureService);
+  private diamondAnalysisService = inject(DiamondAnalysisService);
+  private reachabilityAnalysisService = inject(ReachabilityAnalysisService);
+  private capacityAnalysisService = inject(CapacityAnalysisService);
+  private cpmAnalysisService = inject(CpmAnalysisService);
+  private enhancedDataParsingService = inject(EnhancedDataParsingService);
 
   // Core state signals
   private networkDataSignal = signal<NetworkStructure | null>(null);
+  private enhancedNetworkDataSignal = signal<EnhancedNetworkStructure | null>(null);
   private analysisResultsSignal = signal<AnalysisResponse | null>(null);
   private isLoadingSignal = signal<boolean>(false);
   private errorSignal = signal<string | null>(null);
   private currentNetworkPathSignal = signal<string | null>(null);
+  
+  // Individual analysis results
+  private diamondAnalysisSignal = signal<DiamondAnalysisResponse | null>(null);
+  private reachabilityAnalysisSignal = signal<ReachabilityAnalysisResponse | null>(null);
+  private capacityAnalysisSignal = signal<CapacityAnalysisResponse | null>(null);
+  private cpmAnalysisSignal = signal<CpmAnalysisResponse | null>(null);
+  
+  // Local parsed data for fast lookups
+  private parsedDataSignal = signal<any>(null);
 
   // Tab state signals
   private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
@@ -32,10 +57,17 @@ export class AnalysisStateService {
 
   // Computed signals (read-only)
   readonly networkData = computed(() => this.networkDataSignal());
+  readonly enhancedNetworkData = computed(() => this.enhancedNetworkDataSignal());
   readonly analysisResults = computed(() => this.analysisResultsSignal());
   readonly isLoading = computed(() => this.isLoadingSignal());
   readonly error = computed(() => this.errorSignal());
   readonly currentNetworkPath = computed(() => this.currentNetworkPathSignal());
+  
+  // Individual analysis results
+  readonly diamondAnalysis = computed(() => this.diamondAnalysisSignal());
+  readonly reachabilityAnalysis = computed(() => this.reachabilityAnalysisSignal());
+  readonly capacityAnalysis = computed(() => this.capacityAnalysisSignal());
+  readonly cpmAnalysis = computed(() => this.cpmAnalysisSignal());
 
   readonly uploadTab = computed(() => this.uploadTabSignal());
   readonly networkStructureTab = computed(() => this.networkStructureTabSignal());

@@ -1,19 +1,21 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-import { 
-  AnalysisRequest, 
-  AnalysisResponse, 
-  HealthResponse, 
+import { catchError, map, switchMap } from 'rxjs/operators';
+import {
+  AnalysisRequest,
+  AnalysisResponse,
+  HealthResponse,
   UploadResponse,
-  NetworkStructure 
+  NetworkStructure
 } from '../models/network-analysis.models';
+import { DataParsingService } from './data-parsing.service';
 
 @Injectable({ providedIn: 'root' })
 export class NetworkBackendService {
   private readonly apiUrl = 'http://localhost:8080';
   private http = inject(HttpClient);
+  private dataParsingService = inject(DataParsingService);
 
   checkHealth(): Observable<HealthResponse> {
     return this.http.get<HealthResponse>(`${this.apiUrl}/health`)
@@ -53,7 +55,7 @@ export class NetworkBackendService {
       );
   }
 
-  validateNetworkStructure(networkPath: string): Observable<any> {
+  validateNetworkStructure(networkPath: string): Observable<NetworkStructure> {
     const request = {
       networkPath: networkPath,
       reachabilityScenarios: [],
@@ -68,7 +70,12 @@ export class NetworkBackendService {
     };
 
     return this.analyzeNetwork(request).pipe(
-      map(response => response.results?.network_structure),
+      map(response => {
+        if (!response.results?.network_structure) {
+          throw new Error('Network structure not found in response');
+        }
+        return response.results.network_structure;
+      }),
       catchError(error => {
         console.error('Network validation failed:', error);
         return throwError(() => new Error(`Validation failed: ${error.message}`));
@@ -95,7 +102,30 @@ export class NetworkBackendService {
         if (!response.results?.network_structure) {
           throw new Error('Network structure not found in response');
         }
+        
         return response.results.network_structure;
+      })
+    );
+  }
+
+  /**
+   * Combine network structure analysis with local data parsing
+   * This method should be used when you have both uploaded files and need structure analysis
+   */
+  analyzeNetworkWithData(networkPath: string, uploadedFiles: FileList): Observable<NetworkStructure> {
+    return this.quickStructureAnalysis(networkPath).pipe(
+      switchMap(networkStructure => {
+        return this.dataParsingService.parseUploadedFiles(uploadedFiles).pipe(
+          map(parsedData => ({
+            ...networkStructure,
+            parsed_data: parsedData
+          })),
+          catchError(error => {
+            console.warn('Failed to parse uploaded files locally:', error);
+            // Return structure without parsed data if parsing fails
+            return [networkStructure];
+          })
+        );
       })
     );
   }

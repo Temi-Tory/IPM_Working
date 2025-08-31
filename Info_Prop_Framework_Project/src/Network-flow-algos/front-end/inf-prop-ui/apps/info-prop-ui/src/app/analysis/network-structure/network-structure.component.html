@@ -359,46 +359,46 @@
             </div>
           </div>
 
-          <!-- Uploaded Data Summary Card -->
-          @if (data.uploaded_data_summary) {
+          <!-- Available Data Summary Card -->
+          @if (dataSummary().data_types_count > 0) {
             <div class="uploaded-data-card">
               <div class="card-header">
                 <mat-icon class="card-icon">cloud_upload</mat-icon>
-                <div class="card-title">Uploaded Data Summary</div>
+                <div class="card-title">Available Data Summary</div>
               </div>
               <div class="card-content">
                 <div class="uploaded-data-overview">
                   <div class="data-types-count">
-                    <span class="count-value">{{ data.uploaded_data_summary.data_types_count }}</span>
+                    <span class="count-value">{{ dataSummary().data_types_count }}</span>
                     <span class="count-label">Data Types Available</span>
                   </div>
                   
                   <div class="data-availability">
                     <div class="availability-grid">
-                      <div class="availability-item" [class.available]="data.uploaded_data_summary.has_node_priors">
-                        <mat-icon [color]="data.uploaded_data_summary.has_node_priors ? 'primary' : ''">
-                          {{ data.uploaded_data_summary.has_node_priors ? 'check_circle' : 'radio_button_unchecked' }}
+                      <div class="availability-item" [class.available]="dataSummary().has_node_priors">
+                        <mat-icon [color]="dataSummary().has_node_priors ? 'primary' : ''">
+                          {{ dataSummary().has_node_priors ? 'check_circle' : 'radio_button_unchecked' }}
                         </mat-icon>
                         <span class="availability-label">Node Priors</span>
                       </div>
                       
-                      <div class="availability-item" [class.available]="data.uploaded_data_summary.has_edge_probabilities">
-                        <mat-icon [color]="data.uploaded_data_summary.has_edge_probabilities ? 'primary' : ''">
-                          {{ data.uploaded_data_summary.has_edge_probabilities ? 'check_circle' : 'radio_button_unchecked' }}
+                      <div class="availability-item" [class.available]="dataSummary().has_edge_probabilities">
+                        <mat-icon [color]="dataSummary().has_edge_probabilities ? 'primary' : ''">
+                          {{ dataSummary().has_edge_probabilities ? 'check_circle' : 'radio_button_unchecked' }}
                         </mat-icon>
                         <span class="availability-label">Edge Probabilities</span>
                       </div>
                       
-                      <div class="availability-item" [class.available]="data.uploaded_data_summary.has_capacities">
-                        <mat-icon [color]="data.uploaded_data_summary.has_capacities ? 'primary' : ''">
-                          {{ data.uploaded_data_summary.has_capacities ? 'check_circle' : 'radio_button_unchecked' }}
+                      <div class="availability-item" [class.available]="dataSummary().has_capacities">
+                        <mat-icon [color]="dataSummary().has_capacities ? 'primary' : ''">
+                          {{ dataSummary().has_capacities ? 'check_circle' : 'radio_button_unchecked' }}
                         </mat-icon>
                         <span class="availability-label">Capacities</span>
                       </div>
                       
-                      <div class="availability-item" [class.available]="data.uploaded_data_summary.has_cmp_data">
-                        <mat-icon [color]="data.uploaded_data_summary.has_cmp_data ? 'primary' : ''">
-                          {{ data.uploaded_data_summary.has_cmp_data ? 'check_circle' : 'radio_button_unchecked' }}
+                      <div class="availability-item" [class.available]="dataSummary().has_cmp_data">
+                        <mat-icon [color]="dataSummary().has_cmp_data ? 'primary' : ''">
+                          {{ dataSummary().has_cmp_data ? 'check_circle' : 'radio_button_unchecked' }}
                         </mat-icon>
                         <span class="availability-label">CPM Data</span>
                       </div>
@@ -408,7 +408,7 @@
                   <div class="data-types-list">
                     <div class="types-header">Available Data Types:</div>
                     <div class="types-chips">
-                      @for (dataType of data.uploaded_data_summary.available_data_types; track dataType) {
+                      @for (dataType of dataSummary().available_data_types; track dataType) {
                         <span class="data-type-chip" [class]="'type-' + dataType.toLowerCase()">
                           <mat-icon>
                             {{ getDataTypeIcon(dataType) }}

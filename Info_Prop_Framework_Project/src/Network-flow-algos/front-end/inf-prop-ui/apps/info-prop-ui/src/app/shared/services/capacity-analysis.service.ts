@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { 
@@ -12,7 +12,7 @@ import {
 export class CapacityAnalysisService {
   private readonly API_BASE = 'http://localhost:8080';
 
-  constructor(private http: HttpClient) {}
+  private http: HttpClient = inject(HttpClient);
 
   analyzeCapacity(request: CapacityAnalysisRequest): Observable<CapacityAnalysisResponse> {
     return this.http.post<CapacityAnalysisResponse>(

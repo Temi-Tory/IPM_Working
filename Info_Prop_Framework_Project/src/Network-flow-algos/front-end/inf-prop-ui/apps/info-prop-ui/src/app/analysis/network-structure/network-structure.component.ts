@@ -21,7 +21,8 @@ import { FormsModule } from '@angular/forms';
 
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { NetworkStructure } from '../../shared/models/network-analysis.models';
+import { NetworkStructure, EnhancedNetworkStructure } from '../../shared/models/network-analysis.models';
+import { EnhancedDataParsingService } from '../../shared/services/enhanced-data-parsing.service';
 
 @Component({
   selector: 'app-network-structure',
@@ -51,83 +52,95 @@ import { NetworkStructure } from '../../shared/models/network-analysis.models';
 export class NetworkStructureComponent/*  implements OnInit  */{
   private analysisState = inject(AnalysisStateService);
   private elementRef = inject(ElementRef);
+  private enhancedDataParsingService = inject(EnhancedDataParsingService);
   
   // Focus management
   private previousFocusElement: HTMLElement | null = null;
 
   networkData = computed(() => this.analysisState.networkData());
+  enhancedNetworkData = computed(() => this.analysisState.enhancedNetworkData());
   isLoading = computed(() => this.analysisState.isLoading());
   error = computed(() => this.analysisState.error());
 
+  // Computed data summary based on available_data_files
+  dataSummary = computed(() => this.generateDataSummary());
+
   constructor() {
-    // Use effect to watch for network data changes
-    effect(() => {
-      const data = this.networkData();
-      if (data) {
-        // Ensure uploaded data summary is populated
-        this.ensureUploadedDataSummary(data);
-      }
-    });
+    // No need for effect - we'll use computed properties
   }
 
   /**
-   * Ensure uploaded data summary is populated for display
+   * Generate data summary based on available_data_files from backend
    */
-  private ensureUploadedDataSummary(data: NetworkStructure): void {
-    if (!data.uploaded_data_summary && data.uploaded_data) {
-      console.log('🔧 [NetworkStructureComponent] Generating missing uploaded_data_summary');
-      
-      const availableTypes: string[] = [];
-      let hasNodePriors = false;
-      let hasEdgeProbabilities = false;
-      let hasCapacities = false;
-      let hasCmpData = false;
-
-      // Check float data
-      if (data.uploaded_data.float) {
-        availableTypes.push('Float');
-        if (data.uploaded_data.float.node_priors) hasNodePriors = true;
-        if (data.uploaded_data.float.edge_probabilities) hasEdgeProbabilities = true;
-      }
-
-      // Check interval data
-      if (data.uploaded_data.interval) {
-        availableTypes.push('Interval');
-        if (data.uploaded_data.interval.node_priors) hasNodePriors = true;
-        if (data.uploaded_data.interval.edge_probabilities) hasEdgeProbabilities = true;
-      }
-
-      // Check pbox data
-      if (data.uploaded_data.pbox) {
-        availableTypes.push('P-Box');
-        if (data.uploaded_data.pbox.node_priors) hasNodePriors = true;
-        if (data.uploaded_data.pbox.edge_probabilities) hasEdgeProbabilities = true;
-      }
-
-      // Check capacity data
-      if (data.uploaded_data.capacity) {
-        availableTypes.push('Capacity');
-        hasCapacities = true;
-      }
-
-      // Check CPM data
-      if (data.uploaded_data.cpm) {
-        availableTypes.push('CPM');
-        hasCmpData = true;
-      }
-
-      // Create the summary
-      data.uploaded_data_summary = {
-        available_data_types: availableTypes,
-        data_types_count: availableTypes.length,
-        has_node_priors: hasNodePriors,
-        has_edge_probabilities: hasEdgeProbabilities,
-        has_capacities: hasCapacities,
-        has_cmp_data: hasCmpData
+  private generateDataSummary(): {
+    available_data_types: string[];
+    data_types_count: number;
+    has_node_priors: boolean;
+    has_edge_probabilities: boolean;
+    has_capacities: boolean;
+    has_cmp_data: boolean;
+  } {
+    const data = this.networkData();
+    if (!data?.available_data_files) {
+      return {
+        available_data_types: [],
+        data_types_count: 0,
+        has_node_priors: false,
+        has_edge_probabilities: false,
+        has_capacities: false,
+        has_cmp_data: false
       };
-
-      console.log('✅ [NetworkStructureComponent] Generated uploaded_data_summary:', data.uploaded_data_summary);
     }
+
+    const availableTypes: string[] = [];
+    let hasNodePriors = false;
+    let hasEdgeProbabilities = false;
+    let hasCapacities = false;
+    let hasCmpData = false;
+
+    const files = data.available_data_files;
+
+    // Check float data
+    if (files.float) {
+      availableTypes.push('Float');
+      if (files.float.nodepriors) hasNodePriors = true;
+      if (files.float.linkprobabilities) hasEdgeProbabilities = true;
+    }
+
+    // Check interval data
+    if (files.interval) {
+      availableTypes.push('Interval');
+      if (files.interval.nodepriors) hasNodePriors = true;
+      if (files.interval.linkprobabilities) hasEdgeProbabilities = true;
+    }
+
+    // Check pbox data
+    if (files.pbox) {
+      availableTypes.push('P-Box');
+      if (files.pbox.nodepriors) hasNodePriors = true;
+      if (files.pbox.linkprobabilities) hasEdgeProbabilities = true;
+    }
+
+    // Check capacity data
+    if (files.capacity) {
+      availableTypes.push('Capacity');
+      hasCapacities = true;
+    }
+
+    // Check CPM data
+    if (files.cpm) {
+      availableTypes.push('CPM');
+      hasCmpData = true;
+    }
+
+    return {
+      available_data_types: availableTypes,
+      data_types_count: availableTypes.length,
+      has_node_priors: hasNodePriors,
+      has_edge_probabilities: hasEdgeProbabilities,
+      has_capacities: hasCapacities,
+      has_cmp_data: hasCmpData
+    };
   }
 
   // Computed signals to prevent expression changed errors
