@@ -18,6 +18,7 @@ import { ReachabilityAnalysisService } from './reachability-analysis.service';
 import { CapacityAnalysisService } from './capacity-analysis.service';
 import { CpmAnalysisService } from './cpm-analysis.service';
 import { EnhancedDataParsingService } from './enhanced-data-parsing.service';
+import { NetworkSessionService } from './network-session.service';
 
 @Injectable({ providedIn: 'root' })
 export class AnalysisStateService {
@@ -28,6 +29,7 @@ export class AnalysisStateService {
   private capacityAnalysisService = inject(CapacityAnalysisService);
   private cpmAnalysisService = inject(CpmAnalysisService);
   private enhancedDataParsingService = inject(EnhancedDataParsingService);
+  private sessionService = inject(NetworkSessionService);
 
   // Core state signals
   private networkDataSignal = signal<NetworkStructure | null>(null);
@@ -68,6 +70,9 @@ export class AnalysisStateService {
   readonly reachabilityAnalysis = computed(() => this.reachabilityAnalysisSignal());
   readonly capacityAnalysis = computed(() => this.capacityAnalysisSignal());
   readonly cpmAnalysis = computed(() => this.cpmAnalysisSignal());
+  
+  // Parsed data for additional information
+  readonly parsedData = computed(() => this.parsedDataSignal());
 
   readonly uploadTab = computed(() => this.uploadTabSignal());
   readonly networkStructureTab = computed(() => this.networkStructureTabSignal());
@@ -88,6 +93,19 @@ export class AnalysisStateService {
       this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
       this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
       this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+  }
+
+  setParsedData(data: any): void {
+    this.parsedDataSignal.set(data);
+  }
+
+  // Load parsed data from session if available
+  loadParsedDataFromSession(): void {
+    const currentSession = this.sessionService.getCurrentSession();
+    if (currentSession?.parsedData) {
+      console.log('🔄 Loading parsed data from session:', currentSession.parsedData);
+      this.parsedDataSignal.set(currentSession.parsedData);
     }
   }
 

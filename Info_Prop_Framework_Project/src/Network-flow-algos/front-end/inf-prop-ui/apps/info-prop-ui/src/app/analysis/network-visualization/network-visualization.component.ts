@@ -72,6 +72,9 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     const networkData = this.analysisState.networkData();
     return networkData !== null;
   });
+  
+  // Access to parsed data for additional information
+  parsedData = computed(() => this.analysisState.parsedData());
 
   // D3 visualization properties
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
@@ -98,6 +101,9 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
   ngOnInit(): void {
     // Component initialization - don't initialize visualization here
     this.isLoading.set(false);
+    
+    // Load parsed data from session if available
+    this.analysisState.loadParsedDataFromSession();
   }
 
   ngAfterViewInit(): void {
@@ -438,6 +444,9 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
   private getSelectedNodeData(): any {
     const nodeId = this.selectedNodeId();
     const networkData = this.analysisState.networkData();
+    const parsedData = this.parsedData();
+    
+    console.log('🔍 getSelectedNodeData called:', { nodeId, hasNetworkData: !!networkData, parsedData });
     
     if (!nodeId || !networkData) return null;
 
@@ -447,29 +456,63 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     // Get connected nodes from edges
     const parents: string[] = [];
     const children: string[] = [];
+    const connectedEdges: any[] = [];
 
     networkData.edges.forEach((edge: [number, number]) => {
       const [source, target] = edge;
       const sourceStr = source.toString();
       const targetStr = target.toString();
+      const edgeKey = `(${source},${target})`;
       
       if (targetStr === nodeId) {
         parents.push(sourceStr);
+        // Add edge data for incoming edges
+        connectedEdges.push({
+          type: 'incoming',
+          from: sourceStr,
+          to: nodeId,
+          key: edgeKey,
+          floatProbability: parsedData?.float?.edge_probabilities?.[edgeKey],
+          intervalProbability: parsedData?.interval?.edge_probabilities?.[edgeKey],
+          pboxProbability: parsedData?.pbox?.edge_probabilities?.[edgeKey],
+          capacity: parsedData?.capacity?.capacities?.edges?.[edgeKey]
+        });
       }
       if (sourceStr === nodeId) {
         children.push(targetStr);
+        // Add edge data for outgoing edges
+        connectedEdges.push({
+          type: 'outgoing',
+          from: nodeId,
+          to: targetStr,
+          key: edgeKey,
+          floatProbability: parsedData?.float?.edge_probabilities?.[edgeKey],
+          intervalProbability: parsedData?.interval?.edge_probabilities?.[edgeKey],
+          pboxProbability: parsedData?.pbox?.edge_probabilities?.[edgeKey],
+          capacity: parsedData?.capacity?.capacities?.edges?.[edgeKey]
+        });
       }
     });
 
-    return {
+    // Get node-specific data
+    const nodeKey = nodeId;
+    const nodeData = {
       id: nodeId,
       inDegree: node.inDegree,
       outDegree: node.outDegree,
       totalDegree: node.totalDegree,
       parents,
       children,
-      connectedEdges: parents.length + children.length
+      connectedEdges,
+      // Additional node data when available
+      floatPrior: parsedData?.float?.node_priors?.[nodeKey],
+      intervalPrior: parsedData?.interval?.node_priors?.[nodeKey],
+      pboxPrior: parsedData?.pbox?.node_priors?.[nodeKey],
+      capacity: parsedData?.capacity?.capacities?.nodes?.[nodeKey],
+      sourceRate: parsedData?.capacity?.capacities?.source_rates?.[nodeKey]
     };
+
+    return nodeData;
   }
 
   resetSelection(): void {
@@ -513,5 +556,9 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
 
   trackByChildId(index: number, childId: string): string {
     return childId;
+  }
+
+  trackByEdgeKey(index: number, edge: any): string {
+    return edge.key || `${edge.from}-${edge.to}`;
   }
 }

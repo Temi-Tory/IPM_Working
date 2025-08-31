@@ -9,6 +9,7 @@ export interface SessionData {
   networkData: NetworkStructure | null;
   analysisResults: AnalysisResponse | null;
   analysisHistory: AnalysisResponse[];
+  parsedData?: any; // Raw parsed data from uploaded files
 }
 
 @Injectable({ providedIn: 'root' })

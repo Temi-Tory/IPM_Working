@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -22,6 +22,7 @@ import { NetworkBackendService } from '../shared/services/network-backend.servic
 import { NetworkValidationService, ValidationResult } from '../shared/services/network-validation.service';
 import { NetworkSessionService } from '../shared/services/network-session.service';
 import { FileCategorizationService, NetworkFolder, CategorizedFile } from '../shared/services/file-categorization.service';
+import { DataParsingService } from '../shared/services/data-parsing.service';
 import { AnalysisRequest, UploadResponse } from '../shared/models/network-analysis.models';
 
 @Component({
@@ -47,7 +48,7 @@ import { AnalysisRequest, UploadResponse } from '../shared/models/network-analys
   templateUrl: './upload-network.component.html',
   styleUrls: ['./upload-network.component.scss']
 })
-export class UploadNetworkComponent implements OnInit {
+export class UploadNetworkComponent {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('folderInput') folderInput!: ElementRef<HTMLInputElement>;
 
@@ -59,6 +60,7 @@ export class UploadNetworkComponent implements OnInit {
   private validationService = inject(NetworkValidationService);
   private sessionService = inject(NetworkSessionService);
   private fileCategorizationService = inject(FileCategorizationService);
+  private dataParsingService = inject(DataParsingService);
 
   analysisConfigForm: FormGroup;
   
@@ -80,9 +82,6 @@ export class UploadNetworkComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    // Component initialization
-  }
 
   get folderStructureGuide(): string {
     return this.fileCategorizationService.getRecommendedFolderStructure();
@@ -288,6 +287,30 @@ export class UploadNetworkComponent implements OnInit {
   private executeAnalysis(request: AnalysisRequest): void {
     const session = this.sessionService.createNewSession(request.networkPath);
     this.analysisState.setCurrentNetworkPath(request.networkPath);
+
+    // Parse uploaded files locally for immediate access to node priors, edge probabilities, etc.
+    if (this.originalFiles) {
+      console.log('🔄 Starting local file parsing with', this.originalFiles.length, 'files');
+      Array.from(this.originalFiles).forEach(file => {
+        console.log('📁 File:', file.name, 'Size:', file.size, 'Type:', file.type);
+      });
+      
+      this.dataParsingService.parseUploadedFiles(this.originalFiles).subscribe({
+        next: (parsedData) => {
+          console.log('✅ Upload component received parsed data:', parsedData);
+          this.analysisState.setParsedData(parsedData);
+          
+          // Also store in session for persistence across navigation
+          this.sessionService.updateSession({ parsedData });
+        },
+        error: (error) => {
+          console.warn('❌ Failed to parse local data:', error);
+          // Continue without parsed data
+        }
+      });
+    } else {
+      console.warn('⚠️ No original files available for parsing');
+    }
 
     // Load network structure immediately and navigate
     this.analysisState.loadNetworkStructure(request.networkPath).subscribe({

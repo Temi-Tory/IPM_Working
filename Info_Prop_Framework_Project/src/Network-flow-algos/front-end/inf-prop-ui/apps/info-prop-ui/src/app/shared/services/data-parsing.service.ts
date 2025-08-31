@@ -40,14 +40,13 @@ export class DataParsingService {
         parsePromises.push(this.parseFileContent(file).then(data => {
           const dataType = this.getDataType(fileName);
           if (!results[dataType]) results[dataType] = {} as any;
-          results[dataType] = results[dataType] || {} as any;
-          results[dataType]!.node_priors = this.convertToStringKeys(data);
+          (results[dataType] as any).node_priors = this.convertToStringKeys(data);
         }));
       } else if (fileName.includes('linkprob') && fileName.endsWith('.json')) {
         parsePromises.push(this.parseFileContent(file).then(data => {
           const dataType = this.getDataType(fileName);
-          if (!results[dataType]) results[dataType] = {};
-          results[dataType].edge_probabilities = this.convertEdgesToStringKeys(data);
+          if (!results[dataType]) results[dataType] = {} as any;
+          (results[dataType] as any).edge_probabilities = this.convertEdgesToStringKeys(data);
         }));
       } else if (fileName.includes('capacities') && fileName.endsWith('.json')) {
         parsePromises.push(this.parseFileContent(file).then(data => {
@@ -66,10 +65,18 @@ export class DataParsingService {
 
     return new Observable(observer => {
       Promise.all(parsePromises).then(() => {
+        console.log('✅ DataParsingService: Successfully parsed files:', results);
+        console.log('📊 Parsed data structure:', {
+          float: results.float ? Object.keys(results.float) : 'none',
+          interval: results.interval ? Object.keys(results.interval) : 'none',
+          pbox: results.pbox ? Object.keys(results.pbox) : 'none',
+          capacity: results.capacity ? Object.keys(results.capacity) : 'none',
+          cpm: results.cpm ? Object.keys(results.cpm) : 'none'
+        });
         observer.next(results);
         observer.complete();
       }).catch(error => {
-        console.warn('Failed to parse uploaded files:', error);
+        console.warn('❌ DataParsingService: Failed to parse uploaded files:', error);
         observer.next({});
         observer.complete();
       });

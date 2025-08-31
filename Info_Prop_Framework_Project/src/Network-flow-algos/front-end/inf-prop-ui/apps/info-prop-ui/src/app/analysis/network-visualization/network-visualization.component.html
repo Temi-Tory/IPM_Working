@@ -146,6 +146,58 @@
                   </div>
                 }
 
+                <!-- Additional Node Data -->
+                @if (selectedNodeData().floatPrior !== undefined ||
+                     selectedNodeData().intervalPrior !== undefined ||
+                     selectedNodeData().pboxPrior !== undefined ||
+                     selectedNodeData().capacity !== undefined ||
+                     selectedNodeData().sourceRate !== undefined) {
+                  <mat-divider></mat-divider>
+                  <div class="node-data-section">
+                    <h4>
+                      <mat-icon>data_object</mat-icon>
+                      Node Data
+                    </h4>
+                    
+                    @if (selectedNodeData().floatPrior !== undefined) {
+                      <div class="data-item">
+                        <span class="data-label">Float Prior:</span>
+                        <span class="data-value">{{ selectedNodeData().floatPrior }}</span>
+                      </div>
+                    }
+                    
+                    @if (selectedNodeData().intervalPrior !== undefined) {
+                      <div class="data-item">
+                        <span class="data-label">Interval Prior:</span>
+                        <span class="data-value">
+                          [{{ selectedNodeData().intervalPrior.lower }}, {{ selectedNodeData().intervalPrior.upper }}]
+                        </span>
+                      </div>
+                    }
+                    
+                    @if (selectedNodeData().pboxPrior !== undefined) {
+                      <div class="data-item">
+                        <span class="data-label">P-Box Prior:</span>
+                        <span class="data-value">{{ selectedNodeData().pboxPrior.name || 'P-Box' }}</span>
+                      </div>
+                    }
+                    
+                    @if (selectedNodeData().capacity !== undefined) {
+                      <div class="data-item">
+                        <span class="data-label">Capacity:</span>
+                        <span class="data-value">{{ selectedNodeData().capacity }}</span>
+                      </div>
+                    }
+                    
+                    @if (selectedNodeData().sourceRate !== undefined) {
+                      <div class="data-item">
+                        <span class="data-label">Source Rate:</span>
+                        <span class="data-value">{{ selectedNodeData().sourceRate }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+
                 <!-- No Connections -->
                 @if (selectedNodeData().parents.length === 0 && selectedNodeData().children.length === 0) {
                   <div class="no-connections">
