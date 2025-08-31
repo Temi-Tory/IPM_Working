@@ -388,10 +388,40 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
       };
     }
 
-    const totalNodes = this.nodes.length;
+    // Calculate unique nodes from edges data directly
+    const nodeSet = new Set<string>();
+    const nodeConnections = new Map<string, { inDegree: number; outDegree: number }>();
+
+    // Count nodes and degrees from edges
+    networkData.edges.forEach((edge: [number, number]) => {
+      const [source, target] = edge;
+      const sourceStr = source.toString();
+      const targetStr = target.toString();
+      
+      nodeSet.add(sourceStr);
+      nodeSet.add(targetStr);
+      
+      // Track connections for degree calculation
+      if (!nodeConnections.has(sourceStr)) {
+        nodeConnections.set(sourceStr, { inDegree: 0, outDegree: 0 });
+      }
+      if (!nodeConnections.has(targetStr)) {
+        nodeConnections.set(targetStr, { inDegree: 0, outDegree: 0 });
+      }
+      
+      nodeConnections.get(sourceStr)!.outDegree++;
+      nodeConnections.get(targetStr)!.inDegree++;
+    });
+
+    const totalNodes = nodeSet.size;
     const totalEdges = networkData.edges.length;
     
-    const totalDegree = this.nodes.reduce((sum, node) => sum + node.totalDegree, 0);
+    // Calculate total degree from connection data
+    let totalDegree = 0;
+    nodeConnections.forEach(({ inDegree, outDegree }) => {
+      totalDegree += inDegree + outDegree;
+    });
+    
     const avgDegree = totalNodes > 0 ? totalDegree / totalNodes : 0;
     
     const maxPossibleEdges = totalNodes * (totalNodes - 1);
