@@ -224,13 +224,14 @@
       
       <span class="app-title">{{ title }}</span>
       
+         <span class="spacer"></span>
+
       @if (analysisState.hasActiveAnalysis()) {
         <div class="network-banner">
-          <mat-icon class="network-icon">account_tree</mat-icon>
-          <span class="network-name">{{ analysisState.getCurrentSnapshot()?.networkName || 'Current Network' }}</span>
           @if (analysisState.getComprehensiveStructureData(); as structureData) {
-            <span class="network-stats">{{ structureData.total_nodes }}N / {{ structureData.total_edges }}E</span>
-          }
+           <mat-chip><span class="network-name">{{ analysisState.getCurrentSnapshot()?.networkName || 'Current Network' }} : {{ structureData.total_nodes }} Nodes / {{ structureData.total_edges }} Edges </span>
+         </mat-chip>
+              }
         </div>
       }
       
@@ -271,3 +272,4 @@
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>
+

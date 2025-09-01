@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 
 import { AnalysisStateService } from './shared/services/analysis-state.service';
+import { MatChip, MatChipsModule } from "@angular/material/chips";
 
 @Component({
   imports: [
@@ -21,7 +22,8 @@ import { AnalysisStateService } from './shared/services/analysis-state.service';
     MatListModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatChipsModule
 ],
   selector: 'app-root',
   templateUrl: './app.html',
