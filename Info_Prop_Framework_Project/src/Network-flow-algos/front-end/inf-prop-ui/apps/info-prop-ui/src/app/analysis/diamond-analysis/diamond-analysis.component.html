@@ -38,15 +38,15 @@
         </mat-form-field>
 
         <div class="header-actions">
-          <button 
-            mat-icon-button 
+          <button
+            mat-icon-button
             matTooltip="Refresh Analysis"
             (click)="refreshAnalysis()"
             [disabled]="isLoading()">
             <mat-icon>refresh</mat-icon>
           </button>
-          <button 
-            mat-icon-button 
+          <button
+            mat-icon-button
             matTooltip="Export Data"
             (click)="exportDiamondData()"
             [disabled]="isLoading() || !currentDiamondResults()">
@@ -364,16 +364,16 @@
                         <th mat-header-cell *matHeaderCellDef>Actions</th>
                         <td mat-cell *matCellDef="let pattern">
                           <div class="action-buttons">
-                            <button 
-                              mat-icon-button 
+                            <button
+                              mat-icon-button
                               matTooltip="View Diamond Details"
-                              (click)="openDiamondDetailsModal(pattern)">
+                              (click)="$event.stopPropagation(); openDiamondDetailsModal(pattern)">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                            <button 
-                              mat-icon-button 
+                            <button
+                              mat-icon-button
                               matTooltip="Explore Hierarchy"
-                              (click)="exploreDiamondHierarchy(pattern)">
+                              (click)="$event.stopPropagation(); exploreDiamondHierarchy(pattern)">
                               <mat-icon>account_tree</mat-icon>
                             </button>
                           </div>
@@ -381,9 +381,10 @@
                       </ng-container>
 
                       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                      <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+                      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
                           class="diamond-row clickable-row"
-                          (click)="openDiamondDetailsModal(row)"></tr>
+                          (click)="openDiamondDetailsModal(row)"
+                          matTooltip="Click to view diamond details"></tr>
                     </table>
 
                     <mat-paginator
@@ -458,3 +459,19 @@
     </div>
   }
 </div>
+<style>
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-row:hover {
+  background-color: var(--primary-color-light) !important;
+}
+
+.diamond-details-dialog .mat-mdc-dialog-container,
+.hierarchy-builder-dialog .mat-mdc-dialog-container {
+  padding: 0;
+  overflow: hidden;
+}
+</style>

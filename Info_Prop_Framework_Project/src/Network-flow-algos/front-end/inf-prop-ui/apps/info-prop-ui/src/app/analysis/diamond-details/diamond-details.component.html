@@ -1,0 +1,679 @@
+<div class="diamond-details-dashboard">
+  
+  <!-- Header Section with Breadcrumb Navigation -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      
+      <!-- Breadcrumb Navigation -->
+      <div class="breadcrumb-section">
+        <nav class="breadcrumb-nav">
+          <button mat-button class="breadcrumb-item" (click)="navigateToBreadcrumb(-1)">
+            <mat-icon>analytics</mat-icon>
+            Diamond Analysis
+          </button>
+          @for (pathItem of hierarchyPath(); track $index) {
+            <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
+            <button mat-button class="breadcrumb-item" (click)="navigateToBreadcrumb($index)">
+              Diamond {{ pathItem }}
+            </button>
+          }
+          @if (diamondId()) {
+            <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
+            <span class="breadcrumb-current">Diamond {{ diamondId() }}</span>
+          }
+        </nav>
+        
+        @if (hierarchyPath().length > 0) {
+          <button mat-raised-button color="accent" (click)="navigateBack()" class="back-button">
+            <mat-icon>arrow_back</mat-icon>
+            Back to Parent
+          </button>
+        }
+      </div>
+      
+      <!-- Title Section -->
+      <div class="title-section">
+        <div class="title-content">
+          <h1 class="page-title">
+            <mat-icon class="title-icon">diamond</mat-icon>
+            Diamond Details: {{ diamondId() }}
+          </h1>
+          <p class="page-subtitle">Comprehensive analysis of diamond structure, network topology, and hierarchical relationships</p>
+        </div>
+        <button mat-icon-button class="close-button" (click)="closeDialog()" matTooltip="Close Dialog">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <!-- Quick Stats -->
+      @if (diamondSummary(); as summary) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.totalNodes }}</div>
+            <div class="stat-label">Nodes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.totalEdges }}</div>
+            <div class="stat-label">Edges</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.pathCount }}</div>
+            <div class="stat-label">Paths</div>
+          </div>
+          <div class="stat-card risk-card" [class]="'risk-' + summary.riskLevel">
+            <div class="stat-value">{{ summary.riskLevel.toUpperCase() }}</div>
+            <div class="stat-label">Risk Level</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-icon class="loading-spinner">refresh</mat-icon>
+      <h3>Loading Diamond Details...</h3>
+      <p>Please wait while we analyze the diamond structure</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!diamondDetailsData() && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">diamond</mat-icon>
+      <h3>Diamond Not Found</h3>
+      <p>The requested diamond could not be found in the analysis results</p>
+      <button mat-raised-button color="primary" routerLink="/analysis/diamond-analysis">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Diamond Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Main Dashboard Content -->
+  @if (diamondDetailsData(); as data) {
+    <div class="dashboard-content">
+      
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="network">
+            <mat-icon>account_tree</mat-icon>
+            Network Structure
+          </mat-button-toggle>
+          <mat-button-toggle value="nodes">
+            <mat-icon>grain</mat-icon>
+            Nodes ({{ data.networkSubset.nodes.length }})
+          </mat-button-toggle>
+          <mat-button-toggle value="edges">
+            <mat-icon>timeline</mat-icon>
+            Edges ({{ data.networkSubset.edges.length }})
+          </mat-button-toggle>
+          <mat-button-toggle value="subdiamonds">
+            <mat-icon>account_tree</mat-icon>
+            Sub-Diamonds ({{ data.subDiamonds.length }})
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Diamond Summary Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>diamond</mat-icon>
+                <mat-card-title>Diamond Summary</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Diamond ID</span>
+                      <span class="metric-value">{{ summary.diamondId }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Total Components</span>
+                      <span class="metric-value">{{ summary.totalNodes + summary.totalEdges }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Path Count</span>
+                      <span class="metric-value">{{ summary.pathCount }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Risk Score</span>
+                      <span class="metric-value risk-score" [class]="'risk-' + summary.riskLevel">
+                        {{ summary.riskScore.toFixed(2) }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Network Structure Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>Network Structure</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="network-structure-grid">
+                    <div class="structure-item nodes">
+                      <div class="structure-count">{{ summary.totalNodes }}</div>
+                      <div class="structure-label">Total Nodes</div>
+                    </div>
+                    <div class="structure-item edges">
+                      <div class="structure-count">{{ summary.totalEdges }}</div>
+                      <div class="structure-label">Total Edges</div>
+                    </div>
+                    <div class="structure-item conditioning">
+                      <div class="structure-count">{{ summary.conditioningNodes }}</div>
+                      <div class="structure-label">Conditioning</div>
+                    </div>
+                    <div class="structure-item bridges">
+                      <div class="structure-count">{{ summary.bridgeEdges }}</div>
+                      <div class="structure-label">Bridge Edges</div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Hierarchy Information Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>device_hub</mat-icon>
+                <mat-card-title>Hierarchy Information</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Hierarchy Level</span>
+                      <span class="metric-value">{{ hierarchyPath().length + 1 }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Sub-Diamonds</span>
+                      <span class="metric-value">{{ summary.subDiamondsCount }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Parent Path</span>
+                      <span class="metric-value">
+                        @if (hierarchyPath().length > 0) {
+                          {{ hierarchyPath().join(' → ') }}
+                        } @else {
+                          Root Level
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Risk Assessment Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>security</mat-icon>
+                <mat-card-title>Risk Assessment</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="risk-assessment">
+                    <div class="risk-level-indicator" [class]="'risk-' + summary.riskLevel">
+                      <mat-icon>{{ getRiskLevelIcon(summary.riskLevel) }}</mat-icon>
+                      <span class="risk-level-text">{{ summary.riskLevel.toUpperCase() }} RISK</span>
+                    </div>
+                    <div class="risk-progress">
+                      <mat-progress-bar 
+                        mode="determinate" 
+                        [value]="summary.riskScore * 100"
+                        [color]="summary.riskLevel === 'low' ? 'primary' : summary.riskLevel === 'medium' ? 'accent' : 'warn'">
+                      </mat-progress-bar>
+                    </div>
+                    <div class="risk-description">
+                      Risk score: {{ summary.riskScore.toFixed(2) }}/1.0
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Diamond Insights Card -->
+          @if (diamondInsights().length > 0) {
+            <mat-card class="insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>lightbulb</mat-icon>
+                <mat-card-title>Diamond Insights</mat-card-title>
+                <mat-card-subtitle>Structural analysis and recommendations for this diamond</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="insights-list">
+                  @for (insight of diamondInsights(); track insight.message) {
+                    <div class="insight-item" [class]="'insight-' + insight.type">
+                      <mat-icon class="insight-icon">
+                        @switch (insight.type) {
+                          @case ('success') { check_circle }
+                          @case ('warning') { warning }
+                          @case ('info') { info }
+                          @case ('critical') { error }
+                          @default { help }
+                        }
+                      </mat-icon>
+                      <div class="insight-content">
+                        <div class="insight-message">{{ insight.message }}</div>
+                        <div class="insight-detail">{{ insight.detail }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Network Structure Tab -->
+      @if (currentView() === 'network') {
+        <div class="network-content">
+          <mat-card class="network-visualization-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>account_tree</mat-icon>
+              <mat-card-title>Diamond Network Structure</mat-card-title>
+              <mat-card-subtitle>Visual representation of the diamond's internal network topology</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="network-placeholder">
+                <mat-icon class="placeholder-icon">account_tree</mat-icon>
+                <h3>Network Visualization</h3>
+                <p>Interactive network visualization will be implemented here</p>
+                <p>Showing {{ data.networkSubset.nodes.length }} nodes and {{ data.networkSubset.edges.length }} edges</p>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Nodes Tab -->
+      @if (currentView() === 'nodes') {
+        <div class="nodes-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Nodes</mat-label>
+                  <input matInput 
+                         [value]="nodeSearchTerm()" 
+                         (input)="onNodeSearch($event)"
+                         placeholder="Enter node ID">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Node Types</mat-label>
+                  <mat-select [value]="selectedNodeTypes()" 
+                             (selectionChange)="onNodeTypeFilter($event.value)"
+                             multiple>
+                    <mat-option value="Root">Root</mat-option>
+                    <mat-option value="Leaf">Leaf</mat-option>
+                    <mat-option value="Join">Join</mat-option>
+                    <mat-option value="Fork">Fork</mat-option>
+                    <mat-option value="Source">Source</mat-option>
+                    <mat-option value="Conditioning">Conditioning</mat-option>
+                    <mat-option value="Internal">Internal</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Node Roles</mat-label>
+                  <mat-select [value]="selectedNodeRoles()" 
+                             (selectionChange)="onNodeRoleFilter($event.value)"
+                             multiple>
+                    <mat-option value="root">Root</mat-option>
+                    <mat-option value="leaf">Leaf</mat-option>
+                    <mat-option value="conditioning">Conditioning</mat-option>
+                    <mat-option value="bridge">Bridge</mat-option>
+                    <mat-option value="internal">Internal</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="filter-info">
+                  Showing {{ filteredNodeDetails().length }} of {{ data.networkSubset.nodes.length }} nodes
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Nodes Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>grain</mat-icon>
+              <mat-card-title>Diamond Node Details</mat-card-title>
+              <mat-card-subtitle>Click any node to view detailed information and connections</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedNodeDetails()" class="nodes-table">
+                  
+                  <ng-container matColumnDef="node">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.nodeId)"
+                              matTooltip="Click for detailed node information">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.nodeId }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="type-chip" [class]="'type-' + element.type.toLowerCase().replace(' + ', '-')">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="role">
+                    <th mat-header-cell *matHeaderCellDef>Role</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="role-chip" [class]="'role-' + element.role">
+                        {{ element.role }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="inDegree">
+                    <th mat-header-cell *matHeaderCellDef>In-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value">{{ element.inDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="outDegree">
+                    <th mat-header-cell *matHeaderCellDef>Out-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value">{{ element.outDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="pathCount">
+                    <th mat-header-cell *matHeaderCellDef>Path Count</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="path-count">{{ element.pathCount }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="riskLevel">
+                    <th mat-header-cell *matHeaderCellDef>Risk Level</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="risk-chip" [class]="'risk-' + element.riskLevel">
+                        <mat-icon>{{ getRiskLevelIcon(element.riskLevel) }}</mat-icon>
+                        {{ element.riskLevel }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openNodeDetailsModal(element.nodeId)"
+                              matTooltip="View detailed information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="nodeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: nodeColumns;" class="node-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredNodeDetails().length"
+                  [pageSize]="nodePageSize()"
+                  [pageIndex]="nodePageIndex()"
+                  [pageSizeOptions]="[25, 50, 100, 250]"
+                  (page)="onNodePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Edges Tab -->
+      @if (currentView() === 'edges') {
+        <div class="edges-content">
+          
+          <!-- Edge Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Edges</mat-label>
+                  <input matInput 
+                         [value]="edgeSearchTerm()" 
+                         (input)="onEdgeSearch($event)"
+                         placeholder="Enter source or target node">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Edge Types</mat-label>
+                  <mat-select [value]="selectedEdgeTypes()" 
+                             (selectionChange)="onEdgeTypeFilter($event.value)"
+                             multiple>
+                    <mat-option value="diamond-internal">Diamond Internal</mat-option>
+                    <mat-option value="bridge">Bridge</mat-option>
+                    <mat-option value="diamond-join">Diamond Join</mat-option>
+                    <mat-option value="conditioning">Conditioning</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="filter-info">
+                  Showing {{ filteredEdgeDetails().length }} edges
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Edges Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>timeline</mat-icon>
+              <mat-card-title>Diamond Edge Details</mat-card-title>
+              <mat-card-subtitle>Click any edge to view detailed connection information</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedEdgeDetails()" class="edges-table">
+                  
+                  <ng-container matColumnDef="source">
+                    <th mat-header-cell *matHeaderCellDef>Source</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.source)"
+                              matTooltip="Click for source node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.source }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="target">
+                    <th mat-header-cell *matHeaderCellDef>Target</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.target)"
+                              matTooltip="Click for target node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.target }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Edge Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="edge-type-chip" [class]="'edge-' + element.type">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="role">
+                    <th mat-header-cell *matHeaderCellDef>Role</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="edge-role">{{ element.role }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="pathContribution">
+                    <th mat-header-cell *matHeaderCellDef>Path Contribution</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="path-contribution">{{ element.pathContribution }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="critical">
+                    <th mat-header-cell *matHeaderCellDef>Critical</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip [class]="element.isCritical ? 'critical-yes' : 'critical-no'">
+                        <mat-icon>{{ element.isCritical ? 'error' : 'check_circle' }}</mat-icon>
+                        {{ element.isCritical ? 'Yes' : 'No' }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openEdgeDetailsModal(element.source, element.target)"
+                              matTooltip="View detailed edge information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="edgeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: edgeColumns;" class="edge-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredEdgeDetails().length"
+                  [pageSize]="edgePageSize()"
+                  [pageIndex]="edgePageIndex()"
+                  [pageSizeOptions]="[50, 100, 250, 500]"
+                  (page)="onEdgePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Sub-Diamonds Tab -->
+      @if (currentView() === 'subdiamonds') {
+        <div class="subdiamonds-content">
+          
+          @if (data.subDiamonds.length > 0) {
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>Sub-Diamonds</mat-card-title>
+                <mat-card-subtitle>Hierarchical drill-down into nested diamond structures</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="subdiamonds-grid">
+                  @for (subDiamond of paginatedSubDiamonds(); track $index) {
+                    <mat-card class="subdiamond-card" (click)="navigateToSubDiamond('sub-' + $index)">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar>diamond</mat-icon>
+                        <mat-card-title>Sub-Diamond {{ $index + 1 }}</mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <div class="subdiamond-metrics">
+                          <div class="metric-item">
+                            <span class="metric-label">Nodes</span>
+                            <span class="metric-value">{{ 'node_count' in subDiamond ? subDiamond.node_count : 'N/A' }}</span>
+                          </div>
+                          <div class="metric-item">
+                            <span class="metric-label">Type</span>
+                            <span class="metric-value">{{ 'join_node' in subDiamond ? 'Root' : 'Unique' }}</span>
+                          </div>
+                        </div>
+                      </mat-card-content>
+                      <mat-card-actions>
+                        <button mat-button color="primary">
+                          <mat-icon>arrow_forward</mat-icon>
+                          Explore
+                        </button>
+                      </mat-card-actions>
+                    </mat-card>
+                  }
+                </div>
+
+                @if (data.subDiamonds.length > subDiamondPageSize()) {
+                  <mat-paginator 
+                    [length]="data.subDiamonds.length"
+                    [pageSize]="subDiamondPageSize()"
+                    [pageIndex]="subDiamondPageIndex()"
+                    [pageSizeOptions]="[12, 24, 48]"
+                    (page)="onSubDiamondPageChange($event)"
+                    showFirstLastButtons>
+                  </mat-paginator>
+                }
+              </mat-card-content>
+            </mat-card>
+          } @else {
+            <mat-card class="empty-subdiamonds-card">
+              <mat-card-content>
+                <div class="empty-subdiamonds">
+                  <mat-icon class="empty-icon">account_tree</mat-icon>
+                  <h3>No Sub-Diamonds</h3>
+                  <p>This diamond does not contain any nested sub-diamond structures</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

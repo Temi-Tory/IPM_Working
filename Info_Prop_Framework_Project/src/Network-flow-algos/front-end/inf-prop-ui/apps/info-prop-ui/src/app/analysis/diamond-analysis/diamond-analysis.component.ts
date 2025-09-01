@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
@@ -32,6 +32,9 @@ import {
   JoinNodeAnalysis,
   DiamondPattern
 } from '../../shared/models/network-analysis.models';
+
+import { DiamondDetailsComponent } from '../diamond-details/diamond-details.component';
+import { HierarchyBuilderComponent } from '../hierarchy-builder/hierarchy-builder.component';
 
 @Component({
   selector: 'app-diamond-analysis',
@@ -65,6 +68,8 @@ import {
 export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   private analysisStateService = inject(AnalysisStateService);
   private diamondAnalysisService = inject(DiamondAnalysisService);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
 
   // ViewChild references for table functionality
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -398,12 +403,51 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   
   openDiamondDetailsModal(pattern: DiamondPattern): void {
     console.log('Opening diamond details modal for:', pattern);
-    // TODO: Implement modal opening logic
+    const dialogRef = this.dialog.open(DiamondDetailsComponent, {
+      width: '90vw',
+      height: '90vh',
+      maxWidth: '1400px',
+      maxHeight: '900px',
+      data: { diamondId: pattern.id },
+      panelClass: 'diamond-details-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      console.log('Diamond details dialog closed');
+    });
   }
   
   exploreDiamondHierarchy(pattern: DiamondPattern): void {
-    console.log('Exploring diamond hierarchy for:', pattern);
-    // TODO: Implement hierarchy exploration
+    console.log('Opening hierarchy builder modal for:', pattern);
+    const dialogRef = this.dialog.open(HierarchyBuilderComponent, {
+      width: '95vw',
+      height: '95vh',
+      maxWidth: '1600px',
+      maxHeight: '1000px',
+      data: { diamondId: pattern.id },
+      panelClass: 'hierarchy-builder-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      console.log('Hierarchy builder dialog closed');
+    });
+  }
+
+  // New method to open hierarchy builder for all diamonds
+  openHierarchyBuilder(): void {
+    console.log('Opening hierarchy builder for all diamonds');
+    const dialogRef = this.dialog.open(HierarchyBuilderComponent, {
+      width: '95vw',
+      height: '95vh',
+      maxWidth: '1600px',
+      maxHeight: '1000px',
+      data: {},
+      panelClass: 'hierarchy-builder-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      console.log('Hierarchy builder dialog closed');
+    });
   }
   
   // Filter Methods
