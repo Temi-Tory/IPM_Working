@@ -365,4 +365,29 @@ export class TimeAnalysisComponent {
   getStatusColor(isCritical: boolean): string {
     return isCritical ? 'warn' : 'primary';
   }
+
+  // Helper methods to make global objects available to templates
+  getObjectKeys(obj: any): string[] {
+    return Object.keys(obj || {});
+  }
+
+  getObjectValues(obj: any): any[] {
+    return Object.values(obj || {});
+  }
+
+  getMathMax(...values: number[]): number {
+    return Math.max(...values);
+  }
+
+  // Helper method to calculate average completion time
+  getAverageCompletionTime(analysis: CriticalPathAnalysis): number {
+    const values = Object.values(analysis.completionTimes);
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }
+
+  // Helper method to get maximum slack time
+  getMaxSlackTime(analysis: CriticalPathAnalysis): number {
+    const values = Object.values(analysis.slackTimes);
+    return Math.max(...values);
+  }
 }

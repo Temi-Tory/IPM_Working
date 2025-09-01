@@ -144,6 +144,15 @@ export interface UniqueDiamondStructure {
   sub_iteration_sets_count: number;
   sub_node_priors: Record<string, BeliefValue>;
   node_count: number;
+  // NEW: Missing fields from DiamondComputationData struct
+  sub_diamond_structures: Record<string, RootDiamondStructure>;
+  diamond: {
+    conditioning_nodes: number[];
+    relevant_nodes: number[];
+    edgelist: [number, number][];
+    edge_count: number;
+    node_count: number;
+  };
 }
 
 export interface DiamondAnalysisResult {
@@ -182,6 +191,12 @@ export interface DiamondPattern {
   joinNodes: number[];
   sourceNodes: number[];
   forkNodes: number[];
+  // NEW: Proper diamond identification fields based on Julia structures
+  conditioningNodes: number[];
+  joinNode?: number; // For root diamonds (DiamondsAtNode)
+  diamondHash?: string; // For unique diamonds (DiamondComputationData)
+  relevantNodes: number[];
+  edgeList: [number, number][];
   subDiamonds?: DiamondPattern[];
 }
 

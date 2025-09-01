@@ -34,7 +34,6 @@ import {
 } from '../../shared/models/network-analysis.models';
 
 import { DiamondDetailsComponent } from '../diamond-details/diamond-details.component';
-import { HierarchyBuilderComponent } from '../hierarchy-builder/hierarchy-builder.component';
 
 @Component({
   selector: 'app-diamond-analysis',
@@ -78,6 +77,11 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // State Management
   currentScenario = signal<string>('');
   selectedTab = signal<number>(0);
+  
+  // Hierarchy Visualizer State
+  multipleHierarchiesMode = signal<boolean>(false);
+  singleHierarchyMode = signal<boolean>(false);
+  selectedHierarchiesCount = signal<number>(0);
   
   // Filter State - Dynamic based on actual data
   minNodeCount = signal<number>(0);
@@ -134,6 +138,20 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     // Fallback to single diamond analysis
     const diamondAnalysis = this.analysisStateService.diamondAnalysis();
     return diamondAnalysis?.diamond_analysis || null;
+  });
+
+  // Get the full current diamond analysis object for hierarchy visualization
+  currentDiamondAnalysis = computed(() => {
+    const multiResults = this.multiScenarioResults();
+    const currentScenario = this.currentScenario();
+    
+    // Try multi-scenario first
+    if (multiResults && currentScenario) {
+      return multiResults.scenarios.get(currentScenario) || null;
+    }
+    
+    // Fallback to single diamond analysis
+    return this.analysisStateService.diamondAnalysis()?.diamond_analysis || null;
   });
 
   diamondSummary = computed(() => {
@@ -358,18 +376,53 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // Diamond Pattern Processing
   getDiamondPatterns(): DiamondPattern[] {
     const results = this.currentDiamondResults();
-    if (!results || !results.raw_unique_diamonds) return [];
+    if (!results) return [];
 
-    return Object.entries(results.raw_unique_diamonds).map(([hash, diamond]: [string, any]) => ({
-      id: hash,
-      nodeCount: diamond.node_count || 0,
-      isRoot: diamond.is_root_diamond || false,
-      complexity: this.calculateComplexity(diamond),
-      joinNodes: diamond.sub_join_nodes || [],
-      sourceNodes: diamond.sub_sources || [],
-      forkNodes: diamond.sub_fork_nodes || [],
-      subDiamonds: [] // TODO: Extract sub-diamonds if available
-    }));
+    const patterns: DiamondPattern[] = [];
+
+    // Process root diamonds (DiamondsAtNode structures)
+    if (results.raw_root_diamonds) {
+      Object.entries(results.raw_root_diamonds).forEach(([joinNodeStr, diamondsAtNode]: [string, any]) => {
+        patterns.push({
+          id: `root-${joinNodeStr}`,
+          nodeCount: diamondsAtNode.diamond?.node_count || 0,
+          isRoot: true,
+          complexity: this.calculateComplexity(diamondsAtNode.diamond),
+          joinNodes: [diamondsAtNode.join_node],
+          sourceNodes: diamondsAtNode.diamond?.conditioning_nodes || [],
+          forkNodes: [], // Would need to be calculated from network structure
+          // NEW: Proper diamond identification fields
+          conditioningNodes: diamondsAtNode.diamond?.conditioning_nodes || [],
+          joinNode: diamondsAtNode.join_node,
+          relevantNodes: diamondsAtNode.diamond?.relevant_nodes || [],
+          edgeList: diamondsAtNode.diamond?.edgelist || [],
+          subDiamonds: []
+        });
+      });
+    }
+
+    // Process unique diamonds (DiamondComputationData structures)
+    if (results.raw_unique_diamonds) {
+      Object.entries(results.raw_unique_diamonds).forEach(([hash, diamond]: [string, any]) => {
+        patterns.push({
+          id: `unique-${hash}`,
+          nodeCount: diamond.node_count || 0,
+          isRoot: diamond.is_root_diamond || false,
+          complexity: this.calculateComplexity(diamond),
+          joinNodes: diamond.sub_join_nodes || [],
+          sourceNodes: diamond.sub_sources || [],
+          forkNodes: diamond.sub_fork_nodes || [],
+          // NEW: Proper diamond identification fields - now available from backend
+          conditioningNodes: diamond.diamond?.conditioning_nodes || [],
+          diamondHash: hash,
+          relevantNodes: diamond.diamond?.relevant_nodes || [],
+          edgeList: diamond.diamond?.edgelist || [],
+          subDiamonds: []
+        });
+      });
+    }
+
+    return patterns;
   }
 
   private calculateComplexity(diamond: any): number {
@@ -395,11 +448,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return `${(milliseconds / 1000).toFixed(2)}s`;
   }
 
-  // Action Methods
-  openDiamondDetails(pattern: DiamondPattern): void {
-    // TODO: Open diamond details modal
-    console.log('Opening diamond details for:', pattern);
-  }
+  
   
   openDiamondDetailsModal(pattern: DiamondPattern): void {
     console.log('Opening diamond details modal for:', pattern);
@@ -417,38 +466,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     });
   }
   
-  exploreDiamondHierarchy(pattern: DiamondPattern): void {
-    console.log('Opening hierarchy builder modal for:', pattern);
-    const dialogRef = this.dialog.open(HierarchyBuilderComponent, {
-      width: '95vw',
-      height: '95vh',
-      maxWidth: '1600px',
-      maxHeight: '1000px',
-      data: { diamondId: pattern.id },
-      panelClass: 'hierarchy-builder-dialog'
-    });
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Hierarchy builder dialog closed');
-    });
-  }
-
-  // New method to open hierarchy builder for all diamonds
-  openHierarchyBuilder(): void {
-    console.log('Opening hierarchy builder for all diamonds');
-    const dialogRef = this.dialog.open(HierarchyBuilderComponent, {
-      width: '95vw',
-      height: '95vh',
-      maxWidth: '1600px',
-      maxHeight: '1000px',
-      data: {},
-      panelClass: 'hierarchy-builder-dialog'
-    });
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Hierarchy builder dialog closed');
-    });
-  }
+  
   
   // Filter Methods
   setMinNodeCount(event: Event): void {
@@ -994,11 +1012,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     this.loadMultiScenarioDiamondAnalysis();
   }
 
-  viewDiamondDetails(pattern: DiamondPattern): void {
-    // Alias for openDiamondDetails to match template usage
-    this.openDiamondDetails(pattern);
-  }
-  
+
   // Enhanced diamond summary processing
   private processDiamondSummary(): DiamondSummary | null {
     const results = this.currentDiamondResults();
@@ -1096,4 +1110,17 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         return 'Monitor for potential optimization opportunities';
     }
   }
+
+  
+
+  hasInnerDiamonds(): boolean {
+    const analysis = this.currentDiamondAnalysis();
+    if (!analysis?.raw_unique_diamonds) return false;
+    
+    return Object.values(analysis.raw_unique_diamonds).some(diamond => 
+      diamond.sub_diamond_structures && Object.keys(diamond.sub_diamond_structures).length > 0
+    );
+  }
+
+  
 }

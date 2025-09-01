@@ -38,6 +38,9 @@
         </mat-form-field>
 
         <div class="header-actions">
+
+          <mat-divider [vertical]="true"></mat-divider>
+
           <button
             mat-icon-button
             matTooltip="Refresh Analysis"
@@ -66,12 +69,6 @@
           <div class="stat-label">Root Diamonds</div>
         </div>
 
-        <div class="stat-card"
-             matTooltip="Number of unique diamond boundaries that define system entry/exit points"
-             matTooltipPosition="below">
-          <div class="stat-value">{{ formatNumber(summary.rootDiamonds) }}</div>
-          <div class="stat-label">System Boundaries</div>
-        </div>
 
         <div class="stat-card"
              matTooltip="Critical nodes where multiple paths converge - potential bottlenecks"
@@ -370,12 +367,12 @@
                               (click)="$event.stopPropagation(); openDiamondDetailsModal(pattern)">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                            <button
+                         <!--    <button
                               mat-icon-button
                               matTooltip="Explore Hierarchy"
                               (click)="$event.stopPropagation(); exploreDiamondHierarchy(pattern)">
                               <mat-icon>account_tree</mat-icon>
-                            </button>
+                            </button> -->
                           </div>
                         </td>
                       </ng-container>

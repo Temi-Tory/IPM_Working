@@ -57,7 +57,7 @@
   }
 
   <!-- Empty State -->
-  @if (!cpmScenarios() || Object.keys(cpmScenarios()).length === 0 && !isLoading() && !error()) {
+  @if (!cpmScenarios() || getObjectKeys(cpmScenarios()).length === 0 && !isLoading() && !error()) {
     <div class="empty-state">
       <mat-icon class="empty-icon">schedule</mat-icon>
       <h3>No CPM Data Available</h3>
@@ -195,11 +195,11 @@
                     </div>
                     <div class="metric-row">
                       <span class="metric-label">Avg Completion Time</span>
-                      <span class="metric-value">{{ formatTime(Object.values(analysis.completionTimes).reduce((a, b) => a + b, 0) / Object.keys(analysis.completionTimes).length) }}</span>
+                      <span class="metric-value">{{ formatTime(getAverageCompletionTime(analysis)) }}</span>
                     </div>
                     <div class="metric-row">
                       <span class="metric-label">Max Slack Available</span>
-                      <span class="metric-value slack-time">{{ formatTime(Math.max(...Object.values(analysis.slackTimes))) }}</span>
+                      <span class="metric-value slack-time">{{ formatTime(getMaxSlackTime(analysis)) }}</span>
                     </div>
                   </div>
                 }

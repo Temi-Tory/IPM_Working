@@ -38,23 +38,70 @@ export class DiamondAnalysisService {
     return results.scenarios.get(results.currentScenario) || null;
   });
 
-  analyzeDiamonds(request: DiamondAnalysisRequest): Observable<DiamondAnalysisResponse> {
-    return this.http.post<DiamondAnalysisResponse>(
-      `${this.API_BASE}/diamond-analysis`,
-      request
-    ).pipe(
-      tap(response => {
-        console.log('💎 DIAMOND ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
-        console.log('💎 DIAMOND ANALYSIS KEYS:', Object.keys(response));
+ analyzeDiamonds(request: DiamondAnalysisRequest): Observable<DiamondAnalysisResponse> {
+  console.log('🚀 Sending diamond analysis request:', request);
+  
+  return this.http.post<DiamondAnalysisResponse>(
+    `${this.API_BASE}/diamond-analysis`,
+    request
+  ).pipe(
+    tap(response => {
+      console.log('💎 DIAMOND ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
+      
+      // Enhanced debugging
+      if (response.success) {
+        console.log('✅ Analysis successful');
+        console.log('📊 Network name:', response.network_name);
+        
         if (response.diamond_analysis) {
-          console.log('💎 DIAMOND ANALYSIS DATA KEYS:', Object.keys(response.diamond_analysis));
-          if (response.diamond_analysis.raw_unique_diamonds) {
-            console.log('💎 RAW UNIQUE DIAMONDS KEYS:', Object.keys(response.diamond_analysis.raw_unique_diamonds));
+          const analysis = response.diamond_analysis;
+          console.log('📈 Analysis data keys:', Object.keys(analysis));
+          console.log('💎 Root diamonds count:', analysis.root_diamonds_count);
+          console.log('🔷 Unique diamonds count:', analysis.unique_diamonds_count);
+          
+          // Check if raw data exists
+          if (analysis.raw_root_diamonds) {
+            console.log('✅ Raw root diamonds found:', Object.keys(analysis.raw_root_diamonds).length, 'entries');
+            console.log('📋 Root diamond keys:', Object.keys(analysis.raw_root_diamonds));
+            
+            // Log first root diamond structure
+            const firstRootKey = Object.keys(analysis.raw_root_diamonds)[0];
+            if (firstRootKey) {
+              console.log('🔍 First root diamond structure:', analysis.raw_root_diamonds[firstRootKey]);
+            }
+          } else {
+            console.warn('❌ No raw_root_diamonds found in response');
           }
+          
+          if (analysis.raw_unique_diamonds) {
+            console.log('✅ Raw unique diamonds found:', Object.keys(analysis.raw_unique_diamonds).length, 'entries');
+            console.log('📋 Unique diamond keys:', Object.keys(analysis.raw_unique_diamonds));
+            
+            // Log first unique diamond structure
+            const firstUniqueKey = Object.keys(analysis.raw_unique_diamonds)[0];
+            if (firstUniqueKey) {
+              console.log('🔍 First unique diamond structure keys:', Object.keys(analysis.raw_unique_diamonds[firstUniqueKey]));
+              console.log('🔍 First unique diamond sample:', analysis.raw_unique_diamonds[firstUniqueKey]);
+            }
+          } else {
+            console.warn('❌ No raw_unique_diamonds found in response');
+          }
+        } else {
+          console.error('❌ No diamond_analysis found in response');
         }
-      })
-    );
-  }
+      } else {
+        console.error('❌ Analysis failed:', response.message);
+      }
+    }),
+    catchError(error => {
+      console.error('🚨 HTTP Error in diamond analysis:', error);
+      console.error('🚨 Error status:', error.status);
+      console.error('🚨 Error message:', error.message);
+      console.error('🚨 Error body:', error.error);
+      throw error;
+    })
+  );
+}
 
   // **NEW: Multi-scenario diamond analysis**
   analyzeMultipleScenarios(networkPath: string, scenarios: ScenarioInfo[]): Observable<MultiScenarioDiamondResults> {

@@ -105,6 +105,22 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
         # diamond_data is of type DiamondComputationData{T}
         # Use the is_rootDiamond field from the struct directly!
         
+        # Serialize sub_diamond_structures (Dict{Int64, DiamondsAtNode})
+        sub_diamond_structures_serialized = Dict()
+        for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
+            sub_diamond_structures_serialized[string(join_node)] = Dict(
+                "join_node" => diamonds_at_node.join_node,
+                "diamond" => Dict(
+                    "conditioning_nodes" => collect(diamonds_at_node.diamond.conditioning_nodes),
+                    "relevant_nodes" => collect(diamonds_at_node.diamond.relevant_nodes),
+                    "edgelist" => collect(diamonds_at_node.diamond.edgelist),
+                    "edge_count" => length(diamonds_at_node.diamond.edgelist),
+                    "node_count" => length(diamonds_at_node.diamond.relevant_nodes)
+                ),
+                "non_diamond_parents" => collect(diamonds_at_node.non_diamond_parents)
+            )
+        end
+        
         serialized[string(diamond_hash)] = Dict(
             "diamond_hash" => string(diamond_hash),
             "is_root_diamond" => diamond_data.is_rootDiamond,  # <-- USE STRUCT FIELD
@@ -118,9 +134,20 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
             "sub_iteration_sets" => [collect(s) for s in diamond_data.sub_iteration_sets],
             "sub_iteration_sets_count" => length(diamond_data.sub_iteration_sets),
             "sub_node_priors" => Dict(string(k) => v for (k, v) in diamond_data.sub_node_priors),
-            "node_count" => length(diamond_data.sub_node_priors)
+            "node_count" => length(diamond_data.sub_node_priors),
+            # NEW: Include missing fields from DiamondComputationData struct
+            "sub_diamond_structures" => sub_diamond_structures_serialized,
+            "diamond" => Dict(
+                "conditioning_nodes" => collect(diamond_data.diamond.conditioning_nodes),
+                "relevant_nodes" => collect(diamond_data.diamond.relevant_nodes),
+                "edgelist" => collect(diamond_data.diamond.edgelist),
+                "edge_count" => length(diamond_data.diamond.edgelist),
+                "node_count" => length(diamond_data.diamond.relevant_nodes)
+            )
         )
     end
+  
+
     return serialized
 end
 

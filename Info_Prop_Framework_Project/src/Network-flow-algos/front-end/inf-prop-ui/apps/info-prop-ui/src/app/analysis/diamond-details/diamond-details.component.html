@@ -36,8 +36,13 @@
         <div class="title-content">
           <h1 class="page-title">
             <mat-icon class="title-icon">diamond</mat-icon>
-            Diamond Details: {{ diamondId() }}
+            Diamond Details
           </h1>
+          @if (diamondSummary(); as summary) {
+            <div class="diamond-identifier">
+              <strong>{{ summary.diamondIdentifier }}</strong>
+            </div>
+          }
           <p class="page-subtitle">Comprehensive analysis of diamond structure, network topology, and hierarchical relationships</p>
         </div>
         <button mat-icon-button class="close-button" (click)="closeDialog()" matTooltip="Close Dialog">
@@ -117,10 +122,6 @@
           <mat-button-toggle value="overview">
             <mat-icon>dashboard</mat-icon>
             Overview
-          </mat-button-toggle>
-          <mat-button-toggle value="network">
-            <mat-icon>account_tree</mat-icon>
-            Network Structure
           </mat-button-toggle>
           <mat-button-toggle value="nodes">
             <mat-icon>grain</mat-icon>
@@ -298,27 +299,6 @@
               </mat-card-content>
             </mat-card>
           }
-        </div>
-      }
-
-      <!-- Network Structure Tab -->
-      @if (currentView() === 'network') {
-        <div class="network-content">
-          <mat-card class="network-visualization-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>account_tree</mat-icon>
-              <mat-card-title>Diamond Network Structure</mat-card-title>
-              <mat-card-subtitle>Visual representation of the diamond's internal network topology</mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="network-placeholder">
-                <mat-icon class="placeholder-icon">account_tree</mat-icon>
-                <h3>Network Visualization</h3>
-                <p>Interactive network visualization will be implemented here</p>
-                <p>Showing {{ data.networkSubset.nodes.length }} nodes and {{ data.networkSubset.edges.length }} edges</p>
-              </div>
-            </mat-card-content>
-          </mat-card>
         </div>
       }
 

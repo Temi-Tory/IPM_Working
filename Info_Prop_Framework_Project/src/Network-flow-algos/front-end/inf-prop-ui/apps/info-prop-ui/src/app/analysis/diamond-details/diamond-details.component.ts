@@ -25,6 +25,9 @@ import { DiamondAnalysisResponse, RootDiamondStructure, UniqueDiamondStructure }
 
 interface DiamondDetailsData {
   diamondId: string;
+  conditioningNodes: number[];
+  joinNode?: number; // For root diamonds
+  diamondHash?: string; // For unique diamonds
   diamond: RootDiamondStructure | UniqueDiamondStructure;
   networkSubset: {
     nodes: number[];
@@ -87,7 +90,12 @@ export class DiamondDetailsComponent implements OnInit {
   private analysisState = inject(AnalysisStateService);
   private dialog = inject(MatDialog);
   private dialogRef = inject(MatDialogRef<DiamondDetailsComponent>);
-  private dialogData = inject<{ diamondId: string }>(MAT_DIALOG_DATA);
+  private dialogData = inject<{
+    diamondId: string;
+    conditioningNodes?: number[];
+    joinNode?: number;
+    diamondHash?: string;
+  }>(MAT_DIALOG_DATA);
 
   // Core data signals
   diamondAnalysis = computed(() => this.analysisState.diamondAnalysis());
@@ -96,7 +104,7 @@ export class DiamondDetailsComponent implements OnInit {
 
   // Component state
   diamondId = signal<string>('');
-  currentView = signal<'overview' | 'network' | 'nodes' | 'edges' | 'subdiamonds'>('overview');
+  currentView = signal<'overview' |  'nodes' | 'edges' | 'subdiamonds'>('overview');
   
   // Pagination
   nodePageSize = signal(50);
@@ -138,13 +146,29 @@ export class DiamondDetailsComponent implements OnInit {
 
     // Look for diamond in both root and unique diamonds
     let diamond: RootDiamondStructure | UniqueDiamondStructure | null = null;
+    let conditioningNodes: number[] = [];
+    let joinNode: number | undefined;
+    let diamondHash: string | undefined;
     
-    if (analysis.diamond_analysis.raw_root_diamonds) {
-      diamond = analysis.diamond_analysis.raw_root_diamonds[id];
+    // Check if it's a root diamond (starts with "root-")
+    if (id.startsWith('root-')) {
+      const joinNodeStr = id.replace('root-', '');
+      if (analysis.diamond_analysis?.raw_root_diamonds && analysis.diamond_analysis.raw_root_diamonds[joinNodeStr]) {
+        const diamondsAtNode = analysis.diamond_analysis.raw_root_diamonds[joinNodeStr];
+        diamond = diamondsAtNode;
+        conditioningNodes = diamondsAtNode.diamond?.conditioning_nodes || [];
+        joinNode = diamondsAtNode.join_node;
+      }
     }
-    
-    if (!diamond && analysis.diamond_analysis.raw_unique_diamonds) {
-      diamond = analysis.diamond_analysis.raw_unique_diamonds[id];
+    // Check if it's a unique diamond (starts with "unique-")
+    else if (id.startsWith('unique-')) {
+      const hash = id.replace('unique-', '');
+      if (analysis.diamond_analysis?.raw_unique_diamonds && analysis.diamond_analysis.raw_unique_diamonds[hash]) {
+        diamond = analysis.diamond_analysis.raw_unique_diamonds[hash];
+        diamondHash = hash;
+        // NEW: Unique diamonds now have the main diamond structure with conditioning nodes
+        conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      }
     }
     
     if (!diamond) return null;
@@ -157,6 +181,9 @@ export class DiamondDetailsComponent implements OnInit {
 
     return {
       diamondId: id,
+      conditioningNodes,
+      joinNode,
+      diamondHash,
       diamond,
       networkSubset,
       subDiamonds,
@@ -169,20 +196,28 @@ export class DiamondDetailsComponent implements OnInit {
     const data = this.diamondDetailsData();
     if (!data) return null;
 
-    const { diamond, networkSubset, subDiamonds } = data;
+    const { diamond, networkSubset, subDiamonds, conditioningNodes, joinNode } = data;
     
     // Handle different diamond types
     const isRootDiamond = 'join_node' in diamond;
     const diamondData = isRootDiamond ? (diamond as RootDiamondStructure).diamond : null;
     const uniqueDiamond = !isRootDiamond ? (diamond as UniqueDiamondStructure) : null;
     
+    // Create proper diamond identifier: conditioning nodes + join node
+    const diamondIdentifier = isRootDiamond
+      ? `Conditioning: [${conditioningNodes.join(', ')}] → Join: ${joinNode}`
+      : `Unique Diamond: ${data.diamondId}`;
+    
     return {
       diamondId: data.diamondId,
-      rootNodes: isRootDiamond ? [diamond.join_node] : (uniqueDiamond?.sub_sources || []),
-      leafNodes: isRootDiamond ? [diamond.join_node] : [], // Simplified
+      diamondIdentifier, // NEW: Proper diamond identification
+      conditioningNodes: conditioningNodes,
+      joinNode: joinNode,
+      rootNodes: isRootDiamond ? [joinNode] : (uniqueDiamond?.sub_sources || []),
+      leafNodes: isRootDiamond ? [joinNode] : (uniqueDiamond?.sub_join_nodes || []),
       totalNodes: networkSubset.nodes.length,
       totalEdges: networkSubset.edges.length,
-      conditioningNodes: networkSubset.conditioningNodes.length,
+      conditioningNodesCount: conditioningNodes.length,
       bridgeEdges: networkSubset.bridgeEdges.length,
       diamondJoinEdges: networkSubset.diamondJoinEdges.length,
       pathCount: diamondData?.node_count || uniqueDiamond?.node_count || 0,
@@ -197,35 +232,64 @@ export class DiamondDetailsComponent implements OnInit {
     const data = this.diamondDetailsData();
     if (!data) return [];
 
-    const { diamond, networkSubset, subDiamonds } = data;
+    const { diamond, networkSubset, subDiamonds, conditioningNodes, joinNode } = data;
     const insights: Array<{type: 'info' | 'warning' | 'success' | 'critical', message: string, detail: string}> = [];
 
     const isRootDiamond = 'join_node' in diamond;
     const diamondData = isRootDiamond ? (diamond as RootDiamondStructure).diamond : null;
     const uniqueDiamond = !isRootDiamond ? (diamond as UniqueDiamondStructure) : null;
 
-    // Structure analysis
+    // Diamond identification insight
     if (isRootDiamond) {
       insights.push({
         type: 'info',
+        message: 'Diamond Identification',
+        detail: `Identified by conditioning nodes [${conditioningNodes.join(', ')}] + join node ${joinNode}`
+      });
+      
+      insights.push({
+        type: 'info',
         message: 'Root Diamond Structure',
-        detail: `Join node ${diamond.join_node} with ${diamondData?.node_count || 0} nodes`
+        detail: `${diamondData?.node_count || 0} relevant nodes, ${diamondData?.edgelist?.length || 0} edges`
       });
     } else {
       insights.push({
         type: 'info',
         message: 'Unique Diamond Structure',
-        detail: `${uniqueDiamond?.node_count || 0} nodes with hash ${uniqueDiamond?.diamond_hash}`
+        detail: `Pre-computed subgraph with ${uniqueDiamond?.node_count || 0} nodes`
       });
     }
 
     // Conditioning nodes analysis
-    if (networkSubset.conditioningNodes.length > 0) {
+    if (conditioningNodes.length > 0) {
       insights.push({
-        type: 'info',
+        type: 'success',
         message: 'Conditioning Dependencies',
-        detail: `${networkSubset.conditioningNodes.length} conditioning nodes affect this diamond`
+        detail: `${conditioningNodes.length} conditioning nodes: [${conditioningNodes.join(', ')}]`
       });
+    } else if (isRootDiamond) {
+      insights.push({
+        type: 'warning',
+        message: 'No Conditioning Nodes',
+        detail: 'This diamond has no conditioning dependencies'
+      });
+    }
+
+    // Network structure insights
+    if (isRootDiamond && diamondData) {
+      const relevantNodes = diamondData.relevant_nodes?.length || 0;
+      const edgeCount = diamondData.edgelist?.length || 0;
+      
+      if (relevantNodes > 0 && edgeCount > 0) {
+        const density = edgeCount / (relevantNodes * (relevantNodes - 1));
+        if (density > 0.5) {
+          insights.push({
+            type: 'info',
+            message: 'Dense Diamond Structure',
+            detail: `High connectivity with ${(density * 100).toFixed(1)}% edge density`
+          });
+        }
+      }
     }
 
     // Sub-diamonds analysis
@@ -234,15 +298,6 @@ export class DiamondDetailsComponent implements OnInit {
         type: 'success',
         message: 'Hierarchical Structure',
         detail: `Contains ${subDiamonds.length} sub-diamonds for detailed analysis`
-      });
-    }
-
-    // Bridge connections
-    if (networkSubset.bridgeEdges.length > 0) {
-      insights.push({
-        type: 'info',
-        message: 'Bridge Connections',
-        detail: `${networkSubset.bridgeEdges.length} bridge edges connect to other diamonds`
       });
     }
 
@@ -494,7 +549,7 @@ export class DiamondDetailsComponent implements OnInit {
 
   // Event handlers
   switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'network' | 'nodes' | 'edges' | 'subdiamonds');
+    this.currentView.set(event.value as 'overview' |  'nodes' | 'edges' | 'subdiamonds');
   }
 
   onNodePageChange(event: PageEvent): void {
