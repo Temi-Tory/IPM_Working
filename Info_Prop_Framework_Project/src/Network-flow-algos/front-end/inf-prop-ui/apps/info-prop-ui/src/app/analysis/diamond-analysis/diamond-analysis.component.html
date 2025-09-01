@@ -74,10 +74,6 @@
           <div class="stat-label">Convergence Points</div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-value">{{ summary.averageComplexity.toFixed(1) }}</div>
-          <div class="stat-label">Risk Score</div>
-        </div>
 
         @if (coverageMetrics(); as coverage) {
           <div class="stat-card">
@@ -125,7 +121,6 @@
             
             <!-- Risk Assessment Section -->
             <div class="risk-assessment-section">
-              <h2 class="section-title">System Risk Assessment</h2>
               
               <div class="summary-grid">
                 @if (diamondSummary(); as summary) {
@@ -197,10 +192,6 @@
                           <div class="pattern-metric">
                             <span class="metric-number">{{ insight.averageNodeCount.toFixed(1) }}</span>
                             <span class="metric-label">Avg Nodes</span>
-                          </div>
-                          <div class="pattern-metric">
-                            <span class="metric-number">{{ insight.riskScore?.toFixed(1) || '0.0' }}</span>
-                            <span class="metric-label">Risk Score</span>
                           </div>
                         </div>
                         
@@ -302,8 +293,7 @@
               <mat-card-header>
                 <mat-icon mat-card-avatar>table_view</mat-icon>
                 <mat-card-title>Diamond Structures</mat-card-title>
-                <mat-card-subtitle>Network diamonds with risk assessment</mat-card-subtitle>
-              </mat-card-header>
+             </mat-card-header>
               <mat-card-content>
                 <div class="table-container">
                   @if (filteredDiamondPatterns(); as patterns) {
@@ -331,17 +321,7 @@
                         </td>
                       </ng-container>
 
-                      <!-- Risk Assessment Column -->
-                      <ng-container matColumnDef="riskLevel">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Risk Level</th>
-                        <td mat-cell *matCellDef="let pattern">
-                          <div class="risk-assessment" [class]="'risk-' + getRiskLevel(pattern)">
-                            <mat-icon>{{ getRiskIcon(pattern) }}</mat-icon>
-                            <span>{{ getRiskLevel(pattern) | titlecase }}</span>
-                            <div class="risk-score">{{ calculateRiskScore(pattern).toFixed(1) }}</div>
-                          </div>
-                        </td>
-                      </ng-container>
+                    
 
                       <!-- Complexity Column -->
                       <ng-container matColumnDef="complexity">
@@ -406,9 +386,7 @@
             <mat-card class="optimization-card">
               <mat-card-header>
                 <mat-icon mat-card-avatar>priority_high</mat-icon>
-                <mat-card-title>Immediate Risk Assessment</mat-card-title>
-                <mat-card-subtitle>Priority areas requiring attention</mat-card-subtitle>
-              </mat-card-header>
+                  </mat-card-header>
               <mat-card-content>
                 @if (getHighRiskPatterns(); as riskPatterns) {
                   <div class="risk-patterns-list">
@@ -420,10 +398,9 @@
                         <div class="risk-content">
                           <h4 class="risk-title">{{ risk.title }}</h4>
                           <p class="risk-description">{{ risk.description }}</p>
-                          <div class="risk-recommendations">
-                            @for (rec of risk.recommendations; track rec) {
-                              <mat-chip class="recommendation-chip">{{ rec }}</mat-chip>
-                            }
+                          <div class="risk-interpretation">
+                            <mat-icon>info</mat-icon>
+                            <span>{{ risk.interpretation }}</span>
                           </div>
                         </div>
                       </div>
@@ -438,41 +415,6 @@
               </mat-card-content>
             </mat-card>
 
-            <!-- Optimization Opportunities -->
-            <mat-card class="optimization-card">
-              <mat-card-header>
-                <mat-icon mat-card-avatar>trending_up</mat-icon>
-                <mat-card-title>Optimization Opportunities</mat-card-title>
-                <mat-card-subtitle>Potential system improvements</mat-card-subtitle>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="optimization-list">
-                  <div class="optimization-item">
-                    <mat-icon class="opt-icon">speed</mat-icon>
-                    <div class="opt-content">
-                      <h4>Parallel Processing Opportunities</h4>
-                      <p>{{ getParallelizationOpportunities() }} paths identified for parallel execution</p>
-                    </div>
-                  </div>
-                  
-                  <div class="optimization-item">
-                    <mat-icon class="opt-icon">device_hub</mat-icon>
-                    <div class="opt-content">
-                      <h4>Redundancy Improvements</h4>
-                      <p>Add redundant paths to {{ getSinglePointsCount() }} critical convergence points</p>
-                    </div>
-                  </div>
-                  
-                  <div class="optimization-item">
-                    <mat-icon class="opt-icon">architecture</mat-icon>
-                    <div class="opt-content">
-                      <h4>Modular Decomposition</h4>
-                      <p>{{ getModularizationOpportunities() }} diamond patterns suitable for independent modules</p>
-                    </div>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
           </div>
         </mat-tab>
       </mat-tab-group>

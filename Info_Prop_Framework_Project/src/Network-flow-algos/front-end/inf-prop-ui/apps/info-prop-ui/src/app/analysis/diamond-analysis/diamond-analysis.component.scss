@@ -732,6 +732,31 @@
             line-height: 1.4;
           }
           
+          .risk-interpretation {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 0 0 1rem 0;
+            padding: 0.75rem;
+            background: rgba(var(--primary-color-rgb), 0.05);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+            
+            mat-icon {
+              color: var(--primary-color);
+              font-size: 1.1rem;
+              margin-top: 0.1rem;
+              flex-shrink: 0;
+            }
+            
+            span {
+              font-size: 0.9rem;
+              color: var(--text-primary);
+              font-style: italic;
+              line-height: 1.4;
+            }
+          }
+          
           .risk-recommendations {
             display: flex;
             flex-wrap: wrap;
@@ -758,6 +783,163 @@
       }
     }
     
+    .optimization-insights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      
+      .optimization-insight-item {
+        padding: 1.5rem;
+        background: var(--surface-background);
+        border-radius: 12px;
+        border-left: 4px solid;
+        transition: all 0.3s ease;
+        
+        &.priority-high {
+          border-left-color: var(--error-color);
+          background: rgba(244, 67, 54, 0.02);
+        }
+        
+        &.priority-medium {
+          border-left-color: var(--warning-color);
+          background: rgba(255, 152, 0, 0.02);
+        }
+        
+        &.priority-low {
+          border-left-color: var(--success-color);
+          background: rgba(76, 175, 80, 0.02);
+        }
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .insight-header {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1rem;
+          
+          .insight-icon {
+            flex-shrink: 0;
+            
+            mat-icon {
+              font-size: 1.75rem;
+              color: var(--primary-color);
+            }
+          }
+          
+          .insight-title-section {
+            flex: 1;
+            
+            .insight-title {
+              margin: 0 0 0.5rem 0;
+              font-size: 1.2rem;
+              font-weight: 600;
+              color: var(--text-primary);
+            }
+            
+            .insight-meta {
+              display: flex;
+              align-items: center;
+              gap: 1rem;
+              
+              .priority-chip {
+                font-size: 0.75rem;
+                height: 20px;
+                font-weight: 500;
+              }
+              
+              .insight-count {
+                font-size: 0.85rem;
+                color: var(--text-secondary);
+                font-weight: 500;
+              }
+            }
+          }
+        }
+        
+        .insight-description {
+          margin: 0 0 1rem 0;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          font-size: 0.95rem;
+        }
+        
+        .insight-interpretation {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.5rem;
+          margin: 0 0 1.5rem 0;
+          padding: 1rem;
+          background: rgba(var(--accent-color-rgb), 0.05);
+          border-radius: 8px;
+          border-left: 3px solid var(--accent-color);
+          
+          mat-icon {
+            color: var(--accent-color);
+            font-size: 1.2rem;
+            margin-top: 0.1rem;
+            flex-shrink: 0;
+          }
+          
+          span {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+            font-weight: 500;
+          }
+        }
+        
+        .insight-recommendations {
+          h5 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          
+          .recommendation-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            
+            .recommendation-chip {
+              font-size: 0.8rem;
+              height: 28px;
+              background: var(--surface-color);
+              border: 1px solid var(--border-color);
+              
+              &:hover {
+                background: var(--primary-color-light);
+                border-color: var(--primary-color);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    .no-insights {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-secondary);
+      
+      mat-icon {
+        font-size: 3rem;
+        color: var(--success-color);
+        margin-bottom: 1rem;
+      }
+      
+      p {
+        font-size: 1.1rem;
+        margin: 0;
+      }
+    }
+    
+    // Legacy optimization list styles (for backward compatibility)
     .optimization-list {
       display: flex;
       flex-direction: column;

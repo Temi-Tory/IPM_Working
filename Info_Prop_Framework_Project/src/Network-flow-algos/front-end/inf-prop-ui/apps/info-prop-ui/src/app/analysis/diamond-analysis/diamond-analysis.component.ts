@@ -213,7 +213,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   error = computed(() => this.analysisStateService.error());
 
   // Table configuration
-  displayedColumns: string[] = ['nodeCount', 'isRoot', 'riskLevel', 'complexity', 'actions'];
+  displayedColumns: string[] = ['nodeCount', 'isRoot',  'complexity', 'actions'];
   
   ngOnInit(): void {
     // Initialize with first available scenario
@@ -515,58 +515,429 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     // TODO: Implement context view
   }
   
-  // Risk Pattern Methods
-  getHighRiskPatterns(): Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string, recommendations: string[]}> {
+  // Enhanced Risk Pattern Methods with Clearer Interpretation
+  getHighRiskPatterns(): Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string, interpretation: string}> {
     const summary = this.diamondSummary();
-    if (!summary) return [];
+    const results = this.currentDiamondResults();
+    if (!summary || !results) return [];
     
-    const riskPatterns: Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string, recommendations: string[]}> = [];
+    const riskPatterns: Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string,  interpretation: string}> = [];
     
-    // Single points of failure
-    if (summary.singlePointsOfFailure && summary.singlePointsOfFailure > 0) {
+    // Single conditioning node analysis
+    const singleConditioningNodes = this.analyzeSingleConditioningNodes();
+    if (singleConditioningNodes.count > 0) {
       riskPatterns.push({
-        id: 'single-points',
+        id: 'single-conditioning',
         level: 'high' as const,
         icon: 'error',
-        title: 'Single Points of Failure Detected',
-        description: `${summary.singlePointsOfFailure} critical nodes with no redundancy`,
-        recommendations: ['Add redundant paths', 'Implement failover mechanisms', 'Monitor critical nodes']
+        title: 'Single Conditioning Node Risk',
+        description: `${singleConditioningNodes.count} diamonds with single conditioning nodes`,
+        interpretation: 'Complete failure if that node fails - no redundancy available',
+        
       });
     }
-    
-    // High convergence density
-    const coverage = this.coverageMetrics();
-    if (coverage && coverage.percentage > 80) {
+
+    // Deep nesting analysis
+    const deepNesting = this.analyzeDeepNesting();
+    if (deepNesting.maxDepth >= 3) {
       riskPatterns.push({
-        id: 'high-convergence',
+        id: 'deep-nesting',
+        level: deepNesting.maxDepth >= 4 ? 'high' as const : 'medium' as const,
+        icon: 'waterfall_chart',
+        title: 'Cascading Failure Chains',
+        description: `Maximum nesting depth: ${deepNesting.maxDepth} levels`,
+        interpretation: 'Deep nesting creates cascading failure chains - one failure can trigger multiple downstream failures',
+
+      });
+    }
+
+    // High join node overlap
+    const joinOverlap = this.analyzeJoinNodeOverlap();
+    if (joinOverlap.overlapRatio > 0.6) {
+      riskPatterns.push({
+        id: 'join-overlap',
         level: 'medium' as const,
-        icon: 'warning',
-        title: 'High Convergence Density',
-        description: 'Most system nodes are involved in convergence patterns',
-        recommendations: ['Consider modular decomposition', 'Review system architecture', 'Add parallel processing']
+        icon: 'device_hub',
+        title: 'System-wide Bottlenecks',
+        description: `${Math.round(joinOverlap.overlapRatio * 100)}% of diamonds share join nodes`,
+        interpretation: 'High join node overlap creates system-wide bottlenecks affecting multiple diamonds',
+
+      });
+    }
+
+    // Multiple conditioning nodes (positive indicator)
+    const multipleConditioningNodes = this.analyzeMultipleConditioningNodes();
+    if (multipleConditioningNodes.count > 0) {
+      riskPatterns.push({
+        id: 'multiple-conditioning',
+        level: 'low' as const,
+        icon: 'check_circle',
+        title: 'Partial Degradation Capability',
+        description: `${multipleConditioningNodes.count} diamonds with multiple conditioning nodes`,
+        interpretation: 'Multiple conditioning nodes allow partial degradation instead of complete failure',
+
       });
     }
     
     return riskPatterns;
   }
+
+  // New analysis methods for risk interpretation
+  private analyzeSingleConditioningNodes(): { count: number; diamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
+
+    let count = 0;
+    const diamonds: string[] = [];
+
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      if (diamond.diamond?.conditioning_nodes?.length === 1) {
+        count++;
+        diamonds.push(key);
+      }
+    });
+
+    return { count, diamonds };
+  }
+
+  private analyzeDeepNesting(): { maxDepth: number; deepDiamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_unique_diamonds) return { maxDepth: 0, deepDiamonds: [] };
+
+    let maxDepth = 0;
+    const deepDiamonds: string[] = [];
+
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      const depth = diamond.sub_iteration_sets_count || 0;
+      if (depth > maxDepth) {
+        maxDepth = depth;
+      }
+      if (depth >= 3) {
+        deepDiamonds.push(key);
+      }
+    });
+
+    return { maxDepth, deepDiamonds };
+  }
+
+  private analyzeJoinNodeOverlap(): { overlapRatio: number; sharedNodes: number[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { overlapRatio: 0, sharedNodes: [] };
+
+    const joinNodeCounts = new Map<number, number>();
+    const totalDiamonds = Object.keys(results.raw_root_diamonds).length;
+
+    Object.values(results.raw_root_diamonds).forEach(diamond => {
+      const joinNode = diamond.join_node;
+      if (joinNode !== undefined) {
+        joinNodeCounts.set(joinNode, (joinNodeCounts.get(joinNode) || 0) + 1);
+      }
+    });
+
+    const sharedNodes = Array.from(joinNodeCounts.entries())
+      .filter(([_, count]) => count > 1)
+      .map(([node, _]) => node);
+
+    const overlapRatio = totalDiamonds > 0 ? sharedNodes.length / totalDiamonds : 0;
+
+    return { overlapRatio, sharedNodes };
+  }
+
+  private analyzeMultipleConditioningNodes(): { count: number; diamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
+
+    let count = 0;
+    const diamonds: string[] = [];
+
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      if (diamond.diamond?.conditioning_nodes?.length > 1) {
+        count++;
+        diamonds.push(key);
+      }
+    });
+
+    return { count, diamonds };
+  }
   
-  // Optimization Methods
+  // Enhanced Optimization Methods with Diamond Structure Analysis
+  getOptimizationInsights(): Array<{
+    id: string;
+    type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    interpretation: string;
+    count: number;
+    recommendations: string[];
+  }> {
+    const results = this.currentDiamondResults();
+    if (!results) return [];
+
+    const insights: Array<{
+      id: string;
+      type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
+      priority: 'high' | 'medium' | 'low';
+      title: string;
+      description: string;
+      interpretation: string;
+      count: number;
+      recommendations: string[];
+    }> = [];
+
+    // Symmetric diamonds analysis
+    const symmetricDiamonds = this.analyzeSymmetricDiamonds();
+    if (symmetricDiamonds.count > 0) {
+      insights.push({
+        id: 'symmetric-diamonds',
+        type: 'symmetry',
+        priority: 'low',
+        title: 'Good Redundancy Patterns',
+        description: `${symmetricDiamonds.count} symmetric diamonds detected`,
+        interpretation: 'Symmetric diamonds provide good redundancy and lower risk',
+        count: symmetricDiamonds.count,
+        recommendations: ['Maintain current structure', 'Monitor performance', 'Consider as template for other areas']
+      });
+    }
+
+    // Asymmetric diamonds analysis
+    const asymmetricDiamonds = this.analyzeAsymmetricDiamonds();
+    if (asymmetricDiamonds.count > 0) {
+      insights.push({
+        id: 'asymmetric-diamonds',
+        type: 'asymmetry',
+        priority: 'medium',
+        title: 'Load Balancing Opportunities',
+        description: `${asymmetricDiamonds.count} asymmetric diamonds with unbalanced load`,
+        interpretation: 'Asymmetric diamonds indicate unbalanced load distribution and optimization opportunities',
+        count: asymmetricDiamonds.count,
+        recommendations: ['Balance conditioning node loads', 'Redistribute paths', 'Add parallel branches']
+      });
+    }
+
+    // Isolated sub-diamonds analysis
+    const isolatedSubDiamonds = this.analyzeIsolatedSubDiamonds();
+    if (isolatedSubDiamonds.count > 0) {
+      insights.push({
+        id: 'isolated-sub-diamonds',
+        type: 'isolation',
+        priority: 'high',
+        title: 'Modularization Candidates',
+        description: `${isolatedSubDiamonds.count} isolated sub-diamonds can be modularized`,
+        interpretation: 'Isolated sub-diamonds can be modularized independently for better maintainability',
+        count: isolatedSubDiamonds.count,
+        recommendations: ['Extract as independent modules', 'Create service boundaries', 'Implement separate deployment']
+      });
+    }
+
+    // Merge candidates analysis
+    const mergeCandidates = this.analyzeMergeCandidates();
+    if (mergeCandidates.count > 0) {
+      insights.push({
+        id: 'merge-candidates',
+        type: 'merge',
+        priority: 'medium',
+        title: 'Diamond Merge Opportunities',
+        description: `${mergeCandidates.count} diamond pairs with identical conditioning nodes`,
+        interpretation: 'Diamonds with same conditioning nodes are merge candidates for simplification',
+        count: mergeCandidates.count,
+        recommendations: ['Merge similar diamonds', 'Consolidate conditioning logic', 'Reduce structural complexity']
+      });
+    }
+
+    // Redundancy opportunities
+    const redundancyOpportunities = this.analyzeRedundancyOpportunities();
+    if (redundancyOpportunities.count > 0) {
+      insights.push({
+        id: 'redundancy-opportunities',
+        type: 'redundancy',
+        priority: 'high',
+        title: 'Critical Path Redundancy',
+        description: `${redundancyOpportunities.count} critical paths need redundancy`,
+        interpretation: 'Adding redundancy to critical paths will improve system resilience',
+        count: redundancyOpportunities.count,
+        recommendations: ['Add backup paths', 'Implement failover mechanisms', 'Create redundant conditioning nodes']
+      });
+    }
+
+    return insights.sort((a, b) => {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+  }
+
+  // Diamond structure analysis methods
+  private analyzeSymmetricDiamonds(): { count: number; diamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
+
+    let count = 0;
+    const diamonds: string[] = [];
+
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      const relevantNodes = diamond.diamond?.relevant_nodes || [];
+      
+      // Simple symmetry check: even distribution of paths
+      if (conditioningNodes.length >= 2 && relevantNodes.length > conditioningNodes.length * 2) {
+        const avgPathLength = relevantNodes.length / conditioningNodes.length;
+        const isSymmetric = conditioningNodes.length >= 2 && avgPathLength >= 2;
+        
+        if (isSymmetric) {
+          count++;
+          diamonds.push(key);
+        }
+      }
+    });
+
+    return { count, diamonds };
+  }
+
+  private analyzeAsymmetricDiamonds(): { count: number; diamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
+
+    let count = 0;
+    const diamonds: string[] = [];
+
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      const edgeList = diamond.diamond?.edgelist || [];
+      
+      if (conditioningNodes.length >= 2) {
+        // Check for uneven edge distribution among conditioning nodes
+        const edgeDistribution = new Map<number, number>();
+        conditioningNodes.forEach(node => edgeDistribution.set(node, 0));
+        
+        edgeList.forEach(([source, _]) => {
+          if (edgeDistribution.has(source)) {
+            edgeDistribution.set(source, edgeDistribution.get(source)! + 1);
+          }
+        });
+        
+        const edgeCounts = Array.from(edgeDistribution.values());
+        const maxEdges = Math.max(...edgeCounts);
+        const minEdges = Math.min(...edgeCounts);
+        
+        // Consider asymmetric if there's significant imbalance
+        if (maxEdges > minEdges * 1.5) {
+          count++;
+          diamonds.push(key);
+        }
+      }
+    });
+
+    return { count, diamonds };
+  }
+
+  private analyzeIsolatedSubDiamonds(): { count: number; diamonds: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_unique_diamonds) return { count: 0, diamonds: [] };
+
+    let count = 0;
+    const diamonds: string[] = [];
+
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      // Check if sub-diamond has minimal external dependencies
+      const subSources = diamond.sub_sources || [];
+      const subJoinNodes = diamond.sub_join_nodes || [];
+      
+      // Consider isolated if it has clear boundaries
+      if (!diamond.is_root_diamond && subSources.length <= 2 && subJoinNodes.length === 1) {
+        count++;
+        diamonds.push(key);
+      }
+    });
+
+    return { count, diamonds };
+  }
+
+  private analyzeMergeCandidates(): { count: number; pairs: Array<[string, string]> } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, pairs: [] };
+
+    const conditioningNodeGroups = new Map<string, string[]>();
+    const pairs: Array<[string, string]> = [];
+
+    // Group diamonds by their conditioning nodes
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      const nodeKey = conditioningNodes.sort().join(',');
+      
+      if (!conditioningNodeGroups.has(nodeKey)) {
+        conditioningNodeGroups.set(nodeKey, []);
+      }
+      conditioningNodeGroups.get(nodeKey)!.push(key);
+    });
+
+    // Find groups with multiple diamonds (merge candidates)
+    conditioningNodeGroups.forEach(diamonds => {
+      if (diamonds.length >= 2) {
+        for (let i = 0; i < diamonds.length - 1; i++) {
+          pairs.push([diamonds[i], diamonds[i + 1]]);
+        }
+      }
+    });
+
+    return { count: pairs.length, pairs };
+  }
+
+  private analyzeRedundancyOpportunities(): { count: number; criticalPaths: string[] } {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return { count: 0, criticalPaths: [] };
+
+    let count = 0;
+    const criticalPaths: string[] = [];
+
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      const nonDiamondParents = diamond.non_diamond_parents || [];
+      
+      // Identify critical paths with single points of failure
+      if (conditioningNodes.length === 1 || nonDiamondParents.length > 0) {
+        count++;
+        criticalPaths.push(key);
+      }
+    });
+
+    return { count, criticalPaths };
+  }
+
+  // Legacy methods for backward compatibility
   getParallelizationOpportunities(): number {
-    // Mock calculation - would analyze diamond patterns for parallel paths
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    return patterns.filter(p => !p.isRoot && p.nodeCount > 5).length;
+    const insights = this.getOptimizationInsights();
+    return insights.filter(i => i.type === 'isolation').reduce((sum, i) => sum + i.count, 0);
   }
   
   getSinglePointsCount(): number {
-    const summary = this.diamondSummary();
-    return summary?.singlePointsOfFailure || 0;
+    const insights = this.getOptimizationInsights();
+    return insights.filter(i => i.type === 'redundancy').reduce((sum, i) => sum + i.count, 0);
   }
   
   getModularizationOpportunities(): number {
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    return patterns.filter(p => p.isRoot && p.complexity > 30).length;
+    const insights = this.getOptimizationInsights();
+    return insights.filter(i => i.type === 'isolation').reduce((sum, i) => sum + i.count, 0);
+  }
+
+  // Helper methods for template
+  getOptimizationIcon(type: string): string {
+    switch (type) {
+      case 'symmetry': return 'balance';
+      case 'asymmetry': return 'tune';
+      case 'isolation': return 'widgets';
+      case 'merge': return 'merge';
+      case 'redundancy': return 'backup';
+      default: return 'auto_fix_high';
+    }
+  }
+
+  getPriorityColor(priority: string): string {
+    switch (priority) {
+      case 'high': return 'warn';
+      case 'medium': return 'accent';
+      case 'low': return 'primary';
+      default: return 'primary';
+    }
   }
 
   exportDiamondData(): void {
