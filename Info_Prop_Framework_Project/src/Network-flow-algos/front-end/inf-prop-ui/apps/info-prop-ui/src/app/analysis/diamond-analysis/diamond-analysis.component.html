@@ -59,26 +59,40 @@
     <!-- Quick Stats Cards -->
     @if (diamondSummary(); as summary) {
       <div class="quick-stats">
-        <div class="stat-card">
+        <div class="stat-card"
+             matTooltip="Total number of root-level diamond structures found in the network"
+             matTooltipPosition="below">
           <div class="stat-value">{{ formatNumber(summary.totalDiamonds) }}</div>
-          <div class="stat-label">Root Patterns</div>
+          <div class="stat-label">Root Diamonds</div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card"
+             matTooltip="Number of unique diamond boundaries that define system entry/exit points"
+             matTooltipPosition="below">
           <div class="stat-value">{{ formatNumber(summary.rootDiamonds) }}</div>
           <div class="stat-label">System Boundaries</div>
         </div>
 
-        <div class="stat-card">
+        <div class="stat-card"
+             matTooltip="Critical nodes where multiple paths converge - potential bottlenecks"
+             matTooltipPosition="below">
           <div class="stat-value">{{ formatNumber(summary.commonCausePatterns) }}</div>
           <div class="stat-label">Convergence Points</div>
         </div>
 
+        <div class="stat-card"
+             matTooltip="Average complexity score: (node count + edge count + nesting depth) / diamond count"
+             matTooltipPosition="below">
+          <div class="stat-value">{{ summary.averageComplexity.toFixed(1) }}</div>
+          <div class="stat-label">Avg Complexity</div>
+        </div>
 
         @if (coverageMetrics(); as coverage) {
-          <div class="stat-card">
+          <div class="stat-card"
+               matTooltip="Percentage of network nodes participating in diamond structures: {{ coverage.covered }}/{{ coverage.total }} nodes"
+               matTooltipPosition="below">
             <div class="stat-value">{{ formatPercentage(coverage.percentage) }}</div>
-            <div class="stat-label">Coverage</div>
+            <div class="stat-label">Network Coverage</div>
           </div>
         }
       </div>
@@ -173,7 +187,14 @@
             <!-- Convergence Patterns Section -->
             @if (convergenceInsights(); as insights) {
               <div class="convergence-section">
-                <h2 class="section-title">Convergence Pattern Analysis</h2>
+                <div class="section-header">
+                  <h2 class="section-title">Convergence Pattern Analysis</h2>
+                  <button mat-icon-button
+                          matTooltip="Pattern frequencies and risk scores calculated from diamond structure complexity"
+                          class="info-tooltip">
+                    <mat-icon>help_outline</mat-icon>
+                  </button>
+                </div>
                 
                 <div class="insights-grid">
                   @for (insight of insights; track insight.patternType) {
