@@ -192,13 +192,21 @@ export interface DiamondSummary {
   maxComplexity: number;
   networkCoverage: number;
   commonCausePatterns: number;
+  // Enhanced risk assessment properties
+  singlePointsOfFailure?: number;
+  cascadePotential?: string;
 }
 
 export interface ConvergenceInsight {
-  patternType: 'simple' | 'complex' | 'nested';
+  patternType: 'simple' | 'complex' | 'nested' | 'convergent' | 'cascade';
   frequency: number;
   averageNodeCount: number;
   criticalJoinNodes: number[];
+  // Enhanced risk assessment properties
+  riskScore?: number;
+  riskLevel?: 'low' | 'medium' | 'high';
+  description?: string;
+  businessImpact?: string;
 }
 
 export interface JoinNodeAnalysis {
@@ -207,6 +215,9 @@ export interface JoinNodeAnalysis {
   centralityScore: number;
   convergencePatterns: string[];
   isBottleneck: boolean;
+  // Enhanced analysis properties
+  pathCount?: number;
+  riskLevel?: 'low' | 'medium' | 'high';
 }
 
 export interface ExactInferenceResult {
