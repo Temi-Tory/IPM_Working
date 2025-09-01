@@ -10,7 +10,9 @@ import {
   ReachabilityAnalysisResponse,
   CapacityAnalysisResponse,
   CpmAnalysisResponse,
-  DiamondAnalysisResult
+  DiamondAnalysisResult,
+  ScenarioInfo,
+  MultiScenarioDiamondResults
 } from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
 import { NetworkStructureService } from './network-structure.service';
@@ -54,11 +56,16 @@ export class AnalysisStateService {
     reachability: string[];
     capacity: string[];
     cpm: string[];
+    diamond: ScenarioInfo[];
   }>({
     reachability: [],
     capacity: [],
-    cpm: []
+    cpm: [],
+    diamond: []
   });
+
+  // Multi-scenario diamond analysis state
+  private multiScenarioDiamondResultsSignal = signal<MultiScenarioDiamondResults | null>(null);
 
   // Tab state signals
   private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
@@ -88,6 +95,9 @@ export class AnalysisStateService {
   
   // Available scenarios
   readonly availableScenarios = computed(() => this.availableScenariosSignal());
+  
+  // Multi-scenario diamond results
+  readonly multiScenarioDiamondResults = computed(() => this.multiScenarioDiamondResultsSignal());
 
   readonly uploadTab = computed(() => this.uploadTabSignal());
   readonly networkStructureTab = computed(() => this.networkStructureTabSignal());
@@ -177,6 +187,9 @@ export class AnalysisStateService {
       
       // Extract and set individual analysis results
       this.extractAnalysisResults(analysisData);
+      
+      // **NEW: Extract diamond scenarios from reachability scenarios**
+      this.extractDiamondScenarios(results);
       
       // Mark tabs as completed based on available results
       if (analysisData.network_structure) {
@@ -516,20 +529,98 @@ export class AnalysisStateService {
     }
   }
 
+  // **NEW: Extract diamond scenarios from analysis results**
+  private extractDiamondScenarios(results: AnalysisResponse): void {
+    const scenarios: ScenarioInfo[] = [];
+    
+    if (results.analysis_config?.reachabilityScenarios) {
+      results.analysis_config.reachabilityScenarios.forEach(scenario => {
+        const dataType = this.detectDataType(scenario.name);
+        scenarios.push({
+          name: scenario.name,
+          dataType,
+          path: scenario.nodepriors_path,
+          displayName: this.createDisplayName(scenario.name, dataType)
+        });
+      });
+    }
+
+    this.availableScenariosSignal.update(current => ({
+      ...current,
+      diamond: scenarios
+    }));
+  }
+
+  // **NEW: Multi-scenario diamond analysis**
+  loadMultiScenarioDiamondAnalysis(networkPath: string): Observable<void> {
+    const scenarios = this.availableScenarios().diamond;
+    if (scenarios.length === 0) {
+      return of();
+    }
+
+    this.setLoading(true);
+    this.setError(null);
+
+    return new Observable(observer => {
+      this.diamondAnalysisService.analyzeMultipleScenarios(networkPath, scenarios)
+        .subscribe({
+          next: (results) => {
+            this.multiScenarioDiamondResultsSignal.set(results);
+            this.markTabCompleted('diamonds');
+            observer.next();
+            observer.complete();
+          },
+          error: (error) => {
+            const errorMessage = `Failed to analyze multiple diamond scenarios: ${error.message || error}`;
+            this.setError(errorMessage);
+            observer.error(error);
+          },
+          complete: () => {
+            this.setLoading(false);
+          }
+        });
+    });
+  }
+
+  // **NEW: Set current diamond scenario**
+  setCurrentDiamondScenario(scenarioName: string): void {
+    this.diamondAnalysisService.setCurrentScenario(scenarioName);
+  }
+
+  // **NEW: Helper methods**
+  private detectDataType(scenarioName: string): 'float' | 'interval' | 'pbox' {
+    if (scenarioName.includes('pbox')) return 'pbox';
+    if (scenarioName.includes('interval')) return 'interval';
+    return 'float';
+  }
+
+  private createDisplayName(scenarioName: string, dataType: string): string {
+    const baseName = scenarioName.replace(/^(float|interval|pbox)_?/, '');
+    const typeLabel = dataType.toUpperCase();
+    return `${baseName} (${typeLabel})`;
+  }
+
   clearState(): void {
     this.networkDataSignal.set(null);
+    this.enhancedNetworkDataSignal.set(null);
     this.analysisResultsSignal.set(null);
     this.isLoadingSignal.set(false);
     this.errorSignal.set(null);
     this.currentNetworkPathSignal.set(null);
-    
-    // Clear individual analysis results
     this.diamondAnalysisSignal.set(null);
     this.reachabilityAnalysisSignal.set(null);
     this.capacityAnalysisSignal.set(null);
     this.cpmAnalysisSignal.set(null);
+    this.parsedDataSignal.set(null);
+    this.availableScenariosSignal.set({
+      reachability: [],
+      capacity: [],
+      cpm: [],
+      diamond: []
+    });
+    this.multiScenarioDiamondResultsSignal.set(null);
 
-    // Reset all tabs
+    // Reset tab states
     this.uploadTabSignal.set({ enabled: true, completed: false, hasData: false });
     this.networkStructureTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.diamondAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });

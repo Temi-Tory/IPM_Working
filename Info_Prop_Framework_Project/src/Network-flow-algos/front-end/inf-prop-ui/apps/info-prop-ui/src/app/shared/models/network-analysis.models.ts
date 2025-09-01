@@ -160,6 +160,55 @@ export interface DiamondAnalysisResult {
   raw_unique_diamonds?: Record<string, UniqueDiamondStructure>;
 }
 
+// **NEW: Scenario-aware interfaces for multi-scenario diamond analysis**
+export interface ScenarioInfo {
+  name: string;
+  dataType: 'float' | 'interval' | 'pbox';
+  path: string;
+  displayName?: string;
+}
+
+export interface MultiScenarioDiamondResults {
+  scenarios: Map<string, DiamondAnalysisResult>;
+  currentScenario: string;
+  availableScenarios: ScenarioInfo[];
+}
+
+export interface DiamondPattern {
+  id: string;
+  nodeCount: number;
+  isRoot: boolean;
+  complexity: number;
+  joinNodes: number[];
+  sourceNodes: number[];
+  forkNodes: number[];
+  subDiamonds?: DiamondPattern[];
+}
+
+export interface DiamondSummary {
+  totalDiamonds: number;
+  rootDiamonds: number;
+  averageComplexity: number;
+  maxComplexity: number;
+  networkCoverage: number;
+  commonCausePatterns: number;
+}
+
+export interface ConvergenceInsight {
+  patternType: 'simple' | 'complex' | 'nested';
+  frequency: number;
+  averageNodeCount: number;
+  criticalJoinNodes: number[];
+}
+
+export interface JoinNodeAnalysis {
+  nodeId: number;
+  diamondCount: number;
+  centralityScore: number;
+  convergencePatterns: string[];
+  isBottleneck: boolean;
+}
+
 export interface ExactInferenceResult {
   beliefs: Record<string, BeliefValue>;
   computation_time: number;
