@@ -290,47 +290,84 @@ export class UploadNetworkComponent {
 
     // Parse uploaded files locally for immediate access to node priors, edge probabilities, etc.
     if (this.originalFiles) {
-      console.log('🔄 Starting local file parsing with', this.originalFiles.length, 'files');
-      Array.from(this.originalFiles).forEach(file => {
-        console.log('📁 File:', file.name, 'Size:', file.size, 'Type:', file.type);
-      });
-      
       this.dataParsingService.parseUploadedFiles(this.originalFiles).subscribe({
         next: (parsedData) => {
-          console.log('✅ Upload component received parsed data:', parsedData);
-          this.analysisState.setParsedData(parsedData);
+          // Log scenario information for debugging
+          const scenarios = this.getScenarioSummary(parsedData);
           
-          // Also store in session for persistence across navigation
+          this.analysisState.setParsedData(parsedData);
           this.sessionService.updateSession({ parsedData });
+          
+          // Show scenario summary to user
+          if (scenarios.total > 0) {
+            this.snackBar.open(
+              `Detected ${scenarios.total} scenarios: ${scenarios.summary}`,
+              'Close',
+              { duration: 5000 }
+            );
+          }
         },
         error: (error) => {
-          console.warn('❌ Failed to parse local data:', error);
           // Continue without parsed data
         }
       });
-    } else {
-      console.warn('⚠️ No original files available for parsing');
     }
 
-    // Load network structure immediately and navigate
-    this.analysisState.loadNetworkStructure(request.networkPath).subscribe({
-      next: () => {
-        console.log('Network structure loaded successfully');
+    // Run the full analysis with all selected options
+    this.analysisState.runAnalysis(request).subscribe({
+      next: (response) => {
+        console.log('Full analysis completed successfully:', response);
         
         this.isAnalyzing = false;
         this.analysisState.markTabCompleted('upload');
         
         this.sessionService.updateSession({
-          networkData: this.analysisState.networkData()
+          networkData: this.analysisState.networkData(),
+          analysisResults: response
         });
         
-        this.snackBar.open('Network structure loaded successfully!', 'Close', { duration: 3000 });
+        this.snackBar.open('Analysis completed successfully!', 'Close', { duration: 3000 });
         this.router.navigate(['/visualization']);
       },
       error: (error) => {
-        this.isAnalyzing = false;
-        this.snackBar.open(`Analysis failed: ${error.message}`, 'Close', { duration: 5000 });
+        console.error('Full analysis failed, falling back to structure only:', error);
+        
+        // Fallback: Load just network structure if full analysis fails
+        this.analysisState.loadNetworkStructure(request.networkPath).subscribe({
+          next: () => {
+            console.log('Network structure loaded successfully (fallback)');
+            
+            this.isAnalyzing = false;
+            this.analysisState.markTabCompleted('upload');
+            
+            this.sessionService.updateSession({
+              networkData: this.analysisState.networkData()
+            });
+            
+            this.snackBar.open('Network structure loaded (analysis partially failed)', 'Close', { duration: 3000 });
+            this.router.navigate(['/visualization']);
+          },
+          error: (structureError) => {
+            this.isAnalyzing = false;
+            this.snackBar.open(`Analysis failed: ${structureError.message}`, 'Close', { duration: 5000 });
+          }
+        });
       }
     });
-  }
+}
+
+private getScenarioSummary(parsedData: any): { total: number; summary: string } {
+  const scenarios: string[] = [];
+  
+  if (parsedData.float) scenarios.push('Float');
+  if (parsedData.pbox) scenarios.push('P-Box');
+  if (parsedData.interval) scenarios.push('Interval');
+  if (parsedData.capacity) scenarios.push('Capacity');
+  if (parsedData.cpm) scenarios.push('CPM');
+  
+  return {
+    total: scenarios.length,
+    summary: scenarios.join(', ')
+  };
+}
 }

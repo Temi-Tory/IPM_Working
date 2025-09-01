@@ -45,22 +45,23 @@ export class App implements OnInit {
   }
 
   ngOnInit() {
-    // Open drawer by default on larger screens
     if (!this.isMobile) {
       this.isDrawerOpen = true;
     }
+    
+    // Load parsed data from session first
+    this.analysisState.loadParsedDataFromSession();
     
     // Load comprehensive structure data if we have an active analysis
     if (this.analysisState.hasActiveAnalysis()) {
       const existingData = this.analysisState.getComprehensiveStructureData();
       if (!existingData) {
-        // Try to load comprehensive structure data
         this.analysisState.loadComprehensiveNetworkStructure().subscribe({
           next: (data) => {
             this.analysisState.setComprehensiveStructureData(data);
           },
           error: (error) => {
-            console.warn('Could not load comprehensive structure data:', error);
+            // Silent fail - not critical for app functionality
           }
         });
       }

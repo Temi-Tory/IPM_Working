@@ -9,7 +9,8 @@ import {
   DiamondAnalysisResponse,
   ReachabilityAnalysisResponse,
   CapacityAnalysisResponse,
-  CpmAnalysisResponse
+  CpmAnalysisResponse,
+  DiamondAnalysisResult
 } from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
 import { NetworkStructureService } from './network-structure.service';
@@ -47,6 +48,17 @@ export class AnalysisStateService {
   
   // Local parsed data for fast lookups
   private parsedDataSignal = signal<any>(null);
+  
+  // Available scenarios for each analysis type
+  private availableScenariosSignal = signal<{
+    reachability: string[];
+    capacity: string[];
+    cpm: string[];
+  }>({
+    reachability: [],
+    capacity: [],
+    cpm: []
+  });
 
   // Tab state signals
   private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
@@ -73,6 +85,9 @@ export class AnalysisStateService {
   
   // Parsed data for additional information
   readonly parsedData = computed(() => this.parsedDataSignal());
+  
+  // Available scenarios
+  readonly availableScenarios = computed(() => this.availableScenariosSignal());
 
   readonly uploadTab = computed(() => this.uploadTabSignal());
   readonly networkStructureTab = computed(() => this.networkStructureTabSignal());
@@ -88,24 +103,57 @@ export class AnalysisStateService {
     
     if (data) {
       this.networkStructureTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-      this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
-      this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true }));
-      this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
-      this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
-      this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
     }
   }
 
   setParsedData(data: any): void {
     this.parsedDataSignal.set(data);
+    
+    // Enable tabs based on available parsed data
+    if (data) {
+      console.log('🔍 Enabling tabs based on parsed data:', data);
+      
+      // Enable diamond analysis and exact inference if we have any probability data (float, pbox, or interval)
+      const hasNodePriors = (data.float?.node_priors) || (data.pbox?.node_priors) || (data.interval?.node_priors);
+      const hasEdgeProbabilities = (data.float?.edge_probabilities) || (data.pbox?.edge_probabilities) || (data.interval?.edge_probabilities);
+      
+      if (hasNodePriors || hasEdgeProbabilities) {
+        console.log('✅ Enabling diamond analysis and exact inference tabs - probability data available');
+        console.log('📊 Data types found:', {
+          float: !!data.float,
+          pbox: !!data.pbox,
+          interval: !!data.interval,
+          hasNodePriors,
+          hasEdgeProbabilities
+        });
+        this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+        this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true }));
+      }
+      
+      // Enable flow analysis if we have capacity data
+      if (data.capacity && Object.keys(data.capacity).length > 0) {
+        console.log('✅ Enabling flow analysis tab - capacity data available');
+        this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+      }
+      
+      // Enable critical path if we have CPM data
+      if (data.cpm && Object.keys(data.cpm).length > 0) {
+        console.log('✅ Enabling critical path tab - CPM data available');
+        this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
+      }
+      
+      // Enable system profile if we have any analysis data
+      if (data.float || data.pbox || data.interval || data.capacity || data.cpm) {
+        console.log('✅ Enabling system profile tab - analysis data available');
+        this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
+      }
+    }
   }
 
-  // Load parsed data from session if available
   loadParsedDataFromSession(): void {
     const currentSession = this.sessionService.getCurrentSession();
     if (currentSession?.parsedData) {
-      console.log('🔄 Loading parsed data from session:', currentSession.parsedData);
-      this.parsedDataSignal.set(currentSession.parsedData);
+      this.setParsedData(currentSession.parsedData);
     }
   }
 
@@ -255,18 +303,76 @@ export class AnalysisStateService {
     return this.networkBackendService.quickStructureAnalysis(networkPath);
   }
 
-  // Analysis execution methods
+  // Analysis execution methods - use individual services instead of combined endpoint
   runAnalysis(request: AnalysisRequest): Observable<AnalysisResponse> {
     this.setLoading(true);
     this.setError(null);
 
     return new Observable(subscriber => {
-      this.networkBackendService.analyzeNetwork(request).subscribe({
-        next: (response) => {
-          this.setAnalysisResults(response);
-          this.setLoading(false);
-          subscriber.next(response);
-          subscriber.complete();
+      // Start with network structure
+      this.loadNetworkStructure(request.networkPath).subscribe({
+        next: () => {
+          // Then run individual analyses based on request
+          const analysisPromises: Promise<any>[] = [];
+          
+          // Diamond analysis if requested
+          if (request.analysisConfig?.diamondAnalysis) {
+            const diamondPromise = this.loadDiamondAnalysis(request.networkPath).toPromise();
+            analysisPromises.push(diamondPromise);
+          }
+          
+          // Capacity analysis if requested and scenarios available
+          if (request.analysisConfig?.flowAnalysis && request.capacityScenarios?.length > 0) {
+            // Use the first capacity scenario for now
+            const firstCapacityScenario = request.capacityScenarios[0];
+            const capacityPromise = this.capacityAnalysisService.analyzeCapacity({
+              networkPath: request.networkPath,
+              capacitiesPath: firstCapacityScenario.capacities_path
+            }).toPromise();
+            analysisPromises.push(capacityPromise);
+          }
+          
+          // CPM analysis if requested and scenarios available
+          if (request.analysisConfig?.criticalPath && request.cpmScenarios?.length > 0) {
+            // Use the first CPM scenario for now
+            const firstCpmScenario = request.cpmScenarios[0];
+            const cpmPromise = this.cpmAnalysisService.analyzeCpm({
+              networkPath: request.networkPath,
+              cpmPath: firstCpmScenario.cpm_path
+            }).toPromise();
+            analysisPromises.push(cpmPromise);
+          }
+          
+          // Wait for all analyses to complete
+          Promise.allSettled(analysisPromises).then(results => {
+            // Create a combined response
+            const response: AnalysisResponse = {
+              success: true,
+              message: 'Analysis completed using individual services',
+              results: {
+                network_structure: this.networkData()!,
+                diamond_analysis: this.diamondAnalysis()?.diamond_analysis,
+                capacity_scenarios: this.capacityAnalysis() ? { 'default': this.capacityAnalysis()!.capacity_result } : undefined,
+                cpm_scenarios: this.cpmAnalysis() ? { 'default': this.cpmAnalysis()!.cmp_result } : undefined,
+                analysis_summary: {
+                  network_name: 'Current Network',
+                  total_computation_time: 0,
+                  reachability_scenarios_count: 0,
+                  capacity_scenarios_count: this.capacityAnalysis() ? 1 : 0,
+                  cpm_scenarios_count: this.cpmAnalysis() ? 1 : 0,
+                  timestamp: new Date().toISOString()
+                }
+              }
+            };
+            
+            this.setLoading(false);
+            subscriber.next(response);
+            subscriber.complete();
+          }).catch(error => {
+            this.setError(error.message);
+            this.setLoading(false);
+            subscriber.error(error);
+          });
         },
         error: (error) => {
           this.setError(error.message);
@@ -310,7 +416,7 @@ export class AnalysisStateService {
   }
 
   // Method to load diamond analysis using individual endpoint
-  loadDiamondAnalysis(networkPath: string, useDefaultPriors: boolean = true): Observable<void> {
+  loadDiamondAnalysis(networkPath: string, useDefaultPriors = true): Observable<void> {
     this.setLoading(true);
     this.setError(null);
     this.setCurrentNetworkPath(networkPath);
