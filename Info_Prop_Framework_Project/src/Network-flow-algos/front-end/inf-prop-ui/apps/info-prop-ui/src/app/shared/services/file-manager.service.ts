@@ -585,6 +585,230 @@ export class FileManagerService {
     }));
   }
 
+  /**
+   * Create NetworkStructure from uploaded edges file
+   */
+  createNetworkStructureFromFiles(): Observable<any> {
+    const networkGroup = this.analysisGroups().network;
+    
+    if (!networkGroup.isComplete || !networkGroup.edgesFile?.content) {
+      return of(null);
+    }
+
+    try {
+      const networkStructure = this.parseEdgesFileToNetworkStructure(
+        networkGroup.edgesFile.content,
+        networkGroup.nodeMappingFile?.content
+      );
+      
+      // Also create parsed data from all uploaded files
+      const parsedData = this.createParsedDataFromFiles();
+      
+      return of({ networkStructure, parsedData });
+    } catch (error) {
+      console.error('Error creating network structure from files:', error);
+      return of(null);
+    }
+  }
+
+  /**
+   * Parse edges file content to NetworkStructure format
+   */
+  private parseEdgesFileToNetworkStructure(edgesContent: string, mappingContent?: string): any {
+    if (!edgesContent || edgesContent.trim().length === 0) {
+      throw new Error('Edges file is empty or invalid');
+    }
+
+    const lines = edgesContent.trim().split('\n');
+    const edges: [number, number][] = [];
+    const nodeSet = new Set<number>();
+    const parseErrors: string[] = [];
+
+    // Parse edges
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.startsWith('#')) return; // Skip empty lines and comments
+      
+      // Skip header lines (common headers: source,destination or source target or from to)
+      if (index === 0 && /^(source|from|node1|src).*(destination|target|to|node2|dst)/i.test(trimmedLine)) {
+        console.log(`🔍 Skipping header line: "${trimmedLine}"`);
+        return;
+      }
+      
+      // Support both comma-separated and space-separated formats
+      const parts = trimmedLine.includes(',') ?
+        trimmedLine.split(',').map(p => p.trim()) :
+        trimmedLine.split(/\s+/);
+        
+      if (parts.length >= 2) {
+        const source = parseInt(parts[0]);
+        const target = parseInt(parts[1]);
+        
+        if (!isNaN(source) && !isNaN(target)) {
+          edges.push([source, target]);
+          nodeSet.add(source);
+          nodeSet.add(target);
+        } else {
+          parseErrors.push(`Line ${index + 1}: Invalid edge format "${trimmedLine}" - non-numeric values`);
+        }
+      } else if (parts.length === 1 && parts[0].length > 0) {
+        parseErrors.push(`Line ${index + 1}: Incomplete edge "${trimmedLine}" - only one column found`);
+      }
+    });
+
+    if (edges.length === 0) {
+      throw new Error(`No valid edges found in file. Parse errors: ${parseErrors.join(', ')}`);
+    }
+
+    if (parseErrors.length > 0) {
+      console.warn('⚠️ Parse warnings:', parseErrors);
+    }
+
+    // Create node mapping if available
+    const nodeMapping: { [key: string]: string } = {};
+    if (mappingContent) {
+      const mappingLines = mappingContent.trim().split('\n');
+      mappingLines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || trimmedLine.startsWith('#')) return;
+        
+        const parts = trimmedLine.split(/\s+/);
+        if (parts.length >= 2) {
+          const nodeId = parts[0];
+          const nodeName = parts.slice(1).join(' ');
+          nodeMapping[nodeId] = nodeName;
+        }
+      });
+    }
+
+    // Calculate basic network statistics
+    const totalNodes = nodeSet.size;
+    const totalEdges = edges.length;
+    const nodeConnections = new Map<number, { inDegree: number; outDegree: number }>();
+
+    // Count degrees
+    edges.forEach(([source, target]) => {
+      if (!nodeConnections.has(source)) {
+        nodeConnections.set(source, { inDegree: 0, outDegree: 0 });
+      }
+      if (!nodeConnections.has(target)) {
+        nodeConnections.set(target, { inDegree: 0, outDegree: 0 });
+      }
+      
+      nodeConnections.get(source)!.outDegree++;
+      nodeConnections.get(target)!.inDegree++;
+    });
+
+    // Calculate average degree
+    let totalDegree = 0;
+    nodeConnections.forEach(({ inDegree, outDegree }) => {
+      totalDegree += inDegree + outDegree;
+    });
+    const avgDegree = totalNodes > 0 ? totalDegree / totalNodes : 0;
+
+    // Calculate density
+    const maxPossibleEdges = totalNodes * (totalNodes - 1);
+    const density = maxPossibleEdges > 0 ? (totalEdges * 2) / maxPossibleEdges : 0;
+
+    return {
+      edges,
+      nodes: Array.from(nodeSet).map(id => ({
+        id: id.toString(),
+        name: nodeMapping[id.toString()] || id.toString()
+      })),
+      node_mapping: nodeMapping,
+      statistics: {
+        total_nodes: totalNodes,
+        total_edges: totalEdges,
+        average_degree: Math.round(avgDegree * 100) / 100,
+        density: Math.round(density * 10000) / 100
+      }
+    };
+  }
+
+  /**
+   * Create parsed data structure from all uploaded files
+   */
+  private createParsedDataFromFiles(): any {
+    const groups = this.analysisGroups();
+    const parsedData: any = {};
+
+    // Process reachability groups
+    groups.reachability.forEach(group => {
+      if (group.isComplete) {
+        const dataTypeKey = group.dataType;
+        
+        if (!parsedData[dataTypeKey]) {
+          parsedData[dataTypeKey] = {};
+        }
+
+        // Parse node priors
+        if (group.nodePriorsFile?.content) {
+          try {
+            const nodePriors = JSON.parse(group.nodePriorsFile.content);
+            if (typeof nodePriors === 'object' && nodePriors !== null) {
+              parsedData[dataTypeKey].node_priors = nodePriors;
+            } else {
+              console.warn(`⚠️ Node priors file for ${dataTypeKey} does not contain valid JSON object`);
+            }
+          } catch (error) {
+            console.warn(`❌ Error parsing node priors for ${dataTypeKey}:`, error);
+          }
+        }
+
+        // Parse link probabilities
+        if (group.linkProbabilitiesFile?.content) {
+          try {
+            const linkProbs = JSON.parse(group.linkProbabilitiesFile.content);
+            if (typeof linkProbs === 'object' && linkProbs !== null) {
+              parsedData[dataTypeKey].edge_probabilities = linkProbs;
+            } else {
+              console.warn(`⚠️ Link probabilities file for ${dataTypeKey} does not contain valid JSON object`);
+            }
+          } catch (error) {
+            console.warn(`❌ Error parsing link probabilities for ${dataTypeKey}:`, error);
+          }
+        }
+      }
+    });
+
+    // Process capacity groups
+    groups.capacity.forEach(group => {
+      if (group.isComplete && group.capacitiesFile?.content) {
+        try {
+          const capacityData = JSON.parse(group.capacitiesFile.content);
+          if (typeof capacityData === 'object' && capacityData !== null) {
+            parsedData.capacity = {
+              capacities: capacityData
+            };
+          } else {
+            console.warn('⚠️ Capacity file does not contain valid JSON object');
+          }
+        } catch (error) {
+          console.warn('❌ Error parsing capacity data:', error);
+        }
+      }
+    });
+
+    // Process CPM groups
+    groups.cpm.forEach(group => {
+      if (group.isComplete && group.cpmInputsFile?.content) {
+        try {
+          const cpmData = JSON.parse(group.cpmInputsFile.content);
+          if (typeof cpmData === 'object' && cpmData !== null) {
+            parsedData.cpm = cpmData;
+          } else {
+            console.warn('⚠️ CPM file does not contain valid JSON object');
+          }
+        } catch (error) {
+          console.warn('❌ Error parsing CPM data:', error);
+        }
+      }
+    });
+
+    return parsedData;
+  }
+
   private validateReachabilityContent(content: string): { isValid: boolean; errors: string[] } {
     try {
       const data = JSON.parse(content);

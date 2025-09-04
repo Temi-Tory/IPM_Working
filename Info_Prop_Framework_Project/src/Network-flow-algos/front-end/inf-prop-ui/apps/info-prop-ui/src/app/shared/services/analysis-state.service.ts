@@ -174,6 +174,41 @@ export class AnalysisStateService {
     }
   }
 
+  /**
+   * Load network data from file manager instead of API endpoints
+   */
+  loadNetworkDataFromFileManager(): void {
+    console.log('🔍 Loading network data from file manager...');
+    
+    this.fileManagerService.createNetworkStructureFromFiles().subscribe({
+      next: (result) => {
+        if (result?.networkStructure) {
+          console.log('✅ Network structure created from uploaded files:', result.networkStructure);
+          
+          // Set the network data for visualization
+          this.setNetworkData(result.networkStructure);
+          
+          // Set parsed data for additional information
+          if (result.parsedData) {
+            console.log('✅ Parsed data created from uploaded files:', result.parsedData);
+            this.setParsedData(result.parsedData);
+          }
+          
+          // Mark upload as completed since we have network data
+          this.markTabCompleted('upload');
+          
+          console.log('🎯 Network data and parsed data loaded from file manager');
+        } else {
+          console.warn('⚠️ No network structure could be created from uploaded files');
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading network data from file manager:', error);
+        this.setError('Failed to create network structure from uploaded files');
+      }
+    });
+  }
+
   setAnalysisResults(results: AnalysisResponse | null): void {
     console.log('🔍 setAnalysisResults called with:', results);
     this.analysisResultsSignal.set(results);

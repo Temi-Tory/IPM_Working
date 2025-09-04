@@ -13,6 +13,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { NetworkSessionService } from '../shared/services/network-session.service';
 import { FileManagerService } from '../shared/services/file-manager.service';
 import { FileUploadService } from '../shared/services/file-upload.service';
+import { AnalysisStateService } from '../shared/services/analysis-state.service';
 import { CategorizedFile, AnalysisType } from '../shared/models/network-analysis.models';
 
 @Component({
@@ -41,6 +42,7 @@ export class UploadNetworkComponent {
   private sessionService = inject(NetworkSessionService);
   private fileManager = inject(FileManagerService);
   private fileUpload = inject(FileUploadService);
+  private analysisState = inject(AnalysisStateService);
 
   // File manager state signals
   fileManagerState = this.fileManager.fileManagerState;
@@ -328,6 +330,10 @@ export class UploadNetworkComponent {
 
     // Save current state to session
     this.saveStateToSession();
+    
+    // Create network structure from uploaded files and load into analysis state
+    console.log('🚀 Creating network structure from uploaded files...');
+    this.analysisState.loadNetworkDataFromFileManager();
     
     // Navigate to network visualization
     this.router.navigate(['/visualization']);

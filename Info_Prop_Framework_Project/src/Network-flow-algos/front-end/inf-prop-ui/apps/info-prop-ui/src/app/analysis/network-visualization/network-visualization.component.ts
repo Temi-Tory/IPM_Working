@@ -104,6 +104,12 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     
     // Load parsed data from session if available
     this.analysisState.loadParsedDataFromSession();
+    
+    // If no network data is available, try to load from file manager
+    if (!this.analysisState.networkData()) {
+      console.log('🔍 No network data found, attempting to load from file manager...');
+      this.analysisState.loadNetworkDataFromFileManager();
+    }
   }
 
   ngAfterViewInit(): void {

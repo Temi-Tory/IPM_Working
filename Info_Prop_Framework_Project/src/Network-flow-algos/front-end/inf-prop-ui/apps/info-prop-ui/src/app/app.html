@@ -69,7 +69,9 @@
       
       <a mat-list-item
          routerLink="/visualization"
-         [class.completed]="analysisState.networkStructureTab().completed"
+         [class.completed]="analysisState.uploadTab().completed"
+         [class.disabled]="!analysisState.uploadTab().completed"
+         [attr.tabindex]="!analysisState.uploadTab().completed ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Network Visualization - Interactive graph visualization' : ''"
          matTooltipPosition="right"
          matTooltipClass="sidenav-tooltip">
@@ -79,9 +81,7 @@
           <div class="nav-subtitle">Interactive graph visualization</div>
         </div>
         <div class="nav-status">
-          @if (analysisState.networkStructureTab().completed) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
-          } @else if (analysisState.networkStructureTab().enabled) {
+          @if (analysisState.uploadTab().completed) {
             <mat-icon class="status-icon available">play_circle</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
@@ -92,6 +92,8 @@
       <a mat-list-item
          routerLink="/structure"
          [class.completed]="analysisState.networkStructureTab().completed"
+         [class.disabled]="!analysisState.uploadTab().completed"
+         [attr.tabindex]="!analysisState.uploadTab().completed ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Network Structure - Graph topology & analysis' : ''"
          matTooltipPosition="right"
          matTooltipClass="sidenav-tooltip">
@@ -103,7 +105,7 @@
         <div class="nav-status">
           @if (analysisState.networkStructureTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
-          } @else if (analysisState.networkStructureTab().enabled) {
+          } @else if (analysisState.uploadTab().completed) {
             <mat-icon class="status-icon available">play_circle</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
