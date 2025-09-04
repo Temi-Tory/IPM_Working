@@ -115,13 +115,43 @@
                       <span class="metric-value">{{ summary.totalNodes + summary.totalEdges }}</span>
                     </div>
                     <div class="metric-row">
-                      <span class="metric-label">Network Density</span>
+                      <span class="metric-label"
+                            matTooltip="Percentage of actual connections vs maximum possible connections in the network. Formula: (edges / (nodes × (nodes-1))) × 100"
+                            matTooltipPosition="above">
+                        Network Density
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
                       <span class="metric-value">{{ structuralMetrics()?.networkDensity || 0 }}%</span>
                     </div>
                     <div class="metric-row">
-                      <span class="metric-label">Average Degree</span>
+                      <span class="metric-label"
+                            matTooltip="Average number of connections per node. Formula: (total edges × 2) / total nodes"
+                            matTooltipPosition="above">
+                        Average Degree
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
                       <span class="metric-value">{{ structuralMetrics()?.averageDegree || 0 }}</span>
                     </div>
+                    @if (connectivityInsights(); as insights) {
+                      <div class="metric-row">
+                        <span class="metric-label"
+                              matTooltip="Average number of edges per node. Formula: total edges / total nodes"
+                              matTooltipPosition="above">
+                          Connectivity Ratio
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
+                        <span class="metric-value">{{ insights.connectivityRatio }}</span>
+                      </div>
+                      <div class="metric-row">
+                        <span class="metric-label"
+                              matTooltip="Estimated average path length through the network. Formula: total layers / 2"
+                              matTooltipPosition="above">
+                          Avg Path Length
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
+                        <span class="metric-value">{{ insights.avgPathLength }}</span>
+                      </div>
+                    }
                   </div>
                 }
               </mat-card-content>
@@ -167,15 +197,30 @@
                 @if (structuralMetrics(); as metrics) {
                   <div class="summary-metrics">
                     <div class="metric-row">
-                      <span class="metric-label">Edge/Node Ratio</span>
+                      <span class="metric-label"
+                            matTooltip="Ratio of edges to nodes in the network. Formula: total edges / total nodes"
+                            matTooltipPosition="above">
+                        Edge/Node Ratio
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
                       <span class="metric-value">{{ metrics.edgeToNodeRatio }}</span>
                     </div>
                     <div class="metric-row">
-                      <span class="metric-label">Layer Efficiency</span>
+                      <span class="metric-label"
+                            matTooltip="Average number of nodes per topological layer. Formula: total nodes / total layers"
+                            matTooltipPosition="above">
+                        Layer Efficiency
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
                       <span class="metric-value">{{ metrics.layerEfficiency }} nodes/layer</span>
                     </div>
                     <div class="metric-row">
-                      <span class="metric-label">Boundary Nodes</span>
+                      <span class="metric-label"
+                            matTooltip="Percentage of nodes that are sources or sinks. Formula: (sources + sinks) / total nodes × 100"
+                            matTooltipPosition="above">
+                        Boundary Nodes
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
                       <span class="metric-value">{{ metrics.boundaryNodeRatio }}%</span>
                     </div>
                   </div>
@@ -183,29 +228,136 @@
               </mat-card-content>
             </mat-card>
 
-            <!-- Available Data Card -->
-            <mat-card class="summary-card">
+          </div>
+
+          <!-- Additional Graph Theory Insights -->
+          <div class="additional-insights">
+            <mat-card class="insights-card">
               <mat-card-header>
-                <mat-icon mat-card-avatar>cloud_upload</mat-icon>
-                <mat-card-title>Available Data</mat-card-title>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Graph Theory Insights</mat-card-title>
+                <mat-card-subtitle>Advanced connectivity and topology analysis</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
-                @if (dataSummary(); as summary) {
-                  <div class="data-summary">
-                    <div class="data-count">
-                      <span class="count-value">{{ summary.dataTypesCount }}</span>
-                      <span class="count-label">Data Types</span>
+                <div class="insights-grid">
+                  
+                  <!-- Topology Insights -->
+                  @if (topologyAnalysis(); as topology) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>account_tree</mat-icon>
+                        Network Shape: {{ topology.networkShape }}
+                      </h4>
+                      <div class="insight-metrics">
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of nodes that enable parallel processing (fork nodes). Formula: fork nodes / total nodes × 100"
+                                matTooltipPosition="above">
+                            Parallelism Index
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.parallelismIndex }}%</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of nodes that consolidate information (join nodes). Formula: join nodes / total nodes × 100"
+                                matTooltipPosition="above">
+                            Convergence Index
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.convergenceIndex }}%</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="How much the network width varies across layers. Formula: max width / min width"
+                                matTooltipPosition="above">
+                            Width Variation
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.widthVariation }}x</span>
+                        </div>
+                      </div>
                     </div>
-                    <div class="data-types">
-                      @for (dataType of summary.availableDataTypes; track dataType) {
-                        <mat-chip class="data-type-chip">
-                          <mat-icon>{{ getDataTypeIcon(dataType) }}</mat-icon>
-                          {{ dataType }}
-                        </mat-chip>
-                      }
+                  }
+
+                  <!-- Reachability Insights -->
+                  @if (reachabilityAnalysis(); as reach) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>share</mat-icon>
+                        Reachability Analysis
+                      </h4>
+                      <div class="insight-metrics">
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Average number of nodes that can reach each node. Formula: sum of all ancestor counts / total nodes"
+                                matTooltipPosition="above">
+                            Avg Ancestors per Node
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.avgAncestors }}</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Average number of nodes reachable from each node. Formula: sum of all descendant counts / total nodes"
+                                matTooltipPosition="above">
+                            Avg Descendants per Node
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.avgDescendants }}</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Maximum number of nodes reachable from any single node in the network"
+                                matTooltipPosition="above">
+                            Max Node Influence
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.maxDescendants }} nodes</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of network reachable on average from any node. Formula: (avg descendants / total nodes) × 100"
+                                matTooltipPosition="above">
+                            Network Reachability
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.reachabilityRatio }}%</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                }
+                  }
+
+                  <!-- Connectivity Status -->
+                  @if (connectivityInsights(); as insights) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>device_hub</mat-icon>
+                        Connectivity Status
+                      </h4>
+                      <div class="status-indicators">
+                        @if (insights.isSparseDag) {
+                          <div class="status-item sparse">
+                            <mat-icon>scatter_plot</mat-icon>
+                            <span>Sparse Network - Efficient sequential processing</span>
+                          </div>
+                        }
+                        @if (insights.isWellConnected) {
+                          <div class="status-item connected">
+                            <mat-icon>hub</mat-icon>
+                            <span>Well Connected - Good information flow</span>
+                          </div>
+                        }
+                        @if (insights.hasBalancedFlow) {
+                          <div class="status-item balanced">
+                            <mat-icon>balance</mat-icon>
+                            <span>Balanced Flow - Even branching and convergence</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
               </mat-card-content>
             </mat-card>
           </div>

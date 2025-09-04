@@ -7,6 +7,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatListModule } from '@angular/material/list';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface NodeDetailsData {
   nodeId: number;
@@ -40,7 +41,8 @@ interface NodeDetailsData {
     MatTabsModule,
     MatCardModule,
     MatChipsModule,
-    MatListModule
+    MatListModule,
+    MatTooltipModule
   ],
   template: `
     <div class="node-details-dialog">
@@ -89,19 +91,39 @@ interface NodeDetailsData {
                   <div class="info-content">
                     <div class="connectivity-metrics">
                       <div class="metric-row">
-                        <span>In-Degree:</span>
+                        <span class="metric-label"
+                              matTooltip="Number of incoming edges to this node"
+                              matTooltipPosition="above">
+                          In-Degree:
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
                         <span class="metric-value">{{ data.nodeDetails.inDegree }}</span>
                       </div>
                       <div class="metric-row">
-                        <span>Out-Degree:</span>
+                        <span class="metric-label"
+                              matTooltip="Number of outgoing edges from this node"
+                              matTooltipPosition="above">
+                          Out-Degree:
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
                         <span class="metric-value">{{ data.nodeDetails.outDegree }}</span>
                       </div>
                       <div class="metric-row">
-                        <span>Total Connections:</span>
+                        <span class="metric-label"
+                              matTooltip="Total number of connections (in-degree + out-degree)"
+                              matTooltipPosition="above">
+                          Total Connections:
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
                         <span class="metric-value">{{ data.nodeDetails.connectivity.totalConnections }}</span>
                       </div>
                       <div class="metric-row">
-                        <span>Connectivity Ratio:</span>
+                        <span class="metric-label"
+                              matTooltip="Percentage of this node's connections relative to total network connections. Formula: (node connections / total network edges) × 100"
+                              matTooltipPosition="above">
+                          Connectivity Ratio:
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
                         <span class="metric-value">{{ (data.nodeDetails.connectivity.connectivityRatio * 100).toFixed(1) }}%</span>
                       </div>
                     </div>

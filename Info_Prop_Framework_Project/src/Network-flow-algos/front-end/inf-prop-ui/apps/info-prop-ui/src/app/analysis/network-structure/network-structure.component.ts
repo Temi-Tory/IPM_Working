@@ -192,63 +192,132 @@ export class NetworkStructureComponent implements OnInit {
     };
   });
 
-  // Available data summary
-  dataSummary = computed(() => {
+  // Graph Theory Connectivity Insights
+  connectivityInsights = computed(() => {
     const data = this.networkData();
-    if (!data?.available_data_files) {
-      return {
-        dataTypesCount: 0,
-        hasNodePriors: false,
-        hasEdgeProbabilities: false,
-        hasCapacities: false,
-        hasCmpData: false,
-        availableDataTypes: []
-      };
-    }
+    if (!data) return null;
 
-    const files = data.available_data_files;
-    const dataTypes: string[] = [];
+    const totalNodes = data.total_nodes || 0;
+    const totalEdges = data.total_edges || 0;
+    const layers = data.iteration_sets_count || 0;
     
-    let hasNodePriors = false;
-    let hasEdgeProbabilities = false;
-    let hasCapacities = false;
-    let hasCmpData = false;
-
-    if (files.float) {
-      dataTypes.push('Float');
-      if (files.float.nodepriors) hasNodePriors = true;
-      if (files.float.linkprobabilities) hasEdgeProbabilities = true;
-    }
-
-    if (files.interval) {
-      dataTypes.push('Interval');
-      if (files.interval.nodepriors) hasNodePriors = true;
-      if (files.interval.linkprobabilities) hasEdgeProbabilities = true;
-    }
-
-    if (files.pbox) {
-      dataTypes.push('P-Box');
-      if (files.pbox.nodepriors) hasNodePriors = true;
-      if (files.pbox.linkprobabilities) hasEdgeProbabilities = true;
-    }
-
-    if (files.capacity) {
-      dataTypes.push('Capacity');
-      hasCapacities = true;
-    }
-
-    if (files.cpm) {
-      dataTypes.push('CPM');
-      hasCmpData = true;
-    }
-
+    // Calculate graph theory metrics
+    const maxPossibleEdges = totalNodes * (totalNodes - 1); // For directed graph
+    const density = maxPossibleEdges > 0 ? (totalEdges / maxPossibleEdges) * 100 : 0;
+    
+    // Connectivity ratio (edges per node)
+    const connectivityRatio = totalNodes > 0 ? totalEdges / totalNodes : 0;
+    
+    // Average path length approximation (layers give us topological depth)
+    const avgPathLength = layers > 1 ? layers / 2 : 1;
+    
+    // Branching factor (average outgoing connections)
+    const branchingFactor = (data.fork_nodes?.length || 0) > 0 ?
+      totalEdges / (data.source_nodes?.length + data.fork_nodes?.length || 1) : 1;
+    
+    // Convergence factor (average incoming connections to joins/sinks)
+    const convergenceFactor = (data.join_nodes?.length || 0) > 0 ?
+      totalEdges / (data.sink_nodes?.length + data.join_nodes?.length || 1) : 1;
+    
     return {
-      dataTypesCount: dataTypes.length,
-      hasNodePriors,
-      hasEdgeProbabilities,
-      hasCapacities,
-      hasCmpData,
-      availableDataTypes: dataTypes
+      density: Number(density.toFixed(2)),
+      connectivityRatio: Number(connectivityRatio.toFixed(2)),
+      avgPathLength: Number(avgPathLength.toFixed(1)),
+      branchingFactor: Number(branchingFactor.toFixed(2)),
+      convergenceFactor: Number(convergenceFactor.toFixed(2)),
+      isWellConnected: density > 10,
+      isSparseDag: density < 5,
+      hasBalancedFlow: Math.abs(branchingFactor - convergenceFactor) < 0.5
+    };
+  });
+
+  // Topological Structure Analysis
+  topologyAnalysis = computed(() => {
+    const data = this.networkData();
+    if (!data) return null;
+
+    const totalNodes = data.total_nodes || 0;
+    const sources = data.source_nodes?.length || 0;
+    const sinks = data.sink_nodes?.length || 0;
+    const forks = data.fork_nodes?.length || 0;
+    const joins = data.join_nodes?.length || 0;
+    const layers = data.iteration_sets_count || 0;
+    
+    // Calculate topology characteristics
+    const parallelismIndex = forks > 0 ? forks / totalNodes : 0;
+    const convergenceIndex = joins > 0 ? joins / totalNodes : 0;
+    const layerEfficiency = layers > 0 ? totalNodes / layers : 0;
+    
+    // Determine network shape characteristics
+    const isDiamondShaped = forks > 0 && joins > 0 && forks === joins;
+    const isFanOut = forks > joins;
+    const isFanIn = joins > forks;
+    const isLinear = forks === 0 && joins === 0;
+    
+    // Calculate width variation (how much the network expands/contracts)
+    const maxWidth = Math.max(sources, forks, joins, sinks);
+    const minWidth = Math.min(sources || 1, sinks || 1);
+    const widthVariation = maxWidth / minWidth;
+    
+    return {
+      parallelismIndex: Number((parallelismIndex * 100).toFixed(1)),
+      convergenceIndex: Number((convergenceIndex * 100).toFixed(1)),
+      layerEfficiency: Number(layerEfficiency.toFixed(1)),
+      widthVariation: Number(widthVariation.toFixed(2)),
+      isDiamondShaped,
+      isFanOut,
+      isFanIn,
+      isLinear,
+      networkShape: isDiamondShaped ? 'Diamond' :
+                   isFanOut ? 'Fan-Out' :
+                   isFanIn ? 'Fan-In' :
+                   isLinear ? 'Linear' : 'Complex'
+    };
+  });
+
+  // Reachability Analysis
+  reachabilityAnalysis = computed(() => {
+    const data = this.networkData();
+    if (!data?.ancestors || !data?.descendants) return null;
+
+    const totalNodes = data.total_nodes || 0;
+    const ancestors = data.ancestors;
+    const descendants = data.descendants;
+    
+    // Calculate reachability metrics
+    let totalAncestors = 0;
+    let totalDescendants = 0;
+    let maxAncestors = 0;
+    let maxDescendants = 0;
+    
+    Object.values(ancestors).forEach((ancestorList: any) => {
+      const count = ancestorList.length;
+      totalAncestors += count;
+      maxAncestors = Math.max(maxAncestors, count);
+    });
+    
+    Object.values(descendants).forEach((descendantList: any) => {
+      const count = descendantList.length;
+      totalDescendants += count;
+      maxDescendants = Math.max(maxDescendants, count);
+    });
+    
+    const avgAncestors = totalNodes > 0 ? totalAncestors / totalNodes : 0;
+    const avgDescendants = totalNodes > 0 ? totalDescendants / totalNodes : 0;
+    
+    // Reachability ratio (how much of the network each node can reach on average)
+    const reachabilityRatio = totalNodes > 0 ? (avgDescendants / totalNodes) * 100 : 0;
+    const influenceSpread = totalNodes > 0 ? (maxDescendants / totalNodes) * 100 : 0;
+    
+    return {
+      avgAncestors: Number(avgAncestors.toFixed(1)),
+      avgDescendants: Number(avgDescendants.toFixed(1)),
+      maxAncestors,
+      maxDescendants,
+      reachabilityRatio: Number(reachabilityRatio.toFixed(1)),
+      influenceSpread: Number(influenceSpread.toFixed(1)),
+      isHighlyConnected: reachabilityRatio > 50,
+      hasInfluentialNodes: influenceSpread > 75
     };
   });
 
@@ -580,14 +649,4 @@ export class NetworkStructureComponent implements OnInit {
     console.log('Retrying network analysis...');
   }
 
-  getDataTypeIcon(dataType: string): string {
-    const iconMap: Record<string, string> = {
-      'float': 'decimal_increase',
-      'interval': 'linear_scale',
-      'p-box': 'analytics',
-      'capacity': 'speed',
-      'cpm': 'schedule'
-    };
-    return iconMap[dataType.toLowerCase()] || 'data_object';
-  }
 }

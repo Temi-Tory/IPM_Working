@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface EdgeDetailsData {
   source: number;
@@ -35,7 +36,8 @@ interface EdgeDetailsData {
     MatIconModule,
     MatTabsModule,
     MatCardModule,
-    MatChipsModule
+    MatChipsModule,
+    MatTooltipModule
   ],
   template: `
     <div class="edge-details-dialog">
@@ -136,7 +138,12 @@ interface EdgeDetailsData {
                         <span class="metric-value">{{ data.edgeDetails.targetIterationSet }}</span>
                       </div>
                       <div class="metric-row">
-                        <span>Layer Distance:</span>
+                        <span class="metric-label"
+                              matTooltip="Distance between source and target layers in the network topology. Formula: |target layer - source layer|"
+                              matTooltipPosition="above">
+                          Layer Distance:
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
                         <span class="metric-value">{{ Math.abs(data.edgeDetails.targetIterationSet - data.edgeDetails.sourceIterationSet) }}</span>
                       </div>
                     </div>

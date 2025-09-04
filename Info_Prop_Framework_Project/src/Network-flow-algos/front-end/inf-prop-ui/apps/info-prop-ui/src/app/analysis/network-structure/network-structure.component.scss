@@ -888,6 +888,190 @@
   }
 }
 
+// Additional Graph Theory Insights Styles
+.additional-insights {
+  margin-top: 2rem;
+  
+  .insights-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: var(--primary-color);
+    }
+    
+    mat-card-header {
+      padding: 2rem 2rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, var(--surface-color), var(--background-color));
+      
+      mat-icon[mat-card-avatar] {
+        font-size: 1.75rem;
+        color: var(--primary-color);
+        background: var(--primary-color-light);
+        padding: 0.75rem;
+        border-radius: 12px;
+        width: auto;
+        height: auto;
+      }
+      
+      mat-card-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+      }
+      
+      mat-card-subtitle {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        margin: 0.25rem 0 0 0;
+      }
+    }
+    
+    mat-card-content {
+      padding: 2rem;
+    }
+  }
+  
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+  
+  .insight-section {
+    background: var(--surface-container);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: var(--surface-color);
+      border-color: var(--primary-color-light);
+      transform: translateY(-1px);
+    }
+    
+    .insight-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 1rem 0;
+      
+      mat-icon {
+        font-size: 1.3rem;
+        color: var(--primary-color);
+      }
+    }
+    
+    .insight-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      
+      .metric-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .metric-label {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+        
+        .metric-value {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          background: var(--primary-color-light);
+          padding: 0.25rem 0.75rem;
+          border-radius: 8px;
+          min-width: 60px;
+          text-align: center;
+        }
+      }
+    }
+    
+    .status-indicators {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        
+        mat-icon {
+          font-size: 1.2rem;
+        }
+        
+        &.sparse {
+          background: rgba(255, 193, 7, 0.1);
+          color: #ff8f00;
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          
+          mat-icon {
+            color: #ff8f00;
+          }
+        }
+        
+        &.connected {
+          background: rgba(76, 175, 80, 0.1);
+          color: #2e7d32;
+          border: 1px solid rgba(76, 175, 80, 0.3);
+          
+          mat-icon {
+            color: #2e7d32;
+          }
+        }
+        
+        &.balanced {
+          background: rgba(33, 150, 243, 0.1);
+          color: #1565c0;
+          border: 1px solid rgba(33, 150, 243, 0.3);
+          
+          mat-icon {
+            color: #1565c0;
+          }
+        }
+        
+        &:hover {
+          transform: translateX(4px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+      }
+    }
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 968px) {
   .network-structure-dashboard {
@@ -910,6 +1094,35 @@
       th, td {
         padding: 0.5rem 0.25rem;
       }
+    }
+  }
+}
+
+// Tooltip Info Icons
+.info-icon {
+  font-size: 0.9rem !important;
+  width: 0.9rem !important;
+  height: 0.9rem !important;
+  color: var(--text-secondary) !important;
+  margin-left: 0.25rem;
+  cursor: help;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: var(--primary-color) !important;
+  }
+}
+
+.metric-label {
+  display: flex;
+  align-items: center;
+  cursor: help;
+  
+  &:hover {
+    color: var(--primary-color);
+    
+    .info-icon {
+      color: var(--primary-color) !important;
     }
   }
 }
