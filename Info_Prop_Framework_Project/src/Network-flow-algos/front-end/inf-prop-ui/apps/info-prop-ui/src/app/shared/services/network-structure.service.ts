@@ -16,15 +16,21 @@ export class NetworkStructureService {
   private http: HttpClient = inject(HttpClient);
 
   analyzeNetworkStructure(request: NetworkStructureRequest): Observable<NetworkStructureResponse> {
+    console.log('🏗️ Sending network structure request:', request);
+    
     return this.http.post<NetworkStructureResponse>(
       `${this.API_BASE}/network-structure`,
       request
     ).pipe(
       tap(response => {
-        console.log('🏗️ NETWORK STRUCTURE RAW RESPONSE:', JSON.stringify(response, null, 2));
-        console.log('🏗️ NETWORK STRUCTURE KEYS:', Object.keys(response));
-        if (response.network_structure) {
-          console.log('🏗️ NETWORK STRUCTURE DATA KEYS:', Object.keys(response.network_structure));
+        console.log('🏗️ Network structure response:', response.success ? 'SUCCESS' : 'FAILED');
+        if (response.success && response.network_structure) {
+          console.log('📊 Network stats:', {
+            nodes: response.network_structure.total_nodes,
+            edges: response.network_structure.total_edges,
+            sources: response.network_structure.source_nodes.length,
+            sinks: response.network_structure.sink_nodes.length
+          });
         }
       })
     );

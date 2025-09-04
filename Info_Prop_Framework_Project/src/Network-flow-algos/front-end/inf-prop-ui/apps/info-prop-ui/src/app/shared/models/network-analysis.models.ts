@@ -183,21 +183,27 @@ export interface MultiScenarioDiamondResults {
   availableScenarios: ScenarioInfo[];
 }
 
+// **ENHANCED: DiamondPattern with proper identification**
 export interface DiamondPattern {
   id: string;
+  displayId: string; // **NEW: Human-readable identifier**
   nodeCount: number;
   isRoot: boolean;
   complexity: number;
   joinNodes: number[];
   sourceNodes: number[];
   forkNodes: number[];
-  // NEW: Proper diamond identification fields based on Julia structures
+  // **ENHANCED: Proper diamond identification fields**
   conditioningNodes: number[];
   joinNode?: number; // For root diamonds (DiamondsAtNode)
   diamondHash?: string; // For unique diamonds (DiamondComputationData)
   relevantNodes: number[];
   edgeList: [number, number][];
   subDiamonds?: DiamondPattern[];
+  // **NEW: Risk and structural metrics**
+  riskLevel?: 'low' | 'medium' | 'high' | 'critical';
+  structuralType?: 'simple' | 'convergent' | 'divergent' | 'complex';
+  pathDensity?: number;
 }
 
 export interface DiamondSummary {
@@ -233,6 +239,58 @@ export interface JoinNodeAnalysis {
   // Enhanced analysis properties
   pathCount?: number;
   riskLevel?: 'low' | 'medium' | 'high';
+}
+
+// **NEW: Enhanced interfaces for diamond details**
+export interface DiamondDetailsData {
+  diamondId: string;
+  displayId: string;
+  conditioningNodes: number[];
+  joinNode?: number; // For root diamonds
+  diamondHash?: string; // For unique diamonds
+  diamond: RootDiamondStructure | UniqueDiamondStructure;
+  networkSubset: {
+    nodes: number[];
+    edges: [number, number][];
+    conditioningNodes: number[];
+    bridgeEdges: [number, number][];
+    diamondJoinEdges: [number, number][];
+  };
+  subDiamonds: DiamondPattern[];
+  hierarchyPath: string[];
+  structuralInfo: {
+    nodeCount: number;
+    edgeCount: number;
+    complexity: number;
+    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    isBottleneck: boolean;
+  };
+}
+
+export interface NodeDetail {
+  nodeId: number;
+  type: string;
+  role: 'root' | 'leaf' | 'conditioning' | 'bridge' | 'internal';
+  inDegree: number;
+  outDegree: number;
+  pathCount: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  // **NEW: Enhanced node information**
+  isBottleneck: boolean;
+  centrality: number;
+  influence: number;
+}
+
+export interface EdgeDetail {
+  source: number;
+  target: number;
+  type: 'diamond-internal' | 'bridge' | 'diamond-join' | 'conditioning';
+  role: string;
+  pathContribution: number;
+  isCritical: boolean;
+  // **NEW: Enhanced edge information**
+  reliability: number;
+  capacity: number;
 }
 
 export interface ExactInferenceResult {
@@ -367,10 +425,11 @@ export interface AnalysisRequest {
   analysisConfig: AnalysisRequestConfig;
 }
 
-// Individual Endpoint Request/Response DTOs
+// Clean Individual Endpoint Request/Response DTOs - Match Backend Exactly
 
 export interface NetworkStructureRequest {
   networkPath: string;
+  edgesFilePath?: string;
 }
 
 export interface NetworkStructureResponse {
@@ -383,7 +442,8 @@ export interface NetworkStructureResponse {
 
 export interface DiamondAnalysisRequest {
   networkPath: string;
-  useDefaultPriors?: boolean;
+  edgesFilePath?: string;
+  nodepriorsPath?: string;
 }
 
 export interface DiamondAnalysisResponse {
@@ -396,10 +456,9 @@ export interface DiamondAnalysisResponse {
 
 export interface ReachabilityAnalysisRequest {
   networkPath: string;
+  edgesFilePath: string;
   nodepriorsPath: string;
   linkprobsPath: string;
-  includeExactInference?: boolean;
-  includeDiamondAnalysis?: boolean;
 }
 
 export interface ReachabilityAnalysisResponse {
@@ -412,6 +471,7 @@ export interface ReachabilityAnalysisResponse {
 
 export interface CapacityAnalysisRequest {
   networkPath: string;
+  edgesFilePath: string;
   capacitiesPath: string;
 }
 
@@ -425,6 +485,7 @@ export interface CapacityAnalysisResponse {
 
 export interface CpmAnalysisRequest {
   networkPath: string;
+  edgesFilePath: string;
   cpmPath: string;
 }
 
@@ -440,20 +501,117 @@ export interface HealthResponse {
   status: string;
 }
 
+// Upload Response DTO - Matches Backend Exactly
 export interface UploadResponse {
   success: boolean;
   message: string;
-  network_path?: string;
-  validation_results?: {
-    is_valid: boolean;
-    message: string;
-    structure_info?: {
-      total_nodes: number;
-      total_edges: number;
-      source_nodes: number[];
-      sink_nodes: number[];
-    };
+  network_path: string;
+  uploaded_files: string[];
+  edges_files: string[];
+}
+
+// File Management Models for Upload Component
+
+export type AnalysisType = 'reachability' | 'capacity' | 'cpm' | 'network' | 'mapping' | 'unknown';
+export type DataType = 'float' | 'interval' | 'pbox' | 'capacity' | 'cpm' | 'edges' | 'mapping';
+
+export interface UploadedFile {
+  id: string;
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  lastModified: number;
+  content?: string; // For small files that can be previewed
+}
+
+export interface CategorizedFile extends UploadedFile {
+  analysisType: AnalysisType;
+  dataType: DataType;
+  confidence: number; // 0-1, how confident the categorization is
+  suggestedRole: string; // e.g., "Node Priors", "Edge Probabilities", "Capacities"
+  isUserAssigned: boolean; // true if user manually assigned this file
+  validationErrors: string[];
+  validationWarnings: string[];
+}
+
+export interface AnalysisFileGroup {
+  analysisType: AnalysisType;
+  networkPath?: string;
+  edgesFile?: CategorizedFile;
+  files: CategorizedFile[];
+  isComplete: boolean;
+  missingFiles: string[];
+  canRunAnalysis: boolean;
+}
+
+export interface ReachabilityFileGroup extends AnalysisFileGroup {
+  analysisType: 'reachability';
+  dataType: DataType; // float, interval, or pbox
+  nodePriorsFile?: CategorizedFile;
+  linkProbabilitiesFile?: CategorizedFile;
+}
+
+export interface CapacityFileGroup extends AnalysisFileGroup {
+  analysisType: 'capacity';
+  capacitiesFile?: CategorizedFile;
+}
+
+export interface CpmFileGroup extends AnalysisFileGroup {
+  analysisType: 'cpm';
+  cpmInputsFile?: CategorizedFile;
+  hasTimeAnalysis: boolean;
+  hasCostAnalysis: boolean;
+}
+
+export interface NetworkFileGroup extends AnalysisFileGroup {
+  analysisType: 'network';
+  edgesFile?: CategorizedFile;
+  nodeMappingFile?: CategorizedFile;
+}
+
+export interface FileManagerState {
+  uploadedFiles: CategorizedFile[];
+  analysisGroups: {
+    reachability: ReachabilityFileGroup[];
+    capacity: CapacityFileGroup[];
+    cpm: CpmFileGroup[];
+    network: NetworkFileGroup;
   };
+  selectedNetworkPath: string | null;
+  isUploading: boolean;
+  uploadProgress: number;
+  validationResults: {
+    errors: string[];
+    warnings: string[];
+    suggestions: string[];
+  };
+}
+
+export interface FileCategorization {
+  patterns: {
+    edges: RegExp[];
+    nodepriors: RegExp[];
+    linkprobs: RegExp[];
+    capacities: RegExp[];
+    cpm: RegExp[];
+    mapping: RegExp[];
+  };
+  folderPatterns: {
+    float: RegExp[];
+    interval: RegExp[];
+    pbox: RegExp[];
+    capacity: RegExp[];
+    cpm: RegExp[];
+  };
+}
+
+export interface FileValidationRule {
+  analysisType: AnalysisType;
+  requiredFiles: string[];
+  optionalFiles: string[];
+  fileExtensions: string[];
+  contentValidation?: (content: string) => { isValid: boolean; errors: string[] };
 }
 
 export interface TabState {

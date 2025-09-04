@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { tap, map } from 'rxjs/operators';
 import {
   NetworkStructure,
   AnalysisResponse,
@@ -12,7 +13,11 @@ import {
   CpmAnalysisResponse,
   DiamondAnalysisResult,
   ScenarioInfo,
-  MultiScenarioDiamondResults
+  MultiScenarioDiamondResults,
+  AnalysisFileGroup,
+  ReachabilityFileGroup,
+  CapacityFileGroup,
+  CpmFileGroup
 } from '../models/network-analysis.models';
 import { NetworkBackendService } from './network-backend.service';
 import { NetworkStructureService } from './network-structure.service';
@@ -22,6 +27,7 @@ import { CapacityAnalysisService } from './capacity-analysis.service';
 import { CpmAnalysisService } from './cpm-analysis.service';
 import { EnhancedDataParsingService } from './enhanced-data-parsing.service';
 import { NetworkSessionService } from './network-session.service';
+import { FileManagerService } from './file-manager.service';
 
 @Injectable({ providedIn: 'root' })
 export class AnalysisStateService {
@@ -33,6 +39,7 @@ export class AnalysisStateService {
   private cpmAnalysisService = inject(CpmAnalysisService);
   private enhancedDataParsingService = inject(EnhancedDataParsingService);
   private sessionService = inject(NetworkSessionService);
+  private fileManagerService = inject(FileManagerService);
 
   // Core state signals
   private networkDataSignal = signal<NetworkStructure | null>(null);
@@ -340,6 +347,7 @@ export class AnalysisStateService {
             const firstCapacityScenario = request.capacityScenarios[0];
             const capacityPromise = this.capacityAnalysisService.analyzeCapacity({
               networkPath: request.networkPath,
+              edgesFilePath: `${request.networkPath}/${request.networkPath}.EDGES`,
               capacitiesPath: firstCapacityScenario.capacities_path
             }).toPromise();
             analysisPromises.push(capacityPromise);
@@ -351,6 +359,7 @@ export class AnalysisStateService {
             const firstCpmScenario = request.cpmScenarios[0];
             const cpmPromise = this.cpmAnalysisService.analyzeCpm({
               networkPath: request.networkPath,
+              edgesFilePath: `${request.networkPath}/${request.networkPath}.EDGES`,
               cpmPath: firstCpmScenario.cpm_path
             }).toPromise();
             analysisPromises.push(cpmPromise);
@@ -429,13 +438,13 @@ export class AnalysisStateService {
   }
 
   // Method to load diamond analysis using individual endpoint
-  loadDiamondAnalysis(networkPath: string, useDefaultPriors = true): Observable<void> {
+  loadDiamondAnalysis(networkPath: string): Observable<void> {
     this.setLoading(true);
     this.setError(null);
     this.setCurrentNetworkPath(networkPath);
 
     return new Observable(observer => {
-      this.diamondAnalysisService.analyzeDiamonds({ networkPath, useDefaultPriors })
+      this.diamondAnalysisService.analyzeDiamonds({ networkPath })
         .subscribe({
           next: (response) => {
             if (response.success) {
@@ -598,6 +607,252 @@ export class AnalysisStateService {
     const baseName = scenarioName.replace(/^(float|interval|pbox)_?/, '');
     const typeLabel = dataType.toUpperCase();
     return `${baseName} (${typeLabel})`;
+  }
+
+  // NEW: Methods to work with File Manager Service
+
+  /**
+   * Run analysis using file groups from file manager
+   */
+  runAnalysisFromFileGroup(group: AnalysisFileGroup): Observable<void> {
+    this.setLoading(true);
+    this.setError(null);
+
+    return new Observable(observer => {
+      if (!group.canRunAnalysis) {
+        const error = `Cannot run ${group.analysisType} analysis: missing files - ${group.missingFiles.join(', ')}`;
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+        return;
+      }
+
+      // Run appropriate analysis based on group type
+      if (group.analysisType === 'network') {
+        this.runNetworkStructureFromGroup(group).subscribe({
+          next: () => {
+            observer.next();
+            observer.complete();
+          },
+          error: (error) => observer.error(error)
+        });
+      } else if (group.analysisType === 'reachability') {
+        this.runReachabilityFromGroup(group as ReachabilityFileGroup).subscribe({
+          next: () => {
+            observer.next();
+            observer.complete();
+          },
+          error: (error) => observer.error(error)
+        });
+      } else if (group.analysisType === 'capacity') {
+        this.runCapacityFromGroup(group as CapacityFileGroup).subscribe({
+          next: () => {
+            observer.next();
+            observer.complete();
+          },
+          error: (error) => observer.error(error)
+        });
+      } else if (group.analysisType === 'cpm') {
+        this.runCpmFromGroup(group as CpmFileGroup).subscribe({
+          next: () => {
+            observer.next();
+            observer.complete();
+          },
+          error: (error) => observer.error(error)
+        });
+      } else {
+        const error = `Unsupported analysis type: ${group.analysisType}`;
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+      }
+    });
+  }
+
+  /**
+   * Get available analysis groups from file manager
+   */
+  getAvailableAnalysisGroups(): AnalysisFileGroup[] {
+    return this.fileManagerService.getReadyAnalysisGroups();
+  }
+
+  /**
+   * Check if files are uploaded and ready for analysis
+   */
+  hasUploadedFiles(): boolean {
+    return this.fileManagerService.uploadedFiles().length > 0;
+  }
+
+  /**
+   * Update tab states based on file manager state
+   */
+  updateTabStatesFromFileManager(): void {
+    const fileState = this.fileManagerService.fileManagerState();
+    const groups = fileState.analysisGroups;
+
+    // Upload tab is completed if we have files
+    if (fileState.uploadedFiles.length > 0) {
+      this.markTabCompleted('upload');
+    }
+
+    // Enable tabs based on available analysis groups
+    if (groups.network.canRunAnalysis) {
+      this.networkStructureTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+
+    if (groups.reachability.some(g => g.canRunAnalysis)) {
+      this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+
+    if (groups.capacity.some(g => g.canRunAnalysis)) {
+      this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+
+    if (groups.cpm.some(g => g.canRunAnalysis)) {
+      this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+
+    // Enable system profile if any analysis can be run
+    const hasAnyAnalysis = groups.network.canRunAnalysis ||
+                          groups.reachability.some(g => g.canRunAnalysis) ||
+                          groups.capacity.some(g => g.canRunAnalysis) ||
+                          groups.cpm.some(g => g.canRunAnalysis);
+    
+    if (hasAnyAnalysis) {
+      this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
+    }
+  }
+
+  /**
+   * Run network structure analysis from file group
+   */
+  private runNetworkStructureFromGroup(group: AnalysisFileGroup): Observable<void> {
+    if (!group.networkPath || !group.edgesFile) {
+      return new Observable(observer => {
+        const error = 'Network structure analysis requires network path and edges file';
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+      });
+    }
+
+    return this.networkStructureService.analyzeNetworkStructure({
+      networkPath: group.networkPath,
+      edgesFilePath: group.edgesFile.path
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.setNetworkData(response.network_structure);
+          this.setCurrentNetworkPath(group.networkPath!);
+          this.markTabCompleted('network-structure');
+        } else {
+          this.setError(`Network structure analysis failed: ${response.message}`);
+        }
+        this.setLoading(false);
+      }),
+      map(() => void 0)
+    );
+  }
+
+  /**
+   * Run reachability analysis from file group
+   */
+  private runReachabilityFromGroup(group: ReachabilityFileGroup): Observable<void> {
+    if (!group.networkPath || !group.nodePriorsFile || !group.linkProbabilitiesFile) {
+      return new Observable(observer => {
+        const error = 'Reachability analysis requires network path, node priors, and link probabilities files';
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+      });
+    }
+
+    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
+
+    return this.reachabilityAnalysisService.analyzeReachability({
+      networkPath: group.networkPath,
+      edgesFilePath,
+      nodepriorsPath: group.nodePriorsFile.path,
+      linkprobsPath: group.linkProbabilitiesFile.path
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.reachabilityAnalysisSignal.set(response);
+          this.markTabCompleted('exact-inference');
+        } else {
+          this.setError(`Reachability analysis failed: ${response.message}`);
+        }
+        this.setLoading(false);
+      }),
+      map(() => void 0)
+    );
+  }
+
+  /**
+   * Run capacity analysis from file group
+   */
+  private runCapacityFromGroup(group: CapacityFileGroup): Observable<void> {
+    if (!group.networkPath || !group.capacitiesFile) {
+      return new Observable(observer => {
+        const error = 'Capacity analysis requires network path and capacities file';
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+      });
+    }
+
+    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
+
+    return this.capacityAnalysisService.analyzeCapacity({
+      networkPath: group.networkPath,
+      edgesFilePath,
+      capacitiesPath: group.capacitiesFile.path
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.capacityAnalysisSignal.set(response);
+          this.markTabCompleted('flow');
+        } else {
+          this.setError(`Capacity analysis failed: ${response.message}`);
+        }
+        this.setLoading(false);
+      }),
+      map(() => void 0)
+    );
+  }
+
+  /**
+   * Run CPM analysis from file group
+   */
+  private runCpmFromGroup(group: CpmFileGroup): Observable<void> {
+    if (!group.networkPath || !group.cpmInputsFile) {
+      return new Observable(observer => {
+        const error = 'CPM analysis requires network path and CPM inputs file';
+        this.setError(error);
+        this.setLoading(false);
+        observer.error(error);
+      });
+    }
+
+    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
+
+    return this.cpmAnalysisService.analyzeCpm({
+      networkPath: group.networkPath,
+      edgesFilePath,
+      cpmPath: group.cpmInputsFile.path
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          this.cpmAnalysisSignal.set(response);
+          this.markTabCompleted('critical-path');
+        } else {
+          this.setError(`CPM analysis failed: ${response.message}`);
+        }
+        this.setLoading(false);
+      }),
+      map(() => void 0)
+    );
   }
 
   clearState(): void {

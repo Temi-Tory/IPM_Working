@@ -2,7 +2,7 @@
 .app-container {
   height: 100vh;
   background-color: var(--surface-background);
-  overflow: hidden; // Prevent app-wide scrolling
+  overflow: hidden; // Prevent app-wide scrolling - sidenav container should not scroll
 }
 
 .app-sidenav {
@@ -358,7 +358,8 @@
   padding: 0; // No padding - components handle their own
   height: calc(100vh - 64px); // Fixed height so navbar stays visible
   background-color: var(--surface-background);
-  overflow: hidden; // No app-level scrolling - components scroll internally
+  overflow-y: auto; // Allow vertical scrolling for main content
+  overflow-x: hidden; // Prevent horizontal scrolling
   
   // Allow visualization mode to break out of padding constraints
   &.visualization-mode {

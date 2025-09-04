@@ -2,31 +2,86 @@
   <mat-card class="upload-card">
     <mat-card-header>
       <mat-icon mat-card-avatar>cloud_upload</mat-icon>
-      <mat-card-title>Upload Network Folder</mat-card-title>
-      <mat-card-subtitle>Upload your network folder with all scenario files</mat-card-subtitle>
+      <mat-card-title>Upload Network Files</mat-card-title>
+      <mat-card-subtitle>Upload your network files for analysis</mat-card-subtitle>
     </mat-card-header>
 
     <mat-card-content>
       <div class="upload-content">
-        <h3>Select Your Network Folder</h3>
-        <p>Choose a folder containing your network structure file (.EDGES) and scenario data.</p>
-
-        <!-- Folder Structure Guide -->
-        <mat-expansion-panel>
+        
+        <!-- File Organization Guide -->
+        <mat-expansion-panel class="organization-guide">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon>help_outline</mat-icon>
-              Folder Structure Guide
+              How to Organize Your Files
             </mat-panel-title>
             <mat-panel-description>
-              Learn how to organize your network files
+              Learn the recommended folder structure for multiple scenarios
             </mat-panel-description>
           </mat-expansion-panel-header>
-          <pre class="folder-structure">{{ folderStructureGuide }}</pre>
+          
+          <div class="guide-content">
+            <h4>Recommended Folder Structure</h4>
+            <pre class="folder-structure">
+📁 your-network-project/
+├── 📄 network.edges                    ← Shared by ALL scenarios
+├── 📄 node-mapping.txt                 ← Optional: Node labels
+├── 📁 baseline/                        ← Scenario 1 (Float data)
+│   ├── 📄 nodepriors.json             ← Float values
+│   └── 📄 linkprobs.json              ← Float values (same type!)
+├── 📁 conservative/                    ← Scenario 2 (Interval data)
+│   ├── 📄 nodepriors.json             ← Interval values
+│   └── 📄 linkprobs.json              ← Interval values (same type!)
+├── 📁 uncertain/                       ← Scenario 3 (P-Box data)
+│   ├── 📄 nodepriors.json             ← P-Box values
+│   └── 📄 linkprobs.json              ← P-Box values (same type!)
+├── 📁 capacity-normal/                 ← Flow scenario 1
+│   └── 📄 capacities.json
+└── 📁 cpm-project/                     ← CPM scenario 1
+    └── 📄 cpm-inputs.json
+            </pre>
+            
+            <div class="guide-tips">
+              <h5>💡 Key Points:</h5>
+              <ul>
+                <li><strong>One edges file</strong> - All scenarios share the same network structure</li>
+                <li><strong>Scenario consistency</strong> - Within each scenario, all files must use the same data type</li>
+                <li><strong>Automatic detection</strong> - System automatically detects data type from file content</li>
+                <li><strong>Multiple scenarios</strong> - You can have unlimited scenarios of any type</li>
+                <li><strong>Descriptive naming</strong> - Use meaningful names like "Breakdown 214", "main scenario", "Degraded"</li>
+              </ul>
+            </div>
+
+            <div class="example-scenarios">
+              <h5>📋 Example with Multiple Scenarios:</h5>
+              <pre class="folder-structure">
+📁 network-analysis-project/
+├── 📄 network.edges                    ← Shared structure
+├── 📁 main scenario/                   ← Primary scenario (system detects: Float)
+│   ├── 📄 nodepriors.json             ← Contains: {{ '{' }}"node1": 0.8, "node2": 0.6{{ '}' }}
+│   └── 📄 linkprobs.json              ← Contains: {{ '{' }}"(1,2)": 0.9, "(2,3)": 0.7{{ '}' }}
+├── 📁 Breakdown 214/                   ← Descriptive scenario name (system detects: Interval)
+│   ├── 📄 nodepriors.json             ← Contains: {{ '{' }}"node1": [0.7, 0.9]{{ '}' }}
+│   └── 📄 linkprobs.json              ← Contains: {{ '{' }}"(1,2)": [0.8, 0.95]{{ '}' }}
+├── 📁 Degraded/                        ← System failure scenario (system detects: P-Box)
+│   ├── 📄 nodepriors.json             ← Contains: complex uncertainty data
+│   └── 📄 linkprobs.json              ← Contains: complex uncertainty data
+├── 📁 system overall capacity/         ← Flow analysis scenario
+│   └── 📄 capacities.json             ← Contains: {{ '{' }}"(1,2)": 100, "(2,3)": 80{{ '}' }}
+└── 📁 cpm/                             ← Time/cost analysis scenario
+    └── 📄 cpm-inputs.json             ← Contains: time and cost data
+              </pre>
+            </div>
+          </div>
         </mat-expansion-panel>
 
-        <!-- Folder Upload Input -->
+        <!-- File Upload Section -->
         <div class="upload-section">
+          <h3>Select Network Files</h3>
+          <p>Upload individual files or select a folder containing your network data.</p>
+
+          <!-- Folder Upload -->
           <input #folderInput
             type="file"
             webkitdirectory
@@ -34,133 +89,287 @@
             (change)="onFolderSelected($event)"
             class="hidden-input">
 
+          <!-- Individual Files Upload -->
+          <input #fileInput
+            type="file"
+            multiple
+            (change)="onFilesSelected($event)"
+            class="hidden-input">
+
+          <div class="upload-buttons">
             <button mat-raised-button color="primary"
-              (click)="folderInput.click()"
-              [disabled]="isProcessingFiles"
+              (click)="triggerFolderInput()"
+              [disabled]="isUploading()"
               class="upload-button">
               <mat-icon>folder_open</mat-icon>
-              Select Network Folder
+              Select Folder
+            </button>
+
+            <button mat-stroked-button
+              (click)="triggerFileInput()"
+              [disabled]="isUploading()"
+              class="upload-button">
+              <mat-icon>attach_file</mat-icon>
+              Add Files
             </button>
           </div>
-
-          @if (isProcessingFiles) {
-            <div class="progress-section">
-              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-              <p>Processing uploaded files...</p>
-            </div>
-          }
-
-          <!-- Network Selection -->
-          @if (categorizedNetworks.length > 0) {
-            <div class="network-selection">
-              <h4>Detected Networks</h4>
-              @for (network of categorizedNetworks; track network) {
-                <mat-card
-                  class="network-card"
-                  [class.selected]="selectedNetwork === network"
-                  (click)="selectNetwork(network)">
-                  <mat-card-header>
-                    <mat-icon mat-card-avatar
-                      [class.valid]="network.edgesFile"
-                      [class.invalid]="!network.edgesFile">
-                      {{ network.edgesFile ? 'account_tree' : 'error' }}
-                    </mat-icon>
-                    <mat-card-title>{{ network.name }}</mat-card-title>
-                    <mat-card-subtitle>{{ getNetworkSummary(network) }}</mat-card-subtitle>
-                  </mat-card-header>
-                </mat-card>
-              }
-              <!-- File Details for Selected Network -->
-              @if (selectedNetwork) {
-                <div class="file-details">
-                  <h4>Files in "{{ selectedNetwork.name }}"</h4>
-                  <table mat-table [dataSource]="getAllFiles(selectedNetwork)" class="files-table">
-                    <ng-container matColumnDef="file">
-                      <th mat-header-cell *matHeaderCellDef>File</th>
-                      <td mat-cell *matCellDef="let file">{{ file.file.name }}</td>
-                    </ng-container>
-                    <ng-container matColumnDef="category">
-                      <th mat-header-cell *matHeaderCellDef>Category</th>
-                      <td mat-cell *matCellDef="let file">
-                        <mat-chip [class]="'category-' + file.category">{{ file.category }}</mat-chip>
-                      </td>
-                    </ng-container>
-                    <ng-container matColumnDef="scenario">
-                      <th mat-header-cell *matHeaderCellDef>Scenario</th>
-                      <td mat-cell *matCellDef="let file">{{ file.scenarioType || '-' }}</td>
-                    </ng-container>
-                    <ng-container matColumnDef="confidence">
-                      <th mat-header-cell *matHeaderCellDef>Confidence</th>
-                      <td mat-cell *matCellDef="let file">{{ (file.confidence * 100).toFixed(0) }}%</td>
-                    </ng-container>
-                    <tr mat-header-row *matHeaderRowDef="fileDisplayColumns"></tr>
-                    <tr mat-row *matRowDef="let row; columns: fileDisplayColumns;"></tr>
-                  </table>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Analysis Configuration -->
-          @if (canProceed()) {
-            <div class="analysis-config">
-              <h3>Analysis Configuration</h3>
-              <p>Select which types of analysis to perform on your network.</p>
-              <form [formGroup]="analysisConfigForm">
-                <div class="analysis-options">
-                  <mat-checkbox formControlName="exactInference">
-                    <div class="option-content">
-                      <strong>Exact Inference</strong>
-                      <span>Precise belief propagation analysis</span>
-                    </div>
-                  </mat-checkbox>
-                  <mat-checkbox formControlName="diamondAnalysis">
-                    <div class="option-content">
-                      <strong>Diamond Analysis</strong>
-                      <span>Identify and analyze diamond structures</span>
-                    </div>
-                  </mat-checkbox>
-                  <mat-checkbox formControlName="flowAnalysis">
-                    <div class="option-content">
-                      <strong>Flow Analysis</strong>
-                      <span>Maximum flow capacity analysis</span>
-                    </div>
-                  </mat-checkbox>
-                  <mat-checkbox formControlName="criticalPath">
-                    <div class="option-content">
-                      <strong>Critical Path Analysis</strong>
-                      <span>Time and cost optimization</span>
-                    </div>
-                  </mat-checkbox>
-                </div>
-              </form>
-            </div>
-          }
-
-          <!-- Start Analysis -->
-          @if (canProceed()) {
-            <div class="start-section">
-              @if (isAnalyzing) {
-                <div class="progress-section">
-                  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                  <p>Running network analysis...</p>
-                </div>
-              }
-              <div class="action-row">
-                <button mat-button routerLink="/home" [disabled]="isAnalyzing">
-                  <mat-icon>arrow_back</mat-icon>
-                  Back to Home
-                </button>
-                <button mat-raised-button color="primary"
-                  (click)="startAnalysis()"
-                  [disabled]="isAnalyzing || !hasAnalysisSelected()">
-                  <mat-icon>play_arrow</mat-icon>
-                  Start Analysis
-                </button>
-              </div>
-            </div>
-          }
         </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+
+        <!-- Upload Progress -->
+        @if (isUploading()) {
+          <div class="progress-section">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            <p>Uploading and categorizing files...</p>
+          </div>
+        }
+
+        <!-- File Summary -->
+        @if (hasFiles()) {
+          <div class="file-summary">
+            <h4>File Summary</h4>
+            <p>{{ getFileSummary() }}</p>
+            
+            <button mat-button color="warn" (click)="clearAllFiles()">
+              <mat-icon>clear_all</mat-icon>
+              Clear All Files
+            </button>
+          </div>
+        }
+
+        <!-- Analysis Groups -->
+        @if (hasFiles()) {
+          <div class="analysis-groups">
+            <h3>Analysis Scenarios</h3>
+
+            <!-- Network Structure Group -->
+            <mat-expansion-panel [expanded]="true" class="network-panel">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon [class.valid]="getGroupValidation('network').isValid" 
+                           [class.invalid]="!getGroupValidation('network').isValid">
+                    {{ getGroupValidation('network').isValid ? 'check_circle' : 'error' }}
+                  </mat-icon>
+                  Network Structure
+                  <mat-chip class="file-count">{{ getGroupFiles('network').length }}</mat-chip>
+                </mat-panel-title>
+                <mat-panel-description>
+                  {{ getGroupValidation('network').isValid ? 'Ready - Shared by all scenarios' : getGroupValidation('network').message }}
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              
+              @if (getGroupFiles('network').length > 0) {
+                <div class="file-list">
+                  @for (file of getGroupFiles('network'); track file.id) {
+                    <div class="file-item network-file">
+                      <mat-icon>account_tree</mat-icon>
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-role">{{ file.suggestedRole }}</span>
+                      <span class="confidence" [class]="getConfidenceColor(file.confidence)">
+                        {{ getConfidenceDisplay(file.confidence) }}
+                      </span>
+                      <button mat-icon-button (click)="removeFile(file)" color="warn">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="no-files">No network structure files detected. Upload .edges files.</p>
+              }
+            </mat-expansion-panel>
+
+            <!-- Reachability Analysis Scenarios -->
+            @if (getScenarioCount('reachability') > 0) {
+              <mat-expansion-panel class="reachability-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon class="analysis-icon">psychology</mat-icon>
+                    Reachability Analysis
+                    <mat-chip class="scenario-count">{{ getScenarioCount('reachability') }} scenarios</mat-chip>
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Belief propagation scenarios with different uncertainty types
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="scenarios-container">
+                  @for (scenario of getScenarios('reachability'); track scenario; let i = $index) {
+                    <div class="scenario-group" [class.complete]="scenario.isComplete">
+                      <div class="scenario-header">
+                        <mat-icon [class.valid]="scenario.isComplete" [class.invalid]="!scenario.isComplete">
+                          {{ scenario.isComplete ? 'check_circle' : 'error' }}
+                        </mat-icon>
+                        <h5>{{ getScenarioDisplayName(scenario) }}</h5>
+                        <mat-chip class="file-count">{{ scenario.files.length }}</mat-chip>
+                        @if (!scenario.isComplete) {
+                          <span class="missing-files">Missing: {{ scenario.missingFiles.join(', ') }}</span>
+                        }
+                      </div>
+                      
+                      <div class="scenario-files">
+                        @for (file of scenario.files; track file.id) {
+                          <div class="file-item scenario-file">
+                            <mat-icon>description</mat-icon>
+                            <span class="file-name">{{ file.name }}</span>
+                            <span class="file-role">{{ file.suggestedRole }}</span>
+                            <span class="confidence" [class]="getConfidenceColor(file.confidence)">
+                              {{ getConfidenceDisplay(file.confidence) }}
+                            </span>
+                            <button mat-icon-button (click)="removeFile(file)" color="warn">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-expansion-panel>
+            }
+
+            <!-- Capacity Analysis Scenarios -->
+            @if (getScenarioCount('capacity') > 0) {
+              <mat-expansion-panel class="capacity-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon class="analysis-icon">trending_up</mat-icon>
+                    Capacity Analysis
+                    <mat-chip class="scenario-count">{{ getScenarioCount('capacity') }} scenarios</mat-chip>
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Flow capacity and bottleneck analysis
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="scenarios-container">
+                  @for (scenario of getScenarios('capacity'); track scenario; let i = $index) {
+                    <div class="scenario-group" [class.complete]="scenario.isComplete">
+                      <div class="scenario-header">
+                        <mat-icon [class.valid]="scenario.isComplete" [class.invalid]="!scenario.isComplete">
+                          {{ scenario.isComplete ? 'check_circle' : 'error' }}
+                        </mat-icon>
+                        <h5>{{ getScenarioDisplayName(scenario) }}</h5>
+                        <mat-chip class="file-count">{{ scenario.files.length }}</mat-chip>
+                        @if (!scenario.isComplete) {
+                          <span class="missing-files">Missing: {{ scenario.missingFiles.join(', ') }}</span>
+                        }
+                      </div>
+                      
+                      <div class="scenario-files">
+                        @for (file of scenario.files; track file.id) {
+                          <div class="file-item scenario-file">
+                            <mat-icon>description</mat-icon>
+                            <span class="file-name">{{ file.name }}</span>
+                            <span class="file-role">{{ file.suggestedRole }}</span>
+                            <span class="confidence" [class]="getConfidenceColor(file.confidence)">
+                              {{ getConfidenceDisplay(file.confidence) }}
+                            </span>
+                            <button mat-icon-button (click)="removeFile(file)" color="warn">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-expansion-panel>
+            }
+
+            <!-- CPM Analysis Scenarios -->
+            @if (getScenarioCount('cpm') > 0) {
+              <mat-expansion-panel class="cpm-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon class="analysis-icon">route</mat-icon>
+                    CPM Analysis
+                    <mat-chip class="scenario-count">{{ getScenarioCount('cpm') }} scenarios</mat-chip>
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Critical path method for time and cost optimization
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="scenarios-container">
+                  @for (scenario of getScenarios('cpm'); track scenario; let i = $index) {
+                    <div class="scenario-group" [class.complete]="scenario.isComplete">
+                      <div class="scenario-header">
+                        <mat-icon [class.valid]="scenario.isComplete" [class.invalid]="!scenario.isComplete">
+                          {{ scenario.isComplete ? 'check_circle' : 'error' }}
+                        </mat-icon>
+                        <h5>{{ getScenarioDisplayName(scenario) }}</h5>
+                        <mat-chip class="file-count">{{ scenario.files.length }}</mat-chip>
+                        @if (!scenario.isComplete) {
+                          <span class="missing-files">Missing: {{ scenario.missingFiles.join(', ') }}</span>
+                        }
+                      </div>
+                      
+                      <div class="scenario-files">
+                        @for (file of scenario.files; track file.id) {
+                          <div class="file-item scenario-file">
+                            <mat-icon>description</mat-icon>
+                            <span class="file-name">{{ file.name }}</span>
+                            <span class="file-role">{{ file.suggestedRole }}</span>
+                            <span class="confidence" [class]="getConfidenceColor(file.confidence)">
+                              {{ getConfidenceDisplay(file.confidence) }}
+                            </span>
+                            <button mat-icon-button (click)="removeFile(file)" color="warn">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-expansion-panel>
+            }
+          </div>
+        }
+
+        <!-- Validation Results -->
+        @if (validationResults().errors.length > 0 || validationResults().warnings.length > 0) {
+          <div class="validation-results">
+            @if (validationResults().errors.length > 0) {
+              <div class="errors">
+                <h4><mat-icon>error</mat-icon> Errors</h4>
+                @for (error of validationResults().errors; track error) {
+                  <p class="error-message">{{ error }}</p>
+                }
+              </div>
+            }
+            
+            @if (validationResults().warnings.length > 0) {
+              <div class="warnings">
+                <h4><mat-icon>warning</mat-icon> Warnings</h4>
+                @for (warning of validationResults().warnings; track warning) {
+                  <p class="warning-message">{{ warning }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Action Buttons -->
+        @if (hasFiles()) {
+          <div class="action-section">
+            <div class="action-row">
+              <button mat-button routerLink="/home">
+                <mat-icon>arrow_back</mat-icon>
+                Back to Home
+              </button>
+              
+              <button mat-raised-button color="primary"
+                (click)="proceedToAnalysis()"
+                [disabled]="!canProceedToAnalysis()">
+                <mat-icon>analytics</mat-icon>
+                Proceed to Analysis
+              </button>
+            </div>
+          </div>
+        }
+
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

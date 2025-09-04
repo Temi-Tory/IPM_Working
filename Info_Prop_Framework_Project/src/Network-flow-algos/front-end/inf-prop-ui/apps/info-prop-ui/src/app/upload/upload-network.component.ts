@@ -1,50 +1,34 @@
-import { Component, inject, ViewChild, ElementRef } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, inject, ViewChild, ElementRef, computed } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatStepperModule } from '@angular/material/stepper';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatTableModule } from '@angular/material/table';
-import { MatSelectModule } from '@angular/material/select';
 
-import { AnalysisStateService } from '../shared/services/analysis-state.service';
-import { NetworkBackendService } from '../shared/services/network-backend.service';
-import { NetworkValidationService, ValidationResult } from '../shared/services/network-validation.service';
 import { NetworkSessionService } from '../shared/services/network-session.service';
-import { FileCategorizationService, NetworkFolder, CategorizedFile } from '../shared/services/file-categorization.service';
-import { DataParsingService } from '../shared/services/data-parsing.service';
-import { AnalysisRequest, UploadResponse } from '../shared/models/network-analysis.models';
+import { FileManagerService } from '../shared/services/file-manager.service';
+import { FileUploadService } from '../shared/services/file-upload.service';
+import { CategorizedFile, AnalysisType } from '../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-upload-network',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
+    CommonModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
     MatProgressBarModule,
     MatSnackBarModule,
-    MatCheckboxModule,
-    MatStepperModule,
-    MatTabsModule,
     MatChipsModule,
-    MatExpansionModule,
-    MatTableModule,
-    MatSelectModule
-],
+    MatExpansionModule
+  ],
   templateUrl: './upload-network.component.html',
   styleUrls: ['./upload-network.component.scss']
 })
@@ -53,154 +37,113 @@ export class UploadNetworkComponent {
   @ViewChild('folderInput') folderInput!: ElementRef<HTMLInputElement>;
 
   private router = inject(Router);
-  private formBuilder = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
-  private analysisState = inject(AnalysisStateService);
-  private networkBackend = inject(NetworkBackendService);
-  private validationService = inject(NetworkValidationService);
   private sessionService = inject(NetworkSessionService);
-  private fileCategorizationService = inject(FileCategorizationService);
-  private dataParsingService = inject(DataParsingService);
+  private fileManager = inject(FileManagerService);
+  private fileUpload = inject(FileUploadService);
 
-  analysisConfigForm: FormGroup;
+  // File manager state signals
+  fileManagerState = this.fileManager.fileManagerState;
+  uploadedFiles = this.fileManager.uploadedFiles;
+  analysisGroups = this.fileManager.analysisGroups;
+  isUploading = this.fileManager.isUploading;
+  validationResults = this.fileManager.validationResults;
   
-  isAnalyzing = false;
-  isProcessingFiles = false;
-  
-  categorizedNetworks: NetworkFolder[] = [];
-  selectedNetwork: NetworkFolder | null = null;
-  private originalFiles: FileList | null = null;
-  private normalizedPathMap: Map<string, string> = new Map(); // Map original paths to normalized paths
-  fileDisplayColumns = ['file', 'category', 'scenario', 'confidence'];
+  // Computed properties for UI
+  hasFiles = computed(() => this.uploadedFiles().length > 0);
+  hasNetworkFiles = computed(() => this.analysisGroups().network.files.length > 0);
+  canProceedToAnalysis = computed(() => {
+    const groups = this.analysisGroups();
+    return this.uploadedFiles().length > 0 && groups.network.files.length > 0;
+  });
 
   constructor() {
-    this.analysisConfigForm = this.formBuilder.group({
-      exactInference: [true],
-      diamondAnalysis: [true],
-      flowAnalysis: [false],
-      criticalPath: [false]
-    });
+    // Load state from session if available
+    this.loadStateFromSession();
   }
 
-
-  get folderStructureGuide(): string {
-    return this.fileCategorizationService.getRecommendedFolderStructure();
-  }
-
+  /**
+   * Handle folder selection from input
+   */
   async onFolderSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
-    this.isProcessingFiles = true;
     try {
-      // Use the new normalization method
-      const { networks, normalizedFiles, pathMap } = await this.fileCategorizationService.normalizeAndCategorizeFiles(input.files);
+      // Upload files first
+      await this.uploadFiles(input.files);
       
-      // Store normalized files for upload instead of original files
-      this.originalFiles = this.createFileList(normalizedFiles);
-      this.categorizedNetworks = networks;
-      this.normalizedPathMap = pathMap;
-      
-      if (this.categorizedNetworks.length === 0) {
-        this.snackBar.open('No valid network files found', 'Close', { duration: 5000 });
-      } else if (this.categorizedNetworks.length === 1) {
-        this.selectedNetwork = this.categorizedNetworks[0];
-        this.snackBar.open(`Network "${this.selectedNetwork.name}" detected and normalized`, 'Close', { duration: 3000 });
-      } else {
-        this.snackBar.open(`${this.categorizedNetworks.length} networks detected. Please select one.`, 'Close', { duration: 3000 });
-      }
-      
-    } catch (error) {
-      this.snackBar.open('Error processing files', 'Close', { duration: 5000 });
-    } finally {
-      this.isProcessingFiles = false;
-    }
-  }
-
-  private createFileList(files: File[]): FileList {
-    // Create a FileList-like object from an array of Files
-    const fileList = {
-      length: files.length,
-      item: (index: number) => files[index] || null,
-      [Symbol.iterator]: function* () {
-        for (const file of files) {
-          yield file;
+      // Then process and categorize them using FileManagerService
+      this.fileManager.processUploadedFiles(input.files).subscribe({
+        next: (categorizedFiles) => {
+          // Save state to session
+          this.saveStateToSession();
+          
+          const fileCount = input.files!.length;
+          const networkFiles = this.analysisGroups().network.files.length;
+          
+          this.snackBar.open(
+            `Uploaded ${fileCount} files. Found ${networkFiles} network files.`,
+            'Close',
+            { duration: 3000 }
+          );
+        },
+        error: (error) => {
+          console.error('Error processing files:', error);
+          this.snackBar.open(`Error processing files: ${error.message}`, 'Close', { duration: 5000 });
         }
-      }
-    };
-    
-    // Add indexed properties
-    files.forEach((file, index) => {
-      (fileList as any)[index] = file;
-    });
-    
-    return fileList as FileList;
-  }
-
-  selectNetwork(network: NetworkFolder): void {
-    this.selectedNetwork = network;
-    this.snackBar.open(`Selected network: ${network.name}`, 'Close', { duration: 2000 });
-  }
-
-
-  hasAnalysisSelected(): boolean {
-    const config = this.analysisConfigForm.value;
-    return config.exactInference || config.diamondAnalysis || 
-           config.flowAnalysis || config.criticalPath;
-  }
-
-  getNetworkSummary(network: NetworkFolder): string {
-    const parts = [];
-    if (network.edgesFile) parts.push('Structure');
-    
-    const reachScenarios = Object.keys(network.reachabilityScenarios).length;
-    if (reachScenarios > 0) parts.push(`${reachScenarios} Reachability`);
-    
-    const capScenarios = Object.keys(network.capacityScenarios).length;
-    if (capScenarios > 0) parts.push(`${capScenarios} Capacity`);
-    
-    const cpmScenarios = Object.keys(network.cpmScenarios).length;
-    if (cpmScenarios > 0) parts.push(`${cpmScenarios} CPM`);
-    
-    return parts.join(' • ') || 'No scenarios';
-  }
-
-  getAllFiles(network: NetworkFolder): CategorizedFile[] {
-    const files: CategorizedFile[] = [];
-    
-    if (network.edgesFile) files.push(network.edgesFile);
-    
-    Object.values(network.reachabilityScenarios).forEach(scenario => {
-      if (scenario.nodepriors) files.push(scenario.nodepriors);
-      if (scenario.linkprobs) files.push(scenario.linkprobs);
-    });
-    
-    Object.values(network.capacityScenarios).forEach(scenario => {
-      if (scenario.capacities) files.push(scenario.capacities);
-    });
-    
-    Object.values(network.cpmScenarios).forEach(scenario => {
-      if (scenario.cpm) files.push(scenario.cpm);
-    });
-    
-    files.push(...network.unknownFiles);
-    
-    return files;
-  }
-
-  canProceed(): boolean {
-    return this.selectedNetwork !== null && !!this.selectedNetwork.edgesFile;
-  }
-
-  private async uploadNetworkFiles(): Promise<UploadResponse> {
-    if (!this.originalFiles) {
-      throw new Error('No files selected for upload');
+      });
+      
+    } catch (error: any) {
+      console.error('Error processing files:', error);
+      this.snackBar.open(`Error processing files: ${error.message}`, 'Close', { duration: 5000 });
     }
+  }
 
+  /**
+   * Handle individual file selection
+   */
+  async onFilesSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    try {
+      // Upload files first
+      await this.uploadFiles(input.files);
+      
+      // Then process and categorize them using FileManagerService
+      this.fileManager.processUploadedFiles(input.files).subscribe({
+        next: (categorizedFiles) => {
+          // Save state to session
+          this.saveStateToSession();
+          
+          const fileCount = input.files!.length;
+          this.snackBar.open(`Added ${fileCount} files`, 'Close', { duration: 2000 });
+        },
+        error: (error) => {
+          console.error('Error adding files:', error);
+          this.snackBar.open(`Error adding files: ${error.message}`, 'Close', { duration: 5000 });
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('Error adding files:', error);
+      this.snackBar.open(`Error adding files: ${error.message}`, 'Close', { duration: 5000 });
+    }
+  }
+
+  /**
+   * Upload files to backend
+   */
+  private async uploadFiles(files: FileList): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.networkBackend.uploadNetworkFiles(this.originalFiles!).subscribe({
+      this.fileUpload.uploadFiles(files).subscribe({
         next: (response) => {
-          resolve(response);
+          if (response.success) {
+            resolve();
+          } else {
+            reject(new Error(response.message || 'Upload failed'));
+          }
         },
         error: (error) => {
           reject(error);
@@ -209,165 +152,254 @@ export class UploadNetworkComponent {
     });
   }
 
-  startAnalysis(): void {
-    if (!this.hasAnalysisSelected()) {
-      this.snackBar.open('Please select at least one analysis type', 'Close', { duration: 3000 });
-      return;
-    }
-
-    if (!this.selectedNetwork || !this.selectedNetwork.edgesFile) {
-      this.snackBar.open('Please select a valid network with structure file', 'Close', { duration: 3000 });
-      return;
-    }
-
-    this.isAnalyzing = true;
-    this.snackBar.open('Uploading network files...', 'Close', { duration: 2000 });
-
-    // Step 1: Upload all files to backend
-    this.uploadNetworkFiles()
-      .then(uploadResponse => {
-        if (uploadResponse.success && uploadResponse.network_path) {
-          // Step 2: Use uploaded files path for analysis
-          const request: AnalysisRequest = {
-            networkPath: uploadResponse.network_path,
-            reachabilityScenarios: this.buildReachabilityScenarios(),
-            capacityScenarios: this.buildCapacityScenarios(),
-            cpmScenarios: this.buildCpmScenarios(),
-            analysisConfig: this.analysisConfigForm.value
-          };
-
-          this.snackBar.open('Files uploaded, starting analysis...', 'Close', { duration: 2000 });
-          this.executeAnalysis(request);
-        } else {
-          throw new Error(uploadResponse.message || 'Upload failed');
-        }
-      })
-      .catch(error => {
-        console.error('File upload failed:', error);
-        this.snackBar.open(`Upload failed: ${error.message}`, 'Close', { duration: 5000 });
-        this.isAnalyzing = false;
-      });
+  /**
+   * Reassign a file to a different category
+   */
+  reassignFile(file: CategorizedFile, newCategory: AnalysisType): void {
+    // For now, we'll need to implement reassignment logic
+    // This would require updating the FileManagerService to support reassignment
+    this.snackBar.open(`File reassignment not yet implemented`, 'Close', { duration: 2000 });
   }
 
-
-  private buildReachabilityScenarios(): any[] {
-    if (!this.selectedNetwork) return [];
-
-    return Object.entries(this.selectedNetwork.reachabilityScenarios)
-      .filter(([_, scenario]) => scenario.nodepriors && scenario.linkprobs)
-      .map(([name, scenario]) => ({
-        name: name,
-        nodepriors_path: this.normalizedPathMap.get(scenario.nodepriors?.relativePath || '') || '',
-        linkprobs_path: this.normalizedPathMap.get(scenario.linkprobs?.relativePath || '') || ''
-      }));
+  /**
+   * Remove a file from the manager
+   */
+  removeFile(file: CategorizedFile): void {
+    this.fileManager.removeFile(file.id);
+    this.saveStateToSession();
+    this.snackBar.open('File removed', 'Close', { duration: 2000 });
   }
 
-  private buildCapacityScenarios(): any[] {
-    if (!this.selectedNetwork) return [];
-
-    return Object.entries(this.selectedNetwork.capacityScenarios)
-      .filter(([_, scenario]) => scenario.capacities)
-      .map(([name, scenario]) => ({
-        name: name,
-        capacities_path: this.normalizedPathMap.get(scenario.capacities?.relativePath || '') || ''
-      }));
+  /**
+   * Clear all files
+   */
+  clearAllFiles(): void {
+    this.fileManager.clearAllFiles();
+    this.saveStateToSession();
+    this.snackBar.open('All files cleared', 'Close', { duration: 2000 });
   }
 
-  private buildCpmScenarios(): any[] {
-    if (!this.selectedNetwork) return [];
-
-    return Object.entries(this.selectedNetwork.cpmScenarios)
-      .filter(([_, scenario]) => scenario.cpm)
-      .map(([name, scenario]) => ({
-        name: name,
-        cpm_path: this.normalizedPathMap.get(scenario.cpm?.relativePath || '') || ''
-      }));
-  }
-
-  private executeAnalysis(request: AnalysisRequest): void {
-    const session = this.sessionService.createNewSession(request.networkPath);
-    this.analysisState.setCurrentNetworkPath(request.networkPath);
-
-    // Parse uploaded files locally for immediate access to node priors, edge probabilities, etc.
-    if (this.originalFiles) {
-      this.dataParsingService.parseUploadedFiles(this.originalFiles).subscribe({
-        next: (parsedData) => {
-          // Log scenario information for debugging
-          const scenarios = this.getScenarioSummary(parsedData);
-          
-          this.analysisState.setParsedData(parsedData);
-          this.sessionService.updateSession({ parsedData });
-          
-          // Show scenario summary to user
-          if (scenarios.total > 0) {
-            this.snackBar.open(
-              `Detected ${scenarios.total} scenarios: ${scenarios.summary}`,
-              'Close',
-              { duration: 5000 }
-            );
-          }
-        },
-        error: (error) => {
-          // Continue without parsed data
-        }
-      });
-    }
-
-    // Run the full analysis with all selected options
-    this.analysisState.runAnalysis(request).subscribe({
-      next: (response) => {
-        console.log('Full analysis completed successfully:', response);
-        
-        this.isAnalyzing = false;
-        this.analysisState.markTabCompleted('upload');
-        
-        this.sessionService.updateSession({
-          networkData: this.analysisState.networkData(),
-          analysisResults: response
-        });
-        
-        this.snackBar.open('Analysis completed successfully!', 'Close', { duration: 3000 });
-        this.router.navigate(['/visualization']);
-      },
-      error: (error) => {
-        console.error('Full analysis failed, falling back to structure only:', error);
-        
-        // Fallback: Load just network structure if full analysis fails
-        this.analysisState.loadNetworkStructure(request.networkPath).subscribe({
-          next: () => {
-            console.log('Network structure loaded successfully (fallback)');
-            
-            this.isAnalyzing = false;
-            this.analysisState.markTabCompleted('upload');
-            
-            this.sessionService.updateSession({
-              networkData: this.analysisState.networkData()
-            });
-            
-            this.snackBar.open('Network structure loaded (analysis partially failed)', 'Close', { duration: 3000 });
-            this.router.navigate(['/visualization']);
-          },
-          error: (structureError) => {
-            this.isAnalyzing = false;
-            this.snackBar.open(`Analysis failed: ${structureError.message}`, 'Close', { duration: 5000 });
-          }
-        });
+  /**
+   * Get validation status for analysis group
+   */
+  getGroupValidation(groupName: string): { isValid: boolean; message: string } {
+    const groups = this.analysisGroups();
+    switch (groupName) {
+      case 'network':
+        return {
+          isValid: groups.network.isComplete,
+          message: groups.network.missingFiles.join(', ')
+        };
+      case 'reachability': {
+        const reachGroup = groups.reachability[0];
+        return {
+          isValid: reachGroup?.isComplete || false,
+          message: reachGroup?.missingFiles.join(', ') || 'No reachability files'
+        };
       }
-    });
-}
+      case 'capacity': {
+        const capGroup = groups.capacity[0];
+        return {
+          isValid: capGroup?.isComplete || false,
+          message: capGroup?.missingFiles.join(', ') || 'No capacity files'
+        };
+      }
+      case 'cpm': {
+        const cpmGroup = groups.cpm[0];
+        return {
+          isValid: cpmGroup?.isComplete || false,
+          message: cpmGroup?.missingFiles.join(', ') || 'No CPM files'
+        };
+      }
+      default:
+        return { isValid: false, message: 'Unknown group' };
+    }
+  }
 
-private getScenarioSummary(parsedData: any): { total: number; summary: string } {
-  const scenarios: string[] = [];
-  
-  if (parsedData.float) scenarios.push('Float');
-  if (parsedData.pbox) scenarios.push('P-Box');
-  if (parsedData.interval) scenarios.push('Interval');
-  if (parsedData.capacity) scenarios.push('Capacity');
-  if (parsedData.cpm) scenarios.push('CPM');
-  
-  return {
-    total: scenarios.length,
-    summary: scenarios.join(', ')
-  };
-}
+  /**
+   * Get files for a specific analysis group
+   */
+  getGroupFiles(groupName: string): CategorizedFile[] {
+    const groups = this.analysisGroups();
+    switch (groupName) {
+      case 'network':
+        return groups.network.files;
+      case 'reachability':
+        // Return all files from all reachability scenarios
+        return groups.reachability.flatMap(group => group.files);
+      case 'capacity':
+        return groups.capacity.flatMap(group => group.files);
+      case 'cpm':
+        return groups.cpm.flatMap(group => group.files);
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Get all scenarios for a specific analysis type
+   */
+  getScenarios(analysisType: string): any[] {
+    const groups = this.analysisGroups();
+    switch (analysisType) {
+      case 'reachability':
+        return groups.reachability;
+      case 'capacity':
+        return groups.capacity;
+      case 'cpm':
+        return groups.cpm;
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Get display name for data type
+   */
+  getDataTypeDisplayName(dataType: string): string {
+    switch (dataType) {
+      case 'float': return 'Float (Deterministic)';
+      case 'interval': return 'Interval';
+      case 'pbox': return 'P-Box';
+      case 'capacity': return 'Capacity';
+      case 'cpm': return 'CPM';
+      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
+    }
+  }
+
+  /**
+   * Get scenario display name
+   */
+  getScenarioDisplayName(scenario: any): string {
+    if (scenario.analysisType === 'reachability') {
+      return this.getDataTypeDisplayName(scenario.dataType);
+    } else if (scenario.analysisType === 'cpm') {
+      const parts = [];
+      if (scenario.hasTimeAnalysis) parts.push('Time');
+      if (scenario.hasCostAnalysis) parts.push('Cost');
+      return parts.length > 0 ? `CPM (${parts.join(' + ')})` : 'CPM';
+    } else {
+      return scenario.analysisType.charAt(0).toUpperCase() + scenario.analysisType.slice(1);
+    }
+  }
+
+  /**
+   * Get total scenario count for analysis type
+   */
+  getScenarioCount(analysisType: string): number {
+    return this.getScenarios(analysisType).length;
+  }
+
+  /**
+   * Get available categories for reassignment
+   */
+  getAvailableCategories(): AnalysisType[] {
+    return ['network', 'reachability', 'capacity', 'cpm', 'unknown'];
+  }
+
+  /**
+   * Get confidence level display
+   */
+  getConfidenceDisplay(confidence: number): string {
+    if (confidence >= 0.9) return 'High';
+    if (confidence >= 0.7) return 'Medium';
+    if (confidence >= 0.5) return 'Low';
+    return 'Very Low';
+  }
+
+  /**
+   * Get confidence color class
+   */
+  getConfidenceColor(confidence: number): string {
+    if (confidence >= 0.9) return 'confidence-high';
+    if (confidence >= 0.7) return 'confidence-medium';
+    if (confidence >= 0.5) return 'confidence-low';
+    return 'confidence-very-low';
+  }
+
+  /**
+   * Proceed to analysis selection
+   */
+  proceedToAnalysis(): void {
+    if (!this.canProceedToAnalysis()) {
+      this.snackBar.open('Please upload network structure files first', 'Close', { duration: 3000 });
+      return;
+    }
+
+    // Save current state to session
+    this.saveStateToSession();
+    
+    // Navigate to analysis selection/configuration
+    this.router.navigate(['/analysis']);
+  }
+
+  /**
+   * Save current file manager state to session
+   */
+  private saveStateToSession(): void {
+    const currentSession = this.sessionService.getCurrentSession();
+    if (currentSession) {
+      this.sessionService.updateSession({
+        fileManagerState: this.fileManagerState()
+      });
+    } else {
+      // Create new session with file manager state
+      const session = this.sessionService.createNewSession('file-upload');
+      this.sessionService.updateSession({
+        fileManagerState: this.fileManagerState()
+      });
+    }
+  }
+
+  /**
+   * Load state from session if available
+   */
+  private loadStateFromSession(): void {
+    const currentSession = this.sessionService.getCurrentSession();
+    if (currentSession?.fileManagerState) {
+      // For now, we'll just note that state should be loaded
+      // The FileManagerService would need a loadState method
+      console.log('Loading file manager state from session');
+    }
+  }
+
+  /**
+   * Get summary of current file state
+   */
+  getFileSummary(): string {
+    const groups = this.analysisGroups();
+    const parts = [];
+    
+    if (groups.network.files.length > 0) {
+      parts.push(`${groups.network.files.length} Network`);
+    }
+    if (groups.reachability.length > 0) {
+      const totalReach = groups.reachability.reduce((sum, group) => sum + group.files.length, 0);
+      parts.push(`${totalReach} Reachability`);
+    }
+    if (groups.capacity.length > 0) {
+      const totalCap = groups.capacity.reduce((sum, group) => sum + group.files.length, 0);
+      parts.push(`${totalCap} Capacity`);
+    }
+    if (groups.cpm.length > 0) {
+      const totalCpm = groups.cpm.reduce((sum, group) => sum + group.files.length, 0);
+      parts.push(`${totalCpm} CPM`);
+    }
+    
+    return parts.join(' • ') || 'No files categorized';
+  }
+
+  /**
+   * Trigger file input click
+   */
+  triggerFileInput(): void {
+    this.fileInput.nativeElement.click();
+  }
+
+  /**
+   * Trigger folder input click
+   */
+  triggerFolderInput(): void {
+    this.folderInput.nativeElement.click();
+  }
 }

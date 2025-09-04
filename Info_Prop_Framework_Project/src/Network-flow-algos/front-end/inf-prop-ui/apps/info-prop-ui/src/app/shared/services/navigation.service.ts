@@ -1,6 +1,7 @@
 import { Injectable, inject, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AnalysisStateService } from './analysis-state.service';
+import { FileManagerService } from './file-manager.service';
 
 export interface NavigationStep {
   id: string;
@@ -31,6 +32,7 @@ export interface ComponentNavigation {
 export class NavigationService {
   private router = inject(Router);
   private analysisState = inject(AnalysisStateService);
+  private fileManager = inject(FileManagerService);
 
   // Define the analysis pipeline flow
   private readonly analysisSteps: NavigationStep[] = [
@@ -188,15 +190,42 @@ export class NavigationService {
     }
   }
 
-  // Check if step is available based on required data
+  // Check if step is available based on required data and file manager state
   isStepAvailable(step: NavigationStep): boolean {
     if (!step.requiredData) return true;
 
+    const hasUploadedFiles = this.fileManager.uploadedFiles().length > 0;
+
     switch (step.requiredData) {
       case 'networkData':
-        return this.analysisState.networkData() !== null;
+        // Network data steps are available if we have uploaded files OR existing network data
+        return this.analysisState.networkData() !== null || hasUploadedFiles;
       case 'analysisResults':
         return this.analysisState.analysisResults() !== null;
+      default:
+        return true;
+    }
+  }
+
+  // NEW: Check if specific analysis step is available based on file groups
+  isAnalysisStepAvailable(stepId: string): boolean {
+    const analysisGroups = this.fileManager.analysisGroups();
+    
+    switch (stepId) {
+      case 'network-structure':
+        return analysisGroups.network.canRunAnalysis;
+      case 'diamond-analysis':
+      case 'exact-inference':
+        return analysisGroups.reachability.some(g => g.canRunAnalysis);
+      case 'flow-analysis':
+        return analysisGroups.capacity.some(g => g.canRunAnalysis);
+      case 'critical-path':
+        return analysisGroups.cpm.some(g => g.canRunAnalysis);
+      case 'system-profile':
+        return analysisGroups.network.canRunAnalysis ||
+               analysisGroups.reachability.some(g => g.canRunAnalysis) ||
+               analysisGroups.capacity.some(g => g.canRunAnalysis) ||
+               analysisGroups.cpm.some(g => g.canRunAnalysis);
       default:
         return true;
     }

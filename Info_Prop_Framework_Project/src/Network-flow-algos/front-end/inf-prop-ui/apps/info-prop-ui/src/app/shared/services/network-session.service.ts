@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { NetworkStructure, AnalysisResponse } from '../models/network-analysis.models';
+import { NetworkStructure, AnalysisResponse, FileManagerState } from '../models/network-analysis.models';
 
 export interface SessionData {
   sessionId: string;
@@ -10,6 +10,7 @@ export interface SessionData {
   analysisResults: AnalysisResponse | null;
   analysisHistory: AnalysisResponse[];
   parsedData?: any; // Raw parsed data from uploaded files
+  fileManagerState?: FileManagerState; // NEW: File manager state
 }
 
 @Injectable({ providedIn: 'root' })

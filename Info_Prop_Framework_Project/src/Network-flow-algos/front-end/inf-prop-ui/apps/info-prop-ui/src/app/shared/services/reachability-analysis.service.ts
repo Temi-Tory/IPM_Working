@@ -16,15 +16,21 @@ export class ReachabilityAnalysisService {
   private http: HttpClient = inject(HttpClient);
 
   analyzeReachability(request: ReachabilityAnalysisRequest): Observable<ReachabilityAnalysisResponse> {
+    console.log('🔗 Sending reachability analysis request:', request);
+    
     return this.http.post<ReachabilityAnalysisResponse>(
       `${this.API_BASE}/reachability-analysis`,
       request
     ).pipe(
       tap(response => {
-        console.log('🔗 REACHABILITY ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
-        console.log('🔗 REACHABILITY ANALYSIS KEYS:', Object.keys(response));
-        if ((response as any).reachability_analysis) {
-          console.log('🔗 REACHABILITY ANALYSIS DATA KEYS:', Object.keys((response as any).reachability_analysis));
+        console.log('🔗 Reachability analysis response:', response.success ? 'SUCCESS' : 'FAILED');
+        if (response.success && response.reachability_result) {
+          console.log('📊 Reachability stats:', {
+            computationTime: response.reachability_result.scenario_computation_time,
+            hasExactInference: !!response.reachability_result.exact_inference,
+            hasDiamondAnalysis: !!response.reachability_result.diamond_analysis,
+            inputFiles: response.reachability_result.input_files
+          });
         }
       })
     );

@@ -38,9 +38,7 @@
         </mat-form-field>
 
         <div class="header-actions">
-
           <mat-divider [vertical]="true"></mat-divider>
-
           <button
             mat-icon-button
             matTooltip="Refresh Analysis"
@@ -68,7 +66,6 @@
           <div class="stat-value">{{ formatNumber(summary.totalDiamonds) }}</div>
           <div class="stat-label">Root Diamonds</div>
         </div>
-
 
         <div class="stat-card"
              matTooltip="Critical nodes where multiple paths converge - potential bottlenecks"
@@ -238,7 +235,7 @@
               <mat-card-header>
                 <mat-icon mat-card-avatar>filter_list</mat-icon>
                 <mat-card-title>Pattern Filters</mat-card-title>
-                <mat-card-subtitle>Filter diamonds by complexity and type</mat-card-subtitle>
+                <mat-card-subtitle>Filter diamonds by complexity, type, and risk level</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
                 <div class="filters-row">
@@ -278,8 +275,12 @@
                         <mat-icon>settings</mat-icon>
                         Complex Diamonds
                       </mat-option>
+                      <mat-option value="critical">
+                        <mat-icon>warning</mat-icon>
+                        High Risk Diamonds
+                      </mat-option>
                     </mat-select>
-                    <mat-hint>Filter by diamond hierarchy</mat-hint>
+                    <mat-hint>Filter by diamond hierarchy and risk</mat-hint>
                   </mat-form-field>
                   
                   <button mat-raised-button color="primary" (click)="applyFilters()">
@@ -311,12 +312,24 @@
               <mat-card-header>
                 <mat-icon mat-card-avatar>table_view</mat-icon>
                 <mat-card-title>Diamond Structures</mat-card-title>
-             </mat-card-header>
+                <mat-card-subtitle>Click any diamond to view detailed structural analysis</mat-card-subtitle>
+              </mat-card-header>
               <mat-card-content>
                 <div class="table-container">
                   @if (filteredDiamondPatterns(); as patterns) {
                     <table mat-table [dataSource]="dataSource" class="diamond-patterns-table" matSort>
                       
+                      <!-- Diamond Identifier Column -->
+                      <ng-container matColumnDef="displayId">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Diamond Structure</th>
+                        <td mat-cell *matCellDef="let pattern">
+                          <div class="diamond-identifier">
+                            <div class="diamond-title">{{ pattern.displayId }}</div>
+                            <div class="diamond-id">{{ pattern.id }}</div>
+                          </div>
+                        </td>
+                      </ng-container>
+
                       <!-- Node Count Column -->
                       <ng-container matColumnDef="nodeCount">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Size</th>
@@ -339,7 +352,40 @@
                         </td>
                       </ng-container>
 
-                    
+                      <!-- Conditioning Nodes Column -->
+                      <ng-container matColumnDef="conditioningNodes">
+                        <th mat-header-cell *matHeaderCellDef>Conditioning Nodes</th>
+                        <td mat-cell *matCellDef="let pattern">
+                          <div class="conditioning-nodes">
+                            @if (pattern.conditioningNodes.length > 0) {
+                              <mat-chip-set>
+                                @for (node of pattern.conditioningNodes.slice(0, 3); track node) {
+                                  <mat-chip class="conditioning-chip">{{ node }}</mat-chip>
+                                }
+                                @if (pattern.conditioningNodes.length > 3) {
+                                  <mat-chip class="conditioning-chip more-nodes">
+                                    +{{ pattern.conditioningNodes.length - 3 }} more
+                                  </mat-chip>
+                                }
+                              </mat-chip-set>
+                            } @else {
+                              <span class="no-conditioning">No conditioning nodes</span>
+                            }
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Risk Level Column -->
+                      <ng-container matColumnDef="riskLevel">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Risk Level</th>
+                        <td mat-cell *matCellDef="let pattern">
+                          <div class="risk-assessment" [class]="'risk-' + getRiskLevel(pattern)">
+                            <mat-icon>{{ getRiskIcon(pattern) }}</mat-icon>
+                            <span class="risk-level-text">{{ getRiskLevel(pattern).toUpperCase() }}</span>
+                            <span class="risk-score">{{ calculateRiskScore(pattern).toFixed(1) }}</span>
+                          </div>
+                        </td>
+                      </ng-container>
 
                       <!-- Complexity Column -->
                       <ng-container matColumnDef="complexity">
@@ -351,7 +397,7 @@
                                    [style.width.%]="(pattern.complexity / getMaxComplexity()) * 100"
                                    [class]="'complexity-' + getComplexityLevel(pattern)"></div>
                             </div>
-                            <span class="complexity-value">{{ pattern.complexity }}</span>
+                            <span class="complexity-value">{{ pattern.complexity.toFixed(0) }}</span>
                           </div>
                         </td>
                       </ng-container>
@@ -367,12 +413,14 @@
                               (click)="$event.stopPropagation(); openDiamondDetailsModal(pattern)">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                         <!--    <button
-                              mat-icon-button
-                              matTooltip="Explore Hierarchy"
-                              (click)="$event.stopPropagation(); exploreDiamondHierarchy(pattern)">
-                              <mat-icon>account_tree</mat-icon>
-                            </button> -->
+                            @if (pattern.conditioningNodes.length > 0) {
+                              <button
+                                mat-icon-button
+                                matTooltip="View Conditioning Analysis"
+                                (click)="$event.stopPropagation(); openNodeAnalysis(pattern.conditioningNodes[0])">
+                                <mat-icon>psychology</mat-icon>
+                              </button>
+                            }
                           </div>
                         </td>
                       </ng-container>
@@ -398,14 +446,16 @@
         </mat-tab>
 
         <!-- System Optimization Tab -->
-        <mat-tab label="Optimization Insights">
+        <mat-tab label="Risk Assessment">
           <div class="tab-content optimization-tab">
             
             <!-- Immediate Risk Assessment -->
             <mat-card class="optimization-card">
               <mat-card-header>
                 <mat-icon mat-card-avatar>priority_high</mat-icon>
-                  </mat-card-header>
+                <mat-card-title>System Risk Analysis</mat-card-title>
+                <mat-card-subtitle>Critical vulnerabilities and structural weaknesses</mat-card-subtitle>
+              </mat-card-header>
               <mat-card-content>
                 @if (getHighRiskPatterns(); as riskPatterns) {
                   <div class="risk-patterns-list">
@@ -428,11 +478,140 @@
                 } @else {
                   <div class="no-risks">
                     <mat-icon>check_circle</mat-icon>
-                    <p>No immediate high-risk patterns identified</p>
+                    <p>No critical risk patterns identified</p>
                   </div>
                 }
               </mat-card-content>
             </mat-card>
+
+            <!-- Optimization Insights -->
+            @if (getOptimizationInsights(); as optimizationInsights) {
+              <mat-card class="optimization-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>auto_fix_high</mat-icon>
+                  <mat-card-title>Optimization Opportunities</mat-card-title>
+                  <mat-card-subtitle>Structural improvements and efficiency enhancements</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="optimization-insights-list">
+                    @for (insight of optimizationInsights; track insight.id) {
+                      <div class="optimization-insight-item" [class]="'priority-' + insight.priority">
+                        <div class="insight-header">
+                          <div class="insight-icon">
+                            <mat-icon>{{ getOptimizationIcon(insight.type) }}</mat-icon>
+                          </div>
+                          <div class="insight-title-section">
+                            <h4 class="insight-title">{{ insight.title }}</h4>
+                            <div class="insight-meta">
+                              <mat-chip [color]="getPriorityColor(insight.priority)" class="priority-chip">
+                                {{ insight.priority.toUpperCase() }} PRIORITY
+                              </mat-chip>
+                              <span class="insight-count">{{ insight.count }} instances</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p class="insight-description">{{ insight.description }}</p>
+                        <div class="insight-interpretation">
+                          <mat-icon>lightbulb</mat-icon>
+                          <span>{{ insight.interpretation }}</span>
+                        </div>
+                        <div class="insight-recommendations">
+                          <h5>Recommended Actions:</h5>
+                          <div class="recommendation-chips">
+                            @for (recommendation of insight.recommendations; track recommendation) {
+                              <mat-chip class="recommendation-chip">{{ recommendation }}</mat-chip>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+
+          </div>
+        </mat-tab>
+
+        <!-- Join Node Analysis Tab -->
+        <mat-tab label="Join Node Analysis">
+          <div class="tab-content join-nodes-tab">
+            
+            @if (joinNodeAnalysis(); as joinNodes) {
+              <mat-card class="table-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>device_hub</mat-icon>
+                  <mat-card-title>Critical Join Nodes</mat-card-title>
+                  <mat-card-subtitle>Nodes where multiple paths converge - system bottlenecks and vulnerabilities</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="table-container">
+                    <table mat-table [dataSource]="joinNodes" class="join-nodes-table">
+                      
+                      <ng-container matColumnDef="nodeId">
+                        <th mat-header-cell *matHeaderCellDef>Node ID</th>
+                        <td mat-cell *matCellDef="let element">
+                          <button class="node-button" 
+                                  (click)="openNodeAnalysis(element.nodeId)"
+                                  matTooltip="Click for detailed node analysis">
+                            <mat-icon>grain</mat-icon>
+                            <span>{{ element.nodeId }}</span>
+                          </button>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="diamondCount">
+                        <th mat-header-cell *matHeaderCellDef>Diamond Count</th>
+                        <td mat-cell *matCellDef="let element">
+                          <span class="diamond-count">{{ element.diamondCount }}</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="centralityScore">
+                        <th mat-header-cell *matHeaderCellDef>Centrality Score</th>
+                        <td mat-cell *matCellDef="let element">
+                          <span class="centrality-score">{{ element.centralityScore }}</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="isBottleneck">
+                        <th mat-header-cell *matHeaderCellDef>Bottleneck</th>
+                        <td mat-cell *matCellDef="let element">
+                          <mat-chip [class]="element.isBottleneck ? 'bottleneck-yes' : 'bottleneck-no'">
+                            <mat-icon>{{ element.isBottleneck ? 'warning' : 'check_circle' }}</mat-icon>
+                            {{ element.isBottleneck ? 'Yes' : 'No' }}
+                          </mat-chip>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="riskLevel">
+                        <th mat-header-cell *matHeaderCellDef>Risk Level</th>
+                        <td mat-cell *matCellDef="let element">
+                          <mat-chip class="risk-chip" [class]="'risk-' + (element.riskLevel || 'low')">
+                            <mat-icon>{{ element.riskLevel === 'high' ? 'error' : element.riskLevel === 'medium' ? 'warning' : 'check_circle' }}</mat-icon>
+                            {{ (element.riskLevel || 'low').toUpperCase() }}
+                          </mat-chip>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef>Actions</th>
+                        <td mat-cell *matCellDef="let element">
+                          <button mat-icon-button 
+                                  (click)="viewNodeInContext(element.nodeId)"
+                                  matTooltip="View node in network context">
+                            <mat-icon>visibility</mat-icon>
+                          </button>
+                        </td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="['nodeId', 'diamondCount', 'centralityScore', 'isBottleneck', 'riskLevel', 'actions']"></tr>
+                      <tr mat-row *matRowDef="let row; columns: ['nodeId', 'diamondCount', 'centralityScore', 'isBottleneck', 'riskLevel', 'actions'];" class="join-node-row"></tr>
+                    </table>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
 
           </div>
         </mat-tab>
@@ -456,6 +635,7 @@
     </div>
   }
 </div>
+
 <style>
 .clickable-row {
   cursor: pointer;
@@ -466,9 +646,95 @@
   background-color: var(--primary-color-light) !important;
 }
 
-.diamond-details-dialog .mat-mdc-dialog-container,
-.hierarchy-builder-dialog .mat-mdc-dialog-container {
+.diamond-details-dialog .mat-mdc-dialog-container {
   padding: 0;
   overflow: hidden;
+}
+
+.diamond-identifier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.diamond-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.diamond-id {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.conditioning-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.conditioning-chip {
+  font-size: 0.75rem;
+  height: 20px;
+  background: var(--primary-color-light);
+  color: var(--primary-color);
+}
+
+.conditioning-chip.more-nodes {
+  background: var(--accent-color-light);
+  color: var(--accent-color);
+}
+
+.no-conditioning {
+  font-size: 0.8rem;
+  color: var(--text-disabled);
+  font-style: italic;
+}
+
+.risk-assessment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.risk-level-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.risk-score {
+  font-size: 0.75rem;
+  background: currentColor;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.bottleneck-yes {
+  background: var(--warning-color-light);
+  color: var(--warning-color);
+}
+
+.bottleneck-no {
+  background: var(--success-color-light);
+  color: var(--success-color);
+}
+
+.diamond-count, .centrality-score {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.join-node-row:hover {
+  background-color: var(--surface-background);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
 }
 </style>

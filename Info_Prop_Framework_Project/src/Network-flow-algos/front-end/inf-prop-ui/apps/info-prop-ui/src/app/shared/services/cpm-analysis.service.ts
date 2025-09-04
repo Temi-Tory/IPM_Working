@@ -16,15 +16,21 @@ export class CpmAnalysisService {
   private http: HttpClient = inject(HttpClient);
 
   analyzeCpm(request: CpmAnalysisRequest): Observable<CpmAnalysisResponse> {
+    console.log('📊 Sending CPM analysis request:', request);
+    
     return this.http.post<CpmAnalysisResponse>(
       `${this.API_BASE}/cpm-analysis`,
       request
     ).pipe(
       tap(response => {
-        console.log('📊 CPM ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
-        console.log('📊 CPM ANALYSIS KEYS:', Object.keys(response));
-        if ((response as any).cpm_analysis) {
-          console.log('📊 CPM ANALYSIS DATA KEYS:', Object.keys((response as any).cpm_analysis));
+        console.log('📊 CPM analysis response:', response.success ? 'SUCCESS' : 'FAILED');
+        if (response.success && response.cmp_result) {
+          console.log('⏱️ CPM stats:', {
+            timeCriticalValue: response.cmp_result.time_result.critical_value,
+            costCriticalValue: response.cmp_result.cost_result.critical_value,
+            timeCriticalNodes: response.cmp_result.time_result.critical_nodes.length,
+            costCriticalNodes: response.cmp_result.cost_result.critical_nodes.length
+          });
         }
       })
     );

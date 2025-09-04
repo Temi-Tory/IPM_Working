@@ -38,77 +38,36 @@ export class DiamondAnalysisService {
     return results.scenarios.get(results.currentScenario) || null;
   });
 
- analyzeDiamonds(request: DiamondAnalysisRequest): Observable<DiamondAnalysisResponse> {
-  console.log('🚀 Sending diamond analysis request:', request);
-  
-  return this.http.post<DiamondAnalysisResponse>(
-    `${this.API_BASE}/diamond-analysis`,
-    request
-  ).pipe(
-    tap(response => {
-      console.log('💎 DIAMOND ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
-      
-      // Enhanced debugging
-      if (response.success) {
-        console.log('✅ Analysis successful');
-        console.log('📊 Network name:', response.network_name);
-        
-        if (response.diamond_analysis) {
-          const analysis = response.diamond_analysis;
-          console.log('📈 Analysis data keys:', Object.keys(analysis));
-          console.log('💎 Root diamonds count:', analysis.root_diamonds_count);
-          console.log('🔷 Unique diamonds count:', analysis.unique_diamonds_count);
-          
-          // Check if raw data exists
-          if (analysis.raw_root_diamonds) {
-            console.log('✅ Raw root diamonds found:', Object.keys(analysis.raw_root_diamonds).length, 'entries');
-            console.log('📋 Root diamond keys:', Object.keys(analysis.raw_root_diamonds));
-            
-            // Log first root diamond structure
-            const firstRootKey = Object.keys(analysis.raw_root_diamonds)[0];
-            if (firstRootKey) {
-              console.log('🔍 First root diamond structure:', analysis.raw_root_diamonds[firstRootKey]);
-            }
-          } else {
-            console.warn('❌ No raw_root_diamonds found in response');
-          }
-          
-          if (analysis.raw_unique_diamonds) {
-            console.log('✅ Raw unique diamonds found:', Object.keys(analysis.raw_unique_diamonds).length, 'entries');
-            console.log('📋 Unique diamond keys:', Object.keys(analysis.raw_unique_diamonds));
-            
-            // Log first unique diamond structure
-            const firstUniqueKey = Object.keys(analysis.raw_unique_diamonds)[0];
-            if (firstUniqueKey) {
-              console.log('🔍 First unique diamond structure keys:', Object.keys(analysis.raw_unique_diamonds[firstUniqueKey]));
-              console.log('🔍 First unique diamond sample:', analysis.raw_unique_diamonds[firstUniqueKey]);
-            }
-          } else {
-            console.warn('❌ No raw_unique_diamonds found in response');
-          }
-        } else {
-          console.error('❌ No diamond_analysis found in response');
+  analyzeDiamonds(request: DiamondAnalysisRequest): Observable<DiamondAnalysisResponse> {
+    console.log('💎 Sending diamond analysis request:', request);
+    
+    return this.http.post<DiamondAnalysisResponse>(
+      `${this.API_BASE}/diamond-analysis`,
+      request
+    ).pipe(
+      tap(response => {
+        console.log('💎 Diamond analysis response:', response.success ? 'SUCCESS' : 'FAILED');
+        if (response.success && response.diamond_analysis) {
+          console.log('📊 Diamond stats:', {
+            rootDiamonds: response.diamond_analysis.root_diamonds_count,
+            uniqueDiamonds: response.diamond_analysis.unique_diamonds_count,
+            joinNodes: response.diamond_analysis.join_nodes_with_diamonds.length,
+            efficiency: response.diamond_analysis.diamond_efficiency
+          });
         }
-      } else {
-        console.error('❌ Analysis failed:', response.message);
-      }
-    }),
-    catchError(error => {
-      console.error('🚨 HTTP Error in diamond analysis:', error);
-      console.error('🚨 Error status:', error.status);
-      console.error('🚨 Error message:', error.message);
-      console.error('🚨 Error body:', error.error);
-      throw error;
-    })
-  );
-}
+      }),
+      catchError(error => {
+        console.error('💎 Diamond analysis failed:', error.message || error);
+        throw error;
+      })
+    );
+  }
 
   // **NEW: Multi-scenario diamond analysis**
   analyzeMultipleScenarios(networkPath: string, scenarios: ScenarioInfo[]): Observable<MultiScenarioDiamondResults> {
     const analysisRequests = scenarios.map(scenario =>
       this.analyzeDiamonds({
-        networkPath,
-        useDefaultPriors: true
+        networkPath
       }).pipe(
         map(response => ({ scenario: scenario.name, result: response.diamond_analysis })),
         catchError(error => {
@@ -166,7 +125,7 @@ export class DiamondAnalysisService {
     return scenarios;
   }
 
-  // **NEW: Data processing methods**
+  // **FIXED: Enhanced diamond processing methods with proper identification**
   processDiamondSummary(diamondResult: DiamondAnalysisResult): DiamondSummary {
     const uniqueDiamonds = diamondResult.raw_unique_diamonds || {};
     const rootDiamonds = diamondResult.raw_root_diamonds || {};
@@ -231,7 +190,107 @@ export class DiamondAnalysisService {
     return Array.from(joinNodeMap.values()).sort((a, b) => b.centralityScore - a.centralityScore);
   }
 
-  // **NEW: Helper methods**
+  // **NEW: Create meaningful diamond identifiers**
+  createDiamondIdentifier(diamond: any, isRoot: boolean, joinNode?: number): string {
+    if (isRoot && joinNode !== undefined) {
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      return `Join ${joinNode} ← [${conditioningNodes.join(', ')}]`;
+    } else {
+      // For unique diamonds, use conditioning nodes from the diamond structure
+      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      const joinNodes = diamond.sub_join_nodes || [];
+      if (conditioningNodes.length > 0 && joinNodes.length > 0) {
+        return `${joinNodes.join(', ')} ← [${conditioningNodes.join(', ')}]`;
+      }
+      return `Diamond (${diamond.node_count || 0} nodes)`;
+    }
+  }
+
+  // **NEW: Get diamond structural details**
+  getDiamondStructuralInfo(diamond: any, isRoot: boolean): any {
+    const baseInfo = {
+      nodeCount: diamond.node_count || 0,
+      isRoot: isRoot,
+      conditioningNodes: [] as number[],
+      joinNodes: [] as number[],
+      relevantNodes: [] as number[],
+      edgeList: [] as [number, number][]
+    };
+
+    if (isRoot) {
+      // Root diamond structure
+      baseInfo.conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      baseInfo.joinNodes = [diamond.join_node];
+      baseInfo.relevantNodes = diamond.diamond?.relevant_nodes || [];
+      baseInfo.edgeList = diamond.diamond?.edgelist || [];
+    } else {
+      // Unique diamond structure
+      baseInfo.conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      baseInfo.joinNodes = diamond.sub_join_nodes || [];
+      baseInfo.relevantNodes = diamond.diamond?.relevant_nodes || [];
+      baseInfo.edgeList = diamond.diamond?.edgelist || [];
+    }
+
+    return baseInfo;
+  }
+
+  // **NEW: Extract all diamond patterns with proper identification**
+  extractDiamondPatterns(diamondResult: DiamondAnalysisResult): DiamondPattern[] {
+    const patterns: DiamondPattern[] = [];
+
+    // Process root diamonds
+    if (diamondResult.raw_root_diamonds) {
+      Object.entries(diamondResult.raw_root_diamonds).forEach(([joinNodeStr, diamond]: [string, any]) => {
+        const joinNode = parseInt(joinNodeStr);
+        const structuralInfo = this.getDiamondStructuralInfo(diamond, true);
+        const identifier = this.createDiamondIdentifier(diamond, true, joinNode);
+
+        patterns.push({
+          id: `root-${joinNodeStr}`,
+          displayId: identifier,
+          nodeCount: structuralInfo.nodeCount,
+          isRoot: true,
+          complexity: this.calculateComplexity(diamond),
+          joinNodes: [joinNode],
+          sourceNodes: structuralInfo.conditioningNodes,
+          forkNodes: [], // Would need network structure to calculate
+          conditioningNodes: structuralInfo.conditioningNodes,
+          joinNode: joinNode,
+          relevantNodes: structuralInfo.relevantNodes,
+          edgeList: structuralInfo.edgeList,
+          subDiamonds: []
+        });
+      });
+    }
+
+    // Process unique diamonds
+    if (diamondResult.raw_unique_diamonds) {
+      Object.entries(diamondResult.raw_unique_diamonds).forEach(([hash, diamond]: [string, any]) => {
+        const structuralInfo = this.getDiamondStructuralInfo(diamond, false);
+        const identifier = this.createDiamondIdentifier(diamond, false);
+
+        patterns.push({
+          id: `unique-${hash}`,
+          displayId: identifier,
+          nodeCount: structuralInfo.nodeCount,
+          isRoot: diamond.is_root_diamond || false,
+          complexity: this.calculateComplexity(diamond),
+          joinNodes: structuralInfo.joinNodes,
+          sourceNodes: diamond.sub_sources || [],
+          forkNodes: diamond.sub_fork_nodes || [],
+          conditioningNodes: structuralInfo.conditioningNodes,
+          diamondHash: hash,
+          relevantNodes: structuralInfo.relevantNodes,
+          edgeList: structuralInfo.edgeList,
+          subDiamonds: []
+        });
+      });
+    }
+
+    return patterns;
+  }
+
+  // **Helper methods**
   private detectDataType(scenarioName: string): 'float' | 'interval' | 'pbox' {
     if (scenarioName.includes('pbox')) return 'pbox';
     if (scenarioName.includes('interval')) return 'interval';
@@ -258,5 +317,12 @@ export class DiamondAnalysisService {
       }
     });
     return score;
+  }
+
+  private calculateComplexity(diamond: any): number {
+    const baseComplexity = diamond.node_count || 0;
+    const structuralComplexity = diamond.sub_iteration_sets_count || 1;
+    const edgeComplexity = diamond.diamond?.edgelist?.length || 0;
+    return baseComplexity + structuralComplexity + (edgeComplexity * 0.5);
   }
 }

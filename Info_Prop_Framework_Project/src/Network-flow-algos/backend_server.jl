@@ -62,14 +62,12 @@ function setup_server()
     println("Upload directory: $UPLOAD_DIR")
 end
 
-function validate_network_structure(network_dir::String)
-    # Check for required .EDGES file
-    network_name = basename(network_dir)
-    edges_file = joinpath(network_dir, network_name * ".EDGES")
-    if !isfile(edges_file)
-        return false, "Missing .EDGES file: $edges_file"
+function validate_network_file(edges_file_path::String)
+    # Simple validation - just check if .EDGES file exists
+    if !isfile(edges_file_path)
+        return false, "Missing .EDGES file: $edges_file_path"
     end
-    return true, "Valid structure"
+    return true, "Valid .EDGES file"
 end
 
 function create_default_node_priors(allnodes::Vector{Int64})
@@ -207,134 +205,8 @@ function parse_multipart_data(body_str::String, boundary::String, upload_path::S
     return uploaded_files
 end
 
-function organize_uploaded_files(upload_path::String, uploaded_files::Vector{String})
-    """Organize uploaded files and detect network structure"""
-    
-    # Find .EDGES files (these define networks)
-    edges_files = filter(f -> endswith(f, ".EDGES"), uploaded_files)
-    
-    if isempty(edges_files)
-        return nothing
-    end
-    
-    # Use the first .EDGES file to determine network name
-    edges_file = edges_files[1]
-    # Extract just the filename without directory path and extension
-    network_name = basename(replace(edges_file, ".EDGES" => ""))
-    
-    # Create network directory structure
-    network_path = joinpath(upload_path, network_name)
-    mkpath(network_path)
-    
-    # Move and organize files
-    organized_files = String[]
-    
-    for filename in uploaded_files
-        original_path = joinpath(upload_path, filename)
-        
-        # Determine target location based on file type and structure
-        target_path = determine_file_location(network_path, filename, network_name)
-        
-        # Create target directory if needed
-        target_dir = dirname(target_path)
-        if target_dir != network_path
-            mkpath(target_dir)
-        end
-        
-        # Move file to organized location (only if paths are different)
-        if original_path != target_path && isfile(original_path) && !isfile(target_path)
-            mv(original_path, target_path, force=true)
-        elseif original_path == target_path
-            # File is already in the correct location - no move needed
-            println("File already correctly positioned: $filename")
-        end
-        
-        push!(organized_files, target_path)
-    end
-    
-    # Validate network structure
-    is_valid, message = validate_network_structure(network_path)
-    
-    return Dict(
-        "network_name" => network_name,
-        "network_path" => network_path,
-        "organized_files" => organized_files,
-        "validation" => Dict(
-            "is_valid" => is_valid,
-            "message" => message
-        )
-    )
-end
-
-function determine_file_location(network_path::String, filename::String, network_name::String)
-    """Determine where to place an uploaded file based on its name and type"""
-    
-    # Main network file goes to root
-    if endswith(filename, ".EDGES") && contains(filename, network_name)
-        return joinpath(network_path, basename(filename))
-    end
-    
-    # Scenario files go to appropriate subdirectories
-    if contains(filename, "nodepriors") || contains(filename, "linkprob")
-        if contains(filename, "float")
-            return joinpath(network_path, "float", basename(filename))
-        elseif contains(filename, "pbox")
-            return joinpath(network_path, "pbox", basename(filename))
-        elseif contains(filename, "interval")
-            return joinpath(network_path, "interval", basename(filename))
-        else
-            return joinpath(network_path, "float", basename(filename))  # Default to float
-        end
-    elseif contains(filename, "capacities")
-        return joinpath(network_path, "capacity", basename(filename))
-    elseif contains(filename, "cpm")
-        return joinpath(network_path, "cpm", basename(filename))
-    else
-        # Unknown files go to root
-        return joinpath(network_path, filename)
-    end
-end
-
-function scan_available_data_files(network_path::String)
-    """Scan for available data files without loading their content"""
-    available_files = Dict()
-    
-    # Define data type directories and their corresponding file patterns
-    data_types = [
-        ("float", ["nodepriors", "linkprobabilities"]),
-        ("interval", ["nodepriors", "linkprobabilities"]),
-        ("pbox", ["nodepriors", "linkprobabilities"]),
-        ("capacity", ["capacities"]),
-        ("cpm", ["cpm-inputs"])
-    ]
-    
-    for (data_type, file_patterns) in data_types
-        type_dir = joinpath(network_path, data_type)
-        if isdir(type_dir)
-            available_files[data_type] = Dict()
-            
-            for pattern in file_patterns
-                # Find files matching the pattern
-                matching_files = filter(readdir(type_dir)) do filename
-                    contains(filename, pattern) && endswith(filename, ".json")
-                end
-                
-                if !isempty(matching_files)
-                    # Just store the file path, don't load content
-                    relative_path = joinpath(data_type, matching_files[1])
-                    available_files[data_type][pattern] = relative_path
-                end
-            end
-            
-            # Remove empty data type entries
-            if isempty(available_files[data_type])
-                delete!(available_files, data_type)
-            end
-        end
-    end
-    
-    return available_files
-end
+# Removed organize_uploaded_files, determine_file_location, and scan_available_data_files
+# Backend now saves files with original paths without organization
 
 # File serving endpoint for frontend to fetch JSON files directly
 function handle_file_request(req::HTTP.Request)
@@ -398,6 +270,7 @@ function handle_network_structure(req::HTTP.Request)
     try
         request_data = JSON.parse(String(req.body))
         network_path = get(request_data, "networkPath", "")
+        edges_file_path = get(request_data, "edgesFilePath", "")
         
         if isempty(network_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
@@ -406,21 +279,31 @@ function handle_network_structure(req::HTTP.Request)
             )))
         end
         
-        # Validate network structure
-        is_valid, message = validate_network_structure(network_path)
+        # If edges file path not provided, try to find it
+        if isempty(edges_file_path)
+            # Look for .EDGES files in the network path
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    edges_file_path = joinpath(network_path, edges_files[1])
+                end
+            end
+        else
+            edges_file_path = joinpath(network_path, edges_file_path)
+        end
+        
+        # Validate edges file exists
+        is_valid, message = validate_network_file(edges_file_path)
         if !is_valid
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
                 "success" => false,
-                "message" => "Invalid network structure: $message"
+                "message" => "Invalid network file: $message"
             )))
         end
         
-        network_name = basename(network_path)
-        filepath_graph = joinpath(network_path, network_name * ".EDGES")
-        
         # Network Structure Analysis Only
         start_time = time()
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
         
@@ -430,14 +313,8 @@ function handle_network_structure(req::HTTP.Request)
         
         computation_time = time() - start_time
         
-        # Just scan for available data files (don't load content)
-        uploaded_data_start_time = time()
-        available_data_files = scan_available_data_files(network_path)
-        uploaded_data_time = time() - uploaded_data_start_time
-        
         network_structure = Dict(
             "computation_time" => computation_time,
-            "uploaded_data_time" => uploaded_data_time,
             "total_nodes" => length(allnodes),
             "total_edges" => length(edgelist),
             "nodes" => allnodes,
@@ -451,15 +328,13 @@ function handle_network_structure(req::HTTP.Request)
             "ancestors" => Dict(string(k) => collect(v) for (k, v) in ancestors),
             "descendants" => Dict(string(k) => collect(v) for (k, v) in descendants),
             "outgoing_index" => Dict(string(k) => collect(v) for (k, v) in outgoing_index),
-            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index),
-            # NEW: Include only file paths, not raw data
-            "available_data_files" => available_data_files
+            "incoming_index" => Dict(string(k) => collect(v) for (k, v) in incoming_index)
         )
         
         result = Dict(
             "success" => true,
             "message" => "Network structure analysis completed",
-            "network_name" => network_name,
+            "edges_file_path" => edges_file_path,
             "timestamp" => Dates.now(),
             "network_structure" => network_structure
         )
@@ -487,7 +362,8 @@ function handle_diamond_analysis(req::HTTP.Request)
     try
         request_data = JSON.parse(String(req.body))
         network_path = get(request_data, "networkPath", "")
-        use_default_priors = get(request_data, "useDefaultPriors", true)
+        edges_file_path = get(request_data, "edgesFilePath", "")
+        nodepriors_path = get(request_data, "nodepriorsPath", "")  # Optional
         
         if isempty(network_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
@@ -496,11 +372,30 @@ function handle_diamond_analysis(req::HTTP.Request)
             )))
         end
         
-        # Get network structure first
-        network_name = basename(network_path)
-        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        # Determine edges file path
+        if isempty(edges_file_path)
+            # Look for .EDGES files in the network path
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    edges_file_path = joinpath(network_path, edges_files[1])
+                end
+            end
+        else
+            edges_file_path = joinpath(network_path, edges_file_path)
+        end
         
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        # Validate edges file exists
+        is_valid, message = validate_network_file(edges_file_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network file: $message"
+            )))
+        end
+        
+        # Load network structure
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
@@ -508,11 +403,11 @@ function handle_diamond_analysis(req::HTTP.Request)
         # Diamond Analysis
         start_time = time()
         
-        # Create default node priors or use provided ones
-        node_priors = if use_default_priors
-            create_default_node_priors(allnodes)
+        # Load node priors if specified, otherwise use defaults
+        node_priors = if !isempty(nodepriors_path)
+            full_path = joinpath(network_path, nodepriors_path)
+            isfile(full_path) ? read_node_priors_from_json(full_path) : create_default_node_priors(allnodes)
         else
-            # TODO: Load from provided file path
             create_default_node_priors(allnodes)
         end
         
@@ -545,7 +440,8 @@ function handle_diamond_analysis(req::HTTP.Request)
         result = Dict(
             "success" => true,
             "message" => "Diamond analysis completed",
-            "network_name" => network_name,
+            "edges_file_path" => edges_file_path,
+            "nodepriors_path" => nodepriors_path,
             "timestamp" => Dates.now(),
             "diamond_analysis" => diamond_analysis
         )
@@ -573,6 +469,7 @@ function handle_reachability_analysis(req::HTTP.Request)
     try
         request_data = JSON.parse(String(req.body))
         network_path = get(request_data, "networkPath", "")
+        edges_file_path = get(request_data, "edgesFilePath", "")
         nodepriors_path = get(request_data, "nodepriorsPath", "")
         linkprobs_path = get(request_data, "linkprobsPath", "")
         include_exact_inference = get(request_data, "includeExactInference", true)
@@ -585,11 +482,30 @@ function handle_reachability_analysis(req::HTTP.Request)
             )))
         end
         
-        # Get network structure
-        network_name = basename(network_path)
-        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        # Determine edges file path
+        if isempty(edges_file_path)
+            # Look for .EDGES files in the network path
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    edges_file_path = joinpath(network_path, edges_files[1])
+                end
+            end
+        else
+            edges_file_path = joinpath(network_path, edges_file_path)
+        end
         
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        # Validate edges file exists
+        is_valid, message = validate_network_file(edges_file_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network file: $message"
+            )))
+        end
+        
+        # Load network structure
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
         fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
@@ -602,7 +518,7 @@ function handle_reachability_analysis(req::HTTP.Request)
         if !isfile(full_nodepriors_path) || !isfile(full_linkprobs_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
                 "success" => false,
-                "message" => "Input files not found"
+                "message" => "Required input files not found"
             )))
         end
         
@@ -705,7 +621,9 @@ function handle_reachability_analysis(req::HTTP.Request)
         result = Dict(
             "success" => true,
             "message" => "Reachability analysis completed",
-            "network_name" => network_name,
+            "edges_file_path" => edges_file_path,
+            "nodepriors_path" => nodepriors_path,
+            "linkprobs_path" => linkprobs_path,
             "timestamp" => Dates.now(),
             "reachability_result" => converted_result
         )
@@ -733,6 +651,7 @@ function handle_capacity_analysis(req::HTTP.Request)
     try
         request_data = JSON.parse(String(req.body))
         network_path = get(request_data, "networkPath", "")
+        edges_file_path = get(request_data, "edgesFilePath", "")
         capacities_path = get(request_data, "capacitiesPath", "")
         
         if isempty(network_path) || isempty(capacities_path)
@@ -742,11 +661,29 @@ function handle_capacity_analysis(req::HTTP.Request)
             )))
         end
         
-        # Get network structure
-        network_name = basename(network_path)
-        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        # Determine edges file path
+        if isempty(edges_file_path)
+            # Look for .EDGES files in the network path
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    edges_file_path = joinpath(network_path, edges_files[1])
+                end
+            end
+        else
+            edges_file_path = joinpath(network_path, edges_file_path)
+        end
         
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        # Validate edges file exists
+        is_valid, message = validate_network_file(edges_file_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network file: $message"
+            )))
+        end
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
@@ -829,7 +766,8 @@ function handle_capacity_analysis(req::HTTP.Request)
         result = Dict(
             "success" => true,
             "message" => "Capacity analysis completed",
-            "network_name" => network_name,
+            "edges_file_path" => edges_file_path,
+            "capacities_path" => capacities_path,
             "timestamp" => Dates.now(),
             "capacity_result" => result_data
         )
@@ -857,6 +795,7 @@ function handle_cpm_analysis(req::HTTP.Request)
     try
         request_data = JSON.parse(String(req.body))
         network_path = get(request_data, "networkPath", "")
+        edges_file_path = get(request_data, "edgesFilePath", "")
         cpm_path = get(request_data, "cpmPath", "")
         
         if isempty(network_path) || isempty(cpm_path)
@@ -866,11 +805,29 @@ function handle_cpm_analysis(req::HTTP.Request)
             )))
         end
         
-        # Get network structure
-        network_name = basename(network_path)
-        filepath_graph = joinpath(network_path, network_name * ".EDGES")
+        # Determine edges file path
+        if isempty(edges_file_path)
+            # Look for .EDGES files in the network path
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    edges_file_path = joinpath(network_path, edges_files[1])
+                end
+            end
+        else
+            edges_file_path = joinpath(network_path, edges_file_path)
+        end
         
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        # Validate edges file exists
+        is_valid, message = validate_network_file(edges_file_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network file: $message"
+            )))
+        end
+        
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
         
@@ -962,7 +919,8 @@ function handle_cpm_analysis(req::HTTP.Request)
         result = Dict(
             "success" => true,
             "message" => "CPM analysis completed",
-            "network_name" => network_name,
+            "edges_file_path" => edges_file_path,
+            "cpm_path" => cpm_path,
             "timestamp" => Dates.now(),
             "cpm_result" => result_data
         )
@@ -1028,19 +986,11 @@ function handle_upload(req::HTTP.Request)
             )))
         end
         
-        # Detect network structure and organize files
-        network_info = organize_uploaded_files(upload_path, uploaded_files)
-        
-        if network_info === nothing
-            return HTTP.Response(400, cors_headers, JSON.json(Dict(
-                "success" => false,
-                "message" => "No valid network structure found. Please upload .EDGES files and associated scenario files."
-            )))
-        end
+        # Find .EDGES files to identify networks
+        edges_files = filter(f -> endswith(f, ".EDGES"), uploaded_files)
         
         println("Upload successful: $(length(uploaded_files)) files uploaded to $upload_path")
-        println("Network detected: $(network_info["network_name"])")
-        println("Network path: $(network_info["network_path"])")
+        println("Found $(length(edges_files)) .EDGES files")
         
         headers = [
             "Access-Control-Allow-Origin" => "*",
@@ -1052,11 +1002,11 @@ function handle_upload(req::HTTP.Request)
         response_data = Dict(
             "success" => true,
             "message" => "Files uploaded successfully",
-            "network_path" => network_info["network_path"],
+            "network_path" => upload_path,
             "upload_id" => upload_id,
             "files_count" => length(uploaded_files),
-            "network_name" => network_info["network_name"],
-            "validation_results" => network_info["validation"]
+            "uploaded_files" => uploaded_files,
+            "edges_files" => edges_files
         )
         
         println("Returning upload response: ", JSON.json(response_data))

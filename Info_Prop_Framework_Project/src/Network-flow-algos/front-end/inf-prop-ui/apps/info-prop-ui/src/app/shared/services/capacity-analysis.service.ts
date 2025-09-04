@@ -16,15 +16,21 @@ export class CapacityAnalysisService {
   private http: HttpClient = inject(HttpClient);
 
   analyzeCapacity(request: CapacityAnalysisRequest): Observable<CapacityAnalysisResponse> {
+    console.log('⚡ Sending capacity analysis request:', request);
+    
     return this.http.post<CapacityAnalysisResponse>(
       `${this.API_BASE}/capacity-analysis`,
       request
     ).pipe(
       tap(response => {
-        console.log('⚡ CAPACITY ANALYSIS RAW RESPONSE:', JSON.stringify(response, null, 2));
-        console.log('⚡ CAPACITY ANALYSIS KEYS:', Object.keys(response));
-        if ((response as any).capacity_analysis) {
-          console.log('⚡ CAPACITY ANALYSIS DATA KEYS:', Object.keys((response as any).capacity_analysis));
+        console.log('⚡ Capacity analysis response:', response.success ? 'SUCCESS' : 'FAILED');
+        if (response.success && response.capacity_result) {
+          console.log('📊 Capacity stats:', {
+            utilization: response.capacity_result.network_utilization,
+            totalInput: response.capacity_result.total_source_input,
+            totalOutput: response.capacity_result.total_target_output,
+            activeSources: response.capacity_result.active_sources.length
+          });
         }
       })
     );

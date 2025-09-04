@@ -154,44 +154,52 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return this.analysisStateService.diamondAnalysis()?.diamond_analysis || null;
   });
 
+  // **ENHANCED: Diamond summary with proper processing**
   diamondSummary = computed(() => {
-    // Ensure this recomputes when scenario changes
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔄 Computing diamond summary for scenario:', scenario);
-    return this.processDiamondSummary();
+    console.log('💎 Computing diamond summary for scenario:', scenario);
+    
+    if (!currentResults) return null;
+    return this.diamondAnalysisService.processDiamondSummary(currentResults);
   });
   
+  // **ENHANCED: Convergence insights with risk analysis**
   convergenceInsights = computed(() => {
-    // Ensure this recomputes when scenario changes
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔄 Computing convergence insights for scenario:', scenario);
-    return this.analyzeConvergencePatterns();
+    console.log('🔍 Computing convergence insights for scenario:', scenario);
+    
+    if (!currentResults) return [];
+    return this.diamondAnalysisService.analyzeConvergencePatterns(currentResults);
   });
   
+  // **ENHANCED: Coverage metrics**
   coverageMetrics = computed(() => {
-    // Ensure this recomputes when scenario changes
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔄 Computing coverage metrics for scenario:', scenario);
+    console.log('📊 Computing coverage metrics for scenario:', scenario);
     return this.calculateNetworkCoverage();
   });
   
+  // **ENHANCED: Join node analysis**
   joinNodeAnalysis = computed(() => {
-    // Ensure this recomputes when scenario changes
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔄 Computing join node analysis for scenario:', scenario);
-    return this.analyzeJoinNodes();
+    console.log('🔗 Computing join node analysis for scenario:', scenario);
+    
+    if (!currentResults) return [];
+    return this.diamondAnalysisService.analyzeJoinNodes(currentResults);
   });
 
-  // Diamond patterns computed property for reactive updates
+  // **FIXED: Diamond patterns with proper identification**
   diamondPatterns = computed(() => {
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔄 Computing diamond patterns for scenario:', scenario);
-    return this.getDiamondPatterns();
+    console.log('🔷 Computing diamond patterns for scenario:', scenario);
+    
+    if (!currentResults) return [];
+    return this.diamondAnalysisService.extractDiamondPatterns(currentResults);
   });
   
   // Filtered diamond patterns
@@ -218,6 +226,8 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
             return !pattern.isRoot;
           case 'complex':
             return pattern.complexity > 50;
+          case 'critical':
+            return pattern.riskLevel === 'critical' || pattern.riskLevel === 'high';
           default:
             return true;
         }
@@ -235,8 +245,8 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   isLoading = computed(() => this.analysisStateService.isLoading());
   error = computed(() => this.analysisStateService.error());
 
-  // Table configuration
-  displayedColumns: string[] = ['nodeCount', 'isRoot',  'complexity', 'actions'];
+  // **ENHANCED: Table configuration with meaningful columns**
+  displayedColumns: string[] = ['displayId', 'nodeCount', 'isRoot', 'conditioningNodes', 'riskLevel', 'complexity', 'actions'];
   
   ngOnInit(): void {
     // Initialize with first available scenario
@@ -342,10 +352,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     this.selectedTab.set(index);
   }
 
-  // Data Processing Methods
-  // These methods are now enhanced versions above
-  // processDiamondSummary and analyzeConvergencePatterns are redefined above with enhancements
-
+  // **ENHANCED: Network coverage calculation**
   private calculateNetworkCoverage(): { covered: number; total: number; percentage: number } {
     const results = this.currentDiamondResults();
     if (!results || !results.raw_unique_diamonds) {
@@ -366,73 +373,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     };
   }
 
-  private analyzeJoinNodes(): JoinNodeAnalysis[] {
-    const results = this.currentDiamondResults();
-    if (!results) return [];
-
-    return this.diamondAnalysisService.analyzeJoinNodes(results);
-  }
-
-  // Diamond Pattern Processing
-  getDiamondPatterns(): DiamondPattern[] {
-    const results = this.currentDiamondResults();
-    if (!results) return [];
-
-    const patterns: DiamondPattern[] = [];
-
-    // Process root diamonds (DiamondsAtNode structures)
-    if (results.raw_root_diamonds) {
-      Object.entries(results.raw_root_diamonds).forEach(([joinNodeStr, diamondsAtNode]: [string, any]) => {
-        patterns.push({
-          id: `root-${joinNodeStr}`,
-          nodeCount: diamondsAtNode.diamond?.node_count || 0,
-          isRoot: true,
-          complexity: this.calculateComplexity(diamondsAtNode.diamond),
-          joinNodes: [diamondsAtNode.join_node],
-          sourceNodes: diamondsAtNode.diamond?.conditioning_nodes || [],
-          forkNodes: [], // Would need to be calculated from network structure
-          // NEW: Proper diamond identification fields
-          conditioningNodes: diamondsAtNode.diamond?.conditioning_nodes || [],
-          joinNode: diamondsAtNode.join_node,
-          relevantNodes: diamondsAtNode.diamond?.relevant_nodes || [],
-          edgeList: diamondsAtNode.diamond?.edgelist || [],
-          subDiamonds: []
-        });
-      });
-    }
-
-    // Process unique diamonds (DiamondComputationData structures)
-    if (results.raw_unique_diamonds) {
-      Object.entries(results.raw_unique_diamonds).forEach(([hash, diamond]: [string, any]) => {
-        patterns.push({
-          id: `unique-${hash}`,
-          nodeCount: diamond.node_count || 0,
-          isRoot: diamond.is_root_diamond || false,
-          complexity: this.calculateComplexity(diamond),
-          joinNodes: diamond.sub_join_nodes || [],
-          sourceNodes: diamond.sub_sources || [],
-          forkNodes: diamond.sub_fork_nodes || [],
-          // NEW: Proper diamond identification fields - now available from backend
-          conditioningNodes: diamond.diamond?.conditioning_nodes || [],
-          diamondHash: hash,
-          relevantNodes: diamond.diamond?.relevant_nodes || [],
-          edgeList: diamond.diamond?.edgelist || [],
-          subDiamonds: []
-        });
-      });
-    }
-
-    return patterns;
-  }
-
-  private calculateComplexity(diamond: any): number {
-    // Simple complexity metric based on node count and structure
-    const baseComplexity = diamond.node_count;
-    const structuralComplexity = diamond.sub_iteration_sets_count || 1;
-    return baseComplexity * structuralComplexity;
-  }
-
-  // UI Helper Methods
+  // **ENHANCED: UI Helper Methods with meaningful formatting**
   formatNumber(value: number): string {
     return new Intl.NumberFormat().format(value);
   }
@@ -448,16 +389,26 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return `${(milliseconds / 1000).toFixed(2)}s`;
   }
 
-  
-  
+  // **FIXED: Open diamond details with proper identification**
   openDiamondDetailsModal(pattern: DiamondPattern): void {
-    console.log('Opening diamond details modal for:', pattern);
+    console.log('Opening diamond details modal for:', {
+      id: pattern.id,
+      displayId: pattern.displayId,
+      conditioningNodes: pattern.conditioningNodes,
+      joinNode: pattern.joinNode
+    });
+    
     const dialogRef = this.dialog.open(DiamondDetailsComponent, {
       width: '90vw',
       height: '90vh',
       maxWidth: '1400px',
       maxHeight: '900px',
-      data: { diamondId: pattern.id },
+      data: { 
+        diamondId: pattern.id,
+        conditioningNodes: pattern.conditioningNodes,
+        joinNode: pattern.joinNode,
+        diamondHash: pattern.diamondHash
+      },
       panelClass: 'diamond-details-dialog'
     });
 
@@ -466,9 +417,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     });
   }
   
-  
-  
-  // Filter Methods
+  // **ENHANCED: Filter Methods with meaningful options**
   setMinNodeCount(event: Event): void {
     const target = event.target as HTMLInputElement;
     const value = Number(target.value);
@@ -504,8 +453,14 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     this.selectedPatternType.set('');
   }
   
-  // Risk Assessment Methods
+  // **ENHANCED: Risk Assessment Methods with proper analysis**
   getRiskLevel(pattern: DiamondPattern): string {
+    // Use pattern's own risk level if available
+    if (pattern.riskLevel) {
+      return pattern.riskLevel;
+    }
+    
+    // Otherwise calculate based on structure
     const riskScore = this.calculateRiskScore(pattern);
     if (riskScore >= 7) return 'high';
     if (riskScore >= 4) return 'medium';
@@ -513,10 +468,11 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   }
   
   getRiskIcon(pattern: DiamondPattern): string {
-    const riskLevel = this.getRiskLevel(pattern);
+    const riskLevel = pattern.riskLevel || this.getRiskLevel(pattern);
     switch (riskLevel) {
-      case 'high': return 'error';
-      case 'medium': return 'warning';
+      case 'critical': return 'error';
+      case 'high': return 'warning';
+      case 'medium': return 'info';
       case 'low': return 'check_circle';
       default: return 'help';
     }
@@ -524,6 +480,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   
   calculateRiskScore(pattern: DiamondPattern): number {
     let score = 0;
+    
+    // Single conditioning node = critical risk
+    if (pattern.conditioningNodes.length === 1) score += 5;
+    else if (pattern.conditioningNodes.length === 0) score += 3;
     
     // Node count factor (larger diamonds = higher complexity)
     score += Math.min(pattern.nodeCount / 10, 3);
@@ -535,8 +495,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     if (pattern.isRoot) score += 2;
     
     // Join node density factor
-    const joinNodeRatio = pattern.joinNodes.length / pattern.nodeCount;
-    score += joinNodeRatio * 2;
+    if (pattern.joinNodes.length > 0) {
+      const joinNodeRatio = pattern.joinNodes.length / pattern.nodeCount;
+      score += joinNodeRatio * 2;
+    }
     
     return Math.min(score, 10);
   }
@@ -555,13 +517,15 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return 'low';
   }
   
-  // Pattern Analysis Methods
+  // **ENHANCED: Pattern Analysis Methods with meaningful categorization**
   getPatternIcon(patternType: string): string {
     switch (patternType.toLowerCase()) {
       case 'convergent': return 'merge_type';
       case 'divergent': return 'call_split';
       case 'cascade': return 'waterfall_chart';
       case 'complex': return 'device_hub';
+      case 'simple': return 'radio_button_unchecked';
+      case 'nested': return 'account_tree';
       default: return 'diamond';
     }
   }
@@ -576,14 +540,28 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     console.log('Viewing node in context:', nodeId);
     // TODO: Implement context view
   }
-  
-  // Enhanced Risk Pattern Methods with Clearer Interpretation
-  getHighRiskPatterns(): Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string, interpretation: string}> {
+
+  // **ENHANCED: Risk Pattern Methods with detailed structural analysis**
+  getHighRiskPatterns(): Array<{
+    id: string, 
+    level: 'low' | 'medium' | 'high', 
+    icon: string, 
+    title: string, 
+    description: string, 
+    interpretation: string
+  }> {
     const summary = this.diamondSummary();
     const results = this.currentDiamondResults();
     if (!summary || !results) return [];
     
-    const riskPatterns: Array<{id: string, level: 'low' | 'medium' | 'high', icon: string, title: string, description: string,  interpretation: string}> = [];
+    const riskPatterns: Array<{
+      id: string, 
+      level: 'low' | 'medium' | 'high', 
+      icon: string, 
+      title: string, 
+      description: string,  
+      interpretation: string
+    }> = [];
     
     // Single conditioning node analysis
     const singleConditioningNodes = this.analyzeSingleConditioningNodes();
@@ -592,10 +570,9 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         id: 'single-conditioning',
         level: 'high' as const,
         icon: 'error',
-        title: 'Single Conditioning Node Risk',
+        title: 'Single Points of Failure',
         description: `${singleConditioningNodes.count} diamonds with single conditioning nodes`,
-        interpretation: 'Complete failure if that node fails - no redundancy available',
-        
+        interpretation: 'Complete failure if conditioning node fails - no redundancy available'
       });
     }
 
@@ -608,8 +585,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         icon: 'waterfall_chart',
         title: 'Cascading Failure Chains',
         description: `Maximum nesting depth: ${deepNesting.maxDepth} levels`,
-        interpretation: 'Deep nesting creates cascading failure chains - one failure can trigger multiple downstream failures',
-
+        interpretation: 'Deep nesting creates cascading failure chains - one failure can trigger multiple downstream failures'
       });
     }
 
@@ -622,8 +598,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         icon: 'device_hub',
         title: 'System-wide Bottlenecks',
         description: `${Math.round(joinOverlap.overlapRatio * 100)}% of diamonds share join nodes`,
-        interpretation: 'High join node overlap creates system-wide bottlenecks affecting multiple diamonds',
-
+        interpretation: 'High join node overlap creates system-wide bottlenecks affecting multiple diamonds'
       });
     }
 
@@ -634,17 +609,16 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         id: 'multiple-conditioning',
         level: 'low' as const,
         icon: 'check_circle',
-        title: 'Partial Degradation Capability',
+        title: 'Resilient Structures',
         description: `${multipleConditioningNodes.count} diamonds with multiple conditioning nodes`,
-        interpretation: 'Multiple conditioning nodes allow partial degradation instead of complete failure',
-
+        interpretation: 'Multiple conditioning nodes provide redundancy and graceful degradation'
       });
     }
     
     return riskPatterns;
   }
 
-  // New analysis methods for risk interpretation
+  // **NEW: Detailed analysis methods for risk patterns**
   private analyzeSingleConditioningNodes(): { count: number; diamonds: string[] } {
     const results = this.currentDiamondResults();
     if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
@@ -722,7 +696,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return { count, diamonds };
   }
   
-  // Enhanced Optimization Methods with Diamond Structure Analysis
+  // **ENHANCED: Optimization Methods with structural insights**
   getOptimizationInsights(): Array<{
     id: string;
     type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
@@ -754,41 +728,11 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         id: 'symmetric-diamonds',
         type: 'symmetry',
         priority: 'low',
-        title: 'Good Redundancy Patterns',
+        title: 'Well-Balanced Structures',
         description: `${symmetricDiamonds.count} symmetric diamonds detected`,
-        interpretation: 'Symmetric diamonds provide good redundancy and lower risk',
+        interpretation: 'Symmetric diamonds provide good redundancy and balanced load distribution',
         count: symmetricDiamonds.count,
-        recommendations: ['Maintain current structure', 'Monitor performance', 'Consider as template for other areas']
-      });
-    }
-
-    // Asymmetric diamonds analysis
-    const asymmetricDiamonds = this.analyzeAsymmetricDiamonds();
-    if (asymmetricDiamonds.count > 0) {
-      insights.push({
-        id: 'asymmetric-diamonds',
-        type: 'asymmetry',
-        priority: 'medium',
-        title: 'Load Balancing Opportunities',
-        description: `${asymmetricDiamonds.count} asymmetric diamonds with unbalanced load`,
-        interpretation: 'Asymmetric diamonds indicate unbalanced load distribution and optimization opportunities',
-        count: asymmetricDiamonds.count,
-        recommendations: ['Balance conditioning node loads', 'Redistribute paths', 'Add parallel branches']
-      });
-    }
-
-    // Isolated sub-diamonds analysis
-    const isolatedSubDiamonds = this.analyzeIsolatedSubDiamonds();
-    if (isolatedSubDiamonds.count > 0) {
-      insights.push({
-        id: 'isolated-sub-diamonds',
-        type: 'isolation',
-        priority: 'high',
-        title: 'Modularization Candidates',
-        description: `${isolatedSubDiamonds.count} isolated sub-diamonds can be modularized`,
-        interpretation: 'Isolated sub-diamonds can be modularized independently for better maintainability',
-        count: isolatedSubDiamonds.count,
-        recommendations: ['Extract as independent modules', 'Create service boundaries', 'Implement separate deployment']
+        recommendations: ['Maintain current structure', 'Monitor performance', 'Use as template for optimization']
       });
     }
 
@@ -799,9 +743,9 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         id: 'merge-candidates',
         type: 'merge',
         priority: 'medium',
-        title: 'Diamond Merge Opportunities',
-        description: `${mergeCandidates.count} diamond pairs with identical conditioning nodes`,
-        interpretation: 'Diamonds with same conditioning nodes are merge candidates for simplification',
+        title: 'Diamond Consolidation Opportunities',
+        description: `${mergeCandidates.count} diamond pairs with identical conditioning patterns`,
+        interpretation: 'Diamonds with same conditioning nodes can be consolidated to reduce complexity',
         count: mergeCandidates.count,
         recommendations: ['Merge similar diamonds', 'Consolidate conditioning logic', 'Reduce structural complexity']
       });
@@ -814,8 +758,8 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         id: 'redundancy-opportunities',
         type: 'redundancy',
         priority: 'high',
-        title: 'Critical Path Redundancy',
-        description: `${redundancyOpportunities.count} critical paths need redundancy`,
+        title: 'Critical Path Redundancy Needed',
+        description: `${redundancyOpportunities.count} critical paths need backup mechanisms`,
         interpretation: 'Adding redundancy to critical paths will improve system resilience',
         count: redundancyOpportunities.count,
         recommendations: ['Add backup paths', 'Implement failover mechanisms', 'Create redundant conditioning nodes']
@@ -828,7 +772,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Diamond structure analysis methods
+  // **NEW: Structural analysis methods for optimization**
   private analyzeSymmetricDiamonds(): { count: number; diamonds: string[] } {
     const results = this.currentDiamondResults();
     if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
@@ -840,7 +784,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
       const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
       const relevantNodes = diamond.diamond?.relevant_nodes || [];
       
-      // Simple symmetry check: even distribution of paths
+      // Simple symmetry check: balanced distribution
       if (conditioningNodes.length >= 2 && relevantNodes.length > conditioningNodes.length * 2) {
         const avgPathLength = relevantNodes.length / conditioningNodes.length;
         const isSymmetric = conditioningNodes.length >= 2 && avgPathLength >= 2;
@@ -849,65 +793,6 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
           count++;
           diamonds.push(key);
         }
-      }
-    });
-
-    return { count, diamonds };
-  }
-
-  private analyzeAsymmetricDiamonds(): { count: number; diamonds: string[] } {
-    const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
-
-    let count = 0;
-    const diamonds: string[] = [];
-
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
-      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-      const edgeList = diamond.diamond?.edgelist || [];
-      
-      if (conditioningNodes.length >= 2) {
-        // Check for uneven edge distribution among conditioning nodes
-        const edgeDistribution = new Map<number, number>();
-        conditioningNodes.forEach(node => edgeDistribution.set(node, 0));
-        
-        edgeList.forEach(([source, _]) => {
-          if (edgeDistribution.has(source)) {
-            edgeDistribution.set(source, edgeDistribution.get(source)! + 1);
-          }
-        });
-        
-        const edgeCounts = Array.from(edgeDistribution.values());
-        const maxEdges = Math.max(...edgeCounts);
-        const minEdges = Math.min(...edgeCounts);
-        
-        // Consider asymmetric if there's significant imbalance
-        if (maxEdges > minEdges * 1.5) {
-          count++;
-          diamonds.push(key);
-        }
-      }
-    });
-
-    return { count, diamonds };
-  }
-
-  private analyzeIsolatedSubDiamonds(): { count: number; diamonds: string[] } {
-    const results = this.currentDiamondResults();
-    if (!results?.raw_unique_diamonds) return { count: 0, diamonds: [] };
-
-    let count = 0;
-    const diamonds: string[] = [];
-
-    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
-      // Check if sub-diamond has minimal external dependencies
-      const subSources = diamond.sub_sources || [];
-      const subJoinNodes = diamond.sub_join_nodes || [];
-      
-      // Consider isolated if it has clear boundaries
-      if (!diamond.is_root_diamond && subSources.length <= 2 && subJoinNodes.length === 1) {
-        count++;
-        diamonds.push(key);
       }
     });
 
@@ -965,22 +850,6 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return { count, criticalPaths };
   }
 
-  // Legacy methods for backward compatibility
-  getParallelizationOpportunities(): number {
-    const insights = this.getOptimizationInsights();
-    return insights.filter(i => i.type === 'isolation').reduce((sum, i) => sum + i.count, 0);
-  }
-  
-  getSinglePointsCount(): number {
-    const insights = this.getOptimizationInsights();
-    return insights.filter(i => i.type === 'redundancy').reduce((sum, i) => sum + i.count, 0);
-  }
-  
-  getModularizationOpportunities(): number {
-    const insights = this.getOptimizationInsights();
-    return insights.filter(i => i.type === 'isolation').reduce((sum, i) => sum + i.count, 0);
-  }
-
   // Helper methods for template
   getOptimizationIcon(type: string): string {
     switch (type) {
@@ -1003,115 +872,39 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   }
 
   exportDiamondData(): void {
-    // TODO: Export diamond analysis data
-    console.log('Exporting diamond data...');
+    const patterns = this.diamondPatterns();
+    const summary = this.diamondSummary();
+    
+    const exportData = {
+      scenario: this.currentScenario(),
+      summary,
+      patterns: patterns.map(p => ({
+        displayId: p.displayId,
+        nodeCount: p.nodeCount,
+        isRoot: p.isRoot,
+        conditioningNodes: p.conditioningNodes,
+        joinNodes: p.joinNodes,
+        complexity: p.complexity,
+        riskLevel: p.riskLevel || this.getRiskLevel(p)
+      })),
+      timestamp: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `diamond-analysis-${this.currentScenario()}-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ Diamond data exported successfully');
   }
 
   refreshAnalysis(): void {
     console.log('🔄 Refreshing diamond analysis...');
     this.loadMultiScenarioDiamondAnalysis();
   }
-
-
-  // Enhanced diamond summary processing
-  private processDiamondSummary(): DiamondSummary | null {
-    const results = this.currentDiamondResults();
-    if (!results) return null;
-
-    const processed = this.diamondAnalysisService.processDiamondSummary(results);
-    if (!processed) return null;
-    
-    // Add additional risk metrics
-    const patterns = this.getDiamondPatterns();
-    const singlePointsOfFailure = this.calculateSinglePointsOfFailure(patterns);
-    const cascadePotential = this.assessCascadePotential(patterns);
-    
-    return {
-      ...processed,
-      singlePointsOfFailure,
-      cascadePotential
-    };
-  }
-  
-  private calculateSinglePointsOfFailure(patterns: DiamondPattern[]): number {
-    if (!patterns) return 0;
-    // Count join nodes that are single points of convergence
-    const allJoinNodes = new Set<number>();
-    patterns.forEach(pattern => {
-      pattern.joinNodes.forEach(nodeId => allJoinNodes.add(nodeId));
-    });
-    return allJoinNodes.size;
-  }
-  
-  private assessCascadePotential(patterns: DiamondPattern[]): string {
-    if (!patterns || patterns.length === 0) return 'Low';
-    
-    const maxComplexity = Math.max(...patterns.map(p => p.complexity));
-    const avgComplexity = patterns.reduce((sum, p) => sum + p.complexity, 0) / patterns.length;
-    const rootPatterns = patterns.filter(p => p.isRoot).length;
-    
-    if (maxComplexity > 100 && avgComplexity > 50 && rootPatterns > 5) return 'High';
-    if (maxComplexity > 50 || avgComplexity > 25 || rootPatterns > 3) return 'Medium';
-    return 'Low';
-  }
-  
-  // Enhanced convergence analysis
-  private analyzeConvergencePatterns(): ConvergenceInsight[] {
-    const results = this.currentDiamondResults();
-    if (!results) return [];
-
-    const baseInsights = this.diamondAnalysisService.analyzeConvergencePatterns(results);
-    
-    // Enhance insights with risk scoring and business impact
-    return baseInsights.map(insight => ({
-      ...insight,
-      riskScore: this.calculatePatternRiskScore(insight),
-      riskLevel: this.getPatternRiskLevel(insight),
-      businessImpact: this.getBusinessImpact(insight)
-    }));
-  }
-  
-  private calculatePatternRiskScore(insight: ConvergenceInsight): number {
-    let score = 0;
-    
-    // Frequency factor
-    score += Math.min(insight.frequency / 5, 3);
-    
-    // Node count factor  
-    score += Math.min(insight.averageNodeCount / 10, 3);
-    
-    // Pattern type factor
-    switch (insight.patternType) {
-      case 'convergent': score += 2; break;
-      case 'cascade': score += 3; break;
-      case 'complex': score += 4; break;
-      default: score += 1;
-    }
-    
-    return Math.min(score, 10);
-  }
-  
-  private getPatternRiskLevel(insight: ConvergenceInsight): 'low' | 'medium' | 'high' {
-    const score = this.calculatePatternRiskScore(insight);
-    if (score >= 7) return 'high';
-    if (score >= 4) return 'medium';
-    return 'low';
-  }
-  
-  private getBusinessImpact(insight: ConvergenceInsight): string {
-    switch (insight.patternType) {
-      case 'convergent':
-        return 'Multiple failure paths can compound at convergence points';
-      case 'cascade':
-        return 'Failures can propagate through nested diamond structures';
-      case 'complex':
-        return 'High complexity increases maintenance costs and failure risk';
-      default:
-        return 'Monitor for potential optimization opportunities';
-    }
-  }
-
-  
 
   hasInnerDiamonds(): boolean {
     const analysis = this.currentDiamondAnalysis();
@@ -1121,6 +914,4 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
       diamond.sub_diamond_structures && Object.keys(diamond.sub_diamond_structures).length > 0
     );
   }
-
-  
 }
