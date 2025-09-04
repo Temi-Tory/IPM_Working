@@ -72,14 +72,14 @@ export class UploadNetworkComponent {
     if (!input.files || input.files.length === 0) return;
 
     try {
-      // Upload files first
-      await this.uploadFiles(input.files);
+      // Upload files first and get network path
+      const networkPath = await this.uploadFiles(input.files);
       
       // Then process and categorize them using FileManagerService
       this.fileManager.processUploadedFiles(input.files).subscribe({
         next: (categorizedFiles) => {
-          // Save state to session
-          this.saveStateToSession();
+          // Save state to session with network path
+          this.saveStateToSession(networkPath);
           
           const fileCount = input.files!.length;
           const networkFiles = this.analysisGroups().network.files.length;
@@ -110,14 +110,14 @@ export class UploadNetworkComponent {
     if (!input.files || input.files.length === 0) return;
 
     try {
-      // Upload files first
-      await this.uploadFiles(input.files);
+      // Upload files first and get network path
+      const networkPath = await this.uploadFiles(input.files);
       
       // Then process and categorize them using FileManagerService
       this.fileManager.processUploadedFiles(input.files).subscribe({
         next: (categorizedFiles) => {
-          // Save state to session
-          this.saveStateToSession();
+          // Save state to session with network path
+          this.saveStateToSession(networkPath);
           
           const fileCount = input.files!.length;
           this.snackBar.open(`Added ${fileCount} files`, 'Close', { duration: 2000 });
@@ -137,12 +137,13 @@ export class UploadNetworkComponent {
   /**
    * Upload files to backend
    */
-  private async uploadFiles(files: FileList): Promise<void> {
+  private async uploadFiles(files: FileList): Promise<string> {
     return new Promise((resolve, reject) => {
       this.fileUpload.uploadFiles(files).subscribe({
         next: (response) => {
           if (response.success) {
-            resolve();
+            // Store the network path for session creation
+            resolve(response.network_path);
           } else {
             reject(new Error(response.message || 'Upload failed'));
           }
@@ -342,15 +343,16 @@ export class UploadNetworkComponent {
   /**
    * Save current file manager state to session
    */
-  private saveStateToSession(): void {
+  private saveStateToSession(networkPath?: string): void {
     const currentSession = this.sessionService.getCurrentSession();
     if (currentSession) {
       this.sessionService.updateSession({
-        fileManagerState: this.fileManagerState()
+        fileManagerState: this.fileManagerState(),
+        ...(networkPath && { networkPath })
       });
     } else {
-      // Create new session with file manager state
-      const session = this.sessionService.createNewSession('file-upload');
+      // Create new session with file manager state and network path
+      const session = this.sessionService.createNewSession(networkPath || 'file-upload');
       this.sessionService.updateSession({
         fileManagerState: this.fileManagerState()
       });

@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -18,6 +18,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+import { NetworkSessionService } from '../../shared/services/network-session.service';
 import { NetworkStructure } from '../../shared/models/network-analysis.models';
 import { NodeDetailsDialogComponent } from './node-details-dialog.component';
 import { EdgeDetailsDialogComponent } from './edge-details-dialog.component';
@@ -46,8 +47,9 @@ import { EdgeDetailsDialogComponent } from './edge-details-dialog.component';
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
-export class NetworkStructureComponent {
+export class NetworkStructureComponent implements OnInit {
   private analysisState = inject(AnalysisStateService);
+  private sessionService = inject(NetworkSessionService);
   private dialog = inject(MatDialog);
 
   // Core data signals
@@ -78,14 +80,14 @@ export class NetworkStructureComponent {
     if (!data) return null;
 
     return {
-      totalNodes: data.total_nodes,
-      totalEdges: data.total_edges,
-      sourceNodes: data.source_nodes.length,
-      sinkNodes: data.sink_nodes.length,
-      forkNodes: data.fork_nodes.length,
-      joinNodes: data.join_nodes.length,
-      layers: data.iteration_sets_count,
-      computationTime: data.computation_time
+      totalNodes: data.total_nodes || 0,
+      totalEdges: data.total_edges || 0,
+      sourceNodes: data.source_nodes?.length || 0,
+      sinkNodes: data.sink_nodes?.length || 0,
+      forkNodes: data.fork_nodes?.length || 0,
+      joinNodes: data.join_nodes?.length || 0,
+      layers: data.iteration_sets_count || 0,
+      computationTime: data.computation_time || 0
     };
   });
 
@@ -96,11 +98,11 @@ export class NetworkStructureComponent {
 
     const insights: Array<{type: 'info' | 'warning' | 'success', message: string, detail: string}> = [];
     
-    const totalNodes = data.total_nodes;
-    const sourceNodes = data.source_nodes.length;
-    const sinkNodes = data.sink_nodes.length;
-    const forkNodes = data.fork_nodes.length;
-    const joinNodes = data.join_nodes.length;
+    const totalNodes = data.total_nodes || 0;
+    const sourceNodes = data.source_nodes?.length || 0;
+    const sinkNodes = data.sink_nodes?.length || 0;
+    const forkNodes = data.fork_nodes?.length || 0;
+    const joinNodes = data.join_nodes?.length || 0;
 
     // Network density
     const maxEdges = totalNodes * (totalNodes - 1);
@@ -167,9 +169,9 @@ export class NetworkStructureComponent {
     const data = this.networkData();
     if (!data) return null;
 
-    const totalNodes = data.total_nodes;
-    const totalEdges = data.total_edges;
-    const layers = data.iteration_sets_count;
+    const totalNodes = data.total_nodes || 0;
+    const totalEdges = data.total_edges || 0;
+    const layers = data.iteration_sets_count || 0;
     
     const edgeToNodeRatio = totalNodes > 0 ? totalEdges / totalNodes : 0;
     const avgDegree = totalNodes > 0 ? (totalEdges * 2) / totalNodes : 0;
@@ -178,7 +180,7 @@ export class NetworkStructureComponent {
     const maxPossibleEdges = totalNodes * (totalNodes - 1);
     const density = maxPossibleEdges > 0 ? totalEdges / maxPossibleEdges : 0;
     
-    const boundaryNodes = data.source_nodes.length + data.sink_nodes.length;
+    const boundaryNodes = (data.source_nodes?.length || 0) + (data.sink_nodes?.length || 0);
     const boundaryRatio = totalNodes > 0 ? boundaryNodes / totalNodes : 0;
     
     return {
@@ -537,6 +539,40 @@ export class NetworkStructureComponent {
     
     const ancestors = this.getAncestors(nodeId, data);
     return ancestors.length > 0 ? Math.max(...ancestors.map(a => this.getNodeIterationSet(a, data))) + 1 : 0;
+  }
+
+  ngOnInit(): void {
+    console.log('🏗️ NetworkStructureComponent initializing...');
+    
+    // Trigger API call immediately if network path is available
+    const currentSession = this.sessionService.getCurrentSession();
+    const networkPath = currentSession?.networkPath || this.analysisState.currentNetworkPath();
+    
+    if (networkPath) {
+      this.loadNetworkStructureDataIfNeeded();
+    }
+  }
+
+  private hasCalledNetworkStructureAPI = false;
+
+  private loadNetworkStructureDataIfNeeded(): void {
+    const currentSession = this.sessionService.getCurrentSession();
+    const networkPath = currentSession?.networkPath || this.analysisState.currentNetworkPath();
+    
+    if (networkPath && !this.hasCalledNetworkStructureAPI) {
+      // Convert Windows backslashes to forward slashes for backend compatibility
+      const normalizedPath = networkPath.replace(/\\/g, '/');
+      console.log('🔍 Loading Network Structure data from API endpoint:', normalizedPath);
+      this.hasCalledNetworkStructureAPI = true;
+      
+      this.analysisState.loadNetworkStructure(normalizedPath).subscribe({
+        next: () => console.log('✅ Network structure loaded successfully'),
+        error: (error) => {
+          console.error('❌ Failed to load network structure from API:', error);
+          this.hasCalledNetworkStructureAPI = false; // Reset on error to allow retry
+        }
+      });
+    }
   }
 
   retryAnalysis(): void {

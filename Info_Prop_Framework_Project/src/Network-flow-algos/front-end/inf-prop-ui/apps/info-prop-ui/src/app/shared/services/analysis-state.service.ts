@@ -11,7 +11,6 @@ import {
   ReachabilityAnalysisResponse,
   CapacityAnalysisResponse,
   CpmAnalysisResponse,
-  DiamondAnalysisResult,
   ScenarioInfo,
   MultiScenarioDiamondResults,
   AnalysisFileGroup,
@@ -130,7 +129,7 @@ export class AnalysisStateService {
     if (data) {
       console.log('🔍 Enabling tabs based on parsed data:', data);
       
-      // Enable diamond analysis and exact inference if we have any probability data (float, pbox, or interval)
+      // Enable and activate diamond analysis and exact inference if we have any probability data (float, pbox, or interval)
       const hasNodePriors = (data.float?.node_priors) || (data.pbox?.node_priors) || (data.interval?.node_priors);
       const hasEdgeProbabilities = (data.float?.edge_probabilities) || (data.pbox?.edge_probabilities) || (data.interval?.edge_probabilities);
       
@@ -143,26 +142,26 @@ export class AnalysisStateService {
           hasNodePriors,
           hasEdgeProbabilities
         });
-        this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
-        this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true }));
+        this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+        this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
       }
       
       // Enable flow analysis if we have capacity data
       if (data.capacity && Object.keys(data.capacity).length > 0) {
         console.log('✅ Enabling flow analysis tab - capacity data available');
-        this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+        this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
       }
       
       // Enable critical path if we have CPM data
       if (data.cpm && Object.keys(data.cpm).length > 0) {
         console.log('✅ Enabling critical path tab - CPM data available');
-        this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true }));
+        this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
       }
       
       // Enable system profile if we have any analysis data
       if (data.float || data.pbox || data.interval || data.capacity || data.cpm) {
         console.log('✅ Enabling system profile tab - analysis data available');
-        this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
+        this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
       }
     }
   }
@@ -194,8 +193,9 @@ export class AnalysisStateService {
             this.setParsedData(result.parsedData);
           }
           
-          // Mark upload as completed since we have network data
+          // Mark upload as completed and enable network structure tab
           this.markTabCompleted('upload');
+          this.networkStructureTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
           
           console.log('🎯 Network data and parsed data loaded from file manager');
         } else {

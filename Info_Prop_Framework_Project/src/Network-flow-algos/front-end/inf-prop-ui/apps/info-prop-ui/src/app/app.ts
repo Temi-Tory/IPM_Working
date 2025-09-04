@@ -54,20 +54,8 @@ export class App implements OnInit {
     // Load parsed data from session first
     this.analysisState.loadParsedDataFromSession();
     
-    // Load comprehensive structure data if we have an active analysis
-    if (this.analysisState.hasActiveAnalysis()) {
-      const existingData = this.analysisState.getComprehensiveStructureData();
-      if (!existingData) {
-        this.analysisState.loadComprehensiveNetworkStructure().subscribe({
-          next: (data) => {
-            this.analysisState.setComprehensiveStructureData(data);
-          },
-          error: (error) => {
-            // Silent fail - not critical for app functionality
-          }
-        });
-      }
-    }
+    // Don't make API calls during app initialization
+    // Let individual components handle their own API calls when user navigates to them
   }
 
   @HostListener('window:resize')

@@ -999,10 +999,18 @@ function handle_upload(req::HTTP.Request)
             "Content-Type" => "application/json"
         ]
         
+        # Find the network directory (where the .EDGES file is located)
+        network_path = upload_path
+        if !isempty(edges_files)
+            # Get the directory containing the first edges file
+            edges_file_path = edges_files[1]
+            network_path = dirname(joinpath(upload_path, edges_file_path))
+        end
+        
         response_data = Dict(
             "success" => true,
             "message" => "Files uploaded successfully",
-            "network_path" => upload_path,
+            "network_path" => network_path,
             "upload_id" => upload_id,
             "files_count" => length(uploaded_files),
             "uploaded_files" => uploaded_files,
