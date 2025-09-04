@@ -318,7 +318,7 @@ export class UploadNetworkComponent {
   }
 
   /**
-   * Proceed to analysis selection
+   * Proceed to visualization
    */
   proceedToAnalysis(): void {
     if (!this.canProceedToAnalysis()) {
@@ -329,8 +329,8 @@ export class UploadNetworkComponent {
     // Save current state to session
     this.saveStateToSession();
     
-    // Navigate to analysis selection/configuration
-    this.router.navigate(['/analysis']);
+    // Navigate to network visualization
+    this.router.navigate(['/visualization']);
   }
 
   /**
