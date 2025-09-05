@@ -26,6 +26,7 @@ import {
   DiamondAnalysisResponse, 
   RootDiamondStructure, 
   UniqueDiamondStructure,
+  SubDiamondStructure,
   DiamondDetailsData,
   NodeDetail,
   EdgeDetail,
@@ -120,40 +121,59 @@ export class DiamondDetailsComponent implements OnInit {
     
     if (!analysis || !id) return null;
 
-    // Look for diamond in both root and unique diamonds
-    let diamond: RootDiamondStructure | UniqueDiamondStructure | null = null;
+    // **FIXED: Only look for unique diamonds (root diamonds are included with isRoot flag)**
+    let diamond: UniqueDiamondStructure | null = null;
     let conditioningNodes: number[] = [];
     let joinNode: number | undefined;
     let diamondHash: string | undefined;
     let displayId = '';
     let isRoot = false;
     
-    // Check if it's a root diamond (starts with "root-")
-    if (id.startsWith('root-')) {
-      const joinNodeStr = id.replace('root-', '');
-      if (analysis.diamond_analysis?.raw_root_diamonds && analysis.diamond_analysis.raw_root_diamonds[joinNodeStr]) {
-        const diamondsAtNode = analysis.diamond_analysis.raw_root_diamonds[joinNodeStr];
-        diamond = diamondsAtNode;
-        conditioningNodes = diamondsAtNode.diamond?.conditioning_nodes || [];
-        joinNode = diamondsAtNode.join_node;
-        isRoot = true;
-        displayId = this.diamondAnalysisService.createDiamondIdentifier(diamondsAtNode, true, joinNode);
-      }
-    }
     // Check if it's a unique diamond (starts with "unique-")
-    else if (id.startsWith('unique-')) {
+    if (id.startsWith('unique-')) {
       const hash = id.replace('unique-', '');
+      console.log('🔍 Looking for unique diamond with hash:', hash);
+      console.log('🔍 Available diamonds:', Object.keys(analysis.diamond_analysis?.raw_unique_diamonds || {}));
+      
       if (analysis.diamond_analysis?.raw_unique_diamonds && analysis.diamond_analysis.raw_unique_diamonds[hash]) {
         diamond = analysis.diamond_analysis.raw_unique_diamonds[hash];
         diamondHash = hash;
-        isRoot = false;
+        isRoot = diamond.is_root_diamond || false;
         conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-        displayId = this.diamondAnalysisService.createDiamondIdentifier(diamond, false);
+        
+        // **FIXED: Handle different data structures for parent vs sub-diamonds**
+        if (diamond.join_node !== undefined) {
+          // This is a sub-diamond with a join_node field
+          joinNode = diamond.join_node;
+          displayId = this.diamondAnalysisService.createDiamondIdentifier(diamond, true, diamond.join_node);
+        } else {
+          // This is a parent diamond with sub_join_nodes array
+          joinNode = diamond.sub_join_nodes?.[0];
+          displayId = this.diamondAnalysisService.createDiamondIdentifier(diamond, false);
+        }
+        
+        console.log('✅ Found unique diamond:', { 
+          hash, 
+          isRoot, 
+          conditioningNodes: conditioningNodes.length, 
+          joinNode,
+          hasJoinNodeField: diamond.join_node !== undefined 
+        });
+      } else {
+        console.error('❌ Unique diamond not found for hash:', hash);
       }
+    }
+    // **NEW: Check if it's a sub-diamond (starts with "sub-")
+    // **REMOVED: Sub-diamond lookup logic - sub-diamonds now use unique- IDs**
+    // Since sub-diamonds now have proper hash-based IDs with unique- prefix,
+    // they will be found in the raw_unique_diamonds lookup above 
+    else {
+      console.error('❌ Invalid diamond ID format (expected unique-* or sub-*):', id);
     }
     
     if (!diamond) return null;
 
+    // **FIXED: Use the actual isRoot value determined from the diamond type**
     // Create network subset for this diamond
     const networkSubset = this.createNetworkSubset(diamond, isRoot);
     
@@ -460,29 +480,34 @@ export class DiamondDetailsComponent implements OnInit {
   private extractSubDiamonds(diamond: RootDiamondStructure | UniqueDiamondStructure, isRoot: boolean): DiamondPattern[] {
     const subDiamonds: DiamondPattern[] = [];
     
-    if (!isRoot) {
-      const uniqueDiamond = diamond as UniqueDiamondStructure;
-      if (uniqueDiamond.sub_diamond_structures) {
-        Object.entries(uniqueDiamond.sub_diamond_structures).forEach(([key, subDiamondData]) => {
-          const structuralInfo = this.diamondAnalysisService.getDiamondStructuralInfo(subDiamondData, true);
-          subDiamonds.push({
-            id: `sub-${key}`,
-            displayId: this.diamondAnalysisService.createDiamondIdentifier(subDiamondData, true, subDiamondData.join_node),
-            nodeCount: structuralInfo.nodeCount,
-            isRoot: true,
-            complexity: this.calculateComplexity(subDiamondData),
-            joinNodes: [subDiamondData.join_node],
-            sourceNodes: structuralInfo.conditioningNodes,
-            forkNodes: [],
-            conditioningNodes: structuralInfo.conditioningNodes,
-            joinNode: subDiamondData.join_node,
-            relevantNodes: structuralInfo.relevantNodes,
-            edgeList: structuralInfo.edgeList,
-            subDiamonds: []
-          });
+    // **FIXED: Type guard for UniqueDiamondStructure with sub_diamond_structures**
+    const uniqueDiamond = diamond as UniqueDiamondStructure;
+    if (uniqueDiamond.sub_diamond_structures && Object.keys(uniqueDiamond.sub_diamond_structures).length > 0) {
+      // This is a diamond with sub-diamonds
+      Object.entries(uniqueDiamond.sub_diamond_structures).forEach(([key, subDiamondData]) => {
+        const typedSubDiamondData = subDiamondData as SubDiamondStructure;
+        // **FIXED: Use the proper sub_diamond_hash from backend**
+        const subDiamondHash = typedSubDiamondData.sub_diamond_hash || `fallback-${key}`;
+        const structuralInfo = this.diamondAnalysisService.getDiamondStructuralInfo(typedSubDiamondData, true);
+        
+        subDiamonds.push({
+          id: `unique-${subDiamondHash}`, // **FIXED: Use proper hash-based ID**
+          displayId: this.diamondAnalysisService.createDiamondIdentifier(typedSubDiamondData, true, typedSubDiamondData.join_node),
+          nodeCount: structuralInfo.nodeCount,
+          isRoot: true,
+          complexity: this.calculateComplexity(typedSubDiamondData),
+          joinNodes: [typedSubDiamondData.join_node],
+          sourceNodes: structuralInfo.conditioningNodes,
+          forkNodes: [],
+          conditioningNodes: structuralInfo.conditioningNodes,
+          joinNode: typedSubDiamondData.join_node,
+          relevantNodes: structuralInfo.relevantNodes,
+          edgeList: structuralInfo.edgeList,
+          subDiamonds: [] // Will be populated recursively if this sub-diamond has its own sub-diamonds
         });
-      }
+      });
     }
+    // If this diamond has no sub_diamond_structures, it has no sub-diamonds to extract
     
     return subDiamonds;
   }

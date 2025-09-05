@@ -145,7 +145,7 @@ export interface UniqueDiamondStructure {
   sub_node_priors: Record<string, BeliefValue>;
   node_count: number;
   // NEW: Missing fields from DiamondComputationData struct
-  sub_diamond_structures: Record<string, RootDiamondStructure>;
+  sub_diamond_structures: Record<string, SubDiamondStructure>;
   diamond: {
     conditioning_nodes: number[];
     relevant_nodes: number[];
@@ -153,6 +153,23 @@ export interface UniqueDiamondStructure {
     edge_count: number;
     node_count: number;
   };
+  // **NEW: Optional join_node field for sub-diamonds that are serialized as top-level entries**
+  join_node?: number;
+  non_diamond_parents?: number[];
+}
+
+// **NEW: Interface for sub-diamond structures within parent diamonds**
+export interface SubDiamondStructure {
+  join_node: number;
+  sub_diamond_hash: string; // **NEW: Hash for direct lookup**
+  diamond: {
+    conditioning_nodes: number[];
+    relevant_nodes: number[];
+    edgelist: [number, number][];
+    edge_count: number;
+    node_count: number;
+  };
+  non_diamond_parents: number[];
 }
 
 export interface DiamondAnalysisResult {

@@ -244,29 +244,41 @@ export class DiamondAnalysisService {
 
   // **NEW: Get diamond structural details**
   getDiamondStructuralInfo(diamond: any, isRoot: boolean): any {
-    const baseInfo = {
-      nodeCount: diamond.node_count || 0,
-      isRoot: isRoot,
-      conditioningNodes: [] as number[],
-      joinNodes: [] as number[],
-      relevantNodes: [] as number[],
-      edgeList: [] as [number, number][]
-    };
+    // **FIXED: Properly read backend data structure based on serialization format**
+    console.log('🔍 Getting structural info for diamond:', { diamond, isRoot });
+    
+    let nodeCount = 0;
+    let conditioningNodes: number[] = [];
+    let joinNodes: number[] = [];
+    let relevantNodes: number[] = [];
+    let edgeList: [number, number][] = [];
 
     if (isRoot) {
-      // Root diamond structure
-      baseInfo.conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-      baseInfo.joinNodes = [diamond.join_node];
-      baseInfo.relevantNodes = diamond.diamond?.relevant_nodes || [];
-      baseInfo.edgeList = diamond.diamond?.edgelist || [];
+      // Root diamond structure: { join_node, diamond: { conditioning_nodes, relevant_nodes, edgelist, node_count }, non_diamond_parents }
+      nodeCount = diamond.diamond?.node_count || diamond.node_count || 0;
+      conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      joinNodes = [diamond.join_node];
+      relevantNodes = diamond.diamond?.relevant_nodes || [];
+      edgeList = diamond.diamond?.edgelist || [];
     } else {
-      // Unique diamond structure
-      baseInfo.conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-      baseInfo.joinNodes = diamond.sub_join_nodes || [];
-      baseInfo.relevantNodes = diamond.diamond?.relevant_nodes || [];
-      baseInfo.edgeList = diamond.diamond?.edgelist || [];
+      // Unique diamond structure: { diamond: {...}, sub_diamond_structures, sub_sources, sub_join_nodes, ... }
+      nodeCount = diamond.diamond?.node_count || diamond.node_count || 0;
+      conditioningNodes = diamond.diamond?.conditioning_nodes || [];
+      joinNodes = diamond.sub_join_nodes || [];
+      relevantNodes = diamond.diamond?.relevant_nodes || [];
+      edgeList = diamond.diamond?.edgelist || [];
     }
 
+    const baseInfo = {
+      nodeCount,
+      isRoot,
+      conditioningNodes,
+      joinNodes,
+      relevantNodes,
+      edgeList
+    };
+
+    console.log('📊 Extracted structural info:', baseInfo);
     return baseInfo;
   }
 
@@ -275,36 +287,41 @@ export class DiamondAnalysisService {
     console.log('💎 Extracting diamond patterns from result:', diamondResult);
     const patterns: DiamondPattern[] = [];
 
-    // Process root diamonds
-    if (diamondResult.raw_root_diamonds) {
-      Object.entries(diamondResult.raw_root_diamonds).forEach(([joinNodeStr, diamond]: [string, any]) => {
-        const joinNode = parseInt(joinNodeStr);
-        const structuralInfo = this.getDiamondStructuralInfo(diamond, true);
-        const identifier = this.createDiamondIdentifier(diamond, true, joinNode);
-
-        patterns.push({
-          id: `root-${joinNodeStr}`,
-          displayId: identifier,
-          nodeCount: structuralInfo.nodeCount,
-          isRoot: true,
-          complexity: this.calculateComplexity(diamond),
-          joinNodes: [joinNode],
-          sourceNodes: structuralInfo.conditioningNodes,
-          forkNodes: [], // Would need network structure to calculate
-          conditioningNodes: structuralInfo.conditioningNodes,
-          joinNode: joinNode,
-          relevantNodes: structuralInfo.relevantNodes,
-          edgeList: structuralInfo.edgeList,
-          subDiamonds: []
-        });
-      });
-    }
-
-    // Process unique diamonds
+    // **FIXED: Only process unique diamonds - root diamonds are included as isRoot flag**
+    // Process unique diamonds only
     if (diamondResult.raw_unique_diamonds) {
       Object.entries(diamondResult.raw_unique_diamonds).forEach(([hash, diamond]: [string, any]) => {
         const structuralInfo = this.getDiamondStructuralInfo(diamond, false);
         const identifier = this.createDiamondIdentifier(diamond, false);
+
+        // **FIXED: Extract sub-diamonds from unique diamond structures**
+        const subDiamonds: DiamondPattern[] = [];
+        if (diamond.sub_diamond_structures) {
+          Object.entries(diamond.sub_diamond_structures).forEach(([subJoinNodeStr, subDiamondData]: [string, any]) => {
+            const subJoinNode = parseInt(subJoinNodeStr);
+            const subStructuralInfo = this.getDiamondStructuralInfo(subDiamondData, true); // Sub-diamonds are root diamonds
+            const subIdentifier = this.createDiamondIdentifier(subDiamondData, true, subJoinNode);
+            
+            // **NEW: Use the proper sub_diamond_hash from backend instead of constructing ID**
+            const subDiamondHash = subDiamondData.sub_diamond_hash || `${hash}-${subJoinNodeStr}`;
+            
+            subDiamonds.push({
+              id: `unique-${subDiamondHash}`, // **FIXED: Use actual hash-based ID**
+              displayId: subIdentifier,
+              nodeCount: subStructuralInfo.nodeCount,
+              isRoot: true, // Sub-diamonds are root diamonds
+              complexity: this.calculateComplexity(subDiamondData),
+              joinNodes: [subJoinNode],
+              sourceNodes: subStructuralInfo.conditioningNodes,
+              forkNodes: [],
+              conditioningNodes: subStructuralInfo.conditioningNodes,
+              joinNode: subJoinNode,
+              relevantNodes: subStructuralInfo.relevantNodes,
+              edgeList: subStructuralInfo.edgeList,
+              subDiamonds: [] // Sub-diamonds don't have nested sub-diamonds in this level
+            });
+          });
+        }
 
         patterns.push({
           id: `unique-${hash}`,
@@ -319,7 +336,7 @@ export class DiamondAnalysisService {
           diamondHash: hash,
           relevantNodes: structuralInfo.relevantNodes,
           edgeList: structuralInfo.edgeList,
-          subDiamonds: []
+          subDiamonds: subDiamonds // **FIXED: Include extracted sub-diamonds**
         });
       });
     }

@@ -106,8 +106,12 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
         # Serialize sub_diamond_structures (Dict{Int64, DiamondsAtNode})
         sub_diamond_structures_serialized = Dict()
         for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
+            # Calculate the sub-diamond hash using DiamondProcessingModule's function
+            sub_diamond_hash = IPAFramework.create_diamond_hash_key(diamonds_at_node.diamond)
+            
             sub_diamond_structures_serialized[string(join_node)] = Dict(
                 "join_node" => diamonds_at_node.join_node,
+                "sub_diamond_hash" => string(sub_diamond_hash),  # NEW: Include the hash
                 "diamond" => Dict(
                     "conditioning_nodes" => collect(diamonds_at_node.diamond.conditioning_nodes),
                     "relevant_nodes" => collect(diamonds_at_node.diamond.relevant_nodes),
@@ -145,6 +149,64 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
         )
     end
   
+    # **FIXED: Add sub-diamonds as separate top-level entries using their actual DiamondComputationData**
+    for (diamond_hash, diamond_data) in unique_diamonds_dict
+        for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
+            sub_diamond_hash = IPAFramework.create_diamond_hash_key(diamonds_at_node.diamond)
+            
+            # **CRITICAL: Look up the actual DiamondComputationData for this sub-diamond**
+            if haskey(unique_diamonds_dict, sub_diamond_hash)
+                # Use the complete DiamondComputationData for the sub-diamond
+                sub_diamond_data = unique_diamonds_dict[sub_diamond_hash]
+                
+                # Serialize sub_diamond_structures for this sub-diamond
+                sub_diamond_sub_structures_serialized = Dict()
+                for (sub_join_node, sub_diamonds_at_node) in sub_diamond_data.sub_diamond_structures
+                    nested_sub_diamond_hash = IPAFramework.create_diamond_hash_key(sub_diamonds_at_node.diamond)
+                    
+                    sub_diamond_sub_structures_serialized[string(sub_join_node)] = Dict(
+                        "join_node" => sub_diamonds_at_node.join_node,
+                        "sub_diamond_hash" => string(nested_sub_diamond_hash),
+                        "diamond" => Dict(
+                            "conditioning_nodes" => collect(sub_diamonds_at_node.diamond.conditioning_nodes),
+                            "relevant_nodes" => collect(sub_diamonds_at_node.diamond.relevant_nodes),
+                            "edgelist" => collect(sub_diamonds_at_node.diamond.edgelist),
+                            "edge_count" => length(sub_diamonds_at_node.diamond.edgelist),
+                            "node_count" => length(sub_diamonds_at_node.diamond.relevant_nodes)
+                        ),
+                        "non_diamond_parents" => collect(sub_diamonds_at_node.non_diamond_parents)
+                    )
+                end
+                
+                # Create complete entry for sub-diamond with all its data
+                serialized[string(sub_diamond_hash)] = Dict(
+                    "diamond_hash" => string(sub_diamond_hash),
+                    "is_root_diamond" => sub_diamond_data.is_rootDiamond,
+                    "sub_outgoing_index" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_outgoing_index),
+                    "sub_incoming_index" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_incoming_index),
+                    "sub_sources" => collect(sub_diamond_data.sub_sources),
+                    "sub_fork_nodes" => collect(sub_diamond_data.sub_fork_nodes),
+                    "sub_join_nodes" => collect(sub_diamond_data.sub_join_nodes),
+                    "sub_ancestors" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_ancestors),
+                    "sub_descendants" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_descendants),
+                    "sub_iteration_sets" => [collect(s) for s in sub_diamond_data.sub_iteration_sets],
+                    "sub_iteration_sets_count" => length(sub_diamond_data.sub_iteration_sets),
+                    "sub_node_priors" => Dict(string(k) => v for (k, v) in sub_diamond_data.sub_node_priors),
+                    "node_count" => length(sub_diamond_data.sub_node_priors),
+                    "sub_diamond_structures" => sub_diamond_sub_structures_serialized,  # **FIXED: Include nested sub-diamonds**
+                    "diamond" => Dict(
+                        "conditioning_nodes" => collect(sub_diamond_data.diamond.conditioning_nodes),
+                        "relevant_nodes" => collect(sub_diamond_data.diamond.relevant_nodes),
+                        "edgelist" => collect(sub_diamond_data.diamond.edgelist),
+                        "edge_count" => length(sub_diamond_data.diamond.edgelist),
+                        "node_count" => length(sub_diamond_data.diamond.relevant_nodes)
+                    ),
+                    "join_node" => diamonds_at_node.join_node,
+                    "non_diamond_parents" => collect(diamonds_at_node.non_diamond_parents)
+                )
+            end
+        end
+    end
 
     return serialized
 end
