@@ -277,8 +277,9 @@ export class FileManagerService {
         networkGroups.set(baseNetworkPath, new Map());
       }
       
+      // **FIXED: Include scenario folder name to create separate reachability groups**
       const analysisKey = file.analysisType === 'reachability'
-        ? `${file.analysisType}-${file.dataType}`
+        ? `${file.analysisType}-${file.dataType}-${this.extractScenarioName(file.path)}`
         : file.analysisType;
       
       const analysisGroups = networkGroups.get(baseNetworkPath)!;
@@ -300,8 +301,10 @@ export class FileManagerService {
       
       analysisGroups.forEach((groupFiles, analysisKey) => {
         if (analysisKey.startsWith('reachability')) {
-          const dataType = analysisKey.split('-')[1] as DataType;
-          const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, sharedEdgesFile);
+          const keyParts = analysisKey.split('-');
+          const dataType = keyParts[1] as DataType;
+          const scenarioName = keyParts.slice(2).join('-'); // Rejoin in case scenario name has dashes
+          const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, sharedEdgesFile, scenarioName);
           newGroups.reachability.push(group);
         } else if (analysisKey === 'capacity') {
           const group = this.createCapacityGroup(fullNetworkPath, groupFiles, sharedEdgesFile);
@@ -414,6 +417,20 @@ export class FileManagerService {
     return parts[0]; // Fallback to base name
   }
 
+  /**
+   * Extract scenario name from file path
+   * e.g., "grid-graph/optimized/nodepriors.json" → "optimized"
+   * e.g., "grid-graph/Breakdown 214 (interval)/linkprobs.json" → "Breakdown 214 (interval)"
+   */
+  private extractScenarioName(filePath: string): string {
+    const parts = filePath.split('/');
+    if (parts.length >= 3) {
+      // Return the scenario folder name (second-to-last part before filename)
+      return parts[parts.length - 2];
+    }
+    return 'default'; // Fallback
+  }
+
   private getRoleFromType(type: string): string {
     const roleMap: Record<string, string> = {
       edges: 'Network Edges',
@@ -471,7 +488,7 @@ export class FileManagerService {
     };
   }
 
-  private createReachabilityGroup(networkPath: string, files: CategorizedFile[], dataType: DataType, sharedEdgesFile?: CategorizedFile): ReachabilityFileGroup {
+  private createReachabilityGroup(networkPath: string, files: CategorizedFile[], dataType: DataType, sharedEdgesFile?: CategorizedFile, scenarioName?: string): ReachabilityFileGroup {
     const nodePriorsFile = files.find(f => f.suggestedRole === 'Node Priors');
     const linkProbabilitiesFile = files.find(f => f.suggestedRole === 'Link Probabilities');
 
@@ -499,7 +516,8 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile
+      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      scenarioName: scenarioName || `${getDataTypeDisplayName(dataType)} Scenario`
     };
   }
 

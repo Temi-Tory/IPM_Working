@@ -24,6 +24,8 @@ import { FormsModule } from '@angular/forms';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { DiamondAnalysisService } from '../../shared/services/diamond-analysis.service';
+import { FileManagerService } from '../../shared/services/file-manager.service';
+import { NetworkSessionService } from '../../shared/services/network-session.service';
 import {
   ScenarioInfo,
   DiamondAnalysisResult,
@@ -67,6 +69,8 @@ import { DiamondDetailsComponent } from '../diamond-details/diamond-details.comp
 export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   private analysisStateService = inject(AnalysisStateService);
   private diamondAnalysisService = inject(DiamondAnalysisService);
+  private fileManagerService = inject(FileManagerService);
+  private sessionService = inject(NetworkSessionService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
 
@@ -91,35 +95,23 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // Table data source
   dataSource = new MatTableDataSource<DiamondPattern>([]);
   
-  // Data Processing - Computed Properties
+  // **FIXED: Get scenarios from FileManagerService reachability groups**
   availableScenarios = computed(() => {
-    // Get scenarios from parsed data
-    const parsedData = this.analysisStateService.parsedData();
-    if (!parsedData) return [];
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
     
-    const scenarios: ScenarioInfo[] = [];
-    
-    // Extract scenarios from parsed data structure
-    if (parsedData.float) scenarios.push({
-      name: 'float',
-      dataType: 'float',
-      displayName: 'Float Analysis',
-      path: 'float'
-    });
-    if (parsedData.interval) scenarios.push({
-      name: 'interval',
-      dataType: 'interval',
-      displayName: 'Interval Analysis',
-      path: 'interval'
-    });
-    if (parsedData.pbox) scenarios.push({
-      name: 'pbox',
-      dataType: 'pbox',
-      displayName: 'P-Box Analysis',
-      path: 'pbox'
-    });
-    
-    return scenarios;
+    return reachabilityGroups
+      .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
+      .map((group, index) => ({
+        name: group.scenarioName || `${group.dataType}-${index}`, // Use scenarioName as unique identifier
+        dataType: group.dataType as 'float' | 'interval' | 'pbox',
+        displayName: group.scenarioName ? 
+          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` : 
+          this.getDataTypeDisplayName(group.dataType),
+        path: group.nodePriorsFile?.path || '',
+        networkPath: group.networkPath,
+        nodePriorsFile: group.nodePriorsFile,
+        linkProbabilitiesFile: group.linkProbabilitiesFile
+      }));
   });
 
   // Get multi-scenario diamond results or fallback to single analysis
@@ -248,16 +240,31 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // **ENHANCED: Table configuration with meaningful columns**
   displayedColumns: string[] = ['displayId', 'nodeCount', 'isRoot', 'conditioningNodes', 'riskLevel', 'complexity', 'actions'];
   
+  // **NEW: Track API calls to prevent duplicate requests**
+  private hasCalledDiamondAPI = false;
+  
   ngOnInit(): void {
-    // Initialize with first available scenario
-    const scenarios = this.availableScenarios();
-    if (scenarios.length > 0 && !this.currentScenario()) {
-      this.setCurrentScenario(scenarios[0].name);
-    }
+    console.log('💎 DiamondAnalysisComponent initializing...');
     
-    // Load multi-scenario diamond analysis if we have scenarios but no multi-scenario data
-    if (scenarios.length > 0 && !this.multiScenarioResults()) {
-      this.loadMultiScenarioDiamondAnalysis();
+    // Get network path and reachability scenarios
+    const currentSession = this.sessionService.getCurrentSession();
+    const networkPath = currentSession?.networkPath || this.analysisStateService.currentNetworkPath();
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    
+    if (networkPath && !this.hasCalledDiamondAPI) {
+      if (reachabilityGroups.length === 0) {
+        console.log('🔹 No reachability scenarios found - loading diamond analysis with default priors');
+        this.loadDiamondWithDefaults(networkPath);
+      } else if (reachabilityGroups.length === 1) {
+        console.log('🔹 Single reachability scenario found - auto-selecting:', reachabilityGroups[0].dataType);
+        this.setCurrentScenario(reachabilityGroups[0].dataType);
+        this.loadDiamondWithScenario(networkPath, reachabilityGroups[0]);
+      } else {
+        console.log('🔹 Multiple reachability scenarios found - user needs to select:', reachabilityGroups.map(g => g.dataType));
+        // Initialize with first scenario but don't auto-load until user selects
+        this.setCurrentScenario(reachabilityGroups[0].dataType);
+        this.showScenarioSelector(reachabilityGroups);
+      }
     }
     
     // Initialize dynamic filter ranges
@@ -913,5 +920,94 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return Object.values(analysis.raw_unique_diamonds).some(diamond => 
       diamond.sub_diamond_structures && Object.keys(diamond.sub_diamond_structures).length > 0
     );
+  }
+
+  // **NEW: Helper methods for FileManagerService integration**
+  private loadDiamondWithDefaults(networkPath: string): void {
+    console.log('🔍 Loading diamond analysis with default node priors:', networkPath);
+    this.hasCalledDiamondAPI = true;
+    
+    this.analysisStateService.loadDiamondAnalysis(networkPath).subscribe({
+      next: () => {
+        console.log('✅ Diamond analysis with defaults loaded successfully');
+        this.updateFilterRanges();
+      },
+      error: (error) => {
+        console.error('❌ Failed to load diamond analysis with defaults:', error);
+        this.hasCalledDiamondAPI = false; // Reset on error to allow retry
+      }
+    });
+  }
+
+  private loadDiamondWithScenario(networkPath: string, scenario: any): void {
+    console.log('🔍 Loading diamond analysis for scenario:', scenario.dataType, 'at path:', networkPath);
+    this.hasCalledDiamondAPI = true;
+    
+    // **FIXED: Construct full paths for backend**
+    // The session networkPath contains the full temp_uploads path
+    // The scenario paths are relative, so we need to combine them properly
+    
+    // Extract the temp_uploads prefix from session network path
+    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath || networkPath;
+    console.log('📁 Session network path:', sessionNetworkPath);
+    console.log('📁 Scenario network path:', scenario.networkPath);
+    console.log('📁 NodePriors file path:', scenario.nodePriorsFile?.path);
+    
+    // **FIXED: Backend expects networkPath as full temp_uploads path and nodepriorsPath as relative**
+    // Convert Windows backslashes to forward slashes for backend compatibility
+    const fullNetworkPath = sessionNetworkPath.replace(/\\/g, '/');
+    
+    // Remove the network name prefix from nodepriors path to make it relative
+    // e.g., "grid-graph/main scenario - float/file.json" → "main scenario - float/file.json"  
+    let relativeNodePriorsPath = scenario.nodePriorsFile?.path || '';
+    if (relativeNodePriorsPath.startsWith(scenario.networkPath + '/')) {
+      relativeNodePriorsPath = relativeNodePriorsPath.substring(scenario.networkPath.length + 1);
+    }
+    
+    console.log('🔍 Using full network path for backend:', fullNetworkPath);
+    console.log('🔍 Using relative nodepriors path for backend:', relativeNodePriorsPath);
+    console.log('🔍 Backend will construct full path as:', `${fullNetworkPath}/${relativeNodePriorsPath}`);
+    
+    // Call diamond analysis service with specific nodepriors path
+    this.diamondAnalysisService.analyzeDiamonds({
+      networkPath: fullNetworkPath,
+      nodepriorsPath: relativeNodePriorsPath
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Update the analysis state with the diamond analysis result
+          const currentState = this.analysisStateService as any;
+          if (currentState.diamondAnalysisSignal) {
+            currentState.diamondAnalysisSignal.set(response);
+          }
+          this.analysisStateService.markTabCompleted('diamonds');
+          console.log('✅ Diamond analysis for scenario loaded successfully');
+          this.updateFilterRanges();
+        } else {
+          console.error('❌ Diamond analysis failed:', response.message);
+        }
+      },
+      error: (error) => {
+        console.error('❌ Failed to load diamond analysis for scenario:', error);
+        this.hasCalledDiamondAPI = false; // Reset on error to allow retry
+      }
+    });
+  }
+
+  private showScenarioSelector(scenarios: any[]): void {
+    console.log('📋 Multiple scenarios available - user needs to select:', scenarios.map(s => s.dataType));
+    // For now, auto-select first scenario - in future this could show a selection dialog
+    if (scenarios.length > 0) {
+      this.loadDiamondWithScenario(scenarios[0].networkPath!, scenarios[0]);
+    }
+  }
+
+  private getDataTypeDisplayName(dataType: string): string {
+    switch (dataType) {
+      case 'float': return 'Float (Deterministic)';
+      case 'interval': return 'Interval';
+      case 'pbox': return 'P-Box';
+      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
+    }
   }
 }

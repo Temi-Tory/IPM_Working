@@ -550,6 +550,7 @@ export interface ReachabilityFileGroup extends AnalysisFileGroup {
   dataType: DataType; // float, interval, or pbox
   nodePriorsFile?: CategorizedFile;
   linkProbabilitiesFile?: CategorizedFile;
+  scenarioName?: string; // NEW: Name of the scenario (e.g., "optimized", "degraded", "Breakdown 214")
 }
 
 export interface CapacityFileGroup extends AnalysisFileGroup {
