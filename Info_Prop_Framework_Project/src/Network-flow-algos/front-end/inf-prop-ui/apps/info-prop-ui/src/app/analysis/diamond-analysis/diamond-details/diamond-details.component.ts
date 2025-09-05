@@ -20,8 +20,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FormsModule } from '@angular/forms';
 
-import { AnalysisStateService } from '../../shared/services/analysis-state.service';
-import { DiamondAnalysisService } from '../../shared/services/diamond-analysis.service';
+import { AnalysisStateService } from '../../../shared/services/analysis-state.service';
+import { DiamondAnalysisService } from '../../../shared/services/diamond-analysis.service';
 import { 
   DiamondAnalysisResponse, 
   RootDiamondStructure, 
@@ -31,7 +31,7 @@ import {
   NodeDetail,
   EdgeDetail,
   DiamondPattern
-} from '../../shared/models/network-analysis.models';
+} from '../../../shared/models/network-analysis.models';
 
 @Component({
   selector: 'app-diamond-details',

@@ -34,8 +34,8 @@ import {
   JoinNodeAnalysis,
   DiamondPattern
 } from '../../shared/models/network-analysis.models';
+import { DiamondDetailsComponent } from './diamond-details/diamond-details.component';
 
-import { DiamondDetailsComponent } from '../diamond-details/diamond-details.component';
 
 @Component({
   selector: 'app-diamond-analysis',
@@ -237,8 +237,8 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   isLoading = computed(() => this.analysisStateService.isLoading());
   error = computed(() => this.analysisStateService.error());
 
-  // **ENHANCED: Table configuration with meaningful columns**
-  displayedColumns: string[] = ['displayId', 'nodeCount', 'isRoot', 'conditioningNodes', 'riskLevel', 'complexity', 'actions'];
+  // **ENHANCED: Clean table configuration focused on essential diamond data**
+  displayedColumns: string[] = ['displayId', 'conditioningNodes', 'joinNode', 'nodeCount', 'riskLevel', 'actions'];
   
   // **NEW: Track API calls to prevent duplicate requests**
   private hasCalledDiamondAPI = false;
@@ -539,13 +539,146 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   
   // Node Analysis Methods
   openNodeAnalysis(nodeId: number): void {
-    console.log('Opening node analysis for:', nodeId);
-    // TODO: Implement node analysis modal
+    const networkStructure = this.analysisStateService.networkData();
+    if (!networkStructure) {
+      console.warn('No network structure available for node analysis');
+      return;
+    }
+    
+    // Build node details from network structure
+    const nodeDetails = this.buildNodeDetails(nodeId, networkStructure);
+    if (!nodeDetails) {
+      console.warn('Could not build node details for node:', nodeId);
+      return;
+    }
+    
+    // Import and open the node details dialog with proper sizing
+    import('../network-structure/node-details-dialog.component').then(({ NodeDetailsDialogComponent }) => {
+      this.dialog.open(NodeDetailsDialogComponent, {
+        data: { 
+          nodeId: nodeId,
+          nodeDetails: nodeDetails,
+          networkData: networkStructure
+        },
+        width: '700px',
+        maxWidth: '95vw'
+      });
+    });
+  }
+
+  // Handle conditioning node clicks (single or multiple)
+  openConditioningNodeAnalysis(conditioningNodes: number[]): void {
+    if (conditioningNodes.length === 0) {
+      console.warn('No conditioning nodes to analyze');
+      return;
+    }
+    
+    if (conditioningNodes.length === 1) {
+      // Single node - open directly
+      this.openNodeAnalysis(conditioningNodes[0]);
+    } else {
+      // Multiple nodes - show selector dialog first
+      this.showNodeSelectorDialog(conditioningNodes);
+    }
+  }
+
+  private showNodeSelectorDialog(nodes: number[]): void {
+    const networkStructure = this.analysisStateService.networkData();
+    
+    import('./node-selector-dialog.component').then(({ NodeSelectorDialogComponent }) => {
+      const dialogRef = this.dialog.open(NodeSelectorDialogComponent, {
+        data: {
+          title: 'Select Conditioning Node',
+          subtitle: 'Choose which conditioning node to analyze in detail',
+          nodes: nodes,
+          networkStructure: networkStructure
+        },
+        width: '500px',
+        maxWidth: '95vw'
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result?.selectedNode) {
+          this.openNodeAnalysis(result.selectedNode);
+        }
+      });
+    });
+  }
+
+  private buildNodeDetails(nodeId: number, networkStructure: any) {
+    // Check if node exists
+    if (!networkStructure.nodes?.includes(nodeId)) {
+      return null;
+    }
+
+    // Get node connections
+    const parents = networkStructure.incoming_index?.[nodeId.toString()] || [];
+    const children = networkStructure.outgoing_index?.[nodeId.toString()] || [];
+    const ancestors = networkStructure.ancestors?.[nodeId.toString()] || [];
+    const descendants = networkStructure.descendants?.[nodeId.toString()] || [];
+
+    // Determine node types
+    const types: string[] = [];
+    if (networkStructure.source_nodes?.includes(nodeId)) types.push('Source');
+    if (networkStructure.sink_nodes?.includes(nodeId)) types.push('Sink');
+    if (networkStructure.fork_nodes?.includes(nodeId)) types.push('Fork');
+    if (networkStructure.join_nodes?.includes(nodeId)) types.push('Join');
+    if (types.length === 0) types.push('Regular');
+
+    // Find iteration set
+    let iterationSet = -1;
+    if (networkStructure.iteration_sets) {
+      for (let i = 0; i < networkStructure.iteration_sets.length; i++) {
+        if (networkStructure.iteration_sets[i].includes(nodeId)) {
+          iterationSet = i;
+          break;
+        }
+      }
+    }
+
+    // Check if it's a chokepoint (join node with high connectivity)
+    const isChokepoint = networkStructure.join_nodes?.includes(nodeId) && parents.length > 2;
+
+    return {
+      nodeId: nodeId,
+      types: types,
+      inDegree: parents.length,
+      outDegree: children.length,
+      parents: parents,
+      children: children,
+      ancestors: ancestors,
+      descendants: descendants,
+      iterationSet: iterationSet,
+      isChokepoint: isChokepoint,
+      connectivity: {
+        totalConnections: parents.length + children.length,
+        connectivityRatio: (parents.length + children.length) / networkStructure.total_nodes
+      }
+    };
   }
   
   viewNodeInContext(nodeId: number): void {
     console.log('Viewing node in context:', nodeId);
     // TODO: Implement context view
+  }
+
+  // Open join node diamond analysis dialog
+  openJoinNodeDiamondAnalysis(joinNodeData: any): void {
+    import('./join-node-diamond-analysis-dialog.component').then(({ JoinNodeDiamondAnalysisDialogComponent }) => {
+      const dialogRef = this.dialog.open(JoinNodeDiamondAnalysisDialogComponent, {
+        data: joinNodeData,
+        width: '700px',
+        maxWidth: '95vw'
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result?.action === 'viewInNetwork') {
+          // Navigate to network structure view
+          console.log('Navigate to network view for node:', result.nodeId);
+          // TODO: Implement navigation to network structure
+        }
+      });
+    });
   }
 
   // **ENHANCED: Risk Pattern Methods with detailed structural analysis**
@@ -1009,5 +1142,88 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
       case 'pbox': return 'P-Box';
       default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
     }
+  }
+
+  // **NEW: System-wide insight methods for enterprise dashboard**
+  getSinglePointFailures(): number {
+    const patterns = this.diamondPatterns();
+    if (!patterns) return 0;
+    return patterns.filter(pattern => pattern.conditioningNodes.length === 1).length;
+  }
+
+  getSystemRiskClass(): string {
+    const singlePoints = this.getSinglePointFailures();
+    const totalDiamonds = this.diamondPatterns()?.length || 0;
+    
+    if (totalDiamonds === 0) return 'risk-low';
+    
+    const riskRatio = singlePoints / totalDiamonds;
+    if (riskRatio > 0.7) return 'risk-high';
+    if (riskRatio > 0.3) return 'risk-medium';
+    return 'risk-low';
+  }
+
+  getSystemHealth(): 'good' | 'fair' | 'poor' {
+    const patterns = this.diamondPatterns();
+    if (!patterns || patterns.length === 0) return 'good';
+    
+    const singlePoints = this.getSinglePointFailures();
+    const totalDiamonds = patterns.length;
+    const singlePointRatio = singlePoints / totalDiamonds;
+    
+    // Consider average complexity as well
+    const summary = this.diamondSummary();
+    const avgComplexity = summary?.averageComplexity || 0;
+    
+    // High single point failures or very high complexity = poor health
+    if (singlePointRatio > 0.6 || avgComplexity > 20) return 'poor';
+    
+    // Moderate single point failures or complexity = fair health  
+    if (singlePointRatio > 0.3 || avgComplexity > 10) return 'fair';
+    
+    return 'good';
+  }
+
+  getSystemHealthIcon(): string {
+    const health = this.getSystemHealth();
+    switch (health) {
+      case 'good': return 'check_circle';
+      case 'fair': return 'warning';
+      case 'poor': return 'error';
+      default: return 'help';
+    }
+  }
+
+  // **NEW: Pattern analysis methods for accurate diamond categorization**
+  getComplexPatternCount(): number {
+    const patterns = this.diamondPatterns();
+    if (!patterns) return 0;
+    return patterns.filter(pattern => pattern.nodeCount >= 10).length;
+  }
+
+  getNestedPatternCount(): number {
+    const patterns = this.diamondPatterns();
+    if (!patterns) return 0;
+    // Count diamonds that have sub-diamonds
+    return patterns.filter(pattern => pattern.subDiamonds && pattern.subDiamonds.length > 0).length;
+  }
+
+  getSimplePatternCount(): number {
+    const patterns = this.diamondPatterns();
+    if (!patterns) return 0;
+    return patterns.filter(pattern => pattern.nodeCount < 10).length;
+  }
+
+  getTotalJoinNodes(): number {
+    const patterns = this.diamondPatterns();
+    if (!patterns) return 0;
+    // Count unique join nodes
+    const uniqueJoinNodes = new Set(patterns.map(pattern => pattern.joinNode));
+    return uniqueJoinNodes.size;
+  }
+
+  getAverageComplexity(): string {
+    const summary = this.diamondSummary();
+    return summary?.averageComplexity?.toFixed(1) || '0.0';
   }
 }
