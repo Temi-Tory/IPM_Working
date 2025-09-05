@@ -264,18 +264,24 @@ export class FileManagerService {
 
     // Group files by network path and analysis type
     const networkGroups = new Map<string, Map<string, CategorizedFile[]>>();
+    const networkPathToFullPath = new Map<string, string>();
 
     files.forEach(file => {
-      const networkPath = this.extractNetworkPath(file.path);
-      if (!networkGroups.has(networkPath)) {
-        networkGroups.set(networkPath, new Map());
+      const baseNetworkPath = this.extractNetworkPath(file.path);
+      const fullNetworkPath = this.extractFullNetworkPath(file.path);
+      
+      // Store mapping from base path to full path for API calls
+      networkPathToFullPath.set(baseNetworkPath, fullNetworkPath);
+      
+      if (!networkGroups.has(baseNetworkPath)) {
+        networkGroups.set(baseNetworkPath, new Map());
       }
       
-      const analysisKey = file.analysisType === 'reachability' 
-        ? `${file.analysisType}-${file.dataType}` 
+      const analysisKey = file.analysisType === 'reachability'
+        ? `${file.analysisType}-${file.dataType}`
         : file.analysisType;
       
-      const analysisGroups = networkGroups.get(networkPath)!;
+      const analysisGroups = networkGroups.get(baseNetworkPath)!;
       if (!analysisGroups.has(analysisKey)) {
         analysisGroups.set(analysisKey, []);
       }
@@ -284,20 +290,27 @@ export class FileManagerService {
     });
 
     // Create analysis groups
-    networkGroups.forEach((analysisGroups, networkPath) => {
+    networkGroups.forEach((analysisGroups, baseNetworkPath) => {
+      const fullNetworkPath = networkPathToFullPath.get(baseNetworkPath) || baseNetworkPath;
+      // Find the shared edges file for this network path
+      const networkFiles = analysisGroups.get('network') || [];
+      const sharedEdgesFile = networkFiles.find(f => f.dataType === 'edges') || undefined;
+      
+      console.log(`🔍 Network path: ${baseNetworkPath}, Full path: ${fullNetworkPath}, Shared edges file:`, sharedEdgesFile?.name);
+      
       analysisGroups.forEach((groupFiles, analysisKey) => {
         if (analysisKey.startsWith('reachability')) {
           const dataType = analysisKey.split('-')[1] as DataType;
-          const group = this.createReachabilityGroup(networkPath, groupFiles, dataType);
+          const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, sharedEdgesFile);
           newGroups.reachability.push(group);
         } else if (analysisKey === 'capacity') {
-          const group = this.createCapacityGroup(networkPath, groupFiles);
+          const group = this.createCapacityGroup(fullNetworkPath, groupFiles, sharedEdgesFile);
           newGroups.capacity.push(group);
         } else if (analysisKey === 'cpm') {
-          const group = this.createCpmGroup(networkPath, groupFiles);
+          const group = this.createCpmGroup(fullNetworkPath, groupFiles, sharedEdgesFile);
           newGroups.cpm.push(group);
         } else if (analysisKey === 'network') {
-          newGroups.network = this.createNetworkGroup(networkPath, groupFiles);
+          newGroups.network = this.createNetworkGroup(fullNetworkPath, groupFiles);
         }
       });
     });
@@ -371,15 +384,34 @@ export class FileManagerService {
 
   private extractNetworkPath(filePath: string): string {
     const parts = filePath.split('/');
-    // Include both network name and scenario folder to properly group by scenario
-    // e.g., "grid-graph/main scenario - float" instead of just "grid-graph"
-    if (parts.length >= 2) {
-      return `${parts[0]}/${parts[1]}`;
-    } else if (parts.length === 1) {
-      return parts[0];
+    // Return just the base network name so all files (including scenarios) share the same network path
+    // This allows scenario folders to share the edges file from the base network
+    if (parts.length >= 1) {
+      return parts[0]; // Just return "grid-graph" for all files
     } else {
       return 'default-network';
     }
+  }
+
+  /**
+   * Extract full network path from file path for API calls
+   * Returns the full path needed by backend (e.g., 'temp_uploads/uuid/grid-graph')
+   */
+  private extractFullNetworkPath(filePath: string): string {
+    const parts = filePath.split('/');
+    if (parts.length >= 2) {
+      // For uploaded files: temp_uploads/uuid/network-name/scenario/file
+      // or: temp_uploads/uuid/network-name/file
+      // Return: temp_uploads/uuid/network-name
+      const pathParts = [];
+      for (let i = 0; i < parts.length - 1; i++) {
+        pathParts.push(parts[i]);
+        // Stop when we reach the network name (not a scenario folder)
+        if (i >= 2) break; // temp_uploads/uuid/network-name
+      }
+      return pathParts.join('/');
+    }
+    return parts[0]; // Fallback to base name
   }
 
   private getRoleFromType(type: string): string {
