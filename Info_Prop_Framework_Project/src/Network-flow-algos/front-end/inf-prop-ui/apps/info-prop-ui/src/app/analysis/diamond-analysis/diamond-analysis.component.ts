@@ -237,8 +237,8 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   isLoading = computed(() => this.analysisStateService.isLoading());
   error = computed(() => this.analysisStateService.error());
 
-  // **ENHANCED: Clean table configuration focused on essential diamond data**
-  displayedColumns: string[] = ['displayId', 'conditioningNodes', 'joinNode', 'nodeCount', 'riskLevel', 'actions'];
+  // **REDESIGNED: Focused table configuration for system-wide DAG analysis**
+  displayedColumns: string[] = ['joinNode', 'conditioningNodes', 'diamondComplexity', 'cascadeRisk', 'systemRole', 'actions'];
   
   // **NEW: Track API calls to prevent duplicate requests**
   private hasCalledDiamondAPI = false;
@@ -1225,5 +1225,119 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   getAverageComplexity(): string {
     const summary = this.diamondSummary();
     return summary?.averageComplexity?.toFixed(1) || '0.0';
+  }
+
+  // **NEW: Algorithm-based helper methods**
+  getRootDiamondsCount(): number {
+    return Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
+  }
+
+  getUniqueDiamondsCount(): number {
+    return Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
+  }
+
+  getSingleConditioningCount(): number {
+    return Object.values(this.currentDiamondResults()?.raw_root_diamonds || {})
+      .filter(diamond => diamond.diamond?.conditioning_nodes?.length === 1).length;
+  }
+
+  getHierarchicalComplexity(): number {
+    const rootCount = Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
+    const totalCount = Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
+    return rootCount > 0 ? Math.round(((totalCount - rootCount) / rootCount) * 100) : 0;
+  }
+
+  getCriticalSharedDependencies(): number {
+    const conditioningNodeFreq = new Map<number, number>();
+    Object.values(this.currentDiamondResults()?.raw_root_diamonds || {}).forEach(diamond => {
+      diamond.diamond?.conditioning_nodes?.forEach(node => {
+        conditioningNodeFreq.set(node, (conditioningNodeFreq.get(node) || 0) + 1);
+      });
+    });
+    return Array.from(conditioningNodeFreq.values()).filter(count => count > 1).length;
+  }
+
+  getBottleneckJoinNodes(): number {
+    const joinNodeFreq = new Map<number, number>();
+    Object.values(this.currentDiamondResults()?.raw_root_diamonds || {}).forEach(diamond => {
+      const joinNode = diamond.join_node;
+      if (joinNode !== undefined) {
+        joinNodeFreq.set(joinNode, (joinNodeFreq.get(joinNode) || 0) + 1);
+      }
+    });
+    return Array.from(joinNodeFreq.values()).filter(count => count > 1).length;
+  }
+
+  // **NEW: Cross-diamond system analysis methods**
+  getSharedConditioningNodes(): Array<{nodeId: number, affectedDiamonds: string[]}> | null {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_root_diamonds) return null;
+
+    const nodeToDeamonds = new Map<number, string[]>();
+    
+    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+      diamond.diamond?.conditioning_nodes?.forEach(node => {
+        if (!nodeToDeamonds.has(node)) {
+          nodeToDeamonds.set(node, []);
+        }
+        nodeToDeamonds.get(node)!.push(key);
+      });
+    });
+
+    const sharedNodes = Array.from(nodeToDeamonds.entries())
+      .filter(([_, diamonds]) => diamonds.length > 1)
+      .map(([nodeId, affectedDiamonds]) => ({ nodeId, affectedDiamonds }));
+
+    return sharedNodes.length > 0 ? sharedNodes : null;
+  }
+
+  getIndependentConvergences(): number {
+    const sharedNodes = this.getSharedConditioningNodes();
+    const totalConvergences = Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
+    
+    if (!sharedNodes) return totalConvergences;
+    
+    const dependentConvergences = sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
+    return Math.max(0, totalConvergences - dependentConvergences);
+  }
+
+  getDependentConvergences(): number {
+    const sharedNodes = this.getSharedConditioningNodes();
+    if (!sharedNodes) return 0;
+    
+    return sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
+  }
+
+  // **NEW: System role analysis for table**
+  getSystemRole(pattern: DiamondPattern): string {
+    if (pattern.conditioningNodes.length === 1) {
+      return 'Critical Path';
+    }
+    if (pattern.nodeCount >= 10) {
+      return 'Complex Hub';
+    }
+    if (pattern.subDiamonds && pattern.subDiamonds.length > 0) {
+      return 'Hierarchical';
+    }
+    return 'Standard';
+  }
+
+  getSystemRoleClass(pattern: DiamondPattern): string {
+    const role = this.getSystemRole(pattern);
+    switch (role) {
+      case 'Critical Path': return 'role-critical';
+      case 'Complex Hub': return 'role-complex';
+      case 'Hierarchical': return 'role-hierarchical';
+      default: return 'role-standard';
+    }
+  }
+
+  // **NEW: System health and insight methods**
+  hasCommonCauseVulnerabilities(): boolean {
+    return this.getSingleConditioningCount() > 0;
+  }
+
+  hasSharedConditioningNodes(): boolean {
+    return this.getCriticalSharedDependencies() > 0;
   }
 }

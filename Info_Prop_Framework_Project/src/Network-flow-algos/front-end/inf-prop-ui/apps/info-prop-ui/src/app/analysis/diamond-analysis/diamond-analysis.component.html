@@ -1,4 +1,4 @@
-<!-- Diamond Hierarchy Visualization Dashboard -->
+<!-- System-Wide DAG Infrastructure Analysis Dashboard -->
 <div class="diamond-hierarchy-dashboard">
   
   <!-- Header Section -->
@@ -6,19 +6,68 @@
     <div class="header-content">
       <div class="title-section">
         <h1 class="page-title">
-          <mat-icon class="title-icon">diamond</mat-icon>
-          Diamond Analysis
+          <mat-icon class="title-icon">merge_type</mat-icon>
+          Convergence Point Analysis
           <button mat-icon-button 
-                  matTooltip="Diamonds show where multiple paths from shared conditioning nodes converge at join nodes - reveals hidden dependencies in network structure"
+                  matTooltip="System-Wide DAG Infrastructure Analysis: Identify conditioning node dependencies and failure propagation paths in directed acyclic systems"
                   matTooltipClass="help-tooltip"
                   class="help-icon">
             <mat-icon>help_outline</mat-icon>
           </button>
         </h1>
         <p class="page-subtitle">
-          Identify path convergence patterns and shared dependencies
+          Identify conditioning node dependencies and failure propagation paths in directed acyclic systems
         </p>
       </div>
+
+      <!-- Expandable Methodology Card -->
+      <mat-expansion-panel class="methodology-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>engineering</mat-icon>
+            Diamond Detection in DAG Systems
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div class="methodology-content">
+          <div class="algorithm-explanation">
+            <h4>Mathematical Detection</h4>
+            <p>Algorithm identifies diamonds: <strong>Conditioning Nodes → Multiple Paths → Join Node</strong></p>
+            <ul>
+              <li><strong>Conditioning nodes:</strong> Shared fork ancestors that influence multiple paths</li>
+              <li><strong>Diamond paths:</strong> All directed paths from conditioning through intermediates to join</li>
+              <li><strong>Join nodes:</strong> Convergence points where multiple paths reconverge</li>
+            </ul>
+          </div>
+          
+          <div class="engineering-significance">
+            <h4>Infrastructure Engineering Applications</h4>
+            <div class="significance-grid">
+              <div class="significance-item">
+                <mat-icon>warning</mat-icon>
+                <div class="significance-content">
+                  <strong>Common Cause Failures:</strong>
+                  <span>Conditioning nodes are hidden shared dependencies (Fukushima: backup systems shared elevation vulnerability)</span>
+                </div>
+              </div>
+              <div class="significance-item">
+                <mat-icon>merge_type</mat-icon>
+                <div class="significance-content">
+                  <strong>System Bottlenecks:</strong>
+                  <span>Join nodes are natural convergence points determining system throughput</span>
+                </div>
+              </div>
+              <div class="significance-item">
+                <mat-icon>device_hub</mat-icon>
+                <div class="significance-content">
+                  <strong>Cascade Analysis:</strong>
+                  <span>Single conditioning failure cascades through multiple paths to join node</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
 
       <!-- Scenario Selector -->
       <div class="scenario-selector-section">
@@ -63,43 +112,58 @@
       </div>
     </div>
 
-    <!-- System-Wide Diamond Insights -->
+    <!-- System-Wide Metrics Dashboard -->
     @if (diamondSummary(); as summary) {
-      <div class="diamond-overview">
-        <div class="overview-header">
-          <h3>Network Structure</h3>
-          <span class="overview-subtitle">Conditioning nodes → paths → join nodes</span>
+      <div class="system-metrics">
+        <div class="metric-card primary"
+             matTooltip="Number of join nodes with maximal diamond structures detected">
+          <div class="metric-value">{{ getRootDiamondsCount() }}</div>
+          <div class="metric-label">Convergence Points</div>
         </div>
         
-        <div class="quick-stats">
-          <div class="stat-card primary"
-               matTooltip="Total diamond structures found in the network">
-            <div class="stat-value">{{ formatNumber(summary.totalDiamonds) }}</div>
-            <div class="stat-label">Total Diamonds</div>
-          </div>
-
-          <div class="stat-card" 
-               [class]="getSinglePointFailures() > 0 ? 'has-singles' : 'no-singles'"
-               matTooltip="Diamonds with single conditioning nodes - all paths share one common ancestor">
-            <div class="stat-value">{{ formatNumber(getSinglePointFailures()) }}</div>
-            <div class="stat-label">Shared Ancestors</div>
-          </div>
-
-          <div class="stat-card" 
-               matTooltip="Average number of nodes per diamond">
-            <div class="stat-value">{{ summary.averageComplexity.toFixed(1) }}</div>
-            <div class="stat-label">Avg Size</div>
-          </div>
-
-          @if (coverageMetrics(); as coverage) {
-            <div class="stat-card"
-                 matTooltip="Percentage of network nodes involved in diamond structures">
-              <div class="stat-value">{{ formatPercentage(coverage.percentage) }}</div>
-              <div class="stat-label">Node Coverage</div>
-            </div>
-          }
+        <div class="metric-card hierarchy"
+             matTooltip="Complete hierarchical set including all nested sub-diamonds">
+          <div class="metric-value">{{ getUniqueDiamondsCount() }}</div>
+          <div class="metric-label">Total Diamond Structures</div>
+        </div>
+        
+        <div class="metric-card vulnerability"
+             matTooltip="Diamonds with single conditioning node - hidden single points of failure">
+          <div class="metric-value">{{ getSingleConditioningCount() }}</div>
+          <div class="metric-label">Common Cause Vulnerabilities</div>
+        </div>
+        
+        <div class="metric-card complexity"
+             matTooltip="Ratio showing internal diamond structure within maximal diamonds">
+          <div class="metric-value">{{ getHierarchicalComplexity() }}%</div>
+          <div class="metric-label">Hierarchical Complexity</div>
         </div>
       </div>
+      
+      <!-- Engineering Risk Assessment -->
+      <mat-card class="system-risk-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>assessment</mat-icon>
+          <mat-card-title>System Dependency Analysis</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="risk-indicators">
+            @if (getCriticalSharedDependencies() > 0) {
+              <div class="risk-metric critical">
+                <mat-icon>error</mat-icon>
+                <span class="metric-value">{{ getCriticalSharedDependencies() }}</span>
+                <span class="metric-desc">Conditioning nodes appearing in multiple diamonds</span>
+              </div>
+            }
+            
+            <div class="risk-metric">
+              <mat-icon>device_hub</mat-icon>
+              <span class="metric-value">{{ getBottleneckJoinNodes() }}</span>
+              <span class="metric-desc">High-traffic convergence points</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
     }
   </div>
 
@@ -236,6 +300,69 @@
           </div>
         </mat-tab>
 
+        <!-- Cross-Diamond System Analysis -->
+        <mat-tab label="System Dependencies">
+          <div class="tab-content system-analysis-tab">
+            
+            <!-- Shared Conditioning Node Analysis -->
+            <mat-card class="shared-dependencies-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>device_hub</mat-icon>
+                <mat-card-title>Cross-Diamond Dependencies</mat-card-title>
+                <mat-card-subtitle>Conditioning nodes that create dependencies across multiple convergence points</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="shared-conditioning-table">
+                  @if (getSharedConditioningNodes(); as sharedNodes) {
+                    @for (nodeInfo of sharedNodes; track nodeInfo.nodeId) {
+                      <div class="shared-node-item">
+                        <div class="node-header">
+                          <mat-icon>share</mat-icon>
+                          <span class="node-id">Node {{ nodeInfo.nodeId }}</span>
+                          <span class="affected-count">Affects {{ nodeInfo.affectedDiamonds.length }} diamonds</span>
+                        </div>
+                        <div class="affected-diamonds">
+                          @for (diamondId of nodeInfo.affectedDiamonds; track diamondId) {
+                            <span class="diamond-chip">{{ diamondId }}</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  } @else {
+                    <div class="no-shared-dependencies">
+                      <mat-icon>check_circle</mat-icon>
+                      <p>No cross-diamond dependencies detected - all convergence points are independent</p>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- System Convergence Patterns -->
+            <mat-card class="convergence-patterns-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>System Convergence Landscape</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="pattern-analysis">
+                  <div class="pattern-metric">
+                    <span class="metric-label">Independent Convergences:</span>
+                    <span class="metric-value">{{ getIndependentConvergences() }}</span>
+                    <span class="metric-tooltip">Join nodes with no shared conditioning dependencies</span>
+                  </div>
+                  
+                  <div class="pattern-metric">
+                    <span class="metric-label">Dependent Convergences:</span>
+                    <span class="metric-value">{{ getDependentConvergences() }}</span>
+                    <span class="metric-tooltip">Join nodes sharing conditioning node dependencies</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </mat-tab>
+
         <!-- Diamond Patterns Tab -->
         <mat-tab label="Diamond Patterns">
           <div class="tab-content patterns-tab">
@@ -329,40 +456,38 @@
                   @if (filteredDiamondPatterns(); as patterns) {
                     <table mat-table [dataSource]="dataSource" class="diamond-patterns-table" matSort>
                       
-                      <!-- Diamond ID Column -->
-                      <ng-container matColumnDef="displayId">
+                      <!-- Join Node Column (Primary) -->
+                      <ng-container matColumnDef="joinNode">
                         <th mat-header-cell *matHeaderCellDef 
-                            matTooltip="Simple diamond identifier for reference">
-                          Diamond
+                            matTooltip="Convergence point where multiple dependency paths meet">
+                          Convergence Point
                         </th>
                         <td mat-cell *matCellDef="let pattern">
-                          <div class="diamond-id-clean">
-                            <mat-icon class="diamond-icon">diamond</mat-icon>
-                            <span class="diamond-number">{{ pattern.displayId || ('D' + pattern.id) }}</span>
+                          <div class="join-node-display">
+                            <mat-icon>merge_type</mat-icon>
+                            <span class="node-id">{{ pattern.joinNode }}</span>
                           </div>
                         </td>
                       </ng-container>
 
-                      <!-- Conditioning Nodes (Most Important) -->
+                      <!-- Conditioning Analysis Column -->
                       <ng-container matColumnDef="conditioningNodes">
                         <th mat-header-cell *matHeaderCellDef 
-                            matTooltip="Conditioning nodes - shared ancestors that all diamond paths originate from">
-                          Conditioning Nodes
+                            matTooltip="Shared fork ancestors that create hidden dependencies">
+                          Shared Dependencies
                         </th>
                         <td mat-cell *matCellDef="let pattern">
-                          <div class="conditioning-nodes">
-                            @if (pattern.conditioningNodes.length === 0) {
-                              <span class="no-conditioning">None</span>
-                            } @else if (pattern.conditioningNodes.length === 1) {
-                              <div class="single-conditioning"
+                          <div class="conditioning-analysis">
+                            @if (pattern.conditioningNodes.length === 1) {
+                              <div class="single-conditioning critical"
                                    (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)"
                                    style="cursor: pointer;"
                                    matTooltip="Click to view conditioning node details">
-                                <mat-icon>share</mat-icon>
+                                <mat-icon>warning</mat-icon>
                                 <span>{{ pattern.conditioningNodes[0] }}</span>
-                                <span class="shared-badge">SHARED</span>
+                                <span class="spof-indicator">SPOF</span>
                               </div>
-                            } @else {
+                            } @else if (pattern.conditioningNodes.length > 1) {
                               <div class="multiple-conditioning"
                                    (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)"
                                    style="cursor: pointer;"
@@ -371,53 +496,56 @@
                                   <span class="conditioning-chip">{{ node }}</span>
                                 }
                                 @if (pattern.conditioningNodes.length > 2) {
-                                  <span class="more-conditioning">+{{ pattern.conditioningNodes.length - 2 }}</span>
+                                  <span class="more-indicator">+{{ pattern.conditioningNodes.length - 2 }}</span>
                                 }
                               </div>
+                            } @else {
+                              <span class="no-conditioning">Direct Paths</span>
                             }
                           </div>
                         </td>
                       </ng-container>
 
-                      <!-- Join Node Column -->
-                      <ng-container matColumnDef="joinNode">
-                        <th mat-header-cell *matHeaderCellDef 
-                            matTooltip="Where multiple paths converge - potential bottleneck">
-                          Converges At
-                        </th>
-                        <td mat-cell *matCellDef="let pattern">
-                          <div class="join-node">
-                            <mat-icon>merge_type</mat-icon>
-                            <span>{{ pattern.joinNode }}</span>
-                          </div>
-                        </td>
-                      </ng-container>
-
-                      <!-- Size Column -->
-                      <ng-container matColumnDef="nodeCount">
+                      <!-- Diamond Complexity Column -->
+                      <ng-container matColumnDef="diamondComplexity">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header 
-                            matTooltip="Number of nodes in diamond structure">
-                          Size
+                            matTooltip="Size and internal structure of diamond">
+                          Diamond Complexity
                         </th>
                         <td mat-cell *matCellDef="let pattern">
-                          <div class="size-clean">
+                          <div class="complexity-display">
                             <span class="size-number">{{ pattern.nodeCount }}</span>
                             <span class="size-unit">nodes</span>
+                            @if (pattern.subDiamonds && pattern.subDiamonds.length > 0) {
+                              <span class="nested-indicator">+{{ pattern.subDiamonds.length }} nested</span>
+                            }
                           </div>
                         </td>
                       </ng-container>
 
-
-                      <!-- Risk Level Column -->
-                      <ng-container matColumnDef="riskLevel">
+                      <!-- Cascade Risk Column -->
+                      <ng-container matColumnDef="cascadeRisk">
                         <th mat-header-cell *matHeaderCellDef 
-                            matTooltip="Failure risk based on structure - single conditioning nodes = highest risk">
-                          Risk
+                            matTooltip="Engineering risk assessment based on structure">
+                          Cascade Risk
                         </th>
                         <td mat-cell *matCellDef="let pattern">
-                          <div class="risk-clean" [class]="'risk-' + getRiskLevel(pattern)">
-                            <div class="risk-dot"></div>
+                          <div class="risk-assessment" [class]="'risk-' + getRiskLevel(pattern)">
+                            <mat-icon>{{ getRiskIcon(pattern) }}</mat-icon>
                             <span class="risk-text">{{ getRiskLevel(pattern) }}</span>
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- System Role Column -->
+                      <ng-container matColumnDef="systemRole">
+                        <th mat-header-cell *matHeaderCellDef 
+                            matTooltip="Role in overall network (bottleneck, critical path, etc.)">
+                          System Role
+                        </th>
+                        <td mat-cell *matCellDef="let pattern">
+                          <div class="system-role">
+                            <span class="role-badge" [class]="getSystemRoleClass(pattern)">{{ getSystemRole(pattern) }}</span>
                           </div>
                         </td>
                       </ng-container>
@@ -468,48 +596,89 @@
           </div>
         </mat-tab>
 
-        <!-- Pattern Analysis Tab -->
-        <mat-tab label="Pattern Analysis">
-          <div class="tab-content pattern-analysis-tab">
+        <!-- System Insights Tab -->
+        <mat-tab label="System Insights">
+          <div class="tab-content system-insights-tab">
             
-            <!-- Diamond Pattern Analysis -->
-            <mat-card class="pattern-card">
+            <!-- System-Wide Insights Panel -->
+            <mat-card class="system-insights-card">
               <mat-card-header>
-                <mat-icon mat-card-avatar>analytics</mat-icon>
-                <mat-card-title>Convergence Pattern Analysis</mat-card-title>
-                <mat-card-subtitle>Analysis of diamond structures and path convergence patterns</mat-card-subtitle>
+                <mat-icon mat-card-avatar>assessment</mat-icon>
+                <mat-card-title>Infrastructure Analysis Results</mat-card-title>
               </mat-card-header>
               <mat-card-content>
-                @if (diamondPatterns(); as patterns) {
-                  <div class="pattern-summary-grid">
-                    <div class="pattern-summary-card">
-                      <h4>Complex Patterns</h4>
-                      <div class="pattern-metric">
-                        <span class="large-number">{{ getComplexPatternCount() }}</span>
-                        <span class="metric-desc">Large diamond structures (10+ nodes)</span>
+                <div class="insights-list">
+                  @if (hasCommonCauseVulnerabilities()) {
+                    <div class="insight-item critical">
+                      <mat-icon>error</mat-icon>
+                      <div class="insight-content">
+                        <h4>Common Cause Vulnerabilities Detected</h4>
+                        <p>{{ getSingleConditioningCount() }} convergence points depend on single conditioning nodes. System vulnerable to cascading failures.</p>
                       </div>
                     </div>
-                    
-                    <div class="pattern-summary-card">
-                      <h4>Nested Patterns</h4>
-                      <div class="pattern-metric">
-                        <span class="large-number">{{ getNestedPatternCount() }}</span>
-                        <span class="metric-desc">Diamonds containing sub-diamonds</span>
+                  }
+                  
+                  @if (hasSharedConditioningNodes()) {
+                    <div class="insight-item warning">
+                      <mat-icon>device_hub</mat-icon>
+                      <div class="insight-content">
+                        <h4>Cross-System Dependencies</h4>
+                        <p>{{ getCriticalSharedDependencies() }} conditioning nodes affect multiple convergence points. Consider isolation strategies.</p>
                       </div>
                     </div>
-                    
-                    <div class="pattern-summary-card">
-                      <h4>Simple Convergences</h4>
-                      <div class="pattern-metric">
-                        <span class="large-number">{{ getSimplePatternCount() }}</span>
-                        <span class="metric-desc">Basic conditioning → join patterns</span>
+                  }
+                  
+                  @if (getSystemHealth() === 'good') {
+                    <div class="insight-item success">
+                      <mat-icon>check_circle</mat-icon>
+                      <div class="insight-content">
+                        <h4>Well-Balanced System Structure</h4>
+                        <p>System shows good redundancy patterns with {{ getIndependentConvergences() }} independent convergence points.</p>
                       </div>
                     </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+            
+            <!-- Engineering Optimization Insights -->
+            <mat-card class="optimization-insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>tune</mat-icon>
+                <mat-card-title>System Optimization Opportunities</mat-card-title>
+                <mat-card-subtitle>Infrastructure improvement recommendations based on diamond analysis</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                @if (getOptimizationInsights(); as insights) {
+                  <div class="optimization-grid">
+                    @for (insight of insights; track insight.id) {
+                      <div class="optimization-card" [class]="'priority-' + insight.priority">
+                        <div class="optimization-header">
+                          <mat-icon>{{ getOptimizationIcon(insight.type) }}</mat-icon>
+                          <div class="optimization-info">
+                            <h4>{{ insight.title }}</h4>
+                            <p class="optimization-desc">{{ insight.description }}</p>
+                          </div>
+                          <span class="priority-badge" [class]="'priority-' + insight.priority">{{ insight.priority }}</span>
+                        </div>
+                        <div class="optimization-interpretation">
+                          <p>{{ insight.interpretation }}</p>
+                        </div>
+                        <div class="recommendations">
+                          <h5>Recommendations:</h5>
+                          <ul>
+                            @for (rec of insight.recommendations; track rec) {
+                              <li>{{ rec }}</li>
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    }
                   </div>
                 } @else {
-                  <div class="no-patterns">
-                    <mat-icon>diamond</mat-icon>
-                    <p>No diamond patterns found in current network</p>
+                  <div class="no-optimizations">
+                    <mat-icon>check_circle</mat-icon>
+                    <p>System structure appears well-optimized - no critical improvements needed</p>
                   </div>
                 }
               </mat-card-content>
