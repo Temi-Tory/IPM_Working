@@ -134,9 +134,9 @@
         </div>
         
         <div class="metric-card complexity"
-             matTooltip="Ratio showing internal diamond structure within maximal diamonds">
-          <div class="metric-value">{{ getHierarchicalComplexity() }}%</div>
-          <div class="metric-label">Hierarchical Complexity</div>
+             matTooltip="Ratio showing total diamond structures to root diamonds">
+          <div class="metric-value">{{ getHierarchicalComplexity() }}</div>
+          <div class="metric-label">Structure Ratio</div>
         </div>
       </div>
       
@@ -470,6 +470,29 @@
                         </td>
                       </ng-container>
 
+                      <!-- Diamond Type Column -->
+                      <ng-container matColumnDef="diamondType">
+                        <th mat-header-cell *matHeaderCellDef 
+                            matTooltip="Root diamonds are maximal, Nested are sub-diamonds within larger structures">
+                          Diamond Type
+                        </th>
+                        <td mat-cell *matCellDef="let pattern">
+                          <div class="diamond-type-display">
+                            @if (pattern.diamondType === 'Root') {
+                              <mat-chip color="primary" class="type-chip root-chip">
+                                <mat-icon>diamond</mat-icon>
+                                Root
+                              </mat-chip>
+                            } @else {
+                              <mat-chip color="accent" class="type-chip nested-chip">
+                                <mat-icon>category</mat-icon>
+                                Nested
+                              </mat-chip>
+                            }
+                          </div>
+                        </td>
+                      </ng-container>
+
                       <!-- Conditioning Analysis Column -->
                       <ng-container matColumnDef="conditioningNodes">
                         <th mat-header-cell *matHeaderCellDef 
@@ -482,10 +505,9 @@
                               <div class="single-conditioning critical"
                                    (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)"
                                    style="cursor: pointer;"
-                                   matTooltip="Click to view conditioning node details">
+                                   matTooltip="Single conditioning node - critical dependency point">
                                 <mat-icon>warning</mat-icon>
                                 <span>{{ pattern.conditioningNodes[0] }}</span>
-                                <span class="spof-indicator">SPOF</span>
                               </div>
                             } @else if (pattern.conditioningNodes.length > 1) {
                               <div class="multiple-conditioning"

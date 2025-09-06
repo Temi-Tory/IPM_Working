@@ -184,14 +184,38 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return this.diamondAnalysisService.analyzeJoinNodes(currentResults);
   });
 
-  // **FIXED: Diamond patterns with proper identification**
+  // **SIMPLIFIED: Use service patterns with join node fix and type extraction**
   diamondPatterns = computed(() => {
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenario();
-    console.log('🔷 Computing diamond patterns for scenario:', scenario);
+    console.log('🔷 Computing unique diamonds for scenario:', scenario);
     
     if (!currentResults) return [];
-    return this.diamondAnalysisService.extractDiamondPatterns(currentResults);
+    
+    // Get patterns from service
+    const patterns = this.diamondAnalysisService.extractDiamondPatterns(currentResults);
+    
+    // Extract unique diamonds only and add diamond type using the is_root_diamond flag
+    if (currentResults.raw_unique_diamonds && patterns) {
+      const rawUnique = currentResults.raw_unique_diamonds;
+      
+      return patterns.map((pattern, index) => {
+        const diamondEntries = Object.entries(rawUnique);
+        const [hash, diamondData] = diamondEntries[index] || ['', {}];
+        
+        // Use the is_root_diamond flag directly from the diamond data
+        const isRootDiamond = (diamondData as any)?.is_root_diamond || false;
+        const joinNode = (diamondData as any)?.join_node;
+        
+        return {
+          ...pattern,
+          diamondType: isRootDiamond ? 'Root' : 'Nested',
+          joinNode: joinNode || pattern.joinNode || null
+        };
+      });
+    }
+    
+    return patterns;
   });
   
   // Filtered diamond patterns
@@ -238,7 +262,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   error = computed(() => this.analysisStateService.error());
 
   // **REDESIGNED: Focused table configuration for system-wide DAG analysis**
-  displayedColumns: string[] = ['joinNode', 'conditioningNodes', 'diamondComplexity', 'cascadeRisk', 'systemRole', 'actions'];
+  displayedColumns: string[] = ['joinNode', 'diamondType', 'conditioningNodes', 'diamondComplexity', 'cascadeRisk', 'systemRole', 'actions'];
   
   // **NEW: Track API calls to prevent duplicate requests**
   private hasCalledDiamondAPI = false;
@@ -359,24 +383,25 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     this.selectedTab.set(index);
   }
 
-  // **ENHANCED: Network coverage calculation**
+  // **SIMPLIFIED: Network coverage calculation using diamond analysis data**
   private calculateNetworkCoverage(): { covered: number; total: number; percentage: number } {
     const results = this.currentDiamondResults();
-    if (!results || !results.raw_unique_diamonds) {
+    if (!results) {
       return { covered: 0, total: 0, percentage: 0 };
     }
 
-    const uniqueDiamonds = results.raw_unique_diamonds;
-    const totalNodesInDiamonds = Object.values(uniqueDiamonds)
-      .reduce((sum: number, diamond: any) => sum + (diamond.node_count || 0), 0);
+    // Count join nodes with diamonds as covered nodes
+    const joinNodesWithDiamonds = results.join_nodes_with_diamonds || [];
+    const covered = joinNodesWithDiamonds.length;
     
-    // Approximate total network size (this would ideally come from network structure)
-    const approximateNetworkSize = totalNodesInDiamonds + 50; // Rough estimate
+    // Use a reasonable estimate for total nodes based on the diamond count ratios
+    const rootCount = Object.keys(results.raw_root_diamonds || {}).length;
+    const estimatedTotal = rootCount > 0 ? Math.max(rootCount * 8, covered) : covered;
     
     return {
-      covered: totalNodesInDiamonds,
-      total: approximateNetworkSize,
-      percentage: approximateNetworkSize > 0 ? (totalNodesInDiamonds / approximateNetworkSize) * 100 : 0
+      covered: covered,
+      total: estimatedTotal,
+      percentage: estimatedTotal > 0 ? (covered / estimatedTotal) * 100 : 0
     };
   }
 
@@ -1241,10 +1266,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
       .filter(diamond => diamond.diamond?.conditioning_nodes?.length === 1).length;
   }
 
-  getHierarchicalComplexity(): number {
+  getHierarchicalComplexity(): string {
     const rootCount = Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
     const totalCount = Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
-    return rootCount > 0 ? Math.round(((totalCount - rootCount) / rootCount) * 100) : 0;
+    return rootCount > 0 ? `${totalCount}:${rootCount}` : '0:0';
   }
 
   getCriticalSharedDependencies(): number {
