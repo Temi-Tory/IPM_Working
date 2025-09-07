@@ -196,35 +196,62 @@ export class FileManagerService {
       }
     }
 
-    // 2. Check folder structure for data type
+    // 2. Check folder structure for data type - Only match specific analysis types (capacity, cpm)
+    // For reachability, we'll determine data type from JSON content
     if (pathParts.length > 1) {
       const parentFolder = pathParts[pathParts.length - 2];
+      
+      // Only check for capacity and cpm folder patterns
       for (const [type, patterns] of Object.entries(this.categorization.folderPatterns)) {
-        for (const pattern of patterns) {
-          if (pattern.test(parentFolder)) {
-            if (type === 'float' || type === 'interval' || type === 'pbox') {
-              dataType = type as DataType;
-              if (analysisType === 'unknown') {
-                analysisType = 'reachability';
-              }
-            } else {
+        if (type === 'capacity' || type === 'cpm') {
+          for (const pattern of patterns) {
+            if (pattern.test(parentFolder)) {
               dataType = type as DataType;
               analysisType = type as AnalysisType;
+              confidence = Math.max(confidence, 0.9);
+              break;
             }
-            confidence = Math.max(confidence, 0.9);
-            break;
           }
         }
       }
+      
+      // For files in scenario folders that might be reachability
+      if (analysisType === 'unknown' && pathParts.length >= 3) {
+        // This might be a reachability scenario folder - analysis type and data type will be determined from content
+        confidence = Math.max(confidence, 0.6);
+      }
     }
 
-    // 3. Content-based validation if available
-    if (file.content && confidence > 0) {
+    // 3. Content-based validation and analysis type/data type detection
+    if (file.content) {
       const contentValidation = this.validateFileContent(file.content, analysisType);
       validationErrors = contentValidation.errors;
       validationWarnings = contentValidation.warnings;
-      if (contentValidation.isValid) {
-        confidence = Math.max(confidence, 0.95);
+      
+      // Detect analysis type and data type from JSON content
+      const detectedTypes = this.detectAnalysisAndDataTypeFromContent(file.content);
+      
+      if (detectedTypes) {
+        // If analysis type was unknown, use detected type
+        if (analysisType === 'unknown') {
+          analysisType = detectedTypes.analysisType;
+          confidence = Math.max(confidence, 0.9);
+        }
+        
+        // For reachability files, update data type from JSON
+        if (analysisType === 'reachability' && detectedTypes.dataType) {
+          dataType = detectedTypes.dataType;
+          confidence = Math.max(confidence, 0.95);
+        }
+        
+        // For other analysis types, keep the analysis-specific data type
+        if (analysisType === 'cpm') {
+          dataType = 'cpm';
+        } else if (analysisType === 'capacity') {
+          dataType = 'capacity';
+        }
+      } else if (contentValidation.isValid) {
+        confidence = Math.max(confidence, 0.8);
       }
     }
 
@@ -277,10 +304,13 @@ export class FileManagerService {
         networkGroups.set(baseNetworkPath, new Map());
       }
       
-      // **FIXED: Include scenario folder name to create separate reachability groups**
+      // **FIXED: Include scenario folder name to create separate groups for ALL analysis types**
+      const scenarioName = this.extractScenarioName(file.path);
       const analysisKey = file.analysisType === 'reachability'
-        ? `${file.analysisType}-${file.dataType}-${this.extractScenarioName(file.path)}`
-        : file.analysisType;
+        ? `${file.analysisType}-${file.dataType}-${scenarioName}`
+        : file.analysisType === 'network'
+        ? file.analysisType // Network files don't have scenarios
+        : `${file.analysisType}-${scenarioName}`; // Capacity and CPM get scenario-specific keys
       
       const analysisGroups = networkGroups.get(baseNetworkPath)!;
       if (!analysisGroups.has(analysisKey)) {
@@ -306,11 +336,13 @@ export class FileManagerService {
           const scenarioName = keyParts.slice(2).join('-'); // Rejoin in case scenario name has dashes
           const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, sharedEdgesFile, scenarioName);
           newGroups.reachability.push(group);
-        } else if (analysisKey === 'capacity') {
-          const group = this.createCapacityGroup(fullNetworkPath, groupFiles, sharedEdgesFile);
+        } else if (analysisKey.startsWith('capacity')) {
+          const scenarioName = analysisKey === 'capacity' ? undefined : analysisKey.substring('capacity-'.length);
+          const group = this.createCapacityGroup(fullNetworkPath, groupFiles, sharedEdgesFile, scenarioName);
           newGroups.capacity.push(group);
-        } else if (analysisKey === 'cpm') {
-          const group = this.createCpmGroup(fullNetworkPath, groupFiles, sharedEdgesFile);
+        } else if (analysisKey.startsWith('cpm')) {
+          const scenarioName = analysisKey === 'cpm' ? undefined : analysisKey.substring('cpm-'.length);
+          const group = this.createCpmGroup(fullNetworkPath, groupFiles, sharedEdgesFile, scenarioName);
           newGroups.cpm.push(group);
         } else if (analysisKey === 'network') {
           newGroups.network = this.createNetworkGroup(fullNetworkPath, groupFiles);
@@ -452,6 +484,99 @@ export class FileManagerService {
     });
   }
 
+  /**
+   * Detect analysis type and data type from JSON content
+   */
+  private detectAnalysisAndDataTypeFromContent(content: string): { analysisType: AnalysisType; dataType?: DataType } | null {
+    try {
+      const data = JSON.parse(content);
+      
+      // Determine analysis type based on JSON structure
+      let analysisType: AnalysisType = 'unknown';
+      let dataType: DataType | undefined;
+      
+      // Check for CPM analysis
+      if (data.time_analysis || data.cost_analysis) {
+        analysisType = 'cpm';
+        dataType = 'cpm';
+        return { analysisType, dataType };
+      }
+      
+      // Check for capacity analysis
+      if (data.capacities && (data.capacities.nodes || data.capacities.edges)) {
+        analysisType = 'capacity';
+        dataType = 'capacity';
+        return { analysisType, dataType };
+      }
+      
+      // Check for reachability analysis (has nodes and links/edges)
+      if (data.nodes && (data.links || data.edges)) {
+        analysisType = 'reachability';
+        
+        // Detect data type from data_type field (Julia backend standard)
+        if (data.data_type) {
+          const jsonDataType = data.data_type.toLowerCase();
+          if (jsonDataType === 'float64') dataType = 'float';
+          else if (jsonDataType === 'interval') dataType = 'interval';
+          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+        }
+        
+        // If no data_type field, try to infer from node values structure
+        if (!dataType && data.nodes) {
+          const nodeValues = Object.values(data.nodes);
+          if (nodeValues.length > 0) {
+            const firstValue = nodeValues[0] as any;
+            if (typeof firstValue === 'number') {
+              dataType = 'float';
+            } else if (typeof firstValue === 'object' && firstValue !== null) {
+              if (firstValue.type === 'interval' || ('lower' in firstValue && 'upper' in firstValue)) {
+                dataType = 'interval';
+              } else if (firstValue.type === 'pbox' || firstValue.construction_type) {
+                dataType = 'pbox';
+              }
+            }
+          }
+        }
+        
+        return { analysisType, dataType };
+      }
+      
+      // Check for just nodes (node priors)
+      if (data.nodes) {
+        analysisType = 'reachability';
+        
+        // Detect data type from data_type field
+        if (data.data_type) {
+          const jsonDataType = data.data_type.toLowerCase();
+          if (jsonDataType === 'float64') dataType = 'float';
+          else if (jsonDataType === 'interval') dataType = 'interval';  
+          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+        }
+        
+        return { analysisType, dataType };
+      }
+      
+      // Check for just links (link probabilities)
+      if (data.links) {
+        analysisType = 'reachability';
+        
+        // Detect data type from data_type field
+        if (data.data_type) {
+          const jsonDataType = data.data_type.toLowerCase();
+          if (jsonDataType === 'float64') dataType = 'float';
+          else if (jsonDataType === 'interval') dataType = 'interval';
+          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+        }
+        
+        return { analysisType, dataType };
+      }
+      
+      return null; // Could not determine type
+    } catch (error) {
+      return null; // Could not parse JSON
+    }
+  }
+
   private validateFileContent(content: string, analysisType: AnalysisType): { isValid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -521,7 +646,7 @@ export class FileManagerService {
     };
   }
 
-  private createCapacityGroup(networkPath: string, files: CategorizedFile[], sharedEdgesFile?: CategorizedFile): CapacityFileGroup {
+  private createCapacityGroup(networkPath: string, files: CategorizedFile[], sharedEdgesFile?: CategorizedFile, scenarioName?: string): CapacityFileGroup {
     const capacitiesFile = files.find(f => f.dataType === 'capacity');
 
     const missingFiles: string[] = [];
@@ -535,11 +660,12 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile
+      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      scenarioName: scenarioName || 'Capacity Analysis'
     };
   }
 
-  private createCpmGroup(networkPath: string, files: CategorizedFile[], sharedEdgesFile?: CategorizedFile): CpmFileGroup {
+  private createCpmGroup(networkPath: string, files: CategorizedFile[], sharedEdgesFile?: CategorizedFile, scenarioName?: string): CpmFileGroup {
     const cpmInputsFile = files.find(f => f.dataType === 'cpm');
 
     const missingFiles: string[] = [];
@@ -569,7 +695,8 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile
+      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      scenarioName: scenarioName || 'CPM Analysis'
     };
   }
 

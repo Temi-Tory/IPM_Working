@@ -7,9 +7,9 @@ export const appRoutes: Route[] = [
   // Analysis components - visualization appears first
   { path: 'visualization', loadComponent: () => import('./analysis/network-visualization/network-visualization.component').then(m => m.NetworkVisualizationComponent) },
   { path: 'structure', loadComponent: () => import('./analysis/network-structure/network-structure.component').then(m => m.NetworkStructureComponent) },
-   { path: 'diamonds', loadComponent: () => import('./analysis/diamond-analysis/diamond-analysis.component').then(m => m.DiamondAnalysisComponent) },
- /* { path: 'time-analysis', loadComponent: () => import('./analysis/critical-path-visualization/critical-path-visualization.component').then(m => m.CriticalPathVisualizationComponent) },
-  { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) },
+  { path: 'diamonds', loadComponent: () => import('./analysis/diamond-analysis/diamond-analysis.component').then(m => m.DiamondAnalysisComponent) },
   { path: 'exact-inference', loadComponent: () => import('./analysis/exact-inference/exact-inference.component').then(m => m.ExactInferenceComponent) },
+/* { path: 'time-analysis', loadComponent: () => import('./analysis/critical-path-visualization/critical-path-visualization.component').then(m => m.CriticalPathVisualizationComponent) },
+  { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) },
   { path: 'flow', loadComponent: () => import('./analysis/flow-analysis/flow-analysis.component').then(m => m.FlowAnalysisComponent) }
- */]
+*/]

@@ -1,0 +1,416 @@
+<div class="exact-inference-container">
+  <!-- Header Section -->
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>calculate</mat-icon>
+        Exact Probabilistic Reachability Inference
+      </mat-card-title>
+      <mat-card-subtitle>
+        Mathematical framework: Belief(N) = Prior(N) × P(N receives ≥1 signal | DAG structure)
+      </mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <!-- Scenario Selection & Controls -->
+  <mat-card class="control-card">
+    <mat-card-header>
+      <mat-card-title>Inference Configuration</mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="control-row">
+        <!-- Scenario Selector -->
+        <mat-form-field appearance="outline">
+          <mat-label>Uncertainty Scenario</mat-label>
+          <mat-select 
+            [value]="selectedScenario()"
+            (selectionChange)="selectedScenario.set($event.value)"
+            [disabled]="isComputing()">
+            @for (scenario of availableScenarios(); track scenario.path) {
+              <mat-option [value]="scenario">
+                <div class="scenario-option">
+                  <span class="scenario-name">{{ scenario.displayName }}</span>
+                  <mat-chip [color]="scenario.dataType === 'float' ? 'primary' : 
+                                   scenario.dataType === 'interval' ? 'accent' : 'warn'" 
+                           selected>
+                    {{ scenario.dataType.toUpperCase() }}
+                  </mat-chip>
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>
+            @if (selectedScenario()) {
+              {{ selectedScenario()!.description }}
+            }
+          </mat-hint>
+        </mat-form-field>
+
+        <!-- Execute Button -->
+        <button mat-raised-button 
+                color="primary" 
+                (click)="executeInference()"
+                [disabled]="!selectedScenario() || isComputing()"
+                class="execute-button">
+          @if (isComputing()) {
+            <mat-spinner diameter="20"></mat-spinner>
+            Computing...
+          } @else {
+            <mat-icon>play_arrow</mat-icon>
+          }
+          @if (!isComputing()) {
+            Run Inference
+          }
+        </button>
+
+        <!-- Clear Button -->
+        @if (inferenceResults().length > 0) {
+          <button mat-stroked-button 
+                  (click)="clearResults()"
+                  [disabled]="isComputing()">
+            <mat-icon>clear</mat-icon>
+            Clear Results
+          </button>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Error Display -->
+  @if (errorMessage()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon color="warn">error</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Algorithm Overview Panel -->
+  <mat-expansion-panel class="algorithm-panel">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon>school</mat-icon>
+        Algorithm Overview & Mathematical Foundation
+      </mat-panel-title>
+      <mat-panel-description>
+        Understanding exact probabilistic inference methods
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    
+    <div class="algorithm-content">
+      <div class="algorithm-grid">
+        <!-- Core Mathematical Framework -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Core Framework</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>Belief(N) = Prior(N) × P(N receives ≥1 signal)</code>
+            </div>
+            <p>Each node's belief combines its intrinsic prior probability with the probability of receiving at least one signal from source nodes through the DAG structure.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Inclusion-Exclusion Principle -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Inclusion-Exclusion</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>P(A ∪ B ∪ C) = S₁ + S₂ + S₃ - S₁S₂ - S₁S₃ - S₂S₃ + S₁S₂S₃</code>
+            </div>
+            <p>For join nodes with multiple independent paths, we use inclusion-exclusion to avoid double-counting signal probabilities.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Diamond Enumeration -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Diamond Enumeration</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>Result = Σ P(state) × f(state, join_node)</code>
+            </div>
+            <p>Complex dependency structures (diamonds) are handled by conditional enumeration over all possible states of conditioning nodes.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Network Complexity -->
+        @if (networkInfo()) {
+          <mat-card class="complexity-card">
+            <mat-card-header>
+              <mat-card-title>Current Network</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="complexity-stats">
+                <div class="stat">
+                  <span class="stat-label">Total Nodes:</span>
+                  <span class="stat-value">{{ networkInfo()!.totalNodes }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Source Nodes:</span>
+                  <span class="stat-value">{{ networkInfo()!.sourceNodes.length }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Join Nodes:</span>
+                  <span class="stat-value">{{ networkInfo()!.joinNodes.length }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Complexity:</span>
+                  <mat-chip [color]="algorithmComplexity().includes('Linear') ? 'primary' : 
+                                   algorithmComplexity().includes('Low') ? 'accent' : 'warn'" 
+                           selected>
+                    {{ algorithmComplexity() }}
+                  </mat-chip>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </div>
+  </mat-expansion-panel>
+
+  <!-- Results Section -->
+  @if (inferenceResults().length > 0) {
+    <!-- Performance Metrics -->
+    @if (inferenceMetrics()) {
+      <mat-card class="metrics-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>analytics</mat-icon>
+            Performance Metrics
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <div class="metric-label">Computation Time</div>
+              <div class="metric-value">{{ inferenceMetrics()!.computationTime.toFixed(3) }}s</div>
+            </div>
+            
+            <div class="metric-item">
+              <div class="metric-label">Nodes Processed</div>
+              <div class="metric-value">{{ inferenceMetrics()!.totalNodes }}</div>
+            </div>
+            
+            <div class="metric-item">
+              <div class="metric-label">Average Belief</div>
+              <div class="metric-value">{{ (inferenceMetrics()!.averageBelief * 100).toFixed(1) }}%</div>
+            </div>
+            
+            <div class="metric-item">
+              <div class="metric-label">Algorithm Complexity</div>
+              <div class="metric-value">
+                <mat-chip [color]="inferenceMetrics()!.algorithmComplexity.includes('Linear') ? 'primary' : 
+                                 inferenceMetrics()!.algorithmComplexity.includes('Low') ? 'accent' : 'warn'" 
+                         selected>
+                  {{ inferenceMetrics()!.algorithmComplexity }}
+                </mat-chip>
+              </div>
+            </div>
+
+            @if (inferenceMetrics()!.uncertaintyRange) {
+              <div class="metric-item">
+                <div class="metric-label">Uncertainty Range</div>
+                <div class="metric-value">
+                  [{{ (inferenceMetrics()!.uncertaintyRange!.min * 100).toFixed(1) }}%, 
+                   {{ (inferenceMetrics()!.uncertaintyRange!.max * 100).toFixed(1) }}%]
+                </div>
+              </div>
+            }
+          </div>
+          
+          <!-- Method Distribution -->
+          <mat-divider></mat-divider>
+          <div class="method-distribution">
+            <h4>Inference Method Distribution</h4>
+            <div class="method-stats">
+              @if (inferenceMetrics()!.sourceNodes > 0) {
+                <mat-chip class="method-source" [matBadge]="inferenceMetrics()!.sourceNodes">
+                  <mat-icon>source</mat-icon>
+                  Source Nodes
+                </mat-chip>
+              }
+              
+              @if (inferenceMetrics()!.joinNodes > 0) {
+                <mat-chip class="method-inclusion" [matBadge]="inferenceMetrics()!.joinNodes">
+                  <mat-icon>merge_type</mat-icon>
+                  Inclusion-Exclusion
+                </mat-chip>
+              }
+              
+              @if (inferenceMetrics()!.diamondNodes > 0) {
+                <mat-chip class="method-diamond" [matBadge]="inferenceMetrics()!.diamondNodes">
+                  <mat-icon>diamond</mat-icon>
+                  Diamond Enumeration
+                </mat-chip>
+              }
+              
+              @if (inferenceMetrics()!.totalNodes - inferenceMetrics()!.sourceNodes - inferenceMetrics()!.joinNodes - inferenceMetrics()!.diamondNodes > 0) {
+                <mat-chip class="method-tree" [matBadge]="inferenceMetrics()!.totalNodes - inferenceMetrics()!.sourceNodes - inferenceMetrics()!.joinNodes - inferenceMetrics()!.diamondNodes">
+                  <mat-icon>account_tree</mat-icon>
+                  Tree Propagation
+                </mat-chip>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Results Table -->
+    <mat-card class="results-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>table_chart</mat-icon>
+          Node-Level Inference Results
+          <mat-chip [matBadge]="inferenceResults().length" matBadgeOverlap="false">
+            All Nodes
+          </mat-chip>
+        </mat-card-title>
+        <mat-card-subtitle>
+          Reachability beliefs computed for every node in the network
+        </mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="inferenceResults()" class="results-table">
+            
+            <!-- Node ID Column -->
+            <ng-container matColumnDef="nodeId">
+              <th mat-header-cell *matHeaderCellDef>Node ID</th>
+              <td mat-cell *matCellDef="let result">
+                <div class="node-id">
+                  <mat-icon>{{ result.inferenceMethod === 'Source Node' ? 'radio_button_checked' : 'lens' }}</mat-icon>
+                  {{ result.nodeId }}
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Belief Column -->
+            <ng-container matColumnDef="belief">
+              <th mat-header-cell *matHeaderCellDef 
+                  matTooltip="Final belief value: Prior × P(receives ≥1 signal)">
+                Belief
+              </th>
+              <td mat-cell *matCellDef="let result">
+                <div class="belief-value">
+                  {{ formatBelief(result.belief) }}
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Signal Probability Column -->
+            <ng-container matColumnDef="signalProbability">
+              <th mat-header-cell *matHeaderCellDef 
+                  matTooltip="Probability of receiving at least one signal from sources">
+                Signal Probability
+              </th>
+              <td mat-cell *matCellDef="let result">
+                <div class="signal-probability">
+                  {{ formatSignalProbability(result.signalProbability) }}
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Inference Method Column -->
+            <ng-container matColumnDef="inferenceMethod">
+              <th mat-header-cell *matHeaderCellDef>Inference Method</th>
+              <td mat-cell *matCellDef="let result">
+                <mat-chip [ngClass]="getMethodColorClass(result.inferenceMethod)" 
+                         selected
+                         [matTooltip]="getMethodTooltip(result.inferenceMethod)">
+                  @switch (result.inferenceMethod) {
+                    @case ('Source Node') {
+                      <mat-icon>source</mat-icon>
+                    }
+                    @case ('Tree Propagation') {
+                      <mat-icon>account_tree</mat-icon>
+                    }
+                    @case ('Inclusion-Exclusion') {
+                      <mat-icon>merge_type</mat-icon>
+                    }
+                    @case ('Diamond Enumeration') {
+                      <mat-icon>diamond</mat-icon>
+                    }
+                    @default {
+                      <mat-icon>help</mat-icon>
+                    }
+                  }
+                  {{ result.inferenceMethod }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Complexity Level Column -->
+            <ng-container matColumnDef="complexityLevel">
+              <th mat-header-cell *matHeaderCellDef>Complexity</th>
+              <td mat-cell *matCellDef="let result">
+                <mat-chip [color]="getComplexityColor(result.complexityLevel)" selected>
+                  {{ result.complexityLevel }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Loading State -->
+  @if (isComputing()) {
+    <mat-card class="loading-card">
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <div class="loading-text">
+            <h3>Computing Exact Inference</h3>
+            <p>Performing belief propagation across all network nodes...</p>
+            @if (selectedScenario()) {
+              <mat-chip color="accent" selected>
+                {{ selectedScenario()!.dataType.toUpperCase() }} Analysis
+              </mat-chip>
+            }
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Empty State -->
+  @if (!isComputing() && inferenceResults().length === 0 && !errorMessage()) {
+    <mat-card class="empty-state-card">
+      <mat-card-content>
+        <div class="empty-state">
+          <mat-icon>calculate</mat-icon>
+          <h3>Ready for Exact Inference</h3>
+          <p>Select an uncertainty scenario and click "Run Inference" to compute reachability beliefs for all network nodes.</p>
+          @if (availableScenarios().length === 0) {
+            <mat-chip color="warn">
+              <mat-icon>warning</mat-icon>
+              No scenarios available
+            </mat-chip>
+          } @else {
+            <mat-chip color="primary">
+              <mat-icon>analytics</mat-icon>
+              {{ availableScenarios().length }} scenarios available
+            </mat-chip>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

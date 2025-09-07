@@ -560,6 +560,7 @@ export interface AnalysisFileGroup {
   isComplete: boolean;
   missingFiles: string[];
   canRunAnalysis: boolean;
+  scenarioName?: string; // Name of the scenario folder
 }
 
 export interface ReachabilityFileGroup extends AnalysisFileGroup {

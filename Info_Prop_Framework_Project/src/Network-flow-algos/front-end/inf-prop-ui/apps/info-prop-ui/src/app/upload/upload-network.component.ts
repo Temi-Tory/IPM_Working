@@ -274,6 +274,21 @@ export class UploadNetworkComponent {
    * Get scenario display name
    */
   getScenarioDisplayName(scenario: any): string {
+    // First try to use the scenario name if it exists and is meaningful
+    if (scenario.scenarioName) {
+      if (scenario.analysisType === 'reachability') {
+        const dataTypeName = this.getDataTypeDisplayName(scenario.dataType);
+        // Don't show generic names like "Float Scenario"
+        if (scenario.scenarioName !== `${dataTypeName} Scenario`) {
+          return `${scenario.scenarioName} (${dataTypeName})`;
+        }
+      } else {
+        // For capacity and CPM, show the scenario name
+        return scenario.scenarioName;
+      }
+    }
+    
+    // Fallback logic based on analysis type
     if (scenario.analysisType === 'reachability') {
       return this.getDataTypeDisplayName(scenario.dataType);
     } else if (scenario.analysisType === 'cpm') {
@@ -281,6 +296,8 @@ export class UploadNetworkComponent {
       if (scenario.hasTimeAnalysis) parts.push('Time');
       if (scenario.hasCostAnalysis) parts.push('Cost');
       return parts.length > 0 ? `CPM (${parts.join(' + ')})` : 'CPM';
+    } else if (scenario.analysisType === 'capacity') {
+      return 'Capacity Analysis';
     } else {
       return scenario.analysisType.charAt(0).toUpperCase() + scenario.analysisType.slice(1);
     }
