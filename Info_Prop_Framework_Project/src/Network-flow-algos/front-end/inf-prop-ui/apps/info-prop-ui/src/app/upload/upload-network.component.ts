@@ -363,7 +363,7 @@ export class UploadNetworkComponent {
   }
 
   /**
-   * Proceed to visualization
+   * Proceed to visualization - calls network structure endpoint and enables proper tabs
    */
   proceedToAnalysis(): void {
     if (!this.canProceedToAnalysis()) {
@@ -378,8 +378,35 @@ export class UploadNetworkComponent {
     console.log('🚀 Creating network structure from uploaded files...');
     this.analysisState.loadNetworkDataFromFileManager();
     
-    // Navigate to network visualization
-    this.router.navigate(['/visualization']);
+    // **NEW: Call network structure endpoint to properly initialize the backend**
+    const currentSession = this.sessionService.getCurrentSession();
+    if (currentSession?.networkPath) {
+      console.log('🏗️ Calling network structure endpoint for:', currentSession.networkPath);
+      this.analysisState.loadNetworkStructure(currentSession.networkPath).subscribe({
+        next: () => {
+          console.log('✅ Network structure endpoint called successfully');
+          
+          // **NEW: Enable network structure and visualization tabs**
+          this.analysisState.enableVisualizationTabs();
+          
+          // **NEW: Enable analysis tabs after network structure loads**
+          console.log('🎯 Enabling analysis tabs after successful visualization setup');
+          this.analysisState.enableAnalysisTabsAfterVisualization();
+          
+          // Navigate to network visualization after network structure loads
+          this.router.navigate(['/visualization']);
+        },
+        error: (error) => {
+          console.error('❌ Error calling network structure endpoint:', error);
+          this.snackBar.open('Error loading network structure', 'Close', { duration: 5000 });
+          // Still navigate to visualization even if network structure call fails
+          this.router.navigate(['/visualization']);
+        }
+      });
+    } else {
+      // Fallback: navigate directly if no network path
+      this.router.navigate(['/visualization']);
+    }
   }
 
   /**

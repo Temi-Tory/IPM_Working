@@ -60,18 +60,6 @@
           </mat-hint>
         </mat-form-field>
 
-        <!-- **NEW: Scenario Comparison Toggle** -->
-        <div class="comparison-controls">
-          <mat-slide-toggle
-            [checked]="showScenarioComparison()"
-            (change)="toggleScenarioComparison()"
-            [disabled]="availableScenariosComputed().length < 2">
-            <span class="toggle-label">
-              <mat-icon>compare</mat-icon>
-              Compare Scenarios
-            </span>
-          </mat-slide-toggle>
-        </div>
 
         <!-- Execute Button -->
         <button mat-raised-button 

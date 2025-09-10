@@ -169,44 +169,23 @@ export class AnalysisStateService {
   setParsedData(data: any): void {
     this.parsedDataSignal.set(data);
     
-    // Enable tabs based on available parsed data
+    // **CHANGED: Don't enable analysis tabs immediately - wait for visualization step**
     if (data) {
-      console.log('🔍 Enabling tabs based on parsed data:', data);
+      console.log('🔍 Parsed data available, but waiting for visualization step to enable analysis tabs:', data);
       
-      // Enable and activate diamond analysis and exact inference if we have any probability data (float, pbox, or interval)
+      // Just log what data types are available, but don't enable tabs yet
       const hasNodePriors = (data.float?.node_priors) || (data.pbox?.node_priors) || (data.interval?.node_priors);
       const hasEdgeProbabilities = (data.float?.edge_probabilities) || (data.pbox?.edge_probabilities) || (data.interval?.edge_probabilities);
       
-      if (hasNodePriors || hasEdgeProbabilities) {
-        console.log('✅ Enabling diamond analysis and exact inference tabs - probability data available');
-        console.log('📊 Data types found:', {
-          float: !!data.float,
-          pbox: !!data.pbox,
-          interval: !!data.interval,
-          hasNodePriors,
-          hasEdgeProbabilities
-        });
-        this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-        this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-      }
-      
-      // Enable flow analysis if we have capacity data
-      if (data.capacity && Object.keys(data.capacity).length > 0) {
-        console.log('✅ Enabling flow analysis tab - capacity data available');
-        this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-      }
-      
-      // Enable critical path if we have CPM data
-      if (data.cpm && Object.keys(data.cpm).length > 0) {
-        console.log('✅ Enabling critical path tab - CPM data available');
-        this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-      }
-      
-      // Enable system profile if we have any analysis data
-      if (data.float || data.pbox || data.interval || data.capacity || data.cpm) {
-        console.log('✅ Enabling system profile tab - analysis data available');
-        this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
-      }
+      console.log('📊 Data types found (tabs will be enabled after visualization):', {
+        float: !!data.float,
+        pbox: !!data.pbox,
+        interval: !!data.interval,
+        capacity: !!data.capacity && Object.keys(data.capacity).length > 0,
+        cpm: !!data.cpm && Object.keys(data.cpm).length > 0,
+        hasNodePriors,
+        hasEdgeProbabilities
+      });
     }
   }
 
@@ -214,6 +193,62 @@ export class AnalysisStateService {
     const currentSession = this.sessionService.getCurrentSession();
     if (currentSession?.parsedData) {
       this.setParsedData(currentSession.parsedData);
+    }
+  }
+
+  /**
+   * Enable network structure and visualization tabs - called when "Visualize" button is clicked
+   */
+  enableVisualizationTabs(): void {
+    console.log('🎯 Enabling network structure and visualization tabs');
+    this.networkStructureTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+  }
+
+  /**
+   * Enable analysis tabs based on available parsed data - called after visualization step
+   */
+  enableAnalysisTabsAfterVisualization(): void {
+    const data = this.parsedDataSignal();
+    if (!data) {
+      console.log('⚠️ No parsed data available to enable analysis tabs');
+      return;
+    }
+
+    console.log('🎯 Enabling analysis tabs after visualization step:', data);
+    
+    // Enable diamond analysis and exact inference if we have any probability data (float, pbox, or interval)
+    const hasNodePriors = (data.float?.node_priors) || (data.pbox?.node_priors) || (data.interval?.node_priors);
+    const hasEdgeProbabilities = (data.float?.edge_probabilities) || (data.pbox?.edge_probabilities) || (data.interval?.edge_probabilities);
+    
+    if (hasNodePriors || hasEdgeProbabilities) {
+      console.log('✅ Enabling diamond analysis and exact inference tabs - probability data available');
+      console.log('📊 Data types found:', {
+        float: !!data.float,
+        pbox: !!data.pbox,
+        interval: !!data.interval,
+        hasNodePriors,
+        hasEdgeProbabilities
+      });
+      this.diamondAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+      this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+    }
+    
+    // Enable flow analysis if we have capacity data
+    if (data.capacity && Object.keys(data.capacity).length > 0) {
+      console.log('✅ Enabling flow analysis tab - capacity data available');
+      this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+    }
+    
+    // Enable critical path if we have CPM data
+    if (data.cpm && Object.keys(data.cpm).length > 0) {
+      console.log('✅ Enabling critical path tab - CPM data available');
+      this.criticalPathTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+    }
+    
+    // Enable system profile if we have any analysis data
+    if (data.float || data.pbox || data.interval || data.capacity || data.cpm) {
+      console.log('✅ Enabling system profile tab - analysis data available');
+      this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
     }
   }
 

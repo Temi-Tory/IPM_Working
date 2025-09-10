@@ -112,9 +112,6 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
   currentScenario: string | null = null;
   scenarioResults: Map<string, any> = new Map();
   
-  // **NEW: UI state management signals**
-  showScenarioComparison = signal(false);
-  selectedScenariosForComparison = signal<string[]>([]);
   
   // **LEGACY: Keep existing signals for backward compatibility**
   selectedScenario = signal<InferenceScenario | null>(null);
@@ -848,31 +845,6 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     this.errorMessage.set(null);
     this.clearScenarioData();
     console.log('🧹 Cleared inference results');
-  }
-
-  // **NEW: Enhanced scenario comparison support**
-  toggleScenarioComparison(): void {
-    this.showScenarioComparison.update(show => !show);
-  }
-
-  addScenarioToComparison(scenarioName: string): void {
-    this.selectedScenariosForComparison.update(scenarios => {
-      if (!scenarios.includes(scenarioName)) {
-        return [...scenarios, scenarioName];
-      }
-      return scenarios;
-    });
-  }
-
-  removeScenarioFromComparison(scenarioName: string): void {
-    this.selectedScenariosForComparison.update(scenarios =>
-      scenarios.filter(s => s !== scenarioName)
-    );
-  }
-
-  // **NEW: Get scenario results for comparison**
-  getScenarioResult(scenarioName: string): ReachabilityScenario | null {
-    return this.scenarioResults.get(scenarioName) || null;
   }
 
   // **NEW: Check if scenario has results**
