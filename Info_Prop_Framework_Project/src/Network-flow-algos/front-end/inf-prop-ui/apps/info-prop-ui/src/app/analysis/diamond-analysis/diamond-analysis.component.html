@@ -106,55 +106,35 @@
             </mat-select>
           </mat-form-field>
 
-          <!-- Scenario Comparison Toggle -->
-          <div class="comparison-controls">
-            <mat-slide-toggle
-              [checked]="comparisonMode()"
-              (change)="comparisonMode.set($event.checked)"
-              [disabled]="availableScenariosComputed().length < 2">
-              Compare Scenarios
-            </mat-slide-toggle>
+          <!-- Analysis Controls -->
+          <div class="analysis-controls">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="executeDiamondAnalysis()"
+              [disabled]="isLoadingComputed()"
+              class="execute-button">
+              @if (isLoadingComputed()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                Computing...
+              } @else {
+                <ng-container>
+                  <mat-icon>play_arrow</mat-icon>
+                  Run Analysis
+                </ng-container>
+              }
+            </button>
             
-            @if (comparisonMode()) {
-              <mat-form-field appearance="outline" class="comparison-selector">
-                <mat-label>Select Scenarios to Compare</mat-label>
-                <mat-select
-                  multiple
-                  [value]="selectedScenariosForComparison()"
-                  (selectionChange)="selectedScenariosForComparison.set($event.value)">
-                  @for (scenario of availableScenariosComputed(); track scenario.name) {
-                    <mat-option [value]="scenario.name">
-                      <div class="comparison-scenario-option">
-                        <span>{{ scenario.displayName }}</span>
-                        <mat-chip [class]="'data-type-' + scenario.dataType" class="mini-chip">
-                          {{ scenario.dataType.charAt(0).toUpperCase() }}
-                        </mat-chip>
-                      </div>
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            }
+            <button
+              mat-icon-button
+              matTooltip="Refresh Analysis"
+              (click)="refreshAnalysis()"
+              [disabled]="isLoadingComputed()">
+              <mat-icon>refresh</mat-icon>
+            </button>
           </div>
         </div>
 
-        <div class="header-actions">
-          <mat-divider [vertical]="true"></mat-divider>
-          <button
-            mat-icon-button
-            matTooltip="Refresh Analysis"
-            (click)="refreshAnalysis()"
-            [disabled]="isLoadingComputed()">
-            <mat-icon>refresh</mat-icon>
-          </button>
-          <button
-            mat-icon-button
-            matTooltip="Export Data"
-            (click)="exportDiamondData()"
-            [disabled]="isLoadingComputed() || !currentDiamondResults()">
-            <mat-icon>download</mat-icon>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -232,6 +212,32 @@
         <mat-icon>refresh</mat-icon>
         Retry Analysis
       </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoadingComputed() && !errorComputed() && !currentDiamondResults()) {
+    <div class="empty-state">
+      <mat-card class="empty-state-card">
+        <mat-card-content>
+          <div class="empty-state-content">
+            <mat-icon>merge_type</mat-icon>
+            <h3>Ready for Diamond Analysis</h3>
+            <p>Select a scenario and click "Run Analysis" to identify convergence patterns and risk factors in the network.</p>
+            @if (availableScenariosComputed().length === 0) {
+              <mat-chip color="warn">
+                <mat-icon>warning</mat-icon>
+                No scenarios available
+              </mat-chip>
+            } @else {
+              <mat-chip color="primary">
+                <mat-icon>analytics</mat-icon>
+                {{ availableScenariosComputed().length }} scenarios available
+              </mat-chip>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   }
 

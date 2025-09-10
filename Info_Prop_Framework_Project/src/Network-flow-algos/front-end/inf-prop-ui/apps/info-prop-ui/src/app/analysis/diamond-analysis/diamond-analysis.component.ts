@@ -185,16 +185,24 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   // Get multi-scenario diamond results or fallback to single analysis
   multiScenarioResults = computed(() => this.analysisStateService.multiScenarioDiamondResults());
   
-  // Get current diamond analysis data - use component's own scenario results
+  // **FIXED: Get current diamond analysis data - use component's own scenario results**
   currentDiamondResults = computed(() => {
     const currentScenario = this.currentScenarioSignal();
+    // **CRITICAL: Make computed reactive to scenarioResultsSignal changes**
+    const scenarioResultsMap = this.scenarioResultsSignal();
+    
+    console.log('💎 currentDiamondResults computed - scenario:', currentScenario);
+    console.log('💎 scenarioResults Map has keys:', Array.from(scenarioResultsMap.keys()));
+    console.log('💎 scenarioResults Map size:', scenarioResultsMap.size);
     
     // **CRITICAL FIX: Use component's own scenario results first**
-    if (currentScenario && this.scenarioResults.has(currentScenario)) {
-      const result = this.scenarioResults.get(currentScenario);
+    if (currentScenario && scenarioResultsMap.has(currentScenario)) {
+      const result = scenarioResultsMap.get(currentScenario);
       console.log('💎 Using stored scenario result for:', currentScenario, result);
       return result || null;
     }
+    
+    console.log('💎 No result found in scenarioResults for:', currentScenario);
     
     // Try multi-scenario results from service as backup
     const multiResults = this.multiScenarioResults();
@@ -221,14 +229,20 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     return this.currentDiamondResults();
   });
 
-  // **ENHANCED: Diamond summary with proper processing**
+  // **FIXED: Diamond summary using component's stored results**
   diamondSummary = computed(() => {
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenarioSignal();
-    console.log('💎 Computing diamond summary for scenario:', scenario);
+    console.log('💎 Computing diamond summary for scenario:', scenario, 'results:', currentResults);
     
-    if (!currentResults) return null;
-    return this.diamondAnalysisService.processDiamondSummary(currentResults);
+    if (!currentResults) {
+      console.log('💎 No current results for diamond summary');
+      return null;
+    }
+    
+    const summary = this.diamondAnalysisService.processDiamondSummary(currentResults);
+    console.log('💎 Generated diamond summary:', summary);
+    return summary;
   });
   
   // **ENHANCED: Convergence insights with risk analysis**
@@ -259,22 +273,26 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     return this.diamondAnalysisService.analyzeJoinNodes(currentResults);
   });
 
-  // **SIMPLIFIED: Use service patterns with join node fix and type extraction**
+  // **FIXED: Diamond patterns using component's stored results**
   diamondPatterns = computed(() => {
     const currentResults = this.currentDiamondResults();
     const scenario = this.currentScenarioSignal();
-    console.log('🔷 Computing unique diamonds for scenario:', scenario);
+    console.log('🔷 Computing unique diamonds for scenario:', scenario, 'results:', currentResults);
     
-    if (!currentResults) return [];
+    if (!currentResults) {
+      console.log('🔷 No current results for diamond patterns');
+      return [];
+    }
     
     // Get patterns from service
     const patterns = this.diamondAnalysisService.extractDiamondPatterns(currentResults);
+    console.log('🔷 Extracted patterns from service:', patterns);
     
     // Extract unique diamonds only and add diamond type using the is_root_diamond flag
     if (currentResults.raw_unique_diamonds && patterns) {
       const rawUnique = currentResults.raw_unique_diamonds;
       
-      return patterns.map((pattern, index) => {
+      const processedPatterns = patterns.map((pattern, index) => {
         const diamondEntries = Object.entries(rawUnique);
         const [hash, diamondData] = diamondEntries[index] || ['', {}];
         
@@ -288,8 +306,12 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
           joinNode: joinNode || pattern.joinNode || null
         };
       });
+      
+      console.log('🔷 Processed diamond patterns:', processedPatterns);
+      return processedPatterns;
     }
     
+    console.log('🔷 Returning raw patterns:', patterns);
     return patterns;
   });
   
@@ -341,6 +363,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   ngOnInit(): void {
     console.log('💎 DiamondAnalysisComponent initializing...');
     
+    // **IMPROVED: Load scenarios and data first**
+    this.loadScenarios();
+    this.loadData();
+    
     // Get network path and reachability scenarios
     const currentSession = this.sessionService.getCurrentSession();
     const networkPath = currentSession?.networkPath || this.analysisStateService.currentNetworkPath();
@@ -348,17 +374,18 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     
     if (networkPath && !this.hasCalledDiamondAPI) {
       if (reachabilityGroups.length === 0) {
-        console.log('🔹 No reachability scenarios found - loading diamond analysis with default priors');
-        this.loadDiamondWithDefaults(networkPath);
+        console.log('🔹 No reachability scenarios found - will load diamond analysis with default priors when user executes');
+        // Don't auto-load, let user trigger execution
       } else if (reachabilityGroups.length === 1) {
         console.log('🔹 Single reachability scenario found - auto-selecting:', reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
         this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
-        this.loadDiamondWithScenario(networkPath, reachabilityGroups[0]);
+        // **CHANGED: Don't auto-execute, let user trigger**
+        console.log('🔹 Scenario selected, user can now execute diamond analysis');
       } else {
         console.log('🔹 Multiple reachability scenarios found - user needs to select:', reachabilityGroups.map(g => g.scenarioName || g.dataType));
         // Initialize with first scenario but don't auto-load until user selects
         this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
-        this.showScenarioSelector(reachabilityGroups);
+        console.log('🔹 First scenario selected, user can change and execute as needed');
       }
     }
     
@@ -393,39 +420,60 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
   }
 
-  // Scenario Management
+  // **SIMPLIFIED: Scenario Management like exact-inference**
   setCurrentScenario(scenarioName: string): void {
     console.log('🔄 Changing diamond analysis scenario from', this.currentScenario, 'to', scenarioName);
     this.currentScenario = scenarioName;
     this.currentScenarioSignal.set(scenarioName);
     this.analysisStateService.setCurrentDiamondScenario(scenarioName);
     
-    // **CRITICAL FIX: Always make individual API call for each scenario (like reachability does)**
+    // **IMPROVED: Just switch scenario, don't auto-execute**
     // Check if we already have results for this scenario
     if (this.scenarioResults.has(scenarioName)) {
       console.log('✅ Using cached results for scenario:', scenarioName);
       this.updateViewAfterScenarioChange(scenarioName);
+    } else {
+      console.log('🔄 Scenario changed to:', scenarioName, '- user can execute when ready');
+      // Clear current results to show empty state
+      this.updateViewAfterScenarioChange(scenarioName);
+    }
+  }
+
+  // **NEW: Execute diamond analysis method like exact-inference**
+  async executeDiamondAnalysis(): Promise<void> {
+    const currentScenario = this.currentScenarioSignal();
+    if (!currentScenario) {
+      console.warn('⚠️ No scenario selected for diamond analysis');
       return;
     }
-    
-    // Find the scenario data and make a new API call
+
+    // Check if we already have results for this scenario
+    if (this.scenarioResults.has(currentScenario)) {
+      console.log('✅ Using cached results for scenario:', currentScenario);
+      this.updateViewAfterScenarioChange(currentScenario);
+      return;
+    }
+
+    // Find the scenario data and make API call
     const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
     const matchingScenario = reachabilityGroups.find(group =>
-      (group.scenarioName || group.dataType) === scenarioName
+      (group.scenarioName || group.dataType) === currentScenario
     );
+
+    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
     
-    if (matchingScenario) {
-      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      if (sessionNetworkPath) {
-        console.log('🔄 Making new API call for scenario:', scenarioName);
-        // Reset the API call flag to allow new calls
-        this.hasCalledDiamondAPI = false;
-        this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
-      }
+    if (matchingScenario && sessionNetworkPath) {
+      console.log('🔄 Executing diamond analysis for scenario:', currentScenario);
+      // Reset the API call flag to allow new calls
+      this.hasCalledDiamondAPI = false;
+      this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
+    } else if (!matchingScenario && sessionNetworkPath) {
+      // Handle no scenario case (default priors)
+      console.log('🔄 Executing diamond analysis with default priors');
+      this.hasCalledDiamondAPI = false;
+      this.loadDiamondWithDefaults(sessionNetworkPath);
     } else {
-      console.warn('⚠️ No matching scenario found for:', scenarioName);
-      // Still update the view with current data
-      this.updateViewAfterScenarioChange(scenarioName);
+      console.warn('⚠️ Cannot execute diamond analysis - missing network path or scenario data');
     }
   }
 
