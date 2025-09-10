@@ -63,36 +63,55 @@ export class DiamondAnalysisService {
     );
   }
 
-  // **NEW: Multi-scenario diamond analysis**
+  // **ENHANCED: Multi-scenario diamond analysis with proper node priors**
   analyzeMultipleScenarios(networkPath: string, scenarios: ScenarioInfo[]): Observable<MultiScenarioDiamondResults> {
-    const analysisRequests = scenarios.map(scenario =>
-      this.analyzeDiamonds({
-        networkPath
-      }).pipe(
-        map(response => ({ scenario: scenario.name, result: response.diamond_analysis })),
+    console.log('💎 Starting multi-scenario diamond analysis for scenarios:', scenarios.map(s => s.name));
+    
+    const analysisRequests = scenarios.map(scenario => {
+      const request: DiamondAnalysisRequest = {
+        networkPath,
+        edgesFilePath: `${this.extractNetworkName(networkPath)}.EDGES`,
+        nodepriorsPath: scenario.path // **FIXED: Use scenario-specific node priors**
+      };
+
+      return this.analyzeDiamonds(request).pipe(
+        map(response => ({
+          scenario: scenario.name,
+          result: response.success ? response.diamond_analysis : null,
+          scenarioInfo: scenario
+        })),
         catchError(error => {
-          console.error(`Failed to analyze scenario ${scenario.name}:`, error);
-          return of({ scenario: scenario.name, result: null });
+          console.error(`Failed to analyze diamond scenario ${scenario.name}:`, error);
+          return of({ scenario: scenario.name, result: null, scenarioInfo: scenario });
         })
-      )
-    );
+      );
+    });
 
     return forkJoin(analysisRequests).pipe(
       map(results => {
         const scenarioMap = new Map<string, DiamondAnalysisResult>();
-        results.forEach(({ scenario, result }) => {
+        const validScenarios: ScenarioInfo[] = [];
+        
+        results.forEach(({ scenario, result, scenarioInfo }) => {
           if (result) {
             scenarioMap.set(scenario, result);
+            validScenarios.push(scenarioInfo);
           }
         });
 
         const multiResults: MultiScenarioDiamondResults = {
           scenarios: scenarioMap,
-          currentScenario: scenarios[0]?.name || '',
-          availableScenarios: scenarios
+          currentScenario: validScenarios[0]?.name || '',
+          availableScenarios: validScenarios
         };
 
         this.multiScenarioResultsSignal.set(multiResults);
+        console.log('✅ Multi-scenario diamond analysis completed:', {
+          totalScenarios: scenarios.length,
+          successfulScenarios: scenarioMap.size,
+          currentScenario: multiResults.currentScenario
+        });
+        
         return multiResults;
       })
     );
@@ -379,5 +398,21 @@ export class DiamondAnalysisService {
     const structuralComplexity = diamond.sub_iteration_sets_count || 1;
     const edgeComplexity = diamond.diamond?.edgelist?.length || 0;
     return baseComplexity + structuralComplexity + (edgeComplexity * 0.5);
+  }
+
+  // **NEW: Helper method for extracting network name**
+  private extractNetworkName(networkPath: string): string {
+    const pathParts = networkPath.split(/[\\/]/);
+    return pathParts[pathParts.length - 1];
+  }
+
+  // **NEW: Clear multi-scenario state**
+  clearMultiScenarioState(): void {
+    this.multiScenarioResultsSignal.set({
+      scenarios: new Map(),
+      currentScenario: '',
+      availableScenarios: []
+    });
+    console.log('🧹 Multi-scenario diamond state cleared');
   }
 }

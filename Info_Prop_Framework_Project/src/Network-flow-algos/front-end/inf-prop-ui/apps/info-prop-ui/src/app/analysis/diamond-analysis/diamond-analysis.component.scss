@@ -1,11 +1,120 @@
 // System-Wide DAG Infrastructure Analysis Dashboard
-// Sleek entries-styled light/dark theme with careful layouts
+// Comprehensive dark/light theme with data type color coding and modern Angular patterns
+
+// CSS Variables for comprehensive theming
+:root {
+  // Light theme colors
+  --background: #ffffff;
+  --surface-background: #f8f9fa;
+  --surface-light: #f1f3f4;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-disabled: #9ca3af;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  
+  // Primary colors
+  --primary-color: #3b82f6;
+  --primary-color-light: rgba(59, 130, 246, 0.1);
+  --accent-color: #8b5cf6;
+  --accent-color-light: rgba(139, 92, 246, 0.1);
+  
+  // Status colors
+  --success-color: #10b981;
+  --success-color-light: rgba(16, 185, 129, 0.1);
+  --warning-color: #f59e0b;
+  --warning-color-light: rgba(245, 158, 11, 0.1);
+  --error-color: #ef4444;
+  --error-color-light: rgba(239, 68, 68, 0.1);
+  --info-color: #06b6d4;
+  --info-color-light: rgba(6, 182, 212, 0.1);
+  
+  // Data type colors
+  --float-color: #10b981;
+  --float-color-light: rgba(16, 185, 129, 0.1);
+  --interval-color: #f59e0b;
+  --interval-color-light: rgba(245, 158, 11, 0.1);
+  --pbox-color: #ec4899;
+  --pbox-color-light: rgba(236, 72, 153, 0.1);
+}
+
+// Dark theme
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111827;
+    --surface-background: #1f2937;
+    --surface-light: #374151;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-disabled: #6b7280;
+    --border-color: #374151;
+    --border-light: #4b5563;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    
+    --primary-color: #60a5fa;
+    --primary-color-light: rgba(96, 165, 250, 0.2);
+    --accent-color: #a78bfa;
+    --accent-color-light: rgba(167, 139, 250, 0.2);
+    
+    --success-color: #34d399;
+    --success-color-light: rgba(52, 211, 153, 0.2);
+    --warning-color: #fbbf24;
+    --warning-color-light: rgba(251, 191, 36, 0.2);
+    --error-color: #f87171;
+    --error-color-light: rgba(248, 113, 113, 0.2);
+    --info-color: #22d3ee;
+    --info-color-light: rgba(34, 211, 238, 0.2);
+    
+    --float-color: #34d399;
+    --float-color-light: rgba(52, 211, 153, 0.2);
+    --interval-color: #fbbf24;
+    --interval-color-light: rgba(251, 191, 36, 0.2);
+    --pbox-color: #f472b6;
+    --pbox-color-light: rgba(244, 114, 182, 0.2);
+  }
+}
+
+// Force dark theme class
+.dark-theme {
+  --background: #111827;
+  --surface-background: #1f2937;
+  --surface-light: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-disabled: #6b7280;
+  --border-color: #374151;
+  --border-light: #4b5563;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  
+  --primary-color: #60a5fa;
+  --primary-color-light: rgba(96, 165, 250, 0.2);
+  --accent-color: #a78bfa;
+  --accent-color-light: rgba(167, 139, 250, 0.2);
+  
+  --success-color: #34d399;
+  --success-color-light: rgba(52, 211, 153, 0.2);
+  --warning-color: #fbbf24;
+  --warning-color-light: rgba(251, 191, 36, 0.2);
+  --error-color: #f87171;
+  --error-color-light: rgba(248, 113, 113, 0.2);
+  --info-color: #22d3ee;
+  --info-color-light: rgba(34, 211, 238, 0.2);
+  
+  --float-color: #34d399;
+  --float-color-light: rgba(52, 211, 153, 0.2);
+  --interval-color: #fbbf24;
+  --interval-color-light: rgba(251, 191, 36, 0.2);
+  --pbox-color: #f472b6;
+  --pbox-color-light: rgba(244, 114, 182, 0.2);
+}
 
 .diamond-hierarchy-dashboard {
   padding: 1.5rem;
   max-width: 100%;
   background: var(--background);
   color: var(--text-primary);
+  min-height: 100vh;
 
   // Header Section with Methodology
   .dashboard-header {
@@ -56,28 +165,154 @@
     
       .scenario-selector-section {
         display: flex;
-        align-items: center;
-        gap: 1rem;
+        flex-direction: column;
+        gap: 1.5rem;
         flex-shrink: 0;
 
-        .scenario-selector {
-          min-width: 250px;
-          
-          .scenario-option {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
+        .scenario-controls {
+          display: flex;
+          align-items: flex-start;
+          gap: 2rem;
+          flex-wrap: wrap;
 
-            .scenario-name {
-              flex: 1;
-              margin-right: 0.5rem;
+          .scenario-selector {
+            min-width: 300px;
+            flex: 1;
+            
+            .scenario-option {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              width: 100%;
+              padding: 0.5rem 0;
+
+              .scenario-info {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                margin-bottom: 0.25rem;
+
+                .scenario-name {
+                  flex: 1;
+                  font-weight: 500;
+                  color: var(--text-primary);
+                }
+
+                .scenario-badges {
+                  display: flex;
+                  align-items: center;
+                  gap: 0.5rem;
+
+                  .data-type-chip {
+                    font-size: 0.7rem;
+                    height: 20px;
+                    line-height: 20px;
+                    font-weight: 600;
+                    border-radius: 10px;
+                    padding: 0 8px;
+
+                    &.data-type-float {
+                      background-color: var(--float-color-light);
+                      color: var(--float-color);
+                      border: 1px solid var(--float-color);
+                    }
+
+                    &.data-type-interval {
+                      background-color: var(--interval-color-light);
+                      color: var(--interval-color);
+                      border: 1px solid var(--interval-color);
+                    }
+
+                    &.data-type-pbox {
+                      background-color: var(--pbox-color-light);
+                      color: var(--pbox-color);
+                      border: 1px solid var(--pbox-color);
+                    }
+                  }
+
+                  .computed-chip {
+                    background-color: var(--success-color-light);
+                    color: var(--success-color);
+                    border: 1px solid var(--success-color);
+                    font-size: 0.65rem;
+                    height: 18px;
+                    line-height: 18px;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0 6px;
+                    border-radius: 9px;
+
+                    mat-icon {
+                      font-size: 12px;
+                      width: 12px;
+                      height: 12px;
+                    }
+                  }
+                }
+              }
+
+              .scenario-path {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                font-family: 'Monaco', 'Menlo', monospace;
+                background: var(--surface-light);
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+            }
+          }
+
+          .comparison-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 250px;
+
+            mat-slide-toggle {
+              ::ng-deep .mat-mdc-slide-toggle {
+                --mdc-switch-selected-track-color: var(--primary-color);
+                --mdc-switch-selected-handle-color: var(--primary-color);
+              }
             }
 
-            .data-type-chip {
-              font-size: 0.7rem;
-              height: 18px;
-              line-height: 18px;
+            .comparison-selector {
+              .comparison-scenario-option {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+
+                .mini-chip {
+                  font-size: 0.6rem;
+                  height: 16px;
+                  line-height: 16px;
+                  min-height: 16px;
+                  padding: 0 6px;
+                  border-radius: 8px;
+                  font-weight: 600;
+
+                  &.data-type-float {
+                    background-color: var(--float-color-light);
+                    color: var(--float-color);
+                  }
+
+                  &.data-type-interval {
+                    background-color: var(--interval-color-light);
+                    color: var(--interval-color);
+                  }
+
+                  &.data-type-pbox {
+                    background-color: var(--pbox-color-light);
+                    color: var(--pbox-color);
+                  }
+                }
+              }
             }
           }
         }
@@ -86,9 +321,23 @@
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          margin-left: auto;
 
           mat-divider {
             height: 32px;
+          }
+
+          button {
+            transition: all 0.2s ease;
+
+            &:hover:not([disabled]) {
+              background-color: var(--primary-color-light);
+              color: var(--primary-color);
+            }
+
+            &[disabled] {
+              opacity: 0.5;
+            }
           }
         }
       }
@@ -1988,6 +2237,209 @@
         font-weight: 700;
         border: 1px solid currentColor;
       }
+    }
+  }
+}
+// Enhanced animations
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+// Shimmer loading animation for data cards
+.shimmer {
+  background: linear-gradient(90deg, 
+    var(--surface-light) 25%, 
+    var(--surface-background) 50%, 
+    var(--surface-light) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.shimmer-card {
+  .shimmer-line {
+    height: 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    
+    &.short { width: 60%; }
+    &.medium { width: 80%; }
+    &.long { width: 100%; }
+  }
+}
+
+// Responsive design enhancements
+@media (max-width: 1200px) {
+  .diamond-hierarchy-dashboard {
+    padding: 1rem;
+
+    .dashboard-header .header-content {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1.5rem;
+
+      .scenario-selector-section .scenario-controls {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+
+    .system-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .diamond-hierarchy-dashboard {
+    padding: 0.75rem;
+
+    .dashboard-header .header-content .title-section .page-title {
+      font-size: 1.5rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .system-metrics {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      
+      .metric-card {
+        padding: 1rem;
+        
+        .metric-value {
+          font-size: 2rem;
+        }
+      }
+    }
+
+    .dashboard-content .analysis-tabs .tab-content {
+      padding: 1rem;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      
+      table {
+        min-width: 800px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .diamond-hierarchy-dashboard {
+    padding: 0.5rem;
+
+    .system-metrics {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-content .analysis-tabs .tab-content {
+      padding: 0.75rem;
+    }
+
+    .loading-state,
+    .error-state,
+    .empty-state {
+      padding: 2rem 1rem;
+      
+      .loading-spinner,
+      .error-icon,
+      .empty-icon {
+        font-size: 3rem;
+      }
+    }
+  }
+}
+
+// Enhanced focus states for accessibility
+button, .mat-mdc-button, .mat-mdc-icon-button {
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.mat-mdc-form-field {
+  &.mat-focused {
+    .mat-mdc-text-field-wrapper {
+      .mat-mdc-form-field-outline {
+        .mat-mdc-form-field-outline-thick {
+          color: var(--primary-color);
+        }
+      }
+    }
+  }
+}
+
+// Smooth transitions for all interactive elements
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+// Data type specific styling enhancements
+.data-type-float {
+  --accent: var(--float-color);
+  --accent-light: var(--float-color-light);
+}
+
+.data-type-interval {
+  --accent: var(--interval-color);
+  --accent-light: var(--interval-color-light);
+}
+
+.data-type-pbox {
+  --accent: var(--pbox-color);
+  --accent-light: var(--pbox-color-light);
+}
+
+// Enhanced card animations
+.mat-mdc-card {
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-color);
+  }
+}
+
+// Staggered animation for lists
+.insights-grid > *,
+.summary-grid > *,
+.distribution-metrics > * {
+  animation: slideIn 0.5s ease-out;
+  
+  @for $i from 1 through 10 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.1}s;
     }
   }
 }

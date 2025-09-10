@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,11 +14,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
 import { ReachabilityAnalysisService } from '../../shared/services/reachability-analysis.service';
 import { NetworkSessionService } from '../../shared/services/network-session.service';
+import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
+import { ScenarioInfo, MultiScenarioReachabilityResults, ReachabilityScenario, NetworkStructure, AnalysisResponse } from '../../shared/models/network-analysis.models';
 
 interface InferenceScenario {
   name: string;
@@ -79,22 +82,45 @@ interface InferenceMetrics {
     MatFormFieldModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
-    MatBadgeModule
+    MatBadgeModule,
+    MatSlideToggleModule
   ],
   templateUrl: './exact-inference.component.html',
   styleUrl: './exact-inference.component.scss'
 })
-export class ExactInferenceComponent implements OnInit {
+export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
 
-  // Reactive signals for modern Angular patterns
+  // **NEW: Inject services using modern Angular pattern**
+  private analysisStateService = inject(AnalysisStateService);
+  private fileManagerService = inject(FileManagerService);
+  private reachabilityAnalysisService = inject(ReachabilityAnalysisService);
+  private sessionService = inject(NetworkSessionService);
+  private cdr = inject(ChangeDetectorRef);
+
+  // **ENHANCED: ScenarioAwareComponent implementation**
+  networkData: NetworkStructure | null = null;
+  analysisResults: AnalysisResponse | null = null;
+  isLoading = false;
+  error: string | null = null;
+  
+  // **NEW: Multi-scenario state management**
+  availableScenarios: ScenarioInfo[] = [];
+  currentScenario: string | null = null;
+  scenarioResults: Map<string, any> = new Map();
+  
+  // **NEW: UI state management signals**
+  showScenarioComparison = signal(false);
+  selectedScenariosForComparison = signal<string[]>([]);
+  
+  // **LEGACY: Keep existing signals for backward compatibility**
   selectedScenario = signal<InferenceScenario | null>(null);
   inferenceResults = signal<InferenceResult[]>([]);
   inferenceMetrics = signal<InferenceMetrics | null>(null);
   isComputing = signal(false);
   errorMessage = signal<string | null>(null);
   
-  // **FIXED: Get scenarios from FileManagerService reachability groups like diamond analysis**
-  availableScenarios = computed(() => {
+  // **FIXED: Get scenarios from FileManagerService reachability groups**
+  availableScenariosComputed = computed(() => {
     const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
     
     return reachabilityGroups
@@ -145,22 +171,80 @@ export class ExactInferenceComponent implements OnInit {
   // Table columns for results display
   displayedColumns: string[] = ['nodeId', 'belief', 'signalProbability', 'inferenceMethod', 'complexityLevel'];
 
-  constructor(
-    private analysisStateService: AnalysisStateService,
-    private fileManagerService: FileManagerService,
-    private reachabilityAnalysisService: ReachabilityAnalysisService,
-    private sessionService: NetworkSessionService
-  ) {}
-
   ngOnInit(): void {
     console.log('🔍 ExactInferenceComponent initializing...');
-    
-    // Auto-select first available scenario
-    const scenarios = this.availableScenarios();
-    if (scenarios.length > 0 && !this.selectedScenario()) {
-      this.selectedScenario.set(scenarios[0]);
-      console.log(`🎯 Auto-selected scenario: ${scenarios[0].displayName}`);
+    this.loadScenarios();
+    this.loadData();
+  }
+
+  // **NEW: ScenarioAwareComponent interface implementation**
+  loadScenarios(): void {
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    this.availableScenarios = reachabilityGroups
+      .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
+      .map((group, index) => ({
+        name: group.scenarioName || `${group.dataType}-${index}`,
+        dataType: group.dataType as 'float' | 'interval' | 'pbox',
+        path: group.nodePriorsFile?.path || '',
+        displayName: group.scenarioName ?
+          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` :
+          this.getDataTypeDisplayName(group.dataType),
+        analysisType: 'reachability' as const,
+        description: this.getScenarioDescription(group.dataType)
+      }));
+
+    // Auto-select first scenario if available
+    if (this.availableScenarios.length > 0 && !this.currentScenario) {
+      this.setCurrentScenario(this.availableScenarios[0].name);
     }
+  }
+
+  setCurrentScenario(scenarioName: string): void {
+    this.currentScenario = scenarioName;
+    const scenario = this.availableScenarios.find(s => s.name === scenarioName);
+    if (scenario) {
+      // Convert ScenarioInfo to InferenceScenario for backward compatibility
+      const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+      const matchingGroup = reachabilityGroups.find(group =>
+        group.scenarioName === scenario.name && group.dataType === scenario.dataType
+      );
+      
+      if (matchingGroup) {
+        const inferenceScenario: InferenceScenario = {
+          name: scenario.name,
+          dataType: scenario.dataType,
+          path: scenario.path,
+          displayName: scenario.displayName || scenario.name,
+          description: scenario.description || '',
+          networkPath: matchingGroup.networkPath,
+          nodePriorsFile: matchingGroup.nodePriorsFile,
+          linkProbabilitiesFile: matchingGroup.linkProbabilitiesFile
+        };
+        this.selectedScenario.set(inferenceScenario);
+      }
+    }
+    console.log('🎯 Current exact inference scenario set to:', scenarioName);
+  }
+
+  loadScenarioData(scenarioName: string): void {
+    this.setCurrentScenario(scenarioName);
+    // Trigger inference execution for the selected scenario
+    this.executeInference();
+  }
+
+  loadData(): void {
+    this.networkData = this.analysisStateService.networkData();
+    this.analysisResults = this.analysisStateService.analysisResults();
+    this.isLoading = this.analysisStateService.isLoading();
+    this.error = this.analysisStateService.error();
+  }
+
+  clearScenarioData(): void {
+    this.scenarioResults.clear();
+    this.inferenceResults.set([]);
+    this.inferenceMetrics.set(null);
+    this.errorMessage.set(null);
+    console.log('🧹 Exact inference scenario data cleared');
   }
 
   /**
@@ -200,6 +284,11 @@ export class ExactInferenceComponent implements OnInit {
         throw new Error('Missing required files for reachability analysis. Please upload network files first.');
       }
       
+      // Validate paths are not empty
+      if (!scenario.linkProbabilitiesFile.path.trim() || !scenario.nodePriorsFile.path.trim()) {
+        throw new Error('File paths cannot be empty. Please check uploaded files.');
+      }
+      
       // Get edges file path from the reachability group (same pattern as analysis-state service)
       // Find the corresponding reachability group to get shared edges file
       const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
@@ -211,29 +300,115 @@ export class ExactInferenceComponent implements OnInit {
         throw new Error(`Could not find matching reachability group for scenario: ${scenario.name}`);
       }
       
-      // Use shared edges file path or construct base network path + edges file name
-      const edgesFilePath = matchingGroup.edgesFile?.path || `${matchingGroup.networkPath}/${matchingGroup.networkPath?.split('/').pop()}.EDGES`;
-      console.log(`📊 Edges file path: ${edgesFilePath}`);
+      // **FIXED: Construct edges file path correctly - should be just the filename, not include network path prefix**
+      const edgesNetworkName = matchingGroup.networkPath?.split('/').pop() || 'network';
+      let edgesFilePath = matchingGroup.edgesFile?.path || `${edgesNetworkName}.EDGES`;
       
-      // Use the base network path from the matching group for consistency
-      const baseNetworkPath = matchingGroup.networkPath;
+      // **CRITICAL FIX: Remove any network path prefix from edges file path**
+      // If edgesFilePath contains network path prefix, strip it to get just the filename
+      if (edgesFilePath.includes('/')) {
+        edgesFilePath = edgesFilePath.split('/').pop() || `${edgesNetworkName}.EDGES`;
+      }
       
-      // Log the complete request being sent
+      console.log(`📊 Final edges file path: ${edgesFilePath}`);
+      
+      // **IMPROVED: Use session network path for consistency with backend expectations**
+      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+      const baseNetworkPath = sessionNetworkPath || matchingGroup.networkPath;
+      
+      if (!baseNetworkPath) {
+        throw new Error('No valid network path available for analysis');
+      }
+      
+      // **IMPROVED: Construct relative paths for backend compatibility**
+      // Convert Windows backslashes to forward slashes for backend compatibility
+      const fullNetworkPath = baseNetworkPath.replace(/\\/g, '/');
+      
+      // Make paths relative to the network directory
+      let relativeNodePriorsPath = scenario.nodePriorsFile.path;
+      let relativeLinkProbsPath = scenario.linkProbabilitiesFile.path;
+      
+      // **FIXED: Improved path stripping logic to preserve folder structure**
+      // Extract the network name from the base network path for consistent stripping
+      const networkName = baseNetworkPath.split('/').pop() || '';
+      
+      // Only remove the network name prefix if it exists at the start, preserving folder structure
+      if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
+        relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
+      }
+      if (networkName && relativeLinkProbsPath.startsWith(networkName + '/')) {
+        relativeLinkProbsPath = relativeLinkProbsPath.substring(networkName.length + 1);
+      }
+      
+      // **ADDITIONAL FIX: Ensure paths don't have duplicate network name**
+      // This handles cases where the path might still contain the network name
+      const duplicatePrefix = networkName + '/' + networkName + '/';
+      if (relativeNodePriorsPath.startsWith(duplicatePrefix)) {
+        relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
+      }
+      if (relativeLinkProbsPath.startsWith(duplicatePrefix)) {
+        relativeLinkProbsPath = relativeLinkProbsPath.substring(networkName.length + 1);
+      }
+      
+      // **DEBUG: Log path transformation for debugging**
+      console.log('🔧 PATH TRANSFORMATION DEBUG:');
+      console.log(`  networkName: '${networkName}'`);
+      console.log(`  original nodePriorsPath: '${scenario.nodePriorsFile.path}'`);
+      console.log(`  original linkProbsPath: '${scenario.linkProbabilitiesFile.path}'`);
+      console.log(`  transformed nodePriorsPath: '${relativeNodePriorsPath}'`);
+      console.log(`  transformed linkProbsPath: '${relativeLinkProbsPath}'`);
+      
+      // 🐛 DEBUG: Final path validation before sending request
+      console.log('🔍 FINAL PATH VALIDATION:');
+      console.log(`  fullNetworkPath: '${fullNetworkPath}' (empty: ${!fullNetworkPath.trim()})`);
+      console.log(`  edgesFilePath: '${edgesFilePath}' (empty: ${!edgesFilePath.trim()})`);
+      console.log(`  relativeNodePriorsPath: '${relativeNodePriorsPath}' (empty: ${!relativeNodePriorsPath.trim()})`);
+      console.log(`  relativeLinkProbsPath: '${relativeLinkProbsPath}' (empty: ${!relativeLinkProbsPath.trim()})`);
+      
+      // Validate all paths are non-empty
+      if (!fullNetworkPath.trim()) {
+        throw new Error('Network path is empty');
+      }
+      if (!edgesFilePath.trim()) {
+        throw new Error('Edges file path is empty');
+      }
+      if (!relativeNodePriorsPath.trim()) {
+        throw new Error('Node priors path is empty');
+      }
+      if (!relativeLinkProbsPath.trim()) {
+        throw new Error('Link probabilities path is empty');
+      }
+      
+      // 🐛 DEBUG: Log the complete request being sent with detailed analysis
       const request = {
-        networkPath: baseNetworkPath,
+        networkPath: fullNetworkPath,
         edgesFilePath: edgesFilePath,
-        nodepriorsPath: scenario.nodePriorsFile.path,
-        linkprobsPath: scenario.linkProbabilitiesFile.path
+        nodepriorsPath: relativeNodePriorsPath,
+        linkprobsPath: relativeLinkProbsPath
       };
-      console.log(`🚀 Sending reachability analysis request:`, request);
+      console.log(`🔍 EXACT INFERENCE REQUEST DEBUG:`);
+      console.log(`📋 Request object keys:`, Object.keys(request));
+      console.log(`📋 Complete request:`, request);
+      console.log(`🔍 DETAILED REQUEST ANALYSIS:`);
+      console.log(`  networkPath: '${request.networkPath}' (type: ${typeof request.networkPath})`);
+      console.log(`  edgesFilePath: '${request.edgesFilePath}' (type: ${typeof request.edgesFilePath})`);
+      console.log(`  nodepriorsPath: '${request.nodepriorsPath}' (type: ${typeof request.nodepriorsPath})`);
+      console.log(`  linkprobsPath: '${request.linkprobsPath}' (type: ${typeof request.linkprobsPath})`);
       
-      // Call reachability analysis service with exact inference flag
+      // **ENHANCED: Call reachability analysis service with exact inference flag**
       const results = await this.reachabilityAnalysisService.analyzeReachability({
-        networkPath: baseNetworkPath,
+        networkPath: fullNetworkPath,
         edgesFilePath: edgesFilePath,
-        nodepriorsPath: scenario.nodePriorsFile.path,
-        linkprobsPath: scenario.linkProbabilitiesFile.path
+        nodepriorsPath: relativeNodePriorsPath,
+        linkprobsPath: relativeLinkProbsPath,
+        includeExactInference: true,
+        includeDiamondAnalysis: false
       }).toPromise();
+
+      // **NEW: Store results in scenario-aware map**
+      if (results?.reachability_result) {
+        this.scenarioResults.set(scenario.name, results.reachability_result);
+      }
 
       // Process and format results for display
       const processedResults = this.processInferenceResults(results, scenario.dataType);
@@ -242,8 +417,12 @@ export class ExactInferenceComponent implements OnInit {
       this.inferenceResults.set(processedResults);
       this.inferenceMetrics.set(metrics);
       
-      console.log(`✅ Inference completed: ${processedResults.length} nodes computed`);
+      // **NEW: Update view after scenario change**
+      this.cdr.detectChanges();
+      
+      console.log(`✅ Inference completed for scenario "${scenario.name}": ${processedResults.length} nodes computed`);
       console.log(`⏱️ Computation time: ${metrics.computationTime.toFixed(3)}s`);
+      console.log(`📊 Data type: ${scenario.dataType}`);
       
     } catch (error) {
       console.error('❌ Inference execution failed:', error);
@@ -404,13 +583,13 @@ export class ExactInferenceComponent implements OnInit {
   }
 
   /**
-   * Get data type display name for UI (same as diamond analysis)
+   * Get data type display name for UI (public for template access)
    */
-  private getDataTypeDisplayName(dataType: string): string {
+  public getDataTypeDisplayName(dataType: string): string {
     switch (dataType) {
-      case 'float': return 'Float (Deterministic)';
-      case 'interval': return 'Interval';
-      case 'pbox': return 'P-Box';
+      case 'float': return 'Float (Precise)';
+      case 'interval': return 'Interval (Bounded)';
+      case 'pbox': return 'P-Box (Distributional)';
       default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
     }
   }
@@ -485,6 +664,37 @@ export class ExactInferenceComponent implements OnInit {
     this.inferenceResults.set([]);
     this.inferenceMetrics.set(null);
     this.errorMessage.set(null);
+    this.clearScenarioData();
     console.log('🧹 Cleared inference results');
+  }
+
+  // **NEW: Enhanced scenario comparison support**
+  toggleScenarioComparison(): void {
+    this.showScenarioComparison.update(show => !show);
+  }
+
+  addScenarioToComparison(scenarioName: string): void {
+    this.selectedScenariosForComparison.update(scenarios => {
+      if (!scenarios.includes(scenarioName)) {
+        return [...scenarios, scenarioName];
+      }
+      return scenarios;
+    });
+  }
+
+  removeScenarioFromComparison(scenarioName: string): void {
+    this.selectedScenariosForComparison.update(scenarios =>
+      scenarios.filter(s => s !== scenarioName)
+    );
+  }
+
+  // **NEW: Get scenario results for comparison**
+  getScenarioResult(scenarioName: string): ReachabilityScenario | null {
+    return this.scenarioResults.get(scenarioName) || null;
+  }
+
+  // **NEW: Check if scenario has results**
+  hasScenarioResults(scenarioName: string): boolean {
+    return this.scenarioResults.has(scenarioName);
   }
 }

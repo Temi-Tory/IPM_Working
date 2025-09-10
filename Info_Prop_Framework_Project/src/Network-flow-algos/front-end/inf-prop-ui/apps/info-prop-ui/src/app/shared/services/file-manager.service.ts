@@ -486,6 +486,7 @@ export class FileManagerService {
 
   /**
    * Detect analysis type and data type from JSON content
+   * Enhanced to properly handle Julia backend data_type field variations
    */
   private detectAnalysisAndDataTypeFromContent(content: string): { analysisType: AnalysisType; dataType?: DataType } | null {
     try {
@@ -509,19 +510,34 @@ export class FileManagerService {
         return { analysisType, dataType };
       }
       
+      // Helper function to detect data type from data_type field
+      const detectDataTypeFromField = (dataTypeField: string): DataType | undefined => {
+        const normalizedType = dataTypeField.toLowerCase().trim();
+        
+        // Handle all known variations from Julia backend
+        if (normalizedType === 'float64' || normalizedType === 'float') {
+          return 'float';
+        } else if (normalizedType === 'interval') {
+          return 'interval';
+        } else if (normalizedType === 'pbox' ||
+                   normalizedType === 'probabilityboundsanalysis.pbox' ||
+                   normalizedType.includes('pbox')) {
+          return 'pbox';
+        }
+        
+        return undefined;
+      };
+      
       // Check for reachability analysis (has nodes and links/edges)
       if (data.nodes && (data.links || data.edges)) {
         analysisType = 'reachability';
         
-        // Detect data type from data_type field (Julia backend standard)
+        // Primary: Detect data type from data_type field (Julia backend standard)
         if (data.data_type) {
-          const jsonDataType = data.data_type.toLowerCase();
-          if (jsonDataType === 'float64') dataType = 'float';
-          else if (jsonDataType === 'interval') dataType = 'interval';
-          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+          dataType = detectDataTypeFromField(data.data_type);
         }
         
-        // If no data_type field, try to infer from node values structure
+        // Fallback: Infer from node values structure if no data_type field
         if (!dataType && data.nodes) {
           const nodeValues = Object.values(data.nodes);
           if (nodeValues.length > 0) {
@@ -545,12 +561,26 @@ export class FileManagerService {
       if (data.nodes) {
         analysisType = 'reachability';
         
-        // Detect data type from data_type field
+        // Primary: Detect data type from data_type field
         if (data.data_type) {
-          const jsonDataType = data.data_type.toLowerCase();
-          if (jsonDataType === 'float64') dataType = 'float';
-          else if (jsonDataType === 'interval') dataType = 'interval';  
-          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+          dataType = detectDataTypeFromField(data.data_type);
+        }
+        
+        // Fallback: Infer from node structure
+        if (!dataType) {
+          const nodeValues = Object.values(data.nodes);
+          if (nodeValues.length > 0) {
+            const firstValue = nodeValues[0] as any;
+            if (typeof firstValue === 'number') {
+              dataType = 'float';
+            } else if (typeof firstValue === 'object' && firstValue !== null) {
+              if (firstValue.type === 'interval' || ('lower' in firstValue && 'upper' in firstValue)) {
+                dataType = 'interval';
+              } else if (firstValue.type === 'pbox' || firstValue.construction_type) {
+                dataType = 'pbox';
+              }
+            }
+          }
         }
         
         return { analysisType, dataType };
@@ -560,12 +590,26 @@ export class FileManagerService {
       if (data.links) {
         analysisType = 'reachability';
         
-        // Detect data type from data_type field
+        // Primary: Detect data type from data_type field
         if (data.data_type) {
-          const jsonDataType = data.data_type.toLowerCase();
-          if (jsonDataType === 'float64') dataType = 'float';
-          else if (jsonDataType === 'interval') dataType = 'interval';
-          else if (jsonDataType === 'pbox' || jsonDataType === 'probabilityboundsanalysis.pbox') dataType = 'pbox';
+          dataType = detectDataTypeFromField(data.data_type);
+        }
+        
+        // Fallback: Infer from link structure
+        if (!dataType) {
+          const linkValues = Object.values(data.links);
+          if (linkValues.length > 0) {
+            const firstValue = linkValues[0] as any;
+            if (typeof firstValue === 'number') {
+              dataType = 'float';
+            } else if (typeof firstValue === 'object' && firstValue !== null) {
+              if (firstValue.type === 'interval' || ('lower' in firstValue && 'upper' in firstValue)) {
+                dataType = 'interval';
+              } else if (firstValue.type === 'pbox' || firstValue.construction_type) {
+                dataType = 'pbox';
+              }
+            }
+          }
         }
         
         return { analysisType, dataType };
@@ -573,6 +617,7 @@ export class FileManagerService {
       
       return null; // Could not determine type
     } catch (error) {
+      console.warn('Failed to parse JSON for data type detection:', error);
       return null; // Could not parse JSON
     }
   }
@@ -642,7 +687,10 @@ export class FileManagerService {
       isComplete: missingFiles.length === 0,
       missingFiles,
       canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
-      scenarioName: scenarioName || `${getDataTypeDisplayName(dataType)} Scenario`
+      // **FIXED: Preserve original scenario names instead of converting to generic type names**
+      scenarioName: (scenarioName && scenarioName !== 'default')
+        ? scenarioName // Keep original meaningful names like "Breakdown 214 (interval)"
+        : `${getDataTypeDisplayName(dataType)} Scenario`
     };
   }
 
@@ -661,7 +709,10 @@ export class FileManagerService {
       isComplete: missingFiles.length === 0,
       missingFiles,
       canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
-      scenarioName: scenarioName || 'Capacity Analysis'
+      // **FIXED: Preserve original scenario names**
+      scenarioName: (scenarioName && scenarioName !== 'default')
+        ? scenarioName // Keep original meaningful names
+        : 'Capacity Analysis'
     };
   }
 
@@ -696,7 +747,10 @@ export class FileManagerService {
       isComplete: missingFiles.length === 0,
       missingFiles,
       canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
-      scenarioName: scenarioName || 'CPM Analysis'
+      // **FIXED: Preserve original scenario names**
+      scenarioName: (scenarioName && scenarioName !== 'default')
+        ? scenarioName // Keep original meaningful names
+        : 'CPM Analysis'
     };
   }
 

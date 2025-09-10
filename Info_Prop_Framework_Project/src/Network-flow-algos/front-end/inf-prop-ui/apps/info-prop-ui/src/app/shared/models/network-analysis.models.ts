@@ -186,18 +186,83 @@ export interface DiamondAnalysisResult {
   raw_unique_diamonds?: Record<string, UniqueDiamondStructure>;
 }
 
-// **NEW: Scenario-aware interfaces for multi-scenario diamond analysis**
+// **NEW: Enhanced scenario-aware interfaces for multi-scenario analysis**
 export interface ScenarioInfo {
   name: string;
   dataType: 'float' | 'interval' | 'pbox';
   path: string;
   displayName?: string;
+  // **NEW: Additional scenario metadata**
+  analysisType?: 'reachability' | 'capacity' | 'cpm';
+  isValid?: boolean;
+  fileSize?: number;
+  lastModified?: number;
+  description?: string;
 }
 
 export interface MultiScenarioDiamondResults {
   scenarios: Map<string, DiamondAnalysisResult>;
   currentScenario: string;
   availableScenarios: ScenarioInfo[];
+}
+
+// **NEW: Multi-scenario results for all analysis types**
+export interface MultiScenarioReachabilityResults {
+  scenarios: Map<string, ReachabilityScenario>;
+  currentScenario: string;
+  availableScenarios: ScenarioInfo[];
+}
+
+export interface MultiScenarioCapacityResults {
+  scenarios: Map<string, CapacityScenario>;
+  currentScenario: string;
+  availableScenarios: ScenarioInfo[];
+}
+
+export interface MultiScenarioCpmResults {
+  scenarios: Map<string, CpmScenario>;
+  currentScenario: string;
+  availableScenarios: ScenarioInfo[];
+}
+
+// **NEW: Comprehensive multi-scenario state**
+export interface ComprehensiveScenarioState {
+  reachability: MultiScenarioReachabilityResults;
+  diamond: MultiScenarioDiamondResults;
+  capacity: MultiScenarioCapacityResults;
+  cpm: MultiScenarioCpmResults;
+  globalCurrentScenario: string;
+  scenarioSyncEnabled: boolean;
+}
+
+// **NEW: Scenario comparison interfaces**
+export interface ScenarioComparison {
+  scenarios: string[];
+  comparisonType: 'side-by-side' | 'overlay' | 'difference';
+  metrics: ScenarioComparisonMetrics;
+}
+
+export interface ScenarioComparisonMetrics {
+  reachability?: {
+    beliefDifferences: Record<string, number>;
+    computationTimeDifference: number;
+    nodeProcessingDifference: number;
+  };
+  diamond?: {
+    diamondCountDifference: number;
+    efficiencyDifference: number;
+    complexityDifference: number;
+  };
+  capacity?: {
+    utilizationDifference: number;
+    flowDifferences: Record<string, number>;
+    bottleneckChanges: string[];
+  };
+  cpm?: {
+    criticalPathDifference: number;
+    costDifference: number;
+    timeDifference: number;
+  };
 }
 
 // **ENHANCED: DiamondPattern with proper identification**
@@ -476,6 +541,8 @@ export interface ReachabilityAnalysisRequest {
   edgesFilePath: string;
   nodepriorsPath: string;
   linkprobsPath: string;
+  includeExactInference?: boolean;
+  includeDiamondAnalysis?: boolean;
 }
 
 export interface ReachabilityAnalysisResponse {

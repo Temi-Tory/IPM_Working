@@ -20,22 +20,33 @@
     
     <mat-card-content>
       <div class="control-row">
-        <!-- Scenario Selector -->
-        <mat-form-field appearance="outline">
+        <!-- **ENHANCED: Scenario Selector with improved data type support** -->
+        <mat-form-field appearance="outline" class="scenario-selector">
           <mat-label>Uncertainty Scenario</mat-label>
-          <mat-select 
+          <mat-select
             [value]="selectedScenario()"
-            (selectionChange)="selectedScenario.set($event.value)"
+            (selectionChange)="setCurrentScenario($event.value.name)"
             [disabled]="isComputing()">
-            @for (scenario of availableScenarios(); track scenario.path) {
+            @for (scenario of availableScenariosComputed(); track scenario.path) {
               <mat-option [value]="scenario">
                 <div class="scenario-option">
-                  <span class="scenario-name">{{ scenario.displayName }}</span>
-                  <mat-chip [color]="scenario.dataType === 'float' ? 'primary' : 
-                                   scenario.dataType === 'interval' ? 'accent' : 'warn'" 
-                           selected>
-                    {{ scenario.dataType.toUpperCase() }}
-                  </mat-chip>
+                  <div class="scenario-info">
+                    <span class="scenario-name">{{ scenario.displayName }}</span>
+                    <span class="scenario-path">{{ scenario.path }}</span>
+                  </div>
+                  <div class="scenario-badges">
+                    <mat-chip
+                      [class]="'data-type-' + scenario.dataType"
+                      selected>
+                      {{ getDataTypeDisplayName(scenario.dataType) }}
+                    </mat-chip>
+                    @if (hasScenarioResults(scenario.name)) {
+                      <mat-chip color="accent" selected>
+                        <mat-icon>check_circle</mat-icon>
+                        Computed
+                      </mat-chip>
+                    }
+                  </div>
                 </div>
               </mat-option>
             }
@@ -43,9 +54,24 @@
           <mat-hint>
             @if (selectedScenario()) {
               {{ selectedScenario()!.description }}
+            } @else {
+              Select a scenario to run exact probabilistic inference
             }
           </mat-hint>
         </mat-form-field>
+
+        <!-- **NEW: Scenario Comparison Toggle** -->
+        <div class="comparison-controls">
+          <mat-slide-toggle
+            [checked]="showScenarioComparison()"
+            (change)="toggleScenarioComparison()"
+            [disabled]="availableScenariosComputed().length < 2">
+            <span class="toggle-label">
+              <mat-icon>compare</mat-icon>
+              Compare Scenarios
+            </span>
+          </mat-slide-toggle>
+        </div>
 
         <!-- Execute Button -->
         <button mat-raised-button 
@@ -398,7 +424,7 @@
           <mat-icon>calculate</mat-icon>
           <h3>Ready for Exact Inference</h3>
           <p>Select an uncertainty scenario and click "Run Inference" to compute reachability beliefs for all network nodes.</p>
-          @if (availableScenarios().length === 0) {
+          @if (availableScenarios.length === 0) {
             <mat-chip color="warn">
               <mat-icon>warning</mat-icon>
               No scenarios available
@@ -406,7 +432,7 @@
           } @else {
             <mat-chip color="primary">
               <mat-icon>analytics</mat-icon>
-              {{ availableScenarios().length }} scenarios available
+              {{ availableScenarios.length }} scenarios available
             </mat-chip>
           }
         </div>

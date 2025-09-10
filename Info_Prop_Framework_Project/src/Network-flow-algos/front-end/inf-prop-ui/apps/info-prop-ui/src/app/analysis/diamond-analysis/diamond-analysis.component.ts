@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 
@@ -32,8 +32,11 @@ import {
   DiamondSummary,
   ConvergenceInsight,
   JoinNodeAnalysis,
-  DiamondPattern
+  DiamondPattern,
+  MultiScenarioDiamondResults,
+  ScenarioComparison
 } from '../../shared/models/network-analysis.models';
+import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
 import { DiamondDetailsComponent } from './diamond-details/diamond-details.component';
 
 
@@ -66,20 +69,38 @@ import { DiamondDetailsComponent } from './diamond-details/diamond-details.compo
   templateUrl: './diamond-analysis.component.html',
   styleUrls: ['./diamond-analysis.component.scss']
 })
-export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
+export class DiamondAnalysisComponent implements OnInit, AfterViewInit, ScenarioAwareComponent {
   private analysisStateService = inject(AnalysisStateService);
   private diamondAnalysisService = inject(DiamondAnalysisService);
   private fileManagerService = inject(FileManagerService);
   private sessionService = inject(NetworkSessionService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
 
   // ViewChild references for table functionality
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  // State Management
-  currentScenario = signal<string>('');
+  // ScenarioAwareComponent Implementation
+  currentScenario = '';
+  availableScenarios: ScenarioInfo[] = [];
+  isLoading = false;
+  error: string | null = null;
+  networkData: any = null;
+  analysisResults: any = null;
+
+  // Multi-scenario state management
+  scenarioResults = new Map<string, DiamondAnalysisResult>();
+  private scenarioResultsSignal = signal(new Map<string, DiamondAnalysisResult>());
+  
+  // Scenario comparison state
+  comparisonMode = signal<boolean>(false);
+  selectedScenariosForComparison = signal<string[]>([]);
+  scenarioComparisons = signal<ScenarioComparison[]>([]);
+
+  // Internal signals for reactive updates
+  private currentScenarioSignal = signal<string>('');
   selectedTab = signal<number>(0);
   
   // Hierarchy Visualizer State
@@ -95,61 +116,115 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // Table data source
   dataSource = new MatTableDataSource<DiamondPattern>([]);
   
-  // **FIXED: Get scenarios from FileManagerService reachability groups**
-  availableScenarios = computed(() => {
+  // Computed properties for reactive UI updates
+  availableScenariosComputed = computed(() => {
     const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
     
-    return reachabilityGroups
+    const scenarios = reachabilityGroups
       .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
       .map((group, index) => ({
-        name: group.scenarioName || `${group.dataType}-${index}`, // Use scenarioName as unique identifier
+        name: group.scenarioName || `${group.dataType}-${index}`,
         dataType: group.dataType as 'float' | 'interval' | 'pbox',
-        displayName: group.scenarioName ? 
-          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` : 
+        displayName: group.scenarioName ?
+          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` :
           this.getDataTypeDisplayName(group.dataType),
         path: group.nodePriorsFile?.path || '',
         networkPath: group.networkPath,
         nodePriorsFile: group.nodePriorsFile,
-        linkProbabilitiesFile: group.linkProbabilitiesFile
+        linkProbabilitiesFile: group.linkProbabilitiesFile,
+        computed: this.scenarioResults.has(group.scenarioName || `${group.dataType}-${index}`),
+        hasResults: this.scenarioResults.has(group.scenarioName || `${group.dataType}-${index}`)
       }));
+    
+    // Update the interface property
+    this.availableScenarios = scenarios;
+    return scenarios;
   });
+
+  // Loading and error state computed properties
+  isLoadingComputed = computed(() => {
+    const loading = this.analysisStateService.isLoading();
+    this.isLoading = loading;
+    return loading;
+  });
+
+  errorComputed = computed(() => {
+    const error = this.analysisStateService.error();
+    this.error = error;
+    return error;
+  });
+
+  // ScenarioAwareComponent required methods
+  loadScenarios(): void {
+    const scenarios = this.availableScenariosComputed();
+    this.availableScenarios = scenarios;
+  }
+
+  loadScenarioData(scenarioName: string): void {
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    const matchingScenario = reachabilityGroups.find(group =>
+      (group.scenarioName || group.dataType) === scenarioName
+    );
+    
+    if (matchingScenario) {
+      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+      if (sessionNetworkPath) {
+        console.log('🔄 Loading scenario data for:', scenarioName);
+        this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
+      }
+    }
+  }
+
+  loadData(): void {
+    this.loadScenarios();
+    if (this.currentScenario) {
+      this.loadScenarioData(this.currentScenario);
+    }
+  }
 
   // Get multi-scenario diamond results or fallback to single analysis
   multiScenarioResults = computed(() => this.analysisStateService.multiScenarioDiamondResults());
   
-  // Get current diamond analysis data - either from multi-scenario or single analysis
+  // Get current diamond analysis data - use component's own scenario results
   currentDiamondResults = computed(() => {
-    const multiResults = this.multiScenarioResults();
-    const currentScenario = this.currentScenario();
+    const currentScenario = this.currentScenarioSignal();
     
-    // Try multi-scenario first
-    if (multiResults && currentScenario) {
-      return multiResults.scenarios.get(currentScenario) || null;
+    // **CRITICAL FIX: Use component's own scenario results first**
+    if (currentScenario && this.scenarioResults.has(currentScenario)) {
+      const result = this.scenarioResults.get(currentScenario);
+      console.log('💎 Using stored scenario result for:', currentScenario, result);
+      return result || null;
     }
     
-    // Fallback to single diamond analysis
-    const diamondAnalysis = this.analysisStateService.diamondAnalysis();
-    return diamondAnalysis?.diamond_analysis || null;
+    // Try multi-scenario results from service as backup
+    const multiResults = this.multiScenarioResults();
+    if (multiResults && currentScenario) {
+      const result = multiResults.scenarios.get(currentScenario);
+      console.log('💎 Using service multi-scenario result for:', currentScenario, result);
+      return result || null;
+    }
+    
+    // Fallback to single diamond analysis only if no scenario is selected
+    if (!currentScenario) {
+      const diamondAnalysis = this.analysisStateService.diamondAnalysis();
+      console.log('💎 Using fallback single analysis:', diamondAnalysis?.diamond_analysis);
+      return diamondAnalysis?.diamond_analysis || null;
+    }
+    
+    console.log('💎 No diamond results found for scenario:', currentScenario);
+    return null;
   });
 
   // Get the full current diamond analysis object for hierarchy visualization
   currentDiamondAnalysis = computed(() => {
-    const multiResults = this.multiScenarioResults();
-    const currentScenario = this.currentScenario();
-    
-    // Try multi-scenario first
-    if (multiResults && currentScenario) {
-      return multiResults.scenarios.get(currentScenario) || null;
-    }
-    
-    // Fallback to single diamond analysis
-    return this.analysisStateService.diamondAnalysis()?.diamond_analysis || null;
+    // Use the same logic as currentDiamondResults
+    return this.currentDiamondResults();
   });
 
   // **ENHANCED: Diamond summary with proper processing**
   diamondSummary = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenario();
+    const scenario = this.currentScenarioSignal();
     console.log('💎 Computing diamond summary for scenario:', scenario);
     
     if (!currentResults) return null;
@@ -159,7 +234,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // **ENHANCED: Convergence insights with risk analysis**
   convergenceInsights = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenario();
+    const scenario = this.currentScenarioSignal();
     console.log('🔍 Computing convergence insights for scenario:', scenario);
     
     if (!currentResults) return [];
@@ -169,7 +244,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // **ENHANCED: Coverage metrics**
   coverageMetrics = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenario();
+    const scenario = this.currentScenarioSignal();
     console.log('📊 Computing coverage metrics for scenario:', scenario);
     return this.calculateNetworkCoverage();
   });
@@ -177,7 +252,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // **ENHANCED: Join node analysis**
   joinNodeAnalysis = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenario();
+    const scenario = this.currentScenarioSignal();
     console.log('🔗 Computing join node analysis for scenario:', scenario);
     
     if (!currentResults) return [];
@@ -187,7 +262,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   // **SIMPLIFIED: Use service patterns with join node fix and type extraction**
   diamondPatterns = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenario();
+    const scenario = this.currentScenarioSignal();
     console.log('🔷 Computing unique diamonds for scenario:', scenario);
     
     if (!currentResults) return [];
@@ -257,10 +332,6 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     return filtered;
   });
 
-  // UI State
-  isLoading = computed(() => this.analysisStateService.isLoading());
-  error = computed(() => this.analysisStateService.error());
-
   // **REDESIGNED: Focused table configuration for system-wide DAG analysis**
   displayedColumns: string[] = ['joinNode', 'diamondType', 'conditioningNodes', 'diamondComplexity', 'cascadeRisk', 'systemRole', 'actions'];
   
@@ -280,13 +351,13 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
         console.log('🔹 No reachability scenarios found - loading diamond analysis with default priors');
         this.loadDiamondWithDefaults(networkPath);
       } else if (reachabilityGroups.length === 1) {
-        console.log('🔹 Single reachability scenario found - auto-selecting:', reachabilityGroups[0].dataType);
-        this.setCurrentScenario(reachabilityGroups[0].dataType);
+        console.log('🔹 Single reachability scenario found - auto-selecting:', reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
+        this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
         this.loadDiamondWithScenario(networkPath, reachabilityGroups[0]);
       } else {
-        console.log('🔹 Multiple reachability scenarios found - user needs to select:', reachabilityGroups.map(g => g.dataType));
+        console.log('🔹 Multiple reachability scenarios found - user needs to select:', reachabilityGroups.map(g => g.scenarioName || g.dataType));
         // Initialize with first scenario but don't auto-load until user selects
-        this.setCurrentScenario(reachabilityGroups[0].dataType);
+        this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
         this.showScenarioSelector(reachabilityGroups);
       }
     }
@@ -324,15 +395,44 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
 
   // Scenario Management
   setCurrentScenario(scenarioName: string): void {
-    console.log('🔄 Changing diamond analysis scenario from', this.currentScenario(), 'to', scenarioName);
-    this.currentScenario.set(scenarioName);
+    console.log('🔄 Changing diamond analysis scenario from', this.currentScenario, 'to', scenarioName);
+    this.currentScenario = scenarioName;
+    this.currentScenarioSignal.set(scenarioName);
     this.analysisStateService.setCurrentDiamondScenario(scenarioName);
     
-    // Update filter ranges for new scenario data
-    setTimeout(() => {
-      this.updateFilterRanges();
-      this.updateDataSource();
-    }, 0);
+    // **CRITICAL FIX: Always make individual API call for each scenario (like reachability does)**
+    // Check if we already have results for this scenario
+    if (this.scenarioResults.has(scenarioName)) {
+      console.log('✅ Using cached results for scenario:', scenarioName);
+      this.updateViewAfterScenarioChange(scenarioName);
+      return;
+    }
+    
+    // Find the scenario data and make a new API call
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    const matchingScenario = reachabilityGroups.find(group =>
+      (group.scenarioName || group.dataType) === scenarioName
+    );
+    
+    if (matchingScenario) {
+      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+      if (sessionNetworkPath) {
+        console.log('🔄 Making new API call for scenario:', scenarioName);
+        // Reset the API call flag to allow new calls
+        this.hasCalledDiamondAPI = false;
+        this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
+      }
+    } else {
+      console.warn('⚠️ No matching scenario found for:', scenarioName);
+      // Still update the view with current data
+      this.updateViewAfterScenarioChange(scenarioName);
+    }
+  }
+
+  private updateViewAfterScenarioChange(scenarioName: string): void {
+    // Update filter ranges and data source
+    this.updateFilterRanges();
+    this.updateDataSource();
     
     // Force recomputation by accessing computed properties
     const summary = this.diamondSummary();
@@ -347,6 +447,9 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
       patternsCount: patterns?.length || 0,
       coveragePercentage: coverage?.percentage || 0
     });
+    
+    // Trigger change detection
+    this.cdr.detectChanges();
   }
 
   // Load multi-scenario diamond analysis
@@ -1041,7 +1144,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     const summary = this.diamondSummary();
     
     const exportData = {
-      scenario: this.currentScenario(),
+      scenario: this.currentScenario,
       summary,
       patterns: patterns.map(p => ({
         displayId: p.displayId,
@@ -1059,7 +1162,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `diamond-analysis-${this.currentScenario()}-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `diamond-analysis-${this.currentScenario}-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
     
@@ -1098,8 +1201,9 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
   }
 
   private loadDiamondWithScenario(networkPath: string, scenario: any): void {
-    console.log('🔍 Loading diamond analysis for scenario:', scenario.dataType, 'at path:', networkPath);
-    this.hasCalledDiamondAPI = true;
+    console.log('🔍 Loading diamond analysis for scenario:', scenario.scenarioName || scenario.dataType, 'at path:', networkPath);
+    // **FIXED: Allow multiple API calls for different scenarios**
+    // Don't set hasCalledDiamondAPI = true here, so each scenario can make its own call
     
     // **FIXED: Construct full paths for backend**
     // The session networkPath contains the full temp_uploads path
@@ -1115,16 +1219,44 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     // Convert Windows backslashes to forward slashes for backend compatibility
     const fullNetworkPath = sessionNetworkPath.replace(/\\/g, '/');
     
-    // Remove the network name prefix from nodepriors path to make it relative
-    // e.g., "grid-graph/main scenario - float/file.json" → "main scenario - float/file.json"  
+    // **FIXED: Handle scenario-specific file paths properly**
+    // The nodePriorsFile.path should already be the correct relative path from FileManagerService
     let relativeNodePriorsPath = scenario.nodePriorsFile?.path || '';
-    if (relativeNodePriorsPath.startsWith(scenario.networkPath + '/')) {
-      relativeNodePriorsPath = relativeNodePriorsPath.substring(scenario.networkPath.length + 1);
+    
+    // **CRITICAL FIX: Apply same path cleaning logic as exact-inference component**
+    // Extract the network name from the base network path for consistent stripping
+    const networkName = fullNetworkPath.split('/').pop() || '';
+    
+    // **FIXED: Improved path stripping logic to preserve folder structure**
+    // Only remove the network name prefix if it exists at the start, preserving folder structure
+    if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
+      relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
+    }
+    
+    // **ADDITIONAL FIX: Remove any duplicate network prefixes that might exist**
+    // This handles cases where the path might have multiple network prefixes
+    const pathParts = relativeNodePriorsPath.split('/');
+    while (pathParts.length > 0 && pathParts[0] === networkName) {
+      pathParts.shift(); // Remove the first element if it matches network name
+    }
+    relativeNodePriorsPath = pathParts.join('/');
+    
+    // **NEW: Fallback to construct path from scenario name if needed**
+    if (!relativeNodePriorsPath && scenario.scenarioName) {
+      // Try to construct the path based on scenario name and data type
+      relativeNodePriorsPath = `${scenario.scenarioName}/${networkName}-nodepriors.json`;
     }
     
     console.log('🔍 Using full network path for backend:', fullNetworkPath);
     console.log('🔍 Using relative nodepriors path for backend:', relativeNodePriorsPath);
     console.log('🔍 Backend will construct full path as:', `${fullNetworkPath}/${relativeNodePriorsPath}`);
+    
+    // **IMPROVED: Validate paths before making API call**
+    if (!relativeNodePriorsPath) {
+      console.error('❌ No valid nodepriors path found for scenario:', scenario);
+      this.hasCalledDiamondAPI = false;
+      return;
+    }
     
     // Call diamond analysis service with specific nodepriors path
     this.diamondAnalysisService.analyzeDiamonds({
@@ -1133,30 +1265,43 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit {
     }).subscribe({
       next: (response) => {
         if (response.success) {
-          // Update the analysis state with the diamond analysis result
+          console.log('✅ Diamond analysis for scenario loaded successfully:', scenario.scenarioName || scenario.dataType);
+          
+          // **CRITICAL FIX: Store results in component's own scenario results map**
+          const scenarioKey = scenario.scenarioName || scenario.dataType;
+          if (response?.diamond_analysis) {
+            this.scenarioResults.set(scenarioKey, response.diamond_analysis);
+            this.scenarioResultsSignal.set(new Map(this.scenarioResults));
+            console.log('💎 Stored diamond results for scenario:', scenarioKey, response.diamond_analysis);
+          }
+          
+          // Update the analysis state with the diamond analysis result (for backward compatibility)
           const currentState = this.analysisStateService as any;
           if (currentState.diamondAnalysisSignal) {
             currentState.diamondAnalysisSignal.set(response);
           }
           this.analysisStateService.markTabCompleted('diamonds');
-          console.log('✅ Diamond analysis for scenario loaded successfully');
-          this.updateFilterRanges();
+          
+          // **FIXED: Properly update view after API response**
+          this.updateViewAfterScenarioChange(this.currentScenario);
         } else {
           console.error('❌ Diamond analysis failed:', response.message);
         }
       },
       error: (error) => {
         console.error('❌ Failed to load diamond analysis for scenario:', error);
-        this.hasCalledDiamondAPI = false; // Reset on error to allow retry
+        // **FIXED: Don't use hasCalledDiamondAPI flag for individual scenario calls**
       }
     });
   }
 
   private showScenarioSelector(scenarios: any[]): void {
-    console.log('📋 Multiple scenarios available - user needs to select:', scenarios.map(s => s.dataType));
+    console.log('📋 Multiple scenarios available - user needs to select:', scenarios.map(s => s.scenarioName || s.dataType));
     // For now, auto-select first scenario - in future this could show a selection dialog
     if (scenarios.length > 0) {
-      this.loadDiamondWithScenario(scenarios[0].networkPath!, scenarios[0]);
+      const firstScenario = scenarios[0];
+      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+      this.loadDiamondWithScenario(sessionNetworkPath || firstScenario.networkPath!, firstScenario);
     }
   }
 

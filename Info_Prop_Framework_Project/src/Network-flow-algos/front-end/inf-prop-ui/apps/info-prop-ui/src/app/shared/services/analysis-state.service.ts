@@ -13,6 +13,10 @@ import {
   CpmAnalysisResponse,
   ScenarioInfo,
   MultiScenarioDiamondResults,
+  MultiScenarioReachabilityResults,
+  MultiScenarioCapacityResults,
+  MultiScenarioCpmResults,
+  ComprehensiveScenarioState,
   AnalysisFileGroup,
   ReachabilityFileGroup,
   CapacityFileGroup,
@@ -57,11 +61,11 @@ export class AnalysisStateService {
   // Local parsed data for fast lookups
   private parsedDataSignal = signal<any>(null);
   
-  // Available scenarios for each analysis type
+  // **ENHANCED: Comprehensive scenario management for all analysis types**
   private availableScenariosSignal = signal<{
-    reachability: string[];
-    capacity: string[];
-    cpm: string[];
+    reachability: ScenarioInfo[];
+    capacity: ScenarioInfo[];
+    cpm: ScenarioInfo[];
     diamond: ScenarioInfo[];
   }>({
     reachability: [],
@@ -70,8 +74,15 @@ export class AnalysisStateService {
     diamond: []
   });
 
-  // Multi-scenario diamond analysis state
+  // **NEW: Multi-scenario results for all analysis types**
   private multiScenarioDiamondResultsSignal = signal<MultiScenarioDiamondResults | null>(null);
+  private multiScenarioReachabilityResultsSignal = signal<MultiScenarioReachabilityResults | null>(null);
+  private multiScenarioCapacityResultsSignal = signal<MultiScenarioCapacityResults | null>(null);
+  private multiScenarioCpmResultsSignal = signal<MultiScenarioCpmResults | null>(null);
+
+  // **NEW: Global scenario synchronization**
+  private globalCurrentScenarioSignal = signal<string>('');
+  private scenarioSyncEnabledSignal = signal<boolean>(true);
 
   // Tab state signals
   private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
@@ -102,8 +113,41 @@ export class AnalysisStateService {
   // Available scenarios
   readonly availableScenarios = computed(() => this.availableScenariosSignal());
   
-  // Multi-scenario diamond results
+  // **NEW: Multi-scenario results for all analysis types**
   readonly multiScenarioDiamondResults = computed(() => this.multiScenarioDiamondResultsSignal());
+  readonly multiScenarioReachabilityResults = computed(() => this.multiScenarioReachabilityResultsSignal());
+  readonly multiScenarioCapacityResults = computed(() => this.multiScenarioCapacityResultsSignal());
+  readonly multiScenarioCpmResults = computed(() => this.multiScenarioCpmResultsSignal());
+  
+  // **NEW: Global scenario management**
+  readonly globalCurrentScenario = computed(() => this.globalCurrentScenarioSignal());
+  readonly scenarioSyncEnabled = computed(() => this.scenarioSyncEnabledSignal());
+  
+  // **NEW: Comprehensive scenario state**
+  readonly comprehensiveScenarioState = computed((): ComprehensiveScenarioState => ({
+    reachability: this.multiScenarioReachabilityResults() || {
+      scenarios: new Map(),
+      currentScenario: '',
+      availableScenarios: []
+    },
+    diamond: this.multiScenarioDiamondResults() || {
+      scenarios: new Map(),
+      currentScenario: '',
+      availableScenarios: []
+    },
+    capacity: this.multiScenarioCapacityResults() || {
+      scenarios: new Map(),
+      currentScenario: '',
+      availableScenarios: []
+    },
+    cpm: this.multiScenarioCpmResults() || {
+      scenarios: new Map(),
+      currentScenario: '',
+      availableScenarios: []
+    },
+    globalCurrentScenario: this.globalCurrentScenario(),
+    scenarioSyncEnabled: this.scenarioSyncEnabled()
+  }));
 
   readonly uploadTab = computed(() => this.uploadTabSignal());
   readonly networkStructureTab = computed(() => this.networkStructureTabSignal());
@@ -909,6 +953,12 @@ export class AnalysisStateService {
       diamond: []
     });
     this.multiScenarioDiamondResultsSignal.set(null);
+    
+    // **NEW: Clear additional multi-scenario states**
+    this.multiScenarioReachabilityResultsSignal.set(null);
+    this.multiScenarioCapacityResultsSignal.set(null);
+    this.multiScenarioCpmResultsSignal.set(null);
+    this.globalCurrentScenarioSignal.set('');
 
     // Reset tab states
     this.uploadTabSignal.set({ enabled: true, completed: false, hasData: false });
@@ -918,5 +968,212 @@ export class AnalysisStateService {
     this.flowAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.criticalPathTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.systemProfileTabSignal.set({ enabled: false, completed: false, hasData: false });
+    
+    console.log('🧹 Analysis state cleared');
+  }
+
+  // **NEW: Comprehensive scenario management methods**
+  
+  /**
+   * Set multi-scenario results for reachability analysis
+   */
+  setMultiScenarioReachabilityResults(results: MultiScenarioReachabilityResults): void {
+    this.multiScenarioReachabilityResultsSignal.set(results);
+    this.updateGlobalScenario(results.currentScenario);
+    console.log('✅ Multi-scenario reachability results set:', {
+      scenarios: results.scenarios.size,
+      current: results.currentScenario
+    });
+  }
+
+  /**
+   * Set multi-scenario results for diamond analysis
+   */
+  setMultiScenarioDiamondResults(results: MultiScenarioDiamondResults): void {
+    this.multiScenarioDiamondResultsSignal.set(results);
+    this.updateGlobalScenario(results.currentScenario);
+    console.log('✅ Multi-scenario diamond results set:', {
+      scenarios: results.scenarios.size,
+      current: results.currentScenario
+    });
+  }
+
+  /**
+   * Set multi-scenario results for capacity analysis
+   */
+  setMultiScenarioCapacityResults(results: MultiScenarioCapacityResults): void {
+    this.multiScenarioCapacityResultsSignal.set(results);
+    this.updateGlobalScenario(results.currentScenario);
+    console.log('✅ Multi-scenario capacity results set:', {
+      scenarios: results.scenarios.size,
+      current: results.currentScenario
+    });
+  }
+
+  /**
+   * Set multi-scenario results for CPM analysis
+   */
+  setMultiScenarioCpmResults(results: MultiScenarioCpmResults): void {
+    this.multiScenarioCpmResultsSignal.set(results);
+    this.updateGlobalScenario(results.currentScenario);
+    console.log('✅ Multi-scenario CPM results set:', {
+      scenarios: results.scenarios.size,
+      current: results.currentScenario
+    });
+  }
+
+  /**
+   * Set global current scenario and sync across all analysis types
+   */
+  setGlobalCurrentScenario(scenarioName: string): void {
+    this.globalCurrentScenarioSignal.set(scenarioName);
+    
+    if (this.scenarioSyncEnabled()) {
+      // Update current scenario in all multi-scenario results
+      this.syncScenarioAcrossAnalyses(scenarioName);
+    }
+    
+    console.log('🎯 Global current scenario set to:', scenarioName);
+  }
+
+  /**
+   * Toggle scenario synchronization
+   */
+  toggleScenarioSync(enabled: boolean): void {
+    this.scenarioSyncEnabledSignal.set(enabled);
+    console.log('🔄 Scenario synchronization:', enabled ? 'ENABLED' : 'DISABLED');
+  }
+
+  /**
+   * Extract and set available scenarios from file manager
+   */
+  extractScenariosFromFileManager(): void {
+    const fileGroups = this.fileManagerService.analysisGroups();
+    const scenarios = {
+      reachability: this.extractReachabilityScenarios(fileGroups.reachability),
+      capacity: this.extractCapacityScenarios(fileGroups.capacity),
+      cpm: this.extractCpmScenarios(fileGroups.cpm),
+      diamond: this.extractReachabilityScenarios(fileGroups.reachability) // Diamond uses reachability scenarios
+    };
+    
+    this.availableScenariosSignal.set(scenarios);
+    console.log('📊 Scenarios extracted from file manager:', {
+      reachability: scenarios.reachability.length,
+      capacity: scenarios.capacity.length,
+      cpm: scenarios.cpm.length,
+      diamond: scenarios.diamond.length
+    });
+  }
+
+  // **PRIVATE: Helper methods**
+  
+  private updateGlobalScenario(scenarioName: string): void {
+    if (!this.globalCurrentScenario() && scenarioName) {
+      this.globalCurrentScenarioSignal.set(scenarioName);
+    }
+  }
+
+  private syncScenarioAcrossAnalyses(scenarioName: string): void {
+    // Update reachability current scenario
+    const reachabilityResults = this.multiScenarioReachabilityResults();
+    if (reachabilityResults && reachabilityResults.scenarios.has(scenarioName)) {
+      this.multiScenarioReachabilityResultsSignal.update(results =>
+        results ? { ...results, currentScenario: scenarioName } : results
+      );
+    }
+
+    // Update diamond current scenario
+    const diamondResults = this.multiScenarioDiamondResults();
+    if (diamondResults && diamondResults.scenarios.has(scenarioName)) {
+      this.multiScenarioDiamondResultsSignal.update(results =>
+        results ? { ...results, currentScenario: scenarioName } : results
+      );
+    }
+
+    // Update capacity current scenario
+    const capacityResults = this.multiScenarioCapacityResults();
+    if (capacityResults && capacityResults.scenarios.has(scenarioName)) {
+      this.multiScenarioCapacityResultsSignal.update(results =>
+        results ? { ...results, currentScenario: scenarioName } : results
+      );
+    }
+
+    // Update CPM current scenario
+    const cpmResults = this.multiScenarioCpmResults();
+    if (cpmResults && cpmResults.scenarios.has(scenarioName)) {
+      this.multiScenarioCpmResultsSignal.update(results =>
+        results ? { ...results, currentScenario: scenarioName } : results
+      );
+    }
+  }
+
+  private extractReachabilityScenarios(groups: ReachabilityFileGroup[]): ScenarioInfo[] {
+    return groups.map((group, index) => {
+      const nodePriorsFile = group.files.find(f => f.suggestedRole === 'Node Priors');
+      const scenarioName = this.generateScenarioName(nodePriorsFile?.path || '', index);
+      
+      return {
+        name: scenarioName,
+        dataType: this.detectDataTypeFromPath(nodePriorsFile?.path || ''),
+        path: nodePriorsFile?.path || '',
+        analysisType: 'reachability' as const,
+        displayName: scenarioName
+      };
+    }).filter(scenario => scenario.path);
+  }
+
+  private extractCapacityScenarios(groups: CapacityFileGroup[]): ScenarioInfo[] {
+    return groups.map((group, index) => {
+      const capacitiesFile = group.files.find(f => f.suggestedRole === 'Capacities');
+      const scenarioName = this.generateScenarioName(capacitiesFile?.path || '', index);
+      
+      return {
+        name: scenarioName,
+        dataType: 'float' as const, // Capacity scenarios are typically float
+        path: capacitiesFile?.path || '',
+        analysisType: 'capacity' as const,
+        displayName: scenarioName
+      };
+    }).filter(scenario => scenario.path);
+  }
+
+  private extractCpmScenarios(groups: CpmFileGroup[]): ScenarioInfo[] {
+    return groups.map((group, index) => {
+      const cpmFile = group.files.find(f => f.suggestedRole === 'CPM Data');
+      const scenarioName = this.generateScenarioName(cpmFile?.path || '', index);
+      
+      return {
+        name: scenarioName,
+        dataType: 'float' as const, // CPM scenarios are typically float
+        path: cpmFile?.path || '',
+        analysisType: 'cpm' as const,
+        displayName: scenarioName
+      };
+    }).filter(scenario => scenario.path);
+  }
+
+  private generateScenarioName(filePath: string, index: number): string {
+    if (!filePath) return `Scenario ${index + 1}`;
+    
+    // Extract meaningful name from file path
+    const pathParts = filePath.split(/[\\/]/);
+    const fileName = pathParts[pathParts.length - 1];
+    const folderName = pathParts[pathParts.length - 2];
+    
+    // Try to extract data type and meaningful name
+    if (folderName && folderName !== fileName) {
+      return folderName.charAt(0).toUpperCase() + folderName.slice(1);
+    }
+    
+    // Fallback to filename without extension
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+    return nameWithoutExt.charAt(0).toUpperCase() + nameWithoutExt.slice(1);
+  }
+
+  private detectDataTypeFromPath(filePath: string): 'float' | 'interval' | 'pbox' {
+    const pathLower = filePath.toLowerCase();
+    if (pathLower.includes('pbox')) return 'pbox';
+    if (pathLower.includes('interval')) return 'interval';
+    return 'float';
   }
 }

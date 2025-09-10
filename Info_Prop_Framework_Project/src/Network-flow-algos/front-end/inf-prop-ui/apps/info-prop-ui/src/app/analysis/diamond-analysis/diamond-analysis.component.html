@@ -69,28 +69,74 @@
         </div>
       </mat-expansion-panel>
 
-      <!-- Scenario Selector -->
+      <!-- Enhanced Scenario Selector with Comparison Controls -->
       <div class="scenario-selector-section">
-        <mat-form-field appearance="outline" class="scenario-selector">
-          <mat-label>Analysis Scenario</mat-label>
-          <mat-select 
-            [value]="currentScenario()" 
-            (selectionChange)="setCurrentScenario($event.value)"
-            [disabled]="isLoading()">
-            @for (scenario of availableScenarios(); track scenario.name) {
-              <mat-option [value]="scenario.name">
-                <div class="scenario-option">
-                  <span class="scenario-name">{{ getScenarioDisplayName(scenario) }}</span>
-                  <mat-chip 
-                    [color]="getDataTypeColor(scenario.dataType)" 
-                    class="data-type-chip">
-                    {{ scenario.dataType.toUpperCase() }}
-                  </mat-chip>
-                </div>
-              </mat-option>
+        <div class="scenario-controls">
+          <mat-form-field appearance="outline" class="scenario-selector">
+            <mat-label>Analysis Scenario</mat-label>
+            <mat-select
+              [value]="currentScenario"
+              (selectionChange)="setCurrentScenario($event.value)"
+              [disabled]="isLoadingComputed()">
+              @for (scenario of availableScenariosComputed(); track scenario.name) {
+                <mat-option [value]="scenario.name">
+                  <div class="scenario-option">
+                    <div class="scenario-info">
+                      <span class="scenario-name">{{ scenario.displayName }}</span>
+                      <div class="scenario-badges">
+                        <mat-chip
+                          [class]="'data-type-' + scenario.dataType"
+                          class="data-type-chip">
+                          {{ scenario.dataType.toUpperCase() }}
+                        </mat-chip>
+                        @if (scenario.computed) {
+                          <mat-chip class="computed-chip">
+                            <mat-icon>check_circle</mat-icon>
+                            Computed
+                          </mat-chip>
+                        }
+                      </div>
+                    </div>
+                    @if (scenario.path) {
+                      <div class="scenario-path">{{ scenario.path }}</div>
+                    }
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Scenario Comparison Toggle -->
+          <div class="comparison-controls">
+            <mat-slide-toggle
+              [checked]="comparisonMode()"
+              (change)="comparisonMode.set($event.checked)"
+              [disabled]="availableScenariosComputed().length < 2">
+              Compare Scenarios
+            </mat-slide-toggle>
+            
+            @if (comparisonMode()) {
+              <mat-form-field appearance="outline" class="comparison-selector">
+                <mat-label>Select Scenarios to Compare</mat-label>
+                <mat-select
+                  multiple
+                  [value]="selectedScenariosForComparison()"
+                  (selectionChange)="selectedScenariosForComparison.set($event.value)">
+                  @for (scenario of availableScenariosComputed(); track scenario.name) {
+                    <mat-option [value]="scenario.name">
+                      <div class="comparison-scenario-option">
+                        <span>{{ scenario.displayName }}</span>
+                        <mat-chip [class]="'data-type-' + scenario.dataType" class="mini-chip">
+                          {{ scenario.dataType.charAt(0).toUpperCase() }}
+                        </mat-chip>
+                      </div>
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
             }
-          </mat-select>
-        </mat-form-field>
+          </div>
+        </div>
 
         <div class="header-actions">
           <mat-divider [vertical]="true"></mat-divider>
@@ -98,14 +144,14 @@
             mat-icon-button
             matTooltip="Refresh Analysis"
             (click)="refreshAnalysis()"
-            [disabled]="isLoading()">
+            [disabled]="isLoadingComputed()">
             <mat-icon>refresh</mat-icon>
           </button>
           <button
             mat-icon-button
             matTooltip="Export Data"
             (click)="exportDiamondData()"
-            [disabled]="isLoading() || !currentDiamondResults()">
+            [disabled]="isLoadingComputed() || !currentDiamondResults()">
             <mat-icon>download</mat-icon>
           </button>
         </div>
@@ -168,7 +214,7 @@
   </div>
 
   <!-- Loading State -->
-  @if (isLoading()) {
+  @if (isLoadingComputed()) {
     <div class="loading-state">
       <mat-icon class="loading-spinner">hourglass_empty</mat-icon>
       <h3>Analyzing Diamond Structures</h3>
@@ -177,7 +223,7 @@
   }
 
   <!-- Error State -->
-  @if (error(); as errorMessage) {
+  @if (errorComputed(); as errorMessage) {
     <div class="error-state">
       <mat-icon class="error-icon">error</mat-icon>
       <h3>Analysis Error</h3>
@@ -190,7 +236,7 @@
   }
 
   <!-- Main Dashboard Content -->
-  @if (!isLoading() && !error() && currentDiamondResults()) {
+  @if (!isLoadingComputed() && !errorComputed() && currentDiamondResults()) {
     <div class="dashboard-content">
       <mat-tab-group 
         [selectedIndex]="selectedTab()" 
@@ -741,12 +787,12 @@
   }
 
   <!-- No Data State -->
-  @if (!isLoading() && !error() && !currentDiamondResults()) {
+  @if (!isLoadingComputed() && !errorComputed() && !currentDiamondResults()) {
     <div class="empty-state">
       <mat-icon class="empty-icon">diamond</mat-icon>
       <h2>No Diamond Analysis Available</h2>
       <p>Please select a scenario with completed network analysis to view diamond patterns.</p>
-      @if (availableScenarios().length === 0) {
+      @if (availableScenarios.length === 0) {
         <p class="help-text">Upload a network with reachability scenarios to enable diamond analysis.</p>
         <button mat-raised-button color="primary" routerLink="/upload">
           <mat-icon>upload_file</mat-icon>

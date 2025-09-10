@@ -306,15 +306,35 @@ module DiamondProcessingModule
             if isa(first_val, pbox)
                 for node in source_nodes
                     prior = node_priors[node]
-                    if (prior.ml == 0.0 && prior.mh == 0.0) || (prior.ml == 1.0 && prior.mh == 1.0)
-                        push!(irrelevant_sources, node)
+                    # **FIXED: Use safe Pbox property access with proper bounds checking**
+                    try
+                        # Check if Pbox represents certain 0 or certain 1
+                        mean_lower = Float64(prior.ml)
+                        mean_upper = Float64(prior.mh)
+                        if (mean_lower == 0.0 && mean_upper == 0.0) || (mean_lower == 1.0 && mean_upper == 1.0)
+                            push!(irrelevant_sources, node)
+                        end
+                    catch e
+                        # If Pbox conversion fails, skip this node (don't filter it out)
+                        println("Warning: Could not process Pbox for node $node: $e")
+                        continue
                     end
                 end
             elseif isa(first_val, Interval)
                 for node in source_nodes
                     prior = node_priors[node]
-                    if (prior.lower == 0.0 && prior.upper == 0.0) || (prior.lower == 1.0 && prior.upper == 1.0)
-                        push!(irrelevant_sources, node)
+                    # **FIXED: Use safe Interval property access with proper bounds checking**
+                    try
+                        # Check if Interval represents certain 0 or certain 1
+                        lower_bound = Float64(prior.lower)
+                        upper_bound = Float64(prior.upper)
+                        if (lower_bound == 0.0 && upper_bound == 0.0) || (lower_bound == 1.0 && upper_bound == 1.0)
+                            push!(irrelevant_sources, node)
+                        end
+                    catch e
+                        # If Interval conversion fails, skip this node (don't filter it out)
+                        println("Warning: Could not process Interval for node $node: $e")
+                        continue
                     end
                 end
             else  # Float64

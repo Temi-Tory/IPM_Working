@@ -1,0 +1,7 @@
+{
+  "networkPath": "temp_uploads/6c73c319-73d8-473b-824f-c3eb35328b7c/grid-graph",
+  "edgesFilePath": "grid-graph.EDGES",
+  "nodepriorsPath": "main scenario - dt/grid-graph-nodepriors.json",
+  "threshold": 0.5,
+  "max_iterations": 100
+}

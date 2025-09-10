@@ -260,13 +260,22 @@ export class UploadNetworkComponent {
    * Get display name for data type
    */
   getDataTypeDisplayName(dataType: string): string {
-    switch (dataType) {
-      case 'float': return 'Float (Deterministic)';
-      case 'interval': return 'Interval';
-      case 'pbox': return 'P-Box';
-      case 'capacity': return 'Capacity';
-      case 'cpm': return 'CPM';
-      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
+    switch (dataType?.toLowerCase()) {
+      case 'float':
+      case 'float64':
+        return 'Float (Deterministic)';
+      case 'interval':
+        return 'Interval';
+      case 'pbox':
+        return 'P-Box';
+      case 'capacity':
+        return 'Capacity';
+      case 'cpm':
+        return 'CPM';
+      default:
+        // Handle any other data types gracefully
+        if (!dataType) return 'Unknown';
+        return dataType.charAt(0).toUpperCase() + dataType.slice(1);
     }
   }
 
@@ -278,25 +287,41 @@ export class UploadNetworkComponent {
     if (scenario.scenarioName) {
       if (scenario.analysisType === 'reachability') {
         const dataTypeName = this.getDataTypeDisplayName(scenario.dataType);
-        // Don't show generic names like "Float Scenario"
-        if (scenario.scenarioName !== `${dataTypeName} Scenario`) {
+        // Don't show generic names like "Float Scenario", "Interval Scenario", etc.
+        const genericNames = [
+          `${dataTypeName} Scenario`,
+          `${scenario.dataType} Scenario`,
+          `${scenario.dataType.charAt(0).toUpperCase() + scenario.dataType.slice(1)} Scenario`
+        ];
+        
+        if (!genericNames.includes(scenario.scenarioName)) {
+          // Show meaningful scenario name with data type
           return `${scenario.scenarioName} (${dataTypeName})`;
         }
       } else {
-        // For capacity and CPM, show the scenario name
+        // For capacity and CPM, show the scenario name as-is
         return scenario.scenarioName;
       }
     }
     
     // Fallback logic based on analysis type
     if (scenario.analysisType === 'reachability') {
+      // For reachability, show data type with better formatting
       return this.getDataTypeDisplayName(scenario.dataType);
     } else if (scenario.analysisType === 'cpm') {
+      // For CPM, try to show more descriptive names
+      if (scenario.scenarioName && scenario.scenarioName !== 'CPM Scenario') {
+        return scenario.scenarioName;
+      }
       const parts = [];
       if (scenario.hasTimeAnalysis) parts.push('Time');
       if (scenario.hasCostAnalysis) parts.push('Cost');
-      return parts.length > 0 ? `CPM (${parts.join(' + ')})` : 'CPM';
+      return parts.length > 0 ? `CPM (${parts.join(' + ')})` : 'CPM Analysis';
     } else if (scenario.analysisType === 'capacity') {
+      // For capacity, use scenario name if meaningful
+      if (scenario.scenarioName && scenario.scenarioName !== 'Capacity Scenario') {
+        return scenario.scenarioName;
+      }
       return 'Capacity Analysis';
     } else {
       return scenario.analysisType.charAt(0).toUpperCase() + scenario.analysisType.slice(1);

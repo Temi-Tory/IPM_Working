@@ -17,6 +17,79 @@ const Interval = IPAFramework.Interval
 const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
 
+function normalize_path_separators(path::String)
+    """Normalize path separators to forward slashes and remove duplicate separators"""
+    try
+        if isempty(path)
+            return path
+        end
+        
+        # Replace all backslashes with forward slashes
+        normalized = replace(path, "\\" => "/")
+        
+        # Remove duplicate forward slashes (but preserve leading // for UNC paths if needed)
+        normalized = replace(normalized, r"/+" => "/")
+        
+        # Remove leading slash if it exists (for relative paths)
+        if startswith(normalized, "/") && !startswith(normalized, "//")
+            normalized = normalized[2:end]
+        end
+        
+        return normalized
+    catch e
+        println("ERROR in normalize_path_separators:")
+        println("  path: '$path'")
+        println("  error: $e")
+        rethrow(e)
+    end
+end
+
+function safe_joinpath(base_path::String, relative_path::String)
+    """Safely join paths with proper separator normalization"""
+    try
+        normalized_base = normalize_path_separators(base_path)
+        normalized_relative = normalize_path_separators(relative_path)
+        
+        # Use Julia's joinpath with normalized paths
+        result = joinpath(normalized_base, normalized_relative)
+        
+        # Ensure consistent forward slashes in the result
+        return replace(result, "\\" => "/")
+    catch e
+        println("ERROR in safe_joinpath:")
+        println("  base_path: '$base_path'")
+        println("  relative_path: '$relative_path'")
+        println("  error: $e")
+        rethrow(e)
+    end
+end
+
+function safe_joinpath_with_dedup(base_path::String, relative_path::String)
+    """Safely join paths with duplicate segment detection - ONLY for reachability analysis"""
+    normalized_base = normalize_path_separators(base_path)
+    normalized_relative = normalize_path_separators(relative_path)
+    
+    # Check for duplicate path segments
+    # If base ends with a segment that relative starts with, remove the duplicate
+    if !isempty(normalized_base) && !isempty(normalized_relative)
+        base_parts = split(normalized_base, "/")
+        relative_parts = split(normalized_relative, "/")
+        
+        # Check if the last part of base matches the first part of relative
+        if !isempty(base_parts) && !isempty(relative_parts) &&
+           base_parts[end] == relative_parts[1]
+            # Remove the duplicate segment from relative path
+            normalized_relative = join(relative_parts[2:end], "/")
+        end
+    end
+    
+    # Use Julia's joinpath with normalized paths
+    result = joinpath(normalized_base, normalized_relative)
+    
+    # Ensure consistent forward slashes in the result
+    return replace(result, "\\" => "/")
+end
+
 function pbox_to_dict(pbox::ProbabilityBoundsAnalysis.pbox)
     """Convert a Pbox object to a JSON-serializable dictionary with reduced discretization"""
     # Only include summary statistics, not full discretization arrays
@@ -135,7 +208,7 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
             "sub_descendants" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_descendants),
             "sub_iteration_sets" => [collect(s) for s in diamond_data.sub_iteration_sets],
             "sub_iteration_sets_count" => length(diamond_data.sub_iteration_sets),
-            "sub_node_priors" => Dict(string(k) => v for (k, v) in diamond_data.sub_node_priors),
+            "sub_node_priors" => Dict(string(k) => convert_pbox_values(v) for (k, v) in diamond_data.sub_node_priors),
             "node_count" => length(diamond_data.sub_node_priors),
             # NEW: Include missing fields from DiamondComputationData struct
             "sub_diamond_structures" => sub_diamond_structures_serialized,
@@ -191,7 +264,7 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
                     "sub_descendants" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_descendants),
                     "sub_iteration_sets" => [collect(s) for s in sub_diamond_data.sub_iteration_sets],
                     "sub_iteration_sets_count" => length(sub_diamond_data.sub_iteration_sets),
-                    "sub_node_priors" => Dict(string(k) => v for (k, v) in sub_diamond_data.sub_node_priors),
+                    "sub_node_priors" => Dict(string(k) => convert_pbox_values(v) for (k, v) in sub_diamond_data.sub_node_priors),
                     "node_count" => length(sub_diamond_data.sub_node_priors),
                     "sub_diamond_structures" => sub_diamond_sub_structures_serialized,  # **FIXED: Include nested sub-diamonds**
                     "diamond" => Dict(
@@ -246,8 +319,13 @@ function parse_multipart_data(body_str::String, boundary::String, upload_path::S
         # Clean up content (remove trailing boundary markers)
         content = rstrip(content, ['\r', '\n', '-'])
         
-        # Save file to upload directory
-        file_path = joinpath(upload_path, filename)
+        # Save file to upload directory - use Julia's built-in joinpath with normalization
+        # Normalize both paths to use forward slashes before joining
+        normalized_upload_path = replace(upload_path, "\\" => "/")
+        normalized_filename = replace(filename, "\\" => "/")
+        file_path = joinpath(normalized_upload_path, normalized_filename)
+        # Ensure result uses forward slashes
+        file_path = replace(file_path, "\\" => "/")
         
         # Create subdirectories if needed
         file_dir = dirname(file_path)
@@ -295,8 +373,11 @@ function handle_file_request(req::HTTP.Request)
         network_path = path_parts[3]
         file_path = join(path_parts[4:end], "/")
         
-        # Construct full file path
-        full_file_path = joinpath(network_path, file_path)
+        # Construct full file path - use Julia's built-in joinpath with normalization
+        normalized_network_path = replace(network_path, "\\" => "/")
+        normalized_file_path = replace(file_path, "\\" => "/")
+        full_file_path = joinpath(normalized_network_path, normalized_file_path)
+        full_file_path = replace(full_file_path, "\\" => "/")
         
         if !isfile(full_file_path)
             return HTTP.Response(404, cors_headers, JSON.json(Dict(
@@ -347,11 +428,19 @@ function handle_network_structure(req::HTTP.Request)
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    edges_file_path = joinpath(network_path, edges_files[1])
+                    # Use Julia's built-in joinpath with normalization
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
                 end
             end
         else
-            edges_file_path = joinpath(network_path, edges_file_path)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
         end
         
         # Validate edges file exists
@@ -440,11 +529,19 @@ function handle_diamond_analysis(req::HTTP.Request)
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    edges_file_path = joinpath(network_path, edges_files[1])
+                    # Use Julia's built-in joinpath with normalization
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
                 end
             end
         else
-            edges_file_path = joinpath(network_path, edges_file_path)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
         end
         
         # Validate edges file exists
@@ -467,24 +564,117 @@ function handle_diamond_analysis(req::HTTP.Request)
         
         # Load node priors if specified, otherwise use defaults
         node_priors = if !isempty(nodepriors_path)
-            full_path = joinpath(network_path, nodepriors_path)
-            isfile(full_path) ? read_node_priors_from_json(full_path) : create_default_node_priors(allnodes)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_nodepriors_path = replace(nodepriors_path, "\\" => "/")
+            full_path = joinpath(normalized_network_path, normalized_nodepriors_path)
+            full_path = replace(full_path, "\\" => "/")
+            
+            if isfile(full_path)
+                try
+                    println("🔍 Loading node priors from: $full_path")
+                    priors = read_node_priors_from_json(full_path)
+                    println("🔍 Node priors type: $(typeof(priors))")
+                    if !isempty(priors)
+                        first_val = first(values(priors))
+                        println("🔍 First node prior type: $(typeof(first_val))")
+                        if isa(first_val, pbox)
+                            println("🔍 Pbox properties: ml=$(first_val.ml), mh=$(first_val.mh)")
+                        end
+                    end
+                    priors
+                catch e
+                    println("❌ Error loading node priors: $e")
+                    println("🔄 Falling back to default node priors")
+                    create_default_node_priors(allnodes)
+                end
+            else
+                create_default_node_priors(allnodes)
+            end
         else
             create_default_node_priors(allnodes)
         end
         
-        # Root diamonds
-        root_diamonds = identify_and_group_diamonds(
-            join_nodes, incoming_index, ancestors, descendants,
-            source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
-        )
+        # Root diamonds with comprehensive error handling
+        root_diamonds = try
+            println("🔍 Starting identify_and_group_diamonds with:")
+            println("  - Join nodes: $(length(join_nodes))")
+            println("  - Source nodes: $(length(source_nodes))")
+            println("  - Fork nodes: $(length(fork_nodes))")
+            println("  - Node priors type: $(typeof(node_priors))")
+            if !isempty(node_priors)
+                first_key = first(keys(node_priors))
+                first_val = node_priors[first_key]
+                println("  - First node prior ($first_key): $(typeof(first_val))")
+                if isa(first_val, pbox)
+                    println("    - Pbox ml: $(first_val.ml), mh: $(first_val.mh)")
+                end
+            end
+            
+            result = identify_and_group_diamonds(
+                join_nodes, incoming_index, ancestors, descendants,
+                source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+            )
+            
+            println("✅ identify_and_group_diamonds completed successfully")
+            result
+        catch e
+            println("❌ Error in identify_and_group_diamonds: $e")
+            println("❌ Error type: $(typeof(e))")
+            if isa(e, MethodError)
+                println("❌ MethodError details:")
+                println("  - Function: $(e.f)")
+                println("  - Arguments types: $(typeof.(e.args))")
+                println("  - Arguments values: $(e.args)")
+            end
+            
+            # Print stack trace for debugging
+            println("❌ Stack trace:")
+            for (i, frame) in enumerate(stacktrace(catch_backtrace()))
+                println("  $i: $frame")
+                if i > 15  # Show more stack trace for debugging
+                    break
+                end
+            end
+            
+            rethrow(e)
+        end
         root_computation_time = time() - start_time
         
-        # Unique diamonds
+        # Unique diamonds with comprehensive error handling
         unique_start_time = time()
-        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-            root_diamonds, node_priors, ancestors, descendants, iteration_sets
-        )
+        unique_diamonds = try
+            println("🔍 Starting build_unique_diamond_storage_depth_first_parallel with:")
+            println("  - Root diamonds count: $(length(root_diamonds))")
+            println("  - Node priors type: $(typeof(node_priors))")
+            
+            result = build_unique_diamond_storage_depth_first_parallel(
+                root_diamonds, node_priors, ancestors, descendants, iteration_sets
+            )
+            
+            println("✅ build_unique_diamond_storage_depth_first_parallel completed successfully")
+            result
+        catch e
+            println("❌ Error in build_unique_diamond_storage_depth_first_parallel: $e")
+            println("❌ Error type: $(typeof(e))")
+            if isa(e, MethodError)
+                println("❌ MethodError details:")
+                println("  - Function: $(e.f)")
+                println("  - Arguments types: $(typeof.(e.args))")
+                println("  - Arguments values: $(e.args)")
+            end
+            
+            # Print stack trace for debugging
+            println("❌ Stack trace:")
+            for (i, frame) in enumerate(stacktrace(catch_backtrace()))
+                println("  $i: $frame")
+                if i > 15  # Show more stack trace for debugging
+                    break
+                end
+            end
+            
+            rethrow(e)
+        end
         unique_computation_time = time() - unique_start_time
         
         diamond_analysis = Dict(
@@ -530,12 +720,27 @@ function handle_reachability_analysis(req::HTTP.Request)
     
     try
         request_data = JSON.parse(String(req.body))
+        
+        # 🐛 DEBUG: Log the complete request structure
+        println("🔍 REACHABILITY REQUEST DEBUG:")
+        println("📋 Complete request keys: ", keys(request_data))
+        println("📋 Request data: ", request_data)
+        
         network_path = get(request_data, "networkPath", "")
         edges_file_path = get(request_data, "edgesFilePath", "")
         nodepriors_path = get(request_data, "nodepriorsPath", "")
         linkprobs_path = get(request_data, "linkprobsPath", "")
         include_exact_inference = get(request_data, "includeExactInference", true)
         include_diamond_analysis = get(request_data, "includeDiamondAnalysis", false)
+        
+        # 🐛 DEBUG: Log what we extracted
+        println("🔍 EXTRACTED VALUES:")
+        println("  networkPath: '$network_path'")
+        println("  edgesFilePath: '$edges_file_path'")
+        println("  nodepriorsPath: '$nodepriors_path'")
+        println("  linkprobsPath: '$linkprobs_path'")
+        println("  includeExactInference: $include_exact_inference")
+        println("  includeDiamondAnalysis: $include_diamond_analysis")
         
         if isempty(network_path) || isempty(nodepriors_path) || isempty(linkprobs_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
@@ -550,11 +755,19 @@ function handle_reachability_analysis(req::HTTP.Request)
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    edges_file_path = joinpath(network_path, edges_files[1])
+                    # Use Julia's built-in joinpath with normalization
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
                 end
             end
         else
-            edges_file_path = joinpath(network_path, edges_file_path)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
         end
         
         # Validate edges file exists
@@ -573,9 +786,16 @@ function handle_reachability_analysis(req::HTTP.Request)
         fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
         
-        # Load scenario data
-        full_nodepriors_path = joinpath(network_path, nodepriors_path)
-        full_linkprobs_path = joinpath(network_path, linkprobs_path)
+        # Load scenario data - use Julia's built-in joinpath with normalization
+        normalized_network_path = replace(network_path, "\\" => "/")
+        normalized_nodepriors_path = replace(nodepriors_path, "\\" => "/")
+        normalized_linkprobs_path = replace(linkprobs_path, "\\" => "/")
+        
+        full_nodepriors_path = joinpath(normalized_network_path, normalized_nodepriors_path)
+        full_nodepriors_path = replace(full_nodepriors_path, "\\" => "/")
+        
+        full_linkprobs_path = joinpath(normalized_network_path, normalized_linkprobs_path)
+        full_linkprobs_path = replace(full_linkprobs_path, "\\" => "/")
         
         if !isfile(full_nodepriors_path) || !isfile(full_linkprobs_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
@@ -729,11 +949,19 @@ function handle_capacity_analysis(req::HTTP.Request)
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    edges_file_path = joinpath(network_path, edges_files[1])
+                    # Use Julia's built-in joinpath with normalization
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
                 end
             end
         else
-            edges_file_path = joinpath(network_path, edges_file_path)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
         end
         
         # Validate edges file exists
@@ -750,8 +978,11 @@ function handle_capacity_analysis(req::HTTP.Request)
         sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
         
-        # Load capacity data
-        full_capacities_path = joinpath(network_path, capacities_path)
+        # Load capacity data - use Julia's built-in joinpath with normalization
+        normalized_network_path = replace(network_path, "\\" => "/")
+        normalized_capacities_path = replace(capacities_path, "\\" => "/")
+        full_capacities_path = joinpath(normalized_network_path, normalized_capacities_path)
+        full_capacities_path = replace(full_capacities_path, "\\" => "/")
         if !isfile(full_capacities_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
                 "success" => false,
@@ -815,10 +1046,10 @@ function handle_capacity_analysis(req::HTTP.Request)
             "edge_capacities_count" => length(edge_capacities),
             "input_files" => Dict("capacities_path" => capacities_path),
             "raw_capacity_result" => Dict(
-                "node_max_flows" => Dict(string(k) => v for (k, v) in capacity_result.node_max_flows),
-                "bottlenecks" => Dict(string(k) => v for (k, v) in capacity_result.bottlenecks),
-                "critical_paths" => Dict(string(k) => v for (k, v) in capacity_result.critical_paths),
-                "network_utilization" => capacity_result.network_utilization,
+                "node_max_flows" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.node_max_flows),
+                "bottlenecks" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.bottlenecks),
+                "critical_paths" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.critical_paths),
+                "network_utilization" => convert_pbox_values(capacity_result.network_utilization),
                 "analysis_type" => string(capacity_result.analysis_type),
                 "computation_time" => capacity_result.computation_time,
                 "convergence_info" => capacity_result.convergence_info
@@ -873,11 +1104,19 @@ function handle_cpm_analysis(req::HTTP.Request)
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    edges_file_path = joinpath(network_path, edges_files[1])
+                    # Use Julia's built-in joinpath with normalization
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
                 end
             end
         else
-            edges_file_path = joinpath(network_path, edges_file_path)
+            # Use Julia's built-in joinpath with normalization
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
         end
         
         # Validate edges file exists
@@ -893,8 +1132,11 @@ function handle_cpm_analysis(req::HTTP.Request)
         allnodes = collect(keys(incoming_index))
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
         
-        # Load CPM data
-        full_cpm_path = joinpath(network_path, cpm_path)
+        # Load CPM data - use Julia's built-in joinpath with normalization
+        normalized_network_path = replace(network_path, "\\" => "/")
+        normalized_cpm_path = replace(cpm_path, "\\" => "/")
+        full_cpm_path = joinpath(normalized_network_path, normalized_cpm_path)
+        full_cpm_path = replace(full_cpm_path, "\\" => "/")
         if !isfile(full_cpm_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
                 "success" => false,
@@ -964,12 +1206,12 @@ function handle_cpm_analysis(req::HTTP.Request)
             "time_result" => Dict(
                 "critical_value" => time_result.critical_value,
                 "critical_nodes" => collect(time_result.critical_nodes),
-                "node_values" => Dict(string(k) => v for (k, v) in time_result.node_values)
+                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_result.node_values)
             ),
             "cost_result" => Dict(
                 "critical_value" => cost_result.critical_value,
                 "critical_nodes" => collect(cost_result.critical_nodes),
-                "node_values" => Dict(string(k) => v for (k, v) in cost_result.node_values)
+                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_result.node_values)
             ),
             "node_durations_count" => length(node_durations),
             "edge_delays_count" => length(edge_delays),
@@ -1012,10 +1254,12 @@ function handle_upload(req::HTTP.Request)
     try
         # Generate unique upload session ID
         upload_id = string(uuid4())
-        upload_path = joinpath(UPLOAD_DIR, upload_id)
+        upload_path_raw = joinpath(UPLOAD_DIR, upload_id)
+        # Normalize path separators to prevent mixed separator issues
+        upload_path = normalize_path_separators(upload_path_raw)
         
-        # Create upload directory
-        mkpath(upload_path)
+        # Create upload directory using the raw path (mkpath expects OS-native separators)
+        mkpath(upload_path_raw)
         
         # Parse multipart form data
         content_type = HTTP.header(req, "Content-Type")
@@ -1064,9 +1308,13 @@ function handle_upload(req::HTTP.Request)
         # Find the network directory (where the .EDGES file is located)
         network_path = upload_path
         if !isempty(edges_files)
-            # Get the directory containing the first edges file
+            # Get the directory containing the first edges file - use Julia's built-in joinpath with normalization
             edges_file_path = edges_files[1]
-            network_path = dirname(joinpath(upload_path, edges_file_path))
+            normalized_upload_path = replace(upload_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            full_edges_path = joinpath(normalized_upload_path, normalized_edges_file_path)
+            full_edges_path = replace(full_edges_path, "\\" => "/")
+            network_path = dirname(full_edges_path)
         end
         
         response_data = Dict(
