@@ -11,17 +11,19 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
 import { ReachabilityAnalysisService } from '../../shared/services/reachability-analysis.service';
 import { NetworkSessionService } from '../../shared/services/network-session.service';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
-import { ScenarioInfo, MultiScenarioReachabilityResults, ReachabilityScenario, NetworkStructure, AnalysisResponse } from '../../shared/models/network-analysis.models';
+import { ScenarioInfo, MultiScenarioReachabilityResults, ReachabilityScenario, NetworkStructure, AnalysisResponse, PboxData, IntervalData, BeliefValue } from '../../shared/models/network-analysis.models';
 
 interface InferenceScenario {
   name: string;
@@ -36,9 +38,9 @@ interface InferenceScenario {
 
 interface InferenceResult {
   nodeId: number;
-  belief: number | { lower: number; upper: number };
-  prior: number | { lower: number; upper: number };
-  signalProbability: number | { lower: number; upper: number };
+  belief: BeliefValue;
+  prior: BeliefValue;
+  signalProbability: BeliefValue;
   inferenceMethod: 'Source Node' | 'Tree Propagation' | 'Inclusion-Exclusion' | 'Diamond Enumeration';
   methodColor: string;
   complexityLevel: 'Source' | 'Simple' | 'Moderate' | 'Complex';
@@ -80,10 +82,12 @@ interface InferenceMetrics {
     MatTooltipModule,
     MatSelectModule,
     MatFormFieldModule,
+    MatInputModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
     MatBadgeModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatPaginatorModule
   ],
   templateUrl: './exact-inference.component.html',
   styleUrl: './exact-inference.component.scss'
@@ -154,6 +158,63 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     };
   });
 
+  // **NEW: Access parsed data for actual node priors**
+  parsedData = computed(() => this.analysisStateService.parsedData());
+
+  // **NEW: Enhanced network context with node type classification**
+  nodeTypeClassification = computed(() => {
+    const networkInfo = this.networkInfo();
+    if (!networkInfo) return null;
+    
+    const totalNodes = networkInfo.totalNodes;
+    const sourceNodes = networkInfo.sourceNodes.length;
+    const sinkNodes = networkInfo.sinkNodes.length;
+    const forkNodes = networkInfo.forkNodes.length;
+    const joinNodes = networkInfo.joinNodes.length;
+    const regularNodes = totalNodes - sourceNodes - sinkNodes - forkNodes - joinNodes;
+    
+    return {
+      source: { count: sourceNodes, percentage: (sourceNodes / totalNodes * 100).toFixed(1) },
+      sink: { count: sinkNodes, percentage: (sinkNodes / totalNodes * 100).toFixed(1) },
+      fork: { count: forkNodes, percentage: (forkNodes / totalNodes * 100).toFixed(1) },
+      join: { count: joinNodes, percentage: (joinNodes / totalNodes * 100).toFixed(1) },
+      regular: { count: regularNodes, percentage: (regularNodes / totalNodes * 100).toFixed(1) }
+    };
+  });
+
+  // **NEW: Filtered results based on search and node type filters**
+  filteredInferenceResults = computed(() => {
+    const results = this.inferenceResults();
+    const search = this.searchTerm().toLowerCase();
+    const selectedTypes = this.selectedNodeTypes();
+    const networkInfo = this.networkInfo();
+    
+    if (!networkInfo) return results;
+    
+    return results.filter(result => {
+      // Search filter
+      const matchesSearch = !search || result.nodeId.toString().includes(search);
+      
+      // Node type filter
+      let matchesType = selectedTypes.length === 0;
+      if (!matchesType) {
+        const nodeType = this.getNodeType(result.nodeId, networkInfo);
+        matchesType = selectedTypes.some(type => nodeType.includes(type));
+      }
+      
+      return matchesSearch && matchesType;
+    });
+  });
+
+  // **NEW: Paginated results**
+  paginatedInferenceResults = computed(() => {
+    const filtered = this.filteredInferenceResults();
+    const pageSize = this.pageSize();
+    const pageIndex = this.pageIndex();
+    const start = pageIndex * pageSize;
+    return filtered.slice(start, start + pageSize);
+  });
+
   // Algorithm complexity assessment
   algorithmComplexity = computed(() => {
     const networkInfo = this.networkInfo();
@@ -168,8 +229,14 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     return 'High (Complex Diamond Structures)';
   });
 
-  // Table columns for results display
-  displayedColumns: string[] = ['nodeId', 'belief', 'signalProbability', 'inferenceMethod', 'complexityLevel'];
+  // Table columns for results display (prior first, then signal probability, then nodeType last)
+  displayedColumns: string[] = ['nodeId', 'prior', 'signalProbability', 'nodeType'];
+  
+  // **NEW: Pagination and filtering state**
+  pageSize = signal(25);
+  pageIndex = signal(0);
+  searchTerm = signal('');
+  selectedNodeTypes = signal<string[]>([]);
 
   ngOnInit(): void {
     console.log('🔍 ExactInferenceComponent initializing...');
@@ -443,15 +510,72 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
 
     const beliefs = results.reachability_result.exact_inference.beliefs;
     const networkInfo = this.networkInfo();
+    const parsedData = this.parsedData();
     
     if (!networkInfo) return [];
     
     const sourceNodesSet = new Set(networkInfo.sourceNodes);
     const joinNodesSet = new Set(networkInfo.joinNodes);
     
+    // **ENHANCED: Get actual node priors from parsed data based on data type**
+    const getActualNodePrior = (nodeId: number): BeliefValue => {
+      if (!parsedData) {
+        console.warn('⚠️ No parsed data available for node priors');
+        return 0.5; // Default fallback
+      }
+      
+      const nodeIdStr = nodeId.toString();
+      
+      console.log(`🔍 Looking for node ${nodeId} priors in parsed data:`, parsedData);
+      console.log(`🔍 Data type: ${dataType}`);
+      
+      // Try to get priors from the appropriate data type section
+      if (dataType === 'float' && parsedData.float?.node_priors?.nodes) {
+        console.log(`🔍 Float node_priors.nodes:`, parsedData.float.node_priors.nodes);
+        const prior = parsedData.float.node_priors.nodes[nodeIdStr];
+        if (prior !== undefined) {
+          console.log(`✅ Found float prior for node ${nodeId}: ${prior}`);
+          return prior;
+        }
+      } else if (dataType === 'interval' && parsedData.interval?.node_priors?.nodes) {
+        console.log(`🔍 Interval node_priors.nodes:`, parsedData.interval.node_priors.nodes);
+        const prior = parsedData.interval.node_priors.nodes[nodeIdStr];
+        if (prior !== undefined) {
+          console.log(`✅ Found interval prior for node ${nodeId}:`, prior);
+          return prior;
+        }
+      } else if (dataType === 'pbox' && parsedData.pbox?.node_priors?.nodes) {
+        console.log(`🔍 Pbox node_priors.nodes:`, parsedData.pbox.node_priors.nodes);
+        const prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
+        if (prior !== undefined) {
+          console.log(`✅ Found pbox prior for node ${nodeId}:`, prior);
+          return prior;
+        }
+      }
+      
+      // Fallback: try other data types if current one doesn't have priors
+      console.log('🔍 Trying fallback data types...');
+      if (parsedData.float?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        console.log(`✅ Found fallback float prior for node ${nodeId}:`, parsedData.float.node_priors.nodes[nodeIdStr]);
+        return parsedData.float.node_priors.nodes[nodeIdStr];
+      } else if (parsedData.interval?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        console.log(`✅ Found fallback interval prior for node ${nodeId}:`, parsedData.interval.node_priors.nodes[nodeIdStr]);
+        return parsedData.interval.node_priors.nodes[nodeIdStr];
+      } else if (parsedData.pbox?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        console.log(`✅ Found fallback pbox prior for node ${nodeId}:`, parsedData.pbox.node_priors.nodes[nodeIdStr]);
+        return parsedData.pbox.node_priors.nodes[nodeIdStr];
+      }
+      
+      console.warn(`⚠️ No prior found for node ${nodeId}, using fallback 0.5`);
+      return 0.5; // Final fallback
+    };
+    
     // Process all node beliefs
     return Object.entries(beliefs).map(([nodeIdStr, belief]: [string, any]) => {
       const nodeId = parseInt(nodeIdStr);
+      
+      // **FIXED: Get the actual prior for this node from parsed data**
+      const prior = getActualNodePrior(nodeId);
       
       // Determine inference method based on network structure
       let inferenceMethod: InferenceResult['inferenceMethod'];
@@ -472,15 +596,23 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
         complexityLevel = 'Simple';
       }
       
-      // For source nodes, belief = prior, so signal probability = 1
-      // For other nodes, signal probability would need to be calculated from prior
-      const signalProbability = sourceNodesSet.has(nodeId) ? 
-        (dataType === 'float' ? 1.0 : belief) : belief; // Simplified
+      // Calculate signal probability: for source nodes it's 1.0, for others it's belief/prior
+      let signalProbability: BeliefValue;
+      if (sourceNodesSet.has(nodeId)) {
+        signalProbability = dataType === 'float' ? 1.0 : belief;
+      } else {
+        // Signal probability = belief / prior (simplified for display)
+        if (typeof belief === 'number' && typeof prior === 'number' && prior > 0) {
+          signalProbability = belief / prior;
+        } else {
+          signalProbability = belief; // Fallback for complex data types
+        }
+      }
       
       return {
         nodeId,
         belief,
-        prior: belief, // Simplified - would need actual priors from backend
+        prior,
         signalProbability,
         inferenceMethod,
         methodColor,
@@ -597,11 +729,34 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
   /**
    * Format belief value for display based on data type
    */
-  formatBelief(belief: any): string {
+  formatBelief(belief: BeliefValue): string {
     if (typeof belief === 'number') {
       return (belief * 100).toFixed(1) + '%';
-    } else if (belief && typeof belief === 'object' && 'lower' in belief && 'upper' in belief) {
-      return `[${(belief.lower * 100).toFixed(1)}%, ${(belief.upper * 100).toFixed(1)}%]`;
+    } else if (belief && typeof belief === 'object') {
+      // Handle IntervalData
+      if ('lower' in belief && 'upper' in belief && 'type' in belief && belief.type === 'interval') {
+        return `[${(belief.lower * 100).toFixed(1)}%, ${(belief.upper * 100).toFixed(1)}%]`;
+      }
+      // Handle PboxData - check for scalar P-box with value property first
+      else if ('type' in belief && belief.type === 'pbox') {
+        const pbox = belief as any;
+        // Handle scalar P-box (construction_type: 'scalar' with value property)
+        if (pbox.construction_type === 'scalar' && typeof pbox.value === 'number') {
+          return `P-box: ${(pbox.value * 100).toFixed(1)}%`;
+        }
+        // Handle complex P-box with bounds_summary
+        else if (pbox.bounds_summary && pbox.mean_lower !== undefined && pbox.mean_upper !== undefined) {
+          return `P-box: μ∈[${(pbox.mean_lower * 100).toFixed(1)}%, ${(pbox.mean_upper * 100).toFixed(1)}%], bounds:[${(pbox.bounds_summary.left_min * 100).toFixed(1)}%, ${(pbox.bounds_summary.right_max * 100).toFixed(1)}%]`;
+        }
+        // Fallback for other P-box structures
+        else {
+          return `P-box: ${JSON.stringify(pbox)}`;
+        }
+      }
+      // Handle legacy interval format (backward compatibility)
+      else if ('lower' in belief && 'upper' in belief) {
+        return `[${((belief as any).lower * 100).toFixed(1)}%, ${((belief as any).upper * 100).toFixed(1)}%]`;
+      }
     }
     return 'N/A';
   }
@@ -609,8 +764,35 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
   /**
    * Format signal probability for display
    */
-  formatSignalProbability(probability: any): string {
+  formatSignalProbability(probability: BeliefValue): string {
     return this.formatBelief(probability);
+  }
+
+  /**
+   * Get detailed P-box information for tooltip or expanded view
+   */
+  getPboxDetails(pbox: PboxData): string {
+    return `Shape: ${pbox.shape}, Discretization: ${pbox.discretization_size}, ` +
+           `Mean: [${(pbox.mean_lower * 100).toFixed(1)}%, ${(pbox.mean_upper * 100).toFixed(1)}%], ` +
+           `Variance: [${pbox.var_lower.toFixed(3)}, ${pbox.var_upper.toFixed(3)}], ` +
+           `Bounds: [${(pbox.bounds_summary.left_min * 100).toFixed(1)}%-${(pbox.bounds_summary.left_max * 100).toFixed(1)}%, ` +
+           `${(pbox.bounds_summary.right_min * 100).toFixed(1)}%-${(pbox.bounds_summary.right_max * 100).toFixed(1)}%]`;
+  }
+
+  /**
+   * Check if belief value is P-box data
+   */
+  isPboxData(belief: BeliefValue): boolean {
+    return typeof belief === 'object' && belief !== null && 'type' in belief && belief.type === 'pbox';
+  }
+
+  /**
+   * Check if belief value is interval data
+   */
+  isIntervalData(belief: BeliefValue): boolean {
+    return typeof belief === 'object' && belief !== null &&
+           (('type' in belief && belief.type === 'interval') ||
+            ('lower' in belief && 'upper' in belief && !('type' in belief)));
   }
 
   /**
@@ -696,5 +878,75 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
   // **NEW: Check if scenario has results**
   hasScenarioResults(scenarioName: string): boolean {
     return this.scenarioResults.has(scenarioName);
+  }
+
+  /**
+   * Get node type based on network structure from AnalysisStateService
+   */
+  getNodeType(nodeId: number, networkInfo: any): string {
+    const types: string[] = [];
+    
+    if (networkInfo.sourceNodes.includes(nodeId)) types.push('Source');
+    if (networkInfo.sinkNodes.includes(nodeId)) types.push('Sink');
+    if (networkInfo.forkNodes.includes(nodeId)) types.push('Fork');
+    if (networkInfo.joinNodes.includes(nodeId)) types.push('Join');
+    
+    return types.length > 0 ? types.join(' + ') : 'Regular';
+  }
+
+  /**
+   * Get node prior probability from parsed data
+   */
+  getNodePrior(nodeId: number): string {
+    const parsedData = this.parsedData();
+    const selectedScenario = this.selectedScenario();
+    
+    if (!parsedData || !selectedScenario) return 'N/A';
+    
+    const nodeIdStr = nodeId.toString();
+    const dataType = selectedScenario.dataType;
+    
+    // Get prior from the appropriate data type section (accessing nodes property)
+    let prior: BeliefValue | undefined;
+    
+    if (dataType === 'float' && parsedData.float?.node_priors?.nodes) {
+      prior = parsedData.float.node_priors.nodes[nodeIdStr];
+    } else if (dataType === 'interval' && parsedData.interval?.node_priors?.nodes) {
+      prior = parsedData.interval.node_priors.nodes[nodeIdStr];
+    } else if (dataType === 'pbox' && parsedData.pbox?.node_priors?.nodes) {
+      prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
+    }
+    
+    // Fallback: try other data types if current one doesn't have priors
+    if (prior === undefined) {
+      if (parsedData.float?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        prior = parsedData.float.node_priors.nodes[nodeIdStr];
+      } else if (parsedData.interval?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        prior = parsedData.interval.node_priors.nodes[nodeIdStr];
+      } else if (parsedData.pbox?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
+        prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
+      }
+    }
+    
+    return prior !== undefined ? this.formatBelief(prior) : 'N/A';
+  }
+
+  /**
+   * Event handlers for pagination and filtering
+   */
+  onPageChange(event: PageEvent): void {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+  }
+
+  onSearch(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.searchTerm.set(target.value);
+    this.pageIndex.set(0); // Reset to first page
+  }
+
+  onNodeTypeFilter(types: string[]): void {
+    this.selectedNodeTypes.set(types);
+    this.pageIndex.set(0); // Reset to first page
   }
 }

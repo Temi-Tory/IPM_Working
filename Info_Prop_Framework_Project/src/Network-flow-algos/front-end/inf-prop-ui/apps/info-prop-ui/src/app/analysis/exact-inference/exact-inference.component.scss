@@ -187,7 +187,8 @@
   color: white !important;
   
   @media (prefers-color-scheme: dark) {
-    background-color: #66bb6a !important;
+    background-color: #2e7d32 !important;
+    color: rgba(255, 255, 255, 0.87) !important;
   }
 }
 
@@ -196,7 +197,8 @@
   color: white !important;
   
   @media (prefers-color-scheme: dark) {
-    background-color: #ffb74d !important;
+    background-color: #e65100 !important;
+    color: rgba(255, 255, 255, 0.87) !important;
   }
 }
 
@@ -205,7 +207,8 @@
   color: white !important;
   
   @media (prefers-color-scheme: dark) {
-    background-color: #f06292 !important;
+    background-color: #ad1457 !important;
+    color: rgba(255, 255, 255, 0.87) !important;
   }
 }
 
@@ -214,14 +217,27 @@
   background-color: #ffebee;
   border-left: 4px solid #f44336;
   
+  @media (prefers-color-scheme: dark) {
+    background-color: #3e2723;
+    border-left-color: #ef5350;
+  }
+  
   .error-content {
     display: flex;
     align-items: center;
     gap: 12px;
     color: #d32f2f;
     
+    @media (prefers-color-scheme: dark) {
+      color: #ef5350;
+    }
+    
     mat-icon {
       color: #f44336;
+      
+      @media (prefers-color-scheme: dark) {
+        color: #ef5350;
+      }
     }
   }
 }
@@ -258,11 +274,20 @@
     margin: 12px 0;
     border-radius: 4px;
     
+    @media (prefers-color-scheme: dark) {
+      background-color: #2e2e2e;
+      border-left-color: #42a5f5;
+    }
+    
     code {
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       font-size: 0.9rem;
       font-weight: 500;
       color: #1976d2;
+      
+      @media (prefers-color-scheme: dark) {
+        color: #42a5f5;
+      }
     }
   }
   
@@ -270,6 +295,10 @@
     color: #666;
     line-height: 1.5;
     margin: 8px 0;
+    
+    @media (prefers-color-scheme: dark) {
+      color: rgba(255, 255, 255, 0.7);
+    }
   }
 }
 
@@ -281,6 +310,10 @@
     padding: 8px 0;
     border-bottom: 1px solid #eee;
     
+    @media (prefers-color-scheme: dark) {
+      border-bottom-color: #424242;
+    }
+    
     &:last-child {
       border-bottom: none;
     }
@@ -288,11 +321,19 @@
     .stat-label {
       font-weight: 500;
       color: #666;
+      
+      @media (prefers-color-scheme: dark) {
+        color: rgba(255, 255, 255, 0.7);
+      }
     }
     
     .stat-value {
       font-weight: 600;
       color: #333;
+      
+      @media (prefers-color-scheme: dark) {
+        color: rgba(255, 255, 255, 0.87);
+      }
     }
   }
 }
@@ -317,20 +358,47 @@
   text-align: center;
   padding: 16px;
   border-radius: 8px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: rgba(25, 118, 210, 0.05);
+  border: 1px solid rgba(25, 118, 210, 0.12);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: rgba(25, 118, 210, 0.08);
+    border-color: rgba(25, 118, 210, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(66, 165, 245, 0.08);
+    border-color: rgba(66, 165, 245, 0.15);
+    
+    &:hover {
+      background-color: rgba(66, 165, 245, 0.12);
+      border-color: rgba(66, 165, 245, 0.25);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
   
   .metric-label {
     font-size: 0.875rem;
-    color: #666;
+    color: rgba(25, 118, 210, 0.8);
     font-weight: 500;
     margin-bottom: 8px;
+    
+    @media (prefers-color-scheme: dark) {
+      color: rgba(66, 165, 245, 0.9);
+    }
   }
   
   .metric-value {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #333;
+    color: #1976d2;
+    
+    @media (prefers-color-scheme: dark) {
+      color: #42a5f5;
+    }
     
     mat-chip {
       font-size: 0.875rem;
@@ -436,54 +504,114 @@
   }
 }
 
-// Method color classes
+// Method color classes - Much softer colors
 .method-source {
-  background-color: #e8f5e8 !important;
+  background-color: rgba(76, 175, 80, 0.1) !important;
   color: #2e7d32 !important;
+  border: 1px solid rgba(76, 175, 80, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    color: #81c784 !important;
+    border-color: rgba(76, 175, 80, 0.4) !important;
+  }
   
   &.mat-mdc-chip-selected {
-    background-color: #4caf50 !important;
-    color: white !important;
+    background-color: rgba(76, 175, 80, 0.2) !important;
+    color: #1b5e20 !important;
+    
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(76, 175, 80, 0.25) !important;
+      color: #a5d6a7 !important;
+    }
   }
 }
 
 .method-tree {
-  background-color: #f3e5f5 !important;
+  background-color: rgba(156, 39, 176, 0.1) !important;
   color: #7b1fa2 !important;
+  border: 1px solid rgba(156, 39, 176, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(156, 39, 176, 0.15) !important;
+    color: #ba68c8 !important;
+    border-color: rgba(156, 39, 176, 0.4) !important;
+  }
   
   &.mat-mdc-chip-selected {
-    background-color: #9c27b0 !important;
-    color: white !important;
+    background-color: rgba(156, 39, 176, 0.2) !important;
+    color: #4a148c !important;
+    
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(156, 39, 176, 0.25) !important;
+      color: #ce93d8 !important;
+    }
   }
 }
 
 .method-inclusion {
-  background-color: #e3f2fd !important;
+  background-color: rgba(33, 150, 243, 0.1) !important;
   color: #1565c0 !important;
+  border: 1px solid rgba(33, 150, 243, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(33, 150, 243, 0.15) !important;
+    color: #64b5f6 !important;
+    border-color: rgba(33, 150, 243, 0.4) !important;
+  }
   
   &.mat-mdc-chip-selected {
-    background-color: #2196f3 !important;
-    color: white !important;
+    background-color: rgba(33, 150, 243, 0.2) !important;
+    color: #0d47a1 !important;
+    
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(33, 150, 243, 0.25) !important;
+      color: #90caf9 !important;
+    }
   }
 }
 
 .method-diamond {
-  background-color: #fff3e0 !important;
+  background-color: rgba(255, 152, 0, 0.1) !important;
   color: #ef6c00 !important;
+  border: 1px solid rgba(255, 152, 0, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(255, 152, 0, 0.15) !important;
+    color: #ffb74d !important;
+    border-color: rgba(255, 152, 0, 0.4) !important;
+  }
   
   &.mat-mdc-chip-selected {
-    background-color: #ff9800 !important;
-    color: white !important;
+    background-color: rgba(255, 152, 0, 0.2) !important;
+    color: #e65100 !important;
+    
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(255, 152, 0, 0.25) !important;
+      color: #ffcc02 !important;
+    }
   }
 }
 
 .method-default {
-  background-color: #f5f5f5 !important;
+  background-color: rgba(158, 158, 158, 0.1) !important;
   color: #666 !important;
+  border: 1px solid rgba(158, 158, 158, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(158, 158, 158, 0.15) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(158, 158, 158, 0.4) !important;
+  }
   
   &.mat-mdc-chip-selected {
-    background-color: #9e9e9e !important;
-    color: white !important;
+    background-color: rgba(158, 158, 158, 0.2) !important;
+    color: #424242 !important;
+    
+    @media (prefers-color-scheme: dark) {
+      background-color: rgba(158, 158, 158, 0.25) !important;
+      color: rgba(255, 255, 255, 0.87) !important;
+    }
   }
 }
 
@@ -583,5 +711,186 @@
   
   .method-stats {
     justify-content: center;
+  }
+}
+
+// **NEW: Node type chip styles**
+.node-type-source {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+  color: #4caf50 !important;
+  border: 1px solid rgba(76, 175, 80, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(76, 175, 80, 0.15) !important;
+    color: #81c784 !important;
+    border-color: rgba(76, 175, 80, 0.4) !important;
+  }
+}
+
+.node-type-sink {
+  background-color: rgba(244, 67, 54, 0.1) !important;
+  color: #f44336 !important;
+  border: 1px solid rgba(244, 67, 54, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(244, 67, 54, 0.15) !important;
+    color: #ef5350 !important;
+    border-color: rgba(244, 67, 54, 0.4) !important;
+  }
+}
+
+.node-type-fork {
+  background-color: rgba(33, 150, 243, 0.1) !important;
+  color: #2196f3 !important;
+  border: 1px solid rgba(33, 150, 243, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(33, 150, 243, 0.15) !important;
+    color: #64b5f6 !important;
+    border-color: rgba(33, 150, 243, 0.4) !important;
+  }
+}
+
+.node-type-join {
+  background-color: rgba(255, 152, 0, 0.1) !important;
+  color: #ff9800 !important;
+  border: 1px solid rgba(255, 152, 0, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(255, 152, 0, 0.15) !important;
+    color: #ffb74d !important;
+    border-color: rgba(255, 152, 0, 0.4) !important;
+  }
+}
+
+.node-type-regular {
+  background-color: rgba(158, 158, 158, 0.1) !important;
+  color: #9e9e9e !important;
+  border: 1px solid rgba(158, 158, 158, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(158, 158, 158, 0.15) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-color: rgba(158, 158, 158, 0.4) !important;
+  }
+}
+
+// Combined node types (e.g., Source + Sink)
+.node-type-source-sink,
+.node-type-source-fork,
+.node-type-source-join,
+.node-type-sink-fork,
+.node-type-sink-join,
+.node-type-fork-join {
+  background-color: rgba(156, 39, 176, 0.1) !important;
+  color: #9c27b0 !important;
+  border: 1px solid rgba(156, 39, 176, 0.3) !important;
+  
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(156, 39, 176, 0.15) !important;
+    color: #ba68c8 !important;
+    border-color: rgba(156, 39, 176, 0.4) !important;
+  }
+}
+
+// **NEW: Clickable chip styles**
+.results-table mat-chip[style*="cursor: pointer"] {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    @media (prefers-color-scheme: dark) {
+      box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// **NEW: Enhanced styles for search, filters, and network context**
+.network-context-panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+
+  h4 {
+    margin: 0 0 12px 0;
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .node-type-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    h4 {
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+}
+
+.table-controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+
+  .search-field {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .filter-controls {
+    display: flex;
+    gap: 12px;
+
+    .filter-field {
+      min-width: 200px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    .search-field,
+    .filter-field {
+      min-width: unset;
+      width: 100%;
+    }
+  }
+}
+
+// **FIXED: Performance metrics dark mode support**
+.metrics-card {
+  @media (prefers-color-scheme: dark) {
+    .metric-item {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+
+      .metric-label {
+        color: rgba(255, 255, 255, 0.7) !important;
+      }
+
+      .metric-value {
+        color: rgba(255, 255, 255, 0.87) !important;
+      }
+    }
+
+    .method-distribution h4 {
+      color: rgba(255, 255, 255, 0.87) !important;
+    }
   }
 }
