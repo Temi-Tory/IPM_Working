@@ -1,0 +1,484 @@
+<div class="time-analysis-container">
+  <!-- Header Section -->
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>schedule</mat-icon>
+        Network Time Analysis (CPM)
+      </mat-card-title>
+      <mat-card-subtitle>
+        Critical Path Method time-based scheduling analysis with duration optimization and slack calculation
+      </mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <!-- Scenario Selection & Controls -->
+  <mat-card class="control-card">
+    <mat-card-header>
+      <mat-card-title>Time Analysis Configuration</mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="control-row">
+        <!-- **TIME-SPECIFIC: Scenario Selector with CPM time scenario support** -->
+        <mat-form-field appearance="outline" class="scenario-selector">
+          <mat-label>Time Scenario</mat-label>
+          <mat-select
+            [value]="selectedScenario()"
+            (selectionChange)="setCurrentScenario($event.value.name)"
+            [disabled]="isComputing()">
+            @for (scenario of availableScenariosComputed(); track scenario.path) {
+              <mat-option [value]="scenario">
+                <div class="scenario-option">
+                  <div class="scenario-info">
+                    <span class="scenario-name">{{ scenario.displayName }}</span>
+                    <span class="scenario-path">{{ scenario.path }}</span>
+                  </div>
+                  <div class="scenario-badges">
+                    <mat-chip
+                      class="data-type-time"
+                      selected>
+                      Time Analysis
+                    </mat-chip>
+                    @if (hasScenarioResults(scenario.name)) {
+                      <mat-chip color="accent" selected>
+                        <mat-icon>check_circle</mat-icon>
+                        Computed
+                      </mat-chip>
+                    }
+                  </div>
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>
+            @if (selectedScenario()) {
+              {{ selectedScenario()!.description }}
+            } @else {
+              Select a scenario to run network time analysis
+            }
+          </mat-hint>
+        </mat-form-field>
+
+        <!-- Execute Button -->
+        <button mat-raised-button 
+                color="primary" 
+                (click)="executeTimeAnalysis()"
+                [disabled]="!selectedScenario() || isComputing()"
+                class="execute-button">
+          @if (isComputing()) {
+            <mat-spinner diameter="20"></mat-spinner>
+            Computing...
+          } @else {
+            <mat-icon>play_arrow</mat-icon>
+          }
+          @if (!isComputing()) {
+            Run Analysis
+          }
+        </button>
+
+        <!-- Clear Button -->
+        @if (timeResults().length > 0) {
+          <button mat-stroked-button 
+                  (click)="clearResults()"
+                  [disabled]="isComputing()">
+            <mat-icon>clear</mat-icon>
+            Clear Results
+          </button>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Error Display -->
+  @if (errorMessage()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon color="warn">error</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Algorithm Overview Panel -->
+  <mat-expansion-panel class="algorithm-panel">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon>school</mat-icon>
+        Critical Path Method (CPM) Overview & Mathematical Foundation
+      </mat-panel-title>
+      <mat-panel-description>
+        Understanding time-based project scheduling and critical path analysis
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    
+    <div class="algorithm-content">
+      <div class="algorithm-grid">
+        <!-- Critical Path Framework -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Critical Path</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>Critical Path Duration = max(Path Durations)</code>
+            </div>
+            <p>The critical path represents the longest sequence of activities that determines the minimum project completion time.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Slack Time Calculation -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Slack Time</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>Slack = Latest Start Time - Earliest Start Time</code>
+            </div>
+            <p>Slack time represents the amount of time an activity can be delayed without affecting the project completion date.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Schedule Optimization -->
+        <mat-card class="math-card">
+          <mat-card-header>
+            <mat-card-title>Schedule Optimization</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="math-formula">
+              <code>Minimum Duration = Critical Path Duration</code>
+            </div>
+            <p>Schedule optimization focuses on reducing the critical path duration while managing resource constraints and dependencies.</p>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Network Schedule Context -->
+        @if (networkInfo()) {
+          <mat-card class="complexity-card">
+            <mat-card-header>
+              <mat-card-title>Current Schedule</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="complexity-stats">
+                <div class="stat">
+                  <span class="stat-label">Total Activities:</span>
+                  <span class="stat-value">{{ networkInfo()!.totalNodes }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Start Points:</span>
+                  <span class="stat-value">{{ networkInfo()!.sourceNodes.length }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">End Points:</span>
+                  <span class="stat-value">{{ networkInfo()!.sinkNodes.length }}</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Schedule Complexity:</span>
+                  <mat-chip [color]="networkComplexity().includes('Simple') ? 'primary' : 
+                                   networkComplexity().includes('Moderate') ? 'accent' : 'warn'" 
+                           selected>
+                    {{ networkComplexity() }}
+                  </mat-chip>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </div>
+  </mat-expansion-panel>
+
+  <!-- Results Section -->
+  @if (timeResults().length > 0) {
+    <!-- Performance Metrics -->
+    @if (timeMetrics()) {
+      <mat-card class="metrics-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>timer</mat-icon>
+            Time Performance Metrics
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <div class="metric-label">Computation Time</div>
+              <div class="metric-value">{{ timeMetrics()!.computationTime.toFixed(3) }}s</div>
+            </div>
+            
+            <div class="metric-item critical-path-metric">
+              <div class="metric-label">Critical Path Duration</div>
+              <div class="metric-value">{{ formatTime(timeMetrics()!.criticalPathDuration) }}</div>
+            </div>
+            
+            <div class="metric-item">
+              <div class="metric-label">Critical Path Length</div>
+              <div class="metric-value">{{ timeMetrics()!.criticalPathLength }} nodes</div>
+            </div>
+            
+            <div class="metric-item">
+              <div class="metric-label">Average Node Time</div>
+              <div class="metric-value">{{ formatTime(timeMetrics()!.averageNodeTime) }}</div>
+            </div>
+
+            <div class="metric-item">
+              <div class="metric-label">Maximum Slack</div>
+              <div class="metric-value">{{ formatSlack(timeMetrics()!.maxSlackTime) }}</div>
+            </div>
+
+            <div class="metric-item">
+              <div class="metric-label">Critical Activities</div>
+              <div class="metric-value">
+                <mat-chip [color]="timeMetrics()!.criticalNodesCount > 0 ? 'warn' : 'primary'" selected>
+                  {{ timeMetrics()!.criticalNodesCount }}
+                </mat-chip>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Results Table -->
+    <mat-card class="results-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>table_chart</mat-icon>
+          Activity-Level Time Results
+          <mat-chip [matBadge]="filteredTimeResults().length" matBadgeOverlap="false">
+            @if (filteredTimeResults().length !== timeResults().length) {
+              {{ filteredTimeResults().length }} of {{ timeResults().length }}
+            } @else {
+              All Activities
+            }
+          </mat-chip>
+        </mat-card-title>
+        <mat-card-subtitle>
+          Time values, slack analysis, and critical path identification for every network activity
+        </mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+
+        <!-- **TIME-SPECIFIC: Search and Filter Controls** -->
+        <div class="table-controls">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Activities</mat-label>
+            <input matInput
+                   placeholder="Enter activity ID..."
+                   (input)="onSearch($event)"
+                   [value]="searchTerm()">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="filter-controls">
+            <mat-form-field appearance="outline" class="filter-field">
+              <mat-label>Filter by Activity Type</mat-label>
+              <mat-select multiple
+                         [value]="selectedNodeTypes()"
+                         (selectionChange)="onNodeTypeFilter($event.value)">
+                <mat-option value="Source">
+                  <mat-icon>play_circle_outline</mat-icon>
+                  Start Activities
+                </mat-option>
+                <mat-option value="Sink">
+                  <mat-icon>stop_circle</mat-icon>
+                  End Activities
+                </mat-option>
+                <mat-option value="Fork">
+                  <mat-icon>call_split</mat-icon>
+                  Parallel Activities
+                </mat-option>
+                <mat-option value="Join">
+                  <mat-icon>merge_type</mat-icon>
+                  Merge Activities
+                </mat-option>
+                <mat-option value="Regular">
+                  <mat-icon>lens</mat-icon>
+                  Regular Activities
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- **TIME-SPECIFIC: Critical Path Filter** -->
+            <mat-slide-toggle
+              [checked]="showOnlyCriticalPath()"
+              (change)="onCriticalPathFilter($event.checked)"
+              class="critical-path-filter">
+              <mat-icon>timeline</mat-icon>
+              Show Only Critical Path
+            </mat-slide-toggle>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table mat-table [dataSource]="paginatedTimeResults()" class="results-table">
+            
+            <!-- Activity ID Column -->
+            <ng-container matColumnDef="nodeId">
+              <th mat-header-cell *matHeaderCellDef>Activity ID</th>
+              <td mat-cell *matCellDef="let result">
+                <div class="node-id">
+                  <mat-icon>{{ result.isOnCriticalPath ? 'timeline' : 'schedule' }}</mat-icon>
+                  {{ result.nodeId }}
+                  @if (result.isOnCriticalPath) {
+                    <mat-chip class="critical-path-chip" color="warn" selected>
+                      Critical
+                    </mat-chip>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Time Value Column -->
+            <ng-container matColumnDef="timeValue">
+              <th mat-header-cell *matHeaderCellDef
+                  matTooltip="Duration or time value of the activity">
+                Time Value
+              </th>
+              <td mat-cell *matCellDef="let result">
+                <div class="time-value">
+                  {{ formatTime(result.timeValue) }}
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Slack Time Column -->
+            <ng-container matColumnDef="slack">
+              <th mat-header-cell *matHeaderCellDef
+                  matTooltip="Available slack time before affecting project completion">
+                Slack Time
+              </th>
+              <td mat-cell *matCellDef="let result">
+                <div class="slack-value">
+                  <mat-chip 
+                    [ngClass]="result.slack === 0 ? 'slack-critical' : 'slack-available'"
+                    [matTooltip]="result.slack === 0 ? 'No slack - critical path' : 'Has ' + formatSlack(result.slack) + ' time units of slack'"
+                    selected>
+                    {{ formatSlack(result.slack) }}
+                  </mat-chip>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Critical Path Status Column -->
+            <ng-container matColumnDef="criticalPath">
+              <th mat-header-cell *matHeaderCellDef
+                  matTooltip="Whether this activity is on the critical path">
+                Critical Path
+              </th>
+              <td mat-cell *matCellDef="let result">
+                <div class="critical-path-status">
+                  <mat-chip 
+                    [ngClass]="getCriticalPathColorClass(result.isOnCriticalPath)"
+                    [matTooltip]="getCriticalPathTooltip(result.isOnCriticalPath)"
+                    selected>
+                    <mat-icon>{{ result.isOnCriticalPath ? 'timeline' : 'schedule' }}</mat-icon>
+                    {{ result.isOnCriticalPath ? 'Critical' : 'Non-Critical' }}
+                  </mat-chip>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- **TIME-SPECIFIC: Activity Type Column** -->
+            <ng-container matColumnDef="nodeType">
+              <th mat-header-cell *matHeaderCellDef>Activity Type</th>
+              <td mat-cell *matCellDef="let result">
+                @if (networkInfo()) {
+                  <mat-chip [ngClass]="'node-type-' + getNodeType(result.nodeId, networkInfo()!).toLowerCase().replace(' + ', '-')"
+                           (click)="onNodeTypeFilter([getNodeType(result.nodeId, networkInfo()!)])"
+                           selected>
+                    @switch (getNodeType(result.nodeId, networkInfo()!)) {
+                      @case ('Source') {
+                        <mat-icon>play_circle_outline</mat-icon>
+                      }
+                      @case ('Sink') {
+                        <mat-icon>stop_circle</mat-icon>
+                      }
+                      @case ('Fork') {
+                        <mat-icon>call_split</mat-icon>
+                      }
+                      @case ('Join') {
+                        <mat-icon>merge_type</mat-icon>
+                      }
+                      @default {
+                        <mat-icon>schedule</mat-icon>
+                      }
+                    }
+                    {{ getNodeType(result.nodeId, networkInfo()!) }}
+                  </mat-chip>
+                } @else {
+                  <mat-chip class="node-type-regular" selected>
+                    <mat-icon>schedule</mat-icon>
+                    Regular
+                  </mat-chip>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+
+        <!-- **TIME-SPECIFIC: Pagination Component** -->
+        <mat-paginator
+          [length]="filteredTimeResults().length"
+          [pageSize]="pageSize()"
+          [pageIndex]="pageIndex()"
+          [pageSizeOptions]="[10, 25, 50, 100]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Loading State -->
+  @if (isComputing()) {
+    <mat-card class="loading-card">
+      <mat-card-content>
+        <div class="loading-content">
+          <mat-spinner diameter="40"></mat-spinner>
+          <div class="loading-text">
+            <h3>Computing Time Analysis</h3>
+            <p>Analyzing critical path method and calculating project scheduling metrics...</p>
+            @if (selectedScenario()) {
+              <mat-chip color="accent" selected>
+                Time Analysis
+              </mat-chip>
+            }
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Empty State -->
+  @if (!isComputing() && timeResults().length === 0 && !errorMessage()) {
+    <mat-card class="empty-state-card">
+      <mat-card-content>
+        <div class="empty-state">
+          <mat-icon>schedule</mat-icon>
+          <h3>Ready for Time Analysis</h3>
+          <p>Select a time scenario and click "Run Analysis" to analyze critical path method and calculate project scheduling metrics.</p>
+          @if (availableScenarios.length === 0) {
+            <mat-chip color="warn">
+              <mat-icon>warning</mat-icon>
+              No scenarios available
+            </mat-chip>
+          } @else {
+            <mat-chip color="primary">
+              <mat-icon>timer</mat-icon>
+              {{ availableScenarios.length }} scenarios available
+            </mat-chip>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

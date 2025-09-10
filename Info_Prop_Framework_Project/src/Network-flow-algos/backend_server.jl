@@ -1047,6 +1047,9 @@ function handle_capacity_analysis(req::HTTP.Request)
             "input_files" => Dict("capacities_path" => capacities_path),
             "raw_capacity_result" => Dict(
                 "node_max_flows" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.node_max_flows),
+                "node_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_capacities),
+                "edge_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in edge_capacities),
+                "source_rates" => Dict(string(k) => convert_pbox_values(v) for (k, v) in source_rates),
                 "bottlenecks" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.bottlenecks),
                 "critical_paths" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.critical_paths),
                 "network_utilization" => convert_pbox_values(capacity_result.network_utilization),

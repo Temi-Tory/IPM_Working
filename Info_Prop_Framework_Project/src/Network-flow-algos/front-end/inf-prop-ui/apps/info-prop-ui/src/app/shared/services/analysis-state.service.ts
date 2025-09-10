@@ -90,6 +90,7 @@ export class AnalysisStateService {
   private diamondAnalysisTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
   private exactInferenceTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
   private flowAnalysisTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
+  private capacityAnalysisTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
   private criticalPathTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
   private systemProfileTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
 
@@ -154,6 +155,7 @@ export class AnalysisStateService {
   readonly diamondAnalysisTab = computed(() => this.diamondAnalysisTabSignal());
   readonly exactInferenceTab = computed(() => this.exactInferenceTabSignal());
   readonly flowAnalysisTab = computed(() => this.flowAnalysisTabSignal());
+  readonly capacityAnalysisTab = computed(() => this.capacityAnalysisTabSignal());
   readonly criticalPathTab = computed(() => this.criticalPathTabSignal());
   readonly systemProfileTab = computed(() => this.systemProfileTabSignal());
 
@@ -233,9 +235,11 @@ export class AnalysisStateService {
       this.exactInferenceTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
     }
     
-    // Enable flow analysis if we have capacity data
+    // Enable capacity analysis if we have capacity data
     if (data.capacity && Object.keys(data.capacity).length > 0) {
-      console.log('✅ Enabling flow analysis tab - capacity data available');
+      console.log('✅ Enabling capacity analysis tab - capacity data available');
+      this.capacityAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
+      // Also enable flow analysis for backward compatibility
       this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true, hasData: true }));
     }
     

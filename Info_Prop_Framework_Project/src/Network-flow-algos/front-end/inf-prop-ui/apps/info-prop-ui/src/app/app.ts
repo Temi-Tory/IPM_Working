@@ -103,7 +103,7 @@ export class App implements OnInit {
 
   getTotalSteps(): number {
     // Total analysis steps (excluding home)
-    return 6;
+    return 8; // upload, visualization, structure, diamonds, exact-inference, capacity, time, cost
   }
 
   getCompletedSteps(): number {
@@ -113,8 +113,9 @@ export class App implements OnInit {
     if (this.analysisState.networkStructureTab().completed) completed++;
     if (this.analysisState.diamondAnalysisTab().completed) completed++;
     if (this.analysisState.exactInferenceTab().completed) completed++;
-    if (this.analysisState.flowAnalysisTab().completed) completed++;
-    if (this.analysisState.criticalPathTab().completed) completed++;
+    if (this.analysisState.capacityAnalysisTab().completed) completed++;
+    if (this.analysisState.criticalPathTab().completed) completed++; // This covers both time and cost
+    // Note: time and cost analysis share the same criticalPathTab state
     
     return completed;
   }

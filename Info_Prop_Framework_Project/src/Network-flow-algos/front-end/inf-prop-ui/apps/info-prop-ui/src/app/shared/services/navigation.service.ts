@@ -81,7 +81,7 @@ export class NavigationService {
     },
     {
       id: 'exact-inference',
-      route: '/inference',
+      route: '/exact-inference',
       title: 'Exact Inference',
       subtitle: 'Belief propagation analysis',
       icon: 'psychology',
@@ -89,22 +89,31 @@ export class NavigationService {
       order: 5
     },
     {
-      id: 'flow-analysis',
-      route: '/flow',
-      title: 'Flow Analysis',
-      subtitle: 'Capacity & throughput analysis',
+      id: 'capacity-analysis',
+      route: '/capacity-analysis',
+      title: 'Capacity Analysis',
+      subtitle: 'Flow analysis & bottleneck detection',
       icon: 'timeline',
       requiredData: 'networkData',
       order: 6
     },
     {
-      id: 'critical-path',
-      route: '/critical-path',
-      title: 'Critical Path',
-      subtitle: 'Time & cost analysis',
-      icon: 'route',
+      id: 'time-analysis',
+      route: '/time-analysis',
+      title: 'Time Analysis',
+      subtitle: 'Schedule optimization & timing',
+      icon: 'schedule',
       requiredData: 'networkData',
       order: 7
+    },
+    {
+      id: 'cost-analysis',
+      route: '/cost-analysis',
+      title: 'Cost Analysis',
+      subtitle: 'Resource allocation & cost optimization',
+      icon: 'attach_money',
+      requiredData: 'networkData',
+      order: 8
     },
     {
       id: 'system-profile',
@@ -113,7 +122,7 @@ export class NavigationService {
       subtitle: 'Complete analysis summary',
       icon: 'summarize',
       requiredData: 'analysisResults',
-      order: 7
+      order: 9
     }
   ];
 
@@ -217,9 +226,10 @@ export class NavigationService {
       case 'diamond-analysis':
       case 'exact-inference':
         return analysisGroups.reachability.some(g => g.canRunAnalysis);
-      case 'flow-analysis':
+      case 'capacity-analysis':
         return analysisGroups.capacity.some(g => g.canRunAnalysis);
-      case 'critical-path':
+      case 'time-analysis':
+      case 'cost-analysis':
         return analysisGroups.cpm.some(g => g.canRunAnalysis);
       case 'system-profile':
         return analysisGroups.network.canRunAnalysis ||
@@ -249,10 +259,11 @@ export class NavigationService {
       case 'exact-inference':
         if (this.analysisState.exactInferenceTab().completed) return 'completed';
         break;
-      case 'flow-analysis':
-        if (this.analysisState.flowAnalysisTab().completed) return 'completed';
+      case 'capacity-analysis':
+        if (this.analysisState.capacityAnalysisTab().completed) return 'completed';
         break;
-      case 'critical-path':
+      case 'time-analysis':
+      case 'cost-analysis':
         if (this.analysisState.criticalPathTab().completed) return 'completed';
         break;
       case 'system-profile':
