@@ -12,5 +12,7 @@ export const appRoutes: Route[] = [
   // Capacity, Time, and Cost Analysis components
   { path: 'capacity-analysis', loadComponent: () => import('./analysis/capacity-analysis/capacity-analysis.component').then(m => m.CapacityAnalysisComponent) },
   { path: 'time-analysis', loadComponent: () => import('./analysis/time-analysis/time-analysis.component').then(m => m.TimeAnalysisComponent) },
-  { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) }
+  { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) },
+  // System Profile - comprehensive analysis dashboard
+  { path: 'system-profile', loadComponent: () => import('./analysis/system-profile/system-profile.component').then(m => m.SystemProfileComponent) }
 ]

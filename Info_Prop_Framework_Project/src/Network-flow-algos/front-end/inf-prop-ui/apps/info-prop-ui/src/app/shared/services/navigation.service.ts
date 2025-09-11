@@ -117,11 +117,11 @@ export class NavigationService {
     },
     {
       id: 'system-profile',
-      route: '/profile',
+      route: '/system-profile',
       title: 'System Profile',
       subtitle: 'Complete analysis summary',
-      icon: 'summarize',
-      requiredData: 'analysisResults',
+      icon: 'dashboard',
+      requiredData: 'networkData',
       order: 9
     }
   ];

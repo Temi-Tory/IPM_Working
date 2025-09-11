@@ -1,0 +1,908 @@
+// System Profile Component Styles
+// Supports both light and dark themes with Solarized-inspired color palette
+
+.system-profile-container {
+  padding: 24px;
+  min-height: 100vh;
+  background: var(--background-color);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+
+  // Light theme variables (using existing global variables)
+  &.light-theme {
+    --background-color: var(--surface-background);
+    --surface-color: var(--surface);
+    --primary-color: var(--primary-color);
+    --accent-color: var(--secondary-color);
+    --warn-color: var(--warning-color);
+    --error-color: var(--error-color);
+    --success-color: var(--success-color);
+    --text-color: var(--text-primary);
+    --text-secondary: var(--text-secondary);
+    --border-color: var(--border-color);
+    --shadow-color: rgba(0, 0, 0, 0.1);
+  }
+
+  // Dark theme variables (using existing global variables with dark overrides)
+  &.dark-theme {
+    --background-color: #002b36;
+    --surface-color: #073642;
+    --primary-color: var(--primary-color);
+    --accent-color: var(--secondary-color);
+    --warn-color: var(--warning-color);
+    --error-color: var(--error-color);
+    --success-color: var(--success-color);
+    --text-color: #839496;
+    --text-secondary: #586e75;
+    --border-color: #073642;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Header section
+.system-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
+
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--text-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      mat-icon {
+        color: var(--primary-color);
+        font-size: 2rem;
+        width: 2rem;
+        height: 2rem;
+      }
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    .theme-toggle {
+      background: var(--surface-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+
+      &:hover {
+        background: var(--primary-color);
+        color: white;
+      }
+    }
+
+    .generate-profile-btn {
+      background: var(--primary-color);
+      color: white;
+      min-width: 160px;
+
+      &:disabled {
+        background: var(--text-secondary);
+        color: var(--surface-color);
+      }
+
+      &:hover:not(:disabled) {
+        background: var(--accent-color);
+      }
+    }
+  }
+}
+
+// System health overview
+.system-health-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+
+  .health-card {
+    background: var(--surface-color);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--shadow-color);
+    }
+
+    .health-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      mat-icon {
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+
+      &.excellent mat-icon { color: var(--success-color); }
+      &.good mat-icon { color: var(--primary-color); }
+      &.fair mat-icon { color: var(--warn-color); }
+      &.poor mat-icon { color: var(--error-color); }
+
+      h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: var(--text-color);
+      }
+    }
+
+    .health-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+
+      &.excellent { color: var(--success-color); }
+      &.good { color: var(--primary-color); }
+      &.fair { color: var(--warn-color); }
+      &.poor { color: var(--error-color); }
+    }
+
+    .health-description {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+  }
+}
+
+// Main content tabs
+.system-profile-tabs {
+  background: var(--surface-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+
+  ::ng-deep .mat-mdc-tab-group {
+    .mat-mdc-tab-header {
+      background: var(--surface-color);
+      border-bottom: 1px solid var(--border-color);
+
+      .mat-mdc-tab {
+        color: var(--text-secondary);
+        font-weight: 500;
+
+        &.mdc-tab--active {
+          color: var(--primary-color);
+        }
+      }
+
+      .mat-mdc-tab-header-pagination-chevron {
+        color: var(--text-color);
+      }
+
+      .mdc-tab-indicator__content--underline {
+        background-color: var(--primary-color);
+      }
+    }
+
+    .mat-mdc-tab-body-wrapper {
+      background: var(--surface-color);
+    }
+  }
+}
+
+// Dashboard tab content
+.dashboard-content {
+  padding: 32px;
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+
+    .metric-card {
+      background: var(--surface-color);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px var(--shadow-color);
+      }
+
+      .metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+
+        h4 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 500;
+          color: var(--text-color);
+        }
+
+        mat-icon {
+          color: var(--primary-color);
+        }
+      }
+
+      .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+      }
+
+      .metric-description {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  .scenarios-overview {
+    background: var(--surface-color);
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 32px;
+
+    h3 {
+      margin: 0 0 20px 0;
+      color: var(--text-color);
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .scenarios-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+
+      .scenario-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--background-color);
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        color: var(--text-color);
+        position: relative;
+
+        mat-icon {
+          font-size: 1rem;
+          width: 1rem;
+          height: 1rem;
+        }
+
+        .status-icon {
+          color: var(--success-color);
+          margin-left: auto;
+        }
+
+        &.reachability mat-icon:first-child { color: var(--primary-color); }
+        &.capacity mat-icon:first-child { color: var(--accent-color); }
+        &.cpm mat-icon:first-child { color: var(--warn-color); }
+      }
+    }
+  }
+
+  .recommendations-section {
+    h3 {
+      margin: 0 0 20px 0;
+      color: var(--text-color);
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .recommendations-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      mat-expansion-panel {
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+
+        .mat-expansion-panel-header {
+          color: var(--text-color);
+
+          mat-icon {
+            margin-right: 8px;
+
+            &.success { color: var(--success-color); }
+            &.warn { color: var(--warn-color); }
+            &.error { color: var(--error-color); }
+          }
+        }
+
+        .recommendation-content {
+          padding: 16px;
+          color: var(--text-color);
+
+          .recommendation-details {
+            margin: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+
+            .detail-item {
+              font-size: 0.9rem;
+              
+              strong {
+                color: var(--primary-color);
+              }
+            }
+          }
+
+          .implementation-steps {
+            margin-top: 16px;
+
+            strong {
+              color: var(--primary-color);
+            }
+
+            ol {
+              margin: 8px 0 0 16px;
+              
+              li {
+                margin-bottom: 4px;
+                font-size: 0.9rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Visual tab content
+.visual-content {
+  padding: 32px;
+
+  .visualization-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: var(--background-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      mat-form-field {
+        min-width: 150px;
+
+        ::ng-deep {
+          .mat-mdc-form-field-underline {
+            background-color: var(--border-color);
+          }
+
+          .mat-mdc-form-field-focus-overlay {
+            background-color: var(--primary-color);
+          }
+
+          .mdc-text-field--filled {
+            background-color: var(--surface-color);
+          }
+
+          .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+            background-color: var(--surface-color);
+          }
+        }
+      }
+    }
+  }
+
+  .visualization-container {
+    background: var(--surface-color);
+    border-radius: 12px;
+    padding: 32px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .chart-placeholder {
+      text-align: center;
+      color: var(--text-secondary);
+
+      mat-icon {
+        font-size: 4rem;
+        width: 4rem;
+        height: 4rem;
+        margin-bottom: 16px;
+        color: var(--primary-color);
+      }
+
+      h3 {
+        margin: 0 0 8px 0;
+        color: var(--text-color);
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+    }
+
+    // D3.js chart containers
+    .d3-chart-container {
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
+
+      svg {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+
+        // Chart elements styling for both themes
+        .axis {
+          .tick {
+            line {
+              stroke: var(--border-color);
+            }
+            text {
+              fill: var(--text-secondary);
+              font-size: 12px;
+            }
+          }
+          path {
+            stroke: var(--border-color);
+          }
+        }
+
+        .grid {
+          .tick line {
+            stroke: var(--border-color);
+            stroke-opacity: 0.3;
+          }
+        }
+
+        // Bar chart styles
+        .bar {
+          fill: var(--primary-color);
+          transition: fill 0.2s ease;
+
+          &:hover {
+            fill: var(--accent-color);
+          }
+        }
+
+        // Line chart styles
+        .line {
+          fill: none;
+          stroke: var(--primary-color);
+          stroke-width: 2px;
+        }
+
+        .dot {
+          fill: var(--primary-color);
+          stroke: var(--surface-color);
+          stroke-width: 2px;
+
+          &:hover {
+            fill: var(--accent-color);
+            r: 6;
+          }
+        }
+
+        // Heatmap styles
+        .heatmap-cell {
+          stroke: var(--border-color);
+          stroke-width: 1px;
+
+          &:hover {
+            stroke: var(--primary-color);
+            stroke-width: 2px;
+          }
+        }
+
+        // Network graph styles
+        .node {
+          fill: var(--primary-color);
+          stroke: var(--surface-color);
+          stroke-width: 2px;
+
+          &:hover {
+            fill: var(--accent-color);
+          }
+
+          &.source { fill: var(--success-color); }
+          &.sink { fill: var(--error-color); }
+          &.join { fill: var(--warn-color); }
+        }
+
+        .link {
+          stroke: var(--text-secondary);
+          stroke-opacity: 0.6;
+          stroke-width: 1px;
+
+          &:hover {
+            stroke: var(--primary-color);
+            stroke-opacity: 1;
+          }
+        }
+
+        // Radar chart styles
+        .radar-area {
+          fill: var(--primary-color);
+          fill-opacity: 0.2;
+          stroke: var(--primary-color);
+          stroke-width: 2px;
+        }
+
+        .radar-point {
+          fill: var(--primary-color);
+          stroke: var(--surface-color);
+          stroke-width: 2px;
+        }
+      }
+    }
+  }
+}
+
+// Comparison tab content
+.comparison-content {
+  padding: 32px;
+
+  .comparison-controls {
+    margin-bottom: 32px;
+
+    h3 {
+      margin: 0 0 16px 0;
+      color: var(--text-color);
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .scenario-selection {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+
+      mat-checkbox {
+        ::ng-deep {
+          .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+          }
+
+          .mdc-form-field {
+            color: var(--text-color);
+          }
+        }
+      }
+    }
+  }
+
+  .comparison-results {
+    h3 {
+      margin: 0 0 16px 0;
+      color: var(--text-color);
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .comparison-table {
+      background: var(--surface-color);
+      border-radius: 8px;
+      overflow: hidden;
+
+      table {
+        width: 100%;
+
+        th {
+          background: var(--background-color);
+          color: var(--text-color);
+          font-weight: 600;
+        }
+
+        td {
+          color: var(--text-color);
+        }
+      }
+    }
+  }
+
+  .comparison-placeholder {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-secondary);
+
+    mat-icon {
+      font-size: 4rem;
+      width: 4rem;
+      height: 4rem;
+      margin-bottom: 16px;
+      color: var(--primary-color);
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--text-color);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Loading states
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--text-secondary);
+
+  mat-spinner {
+    margin-bottom: 24px;
+
+    ::ng-deep circle {
+      stroke: var(--primary-color);
+    }
+  }
+
+  .loading-text {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: var(--text-color);
+  }
+
+  .loading-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+}
+
+// Error states
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    color: var(--error-color);
+    margin-bottom: 16px;
+  }
+
+  .error-title {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 8px;
+  }
+
+  .error-message {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    max-width: 400px;
+  }
+}
+
+// Empty state
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: var(--primary-color);
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-color);
+  }
+
+  p {
+    margin: 0 0 24px 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    max-width: 400px;
+  }
+
+  button {
+    background: var(--primary-color);
+    color: white;
+
+    &:hover {
+      background: var(--accent-color);
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .system-profile-container {
+    padding: 16px;
+  }
+
+  .system-profile-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+
+    .header-actions {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .system-health-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-content,
+  .visual-content,
+  .comparison-content {
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .visualization-controls {
+    flex-direction: column;
+    gap: 16px;
+
+    .control-group {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+  .scenarios-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-selection {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Tooltip styles for D3 charts
+.d3-tooltip {
+  position: absolute;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 200px;
+
+  .tooltip-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--primary-color);
+  }
+
+  .tooltip-content {
+    line-height: 1.4;
+  }
+}
+
+// Animation classes
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Accessibility improvements
+.system-profile-container {
+  &:focus-within {
+    .health-card,
+    .metric-card {
+      &:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+    }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .system-profile-container {
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    
+    .health-card,
+    .metric-card,
+    .visualization-container {
+      border-width: 2px;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .system-profile-container * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
