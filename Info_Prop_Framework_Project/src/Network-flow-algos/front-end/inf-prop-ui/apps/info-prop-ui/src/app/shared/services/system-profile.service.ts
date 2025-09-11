@@ -459,15 +459,15 @@ export class SystemProfileService {
       cascadeRisk: this.calculateCascadeRisk(networkInfo, results),
       uncertaintyLevel: this.calculateUncertaintyLevel(results),
       
-      // Reliability metrics
-      systemReliability: performanceScores.reduce((a, b) => a + b, 0) / performanceScores.length,
-      redundancyLevel: this.calculateRedundancyLevel(networkInfo),
-      failureResistance: this.calculateFailureResistance(networkInfo, results),
+      // Reliability metrics (ensure 0-100% range with proper scaling)
+      systemReliability: Math.min(100, Math.max(0, (performanceScores.reduce((a, b) => a + b, 0) / performanceScores.length) * 100)),
+      redundancyLevel: Math.min(100, Math.max(0, this.calculateRedundancyLevel(networkInfo))),
+      failureResistance: Math.min(100, Math.max(0, this.calculateFailureResistance(networkInfo, results))),
       
-      // Efficiency metrics
-      resourceUtilization: this.calculateAverageMetric(results, 'resourceUtilization'),
-      pathEfficiency: this.calculatePathEfficiency(networkInfo),
-      informationFlow: this.calculateInformationFlow(networkInfo, results)
+      // Efficiency metrics (ensure 0-100% range with proper scaling)
+      resourceUtilization: Math.min(100, Math.max(0, this.calculateAverageMetric(results, 'resourceUtilization') * 100)),
+      pathEfficiency: Math.min(100, Math.max(0, this.calculatePathEfficiency(networkInfo))),
+      informationFlow: Math.min(100, Math.max(0, this.calculateInformationFlow(networkInfo, results)))
     };
   }
 
@@ -982,11 +982,11 @@ export class SystemProfileService {
 
   private createSystemHealthOverview(metrics: SystemMetrics): VisualizationDataPoint {
     const healthData = [
-      { category: 'Performance', score: 100 - metrics.averageComputationTime / 100 },
-      { category: 'Reliability', score: metrics.systemReliability * 100 },
-      { category: 'Risk Level', score: 100 - metrics.overallRiskScore },
-      { category: 'Efficiency', score: metrics.resourceUtilization * 100 },
-      { category: 'Robustness', score: metrics.failureResistance }
+      { category: 'Performance', score: Math.min(100, Math.max(0, 100 - metrics.averageComputationTime / 100)) },
+      { category: 'Reliability', score: Math.min(100, Math.max(0, metrics.systemReliability)) },
+      { category: 'Risk Level', score: Math.min(100, Math.max(0, 100 - metrics.overallRiskScore)) },
+      { category: 'Efficiency', score: Math.min(100, Math.max(0, metrics.resourceUtilization)) },
+      { category: 'Robustness', score: Math.min(100, Math.max(0, metrics.failureResistance)) }
     ];
 
     return {

@@ -18,6 +18,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
@@ -35,6 +36,7 @@ import {
   SystemMetrics
 } from '../../shared/models/system-profile.models';
 import { SystemProfileService } from '../../shared/services/system-profile.service';
+import { D3VisualizationComponent } from './d3-visualization.component';
 
 /**
  * System Profile Component
@@ -65,7 +67,9 @@ import { SystemProfileService } from '../../shared/services/system-profile.servi
     MatBadgeModule,
     MatSlideToggleModule,
     MatGridListModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatMenuModule,
+    D3VisualizationComponent
   ],
   templateUrl: './system-profile.component.html',
   styleUrl: './system-profile.component.scss'
@@ -280,7 +284,7 @@ export class SystemProfileComponent implements OnInit, ScenarioAwareComponent {
   }
 
   /**
-   * Switch visualization mode
+   * Set visualization mode
    */
   setVisualizationMode(mode: 'overview' | 'detailed' | 'comparison'): void {
     this.visualizationMode.set(mode);
@@ -303,14 +307,65 @@ export class SystemProfileComponent implements OnInit, ScenarioAwareComponent {
     const index = current.indexOf(scenarioName);
     
     if (index === -1) {
-      // Add scenario
-      if (current.length < 4) { // Limit to 4 scenarios for comparison
+      // Add scenario (limit to 4 scenarios for comparison)
+      if (current.length < 4) {
         this.comparisonScenarios.set([...current, scenarioName]);
       }
     } else {
       // Remove scenario
       this.comparisonScenarios.set(current.filter(s => s !== scenarioName));
     }
+    
+    console.log('🔄 Comparison scenarios updated:', this.comparisonScenarios());
+  }
+
+  /**
+   * Get comparison data for table display
+   */
+  getComparisonData(): any[] {
+    const profile = this.systemProfile();
+    if (!profile) return [];
+
+    const scenarios = this.comparisonScenarios();
+    const metrics = [
+      'Computation Time',
+      'Risk Score',
+      'Efficiency',
+      'Reliability'
+    ];
+
+    return metrics.map(metric => {
+      const row: any = { metric };
+      scenarios.forEach(scenarioName => {
+        const scenarioData = profile.scenarioResults.get(scenarioName);
+        if (scenarioData) {
+          switch (metric) {
+            case 'Computation Time':
+              row[scenarioName] = this.formatDuration(scenarioData.computationTime);
+              break;
+            case 'Risk Score':
+              row[scenarioName] = scenarioData.riskAssessment?.riskScore?.toFixed(1) || 'N/A';
+              break;
+            case 'Efficiency':
+              row[scenarioName] = this.formatPercentage(scenarioData.performanceMetrics?.efficiency || 0);
+              break;
+            case 'Reliability':
+              row[scenarioName] = this.formatPercentage(scenarioData.performanceMetrics?.reliability || 0);
+              break;
+          }
+        } else {
+          row[scenarioName] = 'N/A';
+        }
+      });
+      return row;
+    });
+  }
+
+  /**
+   * Get comparison table columns
+   */
+  getComparisonColumns(): string[] {
+    return ['metric', ...this.comparisonScenarios()];
   }
 
   /**
@@ -345,7 +400,145 @@ export class SystemProfileComponent implements OnInit, ScenarioAwareComponent {
     link.click();
     URL.revokeObjectURL(url);
 
-    console.log('📁 System profile exported successfully');
+    console.log('📁 System profile exported as JSON successfully');
+  }
+
+  /**
+   * Export system profile data as CSV
+   */
+  exportAsCsv(): void {
+    const profile = this.systemProfile();
+    if (!profile) {
+      console.warn('No system profile data to export');
+      return;
+    }
+
+    // Create CSV content with key metrics
+    const csvRows = [
+      ['Metric', 'Value', 'Category'],
+      ['Network Utilization', `${profile.aggregatedMetrics.networkUtilization.toFixed(2)}%`, 'Network'],
+      ['System Reliability', `${profile.aggregatedMetrics.systemReliability.toFixed(2)}%`, 'Reliability'],
+      ['Average Computation Time', `${profile.aggregatedMetrics.averageComputationTime.toFixed(0)}ms`, 'Performance'],
+      ['Overall Risk Score', `${profile.aggregatedMetrics.overallRiskScore.toFixed(1)}`, 'Risk'],
+      ['Bottleneck Count', `${profile.aggregatedMetrics.bottleneckCount.toFixed(0)}`, 'Network'],
+      ['Path Efficiency', `${profile.aggregatedMetrics.pathEfficiency.toFixed(2)}%`, 'Efficiency'],
+      ['Information Flow', `${profile.aggregatedMetrics.informationFlow.toFixed(2)}%`, 'Efficiency'],
+      ['Redundancy Level', `${profile.aggregatedMetrics.redundancyLevel.toFixed(2)}%`, 'Reliability'],
+      ['Failure Resistance', `${profile.aggregatedMetrics.failureResistance.toFixed(2)}%`, 'Reliability'],
+      ['Resource Utilization', `${profile.aggregatedMetrics.resourceUtilization.toFixed(2)}%`, 'Performance']
+    ];
+
+    // Add scenario-specific data
+    csvRows.push(['', '', '']); // Empty row
+    csvRows.push(['Scenario Analysis Results', '', '']);
+    csvRows.push(['Scenario Name', 'Analysis Type', 'Computation Time (ms)', 'Efficiency (%)', 'Risk Score']);
+    
+    Array.from(profile.scenarioResults.entries()).forEach(([name, result]) => {
+      csvRows.push([
+        name,
+        result.analysisType,
+        result.computationTime.toString(),
+        (result.performanceMetrics.efficiency * 100).toFixed(2),
+        result.riskAssessment.riskScore.toString()
+      ]);
+    });
+
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `system-profile-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    console.log('📊 System profile exported as CSV successfully');
+  }
+
+  /**
+   * Export system profile report as formatted text
+   */
+  exportAsReport(): void {
+    const profile = this.systemProfile();
+    if (!profile) {
+      console.warn('No system profile data to export');
+      return;
+    }
+
+    const report = this.generateTextReport(profile);
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `system-profile-report-${new Date().toISOString().split('T')[0]}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    console.log('📋 System profile exported as text report successfully');
+  }
+
+  private generateTextReport(profile: SystemProfileData): string {
+    const lines = [
+      '='.repeat(60),
+      'SYSTEM PROFILE ANALYSIS REPORT',
+      '='.repeat(60),
+      '',
+      `Generated: ${new Date(profile.generatedAt).toLocaleString()}`,
+      `Total Computation Time: ${profile.computationTime}ms`,
+      '',
+      'NETWORK INFORMATION',
+      '-'.repeat(30),
+      `Network Name: ${profile.networkInfo.name || 'N/A'}`,
+      `Total Nodes: ${profile.networkInfo.totalNodes}`,
+      `Total Edges: ${profile.networkInfo.totalEdges}`,
+      `Join Nodes: ${profile.networkInfo.joinNodes.length}`,
+      `Complexity Level: ${profile.networkInfo.complexity.level}`,
+      `Complexity Score: ${profile.networkInfo.complexity.score}`,
+      '',
+      'AGGREGATED METRICS',
+      '-'.repeat(30),
+      `System Reliability: ${profile.aggregatedMetrics.systemReliability.toFixed(2)}%`,
+      `Network Utilization: ${profile.aggregatedMetrics.networkUtilization.toFixed(2)}%`,
+      `Overall Risk Score: ${profile.aggregatedMetrics.overallRiskScore.toFixed(1)}`,
+      `Average Computation Time: ${profile.aggregatedMetrics.averageComputationTime.toFixed(0)}ms`,
+      `Bottleneck Count: ${profile.aggregatedMetrics.bottleneckCount.toFixed(0)}`,
+      `Path Efficiency: ${profile.aggregatedMetrics.pathEfficiency.toFixed(2)}%`,
+      `Information Flow: ${profile.aggregatedMetrics.informationFlow.toFixed(2)}%`,
+      `Redundancy Level: ${profile.aggregatedMetrics.redundancyLevel.toFixed(2)}%`,
+      `Failure Resistance: ${profile.aggregatedMetrics.failureResistance.toFixed(2)}%`,
+      '',
+      'SCENARIO ANALYSIS RESULTS',
+      '-'.repeat(30)
+    ];
+
+    Array.from(profile.scenarioResults.entries()).forEach(([name, result]) => {
+      lines.push(`Scenario: ${name}`);
+      lines.push(`  Analysis Type: ${result.analysisType}`);
+      lines.push(`  Computation Time: ${result.computationTime}ms`);
+      lines.push(`  Efficiency: ${(result.performanceMetrics.efficiency * 100).toFixed(2)}%`);
+      lines.push(`  Reliability: ${(result.performanceMetrics.reliability * 100).toFixed(2)}%`);
+      lines.push(`  Risk Score: ${result.riskAssessment.riskScore}`);
+      lines.push(`  Risk Level: ${result.riskAssessment.overallRisk}`);
+      lines.push('');
+    });
+
+    if (profile.recommendations.length > 0) {
+      lines.push('RECOMMENDATIONS');
+      lines.push('-'.repeat(30));
+      profile.recommendations.forEach((rec, index) => {
+        lines.push(`${index + 1}. ${rec.title} (${rec.priority})`);
+        lines.push(`   ${rec.description}`);
+        lines.push(`   Impact: ${rec.impact}`);
+        lines.push(`   Effort: ${rec.effort}`);
+        lines.push('');
+      });
+    }
+
+    lines.push('='.repeat(60));
+    lines.push('End of Report');
+    lines.push('='.repeat(60));
+
+    return lines.join('\n');
   }
 
   /**
@@ -495,52 +688,4 @@ export class SystemProfileComponent implements OnInit, ScenarioAwareComponent {
     }
   }
 
-  /**
-   * Get comparison data for table
-   */
-  getComparisonData(): any[] {
-    const profile = this.systemProfile();
-    if (!profile) return [];
-
-    const scenarios = this.comparisonScenarios();
-    const metrics = [
-      'Computation Time',
-      'Risk Score',
-      'Efficiency',
-      'Reliability'
-    ];
-
-    return metrics.map(metric => {
-      const row: any = { metric };
-      scenarios.forEach(scenarioName => {
-        const scenarioData = profile.scenarioResults.get(scenarioName);
-        if (scenarioData) {
-          switch (metric) {
-            case 'Computation Time':
-              row[scenarioName] = this.formatDuration(scenarioData.computationTime);
-              break;
-            case 'Risk Score':
-              row[scenarioName] = scenarioData.riskAssessment.riskScore.toFixed(1);
-              break;
-            case 'Efficiency':
-              row[scenarioName] = this.formatPercentage(scenarioData.performanceMetrics.efficiency);
-              break;
-            case 'Reliability':
-              row[scenarioName] = this.formatPercentage(scenarioData.performanceMetrics.reliability);
-              break;
-          }
-        } else {
-          row[scenarioName] = 'N/A';
-        }
-      });
-      return row;
-    });
-  }
-
-  /**
-   * Get comparison table columns
-   */
-  getComparisonColumns(): string[] {
-    return ['metric', ...this.comparisonScenarios()];
-  }
 }
