@@ -253,57 +253,6 @@
         <mat-tab label="Diamond Hierarchy">
           <div class="tab-content hierarchy-tab">
             
-            <!-- Diamond Overview Section -->
-            <div class="diamond-overview-section">
-              
-              <div class="summary-grid">
-                @if (diamondSummary(); as summary) {
-                  <mat-card class="summary-card">
-                    <mat-card-header>
-                      <mat-icon mat-card-avatar>account_tree</mat-icon>
-                      <mat-card-title>Structure Analysis</mat-card-title>
-                    </mat-card-header>
-                    <mat-card-content>
-                      <div class="summary-metrics">
-                        <div class="metric-row">
-                          <span class="metric-label">Shared Conditioning Nodes:</span>
-                          <span class="metric-value">{{ formatNumber(getSinglePointFailures()) }}</span>
-                        </div>
-                        <div class="metric-row">
-                          <span class="metric-label">Join Nodes:</span>
-                          <span class="metric-value">{{ formatNumber(summary.commonCausePatterns) }}</span>
-                        </div>
-                        <div class="metric-row">
-                          <span class="metric-label">Avg Diamond Size:</span>
-                          <span class="metric-value">{{ summary.averageComplexity.toFixed(1) }} nodes</span>
-                        </div>
-                      </div>
-                    </mat-card-content>
-                  </mat-card>
-
-                  @if (coverageMetrics(); as coverage) {
-                    <mat-card class="summary-card">
-                      <mat-card-header>
-                        <mat-icon mat-card-avatar>analytics</mat-icon>
-                        <mat-card-title>System Coverage</mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="coverage-display">
-                          <div class="coverage-percentage">{{ formatPercentage(coverage.percentage) }}</div>
-                          <div class="coverage-details">
-                            {{ formatNumber(coverage.covered) }} of {{ formatNumber(coverage.total) }} nodes in diamond patterns
-                          </div>
-                          <div class="coverage-insight">
-                            {{ coverage.percentage > 70 ? 'High convergence density' : 'Distributed system structure' }}
-                          </div>
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
-                  }
-                }
-              </div>
-            </div>
-
             <!-- Convergence Patterns Section -->
             @if (convergenceInsights(); as insights) {
               <div class="convergence-section">

@@ -32,4 +32,3 @@ Destinations (Strategic Facilities): 20 nodes
   DAG_Node_62
 
 Total Mission Complexity: 6 × 20 = 120 source-destination pairs
-Expected Tractability: 30min - 1hr for exact path enumeration

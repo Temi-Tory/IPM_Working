@@ -216,7 +216,7 @@
               <div class="metric-value">{{ inferenceMetrics()!.totalNodes }}</div>
             </div>
             
-            <div class="metric-item">
+           <!--  <div class="metric-item">
               <div class="metric-label">Average Belief</div>
               <div class="metric-value">{{ (inferenceMetrics()!.averageBelief * 100).toFixed(1) }}%</div>
             </div>
@@ -230,7 +230,7 @@
                   {{ inferenceMetrics()!.algorithmComplexity }}
                 </mat-chip>
               </div>
-            </div>
+            </div> -->
 
             @if (inferenceMetrics()!.uncertaintyRange) {
               <div class="metric-item">

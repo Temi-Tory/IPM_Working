@@ -1,4 +1,4 @@
- The reachability algorithm is an exact probabilistic inference algorithm that
+ The reachability algorithm is an exact probabilistic  algorithm that
   solves:
 
   P(N) = Prior(N) × P(N receives ≥1 signal from sources | DAG network structure)
@@ -22,11 +22,13 @@
   The algorithm computes P(A ∪ B ∪ C) = "N receives signal from at least one source"
 
   The Diamond Processing:
+# Diamonds become "super nodes" with known reliability
+diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs) (see code for details of recursive decomposition)
 
-  The  diamond enumeration is also doing exact probabilistic inference - it's computing:
+  The  diamond enumeration is also doing exact probabilistic  - it's computing:
   P(N | diamond structure) = Σ_{all_states} P(state) × P(N | state)
 
-  This is conditional expectation - another exact inference method.
+  This is conditional expectation - another exact  method.
 
 # Complete Mathematical Analysis of ReachabilityModuleRecurse.jl
 
@@ -234,8 +236,8 @@ E[E[E[...E[Belief(Final_Join) | Layer_L] ... | Layer₂] | Layer₁]
 
 ## Key Mathematical Properties
 
-### 1. **Exact Inference**
-The module implements exact probabilistic inference using variable elimination with conditioning. This guarantees mathematically correct results but at exponential worst-case cost.
+### 1. **Exact **
+The module implements exact probabilistic  using variable elimination with conditioning. This guarantees mathematically correct results but at exponential worst-case cost.
 
 ### 2. **Inclusion-Exclusion Principle**
 For independent convergent paths, the module correctly applies:
@@ -272,7 +274,7 @@ else:
 | Single diamond (Case 3) | O(2^c × d) | O(2^c) | c = conditioning nodes, d = diamond size |
 | Nested diamonds (Case 4+) | O(2^{Σc_i} × Π d_i) | O(2^{max(c_i)}) | Exponential in total conditioning nodes |
 
-**Fundamental limitation:** This is optimal for exact inference in high-treewidth networks - approximation algorithms would be needed for polynomial-time solutions.
+**Fundamental limitation:** This is optimal for exact  in high-treewidth networks - approximation algorithms would be needed for polynomial-time solutions.
 
 ---
 
@@ -283,4 +285,4 @@ else:
 3. **Network validation:** Comprehensive checks ensure DAG properties and data consistency
 4. **Mathematical soundness:** Implements proven algorithms (inclusion-exclusion, conditional expectation)
 
-The mathematical framework is **theoretically sound** and **computationally exact**, with exponential complexity being an inherent property of exact inference in complex probabilistic networks rather than an algorithmic inefficiency.
+The mathematical framework is **theoretically sound** and **computationally exact**, with exponential complexity being an inherent property of exact  in complex probabilistic networks rather than an algorithmic inefficiency.

@@ -22,7 +22,7 @@ else
     println("Subsequent run - skipping initialization")
 end
 
-network_name = "power-network"
+network_name = "test-decomp3s2t"
 
 
 
@@ -30,9 +30,9 @@ network_name = "power-network"
 
 
 
-# data_type = "float"
+ data_type = "float"
 # data_type = "interval"
-data_type = "pbox"
+#data_type = "pbox"
 
 
 
@@ -90,9 +90,17 @@ root_diamonds = identify_and_group_diamonds(
     node_priors,
     iteration_sets
 );
+
 l_root_diamonds = length(root_diamonds);
-diamond_joins = keys(root_diamonds);
+
 println("Found $l_root_diamonds root_diamonds");
+
+   for diamond in values(root_diamonds)
+     println("Diamond: ", diamond.join_node)
+        println( diamond.diamond.edgelist)
+            println("conditioning_nodes: ", diamond.diamond.conditioning_nodes)
+    end
+
 println("Starting build unique diamond storage");
 unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
     root_diamonds,
@@ -102,8 +110,47 @@ unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
     iteration_sets
 );
 l_unique_diamonds = length(unique_diamonds)
+
+ 
 println("Found $l_unique_diamonds unique_diamonds");
-# show(keys(root_diamonds))
+#= 
+println("Found $l_unique_diamonds unique_diamonds")
+
+# Group diamonds by structure (comparing sets, not ordered lists)
+structural_groups = Dict{Tuple{Set{Tuple{Int64, Int64}}, Set{Int64}}, Vector{Any}}()
+
+for value in values(unique_diamonds)
+    # Convert edgelist to Set for order-independent comparison
+    edge_set = Set(value.diamond.edgelist)
+    key = (edge_set, value.diamond.conditioning_nodes)
+    
+    if !haskey(structural_groups, key)
+        structural_groups[key] = []
+    end
+    push!(structural_groups[key], value)
+end
+
+println("Found $(length(structural_groups)) structurally unique diamonds (ignoring order and root/sub context)")
+
+count = 1
+for (structure_key, group) in structural_groups
+    representative = first(group)
+    
+    println("=== STRUCTURALLY UNIQUE DIAMOND $count ===")
+    println("Edge list: ", representative.diamond.edgelist)
+    println("Conditioning nodes: ", representative.diamond.conditioning_nodes)
+    
+    # Calculate sink nodes
+    sources = Set([edge[1] for edge in representative.diamond.edgelist])
+    destinations = Set([edge[2] for edge in representative.diamond.edgelist])
+    sink_nodes = setdiff(destinations, sources)
+    println("Sink node(s): ", sink_nodes)
+    println("Duplicate instances: $(length(group))")
+    println()
+    
+    count += 1
+end
+ =#
 
 println("Starting iterative belief update");
 start_time = time()
