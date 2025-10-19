@@ -1,0 +1,109 @@
+ Transformation from Undirected 
+  Graph to DAG for Drone Medical Delivery  
+  Network
+
+  Network Structure:
+
+  Original Data (drone_info.xlsx): 244 unique      
+  medical facilities across Scotland
+  DAG Output: 782 nodes with      
+  hierarchical roles and Directed edges (2,789 total) 
+ 
+ 
+The DAG structure requires multiple roles per facility to maintain Acyclic property (no loops)
+Hierarchical flow (CLUSTER_CENTER → POWER_BACKBONE → CLUSTER_NODE)
+
+The multiple virtual nodes represent different operation in the same physical facility:
+
+
+
+  Node Role Assignment  (Three-tier 
+  Hierarchy)
+
+  1. CLUSTER_CENTER (23 nodes): Regional hub       
+  facilities that act as major distribution      
+  points
+  2. POWER_BACKBONE (92 nodes): Intermediate nodes providing connectivity        
+  between clusters
+  3. CLUSTER_NODE (667 nodes): Local delivery facilities  connected to the hierarchical structure
+
+ 
+  
+  - Each original physical facility (244 unique) can        
+  have multiple virtual nodes (782 total)
+  - High-importance facilities get multiple        
+  representations with different roles
+  - Examples:
+    - ID 264 (Strathmartine Hospital): 7
+  mappings
+    - ID 186 (Buckie Day Hospital): 8 mappings     
+    - ID 44 ("new" facility): 8 mappings
+
+
+ 
+   Node have Hierarchal Roles based on Location:
+
+  - Northern/Remote Facilities (lat > 58°):        
+  Often assigned CLUSTER_CENTER roles
+    - Wick Airport (58.45°N): CLUSTER_CENTER       
+    - Balfour Hospital (58.97°N):
+  CLUSTER_CENTER
+    - Western Isles Hospital (58.22°N):
+  CLUSTER_CENTER
+  - Strategic Airports: Elevated to
+  POWER_BACKBONE status
+    - Tiree Airport: POWER_BACKBONE
+    - Oban Airport: POWER_BACKBONE
+    - Several others maintain connectivity
+  across island/remote regions
+
+  3. Facility Type Influence
+
+  - Airports (A): Mixed roles - some
+  POWER_BACKBONE for connectivity, others
+  CLUSTER_NODE
+  - Hospitals (H): Distributed across all three    
+   tiers based on capacity and location
+  - New facilities (new): Strategically placed,    
+   some serving as critical connection points      
+
+ Edge Direction Assignment Logic
+
+  - Edges flow from higher-tier to lower-tier      
+  nodes
+  - Geographic constraints influence
+  connectivity 
+  - Multiple paths exist between major hubs for    
+   redundancy
+
+  Algorithm Steps:
+
+  1. Facility Classification: Each facility        
+  assessed for strategic importance based on:      
+    - Geographic isolation/centrality
+    - Facility type and capacity
+    - Regional coverage requirements
+  2. Role Assignment:
+    - Remote/isolated facilities →
+  CLUSTER_CENTER (hub status)
+    - Strategic connectors → POWER_BACKBONE        
+    - Local facilities → CLUSTER_NODE
+  3. Multi-instantiation: High-value facilities    
+   duplicated with different roles to create       
+  redundant pathways
+  4. Edge Direction: Directed edges assigned       
+  to:
+    - Maintain acyclic property
+    - Ensure geographic reachability
+    - Optimize delivery route efficiency
+
+
+
+
+
+
+
+
+
+
+

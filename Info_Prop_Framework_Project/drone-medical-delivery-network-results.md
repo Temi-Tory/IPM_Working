@@ -1,7 +1,36 @@
-Algorithm                       | Time(seconds) | Memory    | Accuracy
---------------------------------|---------------|-----------|----------
-IPA (Exact Algorithm)           | 136.6 sec     | 62.1 GB   | Exact
-Monte Carlo (N=1M)              | 666 sec       | 297.6 GB  | Approximate
+
+\section{Detailed Network Characteristics}
+
+This section provides comprehensive specifications for the medical delivery network used in the case study validation.
+
+\subsection{Network Architecture}
+The network comprises 782 nodes representing healthcare facilities across Scotland, connected by 2,789 directed edges. The network spans coordinates from 54.93°N to 60.86°N latitude and 7.69°W to 1.10°W longitude.
+
+Node types include 686 hospitals (87.7%), 67 airports (8.6%), and 29 new facilities (3.7%). The hierarchical structure assigns nodes to three operational roles: 667 Cluster Nodes (85.3%), 92 Power Backbone nodes (11.8%), and 23 Cluster Centers (2.9%).
+
+\subsection{Reliability Distributions}
+Node reliability values reflect operational characteristics:
+- Airports: μ = 0.8968, σ = 0.0294, range: 0.8542-0.9495
+- Hospitals: μ = 0.8765, σ = 0.0423, range: 0.8001-0.95
+- New facilities: μ = 0.8366, σ = 0.0552, range: 0.7505-0.9416
+
+Edge reliability classifications:
+- Class I routes (≈0.95): 126 edges (4.52%)
+- Class II routes (≈0.90): 15 edges (0.54%)
+- Class III routes (≈0.85): 29 edges (1.04%)
+- Variable reliability: remaining edges (0.70-0.94)
+
+\subsection{Diamond Structure Analysis}
+The network contains 263 diamond join nodes forming 2,343 unique diamond structures across six complexity categories...
+263 join node i.e 263 recovergence points 
+2343 unique_diamonds i.e 2343 unique fork-join pairs
+
+\subsection{Results}
+Algorithm                       | Time(seconds) | 
+--------------------------------|---------------|-
+IPA (Exact Algorithm)           | 468  sec     | 
+Monte Carlo (N=1M)              | 738  sec       |
+
 
 node_id	ipa_result	mc_1m	abs_error_1m				
 691	0.649775118	0.651384	0.001608882				

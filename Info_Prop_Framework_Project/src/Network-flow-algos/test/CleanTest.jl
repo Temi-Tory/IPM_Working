@@ -22,15 +22,29 @@ else
     println("Subsequent run - skipping initialization")
 end
 
-network_name = "test-decomp3s2t"
 
 
 
+network_name = "power-network"
+
+network_name = "drone-network-full"
+
+#= 
+central_scotland_1
+central_scotland_2
+central_scotland_3
+edinburgh_area
+glasgow_area
+HB0_local_3
+HB0_local_2
+HB0_local_1 =#
+
+network_name = "glasgow_area"
+
+#HB0_local_1 => 578.106999874115 SECONDS
 
 
-
-
- data_type = "float"
+data_type = "float"
 # data_type = "interval"
 #data_type = "pbox"
 
@@ -41,7 +55,7 @@ base_path = joinpath("dag_ntwrk_files", network_name)
 
 # Option 1: Use edge file (recommended)
 filepath_graph = joinpath(base_path, network_name * ".EDGES");
-json_network_name = replace(network_name, "_" => "-")  # Convert underscores to hyphens for JSON files
+json_network_name = network_name#replace(network_name, "_" => "-")  # Convert underscores to hyphens for JSON files
 filepath_node_json = joinpath(base_path, data_type, json_network_name * "-nodepriors.json")
 filepath_edge_json = joinpath(base_path, data_type, json_network_name * "-linkprobabilities.json")
 
@@ -95,11 +109,11 @@ l_root_diamonds = length(root_diamonds);
 
 println("Found $l_root_diamonds root_diamonds");
 
-   for diamond in values(root_diamonds)
+#=    for diamond in values(root_diamonds)
      println("Diamond: ", diamond.join_node)
         println( diamond.diamond.edgelist)
             println("conditioning_nodes: ", diamond.diamond.conditioning_nodes)
-    end
+    end =#
 
 println("Starting build unique diamond storage");
 unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
@@ -173,4 +187,4 @@ output = IPAFramework.update_beliefs_iterative(
 # Calculate computation time
 computation_time = time() - start_time
 
-show(output)
+#show(output)
