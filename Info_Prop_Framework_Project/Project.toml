@@ -1,6 +1,7 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ChordalGraph = "60fd0770-a5cf-11ea-07c5-d789f1eae5cb"

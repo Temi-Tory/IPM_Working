@@ -43,7 +43,8 @@
       "Bash(findstr:*)",
       "Bash(pdftotext:*)",
       "Read(//c/**)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(pdflatex:*)"
     ],
     "deny": [],
     "ask": []

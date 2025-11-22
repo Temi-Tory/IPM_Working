@@ -4,7 +4,7 @@ SDPBeliefPropagationModule.jl - SDP-Based Alternative to Diamond Processing
 This module replaces the exponential 2^n conditioning enumeration in diamond processing
 with Sum of Disjoint Products (SDP) based belief propagation. 
 
-Key Innovation: Instead of enumerating all 2^n conditioning node states, we use SDP
+ Instead of enumerating all 2^n conditioning node states, we use SDP
 to compute the same belief propagation results efficiently by representing the 
 diamond structure as disjoint products of path combinations.
 

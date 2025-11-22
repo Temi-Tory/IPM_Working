@@ -1,6 +1,9 @@
+"""
+Clean Baseline Test - NO Pre-warming
+Tests the original belief propagation with empty cache
+"""
 
 # Check if this is the first run of the script for this julia repl session
-# This is useful to avoid re-initializing the environment multiple times
 if !@isdefined(script_initialized)
     println("First run - initializing...")
 
@@ -8,9 +11,7 @@ if !@isdefined(script_initialized)
     using DataFrames, DelimitedFiles, Distributions,
         DataStructures, SparseArrays, BenchmarkTools,
         Combinatorics, Dates
-
-    # Ensure we're running from the project root directory
-    current_dir = pwd()
+    
     # Include the IPAFramework module
     include("../src/IPAFramework.jl")
     using .IPAFramework
@@ -23,168 +24,178 @@ else
 end
 
 
+# ============================================================================
+# Network Selection
+# ============================================================================
+
+#network_name = "power-network"      # Simple: 23 nodes, 27 edges
+network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges, nested diamonds
+#network_name = "central_scotland_1"
+#network_name = "glasgow_area"
+#network_name = "drone-network-full"
+
+# ============================================================================
+# Main Test Function
+# ============================================================================
+
+function run_load(network_name, data_type="float")
+    println("\n" * "="^80)
+    println("Testing Network: $network_name")
+    println("Data Type: $data_type")
+    println("="^80 * "\n")
+
+    # Construct file paths
+    base_path = joinpath("dag_ntwrk_files", network_name)
+    filepath_graph = joinpath(base_path, network_name * ".EDGES")
+    filepath_node_json = joinpath(base_path, data_type, network_name * "-nodepriors.json")
+    filepath_edge_json = joinpath(base_path, data_type, network_name * "-linkprobabilities.json")
+
+    # Validate files exist
+    if !isfile(filepath_graph)
+        error("Graph file not found: $filepath_graph")
+    end
+    if !isfile(filepath_node_json)
+        error("Node priors file not found: $filepath_node_json")
+    end
+    if !isfile(filepath_edge_json)
+        error("Edge probabilities file not found: $filepath_edge_json")
+    end
+
+    # ========================================================================
+    # STEP 1: Load Network Data
+    # ========================================================================
+    println("📊 STEP 1: Loading network data...")
+    t_load = @elapsed begin
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
+        node_priors = read_node_priors_from_json(filepath_node_json)
+        edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
+    end
+
+    # Find sink nodes
+    allnodes = collect(keys(incoming_index))
+    sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
+
+    println("   ✓ Loaded in $(round(t_load, digits=3))s")
+    println("   Nodes: $(length(node_priors))")
+    println("   Edges: $(length(edgelist))")
+    println("   Sources: $(length(source_nodes))")
+    println("   Sinks: $(length(sink_nodes))")
+
+    # ========================================================================
+    # STEP 2: Build Network Structure
+    # ========================================================================
+    println("\n🔧 STEP 2: Building network structure...")
+    t_structure = @elapsed begin
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+    end
+
+    println("   ✓ Built in $(round(t_structure, digits=3))s")
+    println("   Forks: $(length(fork_nodes))")
+    println("   Joins: $(length(join_nodes))")
+    println("   Iteration layers: $(length(iteration_sets))")
+
+    # ========================================================================
+    # STEP 3: Identify Diamond Structures
+    # ========================================================================
+    println("\n💎 STEP 3: Identifying diamonds...")
+    t_diamonds = @elapsed begin
+        root_diamonds = identify_and_group_diamonds(
+            join_nodes,
+            incoming_index,
+            ancestors,
+            descendants,
+            source_nodes,
+            fork_nodes,
+            edgelist,
+            node_priors,
+            iteration_sets
+        )
+    end
+
+    println("   ✓ Identified in $(round(t_diamonds, digits=3))s")
+    println("   Root diamonds: $(length(root_diamonds))")
+
+    # ========================================================================
+    # STEP 4: Build Unique Diamond Storage
+    # ========================================================================
+    println("\n🔨 STEP 4: Building unique diamond storage...")
+    t_storage = @elapsed begin
+        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+            root_diamonds,
+            node_priors,
+            ancestors,
+            descendants,
+            iteration_sets
+        );
+    end
+
+    println("   ✓ Built in $(round(t_storage, digits=3))s")
+    println("   Unique diamonds: $(length(unique_diamonds))")
+
+  
+  #=   # ========================================================================
+    # STEP 5: Run Belief Propagation (NO CACHE)
+    # ========================================================================
+    println("\n🧮 STEP 5: Running belief propagation (NO pre-warming)...")
 
 
-network_name = "power-network"
+    t_bp = @elapsed begin
+        final_beliefs = update_beliefs_iterative(
+        edgelist,
+        iteration_sets,
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities,
+        descendants,
+        ancestors,
+        root_diamonds,
+        join_nodes,
+        fork_nodes,
+        unique_diamonds
+    );
+        
+    end
 
-network_name = "drone-network-full"
+    println("   ✓ BP completed in $(round(t_bp, digits=3))s")
+    
+    # ========================================================================
+    # Results Summary
+    # ========================================================================
+    println("\n" * "="^80)
+    println("RESULTS SUMMARY")
+    println("="^80)
 
-#= 
-central_scotland_1
-central_scotland_2
-central_scotland_3
-edinburgh_area
-glasgow_area
-HB0_local_3
-HB0_local_2
-HB0_local_1 =#
+    println("\n📊 Sink Node Beliefs:")
+    for sink in sort(collect(sink_nodes))
+        if haskey(final_beliefs, sink)
+            println("   Node $sink: $(round(final_beliefs[sink], digits=10))")
+        end
+    end =#
 
-network_name = "glasgow_area"
+    println("\n⏱️  TIMING BREAKDOWN:")
+    println("   Load network:     $(round(t_load, digits=3))s")
+    println("   Build structure:  $(round(t_structure, digits=3))s")
+    println("   Identify diamonds: $(round(t_diamonds, digits=3))s")
+    println("   Build storage:    $(round(t_storage, digits=3))s")
+   #=  println("   Belief propagation: $(round(t_bp, digits=3))s")
+    println("   " * "-"^50)
+    total_time = t_load + t_structure + t_diamonds + t_storage + t_bp
+    println("   TOTAL TIME:       $(round(total_time, digits=3))s")
+=#
+    println("\n" * "="^80) 
 
-#HB0_local_1 => 578.106999874115 SECONDS
+    #= return final_beliefs =#
+end
 
+# ============================================================================
+# Run the test
+# ============================================================================
 
 data_type = "float"
 # data_type = "interval"
-#data_type = "pbox"
+# data_type = "pbox"
 
-
-
-# Construct file paths using new folder structure
-base_path = joinpath("dag_ntwrk_files", network_name)
-
-# Option 1: Use edge file (recommended)
-filepath_graph = joinpath(base_path, network_name * ".EDGES");
-json_network_name = network_name#replace(network_name, "_" => "-")  # Convert underscores to hyphens for JSON files
-filepath_node_json = joinpath(base_path, data_type, json_network_name * "-nodepriors.json")
-filepath_edge_json = joinpath(base_path, data_type, json_network_name * "-linkprobabilities.json")
-
-
-
-if !isfile(filepath_graph)
-    error("Graph file not found: $filepath_graph")
-end
-if !isfile(filepath_node_json)
-    error("Node priors file not found: $filepath_node_json")
-end
-if !isfile(filepath_edge_json)
-    error("Edge probabilities file not found: $filepath_edge_json")
-end
-
-# Read the graph and node priors
-
-# Option 1: Separate calls (gives you more control)
-edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(filepath_graph)
-
-allnodes = # Get all nodes from the outgoing index
-    collect(keys(incoming_index));
-sink_nodes = #nodes with no keys in outgoing_index or with empty outgoing_index
-    filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes);
-
-node_priors = read_node_priors_from_json(filepath_node_json)
-
-edge_probabilities = read_edge_probabilities_from_json(filepath_edge_json)
-
-
-# Identify network structure
-fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
-iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
-
-
-println(" finding root diamonds");
-# Diamond structure analysis (if you have this function)
-root_diamonds = identify_and_group_diamonds(
-    join_nodes,
-    incoming_index,
-    ancestors,
-    descendants,
-    source_nodes,
-    fork_nodes,
-    edgelist,
-    node_priors,
-    iteration_sets
-);
-
-l_root_diamonds = length(root_diamonds);
-
-println("Found $l_root_diamonds root_diamonds");
-
-#=    for diamond in values(root_diamonds)
-     println("Diamond: ", diamond.join_node)
-        println( diamond.diamond.edgelist)
-            println("conditioning_nodes: ", diamond.diamond.conditioning_nodes)
-    end =#
-
-println("Starting build unique diamond storage");
-unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-    root_diamonds,
-    node_priors,
-    ancestors,
-    descendants,
-    iteration_sets
-);
-l_unique_diamonds = length(unique_diamonds)
-
- 
-println("Found $l_unique_diamonds unique_diamonds");
-#= 
-println("Found $l_unique_diamonds unique_diamonds")
-
-# Group diamonds by structure (comparing sets, not ordered lists)
-structural_groups = Dict{Tuple{Set{Tuple{Int64, Int64}}, Set{Int64}}, Vector{Any}}()
-
-for value in values(unique_diamonds)
-    # Convert edgelist to Set for order-independent comparison
-    edge_set = Set(value.diamond.edgelist)
-    key = (edge_set, value.diamond.conditioning_nodes)
-    
-    if !haskey(structural_groups, key)
-        structural_groups[key] = []
-    end
-    push!(structural_groups[key], value)
-end
-
-println("Found $(length(structural_groups)) structurally unique diamonds (ignoring order and root/sub context)")
-
-count = 1
-for (structure_key, group) in structural_groups
-    representative = first(group)
-    
-    println("=== STRUCTURALLY UNIQUE DIAMOND $count ===")
-    println("Edge list: ", representative.diamond.edgelist)
-    println("Conditioning nodes: ", representative.diamond.conditioning_nodes)
-    
-    # Calculate sink nodes
-    sources = Set([edge[1] for edge in representative.diamond.edgelist])
-    destinations = Set([edge[2] for edge in representative.diamond.edgelist])
-    sink_nodes = setdiff(destinations, sources)
-    println("Sink node(s): ", sink_nodes)
-    println("Duplicate instances: $(length(group))")
-    println()
-    
-    count += 1
-end
- =#
-
-println("Starting iterative belief update");
-start_time = time()
-output = IPAFramework.update_beliefs_iterative(
-    edgelist,
-    iteration_sets,
-    outgoing_index,
-    incoming_index,
-    source_nodes,
-    node_priors,
-    edge_probabilities,
-    descendants,
-    ancestors,
-    root_diamonds,
-    join_nodes,
-    fork_nodes,
-    unique_diamonds
-);
-
-# Calculate computation time
-computation_time = time() - start_time
-
-#show(output)
+result = run_load(network_name, data_type)
