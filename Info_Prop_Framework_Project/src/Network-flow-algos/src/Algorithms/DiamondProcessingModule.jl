@@ -227,11 +227,15 @@ module DiamondProcessingModule
 
 
      """
-    Create a unique hash key for a diamond based on relevant_nodes and conditioning_nodes
+    Create a unique hash key for a diamond based on edgelist and conditioning_nodes
     Much faster than using the full Sets as keys, especially for large diamonds
+    IMPORTANT: Sorts data to ensure consistent hashing regardless of insertion order
     """
     function create_diamond_hash_key(diamond::Diamond)::UInt64
-        return hash((diamond.edgelist, diamond.conditioning_nodes))
+        # Sort edgelist and conditioning_nodes for consistent hashing
+        sorted_edgelist = sort(diamond.edgelist)
+        sorted_conditioning = sort(collect(diamond.conditioning_nodes))
+        return hash((sorted_edgelist, sorted_conditioning))
     end
 
   
