@@ -760,7 +760,7 @@ function main()
     missions = generate_paper_based_missions(nodes_df)
 
     # Save first 8 diverse missions
-    selected_missions = missions[1:min(8, length(missions))]
+    selected_missions = missions[1:min(15, length(missions))]
 
      #=    # Use SPARSE extraction (reduces density from ~50% to ~20%!)
         mission_edges, mission_edge_probs, relevant_nodes = create_sparse_mission_dag_multiplex(

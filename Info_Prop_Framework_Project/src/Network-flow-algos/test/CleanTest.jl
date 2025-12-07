@@ -209,7 +209,7 @@ mc_results = MC_result_optimized(
     
     
 # Sort outputs
-sorted_algo = OrderedDict(sort(collect(result)));
+sorted_algo = OrderedDict(sort(collect(result.beliefs)));
 sorted_mc = OrderedDict(sort(collect(mc_results)));
 
 # Create base DataFrame using the float values directly
@@ -223,4 +223,21 @@ df = DataFrame(
 df.Diff = abs.(df.AlgoValue .- df.MCValue)
 # Display sorted result (if you want to sort by the difference)
 show(sort(df, :Diff, rev=true), allrows=true)
- =#
+
+using Printf
+
+# Compare with full precision
+println("\n" * "="^80)
+println("FULL PRECISION COMPARISON")
+println("="^80)
+
+for node in sort(collect(keys(result.beliefs)))
+    opt_val = result.beliefs[node]
+    orig_val = mc_results[node]  # or whatever the original result dict is called
+    diff = abs(opt_val - orig_val)
+    
+    @printf("Node %3d: Optimized = %.15f, Original = %.15f, Diff = %.2e\n", 
+            node, opt_val, orig_val, diff)
+end
+
+=#
