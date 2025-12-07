@@ -29,7 +29,8 @@ end
 # ============================================================================
 
 #network_name = "power-network"      # Simple: 23 nodes, 27 edges
-network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges, nested diamonds
+network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges,14 rooy diamonds, 132 unique diamonds
+
 #network_name = "central_scotland_1"
 #network_name = "glasgow_area"
 #network_name = "drone-network-full"
@@ -133,12 +134,13 @@ function run_load(network_name, data_type="float")
     println("   ✓ Built in $(round(t_storage, digits=3))s")
     println("   Unique diamonds: $(length(unique_diamonds))")
 
-  
-  #=   # ========================================================================
-    # STEP 5: Run Belief Propagation (NO CACHE)
-    # ========================================================================
-    println("\n🧮 STEP 5: Running belief propagation (NO pre-warming)...")
 
+    # ========================================================================
+    # STEP 5: Run Belief Propagation (PARALLEL)
+    # ========================================================================
+    println("\n🧮 STEP 5: Running PARALLEL belief propagation...")
+    println("   Threads: $(Threads.nthreads())")
+    println("   Parallelization: num_states >= 2, recursive")
 
     t_bp = @elapsed begin
         final_beliefs = update_beliefs_iterative(
@@ -156,11 +158,11 @@ function run_load(network_name, data_type="float")
         fork_nodes,
         unique_diamonds
     );
-        
+
     end
 
     println("   ✓ BP completed in $(round(t_bp, digits=3))s")
-    
+
     # ========================================================================
     # Results Summary
     # ========================================================================
@@ -168,26 +170,20 @@ function run_load(network_name, data_type="float")
     println("RESULTS SUMMARY")
     println("="^80)
 
-    println("\n📊 Sink Node Beliefs:")
-    for sink in sort(collect(sink_nodes))
-        if haskey(final_beliefs, sink)
-            println("   Node $sink: $(round(final_beliefs[sink], digits=10))")
-        end
-    end =#
-
+  
     println("\n⏱️  TIMING BREAKDOWN:")
     println("   Load network:     $(round(t_load, digits=3))s")
     println("   Build structure:  $(round(t_structure, digits=3))s")
     println("   Identify diamonds: $(round(t_diamonds, digits=3))s")
     println("   Build storage:    $(round(t_storage, digits=3))s")
-   #=  println("   Belief propagation: $(round(t_bp, digits=3))s")
+    println("   Belief propagation: $(round(t_bp, digits=3))s")
     println("   " * "-"^50)
     total_time = t_load + t_structure + t_diamonds + t_storage + t_bp
     println("   TOTAL TIME:       $(round(total_time, digits=3))s")
-=#
-    println("\n" * "="^80) 
 
-    #= return final_beliefs =#
+    println("\n" * "="^80)
+
+    return final_beliefs
 end
 
 # ============================================================================
@@ -199,3 +195,32 @@ data_type = "float"
 # data_type = "pbox"
 
 result = run_load(network_name, data_type)
+#= 
+mc_results = MC_result_optimized(
+        edgelist,
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities,
+        1_000_000
+    )
+
+    
+    
+# Sort outputs
+sorted_algo = OrderedDict(sort(collect(result)));
+sorted_mc = OrderedDict(sort(collect(mc_results)));
+
+# Create base DataFrame using the float values directly
+df = DataFrame(
+  Node = collect(keys(sorted_algo)),
+  AlgoValue = collect(values(sorted_algo)),
+  MCValue = collect(values(sorted_mc))
+)
+
+# Add a difference column (if needed)
+df.Diff = abs.(df.AlgoValue .- df.MCValue)
+# Display sorted result (if you want to sort by the difference)
+show(sort(df, :Diff, rev=true), allrows=true)
+ =#

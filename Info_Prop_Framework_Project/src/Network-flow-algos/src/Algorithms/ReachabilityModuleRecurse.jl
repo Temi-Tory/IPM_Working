@@ -35,7 +35,7 @@ module ReachabilityModule
     # Simplified key generation with type-aware hashing
     function make_cache_key(edgelist, current_priors)
         diamond_hash = hash(sort(edgelist))
-        
+
         # Create a hashable representation of priors based on type
         priors_for_hash = []
         for (node, value) in current_priors
@@ -55,12 +55,15 @@ module ReachabilityModule
                 push!(priors_for_hash, (node, string(value)))
             end
         end
-        
+
         priors_hash = hash(sort(priors_for_hash))
         return CacheKey(diamond_hash, priors_hash)
     end
 
-   
+    # Thread-safe lock for diamond cache access in parallel execution
+    const diamond_cache_lock = ReentrantLock()
+
+
 
     function validate_network_data(
         iteration_sets::Vector{Set{Int64}},
@@ -367,73 +370,166 @@ module ReachabilityModule
 
         # NEW: Use multi-conditioning approach
         conditioning_nodes_list = collect(unique(conditioning_nodes))
-        
-        
+
+
         # Generate all possible states of conditioning nodes (0 or 1)
         final_belief = zero_value(T)
-        
-        # Use binary representation for efficiency
-        for state_idx in 0:(2^length(conditioning_nodes_list) - 1)
-            # Calculate state probability
-            state_probability = one_value(T)
-            conditioning_state = Dict{Int64, T}()
-            
-            for (i, node) in enumerate(conditioning_nodes_list)
-                # Store original belief for this node
-                original_belief = belief_dict[node]
-                
-                # Check if the i-th bit is set
-                if (state_idx & (1 << (i-1))) != 0
-                    conditioning_state[node] = one_value(T)
-                    state_probability = multiply_values(state_probability, original_belief)
-                else
-                    conditioning_state[node] = zero_value(T)
-                    state_probability = multiply_values(state_probability, complement_value(original_belief))
+
+        # PARALLEL VERSION: Use Threads.@spawn for each conditioning state
+        # Each state is mathematically independent - parallelization maintains exactness
+        num_states = 2^length(conditioning_nodes_list)
+
+        # Only parallelize if we have threads available (even n=1 -> 2 states can benefit from parallelism)
+        # The real benefit comes from recursive parallelism where small diamonds contain larger nested diamonds
+        use_parallel = num_states >= 2 && Threads.nthreads() > 1
+
+        if use_parallel
+            # Parallel execution using tasks
+            tasks = Vector{Task}(undef, num_states)
+
+            for state_idx in 0:(num_states - 1)
+                tasks[state_idx + 1] = Threads.@spawn begin
+                    # Calculate state probability
+                    state_probability = one_value(T)
+                    conditioning_state = Dict{Int64, T}()
+
+                    for (i, node) in enumerate(conditioning_nodes_list)
+                        # Store original belief for this node
+                        original_belief = belief_dict[node]
+
+                        # Check if the i-th bit is set
+                        if (state_idx & (1 << (i-1))) != 0
+                            conditioning_state[node] = one_value(T)
+                            state_probability = multiply_values(state_probability, original_belief)
+                        else
+                            conditioning_state[node] = zero_value(T)
+                            state_probability = multiply_values(state_probability, complement_value(original_belief))
+                        end
+                    end
+
+                    # Make a copy of sub_node_priors for this iteration
+                    current_priors = copy(sub_node_priors)
+
+                    # Set conditioning nodes to their current state
+                    for (node, value) in conditioning_state
+                        current_priors[node] = value
+                    end
+
+                    # Generate cache key
+                    cache_key = make_cache_key(diamond.edgelist, current_priors)
+
+                    # Check cache first (need lock for thread safety)
+                    local state_beliefs
+                    lock(diamond_cache_lock) do
+                        if haskey(diamond_cache, cache_key)
+                            # Use cached result
+                            cached_entry = diamond_cache[cache_key]
+                            state_beliefs = cached_entry.state_beliefs
+                        else
+                            state_beliefs = nothing
+                        end
+                    end
+
+                    # Compute if not cached (this is the expensive part - do outside lock)
+                    if state_beliefs === nothing
+                        state_beliefs = update_beliefs_iterative(
+                            diamond.edgelist,
+                            sub_iteration_sets,
+                            sub_outgoing_index,
+                            sub_incoming_index,
+                            fresh_sources,
+                            current_priors,
+                            sub_link_probability,
+                            sub_descendants,
+                            sub_ancestors,
+                            sub_diamond_structures,
+                            sub_join_nodes,
+                            sub_fork_nodes,
+                            computation_lookup,
+                            diamond_cache
+                        )
+
+                        # Store in cache (need lock)
+                        lock(diamond_cache_lock) do
+                            # Check again in case another thread computed it
+                            if !haskey(diamond_cache, cache_key)
+                                diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
+                            end
+                        end
+                    end
+
+                    # Return the weighted contribution from this state
+                    join_belief = state_beliefs[join_node]
+                    multiply_values(join_belief, state_probability)
                 end
             end
-            
-            # Make a copy of sub_node_priors for this iteration
-            current_priors = copy(sub_node_priors)
-            
-            # Set conditioning nodes to their current state
-            for (node, value) in conditioning_state
-                current_priors[node] = value
-            end
-            
-            #store diamond diamond.edgelist, current_priors, state_beliefs
-            # Generate cache key
-            cache_key = make_cache_key(diamond.edgelist, current_priors)
-            
-           
-            # Check cache first
-            if haskey(diamond_cache, cache_key)
-                # Use cached result
-                cached_entry = diamond_cache[cache_key]
-                state_beliefs = cached_entry.state_beliefs
-            else
-                                
-                state_beliefs = update_beliefs_iterative(
-                    diamond.edgelist,
-                    sub_iteration_sets,
-                    sub_outgoing_index,
-                    sub_incoming_index,
-                    fresh_sources,
-                    current_priors,
-                    sub_link_probability,
-                    sub_descendants,
-                    sub_ancestors,
-                    sub_diamond_structures,
-                    sub_join_nodes,
-                    sub_fork_nodes,
-                    computation_lookup,
-                    diamond_cache
-                )
-               diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
-            end
 
-            # Weight the result by the probability of this state
-            join_belief = state_beliefs[join_node]
-            final_belief = add_values(final_belief, multiply_values(join_belief, state_probability))
+            # Collect results from all parallel tasks and sum (reduction)
+            for task in tasks
+                partial_result = fetch(task)
+                final_belief = add_values(final_belief, partial_result)
+            end
+        else
+            # Sequential execution (original implementation)
+            for state_idx in 0:(num_states - 1)
+                # Calculate state probability
+                state_probability = one_value(T)
+                conditioning_state = Dict{Int64, T}()
+
+                for (i, node) in enumerate(conditioning_nodes_list)
+                    # Store original belief for this node
+                    original_belief = belief_dict[node]
+
+                    # Check if the i-th bit is set
+                    if (state_idx & (1 << (i-1))) != 0
+                        conditioning_state[node] = one_value(T)
+                        state_probability = multiply_values(state_probability, original_belief)
+                    else
+                        conditioning_state[node] = zero_value(T)
+                        state_probability = multiply_values(state_probability, complement_value(original_belief))
+                    end
+                end
+
+                # Make a copy of sub_node_priors for this iteration
+                current_priors = copy(sub_node_priors)
+
+                # Set conditioning nodes to their current state
+                for (node, value) in conditioning_state
+                    current_priors[node] = value
+                end
+
+                # Generate cache key
+                cache_key = make_cache_key(diamond.edgelist, current_priors)
+
+                # Check cache first
+                if haskey(diamond_cache, cache_key)
+                    # Use cached result
+                    cached_entry = diamond_cache[cache_key]
+                    state_beliefs = cached_entry.state_beliefs
+                else
+                    state_beliefs = update_beliefs_iterative(
+                        diamond.edgelist,
+                        sub_iteration_sets,
+                        sub_outgoing_index,
+                        sub_incoming_index,
+                        fresh_sources,
+                        current_priors,
+                        sub_link_probability,
+                        sub_descendants,
+                        sub_ancestors,
+                        sub_diamond_structures,
+                        sub_join_nodes,
+                        sub_fork_nodes,
+                        computation_lookup,
+                        diamond_cache
+                    )
+                    diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
+                end
+
+                # Weight the result by the probability of this state
+                join_belief = state_beliefs[join_node]
+                final_belief = add_values(final_belief, multiply_values(join_belief, state_probability))
+            end
         end
         
         

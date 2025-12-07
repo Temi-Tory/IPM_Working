@@ -101,7 +101,7 @@ mc_results = MC_result_optimized(
         source_nodes,
         node_priors,
         edge_probabilities,
-        10_000_000
+        100_000
     )
 
 
