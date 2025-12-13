@@ -29,8 +29,8 @@ end
 # ============================================================================
 
 #network_name = "power-network"      # Simple: 23 nodes, 27 edges
-network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges,14 rooy diamonds, 132 unique diamonds
-
+#network_name = "drone-network-balanced-k3"         # Complex: 17 nodes, 135 edges,14 rooy diamonds, 132 unique diamonds
+network_name = "HB0_local_1"   
 #network_name = "central_scotland_1"
 #network_name = "glasgow_area"
 #network_name = "drone-network-full"
@@ -209,7 +209,7 @@ mc_results = MC_result_optimized(
     
     
 # Sort outputs
-sorted_algo = OrderedDict(sort(collect(result.beliefs)));
+sorted_algo = OrderedDict(sort(collect(result)));
 sorted_mc = OrderedDict(sort(collect(mc_results)));
 
 # Create base DataFrame using the float values directly
@@ -231,9 +231,9 @@ println("\n" * "="^80)
 println("FULL PRECISION COMPARISON")
 println("="^80)
 
-for node in sort(collect(keys(result.beliefs)))
-    opt_val = result.beliefs[node]
-    orig_val = mc_results[node]  # or whatever the original result dict is called
+for node in sort(collect(keys(result)))
+    opt_val = result[node]
+    orig_val = mc_results[node]  
     diff = abs(opt_val - orig_val)
     
     @printf("Node %3d: Optimized = %.15f, Original = %.15f, Diff = %.2e\n", 

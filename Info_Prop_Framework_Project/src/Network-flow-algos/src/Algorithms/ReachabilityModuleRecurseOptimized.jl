@@ -406,17 +406,16 @@ module ReachabilityModuleOptimized
                         end
                     end
 
-                    # OPTIMIZED: Mutate sub_node_priors in place instead of copy
-                    original_values = Dict{Int64, Float64}()
+                    # THREAD-SAFE FIX: Create thread-local copy instead of mutating shared dictionary
+                    local_sub_node_priors = copy(sub_node_priors)
+
+                    # Apply conditioning state to the local copy
                     for (node, value) in conditioning_state
-                        if haskey(sub_node_priors, node)
-                            original_values[node] = sub_node_priors[node]
-                        end
-                        sub_node_priors[node] = value
+                        local_sub_node_priors[node] = value
                     end
 
-                    # Generate cache key
-                    cache_key = make_cache_key(diamond.edgelist, sub_node_priors)
+                    # Generate cache key using local copy
+                    cache_key = make_cache_key(diamond.edgelist, local_sub_node_priors)
 
                     # Check cache first (need lock for thread safety)
                     local state_beliefs
@@ -438,7 +437,7 @@ module ReachabilityModuleOptimized
                             sub_outgoing_index,
                             sub_incoming_index,
                             fresh_sources,
-                            sub_node_priors,
+                            local_sub_node_priors,  # Use local copy instead of shared
                             sub_link_probability,
                             sub_descendants,
                             sub_ancestors,
@@ -453,20 +452,12 @@ module ReachabilityModuleOptimized
                         lock(diamond_cache_lock) do
                             # Check again in case another thread computed it
                             if !haskey(diamond_cache, cache_key)
-                                diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, copy(sub_node_priors), state_beliefs)
+                                diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, local_sub_node_priors, state_beliefs)
                             end
                         end
                     end
 
-                    # OPTIMIZED: Restore original values in sub_node_priors
-                    for (node, orig_val) in original_values
-                        sub_node_priors[node] = orig_val
-                    end
-                    for node in keys(conditioning_state)
-                        if !haskey(original_values, node) && haskey(sub_node_priors, node)
-                            delete!(sub_node_priors, node)
-                        end
-                    end
+                    # No restoration needed - we used a local copy
 
                     # Return the weighted contribution from this state
                     join_belief = state_beliefs[join_node]
@@ -500,17 +491,16 @@ module ReachabilityModuleOptimized
                     end
                 end
 
-                # OPTIMIZED: Mutate sub_node_priors in place instead of copy
-                original_values = Dict{Int64, Float64}()
+                # THREAD-SAFE FIX: Create local copy instead of mutating shared dictionary
+                local_sub_node_priors = copy(sub_node_priors)
+
+                # Apply conditioning state to the local copy
                 for (node, value) in conditioning_state
-                    if haskey(sub_node_priors, node)
-                        original_values[node] = sub_node_priors[node]
-                    end
-                    sub_node_priors[node] = value
+                    local_sub_node_priors[node] = value
                 end
 
-                # Generate cache key
-                cache_key = make_cache_key(diamond.edgelist, sub_node_priors)
+                # Generate cache key using local copy
+                cache_key = make_cache_key(diamond.edgelist, local_sub_node_priors)
 
                 # Check cache first
                 if haskey(diamond_cache, cache_key)
@@ -524,7 +514,7 @@ module ReachabilityModuleOptimized
                         sub_outgoing_index,
                         sub_incoming_index,
                         fresh_sources,
-                        sub_node_priors,
+                        local_sub_node_priors,  # Use local copy
                         sub_link_probability,
                         sub_descendants,
                         sub_ancestors,
@@ -534,18 +524,10 @@ module ReachabilityModuleOptimized
                         computation_lookup,
                         diamond_cache
                     )
-                    diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, copy(sub_node_priors), state_beliefs)
+                    diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, local_sub_node_priors, state_beliefs)
                 end
 
-                # OPTIMIZED: Restore original values in sub_node_priors
-                for (node, orig_val) in original_values
-                    sub_node_priors[node] = orig_val
-                end
-                for node in keys(conditioning_state)
-                    if !haskey(original_values, node) && haskey(sub_node_priors, node)
-                        delete!(sub_node_priors, node)
-                    end
-                end
+                # No restoration needed - we used a local copy
 
                 # Weight the result by the probability of this state
                 join_belief = state_beliefs[join_node]

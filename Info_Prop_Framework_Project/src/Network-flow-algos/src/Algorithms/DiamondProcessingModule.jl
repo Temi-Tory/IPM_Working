@@ -81,6 +81,11 @@ module DiamondProcessingModule
         # Ready-to-use inner diamonds for recursive calls
         sub_diamond_structures::Dict{Int64, DiamondsAtNode}
         diamond::Diamond
+
+        # NEW: Dependency tracking (computed during build_unique_diamond_storage)
+        depth_level::Int64                      # Nesting depth (0 = leaf diamond, no sub-diamonds)
+        child_diamond_hashes::Set{UInt64}       # Hashes of immediate sub-diamonds
+        num_conditioning_nodes::Int64           # Number of conditioning nodes (2^n enumeration cost)
     end
 
     # Optimization statistics tracking
@@ -1407,6 +1412,28 @@ function build_unique_diamond_storage(
             push!(work_stack, sub_item)
         end
                 
+        # Compute dependency metadata
+        child_hashes = Set{UInt64}()
+        for (sub_join_node, sub_diamond_at_node) in filtered_sub_diamonds
+            child_hash = create_diamond_hash_key(sub_diamond_at_node.diamond)
+            push!(child_hashes, child_hash)
+        end
+
+        # Compute depth based on children (if all children already processed)
+        depth = 0
+        if !isempty(child_hashes)
+            # Get max depth from children + 1
+            max_child_depth = 0
+            for child_hash in child_hashes
+                if haskey(unique_diamonds, child_hash)
+                    max_child_depth = max(max_child_depth, unique_diamonds[child_hash].depth_level)
+                end
+            end
+            depth = max_child_depth + 1
+        end
+
+        num_conditioning = length(current_diamond.conditioning_nodes)
+
         # Store the computation data
         computation_data = DiamondComputationData{T}(
             sub_outgoing_index,
@@ -1420,7 +1447,10 @@ function build_unique_diamond_storage(
             sub_node_priors,
             is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             filtered_sub_diamonds,
-            current_diamond
+            current_diamond,
+            depth,              # NEW: depth_level
+            child_hashes,       # NEW: child_diamond_hashes
+            num_conditioning    # NEW: num_conditioning_nodes
         )
         
         unique_diamonds[current_item.diamond_hash] = computation_data
@@ -1723,6 +1753,19 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             )
         end
         
+        # Compute dependency metadata
+        child_hashes = Set{UInt64}()
+        for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
+            child_hash = create_diamond_hash_key(sub_diamond_at_node.diamond)
+            push!(child_hashes, child_hash)
+        end
+
+        # NOTE: Depth will be computed in second pass after LIFO stack is empty
+        # For now, store temporary depth = -1 to indicate "not yet computed"
+        depth = -1
+
+        num_conditioning = length(current_diamond.conditioning_nodes)
+
         # Create computation data
         computation_data = DiamondComputationData{eltype(values(node_priors))}(
             sub_outgoing_index,
@@ -1736,7 +1779,10 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             sub_node_priors,
             is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             sub_diamonds_dict,
-            current_diamond
+            current_diamond,
+            depth,              # NEW: depth_level
+            child_hashes,       # NEW: child_diamond_hashes
+            num_conditioning    # NEW: num_conditioning_nodes
         )
         
         # Store result locally
@@ -1779,10 +1825,105 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             ###println("🔧 Thread $thread_id: Processed $diamonds_processed diamonds, stack size: $(length(local_work_stack))")
         end
     end
-    
+
     thread_id = Threads.threadid()
     ###println("🎯 Thread $thread_id: Completed subtree with $(length(local_unique_diamonds)) unique diamonds")
-    
+
+    # ========================================================================
+    # SECOND PASS: Compute depths now that all diamonds in subtree are processed
+    # ========================================================================
+    # We need to compute depths bottom-up, so diamonds with no children get depth 0,
+    # and parents get max(child_depths) + 1
+
+    # Find all diamonds with no children (leaf diamonds)
+    diamonds_to_process = Set{UInt64}()
+    for (hash, comp_data) in local_unique_diamonds
+        if isempty(comp_data.child_diamond_hashes)
+            # Leaf diamond - depth 0
+            updated_data = DiamondComputationData{eltype(values(node_priors))}(
+                comp_data.sub_outgoing_index,
+                comp_data.sub_incoming_index,
+                comp_data.sub_sources,
+                comp_data.sub_fork_nodes,
+                comp_data.sub_join_nodes,
+                comp_data.sub_ancestors,
+                comp_data.sub_descendants,
+                comp_data.sub_iteration_sets,
+                comp_data.sub_node_priors,
+                comp_data.is_rootDiamond,
+                comp_data.sub_diamond_structures,
+                comp_data.diamond,
+                0,  # depth = 0 for leaf diamonds
+                comp_data.child_diamond_hashes,
+                comp_data.num_conditioning_nodes
+            )
+            local_unique_diamonds[hash] = updated_data
+        else
+            push!(diamonds_to_process, hash)
+        end
+    end
+
+    # Process remaining diamonds iteratively until all depths computed
+    max_iterations = 100  # Safety limit
+    iteration = 0
+    while !isempty(diamonds_to_process) && iteration < max_iterations
+        iteration += 1
+        made_progress = false
+
+        for hash in collect(diamonds_to_process)
+            comp_data = local_unique_diamonds[hash]
+
+            # Check if all children have their depths computed
+            all_children_ready = true
+            max_child_depth = -1
+
+            for child_hash in comp_data.child_diamond_hashes
+                if haskey(local_unique_diamonds, child_hash)
+                    child_depth = local_unique_diamonds[child_hash].depth_level
+                    if child_depth == -1
+                        all_children_ready = false
+                        break
+                    end
+                    max_child_depth = max(max_child_depth, child_depth)
+                end
+            end
+
+            if all_children_ready
+                # Compute this diamond's depth
+                computed_depth = max_child_depth + 1
+
+                updated_data = DiamondComputationData{eltype(values(node_priors))}(
+                    comp_data.sub_outgoing_index,
+                    comp_data.sub_incoming_index,
+                    comp_data.sub_sources,
+                    comp_data.sub_fork_nodes,
+                    comp_data.sub_join_nodes,
+                    comp_data.sub_ancestors,
+                    comp_data.sub_descendants,
+                    comp_data.sub_iteration_sets,
+                    comp_data.sub_node_priors,
+                    comp_data.is_rootDiamond,
+                    comp_data.sub_diamond_structures,
+                    comp_data.diamond,
+                    computed_depth,
+                    comp_data.child_diamond_hashes,
+                    comp_data.num_conditioning_nodes
+                )
+                local_unique_diamonds[hash] = updated_data
+                delete!(diamonds_to_process, hash)
+                made_progress = true
+            end
+        end
+
+        if !made_progress
+            # Shouldn't happen, but safety check
+            ###println("⚠️  Warning: Depth computation stalled with $(length(diamonds_to_process)) diamonds remaining")
+            break
+        end
+    end
+
+    ###println("🎯 Thread $thread_id: Computed depths in $iteration iterations")
+
     return local_unique_diamonds
 end
 

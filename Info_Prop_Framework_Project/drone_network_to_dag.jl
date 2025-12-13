@@ -1128,59 +1128,7 @@ function generate_all_justified_networks()
     println("Ready for belief propagation case studies!")
 end
 
-#= function main()
-    """Main function to convert drone network to DAG format"""
-    println("=== Drone Network to DAG Conversion (Multiplex: VTOL + Fixed-Wing) ===")
-
-    # Load data
-    nodes_df, drone1_matrix, drone2_matrix = load_drone_network_data()
-
-    # Calculate node priors
-    node_priors = calculate_node_priors(nodes_df)
-    println("Calculated node priors for $(length(node_priors)) nodes")
-
-    # Create full network DAG using BOTH drone types (multiplex network)
-    println("\n--- Creating Full Multiplex Network DAG ---")
-    full_edges, full_edge_probs = create_multiplex_dag_from_matrices(nodes_df, drone1_matrix, drone2_matrix)
-    save_dag_files("drone-network-full", full_edges, full_edge_probs, node_priors)
-
-    # Create paper-based mission DAGs using both drone types
-    println("\n--- Creating Paper-Based Mission DAGs (Multiplex) ---")
-    missions = generate_paper_based_missions(nodes_df)
-
-    # Save first 8 diverse missions
-    selected_missions = missions[1:min(15, length(missions))]
-
-     #=    # Use SPARSE extraction (reduces density from ~50% to ~20%!)
-        mission_edges, mission_edge_probs, relevant_nodes = create_sparse_mission_dag_multiplex(
-            nodes_df, drone1_matrix, drone2_matrix, pickup, delivery, 2  # k=2 alternatives
-        ) =#
-
-    for (i, (pickup, delivery, mission_name, description)) in enumerate(selected_missions)
-        println("\nMission $i ($mission_name): $description")
-        mission_edges, mission_edge_probs, relevant_nodes = create_mission_dag_multiplex(
-            nodes_df, drone1_matrix, drone2_matrix, pickup, delivery
-        )
-
-        save_dag_files(mission_name, mission_edges, mission_edge_probs,
-                      node_priors, relevant_nodes)
-    end
-
-    println("\n=== Conversion Complete ===")
-    println("Generated multiplex DAG files in: $OUTPUT_DIR")
-    println("- Full network: drone-network-full (VTOL + Fixed-Wing layers)")
-    println("- Mission types created:")
-    for (i, (_, _, mission_name, description)) in enumerate(selected_missions)
-        println("  * $mission_name: $description")
-    end
-    println("\nNetwork Structure:")
-    println("  - VTOL layer: 70km max range (local connectivity)")
-    println("  - Fixed-wing layer: 700km max range (long-distance/island connectivity)")
-    println("  - Total edges: combines both layers with max probability for overlapping connections")
-    println("\nReady to test with your signal propagation algorithm!")
-end =#
-
-# Run the conversion
+# Run the justified network generation (avoids stack overflow)
 if abspath(PROGRAM_FILE) == @__FILE__
-    main()
+    generate_all_justified_networks()
 end

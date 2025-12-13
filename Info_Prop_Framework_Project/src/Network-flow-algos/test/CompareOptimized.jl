@@ -30,7 +30,14 @@ end
 # Network Selection
 # ============================================================================
 
-network_name = "HB0_local_2"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
+#= dag_ntwrk_files\drone-network-balanced-k3
+dag_ntwrk_files\drone-network-cost-optimal
+dag_ntwrk_files\drone-network-geographic-knn
+dag_ntwrk_files\drone-network-resilience-optimal-k5
+dag_ntwrk_files\drone-network-time-optimal-k2 =#
+network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
+
+#network_name = "drone-network-geographic-knn"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
 
 # ============================================================================
 # Test Function (Parameterized for both versions)
@@ -195,3 +202,51 @@ println("\n✅ Test complete! Run CleanTest.jl separately to compare with origin
 # Store result
 global test_result = result
 result.beliefs
+
+#= 
+mc_results = MC_result_optimized(
+        edgelist,
+        outgoing_index,
+        incoming_index,
+        source_nodes,
+        node_priors,
+        edge_probabilities,
+        5_000_000
+    )
+
+    
+    
+# Sort outputs
+sorted_algo = OrderedDict(sort(collect(result.beliefs)));
+sorted_mc = OrderedDict(sort(collect(mc_results)));
+
+# Create base DataFrame using the float values directly
+df = DataFrame(
+  Node = collect(keys(sorted_algo)),
+  AlgoValue = collect(values(sorted_algo)),
+  MCValue = collect(values(sorted_mc))
+)
+
+# Add a difference column (if needed)
+df.Diff = abs.(df.AlgoValue .- df.MCValue)
+# Display sorted result (if you want to sort by the difference)
+show(sort(df, :Diff, rev=true), allrows=true)
+
+
+using Printf
+
+# Compare with full precision
+println("\n" * "="^80)
+println("FULL PRECISION COMPARISON")
+println("="^80)
+
+for node in sort(collect(keys(result.beliefs)))
+    opt_val = result.beliefs[node]
+    orig_val = mc_results[node]  # or whatever the original result dict is called
+    diff = abs(opt_val - orig_val)
+    
+    @printf("Node %3d: Optimized = %.15f, Original = %.15f, Diff = %.2e\n", 
+            node, opt_val, orig_val, diff)
+end
+
+ =#

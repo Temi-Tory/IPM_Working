@@ -4,6 +4,7 @@ module IPAFrameworkOptimized
     include("Algorithms/InputProcessingModule.jl")
     include("Algorithms/DiamondProcessingModule.jl")
     include("Algorithms/ReachabilityModuleRecurseOptimized.jl")  # OPTIMIZED MODULE
+    include("Algorithms/ReachabilityModuleIterative.jl")  # ITERATIVE MODULE (work-queue based)
     include("Algorithms/ComparisonModules.jl")
     include("Algorithms/VisualizeGraphsModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
@@ -32,6 +33,10 @@ module IPAFrameworkOptimized
     using .ReachabilityModuleOptimized: validate_network_data, update_beliefs_iterative, updateDiamondJoin,
                               calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
                               convert_to_pbox_data
+
+    # ITERATIVE: Import iterative version with different name to avoid conflict
+    using .ReachabilityModuleIterative
+    const update_beliefs_iterative_stack = ReachabilityModuleIterative.update_beliefs_iterative
 
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
 
@@ -92,6 +97,9 @@ module IPAFrameworkOptimized
         validate_network_data, update_beliefs_iterative, updateDiamondJoin,
         calculate_diamond_groups_belief, calculate_regular_belief, inclusion_exclusion,
         convert_to_pbox_data,
+
+        # ITERATIVE: Work-queue based BP (for stack overflow handling)
+        update_beliefs_iterative_stack,
 
         # Comparison and verification
         MC_result, has_path, path_enumeration_result,
