@@ -28,7 +28,7 @@ end
 # Network Selection
 # ============================================================================
 
-network_name = "drone-network-balanced-k3"
+network_name = "drone-network-geographic-knn"
 data_type = "float"
 
 # ============================================================================
@@ -113,6 +113,23 @@ function run_debug_full_diamond_processing(network_name, data_type="float")
 
     println("   ✓ Identified in $(round(t_diamonds, digits=3))s")
     println("   Root diamonds: $(length(root_diamonds))")
+
+    # Check root_diamonds for empty conditioning nodes
+    println("\n🔍 Checking root_diamonds (Step 3 output) for empty conditioning...")
+    empty_root_count = 0
+    for (join_node, diamond_at_node) in root_diamonds
+        if isempty(diamond_at_node.diamond.conditioning_nodes)
+            empty_root_count += 1
+            println("  ❌ EMPTY CONDITIONING in root_diamonds!")
+            println("     Join Node: ", join_node)
+            println("     Relevant Nodes: ", sort(collect(diamond_at_node.diamond.relevant_nodes)))
+        end
+    end
+    if empty_root_count == 0
+        println("   ✅ All root_diamonds have non-empty conditioning nodes")
+    else
+        println("   ❌ Found $empty_root_count root_diamonds with empty conditioning!")
+    end
 
     # ========================================================================
     # STEP 4: Build Unique Diamond Storage
@@ -277,5 +294,9 @@ end
 # Run the test
 # ============================================================================
 
-# Run directly without file redirection to see all prints
-result = run_debug_full_diamond_processing(network_name, data_type)
+# Run and save to file
+open("output_k5_debug.txt", "w") do io
+    redirect_stdout(io) do
+        result = run_debug_full_diamond_processing(network_name, data_type);
+    end
+end

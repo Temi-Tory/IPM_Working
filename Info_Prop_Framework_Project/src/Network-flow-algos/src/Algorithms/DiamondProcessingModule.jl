@@ -1144,9 +1144,14 @@ function identify_and_group_diamonds(
             final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes, shared_fork_ancestors,
             ancestors, descendants, fork_nodes, irrelevant_sources, incoming_index, join_node, exluded_nodes, edgelist, ctx
         )
-        
-       
-        
+
+        # BUGFIX #4 (Part 2): Skip diamonds with empty conditioning after recursive completeness
+        # State reversion in perform_recursive_diamond_completeness handles over-expansion,
+        # but if initial state was already invalid (empty intersection), we must skip entirely
+        if isempty(final_highest_nodes)
+            continue
+        end
+
         diamond, non_diamond_parents = build_final_diamond_structure(
             final_edgelist, final_relevant_nodes_for_induced, final_shared_fork_ancestors, final_highest_nodes,
             parents, diamond_parents, join_node, exluded_nodes, ctx

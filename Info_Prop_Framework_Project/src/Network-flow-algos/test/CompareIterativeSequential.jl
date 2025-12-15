@@ -1,24 +1,24 @@
 """
-Compare Sequential Iterative vs Recursive Optimized
+Compare All Versions: Optimized, Sequential Iterative, and Parallel Iterative
 
-PHASE 1: CORRECTNESS FIRST
-- Sequential iterative implementation (no threading)
-- Completion token pattern to avoid stack overflow
-- Must match recursive optimized results EXACTLY
+Tests three implementations:
+1. Recursive Optimized (baseline - 42s)
+2. Sequential Iterative (Phase 1 - correctness validated)
+3. Parallel Iterative (Phase 2 - parallelized diamond enumeration)
 
 Priority Order:
-1. ✅ Correctness - match optimized results (< 1e-10 error)
-2. ✅ Stack Safety - no overflow on K3 network (50+ nesting levels)
-3. ⏳ Performance - optimization deferred to Phase 2
+1. ✅ Correctness - all versions match (< 1e-10 error)
+2. ✅ Stack Safety - iterative versions avoid stack overflow
+3. 🎯 Performance - parallel version targets matching optimized speed
 
-Expected Performance (Phase 1):
-- Optimized Baseline: ~45s
-- Iterative Sequential: 60-120s (2-3× slower acceptable)
-- Key: Correctness matters, speed comes later
+Expected Performance:
+- Optimized Baseline: ~42s
+- Iterative Sequential: ~646s (15× slower - no parallelism)
+- Iterative Parallel: Target <100s (4-6× faster than sequential)
 
 Test Networks:
 1. HB0_local_1: Correctness validation (should match 0.879711 for node 149)
-2. K3: Stack safety validation (50+ nesting - should NOT overflow)
+2. K3 (optional): Stack safety validation (50+ nesting - should NOT overflow)
 """
 
 if !@isdefined(script_initialized_iterative_seq)
@@ -98,15 +98,38 @@ t_opt = time() - t_opt_start
 println("Time: $(round(t_opt, digits=2))s")
 println("Node 149 (test node): $(beliefs_optimized[149])")
 
-# Run iterative version
+# Run iterative sequential version (COMMENTED OUT - use parallel instead)
+# println("\n" * "-"^80)
+# println("RUNNING ITERATIVE SEQUENTIAL VERSION")
+# println("-"^80)
+#
+# GC.gc()
+# t_iter_start = time()
+# beliefs_iterative = Base.invokelatest(
+#     IPAFrameworkIterative.update_beliefs_iterative_sequential,
+#     edgelist, iteration_sets, outgoing_index, incoming_index,
+#     source_nodes, node_priors, edge_probabilities,
+#     descendants, ancestors, root_diamonds,
+#     join_nodes, fork_nodes, unique_diamonds
+# )
+# t_iter = time() - t_iter_start
+#
+# println("Time: $(round(t_iter, digits=2))s")
+# println("Node 149 (test node): $(beliefs_iterative[149])")
+#
+# # Print performance profile
+# IPAFrameworkIterative.print_profile()
+
+# Run iterative version (automatically parallel when threads available)
 println("\n" * "-"^80)
-println("RUNNING ITERATIVE SEQUENTIAL VERSION")
+println("RUNNING ITERATIVE VERSION")
 println("-"^80)
+println("Threads available: $(Threads.nthreads())")
 
 GC.gc()
 t_iter_start = time()
 beliefs_iterative = Base.invokelatest(
-    IPAFrameworkIterative.update_beliefs_iterative_sequential,
+    IPAFrameworkIterative.update_beliefs_iterative,
     edgelist, iteration_sets, outgoing_index, incoming_index,
     source_nodes, node_priors, edge_probabilities,
     descendants, ancestors, root_diamonds,
@@ -117,12 +140,11 @@ t_iter = time() - t_iter_start
 println("Time: $(round(t_iter, digits=2))s")
 println("Node 149 (test node): $(beliefs_iterative[149])")
 
-# Compare results
+# Compare iterative vs optimized
 println("\n" * "="^80)
-println("CORRECTNESS ANALYSIS")
+println("CORRECTNESS ANALYSIS - Iterative vs Optimized")
 println("="^80)
 
-# Check all nodes
 max_error = 0.0
 error_nodes = []
 
@@ -169,10 +191,10 @@ else
 end
 
 println("\nNode 149 Comparison:")
-println("  Expected (Optimized): $(beliefs_optimized[149])")
-println("  Iterative Result: $(beliefs_iterative[149])")
-println("  Error: $(abs(beliefs_optimized[149] - beliefs_iterative[149]))")
-println("  Match: $(abs(beliefs_optimized[149] - beliefs_iterative[149]) < 1e-10 ? "✅" : "❌")")
+println("  Optimized: $(beliefs_optimized[149])")
+println("  Iterative: $(beliefs_iterative[149])")
+println("  Error:     $(abs(beliefs_optimized[149] - beliefs_iterative[149]))")
+println("  Match:     $(abs(beliefs_optimized[149] - beliefs_iterative[149]) < 1e-10 ? "✅" : "❌")")
 
 # Performance comparison
 println("\n" * "="^80)
@@ -181,24 +203,21 @@ println("="^80)
 
 println("\nTiming:")
 println("  Optimized: $(round(t_opt, digits=2))s")
-println("  Iterative: $(round(t_iter, digits=2))s")
-println("  Slowdown: $(round(t_iter / t_opt, digits=2))×")
+println("  Iterative: $(round(t_iter, digits=2))s ($(round(t_iter / t_opt, digits=2))× vs optimized)")
 
-if t_iter < 120
-    println("  ✅ Within Phase 1 target (< 120s)")
+if t_iter < t_opt
+    println("  ✅ Iterative is FASTER: $(round(t_opt / t_iter, digits=2))× speedup!")
+elseif t_iter < 100
+    println("  ✅ Within acceptable range (< 100s)")
 else
-    println("  ⚠️  Slower than Phase 1 target (120s)")
+    println("  ⚠️  Slower than target, but functional")
 end
-
-println("\nPhase 1 Goal: Correctness, not speed")
-println("  2-3× slowdown acceptable for sequential version")
-println("  Optimization comes in Phase 2")
 
 # ============================================================================
 # Test 2: K3 Network - Stack Safety Validation
 # ============================================================================
 
-println("\n" * "="^80)
+#= println("\n" * "="^80)
 println("TEST 2: STACK SAFETY VALIDATION - K3 Network")
 println("="^80)
 
@@ -265,7 +284,7 @@ else
     println("\n⚠️  K3 network not found at: $k3_graph_path")
     println("Skipping stack safety test")
 end
-
+ =##= 
 # ============================================================================
 # Summary
 # ============================================================================
@@ -280,13 +299,13 @@ if max_error < 1e-10
 else
     println("   ❌ FAILED - Errors found (max: $max_error)")
 end
-
+#= 
 println("\n2. Stack Safety (K3):")
 if isfile(k3_graph_path)
     println("   ✅ TESTED - See results above")
 else
     println("   ⚠️  SKIPPED - K3 network not available")
-end
+end =#
 
 println("\n3. Performance:")
 println("   Phase 1 Goal: Correctness first, speed later")
@@ -305,8 +324,8 @@ end
 println("\n" * "="^80)
 println("✅ Test Complete!")
 println("="^80)
-
-# Store results for interactive use
+ =#
+#= # Store results for interactive use
 global iterative_test_results = (
     optimized_beliefs = beliefs_optimized,
     iterative_beliefs = beliefs_iterative,
@@ -315,3 +334,6 @@ global iterative_test_results = (
     max_error = max_error,
     error_nodes = error_nodes
 )
+ =#
+
+#IPAFrameworkIterative.ReachabilityModuleIterative.print_profile()

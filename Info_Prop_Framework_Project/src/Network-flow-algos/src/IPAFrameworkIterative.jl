@@ -27,13 +27,13 @@ module IPAFrameworkIterative
                                  read_edge_probabilities_from_json,
                                  read_complete_network
 
-    using .DiamondProcessingModule: DiamondsAtNode, Diamond, DiamondComputationData,DCD_WithDepth,
+    using .DiamondProcessingModule: DiamondsAtNode, Diamond, DiamondComputationData,
                                    identify_and_group_diamonds, build_unique_diamond_storage,
                                    build_unique_diamond_storage_depth_first_parallel,compute_diamond_depths,
                                    create_diamond_hash_key
 
     # ITERATIVE: Import from ReachabilityModuleIterative
-    using .ReachabilityModuleIterative: update_beliefs_iterative_sequential,
+    using .ReachabilityModuleIterative: update_beliefs_iterative,
                                         set_log_file!, disable_logging!
 
     using .ComparisonModules: MC_result, has_path, path_enumeration_result
@@ -69,7 +69,7 @@ module IPAFrameworkIterative
     # EXPORTS - Organized by module
     export
         # Core types
-        DiamondsAtNode, Diamond, DiamondComputationData,DCD_WithDepth,
+        DiamondsAtNode, Diamond, DiamondComputationData,
         Interval, pbox, PBA,  # Uncertainty types
         TimeUnit, NonNegativeTime,  # Time types
 
@@ -90,8 +90,8 @@ module IPAFrameworkIterative
         identify_and_group_diamonds, build_unique_diamond_storage,
         build_unique_diamond_storage_depth_first_parallel,compute_diamond_depths, create_diamond_hash_key,
 
-        # ITERATIVE: Sequential belief propagation (Phase 1 - correctness first)
-        update_beliefs_iterative_sequential,
+        # ITERATIVE: Belief propagation (automatically parallel when threads available)
+        update_beliefs_iterative,
         set_log_file!, disable_logging!,
 
         # Comparison and verification
