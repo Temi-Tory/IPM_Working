@@ -35,7 +35,7 @@ dag_ntwrk_files\drone-network-cost-optimal
 dag_ntwrk_files\drone-network-geographic-knn
 dag_ntwrk_files\drone-network-resilience-optimal-k5
 dag_ntwrk_files\drone-network-time-optimal-k2 =#
-network_name = "HB0_local_1"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
+network_name = "drone-network-balanced-k3"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
 
 #network_name = "drone-network-geographic-knn"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
 
@@ -211,7 +211,7 @@ mc_results = MC_result_optimized(
         source_nodes,
         node_priors,
         edge_probabilities,
-        5_000_000
+        1_000_000
     )
 
     

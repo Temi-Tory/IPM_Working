@@ -30,10 +30,14 @@ end
 
 #network_name = "power-network"      # Simple: 23 nodes, 27 edges
 #network_name = "drone-network-balanced-k3"         # Complex: 17 nodes, 135 edges,14 rooy diamonds, 132 unique diamonds
-network_name = "HB0_local_1"   
+network_name = "drone-network-balanced-k3"   
 #network_name = "central_scotland_1"
 #network_name = "glasgow_area"
 #network_name = "drone-network-full"
+
+data_type = "float"
+# data_type = "interval"
+# data_type = "pbox"
 
 # ============================================================================
 # Main Test Function
@@ -190,11 +194,10 @@ end
 # Run the test
 # ============================================================================
 
-data_type = "float"
-# data_type = "interval"
-# data_type = "pbox"
+
 
 result = run_load(network_name, data_type)
+#result[18]
 #= 
 mc_results = MC_result_optimized(
         edgelist,

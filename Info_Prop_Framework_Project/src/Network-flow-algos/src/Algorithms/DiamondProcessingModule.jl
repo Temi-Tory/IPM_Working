@@ -82,10 +82,6 @@ module DiamondProcessingModule
         sub_diamond_structures::Dict{Int64, DiamondsAtNode}
         diamond::Diamond
 
-        # NEW: Dependency tracking (computed during build_unique_diamond_storage)
-        depth_level::Int64                      # Nesting depth (0 = leaf diamond, no sub-diamonds)
-        child_diamond_hashes::Set{UInt64}       # Hashes of immediate sub-diamonds
-        num_conditioning_nodes::Int64           # Number of conditioning nodes (2^n enumeration cost)
     end
 
     # Optimization statistics tracking
@@ -537,7 +533,9 @@ end
         join_node::Int64,
         exluded_nodes::Set{Int64},
         edgelist::Vector{Tuple{Int64, Int64}},
-        ctx::DiamondOptimizationContext 
+        shared_fork_ancestors::Set{Int64},
+        fork_nodes::Set{Int64},
+        ctx::DiamondOptimizationContext
     )::Tuple{Vector{Tuple{Int64, Int64}}, Set{Int64}, Set{Int64}}
         # Shared subsource analysis: find common ancestors between diamond sources
     subsource_analysis_depth = 0
@@ -613,9 +611,35 @@ end
             end
             
             if !isempty(shared_source_ancestors)
-                # Use all shared ancestors directly (no iteration optimization)
+                # Use all shared ancestors directly
                 earliest_shared = shared_source_ancestors
-                
+
+                # BUGFIX: Validate shared ancestors before replacing sources
+                valid_shared_ancestors = Set{Int64}()
+                invalid_shared_ancestors = Set{Int64}()
+
+                for ancestor in earliest_shared
+                    is_in_shared_fork = ancestor in shared_fork_ancestors
+
+                    # Check if ancestor is a fork node by counting outgoing edges in constrained edgelist
+                    outgoing_count = count(e -> e[1] == ancestor, final_edgelist)
+                    is_fork_in_context = outgoing_count >= 2
+
+                    if is_in_shared_fork || is_fork_in_context
+                        push!(valid_shared_ancestors, ancestor)
+                    else
+                        push!(invalid_shared_ancestors, ancestor)
+                    end
+                end
+
+                # Only proceed if we have valid shared ancestors
+                if isempty(valid_shared_ancestors)
+                    continue  # Don't replace sources
+                end
+
+                # Use only valid ancestors
+                earliest_shared = valid_shared_ancestors
+
                 if !isempty(earliest_shared)
                     # Add paths from shared ancestors to join node
                     for ancestor in earliest_shared
@@ -695,7 +719,14 @@ end
     
     while recursion_depth < max_recursion_depth
         recursion_depth += 1
-        
+
+        # BUGFIX #4: Save state before this iteration in case we need to revert
+        prev_edgelist = copy(final_edgelist)
+        prev_relevant_nodes = copy(final_relevant_nodes_for_induced)
+        prev_shared_fork_ancestors = copy(final_shared_fork_ancestors)
+        prev_diamond_sourcenodes = copy(final_diamond_sourcenodes)
+        prev_highest_nodes = copy(final_highest_nodes)
+
         # Check if ALL current diamond source nodes share fork ancestors
         diamond_source_fork_ancestors = Dict{Int64, Set{Int64}}()
         for node in final_diamond_sourcenodes
@@ -845,7 +876,17 @@ end
         else
             final_highest_nodes = cached_intersect(final_shared_fork_ancestors, final_diamond_sourcenodes, ctx)
         end
-        
+
+        # BUGFIX #4: If intersection is empty, we've expanded too far - revert to previous valid state
+        if isempty(final_highest_nodes) && !isempty(prev_highest_nodes)
+            final_edgelist = prev_edgelist
+            final_relevant_nodes_for_induced = prev_relevant_nodes
+            final_shared_fork_ancestors = prev_shared_fork_ancestors
+            final_diamond_sourcenodes = prev_diamond_sourcenodes
+            final_highest_nodes = prev_highest_nodes
+            break  # Exit loop - we've found the maximal valid diamond
+        end
+
         # Identify new intermediate nodes from expanded structure
         final_relevant_nodes = Set{Int64}()
         for (source, target) in final_edgelist
@@ -990,7 +1031,6 @@ function perform_hybrid_diamond_lookup(
                 successful_lookups[join] = best_candidate
                 stats = OptimizationStats(stats.lookups_attempted, stats.lookups_successful + 1, 
                                         stats.joins_looked_up + 1, stats.joins_computed_fresh, stats.computation_reduction_percent)
-                                    #    ###println("best_candidate selected")
             else
                 push!(failed_joins, join)
             end
@@ -1061,7 +1101,6 @@ function identify_and_group_diamonds(
     cache_key = (join_nodes, effective_fork_nodes, edgelist_hash)
     
     if haskey(DIAMOND_IDENTIFICATION_CACHE, cache_key)
-        #  ###println("DIAMOND_IDENTIFICATION_CACHE exiting")
         return DIAMOND_IDENTIFICATION_CACHE[cache_key]
     end
     
@@ -1087,74 +1126,26 @@ function identify_and_group_diamonds(
         
         intermediate_nodes = identify_intermediate_nodes(relevant_nodes, conditioning_nodes, join_node)
         
-        # 🔍 BEFORE Step 8 - Initial State
-        if join_node in [96, 25]
-            #println("🔍 BEFORE STEP 8 for join " * string(join_node) * ":")
-            #println("   Edgelist: " * string(sort(induced_edgelist)))
-            #println("   Relevant nodes: " * string(sort(collect(relevant_nodes_for_induced))))
-            #println("   Diamond sources (computed): " * string(sort(collect(diamond_sourcenodes))))
-            #println("   Conditioning nodes: " * string(sort(collect(conditioning_nodes))))
-        end
-        
+                
         final_edgelist, final_relevant_nodes_for_induced, nodes_added_in_step8 = ensure_intermediate_incoming_edges(
             intermediate_nodes, incoming_index, induced_edgelist, relevant_nodes_for_induced
         )
         
-        # 🔍 AFTER Step 8 - Post Intermediate Edges
-        if join_node in [96, 25]
-            #println("🔍 AFTER STEP 8 for join " * string(join_node) * ":")
-            #println("   Edgelist: " * string(sort(final_edgelist)))
-            #println("   Relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
-            # Recompute diamond sources manually to see what they should be
-            targets_in_step8 = Set{Int64}()
-            for (_, target) in final_edgelist
-                push!(targets_in_step8, target)
-            end
-            step8_diamond_sources = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_step8), exluded_nodes)
-            #println("   Diamond sources (should be): " * string(sort(collect(step8_diamond_sources))))
-        end
+     
         
         final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes = perform_subsource_analysis(
-            final_edgelist, final_relevant_nodes_for_induced, ancestors, descendants, 
-            irrelevant_sources, join_node, exluded_nodes, edgelist, ctx
+            final_edgelist, final_relevant_nodes_for_induced, ancestors, descendants,
+            irrelevant_sources, join_node, exluded_nodes, edgelist,
+            shared_fork_ancestors, fork_nodes, ctx
         )
-        
-        # 🔍 AFTER Step 8b - Post Subsource Analysis  
-        if join_node in [96, 25]
-            #println("🔍 AFTER STEP 8b for join " * string(join_node) * ":")
-            #println("   Edgelist: " * string(sort(final_edgelist)))
-            #println("   Relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
-            #println("   Diamond sources (computed): " * string(sort(collect(final_diamond_sourcenodes))))
-            # Manually verify diamond sources match edgelist
-            targets_in_step8b = Set{Int64}()
-            for (_, target) in final_edgelist
-                push!(targets_in_step8b, target)
-            end
-            manual_diamond_sources = setdiff(setdiff(final_relevant_nodes_for_induced, targets_in_step8b), exluded_nodes)
-            #println("   Diamond sources (manual verification): " * string(sort(collect(manual_diamond_sources))))
-        end
+     
         
         final_edgelist, final_relevant_nodes_for_induced, final_shared_fork_ancestors, final_highest_nodes = perform_recursive_diamond_completeness(
             final_edgelist, final_relevant_nodes_for_induced, final_diamond_sourcenodes, shared_fork_ancestors,
             ancestors, descendants, fork_nodes, irrelevant_sources, incoming_index, join_node, exluded_nodes, edgelist, ctx
         )
         
-        # 🔍 AFTER Step 8c - Post Recursive Completeness
-        if join_node in [96, 25]
-            #println("🔍 AFTER STEP 8c for join " * string(join_node) * ":")
-            #println("   Final edgelist: " * string(sort(final_edgelist)))
-            #println("   Final relevant nodes: " * string(sort(collect(final_relevant_nodes_for_induced))))
-            #println("   Final diamond sources: " * string(sort(collect(final_diamond_sourcenodes))))
-            #println("   Final shared fork ancestors: " * string(sort(collect(final_shared_fork_ancestors))))
-            #println("   Final highest nodes (intersection): " * string(sort(collect(final_highest_nodes))))
-            # Final manual verification
-            final_targets = Set{Int64}()
-            for (_, target) in final_edgelist
-                push!(final_targets, target)
-            end
-            final_manual_sources = setdiff(setdiff(final_relevant_nodes_for_induced, final_targets), exluded_nodes)
-            #println("   Manual diamond sources verification: " * string(sort(collect(final_manual_sources))))
-        end
+       
         
         diamond, non_diamond_parents = build_final_diamond_structure(
             final_edgelist, final_relevant_nodes_for_induced, final_shared_fork_ancestors, final_highest_nodes,
@@ -1293,10 +1284,6 @@ function build_unique_diamond_storage(
         push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
     end
     
-    ###println("🔷 Initializing diamond processing...")
-    total_root_diamonds = sum(length(diamonds) for diamonds in values(root_diamonds_by_iteration))
-    ###println("📊 Total root diamonds to process: $total_root_diamonds")
-    
     mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
     # Initialize work stack with root diamonds - PRE-COMPUTE HASHES
     for iteration_level in mainrootstack
@@ -1313,9 +1300,6 @@ function build_unique_diamond_storage(
         end
     end
     
-    ###println("🚀 Starting iterative diamond processing...")
-    ###println("📈 Initial work stack size: $(length(work_stack))")
-    
     # Main iterative processing loop with EARLY duplicate detection
     while !isempty(work_stack)
         current_item = pop!(work_stack)
@@ -1325,7 +1309,6 @@ function build_unique_diamond_storage(
             items_skipped_early += 1
             total_items_processed += 1
             
-                # ###println("duplicate detecrted exiting")
             continue
         end
         
@@ -1411,28 +1394,7 @@ function build_unique_diamond_storage(
         for sub_item in sub_diamonds_to_add
             push!(work_stack, sub_item)
         end
-                
-        # Compute dependency metadata
-        child_hashes = Set{UInt64}()
-        for (sub_join_node, sub_diamond_at_node) in filtered_sub_diamonds
-            child_hash = create_diamond_hash_key(sub_diamond_at_node.diamond)
-            push!(child_hashes, child_hash)
-        end
-
-        # Compute depth based on children (if all children already processed)
-        depth = 0
-        if !isempty(child_hashes)
-            # Get max depth from children + 1
-            max_child_depth = 0
-            for child_hash in child_hashes
-                if haskey(unique_diamonds, child_hash)
-                    max_child_depth = max(max_child_depth, unique_diamonds[child_hash].depth_level)
-                end
-            end
-            depth = max_child_depth + 1
-        end
-
-        num_conditioning = length(current_diamond.conditioning_nodes)
+        
 
         # Store the computation data
         computation_data = DiamondComputationData{T}(
@@ -1447,10 +1409,7 @@ function build_unique_diamond_storage(
             sub_node_priors,
             is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             filtered_sub_diamonds,
-            current_diamond,
-            depth,              # NEW: depth_level
-            child_hashes,       # NEW: child_diamond_hashes
-            num_conditioning    # NEW: num_conditioning_nodes
+            current_diamond
         )
         
         unique_diamonds[current_item.diamond_hash] = computation_data
@@ -1465,10 +1424,6 @@ function build_unique_diamond_storage(
         
         total_items_processed += 1
         
-        # Progress reporting
-        diamond_type = is_root_diamond ? "ROOT" : "SUB"
-        sub_count = length(sub_diamonds_to_add)
-        excluded_count = length(current_excluded_nodes)
       
         # Memory management and progress reporting
         # 2. More frequent cache clearing:
@@ -1481,7 +1436,6 @@ function build_unique_diamond_storage(
                         length(ctx.edge_filter_cache) + length(ctx.ancestor_intersections)
             
             if cache_size > 10000  
-                ###println("🧹 Clearing caches (size: $cache_size)")
                 empty!(ctx.set_intersection_cache)
                 empty!(ctx.set_difference_cache)
                 empty!(ctx.edge_filter_cache)
@@ -1490,12 +1444,9 @@ function build_unique_diamond_storage(
                 empty!(ctx.set_hash_cache)
             end
             
-          ###println("📊 Progress: $total_items_processed items processed | $unique_count unique diamonds stored | $items_skipped_early early skips | Cache size: $cache_size | Outstanding: $(length(work_stack))")
         end
     end
     
-    ###println("📈 Diamond processing completed!")
-    ###println("   • Unique diamonds found: $(length(unique_diamonds))")
    
     return unique_diamonds
 end
@@ -1529,9 +1480,6 @@ function manage_memory_adaptive(
         
         if diamonds_processed % gc_threshold == 0 || force_gc
             GC.gc()
-            ###println("🧹 Thread $thread_id: Cleared caches and forced GC (processed: $diamonds_processed, cache was: $cache_size)")
-        else
-            ###println("🧹 Thread $thread_id: Cleared caches (processed: $diamonds_processed, cache was: $cache_size)")
         end
     end
 end
@@ -1567,19 +1515,16 @@ function build_unique_diamond_storage_depth_first_parallel(
         push!(root_diamonds_by_iteration[iteration_level], (join_node, diamond_at_node))
     end
     
-    ###println("🔷 Starting depth-first parallel processing...")
     
     # Process iteration levels sequentially (preserves global ordering)
     mainrootstack = sort(collect(keys(root_diamonds_by_iteration)), rev=false)
     
     for iteration_level in mainrootstack
         level_diamonds = root_diamonds_by_iteration[iteration_level]
-        ###println("📊 Processing iteration level $iteration_level with $(length(level_diamonds)) root diamonds")
         
         # Force garbage collection between iteration levels for large datasets
         if length(level_diamonds) > 50
             GC.gc()
-            ###println("🧹 Forced GC between iteration levels for large dataset")
         end
         
         # Parallelize root diamonds within each level
@@ -1626,12 +1571,10 @@ function build_unique_diamond_storage_depth_first_parallel(
                 end
             end
             
-            ###println("✅ Thread $(Threads.threadid()): Completed subtree for join_node $join_node ($(length(thread_results)) diamonds)")
+
         end
         
-        # Memory status report after each iteration level
-        total_diamonds = length(unique_diamonds)
-        ###println("📈 Iteration level $iteration_level completed: $total_diamonds total unique diamonds")
+       
     end
     
     return unique_diamonds
@@ -1753,18 +1696,8 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             )
         end
         
-        # Compute dependency metadata
-        child_hashes = Set{UInt64}()
-        for (sub_join_node, sub_diamond_at_node) in sub_diamonds_dict
-            child_hash = create_diamond_hash_key(sub_diamond_at_node.diamond)
-            push!(child_hashes, child_hash)
-        end
-
-        # NOTE: Depth will be computed in second pass after LIFO stack is empty
-        # For now, store temporary depth = -1 to indicate "not yet computed"
-        depth = -1
-
-        num_conditioning = length(current_diamond.conditioning_nodes)
+    
+      
 
         # Create computation data
         computation_data = DiamondComputationData{eltype(values(node_priors))}(
@@ -1779,10 +1712,7 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
             sub_node_priors,
             is_root_diamond,  # <-- USE THE FLAG FROM DiamondWorkItem
             sub_diamonds_dict,
-            current_diamond,
-            depth,              # NEW: depth_level
-            child_hashes,       # NEW: child_diamond_hashes
-            num_conditioning    # NEW: num_conditioning_nodes
+            current_diamond
         )
         
         # Store result locally
@@ -1822,107 +1752,13 @@ function process_diamond_subtree_sequential_lifo_with_lookup(
         
         if diamonds_processed % 50 == 0  # More frequent reporting for large datasets
             manage_memory_adaptive(ctx, diamonds_processed, thread_id)
-            ###println("🔧 Thread $thread_id: Processed $diamonds_processed diamonds, stack size: $(length(local_work_stack))")
         end
     end
 
     thread_id = Threads.threadid()
-    ###println("🎯 Thread $thread_id: Completed subtree with $(length(local_unique_diamonds)) unique diamonds")
+    
+    
 
-    # ========================================================================
-    # SECOND PASS: Compute depths now that all diamonds in subtree are processed
-    # ========================================================================
-    # We need to compute depths bottom-up, so diamonds with no children get depth 0,
-    # and parents get max(child_depths) + 1
-
-    # Find all diamonds with no children (leaf diamonds)
-    diamonds_to_process = Set{UInt64}()
-    for (hash, comp_data) in local_unique_diamonds
-        if isempty(comp_data.child_diamond_hashes)
-            # Leaf diamond - depth 0
-            updated_data = DiamondComputationData{eltype(values(node_priors))}(
-                comp_data.sub_outgoing_index,
-                comp_data.sub_incoming_index,
-                comp_data.sub_sources,
-                comp_data.sub_fork_nodes,
-                comp_data.sub_join_nodes,
-                comp_data.sub_ancestors,
-                comp_data.sub_descendants,
-                comp_data.sub_iteration_sets,
-                comp_data.sub_node_priors,
-                comp_data.is_rootDiamond,
-                comp_data.sub_diamond_structures,
-                comp_data.diamond,
-                0,  # depth = 0 for leaf diamonds
-                comp_data.child_diamond_hashes,
-                comp_data.num_conditioning_nodes
-            )
-            local_unique_diamonds[hash] = updated_data
-        else
-            push!(diamonds_to_process, hash)
-        end
-    end
-
-    # Process remaining diamonds iteratively until all depths computed
-    max_iterations = 100  # Safety limit
-    iteration = 0
-    while !isempty(diamonds_to_process) && iteration < max_iterations
-        iteration += 1
-        made_progress = false
-
-        for hash in collect(diamonds_to_process)
-            comp_data = local_unique_diamonds[hash]
-
-            # Check if all children have their depths computed
-            all_children_ready = true
-            max_child_depth = -1
-
-            for child_hash in comp_data.child_diamond_hashes
-                if haskey(local_unique_diamonds, child_hash)
-                    child_depth = local_unique_diamonds[child_hash].depth_level
-                    if child_depth == -1
-                        all_children_ready = false
-                        break
-                    end
-                    max_child_depth = max(max_child_depth, child_depth)
-                end
-            end
-
-            if all_children_ready
-                # Compute this diamond's depth
-                computed_depth = max_child_depth + 1
-
-                updated_data = DiamondComputationData{eltype(values(node_priors))}(
-                    comp_data.sub_outgoing_index,
-                    comp_data.sub_incoming_index,
-                    comp_data.sub_sources,
-                    comp_data.sub_fork_nodes,
-                    comp_data.sub_join_nodes,
-                    comp_data.sub_ancestors,
-                    comp_data.sub_descendants,
-                    comp_data.sub_iteration_sets,
-                    comp_data.sub_node_priors,
-                    comp_data.is_rootDiamond,
-                    comp_data.sub_diamond_structures,
-                    comp_data.diamond,
-                    computed_depth,
-                    comp_data.child_diamond_hashes,
-                    comp_data.num_conditioning_nodes
-                )
-                local_unique_diamonds[hash] = updated_data
-                delete!(diamonds_to_process, hash)
-                made_progress = true
-            end
-        end
-
-        if !made_progress
-            # Shouldn't happen, but safety check
-            ###println("⚠️  Warning: Depth computation stalled with $(length(diamonds_to_process)) diamonds remaining")
-            break
-        end
-    end
-
-    ###println("🎯 Thread $thread_id: Computed depths in $iteration iterations")
 
     return local_unique_diamonds
 end
