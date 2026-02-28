@@ -1,0 +1,277 @@
+digraph Architecture {
+    rankdir=LR;
+    splines=polyline;
+    nodesep=0.25;
+    ranksep=1.2;
+    compound=true;
+    bgcolor=white;
+    pad=0.4;
+
+    graph [fontname="Times New Roman"];
+    node [fontname="Times New Roman", fontsize=13, penwidth=1.0];
+    edge [fontname="Times New Roman", fontsize=11, penwidth=1.0, arrowsize=0.6];
+
+    // ============================
+    //  INPUT FILES (Left)
+    // ============================
+    subgraph cluster_inputs {
+        label=<<b>   Input Files</b>>;
+        labeljust="l";
+        fontsize=13;
+        fontname="Times New Roman";
+        style="filled,rounded";
+        fillcolor="#F0F0F0";
+        color="#666666";
+        penwidth=1.2;
+
+        // Declare in reverse order (Graphviz LR draws bottom-up)
+        // CPM scenarios (bottom)
+        subgraph cluster_cpm_input {
+            label=<<b>  CPM Scenarios</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            cpm_file [
+                label=<<b>cpm.json</b><br/>Time &amp; cost parameters>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // Capacity scenarios
+        subgraph cluster_cap_input {
+            label=<<b>  Capacity Scenarios</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            capacities [
+                label=<<b>capacities.json</b><br/>Node &amp; edge capacities>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // Belief propagation scenarios
+        subgraph cluster_bp_in {
+            label=<<b>  Belief Propagation Scenarios</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            priors [
+                label=<<b>nodepriors.json</b><br/>Float | Interval | Pbox>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+
+            linkprobs [
+                label=<<b>linkprobabilities.json</b><br/>Float | Interval | Pbox>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // Network structure (top)
+        subgraph cluster_structure_in {
+            label=<<b>  Network Structure</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,rounded";
+            fillcolor="#E0E0E0";
+            color="#888888";
+            penwidth=1.0;
+
+            edges_file [
+                label=<<b>.EDGES</b><br/>Network structure>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+    }
+
+    // ============================
+    //  SYSTEM (Centre)
+    // ============================
+    subgraph cluster_system {
+        label=<<b>   Web Interface (localhost)</b>>;
+        labeljust="l";
+        fontsize=13;
+        fontname="Times New Roman";
+        style="filled,rounded";
+        fillcolor="#E8E8E8";
+        color="#555555";
+        penwidth=1.2;
+
+        frontend [
+            label=<<b>Angular Frontend</b><br/>Upload | Categorization<br/>Scenario comparison>,
+            shape=box, style="filled,rounded",
+            fillcolor=white, color="#555555",
+            width=2.6
+        ];
+
+        api [
+            label=<<b>REST API Server</b><br/>Julia / HTTP.jl>,
+            shape=box, style="filled,rounded",
+            fillcolor=white, color="#555555",
+            width=2.6
+        ];
+
+        subgraph cluster_packages {
+            label="";
+            style="filled,rounded";
+            fillcolor="#DCDCDC";
+            color="#888888";
+            penwidth=1.0;
+
+            ipa [
+                label=<<b>InformationPropagation<br/>Analysis.jl</b>>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+
+            pba [
+                label=<<b>ProbabilityBounds<br/>Analysis.jl</b>>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+    }
+
+    // ============================
+    //  ANALYSIS OUTPUTS (Right)
+    // ============================
+    subgraph cluster_outputs {
+        label=<<b>   Analysis Views</b>>;
+        labeljust="l";
+        fontsize=13;
+        fontname="Times New Roman";
+        style="filled,rounded";
+        fillcolor="#F0F0F0";
+        color="#666666";
+        penwidth=1.2;
+
+        // Declare in reverse order (Graphviz LR draws bottom-up)
+        // CPM group (bottom)
+        subgraph cluster_cpm_out {
+            label=<<b>  Critical Path Analysis</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            cpm_out [
+                label=<<b>Time &amp; Cost Analysis</b><br/>Critical paths &amp; nodes>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // Capacity group
+        subgraph cluster_cap_out {
+            label=<<b>  Capacity Analysis</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            capacity_out [
+                label=<<b>Flow Analysis</b><br/>Max flow | Bottlenecks>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // BP group
+        subgraph cluster_bp_out {
+            label=<<b>  Exact Belief Propagation</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,dashed,rounded";
+            fillcolor=white;
+            color="#888888";
+            penwidth=1.0;
+
+            propagation [
+                label=<<b>Probability Propagation</b><br/>MC validation<br/>Float | Interval | Pbox>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+
+        // Structure group (top)
+        subgraph cluster_structure_out {
+            label=<<b>  Network Structure</b>>;
+            labeljust="l";
+            fontsize=11;
+            fontname="Times New Roman";
+            style="filled,rounded";
+            fillcolor="#E0E0E0";
+            color="#888888";
+            penwidth=1.0;
+
+            structure [
+                label=<<b>Structural Properties</b><br/>Sources | Sinks | Fork/Join>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+
+            diamonds [
+                label=<<b>Diamond Decomposition</b><br/>Local &amp; sensitivity analysis>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+
+            viz [
+                label=<<b>Interactive Visualization</b><br/>D3.js graph rendering>,
+                shape=box, style="filled,rounded",
+                fillcolor=white, color="#888888"
+            ];
+        }
+    }
+
+    // ============================
+    //  EDGES: Inputs -> System
+    // ============================
+    edges_file -> frontend;
+    priors -> frontend [style=dashed];
+    linkprobs -> frontend [style=dashed];
+    capacities -> frontend [style=dashed];
+    cpm_file -> frontend [style=dashed];
+
+    // System internal
+    frontend -> api;
+    api -> ipa;
+    ipa -> pba;
+
+    // ============================
+    //  EDGES: System -> Outputs
+    // ============================
+    api -> structure [ltail=cluster_system];
+    api -> diamonds [ltail=cluster_system];
+    api -> viz [ltail=cluster_system];
+    api -> propagation [ltail=cluster_system, style=dashed];
+    api -> capacity_out [ltail=cluster_system, style=dashed];
+    api -> cpm_out [ltail=cluster_system, style=dashed];
+}

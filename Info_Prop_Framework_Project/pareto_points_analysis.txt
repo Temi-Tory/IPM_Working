@@ -1,0 +1,71 @@
+
+========================================================================================================================
+PARETO POINTS - DAG STRUCTURE SUMMARY
+========================================================================================================================
+Analyzing: PP1-HighRes-FW ... done
+Analyzing: PP2-HighRes-VTOL ... done
+Analyzing: PP3-MedRes-Sparse ... done
+Analyzing: PP4-LowRes-Min ... done
+Analyzing: PP5-MedRes-FW ... done
+Analyzing: PP6-Balanced ... done
+
+========================================================================================================================
+NETWORK STRUCTURE OVERVIEW
+========================================================================================================================
+
+Network              | Nodes | Edges |   Src |  Sink | Forks | Joins | MaxFanI | DiamJoin | UniqDiam | MaxNest | AvgNest | UniqCond |  BP Time
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+PP1-HighRes-FW       |   145 |   327 |    23 |    99 |    45 |    50 |      26 |       24 |      277 |      18 |     7.1 |       35 |     >600
+PP2-HighRes-VTOL     |   171 |   280 |    12 |   131 |    32 |    70 |      10 |       52 |      219 |       9 |     3.9 |       15 |     0.31
+PP3-MedRes-Sparse    |    98 |   223 |    23 |    58 |    37 |    25 |      17 |       19 |      165 |      16 |     6.3 |       16 |      281
+PP4-LowRes-Min       |    39 |    28 |     8 |    24 |    12 |     0 |       1 |        0 |        0 |       0 |     0.0 |        0 |     0.02
+PP5-MedRes-FW        |    89 |   214 |    23 |    49 |    36 |    25 |      17 |       21 |      177 |      16 |     6.2 |       16 |      256
+PP6-Balanced         |    98 |   261 |     6 |    59 |    36 |    34 |      15 |       32 |      203 |      12 |     4.7 |       27 |     0.02
+
+========================================================================================================================
+DIAMOND PARTICIPATION ANALYSIS
+========================================================================================================================
+
+Columns:
+  DiamJoin    = Number of join nodes that have diamond structures (root diamonds)
+  UniqDiam    = Total unique diamonds (including nested sub-diamonds)
+  UniqCond    = Unique conditioning nodes (forks that form diamond 'roofs')
+  ForksInDiam = How many forks participate in at least one diamond
+  ForkRatio   = Fraction of all forks that participate in diamonds
+  MaxReuse    = Max times a single conditioning node appears across diamonds
+  AvgReuse    = Average reuse of conditioning nodes
+
+Network              | DiamJoin | UniqDiam | UniqCond | ForksInDiam | ForkRatio | MaxReuse | AvgReuse
+------------------------------------------------------------------------------------------------------------------------
+PP1-HighRes-FW       |       24 |      277 |       35 |         35 |      0.78 |       36 |     20.2
+PP2-HighRes-VTOL     |       52 |      219 |       15 |         15 |      0.47 |       52 |     19.4
+PP3-MedRes-Sparse    |       19 |      165 |       16 |         16 |      0.43 |       19 |     10.3
+PP4-LowRes-Min       |        0 |        0 |        0 |          0 |      0.00 |        0 |      0.0
+PP5-MedRes-FW        |       21 |      177 |       16 |         16 |      0.44 |       21 |     11.1
+PP6-Balanced         |       32 |      203 |       27 |         27 |      0.75 |       24 |      9.0
+
+========================================================================================================================
+KEY RATIOS
+========================================================================================================================
+
+Network              |  Joins/Nodes | DiamJoin/Join |    Diam/Join
+----------------------------------------------------------------------
+PP1-HighRes-FW       |         0.34 |         0.48 |          5.5
+PP2-HighRes-VTOL     |         0.41 |         0.74 |          3.1
+PP3-MedRes-Sparse    |         0.26 |         0.76 |          6.6
+PP4-LowRes-Min       |         0.00 |         0.00 |          0.0
+PP5-MedRes-FW        |         0.28 |         0.84 |          7.1
+PP6-Balanced         |         0.35 |         0.94 |          6.0
+
+========================================================================================================================
+OBSERVATIONS
+========================================================================================================================
+
+Networks with NO diamonds (pure trees):
+  - PP4-LowRes-Min: 0 joins but all have single-path dependencies
+
+Most diamond-dense network:
+  - PP1-HighRes-FW: 277 unique diamonds from 24 diamond-joins
+
+Most conditioning nodes:
+  - PP1-HighRes-FW: 35 unique forks form diamond roofs

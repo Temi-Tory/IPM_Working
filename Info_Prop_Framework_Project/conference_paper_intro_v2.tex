@@ -1,0 +1,61 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{A Web-Based Interface for Information Propagation Analysis on Directed Acyclic Networks}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{University of Strathclyde\\
+Glasgow, United Kingdom\\
+email@strath.ac.uk}}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Write abstract after completing the paper
+\end{abstract}
+
+\section{Introduction}
+From the design stage to operation and maintenance, decision makers need access to tools and techniques that simultaneously allow them to efficiently model a system's characteristics, as well as trace and quantify the flow of resources against expected metrics. Graph theory has long played a central role in this kind of analysis for civil infrastructures, and the mathematical foundations are well established, with software implementations available across several programming languages including MATLAB, R, Python, and Julia~\cite{pearl1988probabilistic, koller2009probabilistic, ferson2015}.
+
+
+
+Unfortunately, the people who need these tools most are not always the same ones who develop them. Domain experts often have detailed knowledge of their systems but lack the programming skills required to effectively use many existing software approaches. Sometimes described as the ``last mile problem'', studies consistently report this gap between algorithmic availability and practical adoption~\cite{hannay2009scientists, prabhu2011survey}.
+
+
+
+In recent years, several tools have been developed with the goal of making network analysis more accessible, though many of these solutions only address part of the problem. For example, network visualization tools such as Gephi~\cite{bastian2009gephi} and Cytoscape~\cite{shannon2003cytoscape} offer an interactive environment for graph construction and rendering but they do not support any analytical work. These tools usually have to be combined with domain-specific software which often comes with its own data format requirements and a learning curve that can be steep for users that are not familiar with the algorithms. 
+
+
+
+In many network-based reliability problems, data on component failure rates or link transmission probabilities can be sparse, incomplete, or derived from expert judgement, and requires the right tool to fully capture dependency information. Although, packages and libraries supporting probabilistic reasoning have been developed for R~\cite{ferson2019pbar}, Julia~\cite{gray2022pba_julia}, and Python~\cite{gray2022pba}, users wishing to use these methods must be prepared to write code directly against these libraries. 
+
+
+
+In many cases, no single tool covers both the structural and quantitative metric, accessibility requirements further reduce the pool of available tools. Therefore complete system profiling often requires combining several of these tools, transforming data between them and managing multiple separate workflows. 
+
+\end{document}
+
+From the design stage to operation and maintenance, decision makers need access to tools and techniques that simultaneously allow them to efficiently model a system's characteristics, as well as trace and quantify the flow of resources against expected metrics. Graph theory has long played a central role in this kind of analysis for civil infrastructures, and the mathematical foundations are well established, with software implementations available across several programming languages including MATLAB, R, Python, and Julia~\cite{pearl1988probabilistic, koller2009probabilistic, ferson2015}.
+
+
+
+Unfortunately, the people who need these tools most are not always the same ones who develop them. Domain experts often have detailed knowledge of their systems but lack the programming skills required to effectively use many existing software approaches. Sometimes described as the ``last mile problem'', studies consistently report this gap between algorithmic availability and practical adoption~\cite{hannay2009scientists, prabhu2011survey}.
+
+
+
+In recent years, several tools have been developed with the goal of making network analysis more accessible, though many of these solutions only address part of the problem. For example, network visualization tools such as Gephi~\cite{bastian2009gephi} and Cytoscape~\cite{shannon2003cytoscape} offer an interactive environment for graph construction and rendering but they do not support any analytical work. These tools usually have to be combined with domain-specific software which often comes with its own data format requirements and a learning curve that can be steep for users that are not familiar with the algorithms. 
+
+
+
+In many network-based reliability problems, data on component failure rates or link transmission probabilities can be sparse, incomplete, or derived from expert judgement, and requires the right tool to fully capture dependency information. Although, packages and libraries supporting probabilistic reasoning have been developed for R~\cite{ferson2019pbar}, Julia~\cite{gray2022pba_julia}, and Python~\cite{gray2022pba}, users wishing to use these methods must be prepared to write code directly against these libraries. 
+
+
+
+In many cases, no single tool covers both the structural and quantitative metric, accessibility requirements further reduce the pool of available tools. Therefore complete system profiling often requires combining several of these tools, transforming data between them and managing multiple separate workflows. 

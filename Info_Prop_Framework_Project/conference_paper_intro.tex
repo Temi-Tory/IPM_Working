@@ -1,0 +1,114 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{A Web-Based Interface for Information Propagation Analysis on Directed Acyclic Networks}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{University of Strathclyde\\
+Glasgow, United Kingdom\\
+email@strath.ac.uk}}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Write abstract after completing the paper
+\end{abstract}
+
+\section{Introduction}
+Understanding how information propagates through complex networks is fundamental to reliability engineering, risk assessment, and infrastructure resilience~\cite{ferson2015}. Network analysis allows domain experts to identify critical pathways, bottlenecks, and vulnerabilities within their systems, including the treatment of uncertainty, disruption, and unexpected threats.
+
+Although the mathematical foundations of network analysis are well established~\cite{pearl1988probabilistic, koller2009probabilistic, ferson2015}, barriers remain between the availability of these methods and their routine use in practice. Domain experts often have the detailed knowledge of their systems but lack the programming skills required to effectively use many existing software approaches. This challenge is commonly described as the ``last mile problem'' in scientific software, where capable algorithms exist but remain inaccessible to their intended users. Studies consistently report this gap between algorithmic availability and practical adoption~\cite{hannay2009scientists, prabhu2011survey}.
+
+Web-based platforms such as Jupyter notebooks~\cite{kluyver2016jupyter}, Shiny applications~\cite{chang2015shiny}, and Streamlit dashboards~\cite{streamlit2019} have partially addressed these challenges by lowering the learning curve through interactive interfaces and improved workflow sharing. However, these platforms remain fundamentally code-driven, requiring users to write Python, R, or similar scripting languages to define models and analyses. For decision makers without programming backgrounds, this requirement continues to limit adoption.
+
+Visualization tools such as Gephi~\cite{bastian2009gephi} and Cytoscape~\cite{shannon2003cytoscape} have gained widespread adoption. However, these tools focus primarily on network topology and visualization. Consequently, to perform a complete analysis, users often combine them with more specialized analysis tools such as GeNIe~\cite{druzdzel1999genie}, BayesiaLab~\cite{bayesialab}, and Netica~\cite{norsys1998netica}, which support probabilistic reasoning but generally involve a steeper learning curve.
+
+Probabilistic network-based problems require explicit uncertainty quantification. Existing low- and no-code software tools often restrict uncertainty representation to single probability distributions or interval bounds. In networks where data are sparse, incomplete, or derived from expert judgment, uncertainty cannot always be adequately represented by a single distribution. Probability bounds analysis (PBA) and probability boxes (p-boxes) address this limitation by representing uncertainty as bounds on cumulative distributions rather than precise values~\cite{ferson2003constructing}. Software libraries supporting p-box arithmetic exist for R~\cite{ferson2019pbar}, Julia~\cite{gray2022pba_julia}, and Python~\cite{gray2022pba}. However, users wishing to use these methods must be prepared to write code directly against these libraries. 
+
+Deployment architecture is also a significant consideration in scientific software. The local-first software movement~\cite{kleppmann2019local} encourages the development of  software that prioritizes user data sovereignty while maintaining collaborative features. Although cloud-based solutions offer convenience and scalability, they raise privacy concerns~\cite{hashizume2013analysis}. For industries working with proprietary infrastructure models or regulated data (such as nuclear, defence, or critical infrastructure sectors), local deployment is often a regulatory or contractual requirement rather than merely a preference.
+
+To date, no existing tool combines (i) purely visual interaction, (ii) comprehensive network analysis capabilities, (iii) native support for uncertainty quantification using p-boxes, and (iv) guaranteed local-first deployment. This paper addresses this gap by presenting a web-based graphical interface for information propagation analysis on directed acyclic networks. The toolkit provides a fully no-code environment supporting multiple analysis modes: network structure exploration, network decomposition, and probability propagation with interval uncertainty. Built on the \texttt{InformationPropagationAnalysis.jl} Julia package~\cite{infoprop2024}, the system exposes these algorithms through a REST back-end server connected to an Angular-based frontend. Critically, the system operates entirely on the user's local machine, ensuring that sensitive network data never leaves the user's environment.
+
+The decoupled frontend-backend architecture allows domain experts to use the interface without programming, while developers can extend each component independently.
+
+The remainder of this paper is organized as follows. Section~II describes the system architecture, detailing both the Julia back-end server and Angular frontend components. Section~III presents the supported analysis modes and their corresponding interface elements. Section~IV demonstrates the system through representative use cases. Finally, Section~V concludes with a discussion of limitations and directions for future work.
+
+\section{Software Architecture}
+
+The system follows a client-server architecture where both components run on the user's local machine. Fig.~\ref{fig:architecture} illustrates the overall structure. The backend provides a REST API that wraps the \texttt{InformationPropagationAnalysis.jl} package, while the frontend provides a browser-based interface for interaction and visualization. This separation allows each component to be developed, tested, and extended independently.
+
+% TODO: Add architecture diagram
+% \begin{figure}[htbp]
+% \centerline{\includegraphics[width=\columnwidth]{architecture.png}}
+% \caption{System architecture showing the Julia backend server and Angular frontend communicating via REST API on localhost.}
+% \label{fig:architecture}
+% \end{figure}
+
+\subsection{Backend Server}
+
+The backend is implemented in Julia and serves as a thin wrapper around the core analysis algorithms. It uses the HTTP.jl package to expose a REST API on port 8080, accepting JSON-formatted requests and returning JSON responses. The server handles cross-origin resource sharing (CORS) to permit requests from the browser-based frontend.
+
+Five analysis endpoints are provided:
+\begin{itemize}
+    \item \texttt{/network-structure}: Parses the network topology and computes structural properties including source nodes, sink nodes, fork nodes, join nodes, and topologically-sorted iteration sets.
+    \item \texttt{/diamond-analysis}: Identifies diamond substructures (reconvergent paths) within the network and computes a deduplicated set of unique diamonds for efficient processing.
+    \item \texttt{/reachability-analysis}: Performs probability propagation through the network using iterative belief updating, with support for p-box arithmetic when uncertainty bounds are specified.
+    \item \texttt{/capacity-analysis}: Computes maximum flow capacity through the network given node and edge capacity constraints.
+    \item \texttt{/cpm-analysis}: Performs critical path method analysis for time and cost propagation.
+\end{itemize}
+  
+An additional \texttt{/upload} endpoint handles multipart file uploads, storing network definitions and parameter files in a temporary directory structure. The server validates input files and returns structured error messages for malformed requests.
+
+All analysis functions are imported from the \texttt{IPAFramework} module, which re-exports the public interface of \texttt{InformationPropagationAnalysis.jl}. P-box values from the \texttt{ProbabilityBoundsAnalysis.jl} package are serialized to JSON by extracting summary statistics (mean bounds, variance bounds, shape parameters) rather than transmitting full discretization arrays.
+
+\subsection{Frontend Application}
+
+The frontend is built with Angular (version 20) using the Nx monorepo toolchain. The interface is organized around analysis-specific views, each implemented as a standalone Angular component. Visualization relies on D3.js for custom rendering and ngx-graph for force-directed network layouts.
+
+Key interface components include:
+\begin{itemize}
+    \item \textbf{File Upload}: Accepts \texttt{.EDGES} files defining network topology, along with optional JSON files specifying node priors, edge probabilities, capacities, and timing parameters.
+    \item \textbf{Network Structure View}: Displays computed structural properties and provides interactive node/edge inspection through dialog components.
+    \item \textbf{Diamond Analysis View}: Visualizes identified diamond substructures with drill-down capability to examine individual diamonds and their nested sub-diamonds.
+    \item \textbf{Inference View}: Displays propagated beliefs across the network, with color-coded nodes indicating probability values or uncertainty ranges.
+    \item \textbf{Capacity and CPM Views}: Present flow analysis and critical path results with identification of bottlenecks and critical nodes.
+\end{itemize}
+
+Communication with the backend is handled by dedicated Angular services (\texttt{NetworkBackendService}, \texttt{DiamondAnalysisService}, etc.) that manage HTTP requests, response parsing, and error handling. A shared \texttt{AnalysisStateService} maintains session state across views, allowing users to navigate between analysis modes without re-uploading data.
+
+\subsection{Deployment}
+
+Users start the backend by running the Julia server script, then access the frontend through a web browser pointed at localhost. No external network connectivity is required after initial installation. This local-first deployment ensures that network models and analysis results remain on the user's machine, addressing data sovereignty requirements for sensitive applications.
+
+% Placeholder references - replace with actual bibliography
+\begin{thebibliography}{00}
+\bibitem{pearl1988probabilistic} J. Pearl, ``Probabilistic Reasoning in Intelligent Systems,'' Morgan Kaufmann, 1988.
+\bibitem{ferson2015} S. Ferson et al., ``Probability bounds analysis,'' in \textit{Uncertainty Quantification}, Springer, 2015.
+\bibitem{ferson2003constructing} S. Ferson, V. Kreinovich, L. Ginzburg, D.S. Myers, and K. Sentz, ``Constructing probability boxes and Dempster-Shafer structures,'' Sandia National Laboratories, Tech. Rep., 2003.
+\bibitem{wilson2014best} G. Wilson et al., ``Best practices for scientific computing,'' \textit{PLoS Biology}, vol. 12, no. 1, 2014.
+\bibitem{kluyver2016jupyter} T. Kluyver et al., ``Jupyter Notebooks---a publishing format for reproducible computational workflows,'' in \textit{Proc. ELPUB}, 2016.
+\bibitem{chang2015shiny} W. Chang et al., ``Shiny: Web application framework for R,'' R package version 1.0, 2015.
+\bibitem{streamlit2019} Streamlit Inc., ``Streamlit: The fastest way to build data apps,'' 2019.
+\bibitem{bastian2009gephi} M. Bastian, S. Heymann, and M. Jacomy, ``Gephi: An open source software for exploring and manipulating networks,'' in \textit{Proc. ICWSM}, 2009.
+\bibitem{shannon2003cytoscape} P. Shannon et al., ``Cytoscape: A software environment for integrated models of biomolecular interaction networks,'' \textit{Genome Research}, vol. 13, no. 11, pp. 2498--2504, 2003.
+\bibitem{druzdzel1999genie} M.J. Druzdzel, ``GeNIe: A development environment for graphical decision-analytic models,'' in \textit{Proc. AMIA Symposium}, 1999.
+\bibitem{bayesialab} Bayesia S.A.S., ``BayesiaLab: Bayesian networks and data analytics,'' 2024.
+\bibitem{kleppmann2019local} M. Kleppmann et al., ``Local-first software: You own your data, in spite of the cloud,'' in \textit{Proc. Onward!}, 2019.
+\bibitem{infoprop2024} T. Sheridan, ``InformationPropagationAnalysis.jl,'' GitHub repository, 2024. [Online]. Available: https://github.com/Temi-Tory/InformationPropagationAnalysis.jl
+\bibitem{koller2009probabilistic} D. Koller and N. Friedman, \textit{Probabilistic Graphical Models: Principles and Techniques}, MIT Press, 2009.
+\bibitem{hannay2009scientists} J.E. Hannay, C. MacLeod, J. Singer, H.P. Langtangen, D. Pfahl, and G. Wilson, ``How do scientists develop and use scientific software?'' in \textit{Proc. SECSE}, 2009, pp. 1--8.
+\bibitem{prabhu2011survey} P. Prabhu, T.B. Jablin, A. Raman, Y. Zhang, J. Huang, H. Kim, N.P. Johnson, F. Liu, S. Ghber, S. Beard, T. Oh, M. Zoufaly, D. Walker, and D.I. August, ``A survey of the practice of computational science,'' in \textit{Proc. SC}, 2011, pp. 1--12.
+\bibitem{hashizume2013analysis} K. Hashizume, D.G. Rosado, E. Fernandez-Medina, and E.B. Fernandez, ``An analysis of security issues for cloud computing,'' \textit{Journal of Internet Services and Applications}, vol. 4, no. 1, pp. 1--13, 2013.
+\bibitem{norsys1998netica} Norsys Software Corp., ``Netica: Application for belief networks and influence diagrams,'' 1998. [Online]. Available: https://www.norsys.com/netica.html
+\bibitem{ferson2019pbar} S. Ferson, ``pba.r: Probability bounds analysis in R,'' GitHub repository, 2019. [Online]. Available: https://github.com/ScottFerson/pba.r
+\bibitem{gray2022pba_julia} M. Gray and S. Ferson, ``ProbabilityBoundsAnalysis.jl: Probability bounds analysis in Julia,'' GitHub repository, 2022.
+\bibitem{gray2022pba} M. Gray and S. Ferson, ``pba.py: Probability bounds analysis for Python,'' \textit{SoftwareX}, vol. 19, 2022.
+\end{thebibliography}
+\end{document}

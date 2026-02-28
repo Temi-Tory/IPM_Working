@@ -1,0 +1,39 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{A Web-Based Interface for Information Propagation Analysis on Directed Acyclic Networks}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{University of Strathclyde\\
+Glasgow, United Kingdom\\
+email@strath.ac.uk}}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Write abstract after completing the paper
+\end{abstract}
+
+\section{Introduction}
+From the design stage to operation and maintenance, decision makers need access to tools and techniques that simultaneously allow them to efficiently model a system's characteristics, as well as trace and quantify the flow of resources against expected metrics. Graph theory has long played a central role in this kind of analysis for civil infrastructures, and the mathematical foundations are well established, with software implementations available across several programming languages including MATLAB, R, Python, and Julia~\cite{pearl1988probabilistic, koller2009probabilistic, ferson2015}.
+
+Unfortunately, the people who need these tools most are not always the same ones who develop them. Domain experts often have detailed knowledge of their systems but lack the programming skills required to effectively use many existing software approaches. Sometimes described as the ``last mile problem'', studies consistently report this gap between algorithmic availability and practical adoption~\cite{hannay2009scientists, prabhu2011survey}.
+
+In recent years, several tools have been developed that aim to make network analysis more accessible, though each addresses only part of the problem. Web-based platforms such as Jupyter notebooks~\cite{kluyver2016jupyter}, Shiny applications~\cite{chang2015shiny}, and Streamlit dashboards~\cite{streamlit2019} provide interactive environments for running analyses, but they still require users to write code in Python, R, or similar languages to define models and configure parameters. Visualization tools such as Gephi~\cite{bastian2009gephi} and Cytoscape~\cite{shannon2003cytoscape} offer graphical interfaces for exploring network topology, but they do not support probabilistic or flow-based analyses. More specialised software such as GeNIe~\cite{druzdzel1999genie}, BayesiaLab~\cite{bayesialab}, and Netica~\cite{norsys1998netica} does support probabilistic reasoning, but each comes with its own data format requirements and a learning curve that can be steep for users outside the Bayesian network community. Because no single tool covers both the structural and quantitative aspects of network analysis within a visual interface, practitioners who need to perform a complete assessment often resort to combining several of these tools, translating data between them and managing separate workflows for different parts of the analysis.
+
+A further limitation concerns the treatment of uncertainty. In many network-based reliability problems, data on component failure rates or link transmission probabilities are sparse, incomplete, or derived from expert judgement, and in such cases a single probability distribution may not adequately represent the available information. Probability bounds analysis and probability boxes (p-boxes) provide a way to represent this kind of epistemic uncertainty by specifying bounds on cumulative distributions rather than assuming a precise distributional form~\cite{ferson2003constructing}. Software libraries supporting p-box arithmetic have been developed for R~\cite{ferson2019pbar}, Julia~\cite{gray2022pba_julia}, and Python~\cite{gray2022pba}, but as with the network analysis libraries mentioned above, they require users to write code and are not integrated into any of the visual tools described previously.
+
+The choice of deployment architecture also has practical implications for adoption, particularly in regulated industries. For organisations working with proprietary infrastructure models or classified data, such as those in the nuclear, defence, or critical infrastructure sectors, local deployment is often a contractual or regulatory requirement rather than a preference~\cite{kleppmann2019local}. Although cloud-based analysis platforms offer convenience, they raise data sovereignty and privacy concerns that can prevent their use in these settings~\cite{hashizume2013analysis}.
+
+This paper presents a web-based graphical interface for network analysis on directed acyclic graphs that aims to address these limitations. The interface wraps the \texttt{InformationPropagationAnalysis.jl} Julia package~\cite{infoprop2024} and provides a visual environment in which users can upload network definitions, run structural and probabilistic analyses, and explore results without writing code. The system supports multiple analysis modes, including network structure exploration, diamond decomposition, probability propagation with p-box uncertainty, capacity analysis, and critical path computation. The architecture separates the Julia backend, which exposes analysis functions through a REST API, from an Angular frontend that provides the visual interface, so that developers can extend the analysis capabilities independently of the interface used by practitioners. All computation runs locally on the user's machine, which means that network data does not leave the user's environment.
+
+The remainder of this paper is organized as follows. Section~II describes the system architecture, detailing both the Julia backend server and Angular frontend components. Section~III presents the supported analysis modes and their corresponding interface elements. Section~IV demonstrates the system through representative use cases. Section~V concludes with a discussion of limitations and directions for future work.
+
+\end{document}

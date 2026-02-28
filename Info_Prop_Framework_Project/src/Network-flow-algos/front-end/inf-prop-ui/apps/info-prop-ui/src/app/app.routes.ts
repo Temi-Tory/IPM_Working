@@ -14,5 +14,5 @@ export const appRoutes: Route[] = [
   { path: 'time-analysis', loadComponent: () => import('./analysis/time-analysis/time-analysis.component').then(m => m.TimeAnalysisComponent) },
   { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) },
   // System Profile - comprehensive analysis dashboard
-  { path: 'system-profile', loadComponent: () => import('./analysis/system-profile/system-profile.component').then(m => m.SystemProfileComponent) }
+  //{ path: 'system-profile', loadComponent: () => import('./analysis/system-profile/system-profile.component').then(m => m.SystemProfileComponent) }
 ]

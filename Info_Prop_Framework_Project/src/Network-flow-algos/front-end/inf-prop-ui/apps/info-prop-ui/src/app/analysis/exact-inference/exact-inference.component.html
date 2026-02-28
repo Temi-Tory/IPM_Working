@@ -337,15 +337,15 @@
               </td>
             </ng-container>
 
-            <!-- Signal Probability Column -->
-            <ng-container matColumnDef="signalProbability">
+            <!-- Belief Column (computed by backend: Prior × P(signal)) -->
+            <ng-container matColumnDef="belief">
               <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Probability of receiving at least one signal from sources">
-                Signal Probability
+                  matTooltip="Reachability belief: Prior × P(receives ≥1 signal)">
+                Belief
               </th>
               <td mat-cell *matCellDef="let result">
-                <div class="signal-probability">
-                  {{ formatSignalProbability(result.signalProbability) }}
+                <div class="belief-value">
+                  {{ formatBelief(result.belief) }}
                 </div>
               </td>
             </ng-container>

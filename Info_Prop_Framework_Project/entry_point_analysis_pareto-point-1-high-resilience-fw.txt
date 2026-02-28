@@ -1,0 +1,4444 @@
+================================================================================
+ENTRY POINT STRUCTURE ANALYSIS
+================================================================================
+Generated: 2026-01-19T20:43:01.606
+
+Mathematical Motivation:
+========================
+
+For a diamond with k non-conditioning sources {n₁, ..., nₖ}:
+- Each nᵢ connects to the diamond via exactly ONE edge
+- That edge goes to an "entry point" node eᵢ (intermediate node)
+- Entry point eᵢ is NOT a conditioning node and NOT the join
+
+Current: We treat each nᵢ as independent → 2^k coefficient complexity
+
+Alternative: Group by entry points!
+- Let E = {e₁, ..., eₘ} be the distinct entry points
+- Multiple non-cond sources may share the same entry point
+- At each entry point eⱼ: contribution = Σ{nᵢ→eⱼ} P(nᵢ→eⱼ) × belief(nᵢ)
+
+If m << k, we could potentially:
+1. Compute entry point contributions (linear combination)
+2. Use 2^m coefficients instead of 2^k
+
+Question: Is m typically much smaller than k?
+
+
+--------------------------------------------------------------------------------
+PER-DIAMOND ENTRY POINT ANALYSIS
+--------------------------------------------------------------------------------
+
+Diamond 1254260485718901675:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.57
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 2442328580191958978:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 10263221348606250891:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 5570505443890945068:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 11279864918967854690:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.36
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 79]
+
+Diamond 224998578922128940:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+
+Diamond 16956530223039189238:
+  Non-cond sources (k): 17
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.24
+  Original coefficients: 2^17 = 131072
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 13016841906864590114:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 0.73
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 15905489202129740478:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 5698848745940580715:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2, 16, 21]
+    Node 32 <- sources: [2, 16, 21]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 31 <- sources: [2, 16, 21]
+    Node 80 <- sources: [2, 16, 21, 79]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 11049823944127366533:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 4169262954306363812:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.67
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 12523518832188897762:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 4678052476519151659:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.08
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+
+Diamond 12647582813059218677:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 8.388608e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 11810312974987450553:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.4
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 2839311397536233758:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.13
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 1.048576e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 9794917901275551093:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.08
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4.194304e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 9501643498197357880:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.27
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 14085000411768352136:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 28]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 11405739263353358648:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.41
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [79]
+    Node 23 <- sources: [22]
+
+Diamond 1105250739850994563:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.67
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 6671446906202851299:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 1.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 0.2x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 7406314004715545833:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 17158246189575875549:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+
+Diamond 7453767347164240582:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.36
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 79]
+
+Diamond 5140068029585812852:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 79]
+
+Diamond 6884207616769429760:
+  Non-cond sources (k): 28
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^28 = 268435456
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 4.194304e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 79]
+
+Diamond 14314315076332239817:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 14426890895490047988:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.15
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 8.388608e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 11091146149285914206:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1482524675392599394:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.27
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3403425561296544203:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 11415641995802266703:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.28
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 6456000938023648646:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.82
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 3149698176997562021:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 8673695521241767692:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.41
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [79]
+    Node 23 <- sources: [22]
+
+Diamond 1645847570101798733:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+
+Diamond 16160323008960787147:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.52
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8071115005380744436:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 0.61
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 9458590296771175081:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 2.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 0.1x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 6750504312509264888:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 0.67
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3938498056548831571:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 2.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 5838887024441810656:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.09
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+
+Diamond 5128743130842124960:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 2.097152e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 79]
+
+Diamond 11240343576821137959:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 12348814151036195329:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.35
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 131072.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 79]
+
+Diamond 7218381549036431998:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 0.68
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 2095893581284104632:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 17289020029818430800:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.42
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 81 <- sources: [2, 16, 21, 23, 29]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 79]
+
+Diamond 16484508430823758608:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 1.83
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 17975909703149883187:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.57
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 32 <- sources: [2, 16, 21]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 31 <- sources: [2, 16, 21]
+    Node 82 <- sources: [2, 16, 21]
+    Node 80 <- sources: [2, 16, 21, 79]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 4533062958789611381:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 28]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 9325650944384255630:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.31
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 79]
+
+Diamond 4280403844638314757:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 644340337881168957:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 17
+  Compression ratio (m/k): 0.77
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^17 = 131072
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 5055735059772581230:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29]
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 82 <- sources: [2, 16, 21, 23, 29]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8477433677126681029:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 14556263311376009780:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 79]
+
+Diamond 7605984682966042808:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.46
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 79]
+
+Diamond 12388574236769565716:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 2.14
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 5665791673023225370:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+
+Diamond 2958311059461941114:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 2.67
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 14249906276528430689:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.32
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 32768.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 2618695773055752583:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 2.29
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 15629772433530832278:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 0.61
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3170808630443730610:
+  Non-cond sources (k): 9
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^9 = 512
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2]
+
+Diamond 11522431883083230731:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 1.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 0.2x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 8044794323534990099:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 28]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 7846459825073494795:
+  Non-cond sources (k): 10
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.1
+  Original coefficients: 2^10 = 1024
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+
+Diamond 8126938975795418985:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.4
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 17169209934474494617:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1549914293231468870:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 2.33
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 7866255692199533003:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.31
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 262144.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 79]
+
+Diamond 7165691708231703200:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.31
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 262144.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 79]
+
+Diamond 1227140016644417685:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.24
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 13998369784883954380:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 2.14
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 4359295730121116930:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.28
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 7102106076171406959:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.56
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 33 <- sources: [2]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2, 22]
+
+Diamond 10942312637056931065:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 6037336371963757967:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.04
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 1.6777216e7x
+  Entry point breakdown:
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8227947330250206151:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.45
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 18087424846629762076:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.09
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+
+Diamond 9222267841386919065:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.07
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69]
+
+Diamond 8885875361325108160:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.17
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+
+Diamond 709164260069845582:
+  Non-cond sources (k): 8
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^8 = 256
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+
+Diamond 14119157736294643806:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.08
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 1.6777216e7x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3843370389793243751:
+  Non-cond sources (k): 9
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^9 = 512
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2]
+
+Diamond 1699873619930002795:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.24
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 524288.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 4092977962196977846:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.46
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29]
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 82 <- sources: [2, 16, 21, 23, 29]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 16221662256261077048:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 4.194304e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 18113795704163390044:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8800547802615770411:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+
+Diamond 14028368005435664690:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.19
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 2.097152e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3933063251246914853:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 1010404578398838724:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.73
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 33 <- sources: [2]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 559174828952928813:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.39
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 16714336170382949222:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.8
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 11902907731521718389:
+  Non-cond sources (k): 16
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.19
+  Original coefficients: 2^16 = 65536
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2]
+
+Diamond 3432087041852919444:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.28
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 3798027887931908484:
+  Non-cond sources (k): 10
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^10 = 1024
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2, 18]
+    Node 23 <- sources: [2, 22]
+
+Diamond 3861560777090800696:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.39
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 16180879837225415805:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.14
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+
+Diamond 7405390118456206467:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 1.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 0.1x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 9702488363700577056:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8362024487797904535:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.65
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 13357686318518708565:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 2.6
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 15236276584862384460:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 131072.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 15054085577907433774:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 2766248088144266148:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.52
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 80 <- sources: [2, 16, 79]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 2441686770392200020:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 2.5
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 4712084104703419733:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [22]
+
+Diamond 598287109352972967:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 0.73
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 7035880115576924592:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.58
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 7156327299554230515:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 32768.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 79]
+
+Diamond 12643257158277115157:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.57
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 80 <- sources: [2, 16, 79]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 4927590785935228410:
+  Non-cond sources (k): 8
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^8 = 256
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2]
+
+Diamond 7304524816566330809:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 0.65
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 82 <- sources: [2, 16]
+    Node 80 <- sources: [2, 16, 79]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 1637235338991768736:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 4240060869781732969:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 13964636451474085606:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 1.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 0.1x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 1093969288148715839:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 14561716870727462272:
+  Non-cond sources (k): 7
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 2.29
+  Original coefficients: 2^7 = 128
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 5168282582792334505:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 524288.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 79]
+
+Diamond 10000436314507158536:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.17
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+
+Diamond 11281554868233477455:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2, 22]
+
+Diamond 9077520344725587728:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 14362409568172730940:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 1.83
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 3256695986050912682:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 21, 28]
+
+Diamond 11285570574197893856:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 29 <- sources: [2, 16, 28]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 17844827679581578540:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.27
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 1879650449962996485:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.42
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 6174640137207076375:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 79]
+
+Diamond 5606844476820723101:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8030989550967827111:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.07
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69]
+
+Diamond 15964078361113494446:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 262144.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 11388236282224636323:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.44
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 2977953603023982662:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 10869259790965454357:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+
+Diamond 8936771703175655228:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 79]
+
+Diamond 3887419939846056529:
+  Non-cond sources (k): 17
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.24
+  Original coefficients: 2^17 = 131072
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1128502638386099724:
+  Non-cond sources (k): 17
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^17 = 131072
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [22]
+
+Diamond 7955671492197208050:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 1.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 0.2x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 15536413725096522533:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 0.65
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 14415429474729526238:
+  Non-cond sources (k): 9
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^9 = 512
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [2, 18]
+
+Diamond 17396287751844193437:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.36
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 17418614499207239787:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 17362168660694196527:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 6565668213014391245:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.57
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 82 <- sources: [2, 16, 21, 23]
+    Node 80 <- sources: [2, 16, 21, 23, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 1358232813829198709:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.15
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+
+Diamond 12239748146589971130:
+  Non-cond sources (k): 15
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.13
+  Original coefficients: 2^15 = 32768
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79, 80]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 80]
+
+Diamond 1963228706168879404:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 23 <- sources: [2, 22]
+
+Diamond 15224873561973040498:
+  Non-cond sources (k): 28
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^28 = 268435456
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 1.048576e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 83 <- sources: [79]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 79]
+
+Diamond 9352830268339305065:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2, 22]
+
+Diamond 16899799858907175427:
+  Non-cond sources (k): 17
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^17 = 131072
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [2, 22]
+
+Diamond 2543459942021680039:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 1.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 0.1x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 6652115322861810822:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.52
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 82 <- sources: [2, 16, 21, 23]
+    Node 80 <- sources: [2, 16, 21, 23, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 1617306406306786789:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 0.7
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 16058328774802616743:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.07
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 79]
+
+Diamond 7916121052080547436:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 14192786447139395243:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 8724711003310942917:
+  Non-cond sources (k): 16
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^16 = 65536
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+
+Diamond 8391352931661382666:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 12123965316762141355:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.45
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 2205563857298192528:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 2.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 5124567161072016623:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.17
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.048576e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 14613098714529132586:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 12453352046556945562:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.16
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 2.097152e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 6209429325357379652:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.41
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [79]
+    Node 23 <- sources: [22]
+
+Diamond 7584774292457803143:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.27
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 524288.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 79]
+
+Diamond 3169175816536453937:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.42
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 81 <- sources: [2, 16, 21, 23, 29]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 79]
+
+Diamond 15992283729292578250:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.44
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 17361671913703974045:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.27
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 10439077762668325292:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 7237740469276216623:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 2.67
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 9526752332817697329:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.4
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 32768.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 79]
+
+Diamond 2755613371428815084:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 33 <- sources: [2]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 12046726342955824470:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 8149344846545466856:
+  Non-cond sources (k): 15
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.2
+  Original coefficients: 2^15 = 32768
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+
+Diamond 11100418526480759642:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 79]
+
+Diamond 14654960048318116226:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 6452180643386928136:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.14
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 79]
+
+Diamond 17687299202762469531:
+  Non-cond sources (k): 16
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^16 = 65536
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+
+Diamond 15647080825962404207:
+  Non-cond sources (k): 3
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^3 = 8
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 17272836158933056164:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 2543748113135862814:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.64
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 14235773342391188955:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 1.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 0.2x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2, 28]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 8166380862397540967:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 2.2
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 17096639167530346214:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 12581733740847590094:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 79]
+
+Diamond 8125716344764173761:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.64
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 7441235677577599784:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.07
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 80]
+
+Diamond 11846152990268527046:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 79]
+
+Diamond 9782915790969133252:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.42
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 9377658569595199505:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 7993619013092857686:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 1.83
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 13752745681982309879:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 79]
+
+Diamond 12259179692586491455:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 6092054517339413925:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 13
+  Compression ratio (m/k): 0.57
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^13 = 8192
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 80 <- sources: [2, 16, 79]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 10211405604744209372:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 79]
+
+Diamond 5521028477410241886:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.41
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 17888767068203983465:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 262144.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 79]
+
+Diamond 17057465415516294201:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.26
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 131072.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 5993363531105910332:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.2
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 16.0x
+  Entry point breakdown:
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 16955145773625341732:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 79]
+
+Diamond 2444552448776058917:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 4126754066381881453:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 1135920654680008578:
+  Non-cond sources (k): 17
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^17 = 131072
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 17645359045043578575:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 79]
+
+Diamond 5678548308244897325:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 0.61
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 32 <- sources: [2, 16, 21]
+    Node 83 <- sources: [79]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 31 <- sources: [2, 16, 21]
+    Node 82 <- sources: [2, 16, 21]
+    Node 80 <- sources: [2, 16, 21, 79]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 16435583219486391103:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.4
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 13222958903475765160:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.39
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 16 <- sources: [2, 15, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 2, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [2, 28]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 13295490224968035238:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.14
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 64, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 79]
+
+Diamond 17774222458515094302:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.75
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 14937423075736434735:
+  Non-cond sources (k): 12
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^12 = 4096
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1751971472720415080:
+  Non-cond sources (k): 19
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.58
+  Original coefficients: 2^19 = 524288
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 878125918938786827:
+  Non-cond sources (k): 28
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^28 = 268435456
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 4.194304e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 79]
+
+Diamond 4398301237771079943:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.82
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 33 <- sources: [2]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 7467921327047276005:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.0
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 12624328342845366058:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.36
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 79]
+
+Diamond 288980933261564153:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 2.4
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 10950734177694245450:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.3
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 615869234923829128:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 80 <- sources: [2, 16, 21, 23, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 372543899349210056:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.8
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 2.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 13607837052756454029:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.35
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 12534468234912423546:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.44
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 33 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 929777053342015363:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 23 <- sources: [22]
+
+Diamond 17291370136946875568:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.45
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 3664258355325827988:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.6
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8332000624168536490:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 30 <- sources: [2, 16, 21]
+
+Diamond 7880928825002173181:
+  Non-cond sources (k): 3
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 1.33
+  Original coefficients: 2^3 = 8
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 29 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1656235613304597977:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 16
+  Compression ratio (m/k): 0.73
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^16 = 65536
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 82 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 15541925547404787095:
+  Non-cond sources (k): 26
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^26 = 67108864
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 65536.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 79]
+
+Diamond 1147390132892570687:
+  Non-cond sources (k): 25
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.32
+  Original coefficients: 2^25 = 33554432
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 131072.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 79]
+
+Diamond 10152570964860363576:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.26
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 1.048576e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 79]
+
+Diamond 1568285864183224295:
+  Non-cond sources (k): 27
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.26
+  Original coefficients: 2^27 = 134217728
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 1.048576e6x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 79]
+
+Diamond 5284215142064518165:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 6993079275205015258:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3799992692769547065:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 2155619800261160499:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.38
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 7375515872400080129:
+  Non-cond sources (k): 28
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.25
+  Original coefficients: 2^28 = 268435456
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 2.097152e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 79]
+
+Diamond 4181556841210710380:
+  Non-cond sources (k): 24
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.21
+  Original coefficients: 2^24 = 16777216
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 524288.0x
+  Entry point breakdown:
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30, 31]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 7996338799637963383:
+  Non-cond sources (k): 11
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.55
+  Original coefficients: 2^11 = 2048
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 32.0x
+  Entry point breakdown:
+    Node 47 <- sources: [28]
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 270551314357903091:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.45
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 83 <- sources: [79]
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [79]
+    Node 23 <- sources: [22]
+
+Diamond 4506903721641195677:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.29
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 1024.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 79]
+
+Diamond 1509059441984948408:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 10162302411925143262:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 17519291129367371886:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 11907168604395457703:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 10
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^10 = 1024
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 21 <- sources: [1, 2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 22]
+
+Diamond 18385144615001441381:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 1.25
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 0.5x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 16651207612230679641:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.4
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 15112588610742981109:
+  Non-cond sources (k): 28
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.18
+  Original coefficients: 2^28 = 268435456
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 8.388608e6x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 68]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 79]
+
+Diamond 7357486526488978344:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.35
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 31 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 5260902352967836182:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.14
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 79]
+
+Diamond 85019324197107969:
+  Non-cond sources (k): 4
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^4 = 16
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+
+Diamond 17453936774539060552:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 2
+  Compression ratio (m/k): 0.14
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^2 = 4
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65]
+
+Diamond 3247840912535701412:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.5
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 8.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+
+Diamond 5410368489724341222:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 262144.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 34 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29, 30]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 1254189006771406346:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 4
+  Compression ratio (m/k): 0.22
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^4 = 16
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 29 <- sources: [28]
+    Node 23 <- sources: [22]
+
+Diamond 4011041772243486618:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 11
+  Compression ratio (m/k): 0.48
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^11 = 2048
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21, 23]
+    Node 30 <- sources: [2, 16, 21, 23]
+    Node 32 <- sources: [2, 16, 21, 23]
+    Node 69 <- sources: [2, 16, 21, 23, 68]
+    Node 31 <- sources: [2, 16, 21, 23]
+    Node 80 <- sources: [2, 16, 21, 23, 79]
+    Node 64 <- sources: [2, 16, 21, 23, 63]
+    Node 33 <- sources: [2, 16, 21, 23]
+    Node 34 <- sources: [2, 16, 21, 23]
+    Node 65 <- sources: [2, 16, 21, 23, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 2311602449306562564:
+  Non-cond sources (k): 21
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.43
+  Original coefficients: 2^21 = 2097152
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 31 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [2, 16, 22]
+
+Diamond 4299034307738381998:
+  Non-cond sources (k): 19
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.26
+  Original coefficients: 2^19 = 524288
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 16384.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 23 <- sources: [22]
+
+Diamond 14546615240631157146:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 14
+  Compression ratio (m/k): 0.61
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^14 = 16384
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16]
+    Node 30 <- sources: [2, 16]
+    Node 23 <- sources: [2, 16, 22]
+    Node 32 <- sources: [2, 16]
+    Node 69 <- sources: [2, 16, 68]
+    Node 31 <- sources: [2, 16]
+    Node 82 <- sources: [2, 16]
+    Node 80 <- sources: [2, 16, 79]
+    Node 64 <- sources: [2, 16, 63]
+    Node 29 <- sources: [2, 16, 28]
+    Node 33 <- sources: [2, 16]
+    Node 34 <- sources: [2, 16]
+    Node 65 <- sources: [2, 16, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 16181267867895061940:
+  Non-cond sources (k): 18
+  Distinct entry points (m): 6
+  Compression ratio (m/k): 0.33
+  Original coefficients: 2^18 = 262144
+  Entry-based coefficients: 2^6 = 64
+  Reduction factor: 4096.0x
+  Entry point breakdown:
+    Node 29 <- sources: [2, 28]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 31 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+
+Diamond 1231092648513418982:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 8
+  Compression ratio (m/k): 0.35
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^8 = 256
+  Reduction factor: 32768.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 34 <- sources: [2, 16, 21, 23, 29]
+    Node 64 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 63]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 68]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 5547310457264548677:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.52
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 32 <- sources: [2, 16, 21]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 31 <- sources: [2, 16, 21]
+    Node 80 <- sources: [2, 16, 21, 79]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 8896873244598311594:
+  Non-cond sources (k): 5
+  Distinct entry points (m): 3
+  Compression ratio (m/k): 0.6
+  Original coefficients: 2^5 = 32
+  Entry-based coefficients: 2^3 = 8
+  Reduction factor: 4.0x
+  Entry point breakdown:
+    Node 32 <- sources: [2, 16, 21, 23, 29]
+    Node 33 <- sources: [2, 16, 21, 23, 29]
+    Node 31 <- sources: [2, 16, 21, 23, 29]
+
+Diamond 16611849344406801254:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 15
+  Compression ratio (m/k): 0.68
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^15 = 32768
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 81 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 69 <- sources: [2, 68]
+    Node 31 <- sources: [2]
+    Node 80 <- sources: [2, 79]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 3210630971478959049:
+  Non-cond sources (k): 13
+  Distinct entry points (m): 7
+  Compression ratio (m/k): 0.54
+  Original coefficients: 2^13 = 8192
+  Entry-based coefficients: 2^7 = 128
+  Reduction factor: 64.0x
+  Entry point breakdown:
+    Node 64 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 83 <- sources: [79]
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 79]
+
+Diamond 32241780040189876:
+  Non-cond sources (k): 14
+  Distinct entry points (m): 5
+  Compression ratio (m/k): 0.36
+  Original coefficients: 2^14 = 16384
+  Entry-based coefficients: 2^5 = 32
+  Reduction factor: 512.0x
+  Entry point breakdown:
+    Node 65 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 63]
+    Node 81 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 69 <- sources: [2, 16, 21, 23, 29, 30, 32, 34, 62, 68]
+    Node 82 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Node 80 <- sources: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 79]
+
+Diamond 7754029211028162687:
+  Non-cond sources (k): 22
+  Distinct entry points (m): 9
+  Compression ratio (m/k): 0.41
+  Original coefficients: 2^22 = 4194304
+  Entry-based coefficients: 2^9 = 512
+  Reduction factor: 8192.0x
+  Entry point breakdown:
+    Node 64 <- sources: [63]
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+    Node 29 <- sources: [28]
+    Node 69 <- sources: [68]
+    Node 65 <- sources: [63]
+    Node 21 <- sources: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Node 80 <- sources: [79]
+    Node 23 <- sources: [22]
+
+Diamond 13159894682617744183:
+  Non-cond sources (k): 8
+  Distinct entry points (m): 1
+  Compression ratio (m/k): 0.12
+  Original coefficients: 2^8 = 256
+  Entry-based coefficients: 2^1 = 2
+  Reduction factor: 128.0x
+  Entry point breakdown:
+    Node 16 <- sources: [15, 18, 61, 76, 87, 135, 245, 268]
+
+Diamond 9893575911013680299:
+  Non-cond sources (k): 6
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 2.0
+  Original coefficients: 2^6 = 64
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 0.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2]
+    Node 21 <- sources: [1, 2]
+    Node 62 <- sources: [2, 6]
+
+Diamond 12298197909894694690:
+  Non-cond sources (k): 23
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.52
+  Original coefficients: 2^23 = 8388608
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 2048.0x
+  Entry point breakdown:
+    Node 81 <- sources: [2, 16, 21]
+    Node 30 <- sources: [2, 16, 21]
+    Node 32 <- sources: [2, 16, 21]
+    Node 69 <- sources: [2, 16, 21, 68]
+    Node 31 <- sources: [2, 16, 21]
+    Node 80 <- sources: [2, 16, 21, 79]
+    Node 64 <- sources: [2, 16, 21, 63]
+    Node 29 <- sources: [2, 16, 21, 28]
+    Node 33 <- sources: [2, 16, 21]
+    Node 34 <- sources: [2, 16, 21]
+    Node 65 <- sources: [2, 16, 21, 63]
+    Node 62 <- sources: [2, 6, 15, 16, 18, 20, 21, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+Diamond 13641100817144532619:
+  Non-cond sources (k): 20
+  Distinct entry points (m): 12
+  Compression ratio (m/k): 0.6
+  Original coefficients: 2^20 = 1048576
+  Entry-based coefficients: 2^12 = 4096
+  Reduction factor: 256.0x
+  Entry point breakdown:
+    Node 16 <- sources: [2, 15, 18, 61, 76, 87, 135, 245, 268]
+    Node 30 <- sources: [2]
+    Node 23 <- sources: [2, 22]
+    Node 32 <- sources: [2]
+    Node 31 <- sources: [2]
+    Node 64 <- sources: [2, 63]
+    Node 29 <- sources: [2, 28]
+    Node 33 <- sources: [2]
+    Node 34 <- sources: [2]
+    Node 65 <- sources: [2, 63]
+    Node 21 <- sources: [2, 18, 20, 59, 85, 148, 161, 229, 233]
+    Node 62 <- sources: [2, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+
+================================================================================
+ENTRY POINT SUMMARY STATISTICS
+================================================================================
+
+Diamonds with non-cond sources: 276
+
+Entry point counts (m):
+  Min: 1
+  Max: 17
+  Mean: 6.82
+
+Non-cond source counts (k):
+  Min: 2
+  Max: 28
+  Mean: 15.8
+
+Compression ratios (m/k):
+  Min: 0.04
+  Max: 2.667
+  Mean: 0.566
+
+Entry point sharing:
+  Diamonds with shared entries (m < k): 238
+  Diamonds with all unique entries (m = k): 38
+
+Total coefficient comparison:
+  Original (Σ 2^k): 3499143940
+  Entry-based (Σ 2^m): 1148544
+  Overall reduction: 3046.6x
+
+================================================================================
+ENTRY POINT DECOMPOSITION VIABILITY
+================================================================================
+
+With entry point grouping:
+  Feasible (m ≤ 10): 222
+  Infeasible (m > 10): 54
+
+✓ ENTRY POINT GROUPING SHOWS PROMISE
+
+Average compression ratio: 0.57
+This means entry points are often SHARED among non-cond sources.
+
+Mathematical implication:
+- Instead of treating each non-cond source belief as independent variable
+- We can compute ENTRY POINT CONTRIBUTIONS first:
+    contribution(eⱼ) = Σ{nᵢ→eⱼ} P(nᵢ→eⱼ) × belief(nᵢ)
+- Then the diamond join is a function of fewer variables
+
+This is mathematically EXACT (not an approximation)!
+The decomposition is:
+  Belief(J | cond) = f(contribution(e₁), ..., contribution(eₘ), cond)
+
+Where f still requires 2^m coefficients, but m < k.
+
+
+================================================================================
+END OF ENTRY POINT ANALYSIS
+================================================================================

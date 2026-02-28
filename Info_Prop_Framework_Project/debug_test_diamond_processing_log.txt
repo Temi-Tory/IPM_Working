@@ -1,0 +1,2355 @@
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-1-high-resilience-fw
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-1-high-resilience-fw
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.342s
+   Nodes: 145
+   Edges: 327
+   Sources: 23
+   Sinks: 99
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.001s
+   Forks: 45
+   Joins: 50
+   Iteration layers: 19
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.004s
+   Root diamonds: 24
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 1.599s
+   Unique diamonds: 277
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.342s
+   Build structure:    0.001s
+   Identify diamonds:  0.004s
+   Build storage:      1.599s
+   --------------------------------------------------
+   TOTAL TIME:         1.946s
+
+📋 Root Diamonds Summary:
+  Join Node 21:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 15, 16, 18, 21, 61, 76, 87, 135, 245, 268]
+    Edges: 11
+    Non-Diamond Parents: [1, 18, 20, 59, 85, 148, 161, 229, 233]
+  Join Node 23:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 23, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 23
+    Non-Diamond Parents: [22]
+  Join Node 29:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 29, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 28
+    Non-Diamond Parents: [28]
+  Join Node 30:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 34
+    Non-Diamond Parents: Int64[]
+  Join Node 31:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 40
+    Non-Diamond Parents: Int64[]
+  Join Node 32:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 47
+    Non-Diamond Parents: Int64[]
+  Join Node 33:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 55
+    Non-Diamond Parents: Int64[]
+  Join Node 34:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 64
+    Non-Diamond Parents: Int64[]
+  Join Node 62:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 74
+    Non-Diamond Parents: [6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+  Join Node 64:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 64, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 101
+    Non-Diamond Parents: [63]
+  Join Node 65:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 114
+    Non-Diamond Parents: [63]
+  Join Node 69:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 69, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 126
+    Non-Diamond Parents: [68]
+  Join Node 80:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 80, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 141
+    Non-Diamond Parents: [79]
+  Join Node 81:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 157
+    Non-Diamond Parents: Int64[]
+  Join Node 82:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 172
+    Non-Diamond Parents: Int64[]
+  Join Node 83:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 83, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 159
+    Non-Diamond Parents: [79]
+  Join Node 199:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 61, 76, 85, 87, 135, 148, 161, 199, 229, 233, 245, 268]
+    Edges: 49
+    Non-Diamond Parents: Int64[]
+  Join Node 200:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 200, 229, 233, 245, 268]
+    Edges: 104
+    Non-Diamond Parents: Int64[]
+  Join Node 201:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 201, 229, 233, 245, 268]
+    Edges: 104
+    Non-Diamond Parents: Int64[]
+  Join Node 202:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 202, 229, 233, 245, 268]
+    Edges: 104
+    Non-Diamond Parents: Int64[]
+  Join Node 208:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 44, 59, 61, 76, 85, 87, 135, 148, 161, 208, 229, 233, 245, 268]
+    Edges: 67
+    Non-Diamond Parents: Int64[]
+  Join Node 215:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 47, 53, 59, 61, 76, 85, 87, 135, 148, 161, 215, 229, 233, 245, 268]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 288:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268, 288]
+    Edges: 175
+    Non-Diamond Parents: Int64[]
+  Join Node 289:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [1, 2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 83, 85, 87, 135, 148, 161, 229, 233, 245, 268, 289]
+    Edges: 178
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 277
+   Total edges: 1709
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-2-high-resilience-vtol
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-2-high-resilience-vtol
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.056s
+   Nodes: 171
+   Edges: 280
+   Sources: 12
+   Sinks: 131
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 32
+   Joins: 70
+   Iteration layers: 11
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.002s
+   Root diamonds: 52
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.044s
+   Unique diamonds: 219
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.056s
+   Build structure:    0.0s
+   Identify diamonds:  0.002s
+   Build storage:      0.044s
+   --------------------------------------------------
+   TOTAL TIME:         0.102s
+
+📋 Root Diamonds Summary:
+  Join Node 59:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59]
+    Edges: 5
+    Non-Diamond Parents: [1]
+  Join Node 76:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 61, 76]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 77:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 77, 87, 135, 245, 268]
+    Edges: 40
+    Non-Diamond Parents: Int64[]
+  Join Node 85:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59, 85]
+    Edges: 8
+    Non-Diamond Parents: [1]
+  Join Node 86:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 18, 61, 76, 86, 87]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 87:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 18, 61, 76, 87]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 134:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 134, 135, 245, 268]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+  Join Node 135:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135]
+    Edges: 20
+    Non-Diamond Parents: [6]
+  Join Node 136:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 136]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 137:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 137]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 146:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59, 85, 146]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 147:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 147, 148, 161]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 148:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148]
+    Edges: 29
+    Non-Diamond Parents: [1]
+  Join Node 150:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 150, 161, 229]
+    Edges: 46
+    Non-Diamond Parents: Int64[]
+  Join Node 154:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 154, 161]
+    Edges: 38
+    Non-Diamond Parents: Int64[]
+  Join Node 156:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59, 85, 156]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 160:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 160, 161, 229]
+    Edges: 46
+    Non-Diamond Parents: Int64[]
+  Join Node 161:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161]
+    Edges: 35
+    Non-Diamond Parents: [1]
+  Join Node 162:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 162]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 163:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 163]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 165:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 165, 229]
+    Edges: 46
+    Non-Diamond Parents: Int64[]
+  Join Node 166:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 166]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 171:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 171]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 219:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59, 219]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 220:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 220, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 226:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 226, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 227:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 227, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 228:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 228, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 229:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229]
+    Edges: 43
+    Non-Diamond Parents: [1]
+  Join Node 231:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 231, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 232:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 232, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 233:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233]
+    Edges: 53
+    Non-Diamond Parents: [1]
+  Join Node 240:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 240, 245]
+    Edges: 30
+    Non-Diamond Parents: Int64[]
+  Join Node 241:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 241, 245]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 242:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 242, 245]
+    Edges: 30
+    Non-Diamond Parents: Int64[]
+  Join Node 243:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 243, 245]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 245:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245]
+    Edges: 26
+    Non-Diamond Parents: [6]
+  Join Node 246:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 246]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 247:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 247]
+    Edges: 30
+    Non-Diamond Parents: Int64[]
+  Join Node 250:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 250]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 251:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 251]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 255:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 255]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 256:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 256]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 258:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 61, 258]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 262:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 18, 61, 76, 87, 262]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 267:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 18, 61, 76, 87, 267]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 268:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268]
+    Edges: 35
+    Non-Diamond Parents: Int64[]
+  Join Node 269:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 77, 87, 135, 245, 268, 269]
+    Edges: 42
+    Non-Diamond Parents: Int64[]
+  Join Node 272:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268, 272]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+  Join Node 273:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268, 273]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+  Join Node 281:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 77, 87, 135, 245, 268, 281]
+    Edges: 42
+    Non-Diamond Parents: [44]
+  Join Node 284:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 77, 87, 135, 245, 268, 284]
+    Edges: 43
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 219
+   Total edges: 853
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-3-medium-resilience-sparse
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-3-medium-resilience-sparse
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.016s
+   Nodes: 98
+   Edges: 223
+   Sources: 23
+   Sinks: 58
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 37
+   Joins: 25
+   Iteration layers: 19
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.049s
+   Root diamonds: 19
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.163s
+   Unique diamonds: 165
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.016s
+   Build structure:    0.0s
+   Identify diamonds:  0.049s
+   Build storage:      0.163s
+   --------------------------------------------------
+   TOTAL TIME:         0.227s
+
+📋 Root Diamonds Summary:
+  Join Node 21:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 21, 76, 87]
+    Edges: 5
+    Non-Diamond Parents: [20, 59, 85, 148, 161, 229, 233]
+  Join Node 23:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 23, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 15
+    Non-Diamond Parents: [22]
+  Join Node 29:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 29, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 20
+    Non-Diamond Parents: [28]
+  Join Node 30:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 26
+    Non-Diamond Parents: Int64[]
+  Join Node 31:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 32
+    Non-Diamond Parents: Int64[]
+  Join Node 32:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 33:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 47
+    Non-Diamond Parents: Int64[]
+  Join Node 34:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 62:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 62, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 66
+    Non-Diamond Parents: [6, 15, 18, 61, 135, 245, 268]
+  Join Node 64:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 64, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 84
+    Non-Diamond Parents: [63]
+  Join Node 65:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 97
+    Non-Diamond Parents: Int64[]
+  Join Node 69:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 69, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 108
+    Non-Diamond Parents: [68]
+  Join Node 80:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 80, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 123
+    Non-Diamond Parents: [79]
+  Join Node 81:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 139
+    Non-Diamond Parents: Int64[]
+  Join Node 82:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 154
+    Non-Diamond Parents: Int64[]
+  Join Node 199:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 76, 85, 87, 148, 161, 199, 229, 233]
+    Edges: 41
+    Non-Diamond Parents: Int64[]
+  Join Node 201:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 201, 229, 233, 245, 268]
+    Edges: 87
+    Non-Diamond Parents: Int64[]
+  Join Node 288:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268, 288]
+    Edges: 157
+    Non-Diamond Parents: Int64[]
+  Join Node 289:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268, 289]
+    Edges: 156
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 165
+   Total edges: 865
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-4-low-resilience-minimal
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-4-low-resilience-minimal
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.014s
+   Nodes: 39
+   Edges: 28
+   Sources: 8
+   Sinks: 24
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 12
+   Joins: 0
+   Iteration layers: 4
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.0s
+   Root diamonds: 0
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.0s
+   Unique diamonds: 0
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.014s
+   Build structure:    0.0s
+   Identify diamonds:  0.0s
+   Build storage:      0.0s
+   --------------------------------------------------
+   TOTAL TIME:         0.014s
+
+📋 Root Diamonds Summary:
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 0
+   ❌ ERROR during processing: ArgumentError("reducing over an empty collection is not allowed; consider supplying `init` to the reducer")
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-5-medium-resilience-fw
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-5-medium-resilience-fw
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.026s
+   Nodes: 89
+   Edges: 214
+   Sources: 23
+   Sinks: 49
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 36
+   Joins: 25
+   Iteration layers: 19
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.004s
+   Root diamonds: 21
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.105s
+   Unique diamonds: 177
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.026s
+   Build structure:    0.0s
+   Identify diamonds:  0.004s
+   Build storage:      0.105s
+   --------------------------------------------------
+   TOTAL TIME:         0.135s
+
+📋 Root Diamonds Summary:
+  Join Node 21:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 21, 76, 87]
+    Edges: 5
+    Non-Diamond Parents: [20, 59, 85, 148, 161, 229, 233]
+  Join Node 23:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 23, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 15
+    Non-Diamond Parents: [22]
+  Join Node 29:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 29, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 20
+    Non-Diamond Parents: [28]
+  Join Node 30:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 26
+    Non-Diamond Parents: Int64[]
+  Join Node 31:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 32
+    Non-Diamond Parents: Int64[]
+  Join Node 32:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 33:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 47
+    Non-Diamond Parents: Int64[]
+  Join Node 34:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 56
+    Non-Diamond Parents: Int64[]
+  Join Node 62:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 62, 76, 85, 87, 148, 161, 229, 233]
+    Edges: 66
+    Non-Diamond Parents: [6, 15, 18, 61, 135, 245, 268]
+  Join Node 64:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 64, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 84
+    Non-Diamond Parents: [63]
+  Join Node 65:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 97
+    Non-Diamond Parents: Int64[]
+  Join Node 69:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 69, 76, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 108
+    Non-Diamond Parents: [68]
+  Join Node 80:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 80, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 123
+    Non-Diamond Parents: [79]
+  Join Node 81:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 139
+    Non-Diamond Parents: Int64[]
+  Join Node 82:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268]
+    Edges: 154
+    Non-Diamond Parents: Int64[]
+  Join Node 199:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 16, 20, 21, 22, 23, 28, 29, 30, 31, 32, 59, 76, 85, 87, 148, 161, 199, 229, 233]
+    Edges: 41
+    Non-Diamond Parents: Int64[]
+  Join Node 200:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 200, 229, 233, 245, 268]
+    Edges: 87
+    Non-Diamond Parents: Int64[]
+  Join Node 201:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 201, 229, 233, 245, 268]
+    Edges: 87
+    Non-Diamond Parents: Int64[]
+  Join Node 202:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 76, 85, 87, 135, 148, 161, 202, 229, 233, 245, 268]
+    Edges: 87
+    Non-Diamond Parents: Int64[]
+  Join Node 288:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268, 288]
+    Edges: 157
+    Non-Diamond Parents: Int64[]
+  Join Node 289:
+    Conditioning Nodes: [2]
+    Relevant Nodes: [2, 6, 15, 16, 18, 20, 21, 22, 23, 28, 29, 30, 31, 32, 33, 34, 59, 61, 62, 63, 64, 65, 68, 69, 76, 79, 80, 81, 82, 85, 87, 135, 148, 161, 229, 233, 245, 268, 289]
+    Edges: 156
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 177
+   Total edges: 953
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-6-balanced
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: pareto-point-6-balanced
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.02s
+   Nodes: 98
+   Edges: 261
+   Sources: 6
+   Sinks: 59
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 36
+   Joins: 34
+   Iteration layers: 14
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.002s
+   Root diamonds: 32
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.053s
+   Unique diamonds: 203
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.02s
+   Build structure:    0.0s
+   Identify diamonds:  0.002s
+   Build storage:      0.053s
+   --------------------------------------------------
+   TOTAL TIME:         0.075s
+
+📋 Root Diamonds Summary:
+  Join Node 23:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [16, 21, 23]
+    Edges: 3
+    Non-Diamond Parents: [2]
+  Join Node 29:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29]
+    Edges: 7
+    Non-Diamond Parents: [2]
+  Join Node 30:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30]
+    Edges: 12
+    Non-Diamond Parents: [2]
+  Join Node 31:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31]
+    Edges: 18
+    Non-Diamond Parents: [2]
+  Join Node 32:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 32]
+    Edges: 18
+    Non-Diamond Parents: Int64[]
+  Join Node 33:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33]
+    Edges: 31
+    Non-Diamond Parents: [2]
+  Join Node 34:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34]
+    Edges: 40
+    Non-Diamond Parents: [2]
+  Join Node 59:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59]
+    Edges: 5
+    Non-Diamond Parents: [1]
+  Join Node 62:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62]
+    Edges: 48
+    Non-Diamond Parents: [2]
+  Join Node 64:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64]
+    Edges: 58
+    Non-Diamond Parents: [2]
+  Join Node 65:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 65]
+    Edges: 59
+    Non-Diamond Parents: [2]
+  Join Node 69:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69]
+    Edges: 80
+    Non-Diamond Parents: [2]
+  Join Node 76:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 61, 76]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 77:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 77, 87, 135, 245, 268]
+    Edges: 40
+    Non-Diamond Parents: Int64[]
+  Join Node 80:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69, 80]
+    Edges: 94
+    Non-Diamond Parents: [2]
+  Join Node 81:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69, 80, 81]
+    Edges: 109
+    Non-Diamond Parents: [2]
+  Join Node 82:
+    Conditioning Nodes: [16]
+    Relevant Nodes: [2, 16, 21, 23, 29, 30, 31, 32, 33, 34, 62, 64, 65, 69, 80, 82]
+    Edges: 107
+    Non-Diamond Parents: [2]
+  Join Node 85:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 15, 18, 20, 59, 85]
+    Edges: 8
+    Non-Diamond Parents: [1]
+  Join Node 87:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [6, 15, 18, 61, 76, 87]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 135:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135]
+    Edges: 20
+    Non-Diamond Parents: [6]
+  Join Node 148:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148]
+    Edges: 29
+    Non-Diamond Parents: [1]
+  Join Node 161:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161]
+    Edges: 35
+    Non-Diamond Parents: [1]
+  Join Node 162:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 162]
+    Edges: 38
+    Non-Diamond Parents: Int64[]
+  Join Node 163:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 163]
+    Edges: 38
+    Non-Diamond Parents: Int64[]
+  Join Node 229:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229]
+    Edges: 43
+    Non-Diamond Parents: [1]
+  Join Node 233:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 85, 87, 135, 148, 161, 229, 233]
+    Edges: 53
+    Non-Diamond Parents: [1]
+  Join Node 245:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245]
+    Edges: 26
+    Non-Diamond Parents: [6]
+  Join Node 246:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 246]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 268:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268]
+    Edges: 35
+    Non-Diamond Parents: Int64[]
+  Join Node 272:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268, 272]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+  Join Node 273:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268, 273]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+  Join Node 284:
+    Conditioning Nodes: [15]
+    Relevant Nodes: [1, 6, 15, 18, 20, 59, 61, 76, 87, 135, 245, 268, 284]
+    Edges: 37
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 203
+   Total edges: 823
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-balanced-k3
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-balanced-k3
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.043s
+   Nodes: 244
+   Edges: 489
+   Sources: 28
+   Sinks: 23
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.001s
+   Forks: 159
+   Joins: 163
+   Iteration layers: 18
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.01s
+   Root diamonds: 127
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.237s
+   Unique diamonds: 617
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.043s
+   Build structure:    0.001s
+   Identify diamonds:  0.01s
+   Build storage:      0.237s
+   --------------------------------------------------
+   TOTAL TIME:         0.29s
+
+📋 Root Diamonds Summary:
+  Join Node 6:
+    Conditioning Nodes: [102, 235]
+    Relevant Nodes: [6, 101, 102, 105, 110, 235, 238, 239]
+    Edges: 10
+    Non-Diamond Parents: [109]
+  Join Node 10:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 113, 116, 117, 119, 125]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 15:
+    Conditioning Nodes: [129]
+    Relevant Nodes: [15, 128, 129, 130, 131, 132, 133, 134]
+    Edges: 11
+    Non-Diamond Parents: [134]
+  Join Node 16:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [16, 261, 262, 264, 267, 275, 278, 279, 282, 285, 286]
+    Edges: 14
+    Non-Diamond Parents: [282]
+  Join Node 18:
+    Conditioning Nodes: [270, 271]
+    Relevant Nodes: [18, 77, 87, 138, 139, 141, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 26
+    Non-Diamond Parents: Int64[]
+  Join Node 20:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [20, 146, 154, 161, 162, 163, 168, 170, 171, 172]
+    Edges: 17
+    Non-Diamond Parents: Int64[]
+  Join Node 21:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [21, 146, 168, 170, 171, 172]
+    Edges: 7
+    Non-Diamond Parents: [142, 143]
+  Join Node 22:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 178, 179, 183, 184]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 28:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [28, 29, 47, 53, 187, 203, 205, 210, 211, 215]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 29:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [29, 47, 53, 187, 203, 205, 211, 215]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 30:
+    Conditioning Nodes: [65]
+    Relevant Nodes: [30, 63, 64, 65]
+    Edges: 5
+    Non-Diamond Parents: [200]
+  Join Node 33:
+    Conditioning Nodes: [80]
+    Relevant Nodes: [33, 79, 80, 81, 82, 83, 288, 289]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 34:
+    Conditioning Nodes: [53, 80]
+    Relevant Nodes: [33, 34, 41, 44, 47, 53, 79, 80, 81, 82, 83, 203, 207, 208, 209, 215, 288, 289]
+    Edges: 27
+    Non-Diamond Parents: [214, 216]
+  Join Node 44:
+    Conditioning Nodes: [53, 80]
+    Relevant Nodes: [41, 44, 47, 53, 79, 80, 83, 203, 207, 208, 209, 215]
+    Edges: 13
+    Non-Diamond Parents: Int64[]
+  Join Node 61:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [61, 240, 242, 243, 246, 247, 250, 255, 256, 258]
+    Edges: 18
+    Non-Diamond Parents: [237]
+  Join Node 64:
+    Conditioning Nodes: [65]
+    Relevant Nodes: [63, 64, 65]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 76:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [76, 261, 262, 264, 266, 267, 275, 278, 279, 282, 285, 287]
+    Edges: 17
+    Non-Diamond Parents: Int64[]
+  Join Node 81:
+    Conditioning Nodes: [80]
+    Relevant Nodes: [79, 80, 81, 83]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 82:
+    Conditioning Nodes: [80]
+    Relevant Nodes: [79, 80, 81, 82, 83, 289]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 85:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [20, 21, 85, 142, 143, 146, 154, 156, 161, 162, 163, 168, 170, 171, 172]
+    Edges: 24
+    Non-Diamond Parents: Int64[]
+  Join Node 86:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [86, 275, 277, 278, 279]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 90:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 90, 91, 93, 98]
+    Edges: 7
+    Non-Diamond Parents: [98]
+  Join Node 92:
+    Conditioning Nodes: [142, 213]
+    Relevant Nodes: [92, 142, 143, 144, 193, 194, 196, 197, 213]
+    Edges: 13
+    Non-Diamond Parents: Int64[]
+  Join Node 93:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 91, 93, 98]
+    Edges: 4
+    Non-Diamond Parents: [98]
+  Join Node 94:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 94, 96, 97, 98, 99]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 95:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 94, 95, 96, 97, 98, 99]
+    Edges: 14
+    Non-Diamond Parents: Int64[]
+  Join Node 97:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 96, 97, 98]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 99:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 96, 98, 99]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 100:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 94, 95, 96, 97, 98, 99, 100]
+    Edges: 17
+    Non-Diamond Parents: Int64[]
+  Join Node 101:
+    Conditioning Nodes: [235]
+    Relevant Nodes: [101, 110, 235, 238, 239]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 103:
+    Conditioning Nodes: [102, 235]
+    Relevant Nodes: [6, 101, 102, 103, 104, 105, 109, 110, 235, 238, 239]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 104:
+    Conditioning Nodes: [235]
+    Relevant Nodes: [6, 101, 102, 104, 105, 109, 110, 235, 238, 239]
+    Edges: 15
+    Non-Diamond Parents: [109]
+  Join Node 105:
+    Conditioning Nodes: [235]
+    Relevant Nodes: [101, 105, 110, 235, 238, 239]
+    Edges: 7
+    Non-Diamond Parents: [102]
+  Join Node 107:
+    Conditioning Nodes: [102, 235]
+    Relevant Nodes: [6, 101, 102, 103, 104, 105, 107, 109, 110, 235, 238, 239]
+    Edges: 19
+    Non-Diamond Parents: Int64[]
+  Join Node 108:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 106, 108, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 255, 256, 258, 259, 260]
+    Edges: 44
+    Non-Diamond Parents: Int64[]
+  Join Node 111:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 111, 112, 113, 116, 117, 119, 122, 125]
+    Edges: 17
+    Non-Diamond Parents: Int64[]
+  Join Node 112:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [112, 113, 116, 117, 119, 125]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 113:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [113, 116, 117, 119, 125]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 114:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 111, 112, 113, 114, 116, 117, 119, 122, 125]
+    Edges: 19
+    Non-Diamond Parents: [118]
+  Join Node 120:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 115, 116, 117, 119, 120, 122, 125, 126, 127]
+    Edges: 24
+    Non-Diamond Parents: [115]
+  Join Node 122:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 116, 117, 119, 122, 125]
+    Edges: 15
+    Non-Diamond Parents: Int64[]
+  Join Node 123:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 116, 117, 119, 122, 123, 125, 127]
+    Edges: 21
+    Non-Diamond Parents: Int64[]
+  Join Node 124:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 2, 91, 94, 95, 96, 97, 98, 99, 100, 118, 121, 124]
+    Edges: 21
+    Non-Diamond Parents: [118]
+  Join Node 126:
+    Conditioning Nodes: [116]
+    Relevant Nodes: [10, 112, 113, 116, 117, 119, 122, 125, 126, 127]
+    Edges: 20
+    Non-Diamond Parents: [115]
+  Join Node 127:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 116, 117, 119, 122, 125, 127]
+    Edges: 18
+    Non-Diamond Parents: Int64[]
+  Join Node 132:
+    Conditioning Nodes: [129]
+    Relevant Nodes: [129, 130, 132, 133]
+    Edges: 4
+    Non-Diamond Parents: [130]
+  Join Node 138:
+    Conditioning Nodes: [270, 271]
+    Relevant Nodes: [77, 87, 138, 139, 141, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 23
+    Non-Diamond Parents: Int64[]
+  Join Node 140:
+    Conditioning Nodes: [270, 271]
+    Relevant Nodes: [18, 77, 87, 138, 139, 140, 141, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 145:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [20, 21, 85, 142, 143, 145, 146, 154, 156, 161, 162, 163, 168, 170, 171, 172]
+    Edges: 27
+    Non-Diamond Parents: Int64[]
+  Join Node 147:
+    Conditioning Nodes: [169]
+    Relevant Nodes: [147, 153, 154, 155, 169, 218]
+    Edges: 6
+    Non-Diamond Parents: [166]
+  Join Node 148:
+    Conditioning Nodes: [169]
+    Relevant Nodes: [147, 148, 153, 154, 155, 166, 169, 218]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 150:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 159, 161, 162, 163, 164, 165, 166, 168, 169, 170, 171, 218]
+    Edges: 39
+    Non-Diamond Parents: Int64[]
+  Join Node 151:
+    Conditioning Nodes: [169]
+    Relevant Nodes: [149, 151, 152, 164, 169, 218]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 157:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 218]
+    Edges: 47
+    Non-Diamond Parents: Int64[]
+  Join Node 158:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 158, 159, 161, 162, 163, 164, 165, 166, 168, 169, 170, 171, 218]
+    Edges: 41
+    Non-Diamond Parents: Int64[]
+  Join Node 159:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 153, 154, 155, 159, 161, 162, 163, 166, 168, 169, 170, 171, 218]
+    Edges: 24
+    Non-Diamond Parents: Int64[]
+  Join Node 160:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 158, 159, 160, 161, 162, 163, 164, 165, 166, 168, 169, 170, 171, 218]
+    Edges: 43
+    Non-Diamond Parents: Int64[]
+  Join Node 161:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [154, 161, 163, 168, 170, 171]
+    Edges: 6
+    Non-Diamond Parents: [170]
+  Join Node 162:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [154, 161, 162, 163, 168, 170, 171]
+    Edges: 9
+    Non-Diamond Parents: [154]
+  Join Node 164:
+    Conditioning Nodes: [169]
+    Relevant Nodes: [149, 152, 164, 169, 218]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 165:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 153, 154, 155, 159, 161, 162, 163, 165, 166, 168, 169, 170, 171, 218]
+    Edges: 26
+    Non-Diamond Parents: Int64[]
+  Join Node 166:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [154, 161, 162, 163, 166, 168, 170, 171]
+    Edges: 12
+    Non-Diamond Parents: [154]
+  Join Node 167:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 218]
+    Edges: 45
+    Non-Diamond Parents: Int64[]
+  Join Node 172:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [168, 170, 171, 172]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 173:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 173, 178, 179, 183, 184]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 175:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 174, 175, 178, 179, 183, 184]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 177:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 173, 176, 177, 178, 179, 183, 184]
+    Edges: 13
+    Non-Diamond Parents: Int64[]
+  Join Node 180:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [180, 181, 183, 184, 185]
+    Edges: 5
+    Non-Diamond Parents: [181]
+  Join Node 182:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [182, 183, 184, 186, 187, 188, 189]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 188:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [184, 186, 187, 188, 189]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 189:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [184, 186, 187, 189]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 190:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 174, 175, 178, 179, 183, 184, 190]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 191:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 173, 174, 175, 176, 177, 178, 179, 183, 184, 190, 191, 192]
+    Edges: 28
+    Non-Diamond Parents: Int64[]
+  Join Node 192:
+    Conditioning Nodes: [184]
+    Relevant Nodes: [22, 23, 173, 174, 175, 178, 179, 183, 184, 190, 192]
+    Edges: 19
+    Non-Diamond Parents: Int64[]
+  Join Node 194:
+    Conditioning Nodes: [213]
+    Relevant Nodes: [193, 194, 196, 213]
+    Edges: 4
+    Non-Diamond Parents: [196]
+  Join Node 197:
+    Conditioning Nodes: [213]
+    Relevant Nodes: [142, 143, 144, 193, 194, 196, 197, 213]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 198:
+    Conditioning Nodes: [53, 80]
+    Relevant Nodes: [33, 34, 41, 44, 47, 53, 79, 80, 81, 82, 83, 198, 203, 207, 208, 209, 214, 215, 216, 288, 289]
+    Edges: 33
+    Non-Diamond Parents: [214]
+  Join Node 199:
+    Conditioning Nodes: [80, 91, 213]
+    Relevant Nodes: [1, 2, 31, 32, 33, 79, 80, 81, 82, 83, 90, 91, 93, 98, 193, 195, 196, 199, 213, 288, 289]
+    Edges: 32
+    Non-Diamond Parents: Int64[]
+  Join Node 202:
+    Conditioning Nodes: [65]
+    Relevant Nodes: [30, 63, 64, 65, 200, 201, 202]
+    Edges: 10
+    Non-Diamond Parents: [200]
+  Join Node 204:
+    Conditioning Nodes: [53, 184]
+    Relevant Nodes: [28, 29, 47, 53, 184, 186, 187, 203, 204, 205, 210, 211, 215]
+    Edges: 21
+    Non-Diamond Parents: Int64[]
+  Join Node 206:
+    Conditioning Nodes: [53, 184]
+    Relevant Nodes: [28, 29, 47, 53, 184, 186, 187, 203, 204, 205, 206, 210, 211, 212, 215]
+    Edges: 28
+    Non-Diamond Parents: Int64[]
+  Join Node 210:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [47, 53, 203, 210, 211, 215]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 211:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [47, 53, 203, 211, 215]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 212:
+    Conditioning Nodes: [53, 184]
+    Relevant Nodes: [28, 29, 47, 53, 184, 186, 187, 203, 204, 205, 210, 211, 212, 215]
+    Edges: 25
+    Non-Diamond Parents: Int64[]
+  Join Node 215:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [53, 203, 215]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 222:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 106, 108, 222, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 255, 256, 258, 259, 260]
+    Edges: 46
+    Non-Diamond Parents: [224]
+  Join Node 223:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 106, 108, 219, 220, 221, 222, 223, 224, 225, 226, 228, 230, 233, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 255, 256, 258, 259, 260]
+    Edges: 67
+    Non-Diamond Parents: Int64[]
+  Join Node 224:
+    Conditioning Nodes: [221]
+    Relevant Nodes: [219, 220, 221, 224, 225, 226, 228, 230, 233]
+    Edges: 15
+    Non-Diamond Parents: Int64[]
+  Join Node 225:
+    Conditioning Nodes: [221]
+    Relevant Nodes: [219, 220, 221, 225, 226, 228, 233]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 227:
+    Conditioning Nodes: [59]
+    Relevant Nodes: [59, 217, 219, 227]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 229:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 218, 229]
+    Edges: 49
+    Non-Diamond Parents: Int64[]
+  Join Node 230:
+    Conditioning Nodes: [221]
+    Relevant Nodes: [219, 220, 221, 226, 228, 230, 233]
+    Edges: 10
+    Non-Diamond Parents: [226]
+  Join Node 231:
+    Conditioning Nodes: [59]
+    Relevant Nodes: [59, 217, 219, 226, 227, 228, 231, 232]
+    Edges: 9
+    Non-Diamond Parents: [226]
+  Join Node 233:
+    Conditioning Nodes: [221]
+    Relevant Nodes: [219, 220, 221, 226, 228, 233]
+    Edges: 7
+    Non-Diamond Parents: [226]
+  Join Node 234:
+    Conditioning Nodes: [168, 169]
+    Relevant Nodes: [147, 148, 149, 150, 151, 152, 153, 154, 155, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 218, 229, 234]
+    Edges: 51
+    Non-Diamond Parents: [231]
+  Join Node 236:
+    Conditioning Nodes: [240]
+    Relevant Nodes: [62, 135, 136, 236, 240, 256]
+    Edges: 6
+    Non-Diamond Parents: [256]
+  Join Node 237:
+    Conditioning Nodes: [235]
+    Relevant Nodes: [235, 237, 238, 239, 260]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 241:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [240, 241, 242, 243, 246, 247, 250, 255, 256, 258]
+    Edges: 18
+    Non-Diamond Parents: Int64[]
+  Join Node 243:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [240, 242, 243, 247, 250, 255, 256, 258]
+    Edges: 14
+    Non-Diamond Parents: Int64[]
+  Join Node 244:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [61, 237, 240, 241, 242, 243, 244, 246, 247, 250, 255, 256, 258]
+    Edges: 24
+    Non-Diamond Parents: Int64[]
+  Join Node 245:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [62, 135, 136, 236, 240, 241, 242, 243, 245, 246, 247, 250, 255, 256, 258]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 246:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [240, 242, 243, 246, 247, 250, 255, 256, 258]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 247:
+    Conditioning Nodes: [240]
+    Relevant Nodes: [240, 242, 247, 255, 256, 258]
+    Edges: 6
+    Non-Diamond Parents: [256]
+  Join Node 248:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 248, 249, 250, 255, 256, 258, 259, 260]
+    Edges: 41
+    Non-Diamond Parents: Int64[]
+  Join Node 249:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 249, 250, 255, 256, 258, 259, 260]
+    Edges: 38
+    Non-Diamond Parents: Int64[]
+  Join Node 250:
+    Conditioning Nodes: [240, 255]
+    Relevant Nodes: [240, 242, 247, 250, 255, 256, 258]
+    Edges: 10
+    Non-Diamond Parents: [258]
+  Join Node 252:
+    Conditioning Nodes: [136, 270, 271]
+    Relevant Nodes: [77, 87, 135, 136, 137, 138, 139, 141, 251, 252, 254, 257, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 33
+    Non-Diamond Parents: Int64[]
+  Join Node 253:
+    Conditioning Nodes: [136, 270, 271]
+    Relevant Nodes: [77, 87, 135, 136, 137, 138, 139, 141, 251, 252, 253, 254, 257, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 36
+    Non-Diamond Parents: Int64[]
+  Join Node 254:
+    Conditioning Nodes: [136, 270, 271]
+    Relevant Nodes: [77, 87, 135, 136, 137, 138, 139, 141, 251, 254, 257, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 31
+    Non-Diamond Parents: Int64[]
+  Join Node 257:
+    Conditioning Nodes: [136, 270, 271]
+    Relevant Nodes: [77, 87, 135, 136, 137, 138, 139, 141, 251, 257, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 259:
+    Conditioning Nodes: [235, 240, 255]
+    Relevant Nodes: [61, 235, 237, 238, 239, 240, 241, 242, 243, 244, 246, 247, 250, 255, 256, 258, 259, 260]
+    Edges: 34
+    Non-Diamond Parents: Int64[]
+  Join Node 260:
+    Conditioning Nodes: [235]
+    Relevant Nodes: [235, 238, 239, 260]
+    Edges: 4
+    Non-Diamond Parents: [238]
+  Join Node 263:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [76, 261, 262, 263, 264, 266, 267, 275, 278, 279, 282, 285, 287]
+    Edges: 21
+    Non-Diamond Parents: Int64[]
+  Join Node 265:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [76, 261, 262, 263, 264, 265, 266, 267, 275, 278, 279, 282, 285, 287]
+    Edges: 25
+    Non-Diamond Parents: Int64[]
+  Join Node 266:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [261, 264, 266, 275, 278, 279]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 268:
+    Conditioning Nodes: [271]
+    Relevant Nodes: [87, 268, 271, 272, 273]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 269:
+    Conditioning Nodes: [270, 271]
+    Relevant Nodes: [77, 87, 268, 269, 270, 271, 272, 273, 281, 283, 284]
+    Edges: 19
+    Non-Diamond Parents: Int64[]
+  Join Node 272:
+    Conditioning Nodes: [271]
+    Relevant Nodes: [87, 271, 272, 273]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 273:
+    Conditioning Nodes: [271]
+    Relevant Nodes: [87, 271, 273]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 274:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [86, 274, 275, 276, 277, 278, 279, 280]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 280:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [86, 275, 276, 277, 278, 279, 280]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 281:
+    Conditioning Nodes: [270]
+    Relevant Nodes: [77, 270, 281, 283]
+    Edges: 4
+    Non-Diamond Parents: [284]
+  Join Node 284:
+    Conditioning Nodes: [271]
+    Relevant Nodes: [87, 268, 271, 272, 273, 284]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 285:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [261, 264, 275, 278, 279, 285]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 287:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [261, 264, 266, 275, 278, 279, 285, 287]
+    Edges: 11
+    Non-Diamond Parents: Int64[]
+  Join Node 288:
+    Conditioning Nodes: [80]
+    Relevant Nodes: [79, 80, 81, 82, 83, 288, 289]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 289:
+    Conditioning Nodes: [80]
+    Relevant Nodes: [79, 80, 81, 83, 289]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 617
+   Total edges: 1940
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-cost-optimal
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-cost-optimal
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.036s
+   Nodes: 244
+   Edges: 168
+   Sources: 30
+   Sinks: 76
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 21
+   Joins: 16
+   Iteration layers: 15
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.001s
+   Root diamonds: 13
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.027s
+   Unique diamonds: 91
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.036s
+   Build structure:    0.0s
+   Identify diamonds:  0.001s
+   Build storage:      0.027s
+   --------------------------------------------------
+   TOTAL TIME:         0.065s
+
+📋 Root Diamonds Summary:
+  Join Node 1:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [1, 15, 18, 20, 21, 59, 76, 77, 85, 87, 135, 147, 148, 154, 157, 161, 167, 220, 221, 226, 228, 229, 231, 232, 233, 268]
+    Edges: 65
+    Non-Diamond Parents: Int64[]
+  Join Node 6:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [6, 15, 61, 62, 76, 77, 87, 135, 236, 240, 241, 242, 243, 245, 268]
+    Edges: 31
+    Non-Diamond Parents: Int64[]
+  Join Node 15:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 76, 77, 87, 268]
+    Edges: 5
+    Non-Diamond Parents: [76]
+  Join Node 18:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 76, 77, 87, 135, 268]
+    Edges: 14
+    Non-Diamond Parents: Int64[]
+  Join Node 20:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 20, 59, 76, 77, 87, 135, 147, 148, 154, 161, 268]
+    Edges: 29
+    Non-Diamond Parents: Int64[]
+  Join Node 59:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 59, 76, 77, 87, 135, 154, 161, 268]
+    Edges: 20
+    Non-Diamond Parents: Int64[]
+  Join Node 61:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 61, 62, 76, 77, 87, 135, 236, 240, 241, 242, 243, 245, 268]
+    Edges: 26
+    Non-Diamond Parents: [76]
+  Join Node 85:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 20, 59, 76, 77, 85, 87, 135, 147, 148, 154, 161, 268]
+    Edges: 33
+    Non-Diamond Parents: [21]
+  Join Node 135:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 76, 77, 87, 135, 268]
+    Edges: 9
+    Non-Diamond Parents: [76]
+  Join Node 148:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 59, 76, 77, 87, 135, 148, 154, 161, 268]
+    Edges: 24
+    Non-Diamond Parents: [147]
+  Join Node 229:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 20, 21, 59, 76, 77, 85, 87, 135, 147, 148, 154, 161, 220, 221, 226, 228, 229, 231, 232, 233, 268]
+    Edges: 56
+    Non-Diamond Parents: [157, 167]
+  Join Node 233:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 18, 20, 21, 59, 76, 77, 85, 87, 135, 147, 148, 154, 161, 233, 268]
+    Edges: 42
+    Non-Diamond Parents: [220, 221, 226, 228, 231, 232]
+  Join Node 245:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [15, 76, 77, 87, 135, 245, 268]
+    Edges: 14
+    Non-Diamond Parents: [62, 76, 236, 240, 241, 242, 243]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 91
+   Total edges: 297
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================
+
+================================================================================
+DEBUG TEST LOG: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-time-optimal-k2
+================================================================================
+
+
+================================================================================
+DEBUG TEST: Full Diamond Processing with Dependency Analysis
+Testing Network: drone-network-time-optimal-k2
+Data Type: float
+================================================================================
+
+📊 STEP 1: Loading network data...
+   ✓ Loaded in 0.03s
+   Nodes: 244
+   Edges: 335
+   Sources: 42
+   Sinks: 47
+
+🔧 STEP 2: Building network structure...
+   ✓ Built in 0.0s
+   Forks: 111
+   Joins: 108
+   Iteration layers: 11
+
+💎 STEP 3: Identifying diamonds...
+   ✓ Identified in 0.002s
+   Root diamonds: 61
+
+🔍 Checking root_diamonds (Step 3 output) for empty conditioning...
+   ✅ All root_diamonds have non-empty conditioning nodes
+
+🔨 STEP 4: Building unique diamond storage...
+   ✓ Built in 0.013s
+   Unique diamonds: 136
+
+================================================================================
+RESULTS SUMMARY
+================================================================================
+
+⏱️  TIMING BREAKDOWN:
+   Load network:       0.03s
+   Build structure:    0.0s
+   Identify diamonds:  0.002s
+   Build storage:      0.013s
+   --------------------------------------------------
+   TOTAL TIME:         0.045s
+
+📋 Root Diamonds Summary:
+  Join Node 10:
+    Conditioning Nodes: [119]
+    Relevant Nodes: [10, 113, 116, 119, 125]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 15:
+    Conditioning Nodes: [128]
+    Relevant Nodes: [15, 128, 131]
+    Edges: 3
+    Non-Diamond Parents: [134]
+  Join Node 20:
+    Conditioning Nodes: [163, 168]
+    Relevant Nodes: [20, 154, 161, 162, 163, 168, 170, 171]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 21:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [21, 146, 168, 172]
+    Edges: 4
+    Non-Diamond Parents: [142]
+  Join Node 29:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [29, 53, 203, 205, 211, 215]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 33:
+    Conditioning Nodes: [83]
+    Relevant Nodes: [33, 80, 81, 82, 83, 288]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 44:
+    Conditioning Nodes: [83]
+    Relevant Nodes: [41, 44, 83, 207, 208, 209]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 64:
+    Conditioning Nodes: [65]
+    Relevant Nodes: [63, 64, 65]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 76:
+    Conditioning Nodes: [261]
+    Relevant Nodes: [76, 261, 262, 264, 267, 285, 287]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 92:
+    Conditioning Nodes: [194]
+    Relevant Nodes: [92, 142, 143, 144, 194, 197]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 93:
+    Conditioning Nodes: [91]
+    Relevant Nodes: [1, 91, 93]
+    Edges: 3
+    Non-Diamond Parents: [98]
+  Join Node 94:
+    Conditioning Nodes: [96]
+    Relevant Nodes: [2, 94, 96, 97]
+    Edges: 4
+    Non-Diamond Parents: [99]
+  Join Node 95:
+    Conditioning Nodes: [96]
+    Relevant Nodes: [2, 94, 95, 96, 97, 99]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 100:
+    Conditioning Nodes: [96]
+    Relevant Nodes: [2, 94, 95, 96, 97, 99, 100]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 107:
+    Conditioning Nodes: [102]
+    Relevant Nodes: [102, 103, 104, 107, 109]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 112:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [112, 113, 116, 119, 125]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 113:
+    Conditioning Nodes: [116]
+    Relevant Nodes: [113, 116, 119, 125]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 120:
+    Conditioning Nodes: [116]
+    Relevant Nodes: [115, 116, 120, 126]
+    Edges: 4
+    Non-Diamond Parents: [115]
+  Join Node 122:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 116, 119, 122, 125]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 123:
+    Conditioning Nodes: [116, 119]
+    Relevant Nodes: [10, 112, 113, 116, 119, 122, 123, 125, 127]
+    Edges: 13
+    Non-Diamond Parents: Int64[]
+  Join Node 132:
+    Conditioning Nodes: [129]
+    Relevant Nodes: [129, 130, 132, 133]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 140:
+    Conditioning Nodes: [138]
+    Relevant Nodes: [18, 138, 139, 140]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 145:
+    Conditioning Nodes: [168]
+    Relevant Nodes: [20, 21, 85, 142, 145, 146, 154, 156, 161, 162, 163, 168, 170, 171, 172]
+    Edges: 18
+    Non-Diamond Parents: Int64[]
+  Join Node 150:
+    Conditioning Nodes: [153]
+    Relevant Nodes: [147, 148, 150, 153, 159, 165]
+    Edges: 8
+    Non-Diamond Parents: Int64[]
+  Join Node 151:
+    Conditioning Nodes: [152]
+    Relevant Nodes: [149, 151, 152, 164]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 162:
+    Conditioning Nodes: [163]
+    Relevant Nodes: [161, 162, 163, 171]
+    Edges: 4
+    Non-Diamond Parents: [154]
+  Join Node 165:
+    Conditioning Nodes: [153]
+    Relevant Nodes: [147, 148, 153, 159, 165]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 166:
+    Conditioning Nodes: [163]
+    Relevant Nodes: [154, 161, 162, 163, 166, 171]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 173:
+    Conditioning Nodes: [23]
+    Relevant Nodes: [22, 23, 173, 178]
+    Edges: 4
+    Non-Diamond Parents: [178]
+  Join Node 182:
+    Conditioning Nodes: [186]
+    Relevant Nodes: [182, 186, 187, 188, 189]
+    Edges: 6
+    Non-Diamond Parents: [183]
+  Join Node 189:
+    Conditioning Nodes: [186]
+    Relevant Nodes: [186, 187, 189]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 191:
+    Conditioning Nodes: [23]
+    Relevant Nodes: [22, 23, 174, 175, 178, 190, 191, 192]
+    Edges: 11
+    Non-Diamond Parents: [177]
+  Join Node 192:
+    Conditioning Nodes: [23]
+    Relevant Nodes: [22, 23, 174, 175, 178, 190, 192]
+    Edges: 9
+    Non-Diamond Parents: Int64[]
+  Join Node 198:
+    Conditioning Nodes: [216]
+    Relevant Nodes: [33, 34, 198, 216]
+    Edges: 4
+    Non-Diamond Parents: [214]
+  Join Node 202:
+    Conditioning Nodes: [65]
+    Relevant Nodes: [30, 65, 200, 201, 202]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 204:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [28, 29, 47, 53, 203, 204, 205, 210, 211, 215]
+    Edges: 13
+    Non-Diamond Parents: Int64[]
+  Join Node 206:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [28, 29, 47, 53, 203, 204, 205, 206, 210, 211, 215]
+    Edges: 15
+    Non-Diamond Parents: Int64[]
+  Join Node 210:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [47, 53, 203, 210, 211, 215]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 212:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [28, 29, 47, 53, 203, 204, 205, 210, 211, 212, 215]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 215:
+    Conditioning Nodes: [53]
+    Relevant Nodes: [53, 203, 215]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 229:
+    Conditioning Nodes: [153]
+    Relevant Nodes: [147, 148, 153, 157, 158, 159, 160, 167, 229]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 230:
+    Conditioning Nodes: [228]
+    Relevant Nodes: [220, 221, 226, 228, 230, 233]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 231:
+    Conditioning Nodes: [227]
+    Relevant Nodes: [226, 227, 231, 232]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 234:
+    Conditioning Nodes: [153]
+    Relevant Nodes: [147, 148, 153, 157, 158, 159, 160, 167, 229, 234]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 236:
+    Conditioning Nodes: [240]
+    Relevant Nodes: [62, 136, 236, 240]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 243:
+    Conditioning Nodes: [242]
+    Relevant Nodes: [240, 242, 243, 247]
+    Edges: 4
+    Non-Diamond Parents: [250]
+  Join Node 244:
+    Conditioning Nodes: [240, 242, 250]
+    Relevant Nodes: [61, 237, 240, 241, 242, 243, 244, 246, 247, 250]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 245:
+    Conditioning Nodes: [240, 242, 250]
+    Relevant Nodes: [62, 136, 236, 240, 241, 242, 243, 245, 246, 247, 250]
+    Edges: 15
+    Non-Diamond Parents: Int64[]
+  Join Node 246:
+    Conditioning Nodes: [242, 250]
+    Relevant Nodes: [240, 242, 243, 246, 247, 250]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 248:
+    Conditioning Nodes: [240, 242, 250]
+    Relevant Nodes: [61, 237, 240, 241, 242, 243, 244, 246, 247, 248, 250, 259]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 249:
+    Conditioning Nodes: [240, 242, 250]
+    Relevant Nodes: [61, 237, 240, 241, 242, 243, 244, 246, 247, 249, 250, 259]
+    Edges: 16
+    Non-Diamond Parents: Int64[]
+  Join Node 253:
+    Conditioning Nodes: [137]
+    Relevant Nodes: [137, 251, 252, 253, 257]
+    Edges: 6
+    Non-Diamond Parents: Int64[]
+  Join Node 254:
+    Conditioning Nodes: [137]
+    Relevant Nodes: [137, 251, 254, 257]
+    Edges: 5
+    Non-Diamond Parents: Int64[]
+  Join Node 257:
+    Conditioning Nodes: [137]
+    Relevant Nodes: [137, 251, 257]
+    Edges: 3
+    Non-Diamond Parents: Int64[]
+  Join Node 263:
+    Conditioning Nodes: [261]
+    Relevant Nodes: [76, 261, 262, 263, 264, 266, 267, 285, 287]
+    Edges: 12
+    Non-Diamond Parents: Int64[]
+  Join Node 265:
+    Conditioning Nodes: [261]
+    Relevant Nodes: [76, 261, 262, 264, 265, 267, 285, 287]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 269:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [87, 268, 269, 271, 272, 273, 281, 284]
+    Edges: 10
+    Non-Diamond Parents: Int64[]
+  Join Node 272:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [87, 271, 272, 273]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+  Join Node 274:
+    Conditioning Nodes: [275]
+    Relevant Nodes: [86, 274, 275, 276, 279, 280]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 284:
+    Conditioning Nodes: [87]
+    Relevant Nodes: [87, 268, 271, 272, 273, 284]
+    Edges: 7
+    Non-Diamond Parents: Int64[]
+  Join Node 289:
+    Conditioning Nodes: [83]
+    Relevant Nodes: [80, 81, 83, 289]
+    Edges: 4
+    Non-Diamond Parents: Int64[]
+
+================================================================================
+DEPENDENCY ANALYSIS
+================================================================================
+
+🔍 Building dependency graph...
+   Dependency graph nodes: 136
+   Total edges: 122
+
+🔍 Checking for self-referencing diamonds...
+   ✅ No self-referencing diamonds found
+
+🔍 Checking for circular dependencies...
+   ✅ No circular dependencies found (DAG structure maintained)
+
+🔍 Checking unique diamonds for empty conditioning nodes...
+   ✅ All unique diamonds have non-empty conditioning nodes
+
+================================================================================

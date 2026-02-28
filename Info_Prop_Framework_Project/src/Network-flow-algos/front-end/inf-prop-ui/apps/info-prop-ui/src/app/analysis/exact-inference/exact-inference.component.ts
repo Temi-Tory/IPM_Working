@@ -40,7 +40,6 @@ interface InferenceResult {
   nodeId: number;
   belief: BeliefValue;
   prior: BeliefValue;
-  signalProbability: BeliefValue;
   inferenceMethod: 'Source Node' | 'Tree Propagation' | 'Inclusion-Exclusion' | 'Diamond Enumeration';
   methodColor: string;
   complexityLevel: 'Source' | 'Simple' | 'Moderate' | 'Complex';
@@ -226,8 +225,8 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     return 'High (Complex Diamond Structures)';
   });
 
-  // Table columns for results display (prior first, then signal probability, then nodeType last)
-  displayedColumns: string[] = ['nodeId', 'prior', 'signalProbability', 'nodeType'];
+  // Table columns for results display (prior first, then belief, then nodeType last)
+  displayedColumns: string[] = ['nodeId', 'prior', 'belief', 'nodeType'];
   
   // **NEW: Pagination and filtering state**
   pageSize = signal(25);
@@ -487,6 +486,9 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
       console.log(`✅ Inference completed for scenario "${scenario.name}": ${processedResults.length} nodes computed`);
       console.log(`⏱️ Computation time: ${metrics.computationTime.toFixed(3)}s`);
       console.log(`📊 Data type: ${scenario.dataType}`);
+      console.log('📋 Raw results:', results);
+      console.log('📋 Processed results:', processedResults);
+      console.log('📋 Metrics:', metrics);
       
     } catch (error) {
       console.error('❌ Inference execution failed:', error);
@@ -505,74 +507,20 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
       return [];
     }
 
-    const beliefs = results.reachability_result.exact_inference.beliefs;
+    const exactInference = results.reachability_result.exact_inference;
+    const beliefs = exactInference.beliefs;
+    const nodePriors = exactInference.node_priors || {};
     const networkInfo = this.networkInfo();
-    const parsedData = this.parsedData();
-    
+
     if (!networkInfo) return [];
-    
+
     const sourceNodesSet = new Set(networkInfo.sourceNodes);
     const joinNodesSet = new Set(networkInfo.joinNodes);
-    
-    // **ENHANCED: Get actual node priors from parsed data based on data type**
-    const getActualNodePrior = (nodeId: number): BeliefValue => {
-      if (!parsedData) {
-        console.warn('⚠️ No parsed data available for node priors');
-        return 0.5; // Default fallback
-      }
-      
-      const nodeIdStr = nodeId.toString();
-      
-      console.log(`🔍 Looking for node ${nodeId} priors in parsed data:`, parsedData);
-      console.log(`🔍 Data type: ${dataType}`);
-      
-      // Try to get priors from the appropriate data type section
-      if (dataType === 'float' && parsedData.float?.node_priors?.nodes) {
-        console.log(`🔍 Float node_priors.nodes:`, parsedData.float.node_priors.nodes);
-        const prior = parsedData.float.node_priors.nodes[nodeIdStr];
-        if (prior !== undefined) {
-          console.log(`✅ Found float prior for node ${nodeId}: ${prior}`);
-          return prior;
-        }
-      } else if (dataType === 'interval' && parsedData.interval?.node_priors?.nodes) {
-        console.log(`🔍 Interval node_priors.nodes:`, parsedData.interval.node_priors.nodes);
-        const prior = parsedData.interval.node_priors.nodes[nodeIdStr];
-        if (prior !== undefined) {
-          console.log(`✅ Found interval prior for node ${nodeId}:`, prior);
-          return prior;
-        }
-      } else if (dataType === 'pbox' && parsedData.pbox?.node_priors?.nodes) {
-        console.log(`🔍 Pbox node_priors.nodes:`, parsedData.pbox.node_priors.nodes);
-        const prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
-        if (prior !== undefined) {
-          console.log(`✅ Found pbox prior for node ${nodeId}:`, prior);
-          return prior;
-        }
-      }
-      
-      // Fallback: try other data types if current one doesn't have priors
-      console.log('🔍 Trying fallback data types...');
-      if (parsedData.float?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        console.log(`✅ Found fallback float prior for node ${nodeId}:`, parsedData.float.node_priors.nodes[nodeIdStr]);
-        return parsedData.float.node_priors.nodes[nodeIdStr];
-      } else if (parsedData.interval?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        console.log(`✅ Found fallback interval prior for node ${nodeId}:`, parsedData.interval.node_priors.nodes[nodeIdStr]);
-        return parsedData.interval.node_priors.nodes[nodeIdStr];
-      } else if (parsedData.pbox?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        console.log(`✅ Found fallback pbox prior for node ${nodeId}:`, parsedData.pbox.node_priors.nodes[nodeIdStr]);
-        return parsedData.pbox.node_priors.nodes[nodeIdStr];
-      }
-      
-      console.warn(`⚠️ No prior found for node ${nodeId}, using fallback 0.5`);
-      return 0.5; // Final fallback
-    };
-    
-    // Process all node beliefs
+
+    // Process all node beliefs — priors come directly from backend response
     return Object.entries(beliefs).map(([nodeIdStr, belief]: [string, any]) => {
       const nodeId = parseInt(nodeIdStr);
-      
-      // **FIXED: Get the actual prior for this node from parsed data**
-      const prior = getActualNodePrior(nodeId);
+      const prior = nodePriors[nodeIdStr] ?? 0.5;
       
       // Determine inference method based on network structure
       let inferenceMethod: InferenceResult['inferenceMethod'];
@@ -593,24 +541,10 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
         complexityLevel = 'Simple';
       }
       
-      // Calculate signal probability: for source nodes it's 1.0, for others it's belief/prior
-      let signalProbability: BeliefValue;
-      if (sourceNodesSet.has(nodeId)) {
-        signalProbability = dataType === 'float' ? 1.0 : belief;
-      } else {
-        // Signal probability = belief / prior (simplified for display)
-        if (typeof belief === 'number' && typeof prior === 'number' && prior > 0) {
-          signalProbability = belief / prior;
-        } else {
-          signalProbability = belief; // Fallback for complex data types
-        }
-      }
-      
       return {
         nodeId,
         belief,
         prior,
-        signalProbability,
         inferenceMethod,
         methodColor,
         complexityLevel
@@ -756,13 +690,6 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
       }
     }
     return 'N/A';
-  }
-
-  /**
-   * Format signal probability for display
-   */
-  formatSignalProbability(probability: BeliefValue): string {
-    return this.formatBelief(probability);
   }
 
   /**

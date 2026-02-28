@@ -876,8 +876,12 @@ function handle_reachability_analysis(req::HTTP.Request)
                 end
             end
             
+            # Include the actual node priors used for this scenario
+            node_priors_dict = Dict(string(k) => convert_pbox_values(v) for (k, v) in node_priors)
+
             result_data["exact_inference"] = Dict(
                 "beliefs" => beliefs_dict,
+                "node_priors" => node_priors_dict,
                 "computation_time" => inference_computation_time,
                 "total_nodes_processed" => length(output),
                 "belief_statistics" => Dict(

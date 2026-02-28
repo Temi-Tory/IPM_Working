@@ -38,7 +38,7 @@ dag_ntwrk_files\drone-network-geographic-knn
 dag_ntwrk_files\drone-network-resilience-optimal-k5
 dag_ntwrk_files\drone-network-time-optimal-k2 =#
 
-network_name = "drone-network-balanced-k3"
+network_name = "pareto-point-1-high-resilience-fw"
 
 # ============================================================================
 # Dependency Analysis Functions

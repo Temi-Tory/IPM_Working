@@ -1,0 +1,204 @@
+
+\subsection{Drone Medical Delivery Network}
+
+To evaluate IPA on a realistic infrastructure network, we apply the algorithm to drone logistics network designs from Jones et al.~\cite{jones_drone_2025}, who developed a multi-objective optimisation framework for NHS Scotland medical delivery networks. Their work generates Pareto-optimal network configurations by trading off delivery time, capital cost, and network resilience under random node failures.
+
+\subsubsection{Derived Network}
+The drone logistics network from Jones et al. is represented as a multiplex graph with two layers mapping to the two different types of drones. Each layer is modeled as a symmetric distance matrix indicating the feasible travel distance between node pairs:
+
+\begin{itemize}
+    \item \textbf{VTOL layer}: Short-range vertical take-off and landing drones with 70\,km operational range. These drones can operate between any pair of locations (hospitals, charging stations, airports) provided the distance is within range.
+    \item \textbf{Fixed-wing layer}: Long-range fixed-wing drones with 700\,km operational range. These drones are restricted to airport-to-airport routes only, as they require runway infrastructure for take-off and landing.
+\end{itemize}
+
+For reliability analysis via belief propagation, we convert six Pareto optimal network configuration into a directed acyclic graph using a supply chain dependency model. Medical supplies originate at central distribution hubs and flow through relay infrastructure to endpoint receivers. This hierarchical interpretation assigns nodes to four levels based on their function in the supply chain:
+
+\begin{itemize}
+    \item Level 0 (Sources): Major hub hospitals that originate supply distribution
+    \item Level 1 (Relays): Airports and minor hubs providing intermediate connectivity
+    \item Level 2 (Bridges): Charging stations enabling extended-range delivery
+    \item Level 3 (Sinks): Receiver hospitals consuming delivered supplies
+\end{itemize}
+
+Edge direction follows the supply flow: edges connect lower levels to higher levels, and within the same level, edges are directed from lower to higher node identifiers. This ordering prevents cycles while preserving the network's connectivity structure. Although the original network matrix  bidirectional flight, the DAG representation aims to model the dependency structure relevant for supply chain reliability, i.e: downstream nodes depend on upstream nodes for supply access.
+
+Given the original multiplex layers, we merge VTOL and fixed-wing connectivity by taking the maximum transmission probability where both drone types can service an edge. Edge transmission probabilities are derived from distance using exponential decay, reflecting that shorter flights have higher success rates. Node prior probabilities represent operational availability based on infrastructure type, with major hubs assigned probability 1.0 as reliable supply origins.
+
+Thus, the six generated networks span a range of diamond structure complexity. Table~\ref{tab:pareto_structure} summarizes the structural characteristics of each generated DAG.
+
+\begin{table}[ht]
+\caption{Structural characteristics of Pareto-optimal drone network DAGs}
+\label{tab:pareto_structure}
+\centering
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Network} & \textbf{Nodes} & \textbf{Edges} & \textbf{Sources} & \textbf{Sinks} & \textbf{Joins} & \textbf{DiamJoins} \\
+\midrule
+PP1-HighRes-FW    & 145 & 327 & 23 &  99 & 50 & 24 \\
+PP2-HighRes-VTOL  & 171 & 280 & 12 & 131 & 70 & 52 \\
+PP3-MedRes-Sparse &  98 & 223 & 23 &  58 & 25 & 19 \\
+PP4-LowRes-Min    &  39 &  28 &  8 &  24 &  0 &  0 \\
+PP5-MedRes-FW     &  89 & 214 & 23 &  49 & 25 & 21 \\
+PP6-Balanced      &  98 & 261 &  6 &  59 & 34 & 32 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\textwidth}
+\footnotesize
+Joins = nodes with multiple parents. DiamJoins = join nodes that are diamond join points (reconvergent paths from shared ancestors).
+\end{minipage}
+\end{table}
+
+
+\subsubsection{Diamond Complexity Analysis}
+The main computation cost of the algorithmic flow comes form the complexity of diamond decomposition and super-node creation and reuse rate.  
+Table~\ref{tab:diamond_complexity} compares the diamond structure characteristics between all six networks. 
+
+\begin{table}[ht]
+\caption{Diamond complexity metrics for Pareto-optimal configurations}
+\label{tab:diamond_complexity}
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Network} & \textbf{Diamonds} & \textbf{DiamJoins} & \textbf{D/DJ} & \textbf{MaxDepth} & \textbf{CondNodes} \\
+\midrule
+PP4-LowRes-Min    &   0 &  0 &  ---  &  0 &  0 \\
+PP2-HighRes-VTOL  & 219 & 52 &  4.2  &  9 & 15 \\
+PP6-Balanced      & 203 & 32 &  6.3  & 12 & 27 \\
+PP3-MedRes-Sparse & 165 & 19 &  8.7  & 16 & 16 \\
+PP5-MedRes-FW     & 177 & 21 &  8.4  & 16 & 16 \\
+PP1-HighRes-FW    & 277 & 24 & 11.5  & 18 & 35 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\textwidth}
+\footnotesize
+D/DJ = diamonds per diamond-join, indicating nesting concentration. MaxDepth = maximum diamond nesting depth. CondNodes = unique conditioning nodes across all diamonds.
+\end{minipage}
+\end{table}
+
+The diamonds-per-diamond-join ratio (D/DJ) indicates how many diamonds are concentrated at each diamond join point on average. A higher D/DJ suggests that individual join nodes participate in more nested diamond structures. PP1 has the highest D/DJ (11.5), consistent with its deep nesting structure. PP2 has the lowest D/DJ (4.2) among networks with diamonds, reflecting its wide, shallow topology with many diamond joins but less nesting per join.
+
+The D/DJ ratio correlates with nesting depth across these configurations: higher D/DJ networks tend to have deeper nesting. However, the relationship is not deterministic---PP3 and PP5 have similar D/DJ ratios (8.7 and 8.4) and identical maximum depth (16) but different computation times (281s vs 256s), showing that other structural factors such as number of conditioning node  also affect performance.
+
+\subsubsection{Analysis of Complexity Factors}
+
+The computational complexity for nested diamonds is $O(2^{\sum c_i} \times \prod d_i)$, where $c_i$ is the number of conditioning nodes at nesting level $i$ and $d_i$ is the diamond subgraph size at that level. Three structural factors determine tractability:
+
+\paragraph{Diamond nesting depth.} Each nesting level adds a multiplicative factor to the state enumeration. For $L$ nested layers with $c_i$ conditioning nodes per layer, the algorithm enumerates up to $\prod_{i=1}^{L} 2^{c_i} = 2^{\sum c_i}$ total states. Depth-16 nesting with an average of two conditioning nodes per level creates up to $2^{32}$ potential state combinations before caching reduces redundant computation.
+
+\paragraph{Conditioning nodes per diamond.} Each diamond requires enumerating $2^c$ conditioning states. Diamonds with many shared fork ancestors (high $c$) dominate computation time. The total conditioning node count across all nesting levels determines the exponent in the complexity expression.
+
+\paragraph{Non-conditioning entry points.} Diamond subgraphs may have entry points beyond the conditioning nodes---these receive contextual beliefs from the outer computation. When contextual beliefs vary across outer conditioning states, the same diamond structure produces different results and cannot reuse cached computations. Networks with few non-conditioning entry points achieve higher cache hit rates, as computed diamond ``supernodes'' can be reused across multiple outer states.
+
+Table~\ref{tab:complexity_spectrum} summarises the observed relationship between nesting depth and practical applicability.
+
+\begin{table}[ht]
+\caption{Complexity spectrum for exact belief propagation}
+\label{tab:complexity_spectrum}
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Nesting Depth} & \textbf{Computation Time} & \textbf{Practical Use} \\
+\midrule
+0 (tree)   & $<$0.1s   & Real-time analysis \\
+9--12      & $<$1s     & Interactive analysis \\
+16         & $\sim$5 min & Batch processing \\
+18+        & Intractable & Approximation required \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsubsection{Pareto Network Results}
+
+Table~\ref{tab:pareto_timing} compares IPA execution times for each network configuration, ordered by computation time.
+
+\begin{table}[ht]
+\caption{IPA computation time across Pareto-optimal configurations}
+\label{tab:pareto_timing}
+\centering
+\begin{tabular}{lrrrl}
+\toprule
+\textbf{Network} & \textbf{MaxDepth} & \textbf{D/DJ} & \textbf{Time} & \textbf{Category} \\
+\midrule
+PP4-LowRes-Min    &  0 & --- &    0.02s & Tree structure \\
+PP6-Balanced      & 12 & 6.3 &    0.02s & Shallow nesting \\
+PP2-HighRes-VTOL  &  9 & 4.2 &    0.31s & Shallow nesting \\
+PP5-MedRes-FW     & 16 & 8.4 &     256s & Deep nesting \\
+PP3-MedRes-Sparse & 16 & 8.7 &     281s & Deep nesting \\
+PP1-HighRes-FW    & 18 & 11.5 &  $>$600s & Intractable \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As expected, diamond nesting depth rather than network size or diamond count, determines computational cost. For example, PP2 has 171 nodes and 219 diamonds but completes in 0.31 seconds as a result of its  shallower nesting (depth 9). Comparing this to PP3 which  has fewer nodes (98) and fewer diamonds (165) but still requires 281 seconds because of deep nesting (depth 16). On the extreme case, PP1 with nesting depth 18 become intractable (this complexity is further discussed in the next section). 
+
+The transition between tractable and intractable computation occurs sharply. Networks with nesting depth $\leq$12 complete in under one second regardless of diamond count. Networks with depth 16 require approximately five minutes. Depth 18 exceeds practical computation limits.
+
+\section{Limitations and Future Work}
+
+\subsection{Computational Limitations}
+
+IPA achieves exact reliability computation for networks where diamond nesting depth remains moderate. For tree-structured networks, computation is linear in network size. For networks with shallow diamond nesting (depth $\leq$12), computation completes in under one second for networks with hundreds of nodes and hundreds of diamonds.
+
+However, deeply nested diamond structures cause exponential growth in computation time. This is not an algorithmic limitation but reflects the inherent complexity of exact inference in high-treewidth graphical models. The conditioning-based approach requires enumerating $2^c$ states per diamond, and nested diamonds multiply these enumerations. For PP1 with nesting depth 18, even with caching, the state space exceeds practical computation limits.
+
+Three factors beyond raw nesting depth affect tractability:
+
+\begin{enumerate}
+    \item \textbf{Conditioning nodes per diamond.} Diamonds with many shared fork ancestors require more conditioning states. The $2^c$ enumeration per diamond means that a single diamond with $c > 10$ conditioning nodes becomes computationally expensive regardless of nesting depth.
+
+    \item \textbf{Non-conditioning entry points.} When diamond subgraphs have entry points beyond the conditioning nodes, contextual beliefs at these entry points vary based on outer conditioning states. This prevents diamond supernodes from being reused across outer states, reducing the effectiveness of caching.
+
+    \item \textbf{Diamond subgraph size.} Larger diamond subgraphs (higher $d_i$) increase the cost of belief propagation within each conditioning state. The $\prod d_i$ factor in the complexity expression means that wide diamonds with many intermediate nodes compound the exponential state enumeration.
+\end{enumerate}
+
+\subsection{Future Work}
+
+Three directions address the computational limitations identified in this work.
+
+\paragraph{Targeted approximation for deep diamonds.}
+The diamond decomposition framework naturally identifies which network substructures cause computational intractability. Rather than approximating the entire network, sampling-based methods can be applied selectively to deeply nested diamonds while maintaining exact computation elsewhere. This localises approximation error to specific subgraphs rather than propagating uncertainty throughout the network. The conditioning state enumeration can be replaced with importance sampling over high-probability states, providing probabilistic bounds on the approximation error for each diamond.
+
+\paragraph{Pre-computation for selective analysis.}
+In applications requiring reliability values for only a subset of nodes, pre-computing the complete diamond decomposition enables selective analysis. Diamonds not on paths to target nodes can be excluded from computation. This is particularly relevant for dense networks where full-network analysis exceeds practical limits but targeted queries remain tractable.
+
+\paragraph{Parallel conditioning state evaluation.}
+Within each diamond, the $2^c$ conditioning states are mathematically independent and can be evaluated concurrently. The current implementation parallelises across diamonds within topological layers, but finer-grained parallelisation within individual diamonds could improve performance for diamonds with many conditioning nodes. This requires careful management of the shared belief cache to avoid synchronisation overhead exceeding the parallelisation benefit.
+
+
+
+\section{Conclusion}
+
+In complex process systems, evaluating signal propagation at all network nodes is invaluable for system design and maintenance planning. Most exact path enumeration methods focus only on sink nodes due to the exponential cost of calculating and combining all distinct paths from every source to every node. 
+
+This paper presents the Information Propagation Algorithm (IPA), a message passing algorithm to evaluate signal reception reliability in acyclic process systems. The proposed method leverages conditional probability theory in DAGs to resolve dependencies in diamond subgraphs. By resolving and decomposing discovered diamond subgraphs into supernodes, the network structure is progressively simplified. This reduces the complexity from $O(2^{\sum c_i} \times \prod d_i)$ without decomposition to $O(\sum 2^{c_i})$ with decomposition for subsequent belief updates on the same diamond structure.
+
+Two case studies were presented to validate IPA's effectiveness and accuracy. First, we compared our approach to dPrPm, another message passing algorithm for signal propagation in DAGs. On the same grid network, IPA computed the same result as exact path enumeration while being 134-times faster than dPrPm. 
+The second case study applied IPA to a 782-node medical delivery network with 2,305 unique decomposed supernodes, confirming accuracy with an absolute error of 0.0016 compared to Monte Carlo simulation, while completing 36% faster.
+
+Although exact, IPA struggles in pathologically dense networks where diamond structures span multiple topological layers. The diamond conditioning process effectively becomes full enumeration since decomposition then cannot meaningfully simplify the DAG structure. 
+
+Future research directions include developing optimization algorithms that pre-decompose the full network before belief propagation.  This could be particularly useful in dense networks where only a subset of node reliabilities are required as IPA can then be applied to the decomposed network that would otherwise be beyond IPA’s practical limits. 
+Additionally, further parallelization opportunities exist beyond topological layer processing, particularly during diamond decomposition when nested diamonds are not interconnected. 
+% Update to conclusion - add after existing grid network paragraph:
+
+% ADDITION TO CONCLUSION (insert after grid network results paragraph):
+%
+% The second case study applied IPA to six Pareto-optimal drone logistics network
+% configurations with 39 to 171 nodes and up to 277 diamond structures. Networks
+% with shallow diamond nesting (depth $\leq$12) completed in under one second.
+% Networks with deep nesting (depth 16) required approximately five minutes.
+% One configuration with nesting depth 18 did not complete within ten minutes,
+% demonstrating the practical limits of exact inference for highly nested structures.
+% The results show that diamond nesting depth, rather than network size or diamond
+% count, determines computational tractability.
+
+
+% UPDATE TO ABSTRACT - replace 782-node claim with:
+%
+% Analysis of six Pareto-optimal drone logistics network configurations (39--171 nodes,
+% up to 277 diamond structures) demonstrates that computation time depends on diamond
+% nesting depth rather than network size: shallow-nested networks complete in under
+% one second while deeply nested structures exhibit the exponential growth inherent
+% to exact inference in high-treewidth graphs.
+

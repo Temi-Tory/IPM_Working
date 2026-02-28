@@ -30,19 +30,34 @@ end
 # Network Selection
 # ============================================================================
 
-#= dag_ntwrk_files\drone-network-balanced-k3
-dag_ntwrk_files\drone-network-cost-optimal
-dag_ntwrk_files\drone-network-geographic-knn
-dag_ntwrk_files\drone-network-resilience-optimal-k5
-dag_ntwrk_files\drone-network-time-optimal-k2 =#
-network_name = "drone-network-resilience-optimal-k5"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
+#= dag_ntwrk_files\drone-network-balanced-k3 ## works 1.034s, 
+dag_ntwrk_files\drone-network-cost-optimal  # works: 0.757s
+dag_ntwrk_files\drone-network-geographic-knn  # very slow nver completes
+dag_ntwrk_files\drone-network-resilience-optimal-k5  # very slow never completes 
+dag_ntwrk_files\drone-network-time-optimal-k2 =# #works 0.019s
+    #network_name = "drone-network-resilience-optimal-k5"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
 
-#network_name = "drone-network-geographic-knn"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
+    #network_name = "drone-network-time-optimal-k2"         # Complex: 17 nodes, 135 edges, 132 unique diamonds
 
+
+    #network_name ="pareto-point-1-high-resilience-fw" # still running after 10 min 
+    # network_name ="pareto-point-2-high-resilience-vtol" #work: 0.31s
+    # network_name ="pareto-point-3-medium-resilience-sparse" #281.607s (4 min 41 sec) 
+    # network_name ="pareto-point-4-low-resilience-minimal" #works: 0.0191438s
+    # network_name ="pareto-point-5-medium-resilience-fw" #256 seconds (4 min 16 sec)
+    # network_name ="pareto-point-6-balanced" #works:0.0191438s
+
+
+    #network_name = "drone-network-cost-optimal"      # Simple: 23 nodes, 27 edges 
+    #network_name = "drone-network-balanced-k3"         # Complex: 17 nodes, 135 edges,14 rooy diamonds, 132 unique diamonds
+    #network_name = "drone-network-balanced-k3"   
+    #network_name = "central_scotland_1"
+    #network_name = "glasgow_area"
+    #network_name = "drone-network-full"
+    # ============================================================================
+    # Test Function (Parameterized for both versions)
 # ============================================================================
-# Test Function (Parameterized for both versions)
-# ============================================================================
-
+network_name = "drone-network-cost-optimal"  
 function run_test(network_name, module_name, run_bp_func, data_type="float")
     println("\n" * "="^80)
     println("Testing: $module_name")
@@ -178,26 +193,26 @@ function run_test(network_name, module_name, run_bp_func, data_type="float")
 end
 
 # ============================================================================
-# Run Test
+    # Run Test
 # ============================================================================
 
-data_type = "float"
+    data_type = "float"
 
-println("\n" * "🔬 TESTING OPTIMIZED IMPLEMENTATION" * "\n")
-println("Network: $network_name")
-println("Threads: $(Threads.nthreads())")
-println("\n")
+    println("\n" * "🔬 TESTING OPTIMIZED IMPLEMENTATION" * "\n")
+    println("Network: $network_name")
+    println("Threads: $(Threads.nthreads())")
+    println("\n")
 
-# Run optimized version
-println("▶️  Testing OPTIMIZED implementation...")
+    # Run optimized version
+    println("▶️  Testing OPTIMIZED implementation...")
 result = run_test(
     network_name,
     "Optimized IPAFrameworkOptimized",
     IPAFrameworkOptimized.update_beliefs_iterative,
     data_type
-)
+);
 
-println("\n✅ Test complete! Run CleanTest.jl separately to compare with original.")
+#println("\n✅ Test complete! Run CleanTest.jl separately to compare with original.")
 
 # Store result
 global test_result = result

@@ -1,0 +1,28 @@
+NETWORK STRUCTURE VALIDATION RESULTS
+====================================================================================================
+Dict{Symbol, Any}(:max_fan_in => 26, :nodes => 145, :forks => 45, :max_fan_out => 20, :network => "pareto-point-1-high-resilience-fw", :joins => 50, :unique_diamonds => 277, :max_width => 59, :sources => 23, :root_diamonds => 24, :sinks => 99, :max_nesting_depth => 18, :edges => 327, :max_conditioning => 1, :depth => 19)
+Dict{Symbol, Any}(:max_fan_in => 10, :nodes => 171, :forks => 32, :max_fan_out => 18, :network => "pareto-point-2-high-resilience-vtol", :joins => 70, :unique_diamonds => 219, :max_width => 44, :sources => 12, :root_diamonds => 52, :sinks => 131, :max_nesting_depth => 9, :edges => 280, :max_conditioning => 1, :depth => 11)
+Dict{Symbol, Any}(:max_fan_in => 17, :nodes => 98, :forks => 37, :max_fan_out => 18, :network => "pareto-point-3-medium-resilience-sparse", :joins => 25, :unique_diamonds => 165, :max_width => 36, :sources => 23, :root_diamonds => 19, :sinks => 58, :max_nesting_depth => 16, :edges => 223, :max_conditioning => 1, :depth => 19)
+Dict{Symbol, Any}(:max_fan_in => 1, :nodes => 39, :forks => 12, :max_fan_out => 4, :network => "pareto-point-4-low-resilience-minimal", :joins => 0, :unique_diamonds => 0, :max_width => 19, :sources => 8, :root_diamonds => 0, :sinks => 24, :max_nesting_depth => 0, :edges => 28, :max_conditioning => 0, :depth => 4)
+Dict{Symbol, Any}(:max_fan_in => 17, :nodes => 89, :forks => 36, :max_fan_out => 19, :network => "pareto-point-5-medium-resilience-fw", :joins => 25, :unique_diamonds => 177, :max_width => 23, :sources => 23, :root_diamonds => 21, :sinks => 49, :max_nesting_depth => 16, :edges => 214, :max_conditioning => 1, :depth => 19)
+Dict{Symbol, Any}(:max_fan_in => 15, :nodes => 98, :forks => 36, :max_fan_out => 14, :network => "pareto-point-6-balanced", :joins => 34, :unique_diamonds => 203, :max_width => 17, :sources => 6, :root_diamonds => 32, :sinks => 59, :max_nesting_depth => 12, :edges => 261, :max_conditioning => 1, :depth => 14)
+Dict{Symbol, Any}(:max_fan_in => 3, :nodes => 16, :forks => 8, :max_fan_out => 3, :network => "grid-graph", :joins => 10, :unique_diamonds => 23, :max_width => 3, :sources => 3, :root_diamonds => 8, :sinks => 2, :max_nesting_depth => 5, :edges => 24, :max_conditioning => 3, :depth => 9)
+
+GRID NETWORK BP VALIDATION RESULTS
+====================================================================================================
+Node 1: Belief = 1.0
+Node 2: Belief = 0.99
+Node 3: Belief = 1.0
+Node 4: Belief = 0.98015429896731
+Node 5: Belief = 0.9
+Node 6: Belief = 0.9951027390000001
+Node 7: Belief = 0.98955924651
+Node 8: Belief = 0.890603321859
+Node 9: Belief = 0.9809999999999999
+Node 10: Belief = 0.8828999999999999
+Node 11: Belief = 0.9773438950449
+Node 12: Belief = 0.9745652500063569
+Node 13: Belief = 1.0
+Node 14: Belief = 0.979461
+Node 15: Belief = 0.984979894695484
+Node 16: Belief = 0.9853885317358566
