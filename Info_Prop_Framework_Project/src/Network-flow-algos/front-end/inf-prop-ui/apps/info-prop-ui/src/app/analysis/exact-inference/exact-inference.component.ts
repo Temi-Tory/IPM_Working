@@ -10,20 +10,28 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
 import { ReachabilityAnalysisService } from '../../shared/services/reachability-analysis.service';
 import { NetworkSessionService } from '../../shared/services/network-session.service';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
-import { ScenarioInfo, MultiScenarioReachabilityResults, ReachabilityScenario, NetworkStructure, AnalysisResponse, PboxData, IntervalData, BeliefValue } from '../../shared/models/network-analysis.models';
+import {
+  ScenarioInfo,
+  NetworkStructure,
+  AnalysisResponse,
+  PboxData,
+  IntervalData,
+  BeliefValue,
+  ReachabilityFileGroup
+} from '../../shared/models/network-analysis.models';
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface InferenceScenario {
   name: string;
@@ -43,6 +51,8 @@ interface InferenceResult {
   inferenceMethod: 'Source Node' | 'Tree Propagation' | 'Inclusion-Exclusion' | 'Diamond Enumeration';
   methodColor: string;
   complexityLevel: 'Source' | 'Simple' | 'Moderate' | 'Complex';
+  sensitivityScore: number;
+  uncertaintyWidth: number | null;
 }
 
 interface InferenceMetrics {
@@ -52,19 +62,49 @@ interface InferenceMetrics {
   diamondNodes: number;
   computationTime: number;
   averageBelief: number;
-  uncertaintyRange?: { min: number; max: number };
   algorithmComplexity: string;
 }
 
-/**
- * Exact Probabilistic Reachability Inference Component
- * 
- * Professional component for exact belief propagation in DAG networks using:
- * - Mathematical Framework: Belief(N) = Prior(N) × P(N receives ≥1 signal | DAG)
- * - Inclusion-exclusion principle for join nodes: P(A ∪ B ∪ C) = S₁ + S₂ + S₃ - S₁S₂ - S₁S₃ - S₂S₃ + S₁S₂S₃
- * - Diamond-based conditional enumeration for complex dependency structures
- * - Multi-scenario support: Float64, Interval, P-box uncertainty quantification
- */
+interface ScenarioTabState {
+  scenario: InferenceScenario;
+  status: 'idle' | 'computing' | 'computed' | 'error';
+  results: InferenceResult[];
+  metrics: InferenceMetrics | null;
+  error: string | null;
+  rawResponse: any;
+  // Per-tab UI state
+  searchTerm: string;
+  selectedNodeTypes: string[];
+  pageIndex: number;
+  pageSize: number;
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc' | '';
+}
+
+interface HistogramBin {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+interface ComparisonRow {
+  nodeId: number;
+  baseBelief: BeliefValue | null;
+  compareBelief: BeliefValue | null;
+  delta: number | null;
+  deltaPercent: number | null;
+  nodeType: string;
+}
+
+interface NodeTypeStats {
+  type: string;
+  count: number;
+  avgBelief: number;
+  icon: string;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 @Component({
   selector: 'app-exact-inference',
   standalone: true,
@@ -80,219 +120,372 @@ interface InferenceMetrics {
     MatDividerModule,
     MatTooltipModule,
     MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
     MatBadgeModule,
-    MatSlideToggleModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    MatMenuModule
   ],
   templateUrl: './exact-inference.component.html',
   styleUrl: './exact-inference.component.scss'
 })
 export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
 
-  // **NEW: Inject services using modern Angular pattern**
+  // ─── Service injection ────────────────────────────────────────────────────
   private analysisStateService = inject(AnalysisStateService);
   private fileManagerService = inject(FileManagerService);
   private reachabilityAnalysisService = inject(ReachabilityAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
 
-  // **ENHANCED: ScenarioAwareComponent implementation**
+  // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
   analysisResults: AnalysisResponse | null = null;
   isLoading = false;
   error: string | null = null;
-  
-  // **NEW: Multi-scenario state management**
   availableScenarios: ScenarioInfo[] = [];
   currentScenario: string | null = null;
   scenarioResults: Map<string, any> = new Map();
-  
-  
-  // **LEGACY: Keep existing signals for backward compatibility**
-  selectedScenario = signal<InferenceScenario | null>(null);
-  inferenceResults = signal<InferenceResult[]>([]);
-  inferenceMetrics = signal<InferenceMetrics | null>(null);
-  isComputing = signal(false);
-  errorMessage = signal<string | null>(null);
-  
-  // **FIXED: Get scenarios from FileManagerService reachability groups**
-  availableScenariosComputed = computed(() => {
-    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    
-    return reachabilityGroups
-      .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
-      .map((group, index) => ({
-        name: group.scenarioName || `${group.dataType}-${index}`, // Use scenarioName as unique identifier
-        dataType: group.dataType as 'float' | 'interval' | 'pbox',
-        displayName: group.scenarioName ? 
-          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` : 
-          this.getDataTypeDisplayName(group.dataType),
-        path: group.nodePriorsFile?.path || '',
-        networkPath: group.networkPath,
-        nodePriorsFile: group.nodePriorsFile,
-        linkProbabilitiesFile: group.linkProbabilitiesFile,
-        description: this.getScenarioDescription(group.dataType)
-      }));
+
+  // ─── Tab state management ─────────────────────────────────────────────────
+  scenarioTabs = signal<Map<string, ScenarioTabState>>(new Map());
+  activeTabIndex = signal(0);
+
+  // Active tab UI state (lightweight signals for frequent updates)
+  activeSearchTerm = signal('');
+  activeSelectedNodeTypes = signal<string[]>([]);
+  activePageIndex = signal(0);
+  activePageSize = signal(25);
+  activeSortColumn = signal('nodeId');
+  activeSortDirection = signal<'asc' | 'desc' | ''>('');
+
+
+  // ─── Comparison state ─────────────────────────────────────────────────────
+  comparisonMode = signal(false);
+  baseScenarioName = signal('');
+  compareScenarioName = signal('');
+
+  // ─── Node detail state ────────────────────────────────────────────────────
+  selectedNodeForComparison = signal<number | null>(null);
+
+  // ─── Copy feedback state ──────────────────────────────────────────────────
+  copiedCellKey = signal('');
+
+  // ─── Computed: scenario names (tab order) ─────────────────────────────────
+  scenarioNames = computed(() => Array.from(this.scenarioTabs().keys()));
+
+  // ─── Computed: active tab state ───────────────────────────────────────────
+  activeTab = computed((): ScenarioTabState | null => {
+    const tabs = this.scenarioTabs();
+    const keys = Array.from(tabs.keys());
+    const idx = this.activeTabIndex();
+    if (idx < 0 || idx >= keys.length) return null;
+    return tabs.get(keys[idx]) || null;
   });
 
-  // Network structure information for context
+  // ─── Computed: network info ───────────────────────────────────────────────
   networkInfo = computed(() => {
-    const networkStructure = this.analysisStateService.networkData();
-    if (!networkStructure) return null;
-    
+    const ns = this.analysisStateService.networkData();
+    if (!ns) return null;
     return {
-      totalNodes: networkStructure.total_nodes || 0,
-      totalEdges: networkStructure.total_edges || 0,
-      sourceNodes: networkStructure.source_nodes || [],
-      joinNodes: networkStructure.join_nodes || [],
-      forkNodes: networkStructure.fork_nodes || [],
-      sinkNodes: networkStructure.sink_nodes || []
+      totalNodes: ns.total_nodes || 0,
+      totalEdges: ns.total_edges || 0,
+      sourceNodes: ns.source_nodes || [],
+      sinkNodes: ns.sink_nodes || [],
+      forkNodes: ns.fork_nodes || [],
+      joinNodes: ns.join_nodes || [],
+      iterationSets: ns.iteration_sets || []
     };
   });
 
-  // **NEW: Access parsed data for actual node priors**
-  parsedData = computed(() => this.analysisStateService.parsedData());
+  // ─── Computed: filtered + sorted results for active tab ───────────────────
+  activeFilteredResults = computed((): InferenceResult[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
 
-  // **NEW: Enhanced network context with node type classification**
-  nodeTypeClassification = computed(() => {
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) return null;
-    
-    const totalNodes = networkInfo.totalNodes;
-    const sourceNodes = networkInfo.sourceNodes.length;
-    const sinkNodes = networkInfo.sinkNodes.length;
-    const forkNodes = networkInfo.forkNodes.length;
-    const joinNodes = networkInfo.joinNodes.length;
-    const regularNodes = totalNodes - sourceNodes - sinkNodes - forkNodes - joinNodes;
-    
-    return {
-      source: { count: sourceNodes, percentage: (sourceNodes / totalNodes * 100).toFixed(1) },
-      sink: { count: sinkNodes, percentage: (sinkNodes / totalNodes * 100).toFixed(1) },
-      fork: { count: forkNodes, percentage: (forkNodes / totalNodes * 100).toFixed(1) },
-      join: { count: joinNodes, percentage: (joinNodes / totalNodes * 100).toFixed(1) },
-      regular: { count: regularNodes, percentage: (regularNodes / totalNodes * 100).toFixed(1) }
-    };
+    let results = [...tab.results];
+    const search = this.activeSearchTerm().toLowerCase();
+    const types = this.activeSelectedNodeTypes();
+    const ni = this.networkInfo();
+
+    // Search filter
+    if (search) {
+      results = results.filter(r => r.nodeId.toString().includes(search));
+    }
+
+    // Node type filter
+    if (types.length > 0 && ni) {
+      results = results.filter(r => {
+        const nodeType = this.getNodeType(r.nodeId, ni);
+        return types.some(t => nodeType.includes(t));
+      });
+    }
+
+    // Sorting
+    const col = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (col && dir) {
+      results.sort((a, b) => {
+        const valA = this.getSortValue(a, col);
+        const valB = this.getSortValue(b, col);
+        return dir === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+
+    return results;
   });
 
-  // **NEW: Filtered results based on search and node type filters**
-  filteredInferenceResults = computed(() => {
-    const results = this.inferenceResults();
-    const search = this.searchTerm().toLowerCase();
-    const selectedTypes = this.selectedNodeTypes();
-    const networkInfo = this.networkInfo();
-    
-    if (!networkInfo) return results;
-    
-    return results.filter(result => {
-      // Search filter
-      const matchesSearch = !search || result.nodeId.toString().includes(search);
-      
-      // Node type filter
-      let matchesType = selectedTypes.length === 0;
-      if (!matchesType) {
-        const nodeType = this.getNodeType(result.nodeId, networkInfo);
-        matchesType = selectedTypes.some(type => nodeType.includes(type));
+  // ─── Computed: paginated results ──────────────────────────────────────────
+  activePaginatedResults = computed((): InferenceResult[] => {
+    const filtered = this.activeFilteredResults();
+    const start = this.activePageIndex() * this.activePageSize();
+    return filtered.slice(start, start + this.activePageSize());
+  });
+
+  // ─── Computed: belief histogram ───────────────────────────────────────────
+  beliefHistogram = computed((): HistogramBin[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
+
+    const buckets = Array(10).fill(0);
+    for (const r of tab.results) {
+      const v = this.getNumericBelief(r.belief);
+      if (v !== null) {
+        const bucket = Math.min(Math.floor(v * 10), 9);
+        buckets[bucket]++;
       }
-      
-      return matchesSearch && matchesType;
+    }
+
+    // Trim empty leading/trailing bins
+    let firstNonZero = buckets.findIndex(c => c > 0);
+    let lastNonZero = buckets.length - 1;
+    while (lastNonZero > 0 && buckets[lastNonZero] === 0) lastNonZero--;
+    if (firstNonZero === -1) return []; // all empty
+
+    const trimmed = buckets.slice(firstNonZero, lastNonZero + 1);
+    const maxCount = Math.max(...trimmed, 1);
+    return trimmed.map((count, i) => ({
+      label: `${((firstNonZero + i) * 0.1).toFixed(1)}`,
+      count,
+      percentage: (count / maxCount) * 100
+    }));
+  });
+
+  // ─── Computed: sink node summary ──────────────────────────────────────────
+  sinkNodeSummary = computed(() => {
+    const tab = this.activeTab();
+    const ni = this.networkInfo();
+    if (!tab || !ni || tab.status !== 'computed' || ni.sinkNodes.length === 0) return null;
+
+    const sinkResults = tab.results
+      .filter(r => ni.sinkNodes.includes(r.nodeId))
+      .sort((a, b) => (this.getNumericBelief(a.belief) ?? 0) - (this.getNumericBelief(b.belief) ?? 0));
+
+    if (sinkResults.length === 0) return null;
+
+    const beliefs = sinkResults.map(r => this.getNumericBelief(r.belief) ?? 0);
+    return {
+      nodes: sinkResults,
+      worst: sinkResults[0],
+      best: sinkResults[sinkResults.length - 1],
+      average: beliefs.reduce((a, b) => a + b, 0) / beliefs.length
+    };
+  });
+
+  // ─── Computed: sensitivity top 10 ─────────────────────────────────────────
+  topSensitiveNodes = computed((): InferenceResult[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
+    return [...tab.results]
+      .sort((a, b) => b.sensitivityScore - a.sensitivityScore)
+      .slice(0, 10);
+  });
+
+  // ─── Computed: quick stats per node type ──────────────────────────────────
+  nodeTypeStats = computed((): NodeTypeStats[] => {
+    const tab = this.activeTab();
+    const ni = this.networkInfo();
+    if (!tab || !ni || tab.status !== 'computed') return [];
+
+    const typeConfig = [
+      { type: 'Source', icon: 'radio_button_checked' },
+      { type: 'Sink', icon: 'flag' },
+      { type: 'Fork', icon: 'call_split' },
+      { type: 'Join', icon: 'merge_type' },
+      { type: 'Regular', icon: 'lens' }
+    ];
+
+    return typeConfig.map(({ type, icon }) => {
+      const nodes = tab.results.filter(r => {
+        const nt = this.getNodeType(r.nodeId, ni);
+        return type === 'Regular' ? nt === 'Regular' : nt.includes(type);
+      });
+      const beliefs = nodes.map(r => this.getNumericBelief(r.belief) ?? 0);
+      const avg = beliefs.length > 0 ? beliefs.reduce((a, b) => a + b, 0) / beliefs.length : 0;
+      return { type, count: nodes.length, avgBelief: avg, icon };
+    }).filter(s => s.count > 0);
+  });
+
+
+  // ─── Computed: interval/pbox width stats ──────────────────────────────────
+  widthStats = computed(() => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return null;
+    if (tab.scenario.dataType === 'float') return null;
+
+    const widths = tab.results
+      .map(r => r.uncertaintyWidth)
+      .filter((w): w is number => w !== null);
+
+    if (widths.length === 0) return null;
+
+    const avg = widths.reduce((a, b) => a + b, 0) / widths.length;
+    const max = Math.max(...widths);
+    const maxNode = tab.results.find(r => r.uncertaintyWidth === max);
+
+    return { average: avg, max, maxNodeId: maxNode?.nodeId ?? 0, count: widths.length };
+  });
+
+  // ─── Computed: comparison results ─────────────────────────────────────────
+  comparisonResults = computed((): ComparisonRow[] => {
+    if (!this.comparisonMode()) return [];
+    const tabs = this.scenarioTabs();
+    const baseTab = tabs.get(this.baseScenarioName());
+    const compareTab = tabs.get(this.compareScenarioName());
+    if (!baseTab || !compareTab || baseTab.status !== 'computed' || compareTab.status !== 'computed') return [];
+
+    const baseMap = new Map(baseTab.results.map(r => [r.nodeId, r]));
+    const compareMap = new Map(compareTab.results.map(r => [r.nodeId, r]));
+    const allIds = new Set([...baseMap.keys(), ...compareMap.keys()]);
+    const ni = this.networkInfo();
+
+    return Array.from(allIds).sort((a, b) => a - b).map(nodeId => {
+      const base = baseMap.get(nodeId);
+      const compare = compareMap.get(nodeId);
+      const bv = base ? this.getNumericBelief(base.belief) : null;
+      const cv = compare ? this.getNumericBelief(compare.belief) : null;
+      let delta: number | null = null;
+      let deltaPercent: number | null = null;
+      if (bv !== null && cv !== null) {
+        delta = cv - bv;
+        deltaPercent = bv !== 0 ? (delta / bv) * 100 : null;
+      }
+      return {
+        nodeId,
+        baseBelief: base?.belief ?? null,
+        compareBelief: compare?.belief ?? null,
+        delta,
+        deltaPercent,
+        nodeType: ni ? this.getNodeType(nodeId, ni) : 'Unknown'
+      };
     });
   });
 
-  // **NEW: Paginated results**
-  paginatedInferenceResults = computed(() => {
-    const filtered = this.filteredInferenceResults();
-    const pageSize = this.pageSize();
-    const pageIndex = this.pageIndex();
-    const start = pageIndex * pageSize;
-    return filtered.slice(start, start + pageSize);
+  // ─── Computed: node comparison across scenarios ───────────────────────────
+  nodeComparisonData = computed(() => {
+    const nodeId = this.selectedNodeForComparison();
+    if (nodeId === null) return null;
+    const tabs = this.scenarioTabs();
+    const data: { scenarioName: string; dataType: string; prior: BeliefValue; belief: BeliefValue; sensitivity: number }[] = [];
+    for (const [name, tab] of tabs.entries()) {
+      if (tab.status !== 'computed') continue;
+      const r = tab.results.find(r => r.nodeId === nodeId);
+      if (r) {
+        data.push({
+          scenarioName: name,
+          dataType: tab.scenario.dataType,
+          prior: r.prior,
+          belief: r.belief,
+          sensitivity: r.sensitivityScore
+        });
+      }
+    }
+    return data.length > 0 ? data : null;
   });
 
-  // Algorithm complexity assessment
-  algorithmComplexity = computed(() => {
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) return 'Unknown';
-    
-    const joinNodeCount = networkInfo.joinNodes.length;
-    const totalNodes = networkInfo.totalNodes;
-    
-    if (joinNodeCount === 0) return 'Linear (Tree Structure)';
-    if (joinNodeCount / totalNodes < 0.1) return 'Low (Few Join Nodes)';
-    if (joinNodeCount / totalNodes < 0.3) return 'Moderate (Multiple Convergence)';
-    return 'High (Complex Diamond Structures)';
+  // ─── Computed: completed scenario count ───────────────────────────────────
+  completedCount = computed((): number => {
+    let count = 0;
+    for (const tab of this.scenarioTabs().values()) {
+      if (tab.status === 'computed') count++;
+    }
+    return count;
   });
 
-  // Table columns for results display (prior first, then belief, then nodeType last)
+  // Table columns
   displayedColumns: string[] = ['nodeId', 'prior', 'belief', 'nodeType'];
-  
-  // **NEW: Pagination and filtering state**
-  pageSize = signal(25);
-  pageIndex = signal(0);
-  searchTerm = signal('');
-  selectedNodeTypes = signal<string[]>([]);
+  comparisonColumns: string[] = ['nodeId', 'baseBelief', 'compareBelief', 'delta', 'nodeType'];
+
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    console.log('🔍 ExactInferenceComponent initializing...');
-    this.loadScenarios();
     this.loadData();
+    this.loadScenarios();
+    this.runAllScenarios();
   }
 
-  // **NEW: ScenarioAwareComponent interface implementation**
+  // ─── ScenarioAwareComponent implementation ────────────────────────────────
+
   loadScenarios(): void {
     const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    this.availableScenarios = reachabilityGroups
-      .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
-      .map((group, index) => ({
-        name: group.scenarioName || `${group.dataType}-${index}`,
-        dataType: group.dataType as 'float' | 'interval' | 'pbox',
-        path: group.nodePriorsFile?.path || '',
-        displayName: group.scenarioName ?
-          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` :
-          this.getDataTypeDisplayName(group.dataType),
-        analysisType: 'reachability' as const,
-        description: this.getScenarioDescription(group.dataType)
-      }));
+    const validGroups = reachabilityGroups.filter(
+      g => g.dataType === 'float' || g.dataType === 'interval' || g.dataType === 'pbox'
+    );
 
-    // Auto-select first scenario if available
-    if (this.availableScenarios.length > 0 && !this.currentScenario) {
-      this.setCurrentScenario(this.availableScenarios[0].name);
+    this.availableScenarios = validGroups.map((group, index) => ({
+      name: group.scenarioName || `${group.dataType}-${index}`,
+      dataType: group.dataType as 'float' | 'interval' | 'pbox',
+      path: group.nodePriorsFile?.path || '',
+      displayName: group.scenarioName
+        ? `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})`
+        : this.getDataTypeDisplayName(group.dataType),
+      analysisType: 'reachability' as const,
+      description: this.getScenarioDescription(group.dataType)
+    }));
+
+    // Initialize tab state for each scenario
+    const tabs = new Map<string, ScenarioTabState>();
+    validGroups.forEach((group, index) => {
+      const name = group.scenarioName || `${group.dataType}-${index}`;
+      tabs.set(name, {
+        scenario: {
+          name,
+          dataType: group.dataType as 'float' | 'interval' | 'pbox',
+          path: group.nodePriorsFile?.path || '',
+          displayName: group.scenarioName
+            ? `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})`
+            : this.getDataTypeDisplayName(group.dataType),
+          description: this.getScenarioDescription(group.dataType),
+          networkPath: group.networkPath,
+          nodePriorsFile: group.nodePriorsFile,
+          linkProbabilitiesFile: group.linkProbabilitiesFile
+        },
+        status: 'idle',
+        results: [],
+        metrics: null,
+        error: null,
+        rawResponse: null,
+        searchTerm: '',
+        selectedNodeTypes: [],
+        pageIndex: 0,
+        pageSize: 25,
+        sortColumn: 'nodeId',
+        sortDirection: ''
+      });
+    });
+    this.scenarioTabs.set(tabs);
+
+    if (this.availableScenarios.length > 0) {
+      this.currentScenario = this.availableScenarios[0].name;
     }
   }
 
   setCurrentScenario(scenarioName: string): void {
     this.currentScenario = scenarioName;
-    const scenario = this.availableScenarios.find(s => s.name === scenarioName);
-    if (scenario) {
-      // Convert ScenarioInfo to InferenceScenario for backward compatibility
-      const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-      const matchingGroup = reachabilityGroups.find(group =>
-        group.scenarioName === scenario.name && group.dataType === scenario.dataType
-      );
-      
-      if (matchingGroup) {
-        const inferenceScenario: InferenceScenario = {
-          name: scenario.name,
-          dataType: scenario.dataType,
-          path: scenario.path,
-          displayName: scenario.displayName || scenario.name,
-          description: scenario.description || '',
-          networkPath: matchingGroup.networkPath,
-          nodePriorsFile: matchingGroup.nodePriorsFile,
-          linkProbabilitiesFile: matchingGroup.linkProbabilitiesFile
-        };
-        this.selectedScenario.set(inferenceScenario);
-      }
-    }
-    console.log('🎯 Current exact inference scenario set to:', scenarioName);
   }
 
   loadScenarioData(scenarioName: string): void {
     this.setCurrentScenario(scenarioName);
-    // Trigger inference execution for the selected scenario
-    this.executeInference();
   }
 
   loadData(): void {
@@ -303,549 +496,602 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
   }
 
   clearScenarioData(): void {
+    const tabs = new Map(this.scenarioTabs());
+    for (const [name, tab] of tabs.entries()) {
+      tabs.set(name, { ...tab, status: 'idle', results: [], metrics: null, error: null, rawResponse: null });
+    }
+    this.scenarioTabs.set(tabs);
     this.scenarioResults.clear();
-    this.inferenceResults.set([]);
-    this.inferenceMetrics.set(null);
-    this.errorMessage.set(null);
-    console.log('🧹 Exact inference scenario data cleared');
   }
 
-  /**
-   * Execute exact probabilistic reachability inference
-   */
-  async executeInference(): Promise<void> {
-    const scenario = this.selectedScenario();
-    if (!scenario) {
-      this.errorMessage.set('No scenario selected');
-      return;
-    }
+  // ─── Auto-run all scenarios ───────────────────────────────────────────────
 
-    this.isComputing.set(true);
-    this.errorMessage.set(null);
-    
+  async runAllScenarios(): Promise<void> {
+    const tabs = this.scenarioTabs();
+    if (tabs.size === 0) return;
+
+    const promises: Promise<void>[] = [];
+    for (const name of tabs.keys()) {
+      promises.push(this.runScenario(name));
+    }
+    await Promise.allSettled(promises);
+  }
+
+  async rerunScenario(scenarioName: string): Promise<void> {
+    await this.runScenario(scenarioName);
+  }
+
+  private async runScenario(scenarioName: string): Promise<void> {
+    const tabs = this.scenarioTabs();
+    const tabState = tabs.get(scenarioName);
+    if (!tabState) return;
+
+    // Set computing status
+    this.updateTabState(scenarioName, { status: 'computing', error: null });
+
     try {
-      // Use networkPath from scenario if available, otherwise from session
-      let networkPath = scenario.networkPath;
-      if (!networkPath) {
-        const currentSession = this.sessionService.getCurrentSession();
-        networkPath = currentSession?.networkPath;
-      }
-      
-      if (!networkPath) {
-        throw new Error('No network path available');
+      const scenario = tabState.scenario;
+      const request = this.buildRequest(scenario);
+      if (!request) {
+        throw new Error('Could not build request: missing file paths');
       }
 
-      console.log(`🧮 Executing exact inference for scenario: ${scenario.displayName}`);
-      console.log(`📂 Network path: ${networkPath}`);
-      console.log(`📊 Data type: ${scenario.dataType}`);
-      console.log(`🔗 Node priors path: ${scenario.path}`);
-      console.log(`🔗 Link probabilities path: ${scenario.linkProbabilitiesFile?.path}`);
-      console.log(`🔗 Node priors file path: ${scenario.nodePriorsFile?.path}`);
+      const results = await this.reachabilityAnalysisService.analyzeReachability(request).toPromise();
 
-      // Check that scenario has all required file paths
-      if (!scenario.linkProbabilitiesFile?.path || !scenario.nodePriorsFile?.path) {
-        throw new Error('Missing required files for reachability analysis. Please upload network files first.');
-      }
-      
-      // Validate paths are not empty
-      if (!scenario.linkProbabilitiesFile.path.trim() || !scenario.nodePriorsFile.path.trim()) {
-        throw new Error('File paths cannot be empty. Please check uploaded files.');
-      }
-      
-      // Get edges file path from the reachability group (same pattern as analysis-state service)
-      // Find the corresponding reachability group to get shared edges file
-      const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-      const matchingGroup = reachabilityGroups.find(group => 
-        group.scenarioName === scenario.name && group.dataType === scenario.dataType
-      );
-      
-      if (!matchingGroup) {
-        throw new Error(`Could not find matching reachability group for scenario: ${scenario.name}`);
-      }
-      
-      // **FIXED: Construct edges file path correctly - should be just the filename, not include network path prefix**
-      const edgesNetworkName = matchingGroup.networkPath?.split('/').pop() || 'network';
-      let edgesFilePath = matchingGroup.edgesFile?.path || `${edgesNetworkName}.EDGES`;
-      
-      // **CRITICAL FIX: Remove any network path prefix from edges file path**
-      // If edgesFilePath contains network path prefix, strip it to get just the filename
-      if (edgesFilePath.includes('/')) {
-        edgesFilePath = edgesFilePath.split('/').pop() || `${edgesNetworkName}.EDGES`;
-      }
-      
-      console.log(`📊 Final edges file path: ${edgesFilePath}`);
-      
-      // **IMPROVED: Use session network path for consistency with backend expectations**
-      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      const baseNetworkPath = sessionNetworkPath || matchingGroup.networkPath;
-      
-      if (!baseNetworkPath) {
-        throw new Error('No valid network path available for analysis');
-      }
-      
-      // **IMPROVED: Construct relative paths for backend compatibility**
-      // Convert Windows backslashes to forward slashes for backend compatibility
-      const fullNetworkPath = baseNetworkPath.replace(/\\/g, '/');
-      
-      // Make paths relative to the network directory
-      let relativeNodePriorsPath = scenario.nodePriorsFile.path;
-      let relativeLinkProbsPath = scenario.linkProbabilitiesFile.path;
-      
-      // **FIXED: Improved path stripping logic to preserve folder structure**
-      // Extract the network name from the base network path for consistent stripping
-      const networkName = baseNetworkPath.split('/').pop() || '';
-      
-      // Only remove the network name prefix if it exists at the start, preserving folder structure
-      if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
-        relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
-      }
-      if (networkName && relativeLinkProbsPath.startsWith(networkName + '/')) {
-        relativeLinkProbsPath = relativeLinkProbsPath.substring(networkName.length + 1);
-      }
-      
-      // **ADDITIONAL FIX: Ensure paths don't have duplicate network name**
-      // This handles cases where the path might still contain the network name
-      const duplicatePrefix = networkName + '/' + networkName + '/';
-      if (relativeNodePriorsPath.startsWith(duplicatePrefix)) {
-        relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
-      }
-      if (relativeLinkProbsPath.startsWith(duplicatePrefix)) {
-        relativeLinkProbsPath = relativeLinkProbsPath.substring(networkName.length + 1);
-      }
-      
-      // **DEBUG: Log path transformation for debugging**
-      console.log('🔧 PATH TRANSFORMATION DEBUG:');
-      console.log(`  networkName: '${networkName}'`);
-      console.log(`  original nodePriorsPath: '${scenario.nodePriorsFile.path}'`);
-      console.log(`  original linkProbsPath: '${scenario.linkProbabilitiesFile.path}'`);
-      console.log(`  transformed nodePriorsPath: '${relativeNodePriorsPath}'`);
-      console.log(`  transformed linkProbsPath: '${relativeLinkProbsPath}'`);
-      
-      // 🐛 DEBUG: Final path validation before sending request
-      console.log('🔍 FINAL PATH VALIDATION:');
-      console.log(`  fullNetworkPath: '${fullNetworkPath}' (empty: ${!fullNetworkPath.trim()})`);
-      console.log(`  edgesFilePath: '${edgesFilePath}' (empty: ${!edgesFilePath.trim()})`);
-      console.log(`  relativeNodePriorsPath: '${relativeNodePriorsPath}' (empty: ${!relativeNodePriorsPath.trim()})`);
-      console.log(`  relativeLinkProbsPath: '${relativeLinkProbsPath}' (empty: ${!relativeLinkProbsPath.trim()})`);
-      
-      // Validate all paths are non-empty
-      if (!fullNetworkPath.trim()) {
-        throw new Error('Network path is empty');
-      }
-      if (!edgesFilePath.trim()) {
-        throw new Error('Edges file path is empty');
-      }
-      if (!relativeNodePriorsPath.trim()) {
-        throw new Error('Node priors path is empty');
-      }
-      if (!relativeLinkProbsPath.trim()) {
-        throw new Error('Link probabilities path is empty');
-      }
-      
-      // 🐛 DEBUG: Log the complete request being sent with detailed analysis
-      const request = {
-        networkPath: fullNetworkPath,
-        edgesFilePath: edgesFilePath,
-        nodepriorsPath: relativeNodePriorsPath,
-        linkprobsPath: relativeLinkProbsPath
-      };
-      console.log(`🔍 EXACT INFERENCE REQUEST DEBUG:`);
-      console.log(`📋 Request object keys:`, Object.keys(request));
-      console.log(`📋 Complete request:`, request);
-      console.log(`🔍 DETAILED REQUEST ANALYSIS:`);
-      console.log(`  networkPath: '${request.networkPath}' (type: ${typeof request.networkPath})`);
-      console.log(`  edgesFilePath: '${request.edgesFilePath}' (type: ${typeof request.edgesFilePath})`);
-      console.log(`  nodepriorsPath: '${request.nodepriorsPath}' (type: ${typeof request.nodepriorsPath})`);
-      console.log(`  linkprobsPath: '${request.linkprobsPath}' (type: ${typeof request.linkprobsPath})`);
-      
-      // **ENHANCED: Call reachability analysis service with exact inference flag**
-      const results = await this.reachabilityAnalysisService.analyzeReachability({
-        networkPath: fullNetworkPath,
-        edgesFilePath: edgesFilePath,
-        nodepriorsPath: relativeNodePriorsPath,
-        linkprobsPath: relativeLinkProbsPath,
-        includeExactInference: true,
-        includeDiamondAnalysis: false
-      }).toPromise();
-
-      // **NEW: Store results in scenario-aware map**
-      if (results?.reachability_result) {
-        this.scenarioResults.set(scenario.name, results.reachability_result);
+      if (!results?.reachability_result) {
+        throw new Error(results?.message || 'No results returned from backend');
       }
 
-      // Process and format results for display
-      const processedResults = this.processInferenceResults(results, scenario.dataType);
-      const metrics = this.calculateInferenceMetrics(results, processedResults, scenario.dataType);
-      
-      this.inferenceResults.set(processedResults);
-      this.inferenceMetrics.set(metrics);
-      
-      // **NEW: Update view after scenario change**
+      const processed = this.processInferenceResults(results, scenario.dataType);
+      const metrics = this.calculateInferenceMetrics(results, processed);
+
+      this.updateTabState(scenarioName, {
+        status: 'computed',
+        results: processed,
+        metrics,
+        rawResponse: results,
+        error: null
+      });
+
+      this.scenarioResults.set(scenarioName, results.reachability_result);
       this.cdr.detectChanges();
-      
-      console.log(`✅ Inference completed for scenario "${scenario.name}": ${processedResults.length} nodes computed`);
-      console.log(`⏱️ Computation time: ${metrics.computationTime.toFixed(3)}s`);
-      console.log(`📊 Data type: ${scenario.dataType}`);
-      console.log('📋 Raw results:', results);
-      console.log('📋 Processed results:', processedResults);
-      console.log('📋 Metrics:', metrics);
-      
     } catch (error) {
-      console.error('❌ Inference execution failed:', error);
-      this.errorMessage.set(error instanceof Error ? error.message : 'Inference execution failed');
-    } finally {
-      this.isComputing.set(false);
+      const msg = error instanceof Error ? error.message : 'Inference execution failed';
+      this.updateTabState(scenarioName, { status: 'error', error: msg });
+      this.cdr.detectChanges();
     }
   }
 
-  /**
-   * Process raw reachability results into structured inference data
-   */
-  private processInferenceResults(results: any, dataType: string): InferenceResult[] {
-    if (!results?.reachability_result?.exact_inference?.beliefs) {
-      console.warn('⚠️ No exact inference beliefs found in results');
-      return [];
+  private buildRequest(scenario: InferenceScenario): any | null {
+    let networkPath = scenario.networkPath;
+    if (!networkPath) {
+      networkPath = this.sessionService.getCurrentSession()?.networkPath;
     }
+    if (!networkPath) return null;
+    if (!scenario.nodePriorsFile?.path || !scenario.linkProbabilitiesFile?.path) return null;
+
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    const matchingGroup = reachabilityGroups.find(
+      g => g.scenarioName === scenario.name && g.dataType === scenario.dataType
+    );
+
+    const edgesNetworkName = (matchingGroup?.networkPath || networkPath).split('/').pop() || 'network';
+    let edgesFilePath = matchingGroup?.edgesFile?.path || `${edgesNetworkName}.EDGES`;
+    if (edgesFilePath.includes('/')) {
+      edgesFilePath = edgesFilePath.split('/').pop() || `${edgesNetworkName}.EDGES`;
+    }
+
+    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+    const baseNetworkPath = (sessionNetworkPath || matchingGroup?.networkPath || networkPath).replace(/\\/g, '/');
+    const networkName = baseNetworkPath.split('/').pop() || '';
+
+    let relativeNodePriorsPath = scenario.nodePriorsFile.path;
+    let relativeLinkProbsPath = scenario.linkProbabilitiesFile.path;
+
+    if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
+      relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
+    }
+    if (networkName && relativeLinkProbsPath.startsWith(networkName + '/')) {
+      relativeLinkProbsPath = relativeLinkProbsPath.substring(networkName.length + 1);
+    }
+
+    return {
+      networkPath: baseNetworkPath,
+      edgesFilePath,
+      nodepriorsPath: relativeNodePriorsPath,
+      linkprobsPath: relativeLinkProbsPath,
+      includeExactInference: true,
+      includeDiamondAnalysis: false
+    };
+  }
+
+  // ─── Results processing ───────────────────────────────────────────────────
+
+  private processInferenceResults(results: any, dataType: string): InferenceResult[] {
+    if (!results?.reachability_result?.exact_inference?.beliefs) return [];
 
     const exactInference = results.reachability_result.exact_inference;
     const beliefs = exactInference.beliefs;
     const nodePriors = exactInference.node_priors || {};
-    const networkInfo = this.networkInfo();
+    const ni = this.networkInfo();
+    if (!ni) return [];
 
-    if (!networkInfo) return [];
+    const sourceSet = new Set(ni.sourceNodes);
+    const joinSet = new Set(ni.joinNodes);
 
-    const sourceNodesSet = new Set(networkInfo.sourceNodes);
-    const joinNodesSet = new Set(networkInfo.joinNodes);
-
-    // Process all node beliefs — priors come directly from backend response
     return Object.entries(beliefs).map(([nodeIdStr, belief]: [string, any]) => {
       const nodeId = parseInt(nodeIdStr);
       const prior = nodePriors[nodeIdStr] ?? 0.5;
-      
-      // Determine inference method based on network structure
+
       let inferenceMethod: InferenceResult['inferenceMethod'];
       let methodColor: string;
       let complexityLevel: InferenceResult['complexityLevel'];
-      
-      if (sourceNodesSet.has(nodeId)) {
+
+      if (sourceSet.has(nodeId)) {
         inferenceMethod = 'Source Node';
         methodColor = 'source-method';
         complexityLevel = 'Source';
-      } else if (joinNodesSet.has(nodeId)) {
+      } else if (joinSet.has(nodeId)) {
         inferenceMethod = 'Inclusion-Exclusion';
         methodColor = 'inclusion-method';
-        complexityLevel = this.getComplexityFromPaths(nodeId, networkInfo);
+        complexityLevel = ni.sourceNodes.length <= 2 ? 'Simple' : ni.sourceNodes.length <= 5 ? 'Moderate' : 'Complex';
       } else {
         inferenceMethod = 'Tree Propagation';
         methodColor = 'tree-method';
         complexityLevel = 'Simple';
       }
-      
-      return {
-        nodeId,
-        belief,
-        prior,
-        inferenceMethod,
-        methodColor,
-        complexityLevel
-      };
-    }).sort((a, b) => a.nodeId - b.nodeId); // Sort by node ID for consistent display
+
+      const sensitivityScore = this.computeSensitivity(belief, prior);
+      const uncertaintyWidth = this.computeWidth(belief);
+
+      return { nodeId, belief, prior, inferenceMethod, methodColor, complexityLevel, sensitivityScore, uncertaintyWidth };
+    }).sort((a, b) => a.nodeId - b.nodeId);
   }
 
-  /**
-   * Calculate comprehensive inference performance metrics
-   */
-  private calculateInferenceMetrics(results: any, processedResults: InferenceResult[], dataType: string): InferenceMetrics {
-    const networkInfo = this.networkInfo();
+  private calculateInferenceMetrics(results: any, processed: InferenceResult[]): InferenceMetrics {
     const computationTime = results?.reachability_result?.exact_inference?.computation_time || 0;
-    
-    // Calculate average belief for numeric values
+    const ni = this.networkInfo();
+
     let averageBelief = 0;
     let numericCount = 0;
-    let minBelief = Infinity;
-    let maxBelief = -Infinity;
-    
-    for (const result of processedResults) {
-      if (typeof result.belief === 'number') {
-        averageBelief += result.belief;
-        numericCount++;
-        minBelief = Math.min(minBelief, result.belief);
-        maxBelief = Math.max(maxBelief, result.belief);
-      }
+    for (const r of processed) {
+      const v = this.getNumericBelief(r.belief);
+      if (v !== null) { averageBelief += v; numericCount++; }
     }
-    
-    if (numericCount > 0) {
-      averageBelief /= numericCount;
-    }
-    
-    // Count nodes by inference method
-    const sourceNodeCount = processedResults.filter(r => r.inferenceMethod === 'Source Node').length;
-    const joinNodeCount = processedResults.filter(r => r.inferenceMethod === 'Inclusion-Exclusion').length;
-    const diamondNodeCount = processedResults.filter(r => r.inferenceMethod === 'Diamond Enumeration').length;
-    
-    return {
-      totalNodes: processedResults.length,
-      sourceNodes: sourceNodeCount,
-      joinNodes: joinNodeCount,
-      diamondNodes: diamondNodeCount,
-      computationTime,
-      averageBelief,
-      uncertaintyRange: dataType !== 'float' && minBelief !== Infinity ? 
-        { min: minBelief, max: maxBelief } : undefined,
-      algorithmComplexity: this.algorithmComplexity()
-    };
+    if (numericCount > 0) averageBelief /= numericCount;
+
+    const sourceNodes = processed.filter(r => r.inferenceMethod === 'Source Node').length;
+    const joinNodes = processed.filter(r => r.inferenceMethod === 'Inclusion-Exclusion').length;
+    const diamondNodes = processed.filter(r => r.inferenceMethod === 'Diamond Enumeration').length;
+
+    const joinRatio = ni ? ni.joinNodes.length / Math.max(1, ni.totalNodes) : 0;
+    let algorithmComplexity = 'Unknown';
+    if (joinRatio === 0) algorithmComplexity = 'Linear (Tree Structure)';
+    else if (joinRatio < 0.1) algorithmComplexity = 'Low (Few Join Nodes)';
+    else if (joinRatio < 0.3) algorithmComplexity = 'Moderate (Multiple Convergence)';
+    else algorithmComplexity = 'High (Complex Diamond Structures)';
+
+    return { totalNodes: processed.length, sourceNodes, joinNodes, diamondNodes, computationTime, averageBelief, algorithmComplexity };
   }
 
-  /**
-   * Determine complexity level based on network paths (simplified heuristic)
-   */
-  private getComplexityFromPaths(nodeId: number, networkInfo: any): InferenceResult['complexityLevel'] {
-    const sourceCount = networkInfo.sourceNodes.length;
-    const isJoin = networkInfo.joinNodes.includes(nodeId);
-    
-    if (!isJoin) return 'Simple';
-    if (sourceCount <= 2) return 'Simple';
-    if (sourceCount <= 5) return 'Moderate';
-    return 'Complex';
+  // ─── Formatting (raw probabilities, 6 significant figures) ────────────────
+
+  formatNumber(value: number): string {
+    if (value === 0) return '0.00000';
+    if (value === 1) return '1.00000';
+    return value.toPrecision(6);
   }
 
-  /**
-   * Get display name for scenario including uncertainty type
-   */
-  private getScenarioDisplayName(name: string, dataType: string): string {
-    const typeLabel = this.getDataTypeLabel(dataType);
-    return `${name} (${typeLabel})`;
-  }
-
-  /**
-   * Get detailed description for each uncertainty type
-   */
-  private getScenarioDescription(dataType: string): string {
-    switch (dataType) {
-      case 'float':
-        return 'Precise probabilistic inference with exact numerical values';
-      case 'interval':
-        return 'Interval arithmetic for bounded uncertainty propagation';
-      case 'pbox':
-        return 'Probability box (p-box) for comprehensive uncertainty quantification';
-      default:
-        return 'Probabilistic reachability analysis';
-    }
-  }
-
-  /**
-   * Get abbreviated data type label
-   */
-  private getDataTypeLabel(dataType: string): string {
-    switch (dataType) {
-      case 'float': return 'Precise';
-      case 'interval': return 'Interval';
-      case 'pbox': return 'P-box';
-      default: return dataType.toUpperCase();
-    }
-  }
-
-  /**
-   * Get data type display name for UI (public for template access)
-   */
-  public getDataTypeDisplayName(dataType: string): string {
-    switch (dataType) {
-      case 'float': return 'Float (Precise)';
-      case 'interval': return 'Interval (Bounded)';
-      case 'pbox': return 'P-Box (Distributional)';
-      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
-    }
-  }
-
-  /**
-   * Format belief value for display based on data type
-   */
   formatBelief(belief: BeliefValue): string {
     if (typeof belief === 'number') {
-      return (belief * 100).toFixed(1) + '%';
-    } else if (belief && typeof belief === 'object') {
-      // Handle IntervalData
-      if ('lower' in belief && 'upper' in belief && 'type' in belief && belief.type === 'interval') {
-        return `[${(belief.lower * 100).toFixed(1)}%, ${(belief.upper * 100).toFixed(1)}%]`;
+      return this.formatNumber(belief);
+    }
+    if (belief && typeof belief === 'object') {
+      // P-box
+      if ('type' in belief && belief.type === 'pbox') {
+        return this.formatPbox(belief as PboxData);
       }
-      // Handle PboxData - check for scalar P-box with value property first
-      else if ('type' in belief && belief.type === 'pbox') {
-        const pbox = belief as any;
-        // Handle scalar P-box (construction_type: 'scalar' with value property)
-        if (pbox.construction_type === 'scalar' && typeof pbox.value === 'number') {
-          return `P-box: ${(pbox.value * 100).toFixed(1)}%`;
-        }
-        // Handle complex P-box with bounds_summary
-        else if (pbox.bounds_summary && pbox.mean_lower !== undefined && pbox.mean_upper !== undefined) {
-          return `P-box: μ∈[${(pbox.mean_lower * 100).toFixed(1)}%, ${(pbox.mean_upper * 100).toFixed(1)}%], bounds:[${(pbox.bounds_summary.left_min * 100).toFixed(1)}%, ${(pbox.bounds_summary.right_max * 100).toFixed(1)}%]`;
-        }
-        // Fallback for other P-box structures
-        else {
-          return `P-box: ${JSON.stringify(pbox)}`;
-        }
-      }
-      // Handle legacy interval format (backward compatibility)
-      else if ('lower' in belief && 'upper' in belief) {
-        return `[${((belief as any).lower * 100).toFixed(1)}%, ${((belief as any).upper * 100).toFixed(1)}%]`;
+      // Interval (with or without type field)
+      if ('lower' in belief && 'upper' in belief) {
+        const lo = this.formatNumber((belief as any).lower);
+        const hi = this.formatNumber((belief as any).upper);
+        return `[${lo}, ${hi}]`;
       }
     }
     return 'N/A';
   }
 
-  /**
-   * Get detailed P-box information for tooltip or expanded view
-   */
-  getPboxDetails(pbox: PboxData): string {
-    return `Shape: ${pbox.shape}, Discretization: ${pbox.discretization_size}, ` +
-           `Mean: [${(pbox.mean_lower * 100).toFixed(1)}%, ${(pbox.mean_upper * 100).toFixed(1)}%], ` +
-           `Variance: [${pbox.var_lower.toFixed(3)}, ${pbox.var_upper.toFixed(3)}], ` +
-           `Bounds: [${(pbox.bounds_summary.left_min * 100).toFixed(1)}%-${(pbox.bounds_summary.left_max * 100).toFixed(1)}%, ` +
-           `${(pbox.bounds_summary.right_min * 100).toFixed(1)}%-${(pbox.bounds_summary.right_max * 100).toFixed(1)}%]`;
+  private formatPbox(pbox: PboxData): string {
+    const ml = this.formatNumber(pbox.mean_lower);
+    const mh = this.formatNumber(pbox.mean_upper);
+    return `μ∈[${ml}, ${mh}]`;
   }
 
-  /**
-   * Check if belief value is P-box data
-   */
-  isPboxData(belief: BeliefValue): boolean {
-    return typeof belief === 'object' && belief !== null && 'type' in belief && belief.type === 'pbox';
+  getPboxTooltip(belief: BeliefValue): string {
+    if (!belief || typeof belief !== 'object' || !('type' in belief) || belief.type !== 'pbox') return '';
+    const p = belief as PboxData;
+    const bs = p.bounds_summary;
+    return `Shape: ${p.shape || 'none'}, Discretization: ${p.discretization_size}\n` +
+      `Mean: [${this.formatNumber(p.mean_lower)}, ${this.formatNumber(p.mean_upper)}]\n` +
+      `Variance: [${this.formatNumber(p.var_lower)}, ${this.formatNumber(p.var_upper)}]\n` +
+      `Bounds: [${this.formatNumber(bs.left_min)}, ${this.formatNumber(bs.right_max)}]`;
   }
 
-  /**
-   * Check if belief value is interval data
-   */
-  isIntervalData(belief: BeliefValue): boolean {
-    return typeof belief === 'object' && belief !== null &&
-           (('type' in belief && belief.type === 'interval') ||
-            ('lower' in belief && 'upper' in belief && !('type' in belief)));
+  // ─── Numeric extraction helpers ───────────────────────────────────────────
+
+  getNumericBelief(belief: BeliefValue): number | null {
+    if (typeof belief === 'number') return belief;
+    if (belief && typeof belief === 'object') {
+      if ('lower' in belief && 'upper' in belief) {
+        return ((belief as any).lower + (belief as any).upper) / 2;
+      }
+      if ('type' in belief && belief.type === 'pbox') {
+        const p = belief as PboxData;
+        return (p.mean_lower + p.mean_upper) / 2;
+      }
+    }
+    return null;
   }
 
-  /**
-   * Get CSS class for inference method visualization
-   */
-  getMethodColorClass(method: string): string {
-    switch (method) {
-      case 'Source Node': return 'method-source';
-      case 'Tree Propagation': return 'method-tree';
-      case 'Inclusion-Exclusion': return 'method-inclusion';
-      case 'Diamond Enumeration': return 'method-diamond';
-      default: return 'method-default';
+  private computeSensitivity(belief: BeliefValue, prior: BeliefValue): number {
+    const bv = this.getNumericBelief(belief);
+    const pv = this.getNumericBelief(prior);
+    if (bv === null || pv === null) return 0;
+    return Math.abs(bv - pv);
+  }
+
+  computeWidth(belief: BeliefValue): number | null {
+    if (typeof belief === 'number') return null;
+    if (belief && typeof belief === 'object') {
+      if ('lower' in belief && 'upper' in belief) {
+        return (belief as any).upper - (belief as any).lower;
+      }
+      if ('type' in belief && belief.type === 'pbox') {
+        const p = belief as PboxData;
+        if (p.bounds_summary) {
+          return p.bounds_summary.right_max - p.bounds_summary.left_min;
+        }
+      }
+    }
+    return null;
+  }
+
+  // ─── Sorting ──────────────────────────────────────────────────────────────
+
+  private getSortValue(result: InferenceResult, column: string): number {
+    switch (column) {
+      case 'nodeId': return result.nodeId;
+      case 'belief': return this.getNumericBelief(result.belief) ?? 0;
+      case 'prior': return this.getNumericBelief(result.prior) ?? 0;
+      case 'sensitivity': return result.sensitivityScore;
+      case 'width': return result.uncertaintyWidth ?? 0;
+      case 'nodeType': return 0; // String sort handled separately
+      default: return 0;
     }
   }
 
-  /**
-   * Get complexity badge color
-   */
-  getComplexityColor(level: string): string {
-    switch (level) {
-      case 'Source': return 'primary';
-      case 'Simple': return 'accent';
-      case 'Moderate': return 'warn';
-      case 'Complex': return 'warn';
-      default: return 'primary';
+  toggleSort(column: string): void {
+    const current = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (current === column) {
+      // Cycle: '' → 'asc' → 'desc' → ''
+      if (dir === '') this.activeSortDirection.set('asc');
+      else if (dir === 'asc') this.activeSortDirection.set('desc');
+      else this.activeSortDirection.set('');
+    } else {
+      this.activeSortColumn.set(column);
+      this.activeSortDirection.set('asc');
+    }
+    this.activePageIndex.set(0);
+  }
+
+  getSortIcon(column: string): string {
+    if (this.activeSortColumn() !== column || !this.activeSortDirection()) return 'unfold_more';
+    return this.activeSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  // ─── Export ───────────────────────────────────────────────────────────────
+
+  exportCSV(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+    const ni = this.networkInfo();
+
+    let csv = '';
+    const dt = tab.scenario.dataType;
+
+    if (dt === 'float') {
+      csv = 'NodeID,Prior,Belief,NodeType,InferenceMethod,Sensitivity\n';
+      for (const r of tab.results) {
+        const nt = ni ? this.getNodeType(r.nodeId, ni) : '';
+        csv += `${r.nodeId},${r.prior},${r.belief},${nt},${r.inferenceMethod},${r.sensitivityScore}\n`;
+      }
+    } else if (dt === 'interval') {
+      csv = 'NodeID,PriorLower,PriorUpper,BeliefLower,BeliefUpper,NodeType,InferenceMethod,Sensitivity,Width\n';
+      for (const r of tab.results) {
+        const nt = ni ? this.getNodeType(r.nodeId, ni) : '';
+        const pl = (r.prior as any)?.lower ?? r.prior;
+        const pu = (r.prior as any)?.upper ?? r.prior;
+        const bl = (r.belief as any)?.lower ?? r.belief;
+        const bu = (r.belief as any)?.upper ?? r.belief;
+        csv += `${r.nodeId},${pl},${pu},${bl},${bu},${nt},${r.inferenceMethod},${r.sensitivityScore},${r.uncertaintyWidth ?? ''}\n`;
+      }
+    } else {
+      csv = 'NodeID,PriorMeanLo,PriorMeanHi,BeliefMeanLo,BeliefMeanHi,BeliefBoundsLo,BeliefBoundsHi,NodeType,InferenceMethod,Sensitivity,Width\n';
+      for (const r of tab.results) {
+        const nt = ni ? this.getNodeType(r.nodeId, ni) : '';
+        const pp = r.prior as any;
+        const bp = r.belief as any;
+        const pml = pp?.mean_lower ?? pp;
+        const pmh = pp?.mean_upper ?? pp;
+        const bml = bp?.mean_lower ?? bp;
+        const bmh = bp?.mean_upper ?? bp;
+        const bbl = bp?.bounds_summary?.left_min ?? '';
+        const bbh = bp?.bounds_summary?.right_max ?? '';
+        csv += `${r.nodeId},${pml},${pmh},${bml},${bmh},${bbl},${bbh},${nt},${r.inferenceMethod},${r.sensitivityScore},${r.uncertaintyWidth ?? ''}\n`;
+      }
+    }
+
+    this.downloadFile(csv, `exact-inference-${tab.scenario.name}.csv`, 'text/csv');
+  }
+
+  exportJSON(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+    const data = { scenario: tab.scenario.name, dataType: tab.scenario.dataType, results: tab.results, metrics: tab.metrics };
+    this.downloadFile(JSON.stringify(data, null, 2), `exact-inference-${tab.scenario.name}.json`, 'application/json');
+  }
+
+  exportAllJSON(): void {
+    const allData: any = {};
+    for (const [name, tab] of this.scenarioTabs().entries()) {
+      if (tab.status === 'computed') {
+        allData[name] = { dataType: tab.scenario.dataType, results: tab.results, metrics: tab.metrics };
+      }
+    }
+    this.downloadFile(JSON.stringify(allData, null, 2), 'exact-inference-all-scenarios.json', 'application/json');
+  }
+
+  private downloadFile(content: string, filename: string, mimeType: string): void {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+
+  // ─── Heat-map coloring ────────────────────────────────────────────────────
+
+  getBeliefHeatColor(belief: BeliefValue): string {
+    const v = this.getNumericBelief(belief);
+    if (v === null) return 'transparent';
+    const hue = v * 120; // 0=red, 60=yellow, 120=green
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      return `hsla(${hue}, 50%, 25%, 0.4)`;
+    }
+    return `hsl(${hue}, 65%, 92%)`;
+  }
+
+  // ─── Copy to clipboard ────────────────────────────────────────────────────
+
+  async copyToClipboard(value: BeliefValue, nodeId: number, field: string, event: Event): Promise<void> {
+    event.stopPropagation();
+    let text: string;
+    if (typeof value === 'number') {
+      text = value.toString();
+    } else if (value && typeof value === 'object') {
+      text = JSON.stringify(value);
+    } else {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      this.copiedCellKey.set(`${nodeId}-${field}`);
+      setTimeout(() => this.copiedCellKey.set(''), 1500);
+    } catch {
+      // Fallback for non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      this.copiedCellKey.set(`${nodeId}-${field}`);
+      setTimeout(() => this.copiedCellKey.set(''), 1500);
     }
   }
 
-  /**
-   * Get tooltip text for inference method
-   */
-  getMethodTooltip(method: string): string {
-    switch (method) {
-      case 'Source Node':
-        return 'Source node - belief equals prior probability';
-      case 'Tree Propagation':
-        return 'Simple tree structure - direct signal propagation';
-      case 'Inclusion-Exclusion':
-        return 'Join node with multiple paths - uses inclusion-exclusion principle';
-      case 'Diamond Enumeration':
-        return 'Complex diamond structure - conditional enumeration over all states';
-      default:
-        return 'Unknown inference method';
+  isCopied(nodeId: number, field: string): boolean {
+    return this.copiedCellKey() === `${nodeId}-${field}`;
+  }
+
+  // ─── Comparison mode ──────────────────────────────────────────────────────
+
+  toggleComparisonMode(): void {
+    this.comparisonMode.set(!this.comparisonMode());
+    if (this.comparisonMode()) {
+      const names = this.scenarioNames();
+      const computed = names.filter(n => this.getTabStatus(n) === 'computed');
+      if (computed.length >= 2) {
+        this.baseScenarioName.set(computed[0]);
+        this.compareScenarioName.set(computed[1]);
+      }
     }
   }
 
-  /**
-   * Clear current results and reset component state
-   */
-  clearResults(): void {
-    this.inferenceResults.set([]);
-    this.inferenceMetrics.set(null);
-    this.errorMessage.set(null);
-    this.clearScenarioData();
-    console.log('🧹 Cleared inference results');
+  onBaseScenarioChange(name: string): void {
+    this.baseScenarioName.set(name);
   }
 
-  // **NEW: Check if scenario has results**
-  hasScenarioResults(scenarioName: string): boolean {
-    return this.scenarioResults.has(scenarioName);
+  onCompareScenarioChange(name: string): void {
+    this.compareScenarioName.set(name);
   }
 
-  /**
-   * Get node type based on network structure from AnalysisStateService
-   */
+  // ─── Node comparison ──────────────────────────────────────────────────────
+
+  toggleNodeComparison(nodeId: number): void {
+    this.selectedNodeForComparison.set(
+      this.selectedNodeForComparison() === nodeId ? null : nodeId
+    );
+  }
+
+  // ─── Tab management ───────────────────────────────────────────────────────
+
+  onTabChange(newIndex: number): void {
+    this.saveActiveTabUIState();
+    this.activeTabIndex.set(newIndex);
+    this.restoreActiveTabUIState();
+  }
+
+  private saveActiveTabUIState(): void {
+    const keys = Array.from(this.scenarioTabs().keys());
+    const currentKey = keys[this.activeTabIndex()];
+    if (!currentKey) return;
+    this.updateTabState(currentKey, {
+      searchTerm: this.activeSearchTerm(),
+      selectedNodeTypes: this.activeSelectedNodeTypes(),
+      pageIndex: this.activePageIndex(),
+      pageSize: this.activePageSize(),
+      sortColumn: this.activeSortColumn(),
+      sortDirection: this.activeSortDirection()
+    });
+  }
+
+  private restoreActiveTabUIState(): void {
+    const tab = this.activeTab();
+    if (!tab) return;
+    this.activeSearchTerm.set(tab.searchTerm);
+    this.activeSelectedNodeTypes.set(tab.selectedNodeTypes);
+    this.activePageIndex.set(tab.pageIndex);
+    this.activePageSize.set(tab.pageSize);
+    this.activeSortColumn.set(tab.sortColumn);
+    this.activeSortDirection.set(tab.sortDirection);
+  }
+
+  private updateTabState(name: string, update: Partial<ScenarioTabState>): void {
+    const current = new Map(this.scenarioTabs());
+    const existing = current.get(name);
+    if (existing) {
+      current.set(name, { ...existing, ...update });
+      this.scenarioTabs.set(current);
+    }
+  }
+
+  // ─── Tab helpers (for template access) ────────────────────────────────────
+
+  getTabStatus(name: string): string {
+    return this.scenarioTabs().get(name)?.status || 'idle';
+  }
+
+  getTabError(name: string): string {
+    return this.scenarioTabs().get(name)?.error || '';
+  }
+
+  getTabDisplayName(name: string): string {
+    return this.scenarioTabs().get(name)?.scenario.displayName || name;
+  }
+
+  getTabDataType(name: string): string {
+    return this.scenarioTabs().get(name)?.scenario.dataType || '';
+  }
+
+  getTabMetrics(name: string): InferenceMetrics | null {
+    return this.scenarioTabs().get(name)?.metrics || null;
+  }
+
+  // ─── Node type helpers ────────────────────────────────────────────────────
+
   getNodeType(nodeId: number, networkInfo: any): string {
     const types: string[] = [];
-    
     if (networkInfo.sourceNodes.includes(nodeId)) types.push('Source');
     if (networkInfo.sinkNodes.includes(nodeId)) types.push('Sink');
     if (networkInfo.forkNodes.includes(nodeId)) types.push('Fork');
     if (networkInfo.joinNodes.includes(nodeId)) types.push('Join');
-    
     return types.length > 0 ? types.join(' + ') : 'Regular';
   }
 
-  /**
-   * Get node prior probability from parsed data
-   */
-  getNodePrior(nodeId: number): string {
-    const parsedData = this.parsedData();
-    const selectedScenario = this.selectedScenario();
-    
-    if (!parsedData || !selectedScenario) return 'N/A';
-    
-    const nodeIdStr = nodeId.toString();
-    const dataType = selectedScenario.dataType;
-    
-    // Get prior from the appropriate data type section (accessing nodes property)
-    let prior: BeliefValue | undefined;
-    
-    if (dataType === 'float' && parsedData.float?.node_priors?.nodes) {
-      prior = parsedData.float.node_priors.nodes[nodeIdStr];
-    } else if (dataType === 'interval' && parsedData.interval?.node_priors?.nodes) {
-      prior = parsedData.interval.node_priors.nodes[nodeIdStr];
-    } else if (dataType === 'pbox' && parsedData.pbox?.node_priors?.nodes) {
-      prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
-    }
-    
-    // Fallback: try other data types if current one doesn't have priors
-    if (prior === undefined) {
-      if (parsedData.float?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        prior = parsedData.float.node_priors.nodes[nodeIdStr];
-      } else if (parsedData.interval?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        prior = parsedData.interval.node_priors.nodes[nodeIdStr];
-      } else if (parsedData.pbox?.node_priors?.nodes?.[nodeIdStr] !== undefined) {
-        prior = parsedData.pbox.node_priors.nodes[nodeIdStr];
-      }
-    }
-    
-    return prior !== undefined ? this.formatBelief(prior) : 'N/A';
+  getNodeTypeIcon(nodeType: string): string {
+    if (nodeType.includes('Source')) return 'radio_button_checked';
+    if (nodeType.includes('Sink')) return 'flag';
+    if (nodeType.includes('Fork')) return 'call_split';
+    if (nodeType.includes('Join')) return 'merge_type';
+    return 'lens';
   }
 
-  /**
-   * Event handlers for pagination and filtering
-   */
+  // ─── Scenario description helpers ─────────────────────────────────────────
+
+  getDataTypeDisplayName(dataType: string): string {
+    switch (dataType) {
+      case 'float': return 'Float (Precise)';
+      case 'interval': return 'Interval (Bounded)';
+      case 'pbox': return 'P-Box (Distributional)';
+      default: return dataType;
+    }
+  }
+
+  private getScenarioDescription(dataType: string): string {
+    switch (dataType) {
+      case 'float': return 'Precise probabilistic inference with exact numerical values';
+      case 'interval': return 'Interval arithmetic for bounded uncertainty propagation';
+      case 'pbox': return 'Probability box for comprehensive uncertainty quantification';
+      default: return 'Probabilistic reachability analysis';
+    }
+  }
+
+  getDataTypeBadgeClass(dataType: string): string {
+    return `data-type-${dataType}`;
+  }
+
+  // ─── Pagination and filtering handlers ────────────────────────────────────
+
   onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
+    this.activePageIndex.set(event.pageIndex);
+    this.activePageSize.set(event.pageSize);
   }
 
   onSearch(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchTerm.set(target.value);
-    this.pageIndex.set(0); // Reset to first page
+    this.activeSearchTerm.set((event.target as HTMLInputElement).value);
+    this.activePageIndex.set(0);
   }
 
   onNodeTypeFilter(types: string[]): void {
-    this.selectedNodeTypes.set(types);
-    this.pageIndex.set(0); // Reset to first page
+    this.activeSelectedNodeTypes.set(types);
+    this.activePageIndex.set(0);
+  }
+
+  toggleNodeTypeFilter(nodeType: string): void {
+    const current = this.activeSelectedNodeTypes();
+    if (current.includes(nodeType)) {
+      this.onNodeTypeFilter(current.filter(t => t !== nodeType));
+    } else {
+      this.onNodeTypeFilter([...current, nodeType]);
+    }
+  }
+
+  // ─── P-box / Interval type checks ────────────────────────────────────────
+
+  isPboxData(belief: BeliefValue): boolean {
+    return typeof belief === 'object' && belief !== null && 'type' in belief && belief.type === 'pbox';
+  }
+
+  clearResults(): void {
+    this.clearScenarioData();
+    this.selectedNodeForComparison.set(null);
+    this.comparisonMode.set(false);
+  }
+
+  hasScenarioResults(scenarioName: string): boolean {
+    return this.scenarioResults.has(scenarioName);
+  }
+
+  // ─── Computed scenarios for comparison dropdowns ──────────────────────────
+
+  computedScenarioNames(): string[] {
+    return this.scenarioNames().filter(n => this.getTabStatus(n) === 'computed');
   }
 }

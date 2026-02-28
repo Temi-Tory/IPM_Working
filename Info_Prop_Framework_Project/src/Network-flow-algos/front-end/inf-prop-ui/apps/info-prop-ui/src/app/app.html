@@ -235,31 +235,6 @@
         </div>
       </a>
       
-      <!-- System Profile - Comprehensive Analysis Dashboard -->
-      <mat-divider></mat-divider>
-      
-      <a mat-list-item
-         routerLink="/system-profile"
-         [class.disabled]="!analysisState.networkStructureTab().enabled"
-         [class.completed]="false"
-         [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0"
-         [matTooltip]="isSidenavCollapsed ? 'System Profile - Comprehensive analysis dashboard' : ''"
-         matTooltipPosition="right"
-         matTooltipClass="sidenav-tooltip">
-        <mat-icon matListItemIcon>dashboard</mat-icon>
-        <div matListItemTitle>
-          <div class="nav-title">System Profile</div>
-          <div class="nav-subtitle">Comprehensive analysis dashboard</div>
-        </div>
-        <div class="nav-status">
-          @if (analysisState.networkStructureTab().enabled) {
-            <mat-icon class="status-icon available">analytics</mat-icon>
-          } @else {
-            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
-          }
-        </div>
-      </a>
-      
     </mat-nav-list>
   </mat-sidenav>
   

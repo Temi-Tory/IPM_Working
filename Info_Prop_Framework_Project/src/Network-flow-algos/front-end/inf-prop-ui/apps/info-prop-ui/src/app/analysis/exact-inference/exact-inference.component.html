@@ -1,5 +1,8 @@
 <div class="exact-inference-container">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- Header Section -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <mat-card class="header-card">
     <mat-card-header>
       <mat-card-title>
@@ -7,442 +10,647 @@
         Exact Probabilistic Reachability Inference
       </mat-card-title>
       <mat-card-subtitle>
-        Mathematical framework: Belief(N) = Prior(N) × P(N receives ≥1 signal | DAG structure)
+        Belief(N) = Prior(N) &times; P(N receives &ge;1 signal | DAG structure)
       </mat-card-subtitle>
     </mat-card-header>
   </mat-card>
 
-  <!-- Scenario Selection & Controls -->
-  <mat-card class="control-card">
-    <mat-card-header>
-      <mat-card-title>Inference Configuration</mat-card-title>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div class="control-row">
-        <!-- **ENHANCED: Scenario Selector with improved data type support** -->
-        <mat-form-field appearance="outline" class="scenario-selector">
-          <mat-label>Uncertainty Scenario</mat-label>
-          <mat-select
-            [value]="selectedScenario()"
-            (selectionChange)="setCurrentScenario($event.value.name)"
-            [disabled]="isComputing()">
-            @for (scenario of availableScenariosComputed(); track scenario.path) {
-              <mat-option [value]="scenario">
-                <div class="scenario-option">
-                  <div class="scenario-info">
-                    <span class="scenario-name">{{ scenario.displayName }}</span>
-                    <span class="scenario-path">{{ scenario.path }}</span>
-                  </div>
-                  <div class="scenario-badges">
-                    <mat-chip
-                      [class]="'data-type-' + scenario.dataType"
-                      selected>
-                      {{ getDataTypeDisplayName(scenario.dataType) }}
-                    </mat-chip>
-                    @if (hasScenarioResults(scenario.name)) {
-                      <mat-chip color="accent" selected>
-                        <mat-icon>check_circle</mat-icon>
-                        Computed
-                      </mat-chip>
-                    }
-                  </div>
-                </div>
-              </mat-option>
-            }
-          </mat-select>
-          <mat-hint>
-            @if (selectedScenario()) {
-              {{ selectedScenario()!.description }}
-            } @else {
-              Select a scenario to run exact probabilistic inference
-            }
-          </mat-hint>
-        </mat-form-field>
-
-
-        <!-- Execute Button -->
-        <button mat-raised-button 
-                color="primary" 
-                (click)="executeInference()"
-                [disabled]="!selectedScenario() || isComputing()"
-                class="execute-button">
-          @if (isComputing()) {
-            <mat-spinner diameter="20"></mat-spinner>
-            Computing...
-          } @else {
-            <mat-icon>play_arrow</mat-icon>
-          }
-          @if (!isComputing()) {
-            Run Inference
-          }
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Toolbar: Re-run All, Comparison Toggle, Export -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (scenarioNames().length > 0) {
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <!-- Re-run All -->
+        <button mat-raised-button
+                color="primary"
+                (click)="runAllScenarios()"
+                [disabled]="completedCount() === 0 && scenarioNames().length === 0"
+                class="toolbar-btn">
+          <mat-icon>replay</mat-icon>
+          Re-run All Scenarios
         </button>
 
-        <!-- Clear Button -->
-        @if (inferenceResults().length > 0) {
-          <button mat-stroked-button 
+        <!-- Comparison Mode -->
+        @if (completedCount() >= 2) {
+          <button mat-stroked-button
+                  [color]="comparisonMode() ? 'accent' : ''"
+                  (click)="toggleComparisonMode()"
+                  class="toolbar-btn">
+            <mat-icon>compare_arrows</mat-icon>
+            {{ comparisonMode() ? 'Exit Comparison' : 'Compare Scenarios' }}
+          </button>
+        }
+
+        <!-- Clear All -->
+        @if (completedCount() > 0) {
+          <button mat-stroked-button
                   (click)="clearResults()"
-                  [disabled]="isComputing()">
-            <mat-icon>clear</mat-icon>
-            Clear Results
+                  class="toolbar-btn">
+            <mat-icon>clear_all</mat-icon>
+            Clear All
           </button>
         }
       </div>
-    </mat-card-content>
-  </mat-card>
 
-  <!-- Error Display -->
-  @if (errorMessage()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon color="warn">error</mat-icon>
-          <span>{{ errorMessage() }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Algorithm Overview Panel -->
-  <mat-expansion-panel class="algorithm-panel">
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        <mat-icon>school</mat-icon>
-        Algorithm Overview & Mathematical Foundation
-      </mat-panel-title>
-      <mat-panel-description>
-        Understanding exact probabilistic inference methods
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <div class="algorithm-content">
-      <div class="algorithm-grid">
-        <!-- Core Mathematical Framework -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Core Framework</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Belief(N) = Prior(N) × P(N receives ≥1 signal)</code>
-            </div>
-            <p>Each node's belief combines its intrinsic prior probability with the probability of receiving at least one signal from source nodes through the DAG structure.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Inclusion-Exclusion Principle -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Inclusion-Exclusion</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>P(A ∪ B ∪ C) = S₁ + S₂ + S₃ - S₁S₂ - S₁S₃ - S₂S₃ + S₁S₂S₃</code>
-            </div>
-            <p>For join nodes with multiple independent paths, we use inclusion-exclusion to avoid double-counting signal probabilities.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Diamond Enumeration -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Diamond Enumeration</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Result = Σ P(state) × f(state, join_node)</code>
-            </div>
-            <p>Complex dependency structures (diamonds) are handled by conditional enumeration over all possible states of conditioning nodes.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Network Complexity -->
-        @if (networkInfo()) {
-          <mat-card class="complexity-card">
-            <mat-card-header>
-              <mat-card-title>Current Network</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="complexity-stats">
-                <div class="stat">
-                  <span class="stat-label">Total Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.totalNodes }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Source Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.sourceNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Join Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.joinNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Complexity:</span>
-                  <mat-chip [color]="algorithmComplexity().includes('Linear') ? 'primary' : 
-                                   algorithmComplexity().includes('Low') ? 'accent' : 'warn'" 
-                           selected>
-                    {{ algorithmComplexity() }}
-                  </mat-chip>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+      <div class="toolbar-right">
+        <!-- Export Menu -->
+        @if (activeTab()?.status === 'computed') {
+          <button mat-stroked-button [matMenuTriggerFor]="exportMenu" class="toolbar-btn">
+            <mat-icon>download</mat-icon>
+            Export
+          </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item (click)="exportCSV()">
+              <mat-icon>table_chart</mat-icon>
+              Export Current Tab as CSV
+            </button>
+            <button mat-menu-item (click)="exportJSON()">
+              <mat-icon>data_object</mat-icon>
+              Export Current Tab as JSON
+            </button>
+            @if (completedCount() > 1) {
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="exportAllJSON()">
+                <mat-icon>folder_zip</mat-icon>
+                Export All Scenarios as JSON
+              </button>
+            }
+          </mat-menu>
         }
+
       </div>
     </div>
-  </mat-expansion-panel>
+  }
 
-  <!-- Results Section -->
-  @if (inferenceResults().length > 0) {
-    <!-- Performance Metrics -->
-    @if (inferenceMetrics()) {
-      <mat-card class="metrics-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>analytics</mat-icon>
-            Performance Metrics
-          </mat-card-title>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="metrics-grid">
-            <div class="metric-item">
-              <div class="metric-label">Computation Time</div>
-              <div class="metric-value">{{ inferenceMetrics()!.computationTime.toFixed(3) }}s</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Nodes Processed</div>
-              <div class="metric-value">{{ inferenceMetrics()!.totalNodes }}</div>
-            </div>
-            
-           <!--  <div class="metric-item">
-              <div class="metric-label">Average Belief</div>
-              <div class="metric-value">{{ (inferenceMetrics()!.averageBelief * 100).toFixed(1) }}%</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Algorithm Complexity</div>
-              <div class="metric-value">
-                <mat-chip [color]="inferenceMetrics()!.algorithmComplexity.includes('Linear') ? 'primary' : 
-                                 inferenceMetrics()!.algorithmComplexity.includes('Low') ? 'accent' : 'warn'" 
-                         selected>
-                  {{ inferenceMetrics()!.algorithmComplexity }}
-                </mat-chip>
-              </div>
-            </div> -->
-
-            @if (inferenceMetrics()!.uncertaintyRange) {
-              <div class="metric-item">
-                <div class="metric-label">Uncertainty Range</div>
-                <div class="metric-value">
-                  [{{ (inferenceMetrics()!.uncertaintyRange!.min * 100).toFixed(1) }}%, 
-                   {{ (inferenceMetrics()!.uncertaintyRange!.max * 100).toFixed(1) }}%]
-                </div>
-              </div>
-            }
-          </div>
-          
-        </mat-card-content>
-      </mat-card>
-    }
-
-    <!-- Results Table -->
-    <mat-card class="results-card">
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Comparison Mode Panel -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (comparisonMode()) {
+    <mat-card class="comparison-panel">
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>table_chart</mat-icon>
-          Node-Level Inference Results
-          <mat-chip [matBadge]="filteredInferenceResults().length" matBadgeOverlap="false">
-            @if (filteredInferenceResults().length !== inferenceResults().length) {
-              {{ filteredInferenceResults().length }} of {{ inferenceResults().length }}
-            } @else {
-              All Nodes
-            }
-          </mat-chip>
+          <mat-icon>compare_arrows</mat-icon>
+          Scenario Comparison
         </mat-card-title>
-        <mat-card-subtitle>
-          Reachability beliefs computed for every node in the network
-        </mat-card-subtitle>
       </mat-card-header>
-      
       <mat-card-content>
+        <div class="comparison-controls">
+          <div class="comparison-select-wrapper">
+            <label class="comparison-select-label">Base Scenario</label>
+            <select class="comparison-select"
+                    [value]="baseScenarioName()"
+                    (change)="onBaseScenarioChange($any($event.target).value)">
+              @for (name of computedScenarioNames(); track name) {
+                <option [value]="name">{{ getTabDisplayName(name) }}</option>
+              }
+            </select>
+          </div>
 
-        <!-- **NEW: Search and Filter Controls** -->
-        <div class="table-controls">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Nodes</mat-label>
-            <input matInput
-                   placeholder="Enter node ID..."
-                   (input)="onSearch($event)"
-                   [value]="searchTerm()">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+          <mat-icon class="comparison-arrow">arrow_forward</mat-icon>
 
-          <div class="filter-controls">
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter by Node Type</mat-label>
-              <mat-select multiple
-                         [value]="selectedNodeTypes()"
-                         (selectionChange)="onNodeTypeFilter($event.value)">
-                <mat-option value="Source">
-                  <mat-icon>radio_button_checked</mat-icon>
-                  Source Nodes
-                </mat-option>
-                <mat-option value="Sink">
-                  <mat-icon>flag</mat-icon>
-                  Sink Nodes
-                </mat-option>
-                <mat-option value="Fork">
-                  <mat-icon>call_split</mat-icon>
-                  Fork Nodes
-                </mat-option>
-                <mat-option value="Join">
-                  <mat-icon>merge_type</mat-icon>
-                  Join Nodes
-                </mat-option>
-                <mat-option value="Regular">
-                  <mat-icon>lens</mat-icon>
-                  Regular Nodes
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
+          <div class="comparison-select-wrapper">
+            <label class="comparison-select-label">Compare Against</label>
+            <select class="comparison-select"
+                    [value]="compareScenarioName()"
+                    (change)="onCompareScenarioChange($any($event.target).value)">
+              @for (name of computedScenarioNames(); track name) {
+                <option [value]="name">{{ getTabDisplayName(name) }}</option>
+              }
+            </select>
           </div>
         </div>
 
-        <div class="table-container">
-          <table mat-table [dataSource]="paginatedInferenceResults()" class="results-table">
-            
-            <!-- Node ID Column -->
-            <ng-container matColumnDef="nodeId">
-              <th mat-header-cell *matHeaderCellDef>Node ID</th>
-              <td mat-cell *matCellDef="let result">
-                <div class="node-id">
-                  <mat-icon>{{ result.inferenceMethod === 'Source Node' ? 'radio_button_checked' : 'lens' }}</mat-icon>
-                  {{ result.nodeId }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Prior Column -->
-            <ng-container matColumnDef="prior">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Node's intrinsic prior probability">
-                Prior
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="prior-value">
-                  {{ formatBelief(result.prior) }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Belief Column (computed by backend: Prior × P(signal)) -->
-            <ng-container matColumnDef="belief">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Reachability belief: Prior × P(receives ≥1 signal)">
-                Belief
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="belief-value">
-                  {{ formatBelief(result.belief) }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- **NEW: Node Type Column (replaces Inference Method) - MOVED TO LAST** -->
-            <ng-container matColumnDef="nodeType">
-              <th mat-header-cell *matHeaderCellDef>Node Type</th>
-              <td mat-cell *matCellDef="let result">
-                @if (networkInfo()) {
-                  <mat-chip [ngClass]="'node-type-' + getNodeType(result.nodeId, networkInfo()!).toLowerCase().replace(' + ', '-')"
-                           (click)="onNodeTypeFilter([getNodeType(result.nodeId, networkInfo()!)])"
-                           selected>
-                    @switch (getNodeType(result.nodeId, networkInfo()!)) {
-                      @case ('Source') {
-                        <mat-icon>radio_button_checked</mat-icon>
-                      }
-                      @case ('Sink') {
-                        <mat-icon>flag</mat-icon>
-                      }
-                      @case ('Fork') {
-                        <mat-icon>call_split</mat-icon>
-                      }
-                      @case ('Join') {
-                        <mat-icon>merge_type</mat-icon>
-                      }
-                      @default {
-                        <mat-icon>lens</mat-icon>
-                      }
-                    }
-                    {{ getNodeType(result.nodeId, networkInfo()!) }}
+        <!-- Comparison Results Table -->
+        @if (comparisonResults().length > 0) {
+          <div class="table-container">
+            <table mat-table [dataSource]="comparisonResults()" class="comparison-table">
+              <ng-container matColumnDef="nodeId">
+                <th mat-header-cell *matHeaderCellDef>Node ID</th>
+                <td mat-cell *matCellDef="let row">{{ row.nodeId }}</td>
+              </ng-container>
+              <ng-container matColumnDef="baseBelief">
+                <th mat-header-cell *matHeaderCellDef>{{ getTabDisplayName(baseScenarioName()) }}</th>
+                <td mat-cell *matCellDef="let row">
+                  {{ row.baseBelief !== null ? formatBelief(row.baseBelief) : '—' }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="compareBelief">
+                <th mat-header-cell *matHeaderCellDef>{{ getTabDisplayName(compareScenarioName()) }}</th>
+                <td mat-cell *matCellDef="let row">
+                  {{ row.compareBelief !== null ? formatBelief(row.compareBelief) : '—' }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="delta">
+                <th mat-header-cell *matHeaderCellDef>&Delta; (Absolute)</th>
+                <td mat-cell *matCellDef="let row"
+                    [ngClass]="{
+                      'delta-positive': row.delta !== null && row.delta > 0,
+                      'delta-negative': row.delta !== null && row.delta < 0
+                    }">
+                  @if (row.delta !== null) {
+                    {{ row.delta > 0 ? '+' : '' }}{{ formatNumber(row.delta) }}
+                  } @else {
+                    —
+                  }
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="nodeType">
+                <th mat-header-cell *matHeaderCellDef>Node Type</th>
+                <td mat-cell *matCellDef="let row">
+                  <mat-chip [ngClass]="'node-type-' + row.nodeType.toLowerCase()" selected>
+                    <mat-icon>{{ getNodeTypeIcon(row.nodeType) }}</mat-icon>
+                    {{ row.nodeType }}
                   </mat-chip>
-                } @else {
-                  <mat-chip class="node-type-regular" selected>
-                    <mat-icon>lens</mat-icon>
-                    Regular
-                  </mat-chip>
-                }
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-        </div>
-
-        <!-- **NEW: Pagination Component** -->
-        <mat-paginator
-          [length]="filteredInferenceResults().length"
-          [pageSize]="pageSize()"
-          [pageIndex]="pageIndex()"
-          [pageSizeOptions]="[10, 25, 50, 100]"
-          (page)="onPageChange($event)"
-          showFirstLastButtons>
-        </mat-paginator>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="comparisonColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: comparisonColumns;"></tr>
+            </table>
+          </div>
+        }
       </mat-card-content>
     </mat-card>
   }
 
-  <!-- Loading State -->
-  @if (isComputing()) {
-    <mat-card class="loading-card">
-      <mat-card-content>
-        <div class="loading-content">
-          <mat-spinner diameter="40"></mat-spinner>
-          <div class="loading-text">
-            <h3>Computing Exact Inference</h3>
-            <p>Performing belief propagation across all network nodes...</p>
-            @if (selectedScenario()) {
-              <mat-chip color="accent" selected>
-                {{ selectedScenario()!.dataType.toUpperCase() }} Analysis
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Tabbed Scenario Results -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (scenarioNames().length > 0) {
+    <mat-tab-group
+      [selectedIndex]="activeTabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+      class="scenario-tabs"
+      animationDuration="200ms">
+
+      @for (scenarioName of scenarioNames(); track scenarioName) {
+        <mat-tab>
+          <!-- Tab Label -->
+          <ng-template mat-tab-label>
+            <div class="tab-label">
+              <span class="tab-name">{{ getTabDisplayName(scenarioName) }}</span>
+              <mat-chip [ngClass]="'data-type-' + getTabDataType(scenarioName)" selected class="tab-badge">
+                {{ getTabDataType(scenarioName) }}
               </mat-chip>
+              @switch (getTabStatus(scenarioName)) {
+                @case ('computing') {
+                  <mat-spinner diameter="16" class="tab-spinner"></mat-spinner>
+                }
+                @case ('computed') {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+                @case ('error') {
+                  <mat-icon class="tab-status-icon error">error</mat-icon>
+                }
+              }
+            </div>
+          </ng-template>
+
+          <!-- Tab Content -->
+          <div class="tab-content">
+
+            <!-- Computing State -->
+            @if (getTabStatus(scenarioName) === 'computing') {
+              <mat-card class="status-card computing">
+                <mat-card-content>
+                  <div class="status-content">
+                    <mat-spinner diameter="36"></mat-spinner>
+                    <div class="status-text">
+                      <h3>Computing Exact Inference</h3>
+                      <p>Performing belief propagation across all network nodes...</p>
+                    </div>
+                  </div>
+                  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                </mat-card-content>
+              </mat-card>
+            }
+
+            <!-- Error State -->
+            @if (getTabStatus(scenarioName) === 'error') {
+              <mat-card class="status-card error">
+                <mat-card-content>
+                  <div class="status-content">
+                    <mat-icon color="warn" class="status-icon">error_outline</mat-icon>
+                    <div class="status-text">
+                      <h3>Inference Failed</h3>
+                      <p>{{ getTabError(scenarioName) }}</p>
+                    </div>
+                    <button mat-raised-button color="primary" (click)="rerunScenario(scenarioName)">
+                      <mat-icon>replay</mat-icon>
+                      Retry
+                    </button>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+
+            <!-- Idle State -->
+            @if (getTabStatus(scenarioName) === 'idle') {
+              <mat-card class="status-card idle">
+                <mat-card-content>
+                  <div class="status-content">
+                    <mat-icon class="status-icon">hourglass_empty</mat-icon>
+                    <div class="status-text">
+                      <h3>Waiting to Compute</h3>
+                      <p>This scenario is queued for computation.</p>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+
+            <!-- ═════════════════════════════════════════════════════════════ -->
+            <!-- Computed Results -->
+            <!-- ═════════════════════════════════════════════════════════════ -->
+            @if (getTabStatus(scenarioName) === 'computed' && activeTab()) {
+
+              <!-- Re-run Button -->
+              <div class="rerun-bar">
+                <button mat-stroked-button (click)="rerunScenario(scenarioName)" class="rerun-btn">
+                  <mat-icon>replay</mat-icon>
+                  Re-run {{ getTabDisplayName(scenarioName) }}
+                </button>
+              </div>
+
+              <!-- ─── Metrics Row ─────────────────────────────────────── -->
+              @if (activeTab()!.metrics) {
+                <mat-card class="metrics-card">
+                  <mat-card-content>
+                    <div class="metrics-grid">
+                      <div class="metric-item">
+                        <div class="metric-label">Computation Time</div>
+                        <div class="metric-value">{{ activeTab()!.metrics!.computationTime.toFixed(3) }}s</div>
+                      </div>
+                      <div class="metric-item">
+                        <div class="metric-label">Nodes Processed</div>
+                        <div class="metric-value">{{ activeTab()!.metrics!.totalNodes }}</div>
+                      </div>
+                      <div class="metric-item">
+                        <div class="metric-label">Average Belief</div>
+                        <div class="metric-value">{{ formatNumber(activeTab()!.metrics!.averageBelief) }}</div>
+                      </div>
+                      <div class="metric-item">
+                        <div class="metric-label">Complexity</div>
+                        <div class="metric-value">
+                          <mat-chip [color]="activeTab()!.metrics!.algorithmComplexity.includes('Linear') ? 'primary' :
+                                           activeTab()!.metrics!.algorithmComplexity.includes('Low') ? 'accent' : 'warn'"
+                                   selected>
+                            {{ activeTab()!.metrics!.algorithmComplexity }}
+                          </mat-chip>
+                        </div>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- ─── Quick Stats by Node Type ────────────────────────── -->
+              @if (nodeTypeStats().length > 0) {
+                <div class="quick-stats-row">
+                  @for (stat of nodeTypeStats(); track stat.type) {
+                    <div class="quick-stat-chip" [ngClass]="'node-type-stat-' + stat.type.toLowerCase()">
+                      <mat-icon>{{ stat.icon }}</mat-icon>
+                      <span class="stat-type">{{ stat.type }}</span>
+                      <span class="stat-count">{{ stat.count }}</span>
+                      <span class="stat-avg" matTooltip="Average belief">{{ formatNumber(stat.avgBelief) }}</span>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- ─── Width Stats (Interval/Pbox only) ────────────────── -->
+              @if (widthStats()) {
+                <mat-card class="width-stats-card">
+                  <mat-card-content>
+                    <div class="width-stats">
+                      <mat-icon>swap_horiz</mat-icon>
+                      <span class="width-label">Uncertainty Width:</span>
+                      <span>Avg: {{ formatNumber(widthStats()!.average) }}</span>
+                      <mat-divider vertical></mat-divider>
+                      <span>Max: {{ formatNumber(widthStats()!.max) }} (Node {{ widthStats()!.maxNodeId }})</span>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- ─── Analysis Panels (Expandable) ────────────────────── -->
+              <div class="analysis-panels">
+
+                <!-- Sink Node Summary -->
+                @if (sinkNodeSummary()) {
+                  <mat-expansion-panel class="analysis-panel sink-panel">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>flag</mat-icon>
+                        Sink Node Summary
+                        <mat-chip selected>{{ sinkNodeSummary()!.nodes.length }} sinks</mat-chip>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <div class="sink-summary-content">
+                      <div class="sink-highlights">
+                        <div class="sink-highlight worst">
+                          <span class="highlight-label">Lowest Reachability</span>
+                          <span class="highlight-node">Node {{ sinkNodeSummary()!.worst.nodeId }}</span>
+                          <span class="highlight-value">{{ formatBelief(sinkNodeSummary()!.worst.belief) }}</span>
+                        </div>
+                        <div class="sink-highlight best">
+                          <span class="highlight-label">Highest Reachability</span>
+                          <span class="highlight-node">Node {{ sinkNodeSummary()!.best.nodeId }}</span>
+                          <span class="highlight-value">{{ formatBelief(sinkNodeSummary()!.best.belief) }}</span>
+                        </div>
+                        <div class="sink-highlight average">
+                          <span class="highlight-label">Average</span>
+                          <span class="highlight-value">{{ formatNumber(sinkNodeSummary()!.average) }}</span>
+                        </div>
+                      </div>
+                      <div class="sink-list">
+                        @for (node of sinkNodeSummary()!.nodes; track node.nodeId) {
+                          <div class="sink-item"
+                               (click)="toggleNodeComparison(node.nodeId)">
+                            <span class="sink-node-id">Node {{ node.nodeId }}</span>
+                            <span class="sink-belief"
+                                  [style.background]="getBeliefHeatColor(node.belief)">
+                              {{ formatBelief(node.belief) }}
+                            </span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </mat-expansion-panel>
+                }
+
+                <!-- Sensitivity Ranking -->
+                @if (topSensitiveNodes().length > 0) {
+                  <mat-expansion-panel class="analysis-panel sensitivity-panel">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>trending_up</mat-icon>
+                        Top 10 Most Sensitive Nodes
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Ranked by |belief &minus; prior|
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    <div class="sensitivity-list">
+                      @for (node of topSensitiveNodes(); track node.nodeId; let i = $index) {
+                        <div class="sensitivity-item" (click)="toggleNodeComparison(node.nodeId)">
+                          <span class="sensitivity-rank">#{{ i + 1 }}</span>
+                          <span class="sensitivity-node">Node {{ node.nodeId }}</span>
+                          <span class="sensitivity-prior">Prior: {{ formatBelief(node.prior) }}</span>
+                          <span class="sensitivity-belief"
+                                [style.background]="getBeliefHeatColor(node.belief)">
+                            Belief: {{ formatBelief(node.belief) }}
+                          </span>
+                          <span class="sensitivity-score"
+                                matTooltip="|belief - prior|">
+                            &Delta; {{ formatNumber(node.sensitivityScore) }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </mat-expansion-panel>
+                }
+
+                <!-- Belief Distribution Histogram -->
+                @if (beliefHistogram().length > 0) {
+                  <mat-expansion-panel class="analysis-panel histogram-panel" [expanded]="true">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>bar_chart</mat-icon>
+                        Belief Distribution
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <div class="histogram">
+                      <div class="histogram-bars">
+                        @for (bin of beliefHistogram(); track bin.label) {
+                          <div class="histogram-bar-wrapper"
+                               matTooltip="{{ bin.count }} nodes in [{{ bin.label }}, {{ (+bin.label + 0.1).toFixed(1) }})">
+                            <div class="histogram-bar"
+                                 [style.height.%]="bin.percentage">
+                            </div>
+                            <span class="histogram-count">{{ bin.count }}</span>
+                            <span class="histogram-label">{{ bin.label }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </div>
+
+              <!-- ─── Node Comparison Panel (click a node row) ────────── -->
+              @if (selectedNodeForComparison() !== null && nodeComparisonData()) {
+                <mat-card class="node-comparison-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>compare</mat-icon>
+                      Node {{ selectedNodeForComparison() }} Across Scenarios
+                    </mat-card-title>
+                    <button mat-icon-button (click)="toggleNodeComparison(selectedNodeForComparison()!)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="node-comparison-table">
+                      <div class="node-comparison-header">
+                        <span>Scenario</span>
+                        <span>Data Type</span>
+                        <span>Prior</span>
+                        <span>Belief</span>
+                        <span>Sensitivity</span>
+                      </div>
+                      @for (row of nodeComparisonData()!; track row.scenarioName) {
+                        <div class="node-comparison-row">
+                          <span>{{ row.scenarioName }}</span>
+                          <span>
+                            <mat-chip [ngClass]="'data-type-' + row.dataType" selected>
+                              {{ row.dataType }}
+                            </mat-chip>
+                          </span>
+                          <span>{{ formatBelief(row.prior) }}</span>
+                          <span [style.background]="getBeliefHeatColor(row.belief)">
+                            {{ formatBelief(row.belief) }}
+                          </span>
+                          <span>{{ formatNumber(row.sensitivity) }}</span>
+                        </div>
+                      }
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- ═════════════════════════════════════════════════════════ -->
+              <!-- Results Table -->
+              <!-- ═════════════════════════════════════════════════════════ -->
+              <mat-card class="results-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>table_chart</mat-icon>
+                    Node-Level Inference Results
+                    <mat-chip selected>
+                      @if (activeFilteredResults().length !== activeTab()!.results.length) {
+                        {{ activeFilteredResults().length }} of {{ activeTab()!.results.length }}
+                      } @else {
+                        {{ activeTab()!.results.length }} nodes
+                      }
+                    </mat-chip>
+                  </mat-card-title>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <!-- Search and Filter Controls -->
+                  <div class="table-controls">
+                    <div class="search-input-wrapper">
+                      <mat-icon class="search-icon">search</mat-icon>
+                      <input class="search-input"
+                             placeholder="Search node ID..."
+                             (input)="onSearch($event)"
+                             [value]="activeSearchTerm()">
+                    </div>
+
+                    <div class="filter-chips">
+                      <span class="filter-label">Filter:</span>
+                      @for (nodeType of ['Source', 'Sink', 'Fork', 'Join', 'Regular']; track nodeType) {
+                        <mat-chip
+                          [highlighted]="activeSelectedNodeTypes().includes(nodeType)"
+                          (click)="toggleNodeTypeFilter(nodeType)"
+                          class="filter-chip">
+                          <mat-icon>{{ getNodeTypeIcon(nodeType) }}</mat-icon>
+                          {{ nodeType }}
+                        </mat-chip>
+                      }
+                      @if (activeSelectedNodeTypes().length > 0) {
+                        <button mat-icon-button
+                                (click)="onNodeTypeFilter([])"
+                                matTooltip="Clear filters"
+                                class="clear-filter-btn">
+                          <mat-icon>clear</mat-icon>
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Results Table -->
+                  <div class="table-container">
+                    <table mat-table [dataSource]="activePaginatedResults()" class="results-table">
+
+                      <!-- Node ID Column -->
+                      <ng-container matColumnDef="nodeId">
+                        <th mat-header-cell *matHeaderCellDef
+                            (click)="toggleSort('nodeId')"
+                            class="sortable-header">
+                          Node ID
+                          <mat-icon class="sort-icon">{{ getSortIcon('nodeId') }}</mat-icon>
+                        </th>
+                        <td mat-cell *matCellDef="let result"
+                            (click)="toggleNodeComparison(result.nodeId)"
+                            class="clickable-cell"
+                            matTooltip="Click to compare across scenarios">
+                          <div class="node-id-cell">
+                            <mat-icon>{{ getNodeTypeIcon(networkInfo() ? getNodeType(result.nodeId, networkInfo()!) : 'Regular') }}</mat-icon>
+                            {{ result.nodeId }}
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Prior Column -->
+                      <ng-container matColumnDef="prior">
+                        <th mat-header-cell *matHeaderCellDef
+                            (click)="toggleSort('prior')"
+                            class="sortable-header"
+                            matTooltip="Node's intrinsic prior probability">
+                          Prior
+                          <mat-icon class="sort-icon">{{ getSortIcon('prior') }}</mat-icon>
+                        </th>
+                        <td mat-cell *matCellDef="let result"
+                            (click)="copyToClipboard(result.prior, result.nodeId, 'prior', $event)"
+                            class="copyable-cell"
+                            [matTooltip]="isCopied(result.nodeId, 'prior') ? 'Copied!' :
+                                          isPboxData(result.prior) ? getPboxTooltip(result.prior) : 'Click to copy'">
+                          <span class="cell-value"
+                                [class.copied-flash]="isCopied(result.nodeId, 'prior')">
+                            {{ formatBelief(result.prior) }}
+                          </span>
+                        </td>
+                      </ng-container>
+
+                      <!-- Belief Column -->
+                      <ng-container matColumnDef="belief">
+                        <th mat-header-cell *matHeaderCellDef
+                            (click)="toggleSort('belief')"
+                            class="sortable-header"
+                            matTooltip="Reachability belief: Prior &times; P(receives &ge;1 signal)">
+                          Belief
+                          <mat-icon class="sort-icon">{{ getSortIcon('belief') }}</mat-icon>
+                        </th>
+                        <td mat-cell *matCellDef="let result"
+                            [style.background]="getBeliefHeatColor(result.belief)"
+                            (click)="copyToClipboard(result.belief, result.nodeId, 'belief', $event)"
+                            class="copyable-cell belief-cell"
+                            [matTooltip]="isCopied(result.nodeId, 'belief') ? 'Copied!' :
+                                          isPboxData(result.belief) ? getPboxTooltip(result.belief) : 'Click to copy'">
+                          <span class="cell-value"
+                                [class.copied-flash]="isCopied(result.nodeId, 'belief')">
+                            {{ formatBelief(result.belief) }}
+                          </span>
+                        </td>
+                      </ng-container>
+
+                      <!-- Node Type Column -->
+                      <ng-container matColumnDef="nodeType">
+                        <th mat-header-cell *matHeaderCellDef>Node Type</th>
+                        <td mat-cell *matCellDef="let result">
+                          @if (networkInfo()) {
+                            <mat-chip [ngClass]="'node-type-' + getNodeType(result.nodeId, networkInfo()!).toLowerCase().replace(' + ', '-')"
+                                      selected>
+                              <mat-icon>{{ getNodeTypeIcon(getNodeType(result.nodeId, networkInfo()!)) }}</mat-icon>
+                              {{ getNodeType(result.nodeId, networkInfo()!) }}
+                            </mat-chip>
+                          } @else {
+                            <mat-chip class="node-type-regular" selected>
+                              <mat-icon>lens</mat-icon>
+                              Regular
+                            </mat-chip>
+                          }
+                        </td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <!-- Pagination -->
+                  <mat-paginator
+                    [length]="activeFilteredResults().length"
+                    [pageSize]="activePageSize()"
+                    [pageIndex]="activePageIndex()"
+                    [pageSizeOptions]="[10, 25, 50, 100]"
+                    (page)="onPageChange($event)"
+                    showFirstLastButtons>
+                  </mat-paginator>
+                </mat-card-content>
+              </mat-card>
             }
           </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-tab>
+      }
+    </mat-tab-group>
   }
 
-  <!-- Empty State -->
-  @if (!isComputing() && inferenceResults().length === 0 && !errorMessage()) {
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Empty State (no scenarios detected) -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @if (scenarioNames().length === 0) {
     <mat-card class="empty-state-card">
       <mat-card-content>
         <div class="empty-state">
           <mat-icon>calculate</mat-icon>
-          <h3>Ready for Exact Inference</h3>
-          <p>Select an uncertainty scenario and click "Run Inference" to compute reachability beliefs for all network nodes.</p>
-          @if (availableScenarios.length === 0) {
-            <mat-chip color="warn">
-              <mat-icon>warning</mat-icon>
-              No scenarios available
-            </mat-chip>
-          } @else {
-            <mat-chip color="primary">
-              <mat-icon>analytics</mat-icon>
-              {{ availableScenarios.length }} scenarios available
-            </mat-chip>
-          }
+          <h3>No Scenarios Available</h3>
+          <p>Upload a network with node priors and link probabilities files to run exact probabilistic inference.</p>
+          <p class="empty-hint">Supported data types: Float, Interval, P-Box</p>
         </div>
       </mat-card-content>
     </mat-card>
