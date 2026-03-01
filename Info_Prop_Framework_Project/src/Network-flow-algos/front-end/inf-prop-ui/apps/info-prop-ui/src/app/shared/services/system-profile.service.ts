@@ -353,7 +353,7 @@ export class SystemProfileService {
           keyMetrics: this.extractCpmMetrics(response),
           riskAssessment: this.assessCpmRisk(response),
           performanceMetrics: this.calculateCpmPerformance(response),
-          cpmAnalysis: response.cmp_result
+          cpmAnalysis: response.cpm_result
         };
       }),
       catchError(error => {

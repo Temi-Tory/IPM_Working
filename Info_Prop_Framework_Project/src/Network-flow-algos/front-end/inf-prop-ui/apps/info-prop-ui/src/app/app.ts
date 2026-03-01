@@ -8,6 +8,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { AnalysisStateService } from './shared/services/analysis-state.service';
 import { MatChip, MatChipsModule } from "@angular/material/chips";
@@ -23,7 +24,8 @@ import { MatChip, MatChipsModule } from "@angular/material/chips";
     MatSlideToggleModule,
     MatTooltipModule,
     MatSnackBarModule,
-    MatChipsModule
+    MatChipsModule,
+    MatDividerModule,
 ],
   selector: 'app-root',
   templateUrl: './app.html',

@@ -153,7 +153,6 @@ export interface UniqueDiamondStructure {
     edge_count: number;
     node_count: number;
   };
-  // **NEW: Optional join_node field for sub-diamonds that are serialized as top-level entries**
   join_node?: number;
   non_diamond_parents?: number[];
 }
@@ -396,15 +395,37 @@ export interface ReachabilityScenario {
   };
 }
 
+export interface EdgeUtilization {
+  capacity: number;
+  flow: number;
+  utilization: number;
+  spare: number;
+}
+
 export interface RawCapacityResult {
   node_max_flows: Record<string, number>;
+  node_capacities: Record<string, number>;
+  edge_capacities: Record<string, number>;
+  source_rates: Record<string, number>;
   edge_flows?: Record<string, number>; // Optional edge flow data
+  edge_utilization?: Record<string, EdgeUtilization>;
   bottlenecks: Record<string, any[]>; // Vector of mixed types (nodes, edges, symbols)
   critical_paths: Record<string, number[][]>; // Multiple paths per target
   network_utilization: number;
   analysis_type: string;
   computation_time: number;
   convergence_info: Record<string, any>;
+}
+
+export interface ComparativeAnalysis {
+  capacity_gaps: Record<string, number>;
+  processing_limitations: Record<string, number>;
+  infrastructure_bottlenecks: string[];
+  processing_bottlenecks: number[];
+  upgrade_priorities: Array<{ node: number; gap: number; priority: string }>;
+  efficiency_metrics: Record<string, number>;
+  strategic_recommendations: string[];
+  error?: string;
 }
 
 export interface CapacityScenario {
@@ -421,22 +442,34 @@ export interface CapacityScenario {
   input_files: {
     capacities_path: string;
   };
-  // **NEW: Complete raw capacity results**
   raw_capacity_result?: RawCapacityResult;
+  comparative_analysis?: ComparativeAnalysis;
+}
+
+export interface CpmPathResult {
+  critical_value: number;
+  critical_nodes: number[];
+  node_values: Record<string, number>;    // EF (early finish) or accumulated cost
+  early_start?: Record<string, number>;
+  late_finish?: Record<string, number>;
+  late_start?: Record<string, number>;
+  total_slack?: Record<string, number>;
+  node_durations?: Record<string, number>;  // raw durations (time_result only)
+  node_costs?: Record<string, number>;      // raw costs (cost_result only)
+}
+
+export interface CpmInputData {
+  node_durations: Record<string, number>;
+  edge_delays: Record<string, number>;
+  node_costs: Record<string, number>;
+  edge_costs: Record<string, number>;
 }
 
 export interface CpmScenario {
   computation_time: number;
-  time_result: {
-    critical_value: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
-  cost_result: {
-    critical_value: number;
-    critical_nodes: number[];
-    node_values: Record<string, number>;
-  };
+  time_result: CpmPathResult;
+  cost_result: CpmPathResult;
+  input_data?: CpmInputData;
   node_durations_count: number;
   edge_delays_count: number;
   node_costs_count: number;
@@ -522,6 +555,55 @@ export interface NetworkStructureResponse {
   network_structure: NetworkStructure;
 }
 
+export interface DiamondSubgraphAnalysisRequest {
+  networkPath: string;
+  edgesFilePath?: string;
+  nodepriorsPath?: string;
+  linkprobsPath?: string;
+  capacitiesPath?: string;
+  cpmPath?: string;
+  diamondHash: string;
+  analyses: string[];
+  // Per-analysis source value overrides: { "reachability": {"2": 0.8}, "capacity": {"2": 5.0}, "cpm": {"2": 3.0} }
+  sourceOverrides?: Record<string, Record<string, number>>;
+}
+
+export interface DiamondSubgraphAnalysisResponse {
+  success: boolean;
+  diamond_hash: string;
+  diamond_info: {
+    join_nodes: number[];
+    conditioning_nodes: number[];
+    node_count: number;
+    edge_count: number;
+    source_nodes: number[];
+    fork_nodes: number[];
+    is_root_diamond: boolean;
+    source_priors?: Record<string, number>;
+  };
+  reachability_result?: {
+    beliefs: Record<string, number>;
+    computation_time: number;
+    total_nodes_processed: number;
+    error?: string;
+  };
+  capacity_result?: {
+    node_max_flows: Record<string, number>;
+    bottlenecks: Record<string, any>;
+    network_utilization: number;
+    computation_time: number;
+    node_capacities?: Record<string, number>;
+    source_rates_used?: Record<string, number>;
+    error?: string;
+  };
+  cpm_result?: {
+    computation_time: number;
+    time_result: CpmPathResult;
+    cost_result: CpmPathResult;
+    error?: string;
+  };
+}
+
 export interface DiamondAnalysisRequest {
   networkPath: string;
   edgesFilePath?: string;
@@ -578,7 +660,7 @@ export interface CpmAnalysisResponse {
   message: string;
   network_name: string;
   timestamp: string;
-  cmp_result: CpmScenario;
+  cpm_result: CpmScenario;
 }
 
 export interface HealthResponse {

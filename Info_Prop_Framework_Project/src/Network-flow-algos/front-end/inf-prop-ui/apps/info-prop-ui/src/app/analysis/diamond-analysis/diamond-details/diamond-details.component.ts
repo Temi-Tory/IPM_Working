@@ -1,6 +1,5 @@
 import { Component, inject, computed, signal, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,15 +21,16 @@ import { FormsModule } from '@angular/forms';
 
 import { AnalysisStateService } from '../../../shared/services/analysis-state.service';
 import { DiamondAnalysisService } from '../../../shared/services/diamond-analysis.service';
-import { 
-  DiamondAnalysisResponse, 
-  RootDiamondStructure, 
+import {
+  DiamondAnalysisResponse,
+  RootDiamondStructure,
   UniqueDiamondStructure,
   SubDiamondStructure,
   DiamondDetailsData,
   NodeDetail,
   EdgeDetail,
-  DiamondPattern
+  DiamondPattern,
+  DiamondSubgraphAnalysisResponse
 } from '../../../shared/models/network-analysis.models';
 
 @Component({
@@ -38,7 +38,6 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    RouterModule,
     MatCardModule,
     MatIconModule,
     MatTableModule,
@@ -70,17 +69,152 @@ export class DiamondDetailsComponent implements OnInit {
     conditioningNodes?: number[];
     joinNode?: number;
     diamondHash?: string;
+    diamondAnalysisResult?: any;
+    networkPath?: string;
+    // All available scenario groups for dropdown selection
+    reachabilityGroups?: Array<{ scenarioName: string; dataType: string; nodepriorsPath?: string; linkprobsPath?: string; networkPath?: string }>;
+    activeReachabilityIndex?: number;
+    capacityGroups?: Array<{ scenarioName: string; capacitiesPath?: string; networkPath?: string }>;
+    cpmGroups?: Array<{ scenarioName: string; cpmPath?: string; networkPath?: string; hasTimeAnalysis?: boolean; hasCostAnalysis?: boolean }>;
+    activeDataType?: 'float' | 'interval' | 'pbox';
   }>(MAT_DIALOG_DATA);
 
-  // Core data signals
-  diamondAnalysis = computed(() => this.analysisState.diamondAnalysis());
-  isLoading = computed(() => this.analysisState.isLoading());
-  error = computed(() => this.analysisState.error());
+  // Core data signals — prefer data passed from parent, fall back to global state
+  diamondAnalysis = computed(() => {
+    // If the parent passed the diamond result directly, wrap it in the expected shape
+    if (this.dialogData.diamondAnalysisResult) {
+      return {
+        success: true,
+        message: '',
+        network_name: '',
+        timestamp: '',
+        diamond_analysis: this.dialogData.diamondAnalysisResult
+      };
+    }
+    return this.analysisState.diamondAnalysis();
+  });
+  isLoading = computed(() => !this.dialogData.diamondAnalysisResult && this.analysisState.isLoading());
+  error = computed(() => !this.dialogData.diamondAnalysisResult ? this.analysisState.error() : null);
 
   // Component state
   diamondId = signal<string>('');
-  currentView = signal<'overview' | 'nodes' | 'edges' | 'subdiamonds'>('overview');
-  
+  currentView = signal<'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis'>('overview');
+
+  // Subgraph analysis state
+  subgraphAnalysisResult = signal<DiamondSubgraphAnalysisResponse | null>(null);
+  subgraphAnalysisStatus = signal<'idle' | 'computing' | 'computed' | 'error'>('idle');
+  subgraphAnalysisError = signal<string | null>(null);
+
+  // Subgraph analysis inner tab: 0=Exact Inference, 1=Capacity, 2=CPM Time, 3=CPM Cost
+  subgraphTabIndex = signal(0);
+
+  // Scenario selection indexes into dialogData arrays
+  selectedReachabilityIndex = signal(this.dialogData.activeReachabilityIndex ?? 0);
+  selectedCapacityIndex = signal(0);
+  selectedCpmIndex = signal(0);
+
+  // Expose available groups to the template
+  reachabilityGroups = computed(() => this.dialogData.reachabilityGroups || []);
+  capacityGroups = computed(() => this.dialogData.capacityGroups || []);
+  cpmGroups = computed(() => this.dialogData.cpmGroups || []);
+
+  // Derived paths from selected scenario
+  selectedNodepriorsPath = computed(() => {
+    const groups = this.reachabilityGroups();
+    const idx = this.selectedReachabilityIndex();
+    return groups[idx]?.nodepriorsPath;
+  });
+  selectedLinkprobsPath = computed(() => {
+    const groups = this.reachabilityGroups();
+    const idx = this.selectedReachabilityIndex();
+    return groups[idx]?.linkprobsPath;
+  });
+  selectedCapacitiesPath = computed(() => {
+    const groups = this.capacityGroups();
+    const idx = this.selectedCapacityIndex();
+    return groups[idx]?.capacitiesPath;
+  });
+  selectedCpmPath = computed(() => {
+    const groups = this.cpmGroups();
+    const idx = this.selectedCpmIndex();
+    return groups[idx]?.cpmPath;
+  });
+
+  // Subgraph analysis availability
+  canRunReachability = computed(() => !!this.selectedNodepriorsPath() && !!this.selectedLinkprobsPath() && !!this.dialogData.networkPath);
+  canRunCapacity = computed(() => !!this.selectedCapacitiesPath() && !!this.dialogData.networkPath);
+  canRunCpm = computed(() => !!this.selectedCpmPath() && !!this.dialogData.networkPath);
+  hasAnySubgraphAnalysis = computed(() => this.canRunReachability() || this.canRunCapacity() || this.canRunCpm());
+  availableAnalyses = computed(() => {
+    const analyses: string[] = [];
+    if (this.canRunReachability()) analyses.push('reachability');
+    if (this.canRunCapacity()) analyses.push('capacity');
+    if (this.canRunCpm()) analyses.push('cpm');
+    return analyses;
+  });
+
+  // ─── Editable source value overrides per analysis type ───────────────────────
+  private reachabilityPriorOverrides = signal<Map<number, number>>(new Map());
+  private capacityRateOverrides = signal<Map<number, number>>(new Map());
+  private cpmTimeOverrides = signal<Map<number, number>>(new Map());
+  private cpmCostOverrides = signal<Map<number, number>>(new Map());
+
+  // Source nodes from diamond structure
+  sourceNodes = computed((): number[] => {
+    const data = this.diamondDetailsData();
+    if (!data) return [];
+    const diamond = data.diamond as UniqueDiamondStructure;
+    return diamond.sub_sources || [];
+  });
+
+  // Exact Inference source priors (probability 0–1) — defaults from backend source_priors
+  reachabilitySourceEntries = computed(() => {
+    const sources = this.sourceNodes();
+    const overrides = this.reachabilityPriorOverrides();
+    const result = this.subgraphAnalysisResult();
+    const defaults = result?.diamond_info?.source_priors || {};
+    return sources.map(node => ({
+      node,
+      value: overrides.get(node) ?? defaults[node.toString()] ?? 1.0
+    }));
+  });
+
+  // Capacity source rates — defaults from backend source_rates_used
+  capacitySourceEntries = computed(() => {
+    const sources = this.sourceNodes();
+    const overrides = this.capacityRateOverrides();
+    const result = this.subgraphAnalysisResult();
+    const defaults = result?.capacity_result?.source_rates_used || {};
+    return sources.map(node => ({
+      node,
+      value: overrides.get(node) ?? defaults[node.toString()] ?? 1.0
+    }));
+  });
+
+  // CPM Time — source durations
+  cpmTimeSourceEntries = computed(() => {
+    const sources = this.sourceNodes();
+    const overrides = this.cpmTimeOverrides();
+    const result = this.subgraphAnalysisResult();
+    const defaults = result?.cpm_result?.time_result?.node_durations || {};
+    return sources.map(node => ({
+      node,
+      value: overrides.get(node) ?? defaults[node.toString()] ?? 0.0
+    }));
+  });
+
+  // CPM Cost — source costs
+  cpmCostSourceEntries = computed(() => {
+    const sources = this.sourceNodes();
+    const overrides = this.cpmCostOverrides();
+    const result = this.subgraphAnalysisResult();
+    const defaults = result?.cpm_result?.cost_result?.node_costs || {};
+    return sources.map(node => ({
+      node,
+      value: overrides.get(node) ?? defaults[node.toString()] ?? 0.0
+    }));
+  });
+
   // Pagination
   nodePageSize = signal(50);
   nodePageIndex = signal(0);
@@ -112,6 +246,20 @@ export class DiamondDetailsComponent implements OnInit {
       this.diamondId.set(this.dialogData.diamondId);
       this.loadDiamondDetails();
     }
+
+    // Check for cached subgraph analysis results
+    if (this.dialogData?.diamondHash) {
+      const analyses = this.availableAnalyses();
+      if (analyses.length > 0) {
+        const cached = this.diamondAnalysisService.getSubgraphCachedResult(
+          this.dialogData.diamondHash, analyses
+        );
+        if (cached) {
+          this.subgraphAnalysisResult.set(cached);
+          this.subgraphAnalysisStatus.set('computed');
+        }
+      }
+    }
   }
 
   // **FIXED: Enhanced diamond details computation with proper identification**
@@ -135,30 +283,21 @@ export class DiamondDetailsComponent implements OnInit {
       console.log('🔍 Looking for unique diamond with hash:', hash);
       console.log('🔍 Available diamonds:', Object.keys(analysis.diamond_analysis?.raw_unique_diamonds || {}));
       
-      if (analysis.diamond_analysis?.raw_unique_diamonds && analysis.diamond_analysis.raw_unique_diamonds[hash]) {
-        diamond = analysis.diamond_analysis.raw_unique_diamonds[hash];
+      const found = analysis.diamond_analysis?.raw_unique_diamonds?.[hash];
+      if (found) {
+        diamond = found;
         diamondHash = hash;
-        isRoot = diamond.is_root_diamond || false;
-        conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-        
-        // **FIXED: Handle different data structures for parent vs sub-diamonds**
-        if (diamond.join_node !== undefined) {
-          // This is a sub-diamond with a join_node field
-          joinNode = diamond.join_node;
-          displayId = this.diamondAnalysisService.createDiamondIdentifier(diamond, true, diamond.join_node);
+        isRoot = found.is_root_diamond || false;
+        conditioningNodes = found.diamond?.conditioning_nodes || [];
+
+        // Handle different data structures for parent vs sub-diamonds
+        if (found.join_node !== undefined) {
+          joinNode = found.join_node;
+          displayId = this.diamondAnalysisService.createDiamondIdentifier(found, true, found.join_node);
         } else {
-          // This is a parent diamond with sub_join_nodes array
-          joinNode = diamond.sub_join_nodes?.[0];
-          displayId = this.diamondAnalysisService.createDiamondIdentifier(diamond, false);
+          joinNode = found.sub_join_nodes?.[0];
+          displayId = this.diamondAnalysisService.createDiamondIdentifier(found, false);
         }
-        
-        console.log('✅ Found unique diamond:', { 
-          hash, 
-          isRoot, 
-          conditioningNodes: conditioningNodes.length, 
-          joinNode,
-          hasJoinNodeField: diamond.join_node !== undefined 
-        });
       } else {
         console.error('❌ Unique diamond not found for hash:', hash);
       }
@@ -686,7 +825,312 @@ export class DiamondDetailsComponent implements OnInit {
 
   // **Event handlers remain the same but with enhanced functionality**
   switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'subdiamonds');
+    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis');
+  }
+
+  // ─── Subgraph Analysis Methods ──────────────────────────────────────────────
+
+  runSubgraphAnalysis(analyses?: string[]): void {
+    const hash = this.dialogData.diamondHash;
+    if (!hash || !this.dialogData.networkPath) return;
+
+    const analysesToRun = analyses || this.availableAnalyses();
+    if (analysesToRun.length === 0) return;
+
+    // Check cache first
+    const cached = this.diamondAnalysisService.getSubgraphCachedResult(hash, analysesToRun);
+    if (cached) {
+      this.subgraphAnalysisResult.set(cached);
+      this.subgraphAnalysisStatus.set('computed');
+      // Auto-navigate to first result tab
+      this.autoSelectResultTab(analysesToRun);
+      return;
+    }
+
+    this.subgraphAnalysisStatus.set('computing');
+    this.subgraphAnalysisError.set(null);
+
+    const sourceOverrides = this.buildSourceOverrides();
+
+    this.diamondAnalysisService.analyzeDiamondSubgraph({
+      networkPath: this.dialogData.networkPath,
+      nodepriorsPath: this.selectedNodepriorsPath(),
+      linkprobsPath: this.selectedLinkprobsPath(),
+      capacitiesPath: this.selectedCapacitiesPath(),
+      cpmPath: this.selectedCpmPath(),
+      diamondHash: hash,
+      analyses: analysesToRun,
+      sourceOverrides: Object.keys(sourceOverrides).length > 0 ? sourceOverrides : undefined
+    }).subscribe({
+      next: (result) => {
+        this.subgraphAnalysisResult.set(result);
+        this.subgraphAnalysisStatus.set('computed');
+        // Auto-navigate to first result tab
+        this.autoSelectResultTab(analysesToRun);
+      },
+      error: (err) => {
+        this.subgraphAnalysisError.set(err?.error?.error || err?.message || 'Subgraph analysis failed');
+        this.subgraphAnalysisStatus.set('error');
+      }
+    });
+  }
+
+  private autoSelectResultTab(_analyses: string[]): void {
+    // Results now appear within the same tab — no navigation needed
+  }
+
+  onReachabilityGroupChange(index: number): void {
+    this.selectedReachabilityIndex.set(index);
+    this.reachabilityPriorOverrides.set(new Map());
+  }
+
+  onCapacityGroupChange(index: number): void {
+    this.selectedCapacityIndex.set(index);
+    // Clear capacity-specific overrides when scenario changes
+    this.capacityRateOverrides.set(new Map());
+  }
+
+  onCpmGroupChange(index: number): void {
+    this.selectedCpmIndex.set(index);
+    // Clear CPM-specific overrides when scenario changes
+    this.cpmTimeOverrides.set(new Map());
+    this.cpmCostOverrides.set(new Map());
+  }
+
+  onSubgraphTabChange(index: number): void {
+    this.subgraphTabIndex.set(index);
+  }
+
+  runSingleAnalysis(type: 'reachability' | 'capacity' | 'cpm'): void {
+    this.runSubgraphAnalysis([type]);
+  }
+
+  // ─── Source value override handlers ──────────────────────────────────────────
+  onReachabilitySourceChange(node: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    if (!isNaN(value) && value >= 0 && value <= 1) {
+      const current = new Map(this.reachabilityPriorOverrides());
+      current.set(node, value);
+      this.reachabilityPriorOverrides.set(current);
+    }
+  }
+
+  onCapacitySourceChange(node: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    if (!isNaN(value) && value >= 0) {
+      const current = new Map(this.capacityRateOverrides());
+      current.set(node, value);
+      this.capacityRateOverrides.set(current);
+    }
+  }
+
+  onCpmTimeSourceChange(node: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    if (!isNaN(value) && value >= 0) {
+      const current = new Map(this.cpmTimeOverrides());
+      current.set(node, value);
+      this.cpmTimeOverrides.set(current);
+    }
+  }
+
+  onCpmCostSourceChange(node: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    if (!isNaN(value) && value >= 0) {
+      const current = new Map(this.cpmCostOverrides());
+      current.set(node, value);
+      this.cpmCostOverrides.set(current);
+    }
+  }
+
+  resetReachabilityPriors(): void {
+    this.reachabilityPriorOverrides.set(new Map());
+  }
+
+  resetCapacityRates(): void {
+    this.capacityRateOverrides.set(new Map());
+  }
+
+  resetCpmTimeValues(): void {
+    this.cpmTimeOverrides.set(new Map());
+  }
+
+  resetCpmCostValues(): void {
+    this.cpmCostOverrides.set(new Map());
+  }
+
+  private buildSourceOverrides(): Record<string, Record<string, number>> {
+    const sourceOverrides: Record<string, Record<string, number>> = {};
+
+    if (this.reachabilityPriorOverrides().size > 0) {
+      const priors: Record<string, number> = {};
+      for (const [node, value] of this.reachabilityPriorOverrides()) {
+        priors[node.toString()] = value;
+      }
+      sourceOverrides['reachability'] = priors;
+    }
+
+    if (this.capacityRateOverrides().size > 0) {
+      const rates: Record<string, number> = {};
+      for (const [node, value] of this.capacityRateOverrides()) {
+        rates[node.toString()] = value;
+      }
+      sourceOverrides['capacity'] = rates;
+    }
+
+    if (this.cpmTimeOverrides().size > 0) {
+      const durations: Record<string, number> = {};
+      for (const [node, value] of this.cpmTimeOverrides()) {
+        durations[node.toString()] = value;
+      }
+      sourceOverrides['cpm_time'] = durations;
+    }
+
+    if (this.cpmCostOverrides().size > 0) {
+      const costs: Record<string, number> = {};
+      for (const [node, value] of this.cpmCostOverrides()) {
+        costs[node.toString()] = value;
+      }
+      sourceOverrides['cpm_cost'] = costs;
+    }
+
+    return sourceOverrides;
+  }
+
+  // ─── Exact Inference helpers ─────────────────────────────────────────────────
+
+  getBeliefEntries(): Array<{node: string; belief: number}> {
+    const result = this.subgraphAnalysisResult();
+    if (!result?.reachability_result?.beliefs) return [];
+    return Object.entries(result.reachability_result.beliefs)
+      .map(([node, belief]) => ({ node, belief }))
+      .sort((a, b) => b.belief - a.belief);
+  }
+
+  // ─── Capacity helpers ────────────────────────────────────────────────────────
+
+  getCapacityEntries(): Array<{node: string; flow: number; capacity: number; utilization: number; spare: number}> {
+    const result = this.subgraphAnalysisResult();
+    if (!result?.capacity_result?.node_max_flows) return [];
+    const maxFlows = result.capacity_result.node_max_flows;
+    const capacities = result.capacity_result.node_capacities || {};
+    return Object.keys(maxFlows).map(node => {
+      const flow = maxFlows[node] ?? 0;
+      const cap = capacities[node] ?? 0;
+      return {
+        node,
+        flow,
+        capacity: cap,
+        utilization: cap > 0 ? (flow / cap) * 100 : 0,
+        spare: Math.max(0, cap - flow)
+      };
+    }).sort((a, b) => b.flow - a.flow);
+  }
+
+  getFlowEntries(): Array<{node: string; flow: number}> {
+    const result = this.subgraphAnalysisResult();
+    if (!result?.capacity_result?.node_max_flows) return [];
+    return Object.entries(result.capacity_result.node_max_flows)
+      .map(([node, flow]) => ({ node, flow }))
+      .sort((a, b) => b.flow - a.flow);
+  }
+
+  getTotalSourceInput(): string {
+    const result = this.subgraphAnalysisResult();
+    const rates = result?.capacity_result?.source_rates_used || {};
+    const total = Object.values(rates).reduce((sum: number, v: any) => sum + (v || 0), 0);
+    return total > 0 ? total.toFixed(2) : 'N/A';
+  }
+
+  getUtilizationColor(utilization: number): string {
+    if (utilization >= 90) return 'var(--error-color, #f44336)';
+    if (utilization >= 70) return 'var(--warning-color, #ff9800)';
+    return 'var(--success-color, #4caf50)';
+  }
+
+  // ─── CPM Time helpers ────────────────────────────────────────────────────────
+
+  getCpmTimeEntries(): Array<{node: string; duration: number; earlyStart: number; earlyFinish: number; lateFinish: number; slack: number; isCritical: boolean}> {
+    const result = this.subgraphAnalysisResult();
+    if (!result?.cpm_result?.time_result) return [];
+    const tr = result.cpm_result.time_result;
+    const criticalSet = new Set((tr.critical_nodes || []).map(String));
+    return Object.keys(tr.node_values || {}).map(node => ({
+      node,
+      duration: tr.node_durations?.[node] ?? 0,
+      earlyStart: tr.early_start?.[node] ?? 0,
+      earlyFinish: tr.node_values?.[node] ?? 0,
+      lateFinish: tr.late_finish?.[node] ?? 0,
+      slack: tr.total_slack?.[node] ?? 0,
+      isCritical: criticalSet.has(node)
+    })).sort((a, b) => a.earlyStart - b.earlyStart);
+  }
+
+  getCriticalTimeDuration(): string {
+    const result = this.subgraphAnalysisResult();
+    return result?.cpm_result?.time_result?.critical_value?.toFixed(2) ?? 'N/A';
+  }
+
+  getAvgTimeSlack(): string {
+    const entries = this.getCpmTimeEntries();
+    if (entries.length === 0) return 'N/A';
+    const sum = entries.reduce((acc, e) => acc + Math.abs(e.slack), 0);
+    return (sum / entries.length).toFixed(2);
+  }
+
+  // ─── CPM Cost helpers ────────────────────────────────────────────────────────
+
+  getCpmCostEntries(): Array<{node: string; nodeCost: number; accumulatedCost: number; slack: number; isCritical: boolean}> {
+    const result = this.subgraphAnalysisResult();
+    if (!result?.cpm_result?.cost_result) return [];
+    const cr = result.cpm_result.cost_result;
+    const criticalSet = new Set((cr.critical_nodes || []).map(String));
+    return Object.keys(cr.node_values || {}).map(node => ({
+      node,
+      nodeCost: cr.node_costs?.[node] ?? 0,
+      accumulatedCost: cr.node_values?.[node] ?? 0,
+      slack: cr.total_slack?.[node] ?? 0,
+      isCritical: criticalSet.has(node)
+    })).sort((a, b) => b.accumulatedCost - a.accumulatedCost);
+  }
+
+  getCriticalCostValue(): string {
+    const result = this.subgraphAnalysisResult();
+    return result?.cpm_result?.cost_result?.critical_value?.toFixed(2) ?? 'N/A';
+  }
+
+  getSlackColor(slack: number): string {
+    if (Math.abs(slack) < 0.001) return 'var(--error-color, #f44336)';
+    if (slack < 1) return 'var(--warning-color, #ff9800)';
+    return 'var(--success-color, #4caf50)';
+  }
+
+  getBeliefColor(belief: number): string {
+    if (belief >= 0.8) return 'var(--success-color)';
+    if (belief >= 0.5) return 'var(--warning-color)';
+    return 'var(--error-color)';
+  }
+
+  getFlowColor(flow: number, maxFlow: number): string {
+    const ratio = maxFlow > 0 ? flow / maxFlow : 0;
+    if (ratio >= 0.8) return 'var(--success-color)';
+    if (ratio >= 0.5) return 'var(--warning-color)';
+    return 'var(--error-color)';
+  }
+
+  getMaxFlow(): number {
+    const entries = this.getFlowEntries();
+    return entries.length > 0 ? Math.max(...entries.map(e => e.flow)) : 1;
+  }
+
+  getAvgBelief(): string {
+    const entries = this.getBeliefEntries();
+    if (entries.length === 0) return 'N/A';
+    const sum = entries.reduce((acc, e) => acc + e.belief, 0);
+    return (sum / entries.length).toFixed(3);
   }
 
   onNodePageChange(event: PageEvent): void {

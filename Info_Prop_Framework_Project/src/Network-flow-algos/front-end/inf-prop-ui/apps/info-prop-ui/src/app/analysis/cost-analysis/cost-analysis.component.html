@@ -1,493 +1,405 @@
-<div class="cost-analysis-container">
-  <!-- Header Section -->
-  <mat-card class="header-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>attach_money</mat-icon>
-        Network Cost Analysis (CPM)
-      </mat-card-title>
-      <mat-card-subtitle>
-        Critical Path Method cost-based budget optimization and resource allocation analysis with cost efficiency metrics
-      </mat-card-subtitle>
-    </mat-card-header>
-  </mat-card>
+<!-- Header -->
+<mat-card class="header-card">
+  <mat-card-content>
+    <h2>Network Cost Analysis (CPM)</h2>
+    <p class="subtitle">Critical cost path with budget allocation, cost slack, and optimization priorities</p>
+  </mat-card-content>
+</mat-card>
 
-  <!-- Scenario Selection & Controls -->
-  <mat-card class="control-card">
-    <mat-card-header>
-      <mat-card-title>Cost Analysis Configuration</mat-card-title>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div class="control-row">
-        <!-- **COST-SPECIFIC: Scenario Selector with CPM cost scenario support** -->
-        <mat-form-field appearance="outline" class="scenario-selector">
-          <mat-label>Cost Scenario</mat-label>
-          <mat-select
-            [value]="selectedScenario()"
-            (selectionChange)="setCurrentScenario($event.value.name)"
-            [disabled]="isComputing()">
-            @for (scenario of availableScenariosComputed(); track scenario.path) {
-              <mat-option [value]="scenario">
-                <div class="scenario-option">
-                  <div class="scenario-info">
-                    <span class="scenario-name">{{ scenario.displayName }}</span>
-                    <span class="scenario-path">{{ scenario.path }}</span>
-                  </div>
-                  <div class="scenario-badges">
-                    <mat-chip
-                      class="data-type-cost"
-                      selected>
-                      Cost Analysis
-                    </mat-chip>
-                    @if (hasScenarioResults(scenario.name)) {
-                      <mat-chip color="accent" selected>
-                        <mat-icon>check_circle</mat-icon>
-                        Computed
-                      </mat-chip>
-                    }
-                  </div>
-                </div>
-              </mat-option>
-            }
-          </mat-select>
-          <mat-hint>
-            @if (selectedScenario()) {
-              {{ selectedScenario()!.description }}
-            } @else {
-              Select a scenario to run network cost analysis
-            }
-          </mat-hint>
-        </mat-form-field>
-
-        <!-- Execute Button -->
-        <button mat-raised-button 
-                color="primary" 
-                (click)="executeCostAnalysis()"
-                [disabled]="!selectedScenario() || isComputing()"
-                class="execute-button">
-          @if (isComputing()) {
-            <mat-spinner diameter="20"></mat-spinner>
-            Computing...
-          } @else {
-            <mat-icon>play_arrow</mat-icon>
-          }
-          @if (!isComputing()) {
-            Run Analysis
-          }
-        </button>
-
-        <!-- Clear Button -->
-        @if (costResults().length > 0) {
-          <button mat-stroked-button 
-                  (click)="clearResults()"
-                  [disabled]="isComputing()">
-            <mat-icon>clear</mat-icon>
-            Clear Results
-          </button>
-        }
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Error Display -->
-  @if (errorMessage()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon color="warn">error</mat-icon>
-          <span>{{ errorMessage() }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
+<!-- Toolbar -->
+@if (scenarioNames().length > 0) {
+<div class="toolbar">
+  <button mat-stroked-button (click)="runAllScenarios()" matTooltip="Re-run all scenarios">
+    <mat-icon>refresh</mat-icon> Re-run All
+  </button>
+  @if (scenarioNames().length >= 2) {
+  <button mat-stroked-button (click)="toggleComparisonMode()" [class.active]="comparisonMode()"
+          [color]="comparisonMode() ? 'accent' : ''">
+    <mat-icon>compare_arrows</mat-icon> {{ comparisonMode() ? 'Exit Comparison' : 'Compare Scenarios' }}
+  </button>
   }
+  <button mat-stroked-button (click)="clearScenarioData()" matTooltip="Clear all results">
+    <mat-icon>clear_all</mat-icon> Clear All
+  </button>
+  <button mat-stroked-button [matMenuTriggerFor]="exportMenu" matTooltip="Export results">
+    <mat-icon>download</mat-icon> Export
+  </button>
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item (click)="exportCSV()">
+      <mat-icon>table_chart</mat-icon> Export CSV
+    </button>
+    <button mat-menu-item (click)="exportJSON()">
+      <mat-icon>data_object</mat-icon> Export JSON
+    </button>
+  </mat-menu>
+</div>
+}
 
-  <!-- Algorithm Overview Panel -->
-  <mat-expansion-panel class="algorithm-panel">
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        <mat-icon>account_balance</mat-icon>
-        Critical Path Method (CPM) Cost Analysis & Budget Optimization
-      </mat-panel-title>
-      <mat-panel-description>
-        Understanding cost-based project budgeting and critical cost path analysis
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <div class="algorithm-content">
-      <div class="algorithm-grid">
-        <!-- Critical Cost Path Framework -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Critical Cost Path</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Critical Path Cost = max(Path Costs)</code>
-            </div>
-            <p>The critical cost path represents the most expensive sequence of activities that determines the minimum project budget.</p>
-          </mat-card-content>
-        </mat-card>
+<!-- ═══ Comparison Mode (replaces tabs) ═══ -->
+@if (comparisonMode() && scenarioNames().length >= 2) {
 
-        <!-- Budget Optimization -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Cost Optimization</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Optimization Potential = Critical Cost - Node Cost</code>
-            </div>
-            <p>Cost optimization represents the amount by which an activity's cost can be reduced without affecting the total project budget.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Budget Allocation -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Budget Allocation</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Budget Share = (Node Cost / Total Budget) × 100%</code>
-            </div>
-            <p>Budget allocation focuses on optimal resource distribution while maintaining cost efficiency and project constraints.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Network Budget Context -->
-        @if (networkInfo()) {
-          <mat-card class="complexity-card">
-            <mat-card-header>
-              <mat-card-title>Current Budget Structure</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="complexity-stats">
-                <div class="stat">
-                  <span class="stat-label">Total Activities:</span>
-                  <span class="stat-value">{{ networkInfo()!.totalNodes }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Cost Centers:</span>
-                  <span class="stat-value">{{ networkInfo()!.sourceNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Budget Endpoints:</span>
-                  <span class="stat-value">{{ networkInfo()!.sinkNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Budget Complexity:</span>
-                  <mat-chip [color]="networkComplexity().includes('Simple') ? 'primary' : 
-                                   networkComplexity().includes('Moderate') ? 'accent' : 'warn'" 
-                           selected>
-                    {{ networkComplexity() }}
-                  </mat-chip>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        }
+<!-- Scenario Selectors -->
+<mat-card class="comparison-card">
+  <mat-card-content>
+    <div class="comparison-selectors">
+      <div class="comparison-select">
+        <label>Base Scenario</label>
+        <select [value]="baseScenarioName()" (change)="baseScenarioName.set($any($event.target).value)">
+          @for (name of scenarioNames(); track name) {
+          <option [value]="name">{{ name }}</option>
+          }
+        </select>
+      </div>
+      <mat-icon class="comparison-arrow">compare_arrows</mat-icon>
+      <div class="comparison-select">
+        <label>Compare Scenario</label>
+        <select [value]="compareScenarioName()" (change)="compareScenarioName.set($any($event.target).value)">
+          @for (name of scenarioNames(); track name) {
+          <option [value]="name">{{ name }}</option>
+          }
+        </select>
       </div>
     </div>
-  </mat-expansion-panel>
+  </mat-card-content>
+</mat-card>
 
-  <!-- Results Section -->
-  @if (costResults().length > 0) {
-    <!-- Performance Metrics -->
-    @if (costMetrics()) {
-      <mat-card class="metrics-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>account_balance_wallet</mat-icon>
-            Cost Performance Metrics
-          </mat-card-title>
-        </mat-card-header>
-        
+<!-- Summary Comparison Cards -->
+@if (baseTabState()?.metrics; as baseM) {
+@if (compareTabState()?.metrics; as compM) {
+<div class="comparison-summary">
+  <div class="summary-column">
+    <h4>{{ baseScenarioName() }}</h4>
+    <div class="summary-metric"><span class="label">Critical Path Cost</span><span class="value">{{ formatCost(baseM.criticalPathCost) }}</span></div>
+    <div class="summary-metric"><span class="label">Critical Nodes</span><span class="value">{{ baseM.criticalPathLength }}</span></div>
+    <div class="summary-metric"><span class="label">Total Budget</span><span class="value">{{ formatCost(baseM.totalBudget) }}</span></div>
+    <div class="summary-metric"><span class="label">Avg Node Cost</span><span class="value">{{ formatCost(baseM.averageNodeCost) }}</span></div>
+  </div>
+  <div class="summary-column delta">
+    <h4>Delta</h4>
+    <div class="summary-metric">
+      <span class="label">Critical Cost</span>
+      <span class="value" [class.positive-delta]="compM.criticalPathCost - baseM.criticalPathCost < 0"
+            [class.negative-delta]="compM.criticalPathCost - baseM.criticalPathCost > 0">
+        {{ (compM.criticalPathCost - baseM.criticalPathCost) > 0 ? '+' : '' }}{{ formatCost(compM.criticalPathCost - baseM.criticalPathCost) }}
+      </span>
+    </div>
+    <div class="summary-metric">
+      <span class="label">Budget</span>
+      <span class="value" [class.positive-delta]="compM.totalBudget - baseM.totalBudget < 0"
+            [class.negative-delta]="compM.totalBudget - baseM.totalBudget > 0">
+        {{ (compM.totalBudget - baseM.totalBudget) > 0 ? '+' : '' }}{{ formatCost(compM.totalBudget - baseM.totalBudget) }}
+      </span>
+    </div>
+    <div class="summary-metric">
+      <span class="label">Avg Cost</span>
+      <span class="value" [class.positive-delta]="compM.averageNodeCost - baseM.averageNodeCost < 0"
+            [class.negative-delta]="compM.averageNodeCost - baseM.averageNodeCost > 0">
+        {{ (compM.averageNodeCost - baseM.averageNodeCost) > 0 ? '+' : '' }}{{ formatCost(compM.averageNodeCost - baseM.averageNodeCost) }}
+      </span>
+    </div>
+  </div>
+  <div class="summary-column">
+    <h4>{{ compareScenarioName() }}</h4>
+    <div class="summary-metric"><span class="label">Critical Path Cost</span><span class="value">{{ formatCost(compM.criticalPathCost) }}</span></div>
+    <div class="summary-metric"><span class="label">Critical Nodes</span><span class="value">{{ compM.criticalPathLength }}</span></div>
+    <div class="summary-metric"><span class="label">Total Budget</span><span class="value">{{ formatCost(compM.totalBudget) }}</span></div>
+    <div class="summary-metric"><span class="label">Avg Node Cost</span><span class="value">{{ formatCost(compM.averageNodeCost) }}</span></div>
+  </div>
+</div>
+}}
+
+<!-- Comparison Table -->
+<mat-card class="results-card">
+  <mat-card-content>
+    @if (comparisonRows().length > 0) {
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th matTooltip="Accumulated cost in base scenario">Base Cost</th>
+            <th matTooltip="Accumulated cost in comparison scenario">Compare Cost</th>
+            <th matTooltip="Compare - Base: positive means higher cost">Delta Cost</th>
+            <th matTooltip="Cost slack in base scenario">Base Slack</th>
+            <th matTooltip="Cost slack in comparison scenario">Compare Slack</th>
+            <th matTooltip="Compare - Base: positive means more slack">Delta Slack</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of comparisonRows(); track row.nodeId) {
+          <tr>
+            <td class="node-id">{{ row.nodeId }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.baseCost, 'cb-' + row.nodeId)">{{ row.baseCost !== null ? formatCost(row.baseCost) : '-' }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.compareCost, 'cc-' + row.nodeId)">{{ row.compareCost !== null ? formatCost(row.compareCost) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaCost !== null && row.deltaCost > 0"
+                [class.negative-delta]="row.deltaCost !== null && row.deltaCost < 0">
+              {{ row.deltaCost !== null ? (row.deltaCost > 0 ? '+' : '') + formatCost(row.deltaCost) : '-' }}
+            </td>
+            <td>{{ row.baseSlack !== null ? formatCost(row.baseSlack) : '-' }}</td>
+            <td>{{ row.compareSlack !== null ? formatCost(row.compareSlack) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaSlack !== null && row.deltaSlack > 0"
+                [class.negative-delta]="row.deltaSlack !== null && row.deltaSlack < 0">
+              {{ row.deltaSlack !== null ? (row.deltaSlack > 0 ? '+' : '') + formatCost(row.deltaSlack) : '-' }}
+            </td>
+            <td><mat-chip class="node-type-chip" [class]="'type-' + row.nodeType.toLowerCase()">{{ row.nodeType }}</mat-chip></td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </mat-card-content>
+</mat-card>
+
+} @else if (scenarioNames().length > 0) {
+<!-- ═══ Normal Scenario Tabs ═══ -->
+<mat-tab-group [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)" class="scenario-tabs">
+  @for (name of scenarioNames(); track name; let i = $index) {
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        {{ name }}
+        @if (scenarioTabs().get(name)?.status === 'computing') {
+        <mat-spinner diameter="16" class="tab-spinner"></mat-spinner>
+        } @else if (scenarioTabs().get(name)?.status === 'computed') {
+        <mat-icon class="tab-icon success">check_circle</mat-icon>
+        } @else if (scenarioTabs().get(name)?.status === 'error') {
+        <mat-icon class="tab-icon error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
+
+    @if (activeTab(); as tab) {
+      <!-- Computing State -->
+      @if (tab.status === 'computing') {
+      <mat-card class="status-card computing">
         <mat-card-content>
-          <div class="metrics-grid">
-            <div class="metric-item">
-              <div class="metric-label">Computation Time</div>
-              <div class="metric-value">{{ costMetrics()!.computationTime.toFixed(3) }}s</div>
-            </div>
-            
-            <div class="metric-item critical-path-metric">
-              <div class="metric-label">Critical Path Cost</div>
-              <div class="metric-value">{{ formatCurrency(costMetrics()!.criticalPathCost) }}</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Critical Path Length</div>
-              <div class="metric-value">{{ costMetrics()!.criticalPathLength }} nodes</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Average Node Cost</div>
-              <div class="metric-value">{{ formatCurrency(costMetrics()!.averageNodeCost) }}</div>
-            </div>
-
-            <div class="metric-item">
-              <div class="metric-label">Total Budget</div>
-              <div class="metric-value">{{ formatCurrency(costMetrics()!.totalBudget) }}</div>
-            </div>
-
-            <div class="metric-item">
-              <div class="metric-label">Budget Utilization</div>
-              <div class="metric-value">
-                <mat-chip [color]="costMetrics()!.budgetUtilization > 90 ? 'warn' : 'primary'" selected>
-                  {{ formatBudgetShare(costMetrics()!.budgetUtilization) }}
-                </mat-chip>
-              </div>
-            </div>
-
-            <div class="metric-item">
-              <div class="metric-label">Critical Activities</div>
-              <div class="metric-value">
-                <mat-chip [color]="costMetrics()!.criticalNodesCount > 0 ? 'warn' : 'primary'" selected>
-                  {{ costMetrics()!.criticalNodesCount }}
-                </mat-chip>
-              </div>
-            </div>
-          </div>
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Running cost analysis for {{ tab.scenario.displayName }}...</p>
         </mat-card-content>
       </mat-card>
-    }
+      }
 
-    <!-- Results Table -->
-    <mat-card class="results-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>table_chart</mat-icon>
-          Activity-Level Cost Results
-          <mat-chip [matBadge]="filteredCostResults().length" matBadgeOverlap="false">
-            @if (filteredCostResults().length !== costResults().length) {
-              {{ filteredCostResults().length }} of {{ costResults().length }}
-            } @else {
-              All Activities
-            }
-          </mat-chip>
-        </mat-card-title>
-        <mat-card-subtitle>
-          Cost values, budget allocation, and critical cost path identification for every network activity
-        </mat-card-subtitle>
-      </mat-card-header>
-      
-      <mat-card-content>
+      <!-- Error State -->
+      @if (tab.status === 'error') {
+      <mat-card class="status-card error">
+        <mat-card-content>
+          <mat-icon>error_outline</mat-icon>
+          <p>{{ tab.error }}</p>
+          <button mat-stroked-button (click)="rerunScenario(tab.scenario.name)">
+            <mat-icon>refresh</mat-icon> Retry
+          </button>
+        </mat-card-content>
+      </mat-card>
+      }
 
-        <!-- **COST-SPECIFIC: Search and Filter Controls** -->
-        <div class="table-controls">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Activities</mat-label>
-            <input matInput
-                   placeholder="Enter activity ID..."
-                   (input)="onSearch($event)"
-                   [value]="searchTerm()">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+      <!-- Computed Results -->
+      @if (tab.status === 'computed' && tab.metrics) {
+      <!-- Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Computation Time</span>
+          <span class="metric-value">{{ tab.metrics.computationTime.toFixed(3) }}s</span>
+        </div>
+        <div class="metric-card critical">
+          <span class="metric-label">Critical Path Cost</span>
+          <span class="metric-value">{{ formatCost(tab.metrics.criticalPathCost) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Critical Path Nodes</span>
+          <span class="metric-value">{{ tab.metrics.criticalPathLength }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Budget</span>
+          <span class="metric-value">{{ formatCost(tab.metrics.totalBudget) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Average Node Cost</span>
+          <span class="metric-value">{{ formatCost(tab.metrics.averageNodeCost) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Sources / Sinks</span>
+          <span class="metric-value">{{ tab.metrics.sourceCount }} / {{ tab.metrics.sinkCount }}</span>
+        </div>
+      </div>
 
-          <div class="filter-controls">
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter by Activity Type</mat-label>
-              <mat-select multiple
-                         [value]="selectedNodeTypes()"
-                         (selectionChange)="onNodeTypeFilter($event.value)">
-                <mat-option value="Source">
-                  <mat-icon>account_balance</mat-icon>
-                  Cost Centers
-                </mat-option>
-                <mat-option value="Sink">
-                  <mat-icon>monetization_on</mat-icon>
-                  Budget Endpoints
-                </mat-option>
-                <mat-option value="Fork">
-                  <mat-icon>call_split</mat-icon>
-                  Resource Splits
-                </mat-option>
-                <mat-option value="Join">
-                  <mat-icon>merge_type</mat-icon>
-                  Budget Merges
-                </mat-option>
-                <mat-option value="Regular">
-                  <mat-icon>lens</mat-icon>
-                  Regular Activities
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
+      <!-- Quick Stats -->
+      @if (nodeTypeStats().length > 0) {
+      <div class="quick-stats">
+        @for (stat of nodeTypeStats(); track stat.type) {
+        <mat-chip class="stat-chip" [class]="'type-' + stat.type.toLowerCase()"
+                  [highlighted]="activeSelectedNodeTypes().includes(stat.type)"
+                  (click)="toggleNodeTypeFilter(stat.type)">
+          <mat-icon>{{ stat.icon }}</mat-icon>
+          {{ stat.type }}: {{ stat.count }} (avg {{ formatCost(stat.avgCost) }})
+        </mat-chip>
+        }
+      </div>
+      }
 
-            <!-- **COST-SPECIFIC: Critical Path Filter** -->
-            <mat-slide-toggle
-              [checked]="showOnlyCriticalPath()"
-              (change)="onCriticalPathFilter($event.checked)"
-              class="critical-path-filter">
-              <mat-icon>account_balance_wallet</mat-icon>
-              Show Only Critical Cost Path
-            </mat-slide-toggle>
+      <!-- Cost vs Time Path Comparison -->
+      @if (pathComparison(); as paths) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Cost vs Time Critical Path Comparison</mat-panel-title>
+          <mat-panel-description>
+            {{ paths.identical ? 'Paths are identical' : 'Paths differ at ' + (paths.costOnlyNodes.length + paths.timeOnlyNodes.length) + ' nodes' }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="path-comparison">
+          <div class="path-row">
+            <strong>Cost-critical:</strong>
+            <span class="path-chain">
+              @for (node of paths.costPath; track $index; let last = $last) {
+                <span class="path-node" [class.common]="paths.commonNodes.includes(node)" [class.cost-only]="paths.costOnlyNodes.includes(node)">{{ node }}</span>
+                @if (!last) { <mat-icon class="path-arrow">arrow_forward</mat-icon> }
+              }
+            </span>
           </div>
-        </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="paginatedCostResults()" class="results-table">
-            
-            <!-- Activity ID Column -->
-            <ng-container matColumnDef="nodeId">
-              <th mat-header-cell *matHeaderCellDef>Activity ID</th>
-              <td mat-cell *matCellDef="let result">
-                <div class="node-id">
-                  <mat-icon>{{ result.isOnCriticalPath ? 'account_balance_wallet' : 'attach_money' }}</mat-icon>
-                  {{ result.nodeId }}
-                  @if (result.isOnCriticalPath) {
-                    <mat-chip class="critical-path-chip" color="warn" selected>
-                      Critical
-                    </mat-chip>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Cost Value Column -->
-            <ng-container matColumnDef="costValue">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Cost value of the activity">
-                Cost Value
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="cost-value">
-                  {{ formatCurrency(result.costValue) }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Budget Share Column -->
-            <ng-container matColumnDef="budgetShare">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Percentage of total budget allocated to this activity">
-                Budget Share
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="budget-share">
-                  <mat-chip 
-                    [ngClass]="result.budgetAllocation > 15 ? 'budget-high' : result.budgetAllocation > 5 ? 'budget-medium' : 'budget-low'"
-                    [matTooltip]="'This activity consumes ' + formatBudgetShare(result.budgetAllocation) + ' of the total budget'"
-                    selected>
-                    {{ formatBudgetShare(result.budgetAllocation) }}
-                  </mat-chip>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Critical Path Status Column -->
-            <ng-container matColumnDef="criticalPath">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Whether this activity is on the critical cost path">
-                Critical Path
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="critical-path-status">
-                  <mat-chip 
-                    [ngClass]="getCriticalPathColorClass(result.isOnCriticalPath)"
-                    [matTooltip]="getCriticalPathTooltip(result.isOnCriticalPath)"
-                    selected>
-                    <mat-icon>{{ result.isOnCriticalPath ? 'account_balance_wallet' : 'attach_money' }}</mat-icon>
-                    {{ result.isOnCriticalPath ? 'Critical' : 'Non-Critical' }}
-                  </mat-chip>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- **COST-SPECIFIC: Activity Type Column** -->
-            <ng-container matColumnDef="nodeType">
-              <th mat-header-cell *matHeaderCellDef>Activity Type</th>
-              <td mat-cell *matCellDef="let result">
-                @if (networkInfo()) {
-                  <mat-chip [ngClass]="'node-type-' + getNodeType(result.nodeId, networkInfo()!).toLowerCase().replace(' + ', '-')"
-                           (click)="onNodeTypeFilter([getNodeType(result.nodeId, networkInfo()!)])"
-                           selected>
-                    @switch (getNodeType(result.nodeId, networkInfo()!)) {
-                      @case ('Source') {
-                        <mat-icon>account_balance</mat-icon>
-                      }
-                      @case ('Sink') {
-                        <mat-icon>monetization_on</mat-icon>
-                      }
-                      @case ('Fork') {
-                        <mat-icon>call_split</mat-icon>
-                      }
-                      @case ('Join') {
-                        <mat-icon>merge_type</mat-icon>
-                      }
-                      @default {
-                        <mat-icon>attach_money</mat-icon>
-                      }
-                    }
-                    {{ getNodeType(result.nodeId, networkInfo()!) }}
-                  </mat-chip>
-                } @else {
-                  <mat-chip class="node-type-regular" selected>
-                    <mat-icon>attach_money</mat-icon>
-                    Regular
-                  </mat-chip>
-                }
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-        </div>
-
-        <!-- **COST-SPECIFIC: Pagination Component** -->
-        <mat-paginator
-          [length]="filteredCostResults().length"
-          [pageSize]="pageSize()"
-          [pageIndex]="pageIndex()"
-          [pageSizeOptions]="[10, 25, 50, 100]"
-          (page)="onPageChange($event)"
-          showFirstLastButtons>
-        </mat-paginator>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Loading State -->
-  @if (isComputing()) {
-    <mat-card class="loading-card">
-      <mat-card-content>
-        <div class="loading-content">
-          <mat-spinner diameter="40"></mat-spinner>
-          <div class="loading-text">
-            <h3>Computing Cost Analysis</h3>
-            <p>Analyzing critical cost path and calculating budget optimization metrics...</p>
-            @if (selectedScenario()) {
-              <mat-chip color="accent" selected>
-                Cost Analysis
-              </mat-chip>
-            }
+          <div class="path-row">
+            <strong>Time-critical:</strong>
+            <span class="path-chain">
+              @for (node of paths.timePath; track $index; let last = $last) {
+                <span class="path-node" [class.common]="paths.commonNodes.includes(node)" [class.time-only]="paths.timeOnlyNodes.includes(node)">{{ node }}</span>
+                @if (!last) { <mat-icon class="path-arrow">arrow_forward</mat-icon> }
+              }
+            </span>
           </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Empty State -->
-  @if (!isComputing() && costResults().length === 0 && !errorMessage()) {
-    <mat-card class="empty-state-card">
-      <mat-card-content>
-        <div class="empty-state">
-          <mat-icon>attach_money</mat-icon>
-          <h3>Ready for Cost Analysis</h3>
-          <p>Select a cost scenario and click "Run Analysis" to analyze critical cost path and calculate budget optimization metrics.</p>
-          @if (availableScenarios.length === 0) {
-            <mat-chip color="warn">
-              <mat-icon>warning</mat-icon>
-              No scenarios available
-            </mat-chip>
-          } @else {
-            <mat-chip color="primary">
-              <mat-icon>account_balance_wallet</mat-icon>
-              {{ availableScenarios.length }} scenarios available
-            </mat-chip>
+          @if (!paths.identical) {
+          <div class="path-legend">
+            <span class="legend-item common">Common</span>
+            <span class="legend-item cost-only">Cost only</span>
+            <span class="legend-item time-only">Time only</span>
+          </div>
           }
         </div>
-      </mat-card-content>
-    </mat-card>
+      </mat-expansion-panel>
+      }
+
+      <!-- Cost Distribution Histogram -->
+      @if (costHistogram().length > 0) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Cost Distribution</mat-panel-title>
+          <mat-panel-description>{{ tab.metrics.totalNodes }} activities</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="histogram">
+          <div class="histogram-bars">
+            @for (bucket of costHistogram(); track bucket.label) {
+            <div class="histogram-bar-wrapper">
+              <span class="histogram-count">{{ bucket.count }}</span>
+              <div class="histogram-bar" [style.height.%]="bucket.heightPercent"></div>
+              <span class="histogram-label">{{ bucket.label }}</span>
+            </div>
+            }
+          </div>
+        </div>
+      </mat-expansion-panel>
+      }
+
+      <!-- Results Table -->
+      <mat-card class="results-card">
+        <mat-card-content>
+          <div class="table-controls">
+            <div class="search-wrapper">
+              <mat-icon>search</mat-icon>
+              <input type="text" placeholder="Search by node ID..."
+                     [value]="activeSearchTerm()"
+                     (input)="onSearchChange($event)">
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th class="sortable" (click)="onSort('nodeId')">
+                    Node <mat-icon class="sort-icon">{{ getSortIcon('nodeId') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('nodeCost')" matTooltip="Activity's own cost from input data">
+                    Node Cost <mat-icon class="sort-icon">{{ getSortIcon('nodeCost') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('accumulatedCost')" matTooltip="Total cost along the longest cost path to this node">
+                    Accumulated <mat-icon class="sort-icon">{{ getSortIcon('accumulatedCost') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('budgetShare')" matTooltip="Node Cost / Total Budget — this activity's share of total project cost">
+                    Budget % <mat-icon class="sort-icon">{{ getSortIcon('budgetShare') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('slack')" matTooltip="Difference between critical path cost and this node's accumulated cost">
+                    Cost Slack <mat-icon class="sort-icon">{{ getSortIcon('slack') }}</mat-icon>
+                  </th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of activePaginatedResults(); track r.nodeId) {
+                <tr [class.critical-row]="r.isOnCriticalPath">
+                  <td class="node-id">
+                    {{ r.nodeId }}
+                    @if (r.isOnCriticalPath) {
+                      <mat-chip class="critical-chip" [highlighted]="true">Critical</mat-chip>
+                    }
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.nodeCost, 'nc-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'nc-' + r.nodeId">
+                    {{ formatCost(r.nodeCost) }}
+                  </td>
+                  <td class="copyable cost-heat-cell" (click)="copyToClipboard(r.accumulatedCost, 'ac-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'ac-' + r.nodeId"
+                      [style.background]="getCostHeatColor(r.accumulatedCost)">
+                    {{ formatCost(r.accumulatedCost) }}
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.budgetShare, 'bs-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'bs-' + r.nodeId">
+                    {{ formatBudgetShare(r.budgetShare) }}
+                  </td>
+                  <td class="copyable slack-cell" [class.slack-zero]="r.slack === 0"
+                      (click)="copyToClipboard(r.slack, 'cs-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'cs-' + r.nodeId">
+                    {{ formatCost(r.slack) }}
+                  </td>
+                  <td>
+                    <mat-chip class="node-type-chip" [class]="'type-' + r.nodeType.toLowerCase()">{{ r.nodeType }}</mat-chip>
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <mat-paginator [length]="activeFilteredResults().length"
+                         [pageSize]="activePageSize()"
+                         [pageIndex]="activePageIndex()"
+                         [pageSizeOptions]="[10, 25, 50, 100]"
+                         (page)="onPageChange($event)"
+                         showFirstLastButtons>
+          </mat-paginator>
+        </mat-card-content>
+      </mat-card>
+      }
+
+      <!-- Idle State -->
+      @if (tab.status === 'idle') {
+      <mat-card class="status-card idle">
+        <mat-card-content>
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Waiting to run cost analysis...</p>
+          <button mat-stroked-button (click)="rerunScenario(tab.scenario.name)">
+            <mat-icon>play_arrow</mat-icon> Run Analysis
+          </button>
+        </mat-card-content>
+      </mat-card>
+      }
+    }
+  </mat-tab>
   }
-</div>
+</mat-tab-group>
+} @else {
+<mat-card class="empty-state">
+  <mat-card-content>
+    <mat-icon>info_outline</mat-icon>
+    <h3>No CPM Scenarios Available</h3>
+    <p>Upload a network with CPM data files to begin cost analysis.</p>
+  </mat-card-content>
+</mat-card>
+}

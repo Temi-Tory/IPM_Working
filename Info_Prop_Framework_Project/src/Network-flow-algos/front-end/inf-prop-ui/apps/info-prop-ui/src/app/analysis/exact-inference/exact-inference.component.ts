@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -129,7 +129,7 @@ interface NodeTypeStats {
   templateUrl: './exact-inference.component.html',
   styleUrl: './exact-inference.component.scss'
 })
-export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
+export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAwareComponent {
 
   // ─── Service injection ────────────────────────────────────────────────────
   private analysisStateService = inject(AnalysisStateService);
@@ -403,6 +403,10 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     return data.length > 0 ? data : null;
   });
 
+  // ─── Computed: comparison tab states (for summary cards) ────────────────
+  baseTabState = computed(() => this.scenarioTabs().get(this.baseScenarioName()) || null);
+  compareTabState = computed(() => this.scenarioTabs().get(this.compareScenarioName()) || null);
+
   // ─── Computed: completed scenario count ───────────────────────────────────
   completedCount = computed((): number => {
     let count = 0;
@@ -418,10 +422,57 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
+  private static readonly VIEW_KEY = 'exact-inference';
+
   ngOnInit(): void {
     this.loadData();
+
+    // Restore cached state from previous navigation (avoids unnecessary re-run)
+    const cached = this.analysisStateService.restoreViewState(ExactInferenceComponent.VIEW_KEY);
+    if (cached && cached.tabs.size > 0) {
+      this.scenarioTabs.set(cached.tabs as Map<string, ScenarioTabState>);
+      this.activeTabIndex.set(cached.activeTabIndex);
+      if (cached.uiState) {
+        this.activeSearchTerm.set(cached.uiState.searchTerm || '');
+        this.activeSelectedNodeTypes.set(cached.uiState.selectedNodeTypes || []);
+        this.activePageIndex.set(cached.uiState.pageIndex || 0);
+        this.activePageSize.set(cached.uiState.pageSize || 25);
+        this.activeSortColumn.set(cached.uiState.sortColumn || 'nodeId');
+        this.activeSortDirection.set(cached.uiState.sortDirection || '');
+        this.comparisonMode.set(cached.uiState.comparisonMode || false);
+        this.baseScenarioName.set(cached.uiState.baseScenarioName || '');
+        this.compareScenarioName.set(cached.uiState.compareScenarioName || '');
+      }
+      // Rebuild availableScenarios and scenarioResults from tabs
+      for (const [name, tab] of cached.tabs.entries()) {
+        if (tab.rawResponse) this.scenarioResults.set(name, tab.rawResponse);
+      }
+      return;
+    }
+
     this.loadScenarios();
     this.runAllScenarios();
+  }
+
+  ngOnDestroy(): void {
+    // Save state so navigating back restores results without re-running
+    this.saveActiveTabUIState();
+    this.analysisStateService.saveViewState(
+      ExactInferenceComponent.VIEW_KEY,
+      this.scenarioTabs(),
+      this.activeTabIndex(),
+      {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection(),
+        comparisonMode: this.comparisonMode(),
+        baseScenarioName: this.baseScenarioName(),
+        compareScenarioName: this.compareScenarioName()
+      }
+    );
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -1083,6 +1134,7 @@ export class ExactInferenceComponent implements OnInit, ScenarioAwareComponent {
     this.clearScenarioData();
     this.selectedNodeForComparison.set(null);
     this.comparisonMode.set(false);
+    this.analysisStateService.clearViewState(ExactInferenceComponent.VIEW_KEY);
   }
 
   hasScenarioResults(scenarioName: string): boolean {

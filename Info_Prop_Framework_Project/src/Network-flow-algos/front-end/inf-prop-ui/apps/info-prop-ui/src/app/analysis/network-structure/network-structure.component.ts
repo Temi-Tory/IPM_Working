@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, OnInit } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -47,7 +47,7 @@ import { EdgeDetailsDialogComponent } from './edge-details-dialog.component';
   templateUrl: './network-structure.component.html',
   styleUrls: ['./network-structure.component.scss']
 })
-export class NetworkStructureComponent implements OnInit {
+export class NetworkStructureComponent implements OnInit, OnDestroy {
   private analysisState = inject(AnalysisStateService);
   private sessionService = inject(NetworkSessionService);
   private dialog = inject(MatDialog);
@@ -610,16 +610,47 @@ export class NetworkStructureComponent implements OnInit {
     return ancestors.length > 0 ? Math.max(...ancestors.map(a => this.getNodeIterationSet(a, data))) + 1 : 0;
   }
 
+  private static readonly VIEW_KEY = 'network-structure';
+
   ngOnInit(): void {
-    console.log('🏗️ NetworkStructureComponent initializing...');
-    
+    console.log('NetworkStructureComponent initializing...');
+
+    // Restore UI state from cache (pagination, filters, view mode)
+    const cached = this.analysisState.restoreViewState(NetworkStructureComponent.VIEW_KEY);
+    if (cached?.uiState) {
+      this.currentView.set(cached.uiState.currentView || 'overview');
+      this.nodePageIndex.set(cached.uiState.nodePageIndex || 0);
+      this.nodePageSize.set(cached.uiState.nodePageSize || 50);
+      this.edgePageIndex.set(cached.uiState.edgePageIndex || 0);
+      this.edgePageSize.set(cached.uiState.edgePageSize || 100);
+      this.nodeSearchTerm.set(cached.uiState.nodeSearchTerm || '');
+      this.selectedNodeTypes.set(cached.uiState.selectedNodeTypes || []);
+    }
+
     // Trigger API call immediately if network path is available
     const currentSession = this.sessionService.getCurrentSession();
     const networkPath = currentSession?.networkPath || this.analysisState.currentNetworkPath();
-    
+
     if (networkPath) {
       this.loadNetworkStructureDataIfNeeded();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.analysisState.saveViewState(
+      NetworkStructureComponent.VIEW_KEY,
+      new Map(),  // No scenario tabs for this view
+      0,
+      {
+        currentView: this.currentView(),
+        nodePageIndex: this.nodePageIndex(),
+        nodePageSize: this.nodePageSize(),
+        edgePageIndex: this.edgePageIndex(),
+        edgePageSize: this.edgePageSize(),
+        nodeSearchTerm: this.nodeSearchTerm(),
+        selectedNodeTypes: this.selectedNodeTypes()
+      }
+    );
   }
 
   private hasCalledNetworkStructureAPI = false;

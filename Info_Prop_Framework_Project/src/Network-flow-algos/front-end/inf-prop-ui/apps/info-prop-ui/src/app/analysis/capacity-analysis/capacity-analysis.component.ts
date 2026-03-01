@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,64 +10,108 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
 import { CapacityAnalysisService } from '../../shared/services/capacity-analysis.service';
 import { NetworkSessionService } from '../../shared/services/network-session.service';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
-import { ScenarioInfo, MultiScenarioCapacityResults, CapacityScenario, NetworkStructure, AnalysisResponse } from '../../shared/models/network-analysis.models';
+import {
+  ScenarioInfo,
+  NetworkStructure,
+  AnalysisResponse,
+  CapacityScenario,
+  CapacityFileGroup,
+  ComparativeAnalysis,
+  EdgeUtilization
+} from '../../shared/models/network-analysis.models';
 
-interface CapacityScenarioInfo {
-  name: string;
-  path: string;
-  displayName: string;
-  description: string;
-  networkPath: string | undefined;
-  capacitiesFile: any;
-}
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
-interface CapacityResult {
+interface CapacityNodeResult {
   nodeId: number;
   capacity: number;
+  maxFlow: number;
   utilization: number;
-  flow: number;
-  isBottleneck: boolean;
-  sourceInput: number;
-  targetOutput: number;
+  spareCapacity: number;
   nodeType: string;
+  isBottleneck: boolean;
+}
+
+interface CapacityEdgeResult {
+  edgeKey: string;
+  from: number;
+  to: number;
+  capacity: number;
+  flow: number;
+  utilization: number;
+  spare: number;
+  isBottleneck: boolean;
 }
 
 interface CapacityMetrics {
-  totalNodes: number;
-  totalCapacity: number;
-  totalFlow: number;
-  networkUtilization: number;
   computationTime: number;
+  networkUtilization: number;
+  totalSourceInput: number;
+  totalTargetOutput: number;
   bottleneckCount: number;
-  sourceNodes: number;
-  targetNodes: number;
-  averageUtilization: number;
-  maxCapacityNode: number;
-  minCapacityNode: number;
+  sourceCount: number;
+  sinkCount: number;
 }
 
-/**
- * Network Capacity Analysis Component
- * 
- * Professional component for network capacity analysis including:
- * - Network utilization analysis and bottleneck identification
- * - Source input and target output flow calculations
- * - Multi-scenario capacity comparison support
- * - Comprehensive capacity metrics and performance visualization
- */
+interface ScenarioTabState {
+  scenario: { name: string; path: string; displayName: string; networkPath: string | undefined };
+  status: 'idle' | 'computing' | 'computed' | 'error';
+  nodeResults: CapacityNodeResult[];
+  edgeResults: CapacityEdgeResult[];
+  metrics: CapacityMetrics | null;
+  rawScenario: CapacityScenario | null;
+  error: string | null;
+  searchTerm: string;
+  selectedNodeTypes: string[];
+  pageIndex: number;
+  pageSize: number;
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc' | '';
+}
+
+interface NodeTypeStats {
+  type: string;
+  count: number;
+  avgUtilization: number;
+  icon: string;
+}
+
+interface ComparisonRow {
+  nodeId: number;
+  baseFlow: number | null;
+  compareFlow: number | null;
+  deltaFlow: number | null;
+  baseUtilization: number | null;
+  compareUtilization: number | null;
+  deltaUtilization: number | null;
+  nodeType: string;
+}
+
+interface ComparisonEdgeRow {
+  edgeKey: string;
+  from: number;
+  to: number;
+  baseFlow: number | null;
+  compareFlow: number | null;
+  deltaFlow: number | null;
+  baseUtilization: number | null;
+  compareUtilization: number | null;
+  deltaUtilization: number | null;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 @Component({
   selector: 'app-capacity-analysis',
   standalone: true,
@@ -83,227 +127,429 @@ interface CapacityMetrics {
     MatDividerModule,
     MatTooltipModule,
     MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
     MatBadgeModule,
-    MatSlideToggleModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    MatMenuModule
   ],
   templateUrl: './capacity-analysis.component.html',
   styleUrl: './capacity-analysis.component.scss'
 })
-export class CapacityAnalysisComponent implements OnInit, ScenarioAwareComponent {
+export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareComponent {
 
-  // **NEW: Inject services using modern Angular pattern**
+  // ─── Service injection ────────────────────────────────────────────────────
   private analysisStateService = inject(AnalysisStateService);
   private fileManagerService = inject(FileManagerService);
   private capacityAnalysisService = inject(CapacityAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
 
-  // **ENHANCED: ScenarioAwareComponent implementation**
+  // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
   analysisResults: AnalysisResponse | null = null;
   isLoading = false;
   error: string | null = null;
-  
-  // **NEW: Multi-scenario state management**
   availableScenarios: ScenarioInfo[] = [];
   currentScenario: string | null = null;
   scenarioResults: Map<string, any> = new Map();
-  
-  // **LEGACY: Keep existing signals for backward compatibility**
-  selectedScenario = signal<CapacityScenarioInfo | null>(null);
-  capacityResults = signal<CapacityResult[]>([]);
-  capacityMetrics = signal<CapacityMetrics | null>(null);
-  isComputing = signal(false);
-  errorMessage = signal<string | null>(null);
-  
-  // **FIXED: Get scenarios from FileManagerService capacity groups**
-  availableScenariosComputed = computed(() => {
-    const capacityGroups = this.fileManagerService.analysisGroups().capacity;
-    
-    return capacityGroups
-      .map((group, index) => ({
-        name: group.scenarioName || `capacity-${index}`, // Use scenarioName as unique identifier
-        displayName: group.scenarioName ? 
-          `${group.scenarioName} (Capacity Analysis)` : 
-          'Capacity Analysis',
-        path: group.capacitiesFile?.path || '',
-        networkPath: group.networkPath,
-        capacitiesFile: group.capacitiesFile,
-        description: 'Network capacity and flow analysis with bottleneck identification'
-      }));
+
+  // ─── Tab state management ─────────────────────────────────────────────────
+  scenarioTabs = signal<Map<string, ScenarioTabState>>(new Map());
+  activeTabIndex = signal(0);
+
+  // Active tab UI state
+  activeSearchTerm = signal('');
+  activeSelectedNodeTypes = signal<string[]>([]);
+  activePageIndex = signal(0);
+  activePageSize = signal(25);
+  activeSortColumn = signal('nodeId');
+  activeSortDirection = signal<'asc' | 'desc' | ''>('');
+
+  // View toggle: 'node' or 'edge'
+  activeViewMode = signal<'node' | 'edge'>('node');
+
+  // Comparison state
+  comparisonMode = signal(false);
+  baseScenarioName = signal('');
+  compareScenarioName = signal('');
+
+  // Copy feedback
+  copiedCellKey = signal('');
+
+  // ─── Computed: scenario names ─────────────────────────────────────────────
+  scenarioNames = computed(() => Array.from(this.scenarioTabs().keys()));
+
+  // ─── Computed: active tab state ───────────────────────────────────────────
+  activeTab = computed((): ScenarioTabState | null => {
+    const tabs = this.scenarioTabs();
+    const keys = Array.from(tabs.keys());
+    const idx = this.activeTabIndex();
+    if (idx < 0 || idx >= keys.length) return null;
+    return tabs.get(keys[idx]) || null;
   });
 
-  // Network structure information for context
+  // ─── Computed: network info ───────────────────────────────────────────────
   networkInfo = computed(() => {
-    const networkStructure = this.analysisStateService.networkData();
-    if (!networkStructure) return null;
-    
+    const ns = this.analysisStateService.networkData();
+    if (!ns) return null;
     return {
-      totalNodes: networkStructure.total_nodes || 0,
-      totalEdges: networkStructure.total_edges || 0,
-      sourceNodes: networkStructure.source_nodes || [],
-      joinNodes: networkStructure.join_nodes || [],
-      forkNodes: networkStructure.fork_nodes || [],
-      sinkNodes: networkStructure.sink_nodes || []
+      totalNodes: ns.total_nodes || 0,
+      totalEdges: ns.total_edges || 0,
+      sourceNodes: ns.source_nodes || [],
+      sinkNodes: ns.sink_nodes || [],
+      forkNodes: ns.fork_nodes || [],
+      joinNodes: ns.join_nodes || [],
     };
   });
 
-  // **NEW: Access parsed data for actual capacity values**
-  parsedData = computed(() => this.analysisStateService.parsedData());
+  // ─── Computed: filtered + sorted results for active tab ───────────────────
+  activeFilteredResults = computed((): CapacityNodeResult[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
 
-  // **NEW: Enhanced network context with node type classification**
-  nodeTypeClassification = computed(() => {
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) return null;
-    
-    const totalNodes = networkInfo.totalNodes;
-    const sourceNodes = networkInfo.sourceNodes.length;
-    const sinkNodes = networkInfo.sinkNodes.length;
-    const forkNodes = networkInfo.forkNodes.length;
-    const joinNodes = networkInfo.joinNodes.length;
-    const regularNodes = totalNodes - sourceNodes - sinkNodes - forkNodes - joinNodes;
-    
+    let results = [...tab.nodeResults];
+    const search = this.activeSearchTerm().toLowerCase();
+    const types = this.activeSelectedNodeTypes();
+
+    if (search) {
+      results = results.filter(r => r.nodeId.toString().includes(search));
+    }
+    if (types.length > 0) {
+      results = results.filter(r => types.includes(r.nodeType));
+    }
+
+    const col = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (col && dir) {
+      results.sort((a, b) => {
+        const valA = this.getNodeSortValue(a, col);
+        const valB = this.getNodeSortValue(b, col);
+        return dir === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+    return results;
+  });
+
+  // ─── Computed: filtered edge results ──────────────────────────────────────
+  activeFilteredEdgeResults = computed((): CapacityEdgeResult[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
+
+    let results = [...tab.edgeResults];
+    const search = this.activeSearchTerm().toLowerCase();
+
+    if (search) {
+      results = results.filter(r =>
+        r.from.toString().includes(search) ||
+        r.to.toString().includes(search) ||
+        r.edgeKey.includes(search)
+      );
+    }
+
+    const col = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (col && dir) {
+      results.sort((a, b) => {
+        const valA = this.getEdgeSortValue(a, col);
+        const valB = this.getEdgeSortValue(b, col);
+        return dir === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+    return results;
+  });
+
+  // ─── Computed: paginated results ──────────────────────────────────────────
+  activePaginatedResults = computed((): CapacityNodeResult[] => {
+    const filtered = this.activeFilteredResults();
+    const start = this.activePageIndex() * this.activePageSize();
+    return filtered.slice(start, start + this.activePageSize());
+  });
+
+  activePaginatedEdgeResults = computed((): CapacityEdgeResult[] => {
+    const filtered = this.activeFilteredEdgeResults();
+    const start = this.activePageIndex() * this.activePageSize();
+    return filtered.slice(start, start + this.activePageSize());
+  });
+
+  // ─── Computed: node type stats ────────────────────────────────────────────
+  nodeTypeStats = computed((): NodeTypeStats[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
+
+    const typeMap = new Map<string, { count: number; totalUtil: number }>();
+    for (const r of tab.nodeResults) {
+      const entry = typeMap.get(r.nodeType) || { count: 0, totalUtil: 0 };
+      entry.count++;
+      entry.totalUtil += r.utilization;
+      typeMap.set(r.nodeType, entry);
+    }
+
+    const iconMap: Record<string, string> = {
+      Source: 'login', Sink: 'logout', Fork: 'call_split', Join: 'call_merge', Regular: 'radio_button_unchecked'
+    };
+
+    return Array.from(typeMap.entries()).map(([type, data]) => ({
+      type,
+      count: data.count,
+      avgUtilization: data.totalUtil / data.count,
+      icon: iconMap[type] || 'circle'
+    }));
+  });
+
+  // ─── Computed: sink node summary ──────────────────────────────────────────
+  sinkNodeSummary = computed(() => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return null;
+
+    const sinkResults = tab.nodeResults
+      .filter(r => r.nodeType === 'Sink')
+      .sort((a, b) => a.maxFlow - b.maxFlow);
+
+    if (sinkResults.length === 0) return null;
+
+    const flows = sinkResults.map(r => r.maxFlow);
     return {
-      source: { count: sourceNodes, percentage: (sourceNodes / totalNodes * 100).toFixed(1) },
-      sink: { count: sinkNodes, percentage: (sinkNodes / totalNodes * 100).toFixed(1) },
-      fork: { count: forkNodes, percentage: (forkNodes / totalNodes * 100).toFixed(1) },
-      join: { count: joinNodes, percentage: (joinNodes / totalNodes * 100).toFixed(1) },
-      regular: { count: regularNodes, percentage: (regularNodes / totalNodes * 100).toFixed(1) }
+      nodes: sinkResults,
+      worst: sinkResults[0],
+      best: sinkResults[sinkResults.length - 1],
+      average: flows.reduce((a, b) => a + b, 0) / flows.length
     };
   });
 
-  // **NEW: Filtered results based on search and node type filters**
-  filteredCapacityResults = computed(() => {
-    const results = this.capacityResults();
-    const search = this.searchTerm().toLowerCase();
-    const selectedTypes = this.selectedNodeTypes();
-    const networkInfo = this.networkInfo();
-    
-    if (!networkInfo) return results;
-    
-    return results.filter(result => {
-      // Search filter
-      const matchesSearch = !search || result.nodeId.toString().includes(search);
-      
-      // Node type filter
-      let matchesType = selectedTypes.length === 0;
-      if (!matchesType) {
-        const nodeType = this.getNodeType(result.nodeId, networkInfo);
-        matchesType = selectedTypes.some(type => nodeType.includes(type));
+  // ─── Computed: source flow summary ──────────────────────────────────────
+  sourceFlowSummary = computed(() => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed' || !tab.rawScenario) return null;
+
+    const raw = tab.rawScenario;
+    const rcr = raw.raw_capacity_result;
+    if (!rcr?.source_rates) return null;
+
+    const ni = this.networkInfo();
+    const sinkNodes = ni?.sinkNodes || raw.target_nodes || [];
+    const totalTargetOutput = raw.total_target_output || 0;
+
+    const sources = Object.entries(rcr.source_rates).map(([nodeIdStr, rate]) => {
+      const nodeId = parseInt(nodeIdStr);
+      const actualFlow = rcr.node_max_flows?.[nodeIdStr] ?? 0;
+      const deliveryRatio = rate > 0 ? actualFlow / rate : 0;
+
+      // Calculate what % of this source's flow reaches each sink
+      const sinkReach: { sinkId: number; flow: number; percent: number }[] = [];
+      if (raw.target_flows) {
+        for (const sinkId of sinkNodes) {
+          const sinkFlow = raw.target_flows[String(sinkId)] ?? 0;
+          if (sinkFlow > 0 && totalTargetOutput > 0) {
+            sinkReach.push({
+              sinkId,
+              flow: sinkFlow,
+              percent: (sinkFlow / totalTargetOutput) * 100
+            });
+          }
+        }
       }
-      
-      return matchesSearch && matchesType;
+
+      return {
+        nodeId,
+        inputRate: this.cleanValue(rate),
+        actualFlow: this.cleanValue(actualFlow),
+        deliveryRatio: this.cleanValue(deliveryRatio),
+        sinkReach
+      };
+    });
+
+    return sources.length > 0 ? sources : null;
+  });
+
+  // ─── Computed: comparison rows ────────────────────────────────────────────
+  comparisonRows = computed((): ComparisonRow[] => {
+    if (!this.comparisonMode()) return [];
+    const tabs = this.scenarioTabs();
+    const baseTab = tabs.get(this.baseScenarioName());
+    const compTab = tabs.get(this.compareScenarioName());
+    if (!baseTab || !compTab || baseTab.status !== 'computed' || compTab.status !== 'computed') return [];
+
+    const baseMap = new Map(baseTab.nodeResults.map(r => [r.nodeId, r]));
+    const compMap = new Map(compTab.nodeResults.map(r => [r.nodeId, r]));
+    const allNodeIds = new Set([...baseMap.keys(), ...compMap.keys()]);
+    const ni = this.networkInfo();
+
+    return Array.from(allNodeIds).sort((a, b) => a - b).map(nodeId => {
+      const base = baseMap.get(nodeId);
+      const comp = compMap.get(nodeId);
+      return {
+        nodeId,
+        baseFlow: base?.maxFlow ?? null,
+        compareFlow: comp?.maxFlow ?? null,
+        deltaFlow: (base && comp) ? comp.maxFlow - base.maxFlow : null,
+        baseUtilization: base?.utilization ?? null,
+        compareUtilization: comp?.utilization ?? null,
+        deltaUtilization: (base && comp) ? comp.utilization - base.utilization : null,
+        nodeType: ni ? this.getNodeType(nodeId, ni) : 'Regular'
+      };
     });
   });
 
-  // **NEW: Paginated results**
-  paginatedCapacityResults = computed(() => {
-    const filtered = this.filteredCapacityResults();
-    const pageSize = this.pageSize();
-    const pageIndex = this.pageIndex();
-    const start = pageIndex * pageSize;
-    return filtered.slice(start, start + pageSize);
+  // ─── Computed: comparison edge rows ──────────────────────────────────────
+  comparisonEdgeRows = computed((): ComparisonEdgeRow[] => {
+    if (!this.comparisonMode()) return [];
+    const tabs = this.scenarioTabs();
+    const baseTab = tabs.get(this.baseScenarioName());
+    const compTab = tabs.get(this.compareScenarioName());
+    if (!baseTab || !compTab || baseTab.status !== 'computed' || compTab.status !== 'computed') return [];
+
+    const baseMap = new Map(baseTab.edgeResults.map(r => [r.edgeKey, r]));
+    const compMap = new Map(compTab.edgeResults.map(r => [r.edgeKey, r]));
+    const allEdgeKeys = new Set([...baseMap.keys(), ...compMap.keys()]);
+
+    return Array.from(allEdgeKeys).sort().map(edgeKey => {
+      const base = baseMap.get(edgeKey);
+      const comp = compMap.get(edgeKey);
+      return {
+        edgeKey,
+        from: base?.from ?? comp?.from ?? 0,
+        to: base?.to ?? comp?.to ?? 0,
+        baseFlow: base?.flow ?? null,
+        compareFlow: comp?.flow ?? null,
+        deltaFlow: (base && comp) ? comp.flow - base.flow : null,
+        baseUtilization: base?.utilization ?? null,
+        compareUtilization: comp?.utilization ?? null,
+        deltaUtilization: (base && comp) ? comp.utilization - base.utilization : null,
+      };
+    });
   });
 
-  // Network complexity assessment
-  networkComplexity = computed(() => {
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) return 'Unknown';
-    
-    const totalNodes = networkInfo.totalNodes;
-    const totalEdges = networkInfo.totalEdges;
-    const edgeNodeRatio = totalEdges / totalNodes;
-    
-    if (edgeNodeRatio < 1.2) return 'Simple (Sparse Network)';
-    if (edgeNodeRatio < 1.8) return 'Moderate (Balanced Network)';
-    if (edgeNodeRatio < 2.5) return 'Complex (Dense Network)';
-    return 'Very Complex (Highly Dense Network)';
+  // ─── Computed: comparison tab states (for summary cards) ────────────────
+  baseTabState = computed(() => this.scenarioTabs().get(this.baseScenarioName()) || null);
+  compareTabState = computed(() => this.scenarioTabs().get(this.compareScenarioName()) || null);
+
+  // ─── Computed: completed count ────────────────────────────────────────────
+  completedCount = computed((): number => {
+    let count = 0;
+    for (const tab of this.scenarioTabs().values()) {
+      if (tab.status === 'computed') count++;
+    }
+    return count;
   });
 
-  // Table columns for results display
-  displayedColumns: string[] = ['nodeId', 'capacity', 'flow', 'utilization', 'nodeType'];
-  
-  // **NEW: Pagination and filtering state**
-  pageSize = signal(25);
-  pageIndex = signal(0);
-  searchTerm = signal('');
-  selectedNodeTypes = signal<string[]>([]);
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
+
+  private static readonly VIEW_KEY = 'capacity-analysis';
 
   ngOnInit(): void {
-    console.log('⚡ CapacityAnalysisComponent initializing...');
-    this.loadScenarios();
     this.loadData();
+
+    // Restore cached state from previous navigation (avoids unnecessary re-run)
+    const cached = this.analysisStateService.restoreViewState(CapacityAnalysisComponent.VIEW_KEY);
+    if (cached && cached.tabs.size > 0) {
+      this.scenarioTabs.set(cached.tabs as Map<string, ScenarioTabState>);
+      this.activeTabIndex.set(cached.activeTabIndex);
+      if (cached.uiState) {
+        this.activeSearchTerm.set(cached.uiState.searchTerm || '');
+        this.activeSelectedNodeTypes.set(cached.uiState.selectedNodeTypes || []);
+        this.activePageIndex.set(cached.uiState.pageIndex || 0);
+        this.activePageSize.set(cached.uiState.pageSize || 25);
+        this.activeSortColumn.set(cached.uiState.sortColumn || 'nodeId');
+        this.activeSortDirection.set(cached.uiState.sortDirection || '');
+        this.activeViewMode.set(cached.uiState.viewMode || 'node');
+        this.comparisonMode.set(cached.uiState.comparisonMode || false);
+        this.baseScenarioName.set(cached.uiState.baseScenarioName || '');
+        this.compareScenarioName.set(cached.uiState.compareScenarioName || '');
+      }
+      for (const [name, tab] of cached.tabs.entries()) {
+        if ((tab as any).rawScenario) this.scenarioResults.set(name, (tab as any).rawScenario);
+      }
+      return;
+    }
+
+    this.loadScenarios();
+    this.runAllScenarios();
   }
 
-  // **NEW: ScenarioAwareComponent interface implementation**
-  loadScenarios(): void {
-    const capacityGroups = this.fileManagerService.analysisGroups().capacity;
-    this.availableScenarios = capacityGroups
-      .map((group, index) => ({
-        name: group.scenarioName || `capacity-${index}`,
-        dataType: 'capacity' as any,
-        path: group.capacitiesFile?.path || '',
-        displayName: group.scenarioName ?
-          `${group.scenarioName} (Capacity Analysis)` :
-          'Capacity Analysis',
-        analysisType: 'capacity' as const,
-        description: 'Network capacity and flow analysis with bottleneck identification'
-      }));
+  ngOnDestroy(): void {
+    // Save current tab's UI state before persisting
+    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    if (currentName) {
+      this.updateTabState(currentName, {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection()
+      });
+    }
+    this.analysisStateService.saveViewState(
+      CapacityAnalysisComponent.VIEW_KEY,
+      this.scenarioTabs(),
+      this.activeTabIndex(),
+      {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection(),
+        viewMode: this.activeViewMode(),
+        comparisonMode: this.comparisonMode(),
+        baseScenarioName: this.baseScenarioName(),
+        compareScenarioName: this.compareScenarioName()
+      }
+    );
+  }
 
-    // Auto-select first scenario if available
-    if (this.availableScenarios.length > 0 && !this.currentScenario) {
-      this.setCurrentScenario(this.availableScenarios[0].name);
+  // ─── ScenarioAwareComponent implementation ────────────────────────────────
+
+  loadScenarios(): void {
+    const capacityGroups: CapacityFileGroup[] = this.fileManagerService.analysisGroups().capacity;
+    const validGroups = capacityGroups.filter(g => g.capacitiesFile);
+
+    this.availableScenarios = validGroups.map((group, index) => ({
+      name: group.scenarioName || `capacity-${index}`,
+      dataType: 'float' as const,
+      path: group.capacitiesFile?.path || '',
+      displayName: group.scenarioName || `Capacity Scenario ${index + 1}`,
+      analysisType: 'capacity' as const,
+    }));
+
+    const tabs = new Map<string, ScenarioTabState>();
+    validGroups.forEach((group, index) => {
+      const name = group.scenarioName || `capacity-${index}`;
+      tabs.set(name, {
+        scenario: {
+          name,
+          path: group.capacitiesFile?.path || '',
+          displayName: group.scenarioName || `Capacity Scenario ${index + 1}`,
+          networkPath: group.networkPath,
+        },
+        status: 'idle',
+        nodeResults: [],
+        edgeResults: [],
+        metrics: null,
+        rawScenario: null,
+        error: null,
+        searchTerm: '',
+        selectedNodeTypes: [],
+        pageIndex: 0,
+        pageSize: 25,
+        sortColumn: 'nodeId',
+        sortDirection: ''
+      });
+    });
+    this.scenarioTabs.set(tabs);
+
+    if (this.availableScenarios.length > 0) {
+      this.currentScenario = this.availableScenarios[0].name;
     }
   }
 
   setCurrentScenario(scenarioName: string): void {
     this.currentScenario = scenarioName;
-    const scenario = this.availableScenarios.find(s => s.name === scenarioName);
-    if (scenario) {
-      // Convert ScenarioInfo to CapacityScenarioInfo for backward compatibility
-      const capacityGroups = this.fileManagerService.analysisGroups().capacity;
-      const matchingGroup = capacityGroups.find(group =>
-        group.scenarioName === scenario.name
-      );
-      
-      if (matchingGroup) {
-        const capacityScenario: CapacityScenarioInfo = {
-          name: scenario.name,
-          path: scenario.path,
-          displayName: scenario.displayName || scenario.name,
-          description: scenario.description || '',
-          networkPath: matchingGroup.networkPath,
-          capacitiesFile: matchingGroup.capacitiesFile
-        };
-        this.selectedScenario.set(capacityScenario);
-        
-        // **FIX: Auto-execute analysis when scenario changes via dropdown**
-        console.log('⚡ Current capacity scenario set to:', scenarioName);
-        console.log('🔄 Auto-executing analysis for new scenario selection');
-        this.executeCapacityAnalysis();
-      }
-    }
   }
 
   loadScenarioData(scenarioName: string): void {
     this.setCurrentScenario(scenarioName);
-    
-    // **FIX: Clear previous results before loading new scenario**
-    this.capacityResults.set([]);
-    this.capacityMetrics.set(null);
-    this.errorMessage.set(null);
-    
-    // **FIX: Force UI update after clearing**
-    this.cdr.markForCheck();
-    this.cdr.detectChanges();
-    
-    // Trigger capacity analysis execution for the selected scenario
-    this.executeCapacityAnalysis();
   }
 
   loadData(): void {
@@ -314,520 +560,382 @@ export class CapacityAnalysisComponent implements OnInit, ScenarioAwareComponent
   }
 
   clearScenarioData(): void {
+    const tabs = new Map(this.scenarioTabs());
+    for (const [name, tab] of tabs.entries()) {
+      tabs.set(name, { ...tab, status: 'idle', nodeResults: [], edgeResults: [], metrics: null, error: null, rawScenario: null });
+    }
+    this.scenarioTabs.set(tabs);
     this.scenarioResults.clear();
-    this.capacityResults.set([]);
-    this.capacityMetrics.set(null);
-    this.errorMessage.set(null);
-    console.log('🧹 Capacity analysis scenario data cleared');
+    this.analysisStateService.clearViewState(CapacityAnalysisComponent.VIEW_KEY);
   }
 
-  /**
-   * Execute network capacity analysis
-   */
-  async executeCapacityAnalysis(): Promise<void> {
-    const scenario = this.selectedScenario();
-    if (!scenario) {
-      this.errorMessage.set('No scenario selected');
-      return;
-    }
+  // ─── Auto-run all scenarios ───────────────────────────────────────────────
 
-    // **FIX: Prevent duplicate executions with state guard**
-    if (this.isComputing()) {
-      console.log('⚠️ Capacity analysis already in progress, skipping duplicate execution');
-      return;
-    }
+  async runAllScenarios(): Promise<void> {
+    const tabs = this.scenarioTabs();
+    if (tabs.size === 0) return;
 
-    this.isComputing.set(true);
-    this.errorMessage.set(null);
-    
+    const promises: Promise<void>[] = [];
+    for (const name of tabs.keys()) {
+      promises.push(this.runScenario(name));
+    }
+    await Promise.allSettled(promises);
+  }
+
+  async rerunScenario(scenarioName: string): Promise<void> {
+    await this.runScenario(scenarioName);
+  }
+
+  private async runScenario(scenarioName: string): Promise<void> {
+    const tabs = this.scenarioTabs();
+    const tabState = tabs.get(scenarioName);
+    if (!tabState) return;
+
+    this.updateTabState(scenarioName, { status: 'computing', error: null });
+
     try {
-      // Use networkPath from scenario if available, otherwise from session
-      let networkPath = scenario.networkPath;
-      if (!networkPath) {
-        const currentSession = this.sessionService.getCurrentSession();
-        networkPath = currentSession?.networkPath;
-      }
-      
-      if (!networkPath) {
-        throw new Error('No network path available');
-      }
-
-      console.log(`⚡ Executing capacity analysis for scenario: ${scenario.displayName}`);
-      console.log(`📂 Network path: ${networkPath}`);
-      console.log(`📊 Capacities path: ${scenario.path}`);
-      console.log(`🔗 Capacities file path: ${scenario.capacitiesFile?.path}`);
-
-      // Check that scenario has all required file paths
-      if (!scenario.capacitiesFile?.path) {
-        throw new Error('Missing required capacity file for analysis. Please upload capacity files first.');
-      }
-      
-      // Validate paths are not empty
-      if (!scenario.capacitiesFile.path.trim()) {
-        throw new Error('Capacity file path cannot be empty. Please check uploaded files.');
-      }
-      
-      // Get edges file path from the capacity group
-      const capacityGroups = this.fileManagerService.analysisGroups().capacity;
-      const matchingGroup = capacityGroups.find(group => 
-        group.scenarioName === scenario.name
-      );
-      
-      if (!matchingGroup) {
-        throw new Error(`Could not find matching capacity group for scenario: ${scenario.name}`);
-      }
-      
-      // **FIXED: Construct edges file path correctly**
-      const edgesNetworkName = matchingGroup.networkPath?.split('/').pop() || 'network';
-      let edgesFilePath = matchingGroup.edgesFile?.path || `${edgesNetworkName}.EDGES`;
-      
-      // **CRITICAL FIX: Remove any network path prefix from edges file path**
-      if (edgesFilePath.includes('/')) {
-        edgesFilePath = edgesFilePath.split('/').pop() || `${edgesNetworkName}.EDGES`;
-      }
-      
-      console.log(`📊 Final edges file path: ${edgesFilePath}`);
-      
-      // **IMPROVED: Use session network path for consistency with backend expectations**
+      const scenario = tabState.scenario;
       const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      const baseNetworkPath = sessionNetworkPath || matchingGroup.networkPath;
-      
-      if (!baseNetworkPath) {
-        throw new Error('No valid network path available for analysis');
-      }
-      
-      // **IMPROVED: Construct relative paths for backend compatibility**
-      const fullNetworkPath = baseNetworkPath.replace(/\\/g, '/');
-      
-      // Make paths relative to the network directory
-      let relativeCapacitiesPath = scenario.capacitiesFile.path;
-      
-      // **FIXED: Improved path stripping logic to preserve folder structure**
+      const baseNetworkPath = (sessionNetworkPath || scenario.networkPath || '').replace(/\\/g, '/');
+      if (!baseNetworkPath) throw new Error('No network path available');
+
       const networkName = baseNetworkPath.split('/').pop() || '';
-      
-      // Only remove the network name prefix if it exists at the start
-      if (networkName && relativeCapacitiesPath.startsWith(networkName + '/')) {
-        relativeCapacitiesPath = relativeCapacitiesPath.substring(networkName.length + 1);
-      }
-      
-      // **DEBUG: Log path transformation for debugging**
-      console.log('🔧 CAPACITY PATH TRANSFORMATION DEBUG:');
-      console.log(`  networkName: '${networkName}'`);
-      console.log(`  original capacitiesPath: '${scenario.capacitiesFile.path}'`);
-      console.log(`  transformed capacitiesPath: '${relativeCapacitiesPath}'`);
-      
-      // Validate all paths are non-empty
-      if (!fullNetworkPath.trim()) {
-        throw new Error('Network path is empty');
-      }
-      if (!edgesFilePath.trim()) {
-        throw new Error('Edges file path is empty');
-      }
-      if (!relativeCapacitiesPath.trim()) {
-        throw new Error('Capacities path is empty');
-      }
-      
-      // **ENHANCED: Call capacity analysis service**
-      const results = await this.capacityAnalysisService.analyzeCapacity({
-        networkPath: fullNetworkPath,
-        edgesFilePath: edgesFilePath,
-        capacitiesPath: relativeCapacitiesPath
-      }).toPromise();
+      const edgesFilePath = `${networkName}.EDGES`;
 
-      // **ENHANCED: Add comprehensive result logging for debugging**
-      console.log('🔍 CAPACITY ANALYSIS API RESPONSE DEBUG:');
-      console.log('  Full response:', JSON.stringify(results, null, 2));
-      console.log('  Response type:', typeof results);
-      console.log('  Response keys:', results ? Object.keys(results) : 'null');
-      
-      if (results?.capacity_result) {
-        console.log('  capacity_result keys:', Object.keys(results.capacity_result));
-        const capacityResult = results.capacity_result as any;
-        console.log('  source_flows:', capacityResult.source_flows ? Object.keys(capacityResult.source_flows).length : 'none');
-        console.log('  target_flows:', capacityResult.target_flows ? Object.keys(capacityResult.target_flows).length : 'none');
+      let capacitiesPath = scenario.path;
+      if (networkName && capacitiesPath.startsWith(networkName + '/')) {
+        capacitiesPath = capacitiesPath.substring(networkName.length + 1);
       }
 
-      // **NEW: Store results in scenario-aware map**
-      if (results?.capacity_result) {
-        this.scenarioResults.set(scenario.name, results.capacity_result);
+      const request = { networkPath: baseNetworkPath, edgesFilePath, capacitiesPath };
+
+      const response = await this.capacityAnalysisService.analyzeCapacity(request).toPromise();
+
+      if (!response?.success || !response.capacity_result) {
+        throw new Error(response?.message || 'Capacity analysis failed');
       }
 
-      // Process and format results for display
-      const processedResults = this.processCapacityResults(results);
-      const metrics = this.calculateCapacityMetrics(results, processedResults);
-      
-      // **ENHANCED: Update signals and trigger change detection**
-      this.capacityResults.set(processedResults);
-      this.capacityMetrics.set(metrics);
-      
-      // **FIX: Force change detection to ensure UI updates**
-      this.cdr.markForCheck();
+      const raw = response.capacity_result;
+      const nodeResults = this.processNodeResults(raw);
+      const edgeResults = this.processEdgeResults(raw);
+      const metrics = this.calculateMetrics(raw);
+
+      this.updateTabState(scenarioName, {
+        status: 'computed',
+        nodeResults,
+        edgeResults,
+        metrics,
+        rawScenario: raw,
+        error: null
+      });
+
+      this.scenarioResults.set(scenarioName, raw);
       this.cdr.detectChanges();
-      
-      // **FIX: Additional UI update trigger after a short delay**
-      setTimeout(() => {
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-      }, 100);
-      
-      console.log(`✅ Capacity analysis completed for scenario "${scenario.name}": ${processedResults.length} nodes analyzed`);
-      console.log(`⏱️ Computation time: ${metrics.computationTime.toFixed(3)}s`);
-      console.log(`⚡ Network utilization: ${(metrics.networkUtilization * 100).toFixed(1)}%`);
-      console.log(`🔄 UI update triggered for ${processedResults.length} capacity results`);
-      
     } catch (error) {
-      console.error('❌ Capacity analysis execution failed:', error);
-      this.errorMessage.set(error instanceof Error ? error.message : 'Capacity analysis execution failed');
-    } finally {
-      this.isComputing.set(false);
+      const msg = error instanceof Error ? error.message : 'Capacity analysis failed';
+      this.updateTabState(scenarioName, { status: 'error', error: msg });
+      this.cdr.detectChanges();
     }
   }
 
-  /**
-   * Process raw capacity results into structured capacity data
-   * **ENHANCED: Handle multiple API response formats and add comprehensive error handling**
-   */
-  private processCapacityResults(results: any): CapacityResult[] {
-    console.log('🔧 Processing capacity results...');
-    
-    // **FIX: Handle multiple possible response structures**
-    let capacityResult = null;
-    
-    // Try different possible response structures
-    if (results?.capacity_result) {
-      capacityResult = results.capacity_result;
-      console.log('✅ Found capacity_result in response');
-    } else if (results?.result) {
-      capacityResult = results.result;
-      console.log('✅ Found result in response (alternative structure)');
-    } else if (results?.data) {
-      capacityResult = results.data;
-      console.log('✅ Found data in response (alternative structure)');
-    } else if (results && typeof results === 'object' && (results.source_flows || results.target_flows)) {
-      capacityResult = results;
-      console.log('✅ Using direct response as capacity result');
-    } else {
-      console.warn('⚠️ No capacity results found in response structure:', Object.keys(results || {}));
-      return [];
-    }
+  // ─── Results processing ─────────────────────────────────────────────────
 
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) {
-      console.error('❌ No network info available for processing results');
-      return [];
-    }
-    
-    const sourceNodesSet = new Set(networkInfo.sourceNodes);
-    const sinkNodesSet = new Set(networkInfo.sinkNodes);
-    const processedResults: CapacityResult[] = [];
-    
-    console.log(`📊 Processing flows for ${networkInfo.totalNodes} total nodes`);
-    console.log(`📊 Source nodes: ${sourceNodesSet.size}, Sink nodes: ${sinkNodesSet.size}`);
-    
-    // **FIX: Use node_max_flows from raw_capacity_result to show all nodes**
-    const rawCapacityResult = capacityResult.raw_capacity_result;
-    if (rawCapacityResult?.node_max_flows && typeof rawCapacityResult.node_max_flows === 'object') {
-      console.log(`🔄 Processing ${Object.keys(rawCapacityResult.node_max_flows).length} node max flows`);
-      
-      Object.entries(rawCapacityResult.node_max_flows).forEach(([nodeIdStr, flow]) => {
-        try {
-          const nodeId = parseInt(nodeIdStr);
-          if (isNaN(nodeId)) {
-            console.warn(`⚠️ Invalid node ID in node max flows: ${nodeIdStr}`);
-            return;
+  private processNodeResults(raw: CapacityScenario): CapacityNodeResult[] {
+    const rcr = raw.raw_capacity_result;
+    if (!rcr) return [];
+
+    const ni = this.networkInfo();
+    const bottleneckNodes = new Set<number>();
+
+    // Extract bottleneck node IDs
+    if (rcr.bottlenecks) {
+      for (const entries of Object.values(rcr.bottlenecks)) {
+        if (Array.isArray(entries)) {
+          for (const entry of entries) {
+            if (typeof entry === 'number') bottleneckNodes.add(entry);
+            if (Array.isArray(entry)) {
+              for (const item of entry) {
+                if (typeof item === 'number') bottleneckNodes.add(item);
+              }
+            }
           }
-          
-          const flowValue = typeof flow === 'number' ? flow : parseFloat(flow as string) || 0;
-          const capacity = this.getNodeCapacity(nodeId, flowValue, capacityResult);
-          const utilization = capacity > 0 ? flowValue / capacity : 0;
-          
-          processedResults.push({
-            nodeId,
-            capacity,
-            utilization,
-            flow: flowValue,
-            isBottleneck: utilization > 0.95,
-            sourceInput: sourceNodesSet.has(nodeId) ? flowValue : 0,
-            targetOutput: sinkNodesSet.has(nodeId) ? flowValue : 0,
-            nodeType: this.getNodeType(nodeId, networkInfo)
-          });
-        } catch (error) {
-          console.error(`❌ Error processing node max flow for node ${nodeIdStr}:`, error);
-        }
-      });
-    } else if (capacityResult.source_flows && typeof capacityResult.source_flows === 'object') {
-      console.log(`🔄 Processing ${Object.keys(capacityResult.source_flows).length} source flows (fallback)`);
-      
-      Object.entries(capacityResult.source_flows).forEach(([nodeIdStr, flow]) => {
-        try {
-          const nodeId = parseInt(nodeIdStr);
-          if (isNaN(nodeId)) {
-            console.warn(`⚠️ Invalid node ID in source flows: ${nodeIdStr}`);
-            return;
-          }
-          
-          const flowValue = typeof flow === 'number' ? flow : parseFloat(flow as string) || 0;
-          const capacity = this.getNodeCapacity(nodeId, flowValue, capacityResult);
-          const utilization = capacity > 0 ? flowValue / capacity : 0;
-          
-          processedResults.push({
-            nodeId,
-            capacity,
-            utilization,
-            flow: flowValue,
-            isBottleneck: utilization > 0.95,
-            sourceInput: sourceNodesSet.has(nodeId) ? flowValue : 0,
-            targetOutput: 0,
-            nodeType: this.getNodeType(nodeId, networkInfo)
-          });
-        } catch (error) {
-          console.error(`❌ Error processing source flow for node ${nodeIdStr}:`, error);
-        }
-      });
-    } else {
-      console.log('ℹ️ No node_max_flows or source_flows found in capacity result');
-    }
-    
-    // **ENHANCED: Process target flows with better error handling**
-    if (capacityResult.target_flows && typeof capacityResult.target_flows === 'object') {
-      console.log(`🔄 Processing ${Object.keys(capacityResult.target_flows).length} target flows`);
-      
-      Object.entries(capacityResult.target_flows).forEach(([nodeIdStr, flow]) => {
-        try {
-          const nodeId = parseInt(nodeIdStr);
-          if (isNaN(nodeId)) {
-            console.warn(`⚠️ Invalid node ID in target flows: ${nodeIdStr}`);
-            return;
-          }
-          
-          const existingResult = processedResults.find(r => r.nodeId === nodeId);
-          const flowValue = typeof flow === 'number' ? flow : parseFloat(flow as string) || 0;
-          
-          if (existingResult) {
-            existingResult.targetOutput = flowValue;
-          } else {
-            const capacity = this.getNodeCapacity(nodeId);
-            const utilization = capacity > 0 ? flowValue / capacity : 0;
-            
-            processedResults.push({
-              nodeId,
-              capacity,
-              utilization,
-              flow: flowValue,
-              isBottleneck: utilization > 0.95,
-              sourceInput: 0,
-              targetOutput: sinkNodesSet.has(nodeId) ? flowValue : 0,
-              nodeType: this.getNodeType(nodeId, networkInfo)
-            });
-          }
-        } catch (error) {
-          console.error(`❌ Error processing target flow for node ${nodeIdStr}:`, error);
-        }
-      });
-    } else {
-      console.log('ℹ️ No target_flows found in capacity result');
-    }
-    
-    // **ENHANCED: Add remaining nodes with capacity data but no flows**
-    const processedNodeIds = new Set(processedResults.map(r => r.nodeId));
-    let addedNodes = 0;
-    
-    for (let nodeId = 1; nodeId <= networkInfo.totalNodes; nodeId++) {
-      if (!processedNodeIds.has(nodeId)) {
-        const capacity = this.getNodeCapacity(nodeId);
-        if (capacity > 0) {
-          processedResults.push({
-            nodeId,
-            capacity,
-            utilization: 0,
-            flow: 0,
-            isBottleneck: false,
-            sourceInput: 0,
-            targetOutput: 0,
-            nodeType: this.getNodeType(nodeId, networkInfo)
-          });
-          addedNodes++;
         }
       }
     }
-    
-    console.log(`✅ Added ${addedNodes} nodes with capacity but no flow data`);
-    console.log(`📊 Total processed results: ${processedResults.length} nodes`);
-    
-    return processedResults.sort((a, b) => a.nodeId - b.nodeId);
+
+    return Object.entries(rcr.node_max_flows).map(([nodeIdStr, flow]) => {
+      const nodeId = parseInt(nodeIdStr);
+      const capacity = rcr.node_capacities?.[nodeIdStr] ?? 0;
+      const maxFlow = this.cleanValue(flow);
+      const cap = this.cleanValue(capacity);
+      const utilization = cap > 0 ? maxFlow / cap : 0;
+
+      return {
+        nodeId,
+        capacity: cap,
+        maxFlow,
+        utilization,
+        spareCapacity: this.cleanValue(cap - maxFlow),
+        nodeType: ni ? this.getNodeType(nodeId, ni) : 'Regular',
+        isBottleneck: bottleneckNodes.has(nodeId) || utilization > 0.95
+      };
+    }).sort((a, b) => a.nodeId - b.nodeId);
   }
 
-  /**
-   * Calculate comprehensive capacity performance metrics
-   */
-  private calculateCapacityMetrics(results: any, processedResults: CapacityResult[]): CapacityMetrics {
-    const networkInfo = this.networkInfo();
-    const capacityResult = results?.capacity_result;
-    const computationTime = capacityResult?.computation_time || 0;
-    
-    const totalCapacity = processedResults.reduce((sum, result) => sum + result.capacity, 0);
-    const totalFlow = processedResults.reduce((sum, result) => sum + result.flow, 0);
-    const networkUtilization = capacityResult?.network_utilization || (totalCapacity > 0 ? totalFlow / totalCapacity : 0);
-    const bottleneckCount = processedResults.filter(r => r.isBottleneck).length;
-    const averageUtilization = processedResults.length > 0 
-      ? processedResults.reduce((sum, result) => sum + result.utilization, 0) / processedResults.length 
-      : 0;
-    
-    // Find max and min capacity nodes
-    const maxCapacityResult = processedResults.reduce((max, result) => 
-      result.capacity > max.capacity ? result : max, processedResults[0] || { capacity: 0, nodeId: 0 });
-    const minCapacityResult = processedResults.reduce((min, result) => 
-      result.capacity < min.capacity && result.capacity > 0 ? result : min, 
-      processedResults.find(r => r.capacity > 0) || { capacity: 0, nodeId: 0 });
-    
-    const sourceNodes = networkInfo?.sourceNodes.length || 0;
-    const targetNodes = networkInfo?.sinkNodes.length || 0;
-    
+  private processEdgeResults(raw: CapacityScenario): CapacityEdgeResult[] {
+    const rcr = raw.raw_capacity_result;
+    if (!rcr?.edge_utilization) return [];
+
+    // Collect bottleneck edges
+    const bottleneckEdges = new Set<string>();
+    if (rcr.bottlenecks) {
+      for (const entries of Object.values(rcr.bottlenecks)) {
+        if (Array.isArray(entries)) {
+          for (const entry of entries) {
+            if (Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'number' && typeof entry[1] === 'number') {
+              bottleneckEdges.add(`(${entry[0]}, ${entry[1]})`);
+            }
+          }
+        }
+      }
+    }
+
+    return Object.entries(rcr.edge_utilization).map(([edgeKey, data]: [string, any]) => {
+      const match = edgeKey.match(/\((\d+),\s*(\d+)\)/);
+      const from = match ? parseInt(match[1]) : 0;
+      const to = match ? parseInt(match[2]) : 0;
+
+      return {
+        edgeKey,
+        from,
+        to,
+        capacity: this.cleanValue(data.capacity),
+        flow: this.cleanValue(data.flow),
+        utilization: this.cleanValue(data.utilization),
+        spare: this.cleanValue(data.spare),
+        isBottleneck: bottleneckEdges.has(edgeKey) || data.utilization > 0.95
+      };
+    }).sort((a, b) => a.from - b.from || a.to - b.to);
+  }
+
+  private calculateMetrics(raw: CapacityScenario): CapacityMetrics {
+    const rcr = raw.raw_capacity_result;
+    let bottleneckCount = 0;
+    if (rcr?.bottlenecks) {
+      for (const entries of Object.values(rcr.bottlenecks)) {
+        if (Array.isArray(entries)) bottleneckCount += entries.length;
+      }
+    }
+
     return {
-      totalNodes: processedResults.length,
-      totalCapacity,
-      totalFlow,
-      networkUtilization,
-      computationTime,
+      computationTime: raw.computation_time,
+      networkUtilization: this.cleanValue(raw.network_utilization),
+      totalSourceInput: this.cleanValue(raw.total_source_input),
+      totalTargetOutput: this.cleanValue(raw.total_target_output),
       bottleneckCount,
-      sourceNodes,
-      targetNodes,
-      averageUtilization,
-      maxCapacityNode: maxCapacityResult.nodeId,
-      minCapacityNode: minCapacityResult.nodeId
+      sourceCount: raw.active_sources?.length || 0,
+      sinkCount: raw.target_nodes?.length || 0
     };
   }
 
-  /**
-   * Get node capacity from current analysis results or parsed data
-   */
-  private getNodeCapacity(nodeId: number, maxFlow?: number, capacityResults?: any): number {
-    // First try to get from current capacity analysis results (most reliable)
-    if (capacityResults?.raw_capacity_result?.node_capacities) {
-      const nodeIdStr = nodeId.toString();
-      const nodeCapacity = capacityResults.raw_capacity_result.node_capacities[nodeIdStr];
-      if (nodeCapacity && nodeCapacity > 0) {
-        return nodeCapacity;
-      }
+  // ─── Tab state management ─────────────────────────────────────────────────
+
+  private updateTabState(name: string, updates: Partial<ScenarioTabState>): void {
+    const tabs = new Map(this.scenarioTabs());
+    const tab = tabs.get(name);
+    if (tab) {
+      tabs.set(name, { ...tab, ...updates });
+      this.scenarioTabs.set(tabs);
     }
-    
-    // Try to get from parsed capacity data (node capacities)
-    const parsedData = this.parsedData();
-    if (parsedData?.capacity?.capacities?.nodes) {
-      const nodeIdStr = nodeId.toString();
-      const nodeCapacity = parsedData.capacity.capacities.nodes[nodeIdStr];
-      if (nodeCapacity && nodeCapacity > 0) {
-        return nodeCapacity;
-      }
-    }
-    
-    // Fallback: try to get from edge capacities if node capacities not available
-    if (parsedData?.capacity?.capacities?.edges) {
-      const nodeIdStr = nodeId.toString();
-      const edgeCapacity = parsedData.capacity.capacities.edges[nodeIdStr];
-      if (edgeCapacity && edgeCapacity > 0) {
-        return edgeCapacity;
-      }
-    }
-    
-    // If we have max flow data, infer capacity as slightly higher than max flow
-    // This is a reasonable assumption for capacity analysis
-    if (maxFlow && maxFlow > 0) {
-      return Math.ceil(maxFlow * 1.2); // Assume capacity is 20% higher than current max flow
-    }
-    
-    // Final fallback: use a reasonable default
-    return 50; // Default capacity for calculation purposes
   }
 
-  /**
-   * Format capacity value for display
-   */
-  formatCapacity(capacity: number): string {
-    if (capacity >= 1000000) {
-      return (capacity / 1000000).toFixed(1) + 'M';
-    } else if (capacity >= 1000) {
-      return (capacity / 1000).toFixed(1) + 'K';
+  onTabChange(index: number): void {
+    // Save current tab's UI state
+    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    if (currentName) {
+      this.updateTabState(currentName, {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection()
+      });
+    }
+
+    this.activeTabIndex.set(index);
+
+    // Restore new tab's UI state
+    const newName = this.scenarioNames()[index];
+    const newTab = this.scenarioTabs().get(newName);
+    if (newTab) {
+      this.activeSearchTerm.set(newTab.searchTerm);
+      this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
+      this.activePageIndex.set(newTab.pageIndex);
+      this.activePageSize.set(newTab.pageSize);
+      this.activeSortColumn.set(newTab.sortColumn);
+      this.activeSortDirection.set(newTab.sortDirection);
+    }
+  }
+
+  // ─── UI event handlers ──────────────────────────────────────────────────
+
+  onSearchChange(event: Event): void {
+    this.activeSearchTerm.set((event.target as HTMLInputElement).value);
+    this.activePageIndex.set(0);
+  }
+
+  toggleNodeTypeFilter(type: string): void {
+    const current = this.activeSelectedNodeTypes();
+    if (current.includes(type)) {
+      this.activeSelectedNodeTypes.set(current.filter(t => t !== type));
     } else {
-      return capacity.toFixed(1);
+      this.activeSelectedNodeTypes.set([...current, type]);
+    }
+    this.activePageIndex.set(0);
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.activePageIndex.set(event.pageIndex);
+    this.activePageSize.set(event.pageSize);
+  }
+
+  onSort(column: string): void {
+    const current = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (current === column) {
+      this.activeSortDirection.set(dir === 'asc' ? 'desc' : dir === 'desc' ? '' : 'asc');
+    } else {
+      this.activeSortColumn.set(column);
+      this.activeSortDirection.set('asc');
     }
   }
 
-  /**
-   * Format utilization percentage for display
-   */
-  formatUtilization(utilization: number): string {
-    return (utilization * 100).toFixed(1) + '%';
+  getSortIcon(column: string): string {
+    if (this.activeSortColumn() !== column) return 'unfold_more';
+    return this.activeSortDirection() === 'asc' ? 'arrow_upward' : this.activeSortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more';
   }
 
-  /**
-   * Get CSS class for utilization level visualization
-   */
-  getUtilizationColorClass(utilization: number): string {
-    if (utilization >= 0.95) return 'utilization-critical';
-    if (utilization >= 0.8) return 'utilization-high';
-    if (utilization >= 0.6) return 'utilization-medium';
-    if (utilization >= 0.3) return 'utilization-low';
-    return 'utilization-minimal';
+  toggleViewMode(): void {
+    this.activeViewMode.set(this.activeViewMode() === 'node' ? 'edge' : 'node');
+    this.activePageIndex.set(0);
+    this.activeSortColumn.set(this.activeViewMode() === 'node' ? 'nodeId' : 'from');
+    this.activeSortDirection.set('');
   }
 
-  /**
-   * Get tooltip text for utilization level
-   */
-  getUtilizationTooltip(utilization: number): string {
-    if (utilization >= 0.95) return 'Critical utilization - potential bottleneck';
-    if (utilization >= 0.8) return 'High utilization - monitor for congestion';
-    if (utilization >= 0.6) return 'Medium utilization - normal operation';
-    if (utilization >= 0.3) return 'Low utilization - underused capacity';
-    return 'Minimal utilization - spare capacity available';
+  toggleComparisonMode(): void {
+    this.comparisonMode.set(!this.comparisonMode());
+    if (this.comparisonMode()) {
+      const names = this.scenarioNames();
+      if (names.length >= 2) {
+        this.baseScenarioName.set(names[0]);
+        this.compareScenarioName.set(names[1]);
+      }
+    }
   }
 
-  /**
-   * Clear current results and reset component state
-   */
-  clearResults(): void {
-    this.capacityResults.set([]);
-    this.capacityMetrics.set(null);
-    this.errorMessage.set(null);
-    this.clearScenarioData();
-    console.log('🧹 Cleared capacity analysis results');
+  copyToClipboard(value: any, key: string): void {
+    navigator.clipboard.writeText(String(value));
+    this.copiedCellKey.set(key);
+    setTimeout(() => this.copiedCellKey.set(''), 1500);
   }
 
-  // **NEW: Check if scenario has results**
-  hasScenarioResults(scenarioName: string): boolean {
-    return this.scenarioResults.has(scenarioName);
+  // ─── Export ───────────────────────────────────────────────────────────────
+
+  exportCSV(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+
+    const isEdge = this.activeViewMode() === 'edge';
+    let csv: string;
+
+    if (isEdge) {
+      csv = 'Edge,From,To,Capacity,Flow,Utilization,Spare,Bottleneck\n';
+      csv += tab.edgeResults.map(r =>
+        `"${r.edgeKey}",${r.from},${r.to},${r.capacity},${r.flow},${r.utilization.toFixed(4)},${r.spare},${r.isBottleneck}`
+      ).join('\n');
+    } else {
+      csv = 'Node ID,Capacity,Max Flow,Utilization,Spare Capacity,Node Type,Bottleneck\n';
+      csv += tab.nodeResults.map(r =>
+        `${r.nodeId},${r.capacity},${r.maxFlow},${r.utilization.toFixed(4)},${r.spareCapacity},${r.nodeType},${r.isBottleneck}`
+      ).join('\n');
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `capacity-analysis-${tab.scenario.name}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
-  /**
-   * Get node type based on network structure from AnalysisStateService
-   */
-  getNodeType(nodeId: number, networkInfo: any): string {
-    const types: string[] = [];
-    
-    if (networkInfo.sourceNodes.includes(nodeId)) types.push('Source');
-    if (networkInfo.sinkNodes.includes(nodeId)) types.push('Sink');
-    if (networkInfo.forkNodes.includes(nodeId)) types.push('Fork');
-    if (networkInfo.joinNodes.includes(nodeId)) types.push('Join');
-    
-    return types.length > 0 ? types.join(' + ') : 'Regular';
+  exportJSON(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+
+    const data = { scenario: tab.scenario.name, metrics: tab.metrics, nodeResults: tab.nodeResults, edgeResults: tab.edgeResults };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `capacity-analysis-${tab.scenario.name}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
-  /**
-   * Event handlers for pagination and filtering
-   */
-  onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
+  // ─── Formatting helpers ─────────────────────────────────────────────────
+
+  cleanValue(val: number): number {
+    return parseFloat(val.toPrecision(10));
   }
 
-  onSearch(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchTerm.set(target.value);
-    this.pageIndex.set(0); // Reset to first page
+  formatValue(val: number, decimals = 1): string {
+    return this.cleanValue(val).toFixed(decimals);
   }
 
-  onNodeTypeFilter(types: string[]): void {
-    this.selectedNodeTypes.set(types);
-    this.pageIndex.set(0); // Reset to first page
+  formatUtilization(val: number): string {
+    return (this.cleanValue(val) * 100).toFixed(1) + '%';
+  }
+
+  getUtilizationHeatColor(utilization: number): string {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const u = Math.max(0, Math.min(1, utilization));
+    // Red (high utilization) → Yellow → Green (low utilization)
+    const hue = (1 - u) * 120;
+    const saturation = 70;
+    const lightness = isDark ? 25 : 90;
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  }
+
+  getNodeType(nodeId: number, ni: any): string {
+    if (ni.sourceNodes.includes(nodeId)) return 'Source';
+    if (ni.sinkNodes.includes(nodeId)) return 'Sink';
+    if (ni.forkNodes.includes(nodeId)) return 'Fork';
+    if (ni.joinNodes.includes(nodeId)) return 'Join';
+    return 'Regular';
+  }
+
+  private getNodeSortValue(r: CapacityNodeResult, col: string): number {
+    switch (col) {
+      case 'nodeId': return r.nodeId;
+      case 'capacity': return r.capacity;
+      case 'maxFlow': return r.maxFlow;
+      case 'utilization': return r.utilization;
+      case 'spareCapacity': return r.spareCapacity;
+      default: return r.nodeId;
+    }
+  }
+
+  private getEdgeSortValue(r: CapacityEdgeResult, col: string): number {
+    switch (col) {
+      case 'from': return r.from;
+      case 'to': return r.to;
+      case 'capacity': return r.capacity;
+      case 'flow': return r.flow;
+      case 'utilization': return r.utilization;
+      case 'spare': return r.spare;
+      default: return r.from;
+    }
   }
 }

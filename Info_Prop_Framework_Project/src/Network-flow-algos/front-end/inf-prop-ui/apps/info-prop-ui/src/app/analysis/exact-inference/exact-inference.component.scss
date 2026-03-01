@@ -795,13 +795,89 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 0.9rem;
-    background: transparent;
+    background: var(--surface-container);
     color: var(--text-primary);
     cursor: pointer;
     outline: none;
 
     &:focus {
       border-color: var(--d3-node-join);
+    }
+
+    option {
+      background: var(--surface-container);
+      color: var(--text-primary);
+    }
+  }
+}
+
+// ─── Comparison Card & Selectors ──────────────────────────────────────────────
+
+.comparison-card {
+  margin-bottom: 16px;
+}
+
+.comparison-selectors {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .comparison-arrow {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: var(--d3-node-join);
+  }
+}
+
+// ─── Comparison Summary Cards ─────────────────────────────────────────────────
+
+.comparison-summary {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--surface-container);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+
+  .summary-column {
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+    }
+
+    .summary-metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-color);
+
+      &:last-child { border-bottom: none; }
+
+      .label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+
+      .value {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+
+        &.positive-delta { color: var(--success-color); }
+        &.negative-delta { color: var(--error-color); }
+      }
+    }
+
+    &.delta {
+      border-left: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      padding: 0 16px;
     }
   }
 }

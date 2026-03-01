@@ -12,8 +12,8 @@ module GeneralizedCriticalPathModule
     using ..DiamondProcessingModule
     using ..InputProcessingModule
 
-    export CriticalPathParameters, CriticalPathResult,
-           critical_path_analysis,
+    export CriticalPathParameters, CriticalPathResult, ExtendedCriticalPathResult,
+           critical_path_analysis, backward_pass_analysis,
            # Standard combination functions
            max_combination, min_combination, sum_combination,
            # Standard propagation functions
@@ -250,9 +250,23 @@ module GeneralizedCriticalPathModule
         end
     end
 
-    # 
+    """
+    Extended results from critical path analysis including backward pass data.
+    Contains Early Start/Finish, Late Start/Finish, and Total Slack per node.
+    """
+    struct ExtendedCriticalPathResult{T}
+        node_values::Dict{Int64, T}         # EF (early finish) from forward pass
+        early_start::Dict{Int64, T}         # ES = EF - node_duration
+        late_finish::Dict{Int64, T}         # LF from backward pass
+        late_start::Dict{Int64, T}          # LS = LF - node_duration
+        total_slack::Dict{Int64, T}         # LS - ES (or equivalently LF - EF)
+        critical_value::T
+        critical_nodes::Vector{Int64}
+    end
+
+    #
     # STANDARD INVERSE FUNCTIONS
-    # 
+    #
     
     """Inverse of additive node function: input = output - node_value"""
     function additive_inverse(output::T, node_value::T) where T
@@ -421,9 +435,117 @@ module GeneralizedCriticalPathModule
         return CriticalPathResult(node_results)
     end
 
-    # 
+    """
+    Backward pass analysis for additive CPM systems.
+
+    Given a forward pass result, computes Late Start (LS), Late Finish (LF),
+    and Total Slack for each node by processing in reverse topological order.
+
+    For additive systems (standard CPM):
+    - LF[sink] = critical_value (sinks can finish as late as the project end)
+    - LF[n] = min over successors s { LS[s] - edge_value[n→s] }
+    - LS[n] = LF[n] - node_duration[n]
+    - ES[n] = EF[n] - node_duration[n]  (from forward pass)
+    - Total Slack = LS[n] - ES[n] = LF[n] - EF[n]
+
+    Nodes with slack = 0 are on the critical path.
+    """
+    function backward_pass_analysis(
+        forward_result::CriticalPathResult{T},
+        iteration_sets::Vector{Set{Int64}},
+        outgoing_index::Dict{Int64,Set{Int64}},
+        params::CriticalPathParameters{T}
+    )::ExtendedCriticalPathResult{T} where T
+
+        critical_value = forward_result.critical_value
+        ef = forward_result.node_values  # Early Finish from forward pass
+
+        # Identify sink nodes (no outgoing edges or all outgoing lead outside the network)
+        all_nodes = keys(ef)
+        sink_nodes = Set{Int64}()
+        for node in all_nodes
+            successors = get(outgoing_index, node, Set{Int64}())
+            if isempty(successors)
+                push!(sink_nodes, node)
+            end
+        end
+
+        # Initialize Late Finish values
+        lf = Dict{Int64, T}()
+
+        # Process nodes in REVERSE topological order
+        for i in length(iteration_sets):-1:1
+            for node in iteration_sets[i]
+                if !haskey(ef, node)
+                    continue  # Skip nodes not in the forward result
+                end
+
+                if node in sink_nodes
+                    # Sink nodes: LF = critical_value
+                    lf[node] = critical_value
+                else
+                    # Non-sink nodes: LF = min over successors { LS[s] - edge_value[n→s] }
+                    # where LS[s] = LF[s] - node_duration[s]
+                    successors = get(outgoing_index, node, Set{Int64}())
+                    min_val = typemax(Float64)
+
+                    for successor in successors
+                        if !haskey(lf, successor)
+                            continue  # Skip successors not yet processed
+                        end
+
+                        # LS[successor] = LF[successor] - node_duration[successor]
+                        successor_duration = get(params.node_values, successor, zero(T))
+                        ls_successor = lf[successor] - successor_duration
+
+                        # Subtract edge delay/cost from successor's LS
+                        edge_value = get(params.edge_values, (node, successor), zero(T))
+                        candidate = ls_successor - edge_value
+
+                        if candidate < min_val
+                            min_val = candidate
+                        end
+                    end
+
+                    lf[node] = T(min_val)
+                end
+            end
+        end
+
+        # Compute ES, LS, and Total Slack for each node
+        es = Dict{Int64, T}()
+        ls = Dict{Int64, T}()
+        total_slack = Dict{Int64, T}()
+
+        for node in all_nodes
+            node_duration = get(params.node_values, node, zero(T))
+
+            # ES = EF - duration
+            es[node] = ef[node] - node_duration
+
+            # LS = LF - duration
+            if haskey(lf, node)
+                ls[node] = lf[node] - node_duration
+
+                # Total Slack = LS - ES = LF - EF
+                total_slack[node] = ls[node] - es[node]
+            end
+        end
+
+        return ExtendedCriticalPathResult{T}(
+            ef,             # node_values (EF)
+            es,             # early_start
+            lf,             # late_finish
+            ls,             # late_start
+            total_slack,    # total_slack
+            critical_value,
+            forward_result.critical_nodes
+        )
+    end
+
+    #
     # SPECIALIZED ANALYSIS FUNCTIONS
-    # 
+    #
     
     """
     Enhanced time-based critical path analysis using NonNegativeTime for mathematical exactness.

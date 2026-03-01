@@ -234,7 +234,19 @@
           }
         </div>
       </a>
-      
+
+      <mat-divider></mat-divider>
+
+      <a mat-list-item routerLink="/docs"
+         [matTooltip]="isSidenavCollapsed ? 'Documentation' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>menu_book</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Documentation</div>
+          <div class="nav-subtitle">User guide & API reference</div>
+        </div>
+      </a>
     </mat-nav-list>
   </mat-sidenav>
   

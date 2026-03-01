@@ -84,6 +84,26 @@ export class AnalysisStateService {
   private globalCurrentScenarioSignal = signal<string>('');
   private scenarioSyncEnabledSignal = signal<boolean>(true);
 
+  // ─── View state cache (persists across route navigation) ─────────────────
+  // Stores each analysis component's full tab state map so navigating away
+  // and back restores results, filters, sort, pagination without re-running.
+  private viewStateCache = new Map<string, { tabs: Map<string, any>; activeTabIndex: number; uiState: any }>();
+
+  /** Save a component's tab state to survive route navigation */
+  saveViewState(viewKey: string, tabs: Map<string, any>, activeTabIndex: number, uiState?: any): void {
+    this.viewStateCache.set(viewKey, { tabs: new Map(tabs), activeTabIndex, uiState: uiState ?? {} });
+  }
+
+  /** Restore a component's tab state after route navigation. Returns null if no cache. */
+  restoreViewState(viewKey: string): { tabs: Map<string, any>; activeTabIndex: number; uiState: any } | null {
+    return this.viewStateCache.get(viewKey) || null;
+  }
+
+  /** Clear view cache for a specific view */
+  clearViewState(viewKey: string): void {
+    this.viewStateCache.delete(viewKey);
+  }
+
   // Tab state signals
   private uploadTabSignal = signal<TabState>({ enabled: true, completed: false, hasData: false });
   private networkStructureTabSignal = signal<TabState>({ enabled: false, completed: false, hasData: false });
@@ -493,7 +513,7 @@ export class AnalysisStateService {
                 network_structure: this.networkData()!,
                 diamond_analysis: this.diamondAnalysis()?.diamond_analysis,
                 capacity_scenarios: this.capacityAnalysis() ? { 'default': this.capacityAnalysis()!.capacity_result } : undefined,
-                cpm_scenarios: this.cpmAnalysis() ? { 'default': this.cpmAnalysis()!.cmp_result } : undefined,
+                cpm_scenarios: this.cpmAnalysis() ? { 'default': this.cpmAnalysis()!.cpm_result } : undefined,
                 analysis_summary: {
                   network_name: 'Current Network',
                   total_computation_time: 0,
@@ -651,7 +671,7 @@ export class AnalysisStateService {
         message: 'CPM analysis completed',
         network_name: analysisData.network_name || 'Current Network',
         timestamp: new Date().toISOString(),
-        cmp_result: firstScenario
+        cpm_result: firstScenario
       });
     }
   }
@@ -998,6 +1018,9 @@ export class AnalysisStateService {
     this.multiScenarioCapacityResultsSignal.set(null);
     this.multiScenarioCpmResultsSignal.set(null);
     this.globalCurrentScenarioSignal.set('');
+
+    // Clear view state cache (forces re-run on next navigation)
+    this.viewStateCache.clear();
 
     // Reset tab states
     this.uploadTabSignal.set({ enabled: true, completed: false, hasData: false });

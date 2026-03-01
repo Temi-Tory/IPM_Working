@@ -1,0 +1,87 @@
+{
+  "title": "IPA Framework Documentation",
+  "version": "1.0.0",
+  "lastUpdated": "2026-03-01",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "icon": "info",
+      "file": "overview.md",
+      "description": "What the framework does and how it works",
+      "category": "user"
+    },
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "icon": "play_arrow",
+      "file": "getting-started.md",
+      "description": "Upload your network and run your first analysis",
+      "category": "user"
+    },
+    {
+      "id": "network-concepts",
+      "title": "Understanding Networks",
+      "icon": "account_tree",
+      "file": "network-concepts.md",
+      "description": "What the nodes, edges, and layers in your network mean",
+      "category": "user"
+    },
+    {
+      "id": "belief-propagation",
+      "title": "Exact Inference",
+      "icon": "psychology",
+      "file": "belief-propagation.md",
+      "description": "How signal probabilities are computed across the network",
+      "category": "user"
+    },
+    {
+      "id": "diamond-analysis",
+      "title": "Diamond Patterns",
+      "icon": "diamond",
+      "file": "diamond-analysis.md",
+      "description": "What diamonds are and why they matter for accuracy",
+      "category": "user"
+    },
+    {
+      "id": "capacity-analysis",
+      "title": "Capacity & Flow",
+      "icon": "timeline",
+      "file": "capacity-analysis.md",
+      "description": "Understanding bottlenecks, utilisation, and flow analysis",
+      "category": "user"
+    },
+    {
+      "id": "critical-path",
+      "title": "Scheduling (CPM)",
+      "icon": "route",
+      "file": "critical-path.md",
+      "description": "Time analysis, cost analysis, slack, and critical paths",
+      "category": "user"
+    },
+    {
+      "id": "data-formats",
+      "title": "Preparing Your Data",
+      "icon": "description",
+      "file": "data-formats.md",
+      "description": "How to format your input files for each analysis type",
+      "category": "user"
+    },
+    {
+      "id": "glossary",
+      "title": "Glossary",
+      "icon": "menu_book",
+      "file": "glossary.md",
+      "description": "Definitions of key terms",
+      "category": "user"
+    },
+    {
+      "id": "developer",
+      "title": "Developer Reference",
+      "icon": "code",
+      "file": "developer.md",
+      "description": "API endpoints, Julia modules, frontend architecture",
+      "category": "developer"
+    }
+  ]
+}

@@ -54,7 +54,8 @@ module IPAFramework
                                  ExternalConnectivity, DegenerateCases
 
     using .GeneralizedCriticalPathModule: CriticalPathParameters, CriticalPathResult,
-                                        critical_path_analysis,
+                                        ExtendedCriticalPathResult,
+                                        critical_path_analysis, backward_pass_analysis,
                                         # Standard combination functions
                                         max_combination, min_combination, sum_combination,
                                         # Standard propagation functions
@@ -102,8 +103,8 @@ module IPAFramework
         MC_result, has_path, path_enumeration_result,
 
         # Critical path analysis
-        CriticalPathParameters, CriticalPathResult,
-        critical_path_analysis,
+        CriticalPathParameters, CriticalPathResult, ExtendedCriticalPathResult,
+        critical_path_analysis, backward_pass_analysis,
         # Standard combination functions
         max_combination, min_combination, sum_combination,
         # Standard propagation functions

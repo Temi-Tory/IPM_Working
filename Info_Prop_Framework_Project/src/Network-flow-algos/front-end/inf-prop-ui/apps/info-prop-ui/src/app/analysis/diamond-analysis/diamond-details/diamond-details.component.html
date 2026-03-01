@@ -1,80 +1,30 @@
 <div class="diamond-details-dashboard">
   
-  <!-- Header Section with Breadcrumb Navigation -->
+  <!-- Compact Header -->
   <div class="dashboard-header">
-    <div class="header-content">
-      
-      <!-- Breadcrumb Navigation -->
-      <div class="breadcrumb-section">
-        <nav class="breadcrumb-nav">
-          <button mat-button class="breadcrumb-item" (click)="navigateToBreadcrumb(-1)">
-            <mat-icon>analytics</mat-icon>
-            Diamond Analysis
-          </button>
-          @for (pathItem of hierarchyPath(); track $index) {
-            <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
-            <button mat-button class="breadcrumb-item" (click)="navigateToBreadcrumb($index)">
-              {{ pathItem }}
-            </button>
-          }
-          @if (diamondSummary(); as summary) {
-            <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
-            <span class="breadcrumb-current">{{ summary.displayId }}</span>
-          }
-        </nav>
-        
+    <div class="header-content compact-header">
+      <div class="header-left">
         @if (hierarchyPath().length > 0) {
-          <button mat-raised-button color="accent" (click)="navigateBack()" class="back-button">
+          <button mat-icon-button (click)="navigateBack()" matTooltip="Back to parent">
             <mat-icon>arrow_back</mat-icon>
-            Back to Parent
           </button>
         }
-      </div>
-      
-      <!-- Title Section -->
-      <div class="title-section">
-        <div class="title-content">
+        <div class="header-titles">
           <h1 class="page-title">
             <mat-icon class="title-icon">diamond</mat-icon>
             Diamond Details
           </h1>
           @if (diamondSummary(); as summary) {
-            <div class="diamond-identifier">
-              <strong>{{ summary.displayId }}</strong>
-            </div>
+            <p class="page-subtitle">
+              Join {{ summary.joinNode }} ← [{{ summary.conditioningNodes.join(', ') }}]
+              · {{ summary.totalNodes }} nodes · {{ summary.totalEdges }} edges
+            </p>
           }
-          <p class="page-subtitle">Comprehensive analysis of diamond structure, network topology, and hierarchical relationships</p>
         </div>
-        <button mat-icon-button class="close-button" (click)="closeDialog()" matTooltip="Close Dialog">
-          <mat-icon>close</mat-icon>
-        </button>
       </div>
-      
-      <!-- Quick Stats -->
-      @if (diamondSummary(); as summary) {
-        <div class="quick-stats">
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.totalNodes }}</div>
-            <div class="stat-label">Nodes</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.totalEdges }}</div>
-            <div class="stat-label">Edges</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.conditioningNodesCount }}</div>
-            <div class="stat-label">Conditioning</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ summary.complexity.toFixed(0) }}</div>
-            <div class="stat-label">Complexity</div>
-          </div>
-          <div class="stat-card risk-card" [class]="'risk-' + summary.riskLevel">
-            <div class="stat-value">{{ summary.riskLevel.toUpperCase() }}</div>
-            <div class="stat-label">Risk Level</div>
-          </div>
-        </div>
-      }
+      <button mat-icon-button class="close-button" (click)="closeDialog()" matTooltip="Close">
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
   </div>
 
@@ -106,7 +56,7 @@
       <mat-icon class="empty-icon">diamond</mat-icon>
       <h3>Diamond Not Found</h3>
       <p>The requested diamond could not be found in the analysis results</p>
-      <button mat-raised-button color="primary" routerLink="/analysis/diamond-analysis">
+      <button mat-raised-button color="primary" (click)="closeDialog()">
         <mat-icon>arrow_back</mat-icon>
         Back to Diamond Analysis
       </button>
@@ -139,6 +89,12 @@
             <mat-icon>account_tree</mat-icon>
             Sub-Diamonds ({{ data.subDiamonds.length }})
           </mat-button-toggle>
+          @if (hasAnySubgraphAnalysis()) {
+            <mat-button-toggle value="subgraphAnalysis">
+              <mat-icon>science</mat-icon>
+              Subgraph Analysis
+            </mat-button-toggle>
+          }
         </mat-button-toggle-group>
       </div>
 
@@ -692,6 +648,435 @@
               </mat-card-content>
             </mat-card>
           }
+        </div>
+      }
+
+      <!-- Subgraph Analysis Tab -->
+      @if (currentView() === 'subgraphAnalysis') {
+        <div class="subgraph-analysis-content">
+
+          <!-- Header bar: info + Run All -->
+          <div class="subgraph-header-bar">
+            <div class="subgraph-header-info">
+              <mat-icon>science</mat-icon>
+              <span>Run analyses on this diamond ({{ sourceNodes().length }} source nodes) as a standalone subgraph</span>
+            </div>
+            <div class="subgraph-header-actions">
+              @if (subgraphAnalysisStatus() === 'computing') {
+                <mat-icon class="loading-spinner">refresh</mat-icon>
+                <span class="computing-label">Analyzing...</span>
+              }
+              @if (subgraphAnalysisStatus() === 'error') {
+                <mat-icon color="warn">error_outline</mat-icon>
+                <span class="error-label">{{ subgraphAnalysisError() }}</span>
+              }
+              <button mat-raised-button color="primary"
+                      [disabled]="!hasAnySubgraphAnalysis() || subgraphAnalysisStatus() === 'computing'"
+                      (click)="runSubgraphAnalysis()"
+                      matTooltip="Run all available analyses">
+                <mat-icon>play_arrow</mat-icon>
+                Run All
+              </button>
+            </div>
+          </div>
+
+          <!-- Each analysis = its own tab with config + results -->
+          <mat-tab-group [selectedIndex]="subgraphTabIndex()" (selectedIndexChange)="onSubgraphTabChange($event)" class="subgraph-tabs">
+
+            <!-- Tab: Exact Inference -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>analytics</mat-icon>
+                Exact Inference
+                @if (subgraphAnalysisResult()?.reachability_result && !subgraphAnalysisResult()?.reachability_result?.error) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <!-- Scenario + inputs + run -->
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (reachabilityGroups().length > 1) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>Reachability Scenario</mat-label>
+                        <mat-select [value]="selectedReachabilityIndex()"
+                                    (selectionChange)="onReachabilityGroupChange($event.value)">
+                          @for (group of reachabilityGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }} ({{ group.dataType }})</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else if (reachabilityGroups().length === 1) {
+                      <div class="scenario-label">
+                        <mat-icon>analytics</mat-icon>
+                        Scenario: <strong>{{ reachabilityGroups()[0].scenarioName }} ({{ reachabilityGroups()[0].dataType }})</strong>
+                      </div>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No reachability files available</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunReachability() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('reachability')">
+                      <mat-icon>play_arrow</mat-icon> Run Exact Inference
+                    </button>
+                  </div>
+                  @if (canRunReachability() && sourceNodes().length > 0) {
+                    <mat-expansion-panel class="source-overrides-panel">
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>tune</mat-icon>
+                          Source Priors (0–1)
+                        </mat-panel-title>
+                        <mat-panel-description>{{ sourceNodes().length }} source nodes</mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="source-inputs-compact">
+                        <div class="source-inputs-grid">
+                          @for (entry of reachabilitySourceEntries(); track entry.node) {
+                            <div class="source-input-compact">
+                              <label>{{ entry.node }}</label>
+                              <input type="number" [value]="entry.value"
+                                     (change)="onReachabilitySourceChange(entry.node, $event)"
+                                     min="0" max="1" step="0.01">
+                            </div>
+                          }
+                        </div>
+                        <button mat-stroked-button class="reset-btn" (click)="resetReachabilityPriors()">
+                          <mat-icon>restart_alt</mat-icon> Reset
+                        </button>
+                      </div>
+                    </mat-expansion-panel>
+                  }
+                </div>
+
+                <!-- Results -->
+                @if (subgraphAnalysisResult()?.reachability_result; as reachResult) {
+                  @if (!reachResult.error) {
+                    <div class="tab-results-section">
+                      <div class="result-tab-header">
+                        <h3>Node Beliefs ({{ getBeliefEntries().length }} nodes)</h3>
+                        <span class="computation-time">{{ reachResult.computation_time.toFixed(3) }}s</span>
+                      </div>
+                      <div class="belief-table-container">
+                        <table mat-table [dataSource]="getBeliefEntries()" class="belief-table">
+                          <ng-container matColumnDef="node">
+                            <th mat-header-cell *matHeaderCellDef>Node</th>
+                            <td mat-cell *matCellDef="let entry">{{ entry.node }}</td>
+                          </ng-container>
+                          <ng-container matColumnDef="belief">
+                            <th mat-header-cell *matHeaderCellDef>Belief</th>
+                            <td mat-cell *matCellDef="let entry">
+                              <div class="belief-bar-container">
+                                <div class="belief-bar" [style.width.%]="entry.belief * 100" [style.background]="getBeliefColor(entry.belief)"></div>
+                                <span class="belief-value">{{ entry.belief.toFixed(4) }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+                          <tr mat-header-row *matHeaderRowDef="['node', 'belief']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['node', 'belief'];"></tr>
+                        </table>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="result-tab-error"><mat-icon color="warn">error_outline</mat-icon><p>{{ reachResult.error }}</p></div>
+                  }
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: Capacity -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>speed</mat-icon>
+                Capacity
+                @if (subgraphAnalysisResult()?.capacity_result && !subgraphAnalysisResult()?.capacity_result?.error) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (capacityGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>Capacity Scenario</mat-label>
+                        <mat-select [value]="selectedCapacityIndex()"
+                                    (selectionChange)="onCapacityGroupChange($event.value)">
+                          @for (group of capacityGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No capacity files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCapacity() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('capacity')">
+                      <mat-icon>play_arrow</mat-icon> Run Capacity
+                    </button>
+                  </div>
+                  @if (canRunCapacity() && sourceNodes().length > 0) {
+                    <mat-expansion-panel class="source-overrides-panel">
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>tune</mat-icon>
+                          Source Rates
+                        </mat-panel-title>
+                        <mat-panel-description>{{ sourceNodes().length }} source nodes</mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="source-inputs-compact">
+                        <div class="source-inputs-grid">
+                          @for (entry of capacitySourceEntries(); track entry.node) {
+                            <div class="source-input-compact">
+                              <label>{{ entry.node }}</label>
+                              <input type="number" [value]="entry.value"
+                                     (change)="onCapacitySourceChange(entry.node, $event)"
+                                     min="0" step="0.1">
+                            </div>
+                          }
+                        </div>
+                        <button mat-stroked-button class="reset-btn" (click)="resetCapacityRates()">
+                          <mat-icon>restart_alt</mat-icon> Reset
+                        </button>
+                      </div>
+                    </mat-expansion-panel>
+                  }
+                </div>
+
+                @if (subgraphAnalysisResult()?.capacity_result; as capResult) {
+                  @if (!capResult.error) {
+                    <div class="tab-results-section">
+                      <div class="result-tab-header">
+                        <h3>Capacity Analysis ({{ getCapacityEntries().length }} nodes)</h3>
+                        <span class="computation-time">{{ capResult.computation_time.toFixed(3) }}s</span>
+                      </div>
+                      <div class="flow-table-container">
+                        <table mat-table [dataSource]="getCapacityEntries()" class="flow-table">
+                          <ng-container matColumnDef="node"><th mat-header-cell *matHeaderCellDef>Node</th><td mat-cell *matCellDef="let entry">{{ entry.node }}</td></ng-container>
+                          <ng-container matColumnDef="capacity"><th mat-header-cell *matHeaderCellDef>Capacity</th><td mat-cell *matCellDef="let entry">{{ entry.capacity.toFixed(2) }}</td></ng-container>
+                          <ng-container matColumnDef="flow"><th mat-header-cell *matHeaderCellDef>Max Flow</th><td mat-cell *matCellDef="let entry">{{ entry.flow.toFixed(2) }}</td></ng-container>
+                          <ng-container matColumnDef="utilization">
+                            <th mat-header-cell *matHeaderCellDef>Utilization</th>
+                            <td mat-cell *matCellDef="let entry">
+                              <div class="belief-bar-container">
+                                <div class="belief-bar" [style.width.%]="entry.utilization" [style.background]="getUtilizationColor(entry.utilization)"></div>
+                                <span class="belief-value">{{ entry.utilization.toFixed(1) }}%</span>
+                              </div>
+                            </td>
+                          </ng-container>
+                          <ng-container matColumnDef="spare"><th mat-header-cell *matHeaderCellDef>Spare</th><td mat-cell *matCellDef="let entry">{{ entry.spare.toFixed(2) }}</td></ng-container>
+                          <tr mat-header-row *matHeaderRowDef="['node', 'capacity', 'flow', 'utilization', 'spare']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['node', 'capacity', 'flow', 'utilization', 'spare'];"></tr>
+                        </table>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="result-tab-error"><mat-icon color="warn">error_outline</mat-icon><p>{{ capResult.error }}</p></div>
+                  }
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: CPM Time -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>timer</mat-icon>
+                CPM Time
+                @if (subgraphAnalysisResult()?.cpm_result?.time_result) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (cpmGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>CPM Scenario</mat-label>
+                        <mat-select [value]="selectedCpmIndex()"
+                                    (selectionChange)="onCpmGroupChange($event.value)">
+                          @for (group of cpmGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No CPM files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCpm() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('cpm')">
+                      <mat-icon>play_arrow</mat-icon> Run CPM
+                    </button>
+                  </div>
+                  @if (canRunCpm() && sourceNodes().length > 0) {
+                    <mat-expansion-panel class="source-overrides-panel">
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>tune</mat-icon>
+                          Source Durations
+                        </mat-panel-title>
+                        <mat-panel-description>{{ sourceNodes().length }} source nodes</mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="source-inputs-compact">
+                        <div class="source-inputs-grid">
+                          @for (entry of cpmTimeSourceEntries(); track entry.node) {
+                            <div class="source-input-compact">
+                              <label>{{ entry.node }}</label>
+                              <input type="number" [value]="entry.value"
+                                     (change)="onCpmTimeSourceChange(entry.node, $event)"
+                                     min="0" step="0.1">
+                            </div>
+                          }
+                        </div>
+                        <button mat-stroked-button class="reset-btn" (click)="resetCpmTimeValues()">
+                          <mat-icon>restart_alt</mat-icon> Reset
+                        </button>
+                      </div>
+                    </mat-expansion-panel>
+                  }
+                </div>
+
+                @if (subgraphAnalysisResult()?.cpm_result?.time_result; as timeResult) {
+                  <div class="tab-results-section">
+                    <div class="result-tab-header">
+                      <h3>Critical Duration: {{ getCriticalTimeDuration() }}</h3>
+                      <span class="computation-time">{{ subgraphAnalysisResult()?.cpm_result?.computation_time?.toFixed(3) || '?' }}s</span>
+                    </div>
+                    <div class="cpm-table-container">
+                      <table mat-table [dataSource]="getCpmTimeEntries()" class="cpm-time-table">
+                        <ng-container matColumnDef="node">
+                          <th mat-header-cell *matHeaderCellDef>Node</th>
+                          <td mat-cell *matCellDef="let entry" [class.critical-cell]="entry.isCritical">
+                            {{ entry.node }}
+                            @if (entry.isCritical) { <mat-icon class="critical-icon" color="warn" matTooltip="On critical path">star</mat-icon> }
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="duration"><th mat-header-cell *matHeaderCellDef matTooltip="Node processing duration">Duration</th><td mat-cell *matCellDef="let entry">{{ entry.duration.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="earlyStart"><th mat-header-cell *matHeaderCellDef matTooltip="Earliest start">ES</th><td mat-cell *matCellDef="let entry">{{ entry.earlyStart.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="earlyFinish"><th mat-header-cell *matHeaderCellDef matTooltip="Earliest finish">EF</th><td mat-cell *matCellDef="let entry">{{ entry.earlyFinish.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="lateFinish"><th mat-header-cell *matHeaderCellDef matTooltip="Latest finish">LF</th><td mat-cell *matCellDef="let entry">{{ entry.lateFinish.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="slack">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Total slack (0 = critical)">Slack</th>
+                          <td mat-cell *matCellDef="let entry">
+                            <span [style.color]="getSlackColor(entry.slack)" [style.font-weight]="entry.isCritical ? 'bold' : 'normal'">{{ entry.slack.toFixed(2) }}</span>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="['node', 'duration', 'earlyStart', 'earlyFinish', 'lateFinish', 'slack']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['node', 'duration', 'earlyStart', 'earlyFinish', 'lateFinish', 'slack'];" [class.critical-row]="row.isCritical"></tr>
+                      </table>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: CPM Cost -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>attach_money</mat-icon>
+                CPM Cost
+                @if (subgraphAnalysisResult()?.cpm_result?.cost_result) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (cpmGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>CPM Scenario</mat-label>
+                        <mat-select [value]="selectedCpmIndex()"
+                                    (selectionChange)="onCpmGroupChange($event.value)">
+                          @for (group of cpmGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No CPM files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCpm() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('cpm')">
+                      <mat-icon>play_arrow</mat-icon> Run CPM
+                    </button>
+                  </div>
+                  @if (canRunCpm() && sourceNodes().length > 0) {
+                    <mat-expansion-panel class="source-overrides-panel">
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>
+                          <mat-icon>tune</mat-icon>
+                          Source Costs
+                        </mat-panel-title>
+                        <mat-panel-description>{{ sourceNodes().length }} source nodes</mat-panel-description>
+                      </mat-expansion-panel-header>
+                      <div class="source-inputs-compact">
+                        <div class="source-inputs-grid">
+                          @for (entry of cpmCostSourceEntries(); track entry.node) {
+                            <div class="source-input-compact">
+                              <label>{{ entry.node }}</label>
+                              <input type="number" [value]="entry.value"
+                                     (change)="onCpmCostSourceChange(entry.node, $event)"
+                                     min="0" step="0.1">
+                            </div>
+                          }
+                        </div>
+                        <button mat-stroked-button class="reset-btn" (click)="resetCpmCostValues()">
+                          <mat-icon>restart_alt</mat-icon> Reset
+                        </button>
+                      </div>
+                    </mat-expansion-panel>
+                  }
+                </div>
+
+                @if (subgraphAnalysisResult()?.cpm_result?.cost_result; as costResult) {
+                  <div class="tab-results-section">
+                    <div class="result-tab-header">
+                      <h3>Critical Cost: {{ getCriticalCostValue() }}</h3>
+                      <span class="computation-time">{{ subgraphAnalysisResult()?.cpm_result?.computation_time?.toFixed(3) || '?' }}s</span>
+                    </div>
+                    <div class="cpm-table-container">
+                      <table mat-table [dataSource]="getCpmCostEntries()" class="cpm-cost-table">
+                        <ng-container matColumnDef="node">
+                          <th mat-header-cell *matHeaderCellDef>Node</th>
+                          <td mat-cell *matCellDef="let entry" [class.critical-cell]="entry.isCritical">
+                            {{ entry.node }}
+                            @if (entry.isCritical) { <mat-icon class="critical-icon" color="warn" matTooltip="On critical path">star</mat-icon> }
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="nodeCost"><th mat-header-cell *matHeaderCellDef matTooltip="Individual node cost">Node Cost</th><td mat-cell *matCellDef="let entry">{{ entry.nodeCost.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="accumulatedCost"><th mat-header-cell *matHeaderCellDef matTooltip="Accumulated cost">Accumulated</th><td mat-cell *matCellDef="let entry">{{ entry.accumulatedCost.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="slack">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Cost slack (0 = critical)">Slack</th>
+                          <td mat-cell *matCellDef="let entry">
+                            <span [style.color]="getSlackColor(entry.slack)" [style.font-weight]="entry.isCritical ? 'bold' : 'normal'">{{ entry.slack.toFixed(2) }}</span>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="['node', 'nodeCost', 'accumulatedCost', 'slack']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['node', 'nodeCost', 'accumulatedCost', 'slack'];" [class.critical-row]="row.isCritical"></tr>
+                      </table>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+          </mat-tab-group>
         </div>
       }
     </div>

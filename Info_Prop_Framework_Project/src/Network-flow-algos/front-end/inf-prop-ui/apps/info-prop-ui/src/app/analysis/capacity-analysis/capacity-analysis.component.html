@@ -1,469 +1,587 @@
-<div class="capacity-analysis-container">
-  <!-- Header Section -->
-  <mat-card class="header-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>speed</mat-icon>
-        Network Capacity Analysis
-      </mat-card-title>
-      <mat-card-subtitle>
-        Comprehensive network flow capacity analysis with bottleneck identification and utilization metrics
-      </mat-card-subtitle>
-    </mat-card-header>
-  </mat-card>
+<!-- Header -->
+<mat-card class="header-card">
+  <mat-card-content>
+    <h2>Network Capacity Analysis</h2>
+    <p class="subtitle">Maximum flow analysis with bottleneck detection and upgrade priorities</p>
+  </mat-card-content>
+</mat-card>
 
-  <!-- Scenario Selection & Controls -->
-  <mat-card class="control-card">
-    <mat-card-header>
-      <mat-card-title>Capacity Configuration</mat-card-title>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div class="control-row">
-        <!-- **ENHANCED: Scenario Selector with capacity scenario support** -->
-        <mat-form-field appearance="outline" class="scenario-selector">
-          <mat-label>Capacity Scenario</mat-label>
-          <mat-select
-            [value]="selectedScenario()"
-            (selectionChange)="setCurrentScenario($event.value.name)"
-            [disabled]="isComputing()">
-            @for (scenario of availableScenariosComputed(); track scenario.path) {
-              <mat-option [value]="scenario">
-                <div class="scenario-option">
-                  <div class="scenario-info">
-                    <span class="scenario-name">{{ scenario.displayName }}</span>
-                    <span class="scenario-path">{{ scenario.path }}</span>
-                  </div>
-                  <div class="scenario-badges">
-                    <mat-chip
-                      class="data-type-capacity"
-                      selected>
-                      Capacity Analysis
-                    </mat-chip>
-                    @if (hasScenarioResults(scenario.name)) {
-                      <mat-chip color="accent" selected>
-                        <mat-icon>check_circle</mat-icon>
-                        Computed
-                      </mat-chip>
-                    }
-                  </div>
-                </div>
-              </mat-option>
-            }
-          </mat-select>
-          <mat-hint>
-            @if (selectedScenario()) {
-              {{ selectedScenario()!.description }}
-            } @else {
-              Select a scenario to run network capacity analysis
-            }
-          </mat-hint>
-        </mat-form-field>
-
-        <!-- Execute Button -->
-        <button mat-raised-button 
-                color="primary" 
-                (click)="executeCapacityAnalysis()"
-                [disabled]="!selectedScenario() || isComputing()"
-                class="execute-button">
-          @if (isComputing()) {
-            <mat-spinner diameter="20"></mat-spinner>
-            Computing...
-          } @else {
-            <mat-icon>play_arrow</mat-icon>
-          }
-          @if (!isComputing()) {
-            Run Analysis
-          }
-        </button>
-
-        <!-- Clear Button -->
-        @if (capacityResults().length > 0) {
-          <button mat-stroked-button 
-                  (click)="clearResults()"
-                  [disabled]="isComputing()">
-            <mat-icon>clear</mat-icon>
-            Clear Results
-          </button>
-        }
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Error Display -->
-  @if (errorMessage()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon color="warn">error</mat-icon>
-          <span>{{ errorMessage() }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
+<!-- Toolbar -->
+@if (scenarioNames().length > 0) {
+<div class="toolbar">
+  <button mat-stroked-button (click)="runAllScenarios()" matTooltip="Re-run all scenarios">
+    <mat-icon>refresh</mat-icon> Re-run All
+  </button>
+  <button mat-stroked-button (click)="toggleViewMode()" matTooltip="Switch between node and edge view">
+    <mat-icon>{{ activeViewMode() === 'node' ? 'device_hub' : 'hub' }}</mat-icon>
+    {{ activeViewMode() === 'node' ? 'Edge View' : 'Node View' }}
+  </button>
+  @if (scenarioNames().length >= 2) {
+  <button mat-stroked-button (click)="toggleComparisonMode()" [class.active]="comparisonMode()"
+          [color]="comparisonMode() ? 'accent' : ''">
+    <mat-icon>compare_arrows</mat-icon> {{ comparisonMode() ? 'Exit Comparison' : 'Compare Scenarios' }}
+  </button>
   }
+  <button mat-stroked-button (click)="clearScenarioData()" matTooltip="Clear all results">
+    <mat-icon>clear_all</mat-icon> Clear All
+  </button>
+  <button mat-stroked-button [matMenuTriggerFor]="exportMenu" matTooltip="Export results">
+    <mat-icon>download</mat-icon> Export
+  </button>
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item (click)="exportCSV()">
+      <mat-icon>table_chart</mat-icon> Export CSV
+    </button>
+    <button mat-menu-item (click)="exportJSON()">
+      <mat-icon>data_object</mat-icon> Export JSON
+    </button>
+  </mat-menu>
+</div>
+}
 
-  <!-- Algorithm Overview Panel -->
-  <mat-expansion-panel class="algorithm-panel">
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        <mat-icon>school</mat-icon>
-        Capacity Analysis Overview & Mathematical Foundation
-      </mat-panel-title>
-      <mat-panel-description>
-        Understanding network capacity analysis and flow optimization
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <div class="algorithm-content">
-      <div class="algorithm-grid">
-        <!-- Core Capacity Framework -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Core Framework</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Utilization(N) = Flow(N) / Capacity(N)</code>
-            </div>
-            <p>Each node's utilization represents the ratio of current flow to maximum capacity, identifying bottlenecks and unused capacity in the network.</p>
-          </mat-card-content>
-        </mat-card>
+<!-- ═══ Comparison Mode (replaces tabs) ═══ -->
+@if (comparisonMode() && scenarioNames().length >= 2) {
 
-        <!-- Flow Conservation -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Flow Conservation</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Σ Flow_in(N) = Σ Flow_out(N) + Demand(N)</code>
-            </div>
-            <p>Network flow must be conserved at each node, with inflow equal to outflow plus any node demand or supply.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Bottleneck Identification -->
-        <mat-card class="math-card">
-          <mat-card-header>
-            <mat-card-title>Bottleneck Detection</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="math-formula">
-              <code>Bottleneck: Utilization(N) ≥ 0.95</code>
-            </div>
-            <p>Nodes operating at or near capacity (≥95% utilization) are identified as potential bottlenecks that may limit network performance.</p>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Network Complexity -->
-        @if (networkInfo()) {
-          <mat-card class="complexity-card">
-            <mat-card-header>
-              <mat-card-title>Current Network</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="complexity-stats">
-                <div class="stat">
-                  <span class="stat-label">Total Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.totalNodes }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Source Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.sourceNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Sink Nodes:</span>
-                  <span class="stat-value">{{ networkInfo()!.sinkNodes.length }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Network Complexity:</span>
-                  <mat-chip [color]="networkComplexity().includes('Simple') ? 'primary' : 
-                                   networkComplexity().includes('Moderate') ? 'accent' : 'warn'" 
-                           selected>
-                    {{ networkComplexity() }}
-                  </mat-chip>
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        }
+<!-- Scenario Selectors -->
+<mat-card class="comparison-card">
+  <mat-card-content>
+    <div class="comparison-selectors">
+      <div class="comparison-select">
+        <label>Base Scenario</label>
+        <select [value]="baseScenarioName()" (change)="baseScenarioName.set($any($event.target).value)">
+          @for (name of scenarioNames(); track name) {
+          <option [value]="name">{{ name }}</option>
+          }
+        </select>
+      </div>
+      <mat-icon class="comparison-arrow">compare_arrows</mat-icon>
+      <div class="comparison-select">
+        <label>Compare Scenario</label>
+        <select [value]="compareScenarioName()" (change)="compareScenarioName.set($any($event.target).value)">
+          @for (name of scenarioNames(); track name) {
+          <option [value]="name">{{ name }}</option>
+          }
+        </select>
       </div>
     </div>
-  </mat-expansion-panel>
+  </mat-card-content>
+</mat-card>
 
-  <!-- Results Section -->
-  @if (capacityResults().length > 0) {
-    <!-- Performance Metrics -->
-    @if (capacityMetrics()) {
-      <mat-card class="metrics-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>analytics</mat-icon>
-            Capacity Performance Metrics
-          </mat-card-title>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="metrics-grid">
-            <div class="metric-item">
-              <div class="metric-label">Computation Time</div>
-              <div class="metric-value">{{ capacityMetrics()!.computationTime.toFixed(3) }}s</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Network Utilization</div>
-              <div class="metric-value">{{ (capacityMetrics()!.networkUtilization * 100).toFixed(1) }}%</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Total Capacity</div>
-              <div class="metric-value">{{ formatCapacity(capacityMetrics()!.totalCapacity) }}</div>
-            </div>
-            
-            <div class="metric-item">
-              <div class="metric-label">Total Flow</div>
-              <div class="metric-value">{{ formatCapacity(capacityMetrics()!.totalFlow) }}</div>
-            </div>
+<!-- Summary Comparison Cards -->
+@if (baseTabState()?.metrics; as baseM) {
+@if (compareTabState()?.metrics; as compM) {
+<div class="comparison-summary">
+  <div class="summary-column">
+    <h4>{{ baseScenarioName() }}</h4>
+    <div class="summary-metric"><span class="label">Utilization</span><span class="value">{{ formatUtilization(baseM.networkUtilization) }}</span></div>
+    <div class="summary-metric"><span class="label">Source Input</span><span class="value">{{ formatValue(baseM.totalSourceInput) }}</span></div>
+    <div class="summary-metric"><span class="label">Target Output</span><span class="value">{{ formatValue(baseM.totalTargetOutput) }}</span></div>
+    <div class="summary-metric"><span class="label">Bottlenecks</span><span class="value">{{ baseM.bottleneckCount }}</span></div>
+  </div>
+  <div class="summary-column delta">
+    <h4>Delta</h4>
+    <div class="summary-metric">
+      <span class="label">Utilization</span>
+      <span class="value" [class.positive-delta]="compM.networkUtilization - baseM.networkUtilization > 0"
+            [class.negative-delta]="compM.networkUtilization - baseM.networkUtilization < 0">
+        {{ (compM.networkUtilization - baseM.networkUtilization) > 0 ? '+' : '' }}{{ formatUtilization(compM.networkUtilization - baseM.networkUtilization) }}
+      </span>
+    </div>
+    <div class="summary-metric">
+      <span class="label">Output</span>
+      <span class="value" [class.positive-delta]="compM.totalTargetOutput - baseM.totalTargetOutput > 0"
+            [class.negative-delta]="compM.totalTargetOutput - baseM.totalTargetOutput < 0">
+        {{ (compM.totalTargetOutput - baseM.totalTargetOutput) > 0 ? '+' : '' }}{{ formatValue(compM.totalTargetOutput - baseM.totalTargetOutput) }}
+      </span>
+    </div>
+    <div class="summary-metric">
+      <span class="label">Bottlenecks</span>
+      <span class="value" [class.positive-delta]="compM.bottleneckCount - baseM.bottleneckCount < 0"
+            [class.negative-delta]="compM.bottleneckCount - baseM.bottleneckCount > 0">
+        {{ (compM.bottleneckCount - baseM.bottleneckCount) > 0 ? '+' : '' }}{{ compM.bottleneckCount - baseM.bottleneckCount }}
+      </span>
+    </div>
+  </div>
+  <div class="summary-column">
+    <h4>{{ compareScenarioName() }}</h4>
+    <div class="summary-metric"><span class="label">Utilization</span><span class="value">{{ formatUtilization(compM.networkUtilization) }}</span></div>
+    <div class="summary-metric"><span class="label">Source Input</span><span class="value">{{ formatValue(compM.totalSourceInput) }}</span></div>
+    <div class="summary-metric"><span class="label">Target Output</span><span class="value">{{ formatValue(compM.totalTargetOutput) }}</span></div>
+    <div class="summary-metric"><span class="label">Bottlenecks</span><span class="value">{{ compM.bottleneckCount }}</span></div>
+  </div>
+</div>
+}}
 
-            <div class="metric-item">
-              <div class="metric-label">Bottlenecks</div>
-              <div class="metric-value">
-                <mat-chip [color]="capacityMetrics()!.bottleneckCount > 0 ? 'warn' : 'primary'" selected>
-                  {{ capacityMetrics()!.bottleneckCount }}
-                </mat-chip>
-              </div>
-            </div>
-
-            <div class="metric-item">
-              <div class="metric-label">Average Utilization</div>
-              <div class="metric-value">{{ (capacityMetrics()!.averageUtilization * 100).toFixed(1) }}%</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+<!-- Comparison Table -->
+<mat-card class="results-card">
+  <mat-card-content>
+    @if (activeViewMode() === 'node' && comparisonRows().length > 0) {
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th matTooltip="Max flow in base scenario">Base Flow</th>
+            <th matTooltip="Max flow in comparison scenario">Compare Flow</th>
+            <th matTooltip="Compare - Base: positive means higher flow">Delta Flow</th>
+            <th matTooltip="Utilization in base scenario">Base Util.</th>
+            <th matTooltip="Utilization in comparison scenario">Compare Util.</th>
+            <th matTooltip="Compare - Base: positive means higher utilization">Delta Util.</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of comparisonRows(); track row.nodeId) {
+          <tr>
+            <td class="node-id">{{ row.nodeId }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.baseFlow, 'cb-' + row.nodeId)">{{ row.baseFlow !== null ? formatValue(row.baseFlow) : '-' }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.compareFlow, 'cc-' + row.nodeId)">{{ row.compareFlow !== null ? formatValue(row.compareFlow) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaFlow !== null && row.deltaFlow > 0"
+                [class.negative-delta]="row.deltaFlow !== null && row.deltaFlow < 0">
+              {{ row.deltaFlow !== null ? (row.deltaFlow > 0 ? '+' : '') + formatValue(row.deltaFlow) : '-' }}
+            </td>
+            <td>{{ row.baseUtilization !== null ? formatUtilization(row.baseUtilization) : '-' }}</td>
+            <td>{{ row.compareUtilization !== null ? formatUtilization(row.compareUtilization) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaUtilization !== null && row.deltaUtilization > 0"
+                [class.negative-delta]="row.deltaUtilization !== null && row.deltaUtilization < 0">
+              {{ row.deltaUtilization !== null ? (row.deltaUtilization > 0 ? '+' : '') + formatUtilization(row.deltaUtilization) : '-' }}
+            </td>
+            <td><mat-chip class="node-type-chip" [class]="'type-' + row.nodeType.toLowerCase()">{{ row.nodeType }}</mat-chip></td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
     }
 
-    <!-- Results Table -->
-    <mat-card class="results-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>table_chart</mat-icon>
-          Node-Level Capacity Results
-          <mat-chip [matBadge]="filteredCapacityResults().length" matBadgeOverlap="false">
-            @if (filteredCapacityResults().length !== capacityResults().length) {
-              {{ filteredCapacityResults().length }} of {{ capacityResults().length }}
-            } @else {
-              All Nodes
-            }
-          </mat-chip>
-        </mat-card-title>
-        <mat-card-subtitle>
-          Capacity utilization and flow analysis for every network node
-        </mat-card-subtitle>
-      </mat-card-header>
-      
-      <mat-card-content>
+    @if (activeViewMode() === 'edge' && comparisonEdgeRows().length > 0) {
+    <div class="table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th matTooltip="Flow through edge in base scenario">Base Flow</th>
+            <th matTooltip="Flow through edge in comparison scenario">Compare Flow</th>
+            <th matTooltip="Compare - Base: positive means higher flow">Delta Flow</th>
+            <th matTooltip="Edge utilization in base scenario">Base Util.</th>
+            <th matTooltip="Edge utilization in comparison scenario">Compare Util.</th>
+            <th matTooltip="Compare - Base: positive means higher utilization">Delta Util.</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of comparisonEdgeRows(); track row.edgeKey) {
+          <tr>
+            <td class="node-id">{{ row.from }}</td>
+            <td class="node-id">{{ row.to }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.baseFlow, 'ecb-' + row.edgeKey)">{{ row.baseFlow !== null ? formatValue(row.baseFlow) : '-' }}</td>
+            <td class="copyable" (click)="copyToClipboard(row.compareFlow, 'ecc-' + row.edgeKey)">{{ row.compareFlow !== null ? formatValue(row.compareFlow) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaFlow !== null && row.deltaFlow > 0"
+                [class.negative-delta]="row.deltaFlow !== null && row.deltaFlow < 0">
+              {{ row.deltaFlow !== null ? (row.deltaFlow > 0 ? '+' : '') + formatValue(row.deltaFlow) : '-' }}
+            </td>
+            <td>{{ row.baseUtilization !== null ? formatUtilization(row.baseUtilization) : '-' }}</td>
+            <td>{{ row.compareUtilization !== null ? formatUtilization(row.compareUtilization) : '-' }}</td>
+            <td [class.positive-delta]="row.deltaUtilization !== null && row.deltaUtilization > 0"
+                [class.negative-delta]="row.deltaUtilization !== null && row.deltaUtilization < 0">
+              {{ row.deltaUtilization !== null ? (row.deltaUtilization > 0 ? '+' : '') + formatUtilization(row.deltaUtilization) : '-' }}
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+  </mat-card-content>
+</mat-card>
 
-        <!-- **NEW: Search and Filter Controls** -->
-        <div class="table-controls">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Search Nodes</mat-label>
-            <input matInput
-                   placeholder="Enter node ID..."
-                   (input)="onSearch($event)"
-                   [value]="searchTerm()">
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
+} @else if (scenarioNames().length > 0) {
+<!-- ═══ Normal Scenario Tabs ═══ -->
+<mat-tab-group [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)" class="scenario-tabs">
+  @for (name of scenarioNames(); track name; let i = $index) {
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        {{ name }}
+        @if (scenarioTabs().get(name)?.status === 'computing') {
+        <mat-spinner diameter="16" class="tab-spinner"></mat-spinner>
+        } @else if (scenarioTabs().get(name)?.status === 'computed') {
+        <mat-icon class="tab-icon success">check_circle</mat-icon>
+        } @else if (scenarioTabs().get(name)?.status === 'error') {
+        <mat-icon class="tab-icon error">error</mat-icon>
+        }
+      </span>
+    </ng-template>
 
-          <div class="filter-controls">
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Filter by Node Type</mat-label>
-              <mat-select multiple
-                         [value]="selectedNodeTypes()"
-                         (selectionChange)="onNodeTypeFilter($event.value)">
-                <mat-option value="Source">
-                  <mat-icon>radio_button_checked</mat-icon>
-                  Source Nodes
-                </mat-option>
-                <mat-option value="Sink">
-                  <mat-icon>flag</mat-icon>
-                  Sink Nodes
-                </mat-option>
-                <mat-option value="Fork">
-                  <mat-icon>call_split</mat-icon>
-                  Fork Nodes
-                </mat-option>
-                <mat-option value="Join">
-                  <mat-icon>merge_type</mat-icon>
-                  Join Nodes
-                </mat-option>
-                <mat-option value="Regular">
-                  <mat-icon>lens</mat-icon>
-                  Regular Nodes
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="paginatedCapacityResults()" class="results-table">
-            
-            <!-- Node ID Column -->
-            <ng-container matColumnDef="nodeId">
-              <th mat-header-cell *matHeaderCellDef>Node ID</th>
-              <td mat-cell *matCellDef="let result">
-                <div class="node-id">
-                  <mat-icon>{{ result.isBottleneck ? 'warning' : 'lens' }}</mat-icon>
-                  {{ result.nodeId }}
-                  @if (result.isBottleneck) {
-                    <mat-chip class="bottleneck-chip" color="warn" selected>
-                      Bottleneck
-                    </mat-chip>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Capacity Column -->
-            <ng-container matColumnDef="capacity">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Maximum capacity of the node">
-                Capacity
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="capacity-value">
-                  {{ formatCapacity(result.capacity) }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Flow Column -->
-            <ng-container matColumnDef="flow">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Current flow through the node">
-                Flow
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="flow-value">
-                  {{ formatCapacity(result.flow) }}
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Utilization Column -->
-            <ng-container matColumnDef="utilization">
-              <th mat-header-cell *matHeaderCellDef
-                  matTooltip="Current utilization percentage (Flow / Capacity)">
-                Utilization
-              </th>
-              <td mat-cell *matCellDef="let result">
-                <div class="utilization-value">
-                  <mat-chip 
-                    [ngClass]="getUtilizationColorClass(result.utilization)"
-                    [matTooltip]="getUtilizationTooltip(result.utilization)"
-                    selected>
-                    {{ formatUtilization(result.utilization) }}
-                  </mat-chip>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- **NEW: Node Type Column** -->
-            <ng-container matColumnDef="nodeType">
-              <th mat-header-cell *matHeaderCellDef>Node Type</th>
-              <td mat-cell *matCellDef="let result">
-                @if (networkInfo()) {
-                  <mat-chip [ngClass]="'node-type-' + getNodeType(result.nodeId, networkInfo()!).toLowerCase().replace(' + ', '-')"
-                           (click)="onNodeTypeFilter([getNodeType(result.nodeId, networkInfo()!)])"
-                           selected>
-                    @switch (getNodeType(result.nodeId, networkInfo()!)) {
-                      @case ('Source') {
-                        <mat-icon>radio_button_checked</mat-icon>
-                      }
-                      @case ('Sink') {
-                        <mat-icon>flag</mat-icon>
-                      }
-                      @case ('Fork') {
-                        <mat-icon>call_split</mat-icon>
-                      }
-                      @case ('Join') {
-                        <mat-icon>merge_type</mat-icon>
-                      }
-                      @default {
-                        <mat-icon>lens</mat-icon>
-                      }
-                    }
-                    {{ getNodeType(result.nodeId, networkInfo()!) }}
-                  </mat-chip>
-                } @else {
-                  <mat-chip class="node-type-regular" selected>
-                    <mat-icon>lens</mat-icon>
-                    Regular
-                  </mat-chip>
-                }
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-        </div>
-
-        <!-- **NEW: Pagination Component** -->
-        <mat-paginator
-          [length]="filteredCapacityResults().length"
-          [pageSize]="pageSize()"
-          [pageIndex]="pageIndex()"
-          [pageSizeOptions]="[10, 25, 50, 100]"
-          (page)="onPageChange($event)"
-          showFirstLastButtons>
-        </mat-paginator>
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Loading State -->
-  @if (isComputing()) {
-    <mat-card class="loading-card">
-      <mat-card-content>
-        <div class="loading-content">
+    @if (activeTab(); as tab) {
+      <!-- Computing State -->
+      @if (tab.status === 'computing') {
+      <mat-card class="status-card computing">
+        <mat-card-content>
           <mat-spinner diameter="40"></mat-spinner>
-          <div class="loading-text">
-            <h3>Computing Capacity Analysis</h3>
-            <p>Analyzing network capacity utilization and identifying bottlenecks...</p>
-            @if (selectedScenario()) {
-              <mat-chip color="accent" selected>
-                Capacity Analysis
-              </mat-chip>
-            }
+          <p>Running capacity analysis for {{ tab.scenario.displayName }}...</p>
+        </mat-card-content>
+      </mat-card>
+      }
+
+      <!-- Error State -->
+      @if (tab.status === 'error') {
+      <mat-card class="status-card error">
+        <mat-card-content>
+          <mat-icon>error_outline</mat-icon>
+          <p>{{ tab.error }}</p>
+          <button mat-stroked-button (click)="rerunScenario(tab.scenario.name)">
+            <mat-icon>refresh</mat-icon> Retry
+          </button>
+        </mat-card-content>
+      </mat-card>
+      }
+
+      <!-- Computed Results -->
+      @if (tab.status === 'computed' && tab.metrics) {
+      <!-- Metrics Grid -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Computation Time</span>
+          <span class="metric-value">{{ formatValue(tab.metrics.computationTime, 3) }}s</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Network Utilization</span>
+          <span class="metric-value">{{ formatUtilization(tab.metrics.networkUtilization) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Source Input</span>
+          <span class="metric-value">{{ formatValue(tab.metrics.totalSourceInput) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Target Output</span>
+          <span class="metric-value">{{ formatValue(tab.metrics.totalTargetOutput) }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Bottlenecks</span>
+          <span class="metric-value">{{ tab.metrics.bottleneckCount }}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Sources / Sinks</span>
+          <span class="metric-value">{{ tab.metrics.sourceCount }} / {{ tab.metrics.sinkCount }}</span>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      @if (nodeTypeStats().length > 0) {
+      <div class="quick-stats">
+        @for (stat of nodeTypeStats(); track stat.type) {
+        <mat-chip class="stat-chip" [class]="'type-' + stat.type.toLowerCase()"
+                  [highlighted]="activeSelectedNodeTypes().includes(stat.type)"
+                  (click)="toggleNodeTypeFilter(stat.type)">
+          <mat-icon>{{ stat.icon }}</mat-icon>
+          {{ stat.type }}: {{ stat.count }} (avg {{ formatUtilization(stat.avgUtilization) }})
+        </mat-chip>
+        }
+      </div>
+      }
+
+      <!-- Sink Node Summary -->
+      @if (sinkNodeSummary(); as summary) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Sink Node Summary</mat-panel-title>
+          <mat-panel-description>{{ summary.nodes.length }} sink nodes</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="sink-summary">
+          <div class="sink-item worst">
+            <span class="sink-label">Lowest Flow</span>
+            <span class="sink-node">Node {{ summary.worst.nodeId }}</span>
+            <span class="sink-value">{{ formatValue(summary.worst.maxFlow) }} ({{ formatUtilization(summary.worst.utilization) }})</span>
+          </div>
+          <div class="sink-item best">
+            <span class="sink-label">Highest Flow</span>
+            <span class="sink-node">Node {{ summary.best.nodeId }}</span>
+            <span class="sink-value">{{ formatValue(summary.best.maxFlow) }} ({{ formatUtilization(summary.best.utilization) }})</span>
+          </div>
+          <div class="sink-item average">
+            <span class="sink-label">Average Flow</span>
+            <span class="sink-value">{{ formatValue(summary.average) }}</span>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
-  }
+      </mat-expansion-panel>
+      }
 
-  <!-- Empty State -->
-  @if (!isComputing() && capacityResults().length === 0 && !errorMessage()) {
-    <mat-card class="empty-state-card">
-      <mat-card-content>
-        <div class="empty-state">
-          <mat-icon>speed</mat-icon>
-          <h3>Ready for Capacity Analysis</h3>
-          <p>Select a capacity scenario and click "Run Analysis" to analyze network flow capacity and identify bottlenecks.</p>
-          @if (availableScenarios.length === 0) {
-            <mat-chip color="warn">
-              <mat-icon>warning</mat-icon>
-              No scenarios available
-            </mat-chip>
-          } @else {
-            <mat-chip color="primary">
-              <mat-icon>analytics</mat-icon>
-              {{ availableScenarios.length }} scenarios available
-            </mat-chip>
+      <!-- Source Flow Summary -->
+      @if (sourceFlowSummary(); as sources) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Source Flow Summary</mat-panel-title>
+          <mat-panel-description>Input rates and delivery efficiency</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="source-flow-summary">
+          @for (src of sources; track src.nodeId) {
+          <div class="source-item">
+            <div class="source-header">
+              <span class="source-node">Node {{ src.nodeId }}</span>
+              <span class="source-rate">Input: {{ formatValue(src.inputRate) }}</span>
+              <span class="source-flow">Flow: {{ formatValue(src.actualFlow) }}</span>
+              <span class="source-delivery" [class.high]="src.deliveryRatio >= 0.9" [class.low]="src.deliveryRatio < 0.5">
+                Delivery: {{ formatUtilization(src.deliveryRatio) }}
+              </span>
+            </div>
+            @if (src.sinkReach.length > 0) {
+            <div class="sink-reach">
+              @for (sink of src.sinkReach; track sink.sinkId) {
+              <span class="sink-reach-item" matTooltip="Flow reaching sink {{ sink.sinkId }}">
+                Sink {{ sink.sinkId }}: {{ sink.percent.toFixed(1) }}%
+              </span>
+              }
+            </div>
+            }
+          </div>
           }
         </div>
-      </mat-card-content>
-    </mat-card>
+      </mat-expansion-panel>
+      }
+
+      <!-- Bottleneck Details -->
+      @if (tab.rawScenario?.raw_capacity_result?.bottlenecks) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Bottleneck Details</mat-panel-title>
+          <mat-panel-description>Per-sink limiting factors</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="bottleneck-details">
+          @for (entry of tab.rawScenario!.raw_capacity_result!.bottlenecks | keyvalue; track entry.key) {
+          <div class="bottleneck-item">
+            <strong>Node {{ entry.key }}:</strong>
+            <span class="bottleneck-list">
+              @for (b of $any(entry.value); track $index) {
+                @if ($any(b).length === 2) {
+                  <mat-chip class="bottleneck-chip">{{ $any(b)[0] }} &rarr; {{ $any(b)[1] }}</mat-chip>
+                } @else {
+                  <mat-chip class="bottleneck-chip">{{ b }}</mat-chip>
+                }
+              }
+            </span>
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+      }
+
+      <!-- Critical Paths -->
+      @if (tab.rawScenario?.raw_capacity_result?.critical_paths) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Critical Paths</mat-panel-title>
+          <mat-panel-description>Paths constraining flow to each sink</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="critical-paths">
+          @for (entry of tab.rawScenario!.raw_capacity_result!.critical_paths | keyvalue; track entry.key) {
+          <div class="path-item">
+            <strong>To Node {{ entry.key }}:</strong>
+            @for (path of $any(entry.value); track $index) {
+            <span class="path-chain">
+              @for (node of path; track $index; let last = $last) {
+                <span class="path-node">{{ node }}</span>
+                @if (!last) { <mat-icon class="path-arrow">arrow_forward</mat-icon> }
+              }
+            </span>
+            }
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+      }
+
+      <!-- Upgrade Priorities -->
+      @if (tab.rawScenario?.comparative_analysis && !tab.rawScenario!.comparative_analysis!.error) {
+      <mat-expansion-panel class="analysis-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Upgrade Priorities</mat-panel-title>
+          <mat-panel-description>Ranked by potential impact</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="upgrade-priorities">
+          @if (tab.rawScenario!.comparative_analysis!.strategic_recommendations) {
+          <div class="recommendations">
+            @for (rec of tab.rawScenario!.comparative_analysis!.strategic_recommendations; track $index) {
+            <p class="recommendation">{{ rec }}</p>
+            }
+          </div>
+          }
+          @if (tab.rawScenario!.comparative_analysis!.upgrade_priorities.length) {
+          <div class="priority-list">
+            @for (p of tab.rawScenario!.comparative_analysis!.upgrade_priorities; track p.node) {
+            <div class="priority-item">
+              <span class="priority-node">Node {{ p.node }}</span>
+              <span class="priority-gap">Gap: {{ formatValue(p.gap) }}</span>
+              <mat-chip class="priority-chip">{{ p.priority }}</mat-chip>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </mat-expansion-panel>
+      }
+
+      <!-- Results Table -->
+      <mat-card class="results-card">
+        <mat-card-content>
+          <div class="table-controls">
+            <div class="search-wrapper">
+              <mat-icon>search</mat-icon>
+              <input type="text" placeholder="Search by {{ activeViewMode() === 'node' ? 'node' : 'edge' }} ID..."
+                     [value]="activeSearchTerm()"
+                     (input)="onSearchChange($event)">
+            </div>
+          </div>
+
+          <!-- Node View Table -->
+          @if (activeViewMode() === 'node') {
+          <div class="table-container">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th class="sortable" (click)="onSort('nodeId')">
+                    Node <mat-icon class="sort-icon">{{ getSortIcon('nodeId') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('capacity')" matTooltip="Maximum processing capacity of this node">
+                    Capacity <mat-icon class="sort-icon">{{ getSortIcon('capacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('maxFlow')" matTooltip="Maximum achievable flow through this node given network constraints">
+                    Max Flow <mat-icon class="sort-icon">{{ getSortIcon('maxFlow') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('utilization')" matTooltip="Flow / Capacity ratio — how much of the node's capacity is used">
+                    Utilization <mat-icon class="sort-icon">{{ getSortIcon('utilization') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('spareCapacity')" matTooltip="Capacity - Max Flow: remaining unused capacity">
+                    Spare <mat-icon class="sort-icon">{{ getSortIcon('spareCapacity') }}</mat-icon>
+                  </th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of activePaginatedResults(); track r.nodeId) {
+                <tr [class.bottleneck-row]="r.isBottleneck">
+                  <td class="node-id">{{ r.nodeId }}</td>
+                  <td class="copyable" (click)="copyToClipboard(r.capacity, 'cap-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'cap-' + r.nodeId">
+                    {{ formatValue(r.capacity) }}
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.maxFlow, 'flow-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'flow-' + r.nodeId">
+                    {{ formatValue(r.maxFlow) }}
+                  </td>
+                  <td class="copyable utilization-cell" (click)="copyToClipboard(r.utilization, 'util-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'util-' + r.nodeId"
+                      [style.background]="getUtilizationHeatColor(r.utilization)">
+                    {{ formatUtilization(r.utilization) }}
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.spareCapacity, 'spare-' + r.nodeId)"
+                      [class.copied]="copiedCellKey() === 'spare-' + r.nodeId">
+                    {{ formatValue(r.spareCapacity) }}
+                  </td>
+                  <td>
+                    <mat-chip class="node-type-chip" [class]="'type-' + r.nodeType.toLowerCase()">{{ r.nodeType }}</mat-chip>
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <mat-paginator [length]="activeFilteredResults().length"
+                         [pageSize]="activePageSize()"
+                         [pageIndex]="activePageIndex()"
+                         [pageSizeOptions]="[10, 25, 50, 100]"
+                         (page)="onPageChange($event)"
+                         showFirstLastButtons>
+          </mat-paginator>
+          }
+
+          <!-- Edge View Table -->
+          @if (activeViewMode() === 'edge') {
+          <div class="table-container">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th class="sortable" (click)="onSort('from')">
+                    From <mat-icon class="sort-icon">{{ getSortIcon('from') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('to')">
+                    To <mat-icon class="sort-icon">{{ getSortIcon('to') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('capacity')" matTooltip="Maximum flow this edge can carry">
+                    Capacity <mat-icon class="sort-icon">{{ getSortIcon('capacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('flow')" matTooltip="Actual flow through this edge">
+                    Flow <mat-icon class="sort-icon">{{ getSortIcon('flow') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('utilization')" matTooltip="Flow / Capacity ratio for this edge">
+                    Utilization <mat-icon class="sort-icon">{{ getSortIcon('utilization') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onSort('spare')" matTooltip="Remaining unused edge capacity">
+                    Spare <mat-icon class="sort-icon">{{ getSortIcon('spare') }}</mat-icon>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of activePaginatedEdgeResults(); track r.edgeKey) {
+                <tr [class.bottleneck-row]="r.isBottleneck">
+                  <td class="node-id">{{ r.from }}</td>
+                  <td class="node-id">{{ r.to }}</td>
+                  <td class="copyable" (click)="copyToClipboard(r.capacity, 'ecap-' + r.edgeKey)"
+                      [class.copied]="copiedCellKey() === 'ecap-' + r.edgeKey">
+                    {{ formatValue(r.capacity) }}
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.flow, 'eflow-' + r.edgeKey)"
+                      [class.copied]="copiedCellKey() === 'eflow-' + r.edgeKey">
+                    {{ formatValue(r.flow) }}
+                  </td>
+                  <td class="copyable utilization-cell" (click)="copyToClipboard(r.utilization, 'eutil-' + r.edgeKey)"
+                      [class.copied]="copiedCellKey() === 'eutil-' + r.edgeKey"
+                      [style.background]="getUtilizationHeatColor(r.utilization)">
+                    {{ formatUtilization(r.utilization) }}
+                  </td>
+                  <td class="copyable" (click)="copyToClipboard(r.spare, 'espare-' + r.edgeKey)"
+                      [class.copied]="copiedCellKey() === 'espare-' + r.edgeKey">
+                    {{ formatValue(r.spare) }}
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <mat-paginator [length]="activeFilteredEdgeResults().length"
+                         [pageSize]="activePageSize()"
+                         [pageIndex]="activePageIndex()"
+                         [pageSizeOptions]="[10, 25, 50, 100]"
+                         (page)="onPageChange($event)"
+                         showFirstLastButtons>
+          </mat-paginator>
+          }
+        </mat-card-content>
+      </mat-card>
+      }
+
+      <!-- Idle State -->
+      @if (tab.status === 'idle') {
+      <mat-card class="status-card idle">
+        <mat-card-content>
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Waiting to run capacity analysis...</p>
+          <button mat-stroked-button (click)="rerunScenario(tab.scenario.name)">
+            <mat-icon>play_arrow</mat-icon> Run Analysis
+          </button>
+        </mat-card-content>
+      </mat-card>
+      }
+    }
+  </mat-tab>
   }
-</div>
+</mat-tab-group>
+} @else {
+<mat-card class="empty-state">
+  <mat-card-content>
+    <mat-icon>info_outline</mat-icon>
+    <h3>No Capacity Scenarios Available</h3>
+    <p>Upload a network with capacity data files to begin analysis.</p>
+  </mat-card-content>
+</mat-card>
+}

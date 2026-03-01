@@ -100,6 +100,18 @@
     }
   }
   
+  .docs-button {
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+    box-shadow: none;
+
+    &:hover {
+      background: var(--text-secondary);
+      color: white;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   .secondary-button {
     font-size: 1.2rem;
     padding: 1.2rem 2.5rem;

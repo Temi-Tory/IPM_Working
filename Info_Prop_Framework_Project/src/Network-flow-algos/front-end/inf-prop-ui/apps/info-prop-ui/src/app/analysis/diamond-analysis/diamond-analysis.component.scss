@@ -462,9 +462,10 @@ t// System-Wide DAG Infrastructure Analysis Dashboard
         }
       }
     }
+  }
 
-    // System-Wide Metrics Dashboard
-    .system-metrics {
+  // System-Wide Metrics Dashboard
+  .system-metrics {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1.5rem;
@@ -585,8 +586,7 @@ t// System-Wide DAG Infrastructure Analysis Dashboard
         }
       }
     }
-  }
-    
+
 
   // Loading, Error, and Empty States
   .loading-state,

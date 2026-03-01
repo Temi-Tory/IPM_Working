@@ -6,6 +6,8 @@ import {
   DiamondAnalysisRequest,
   DiamondAnalysisResponse,
   DiamondAnalysisResult,
+  DiamondSubgraphAnalysisRequest,
+  DiamondSubgraphAnalysisResponse,
   ScenarioInfo,
   MultiScenarioDiamondResults,
   DiamondPattern,
@@ -21,6 +23,9 @@ export class DiamondAnalysisService {
   private readonly API_BASE = 'http://localhost:8080';
 
   private http: HttpClient = inject(HttpClient);
+
+  // Subgraph analysis cache: keyed by "diamondHash|scenarioName"
+  private subgraphAnalysisCache = new Map<string, DiamondSubgraphAnalysisResponse>();
 
   // Multi-scenario state management
   private multiScenarioResultsSignal = signal<MultiScenarioDiamondResults>({
@@ -144,17 +149,46 @@ export class DiamondAnalysisService {
     return scenarios;
   }
 
+  // Diamond subgraph analysis
+  analyzeDiamondSubgraph(request: DiamondSubgraphAnalysisRequest): Observable<DiamondSubgraphAnalysisResponse> {
+    const cacheKey = `${request.diamondHash}|${request.analyses.sort().join(',')}`;
+    const cached = this.subgraphAnalysisCache.get(cacheKey);
+    if (cached) {
+      return of(cached);
+    }
+
+    return this.http.post<DiamondSubgraphAnalysisResponse>(
+      `${this.API_BASE}/diamond-subgraph-analysis`,
+      request
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.subgraphAnalysisCache.set(cacheKey, response);
+        }
+      }),
+      catchError(error => {
+        console.error('Diamond subgraph analysis failed:', error.message || error);
+        throw error;
+      })
+    );
+  }
+
+  getSubgraphCachedResult(diamondHash: string, analyses: string[]): DiamondSubgraphAnalysisResponse | null {
+    const cacheKey = `${diamondHash}|${analyses.sort().join(',')}`;
+    return this.subgraphAnalysisCache.get(cacheKey) || null;
+  }
+
+  clearSubgraphCache(): void {
+    this.subgraphAnalysisCache.clear();
+  }
+
   // **FIXED: Enhanced diamond processing methods with proper identification**
   processDiamondSummary(diamondResult: DiamondAnalysisResult): DiamondSummary {
-    console.log('💎 Processing diamond summary from result:', diamondResult);
-    
-    // Use the actual API response structure from the logs
     const uniqueDiamonds = diamondResult.raw_unique_diamonds || {};
-    const rootDiamonds = diamondResult.raw_root_diamonds || {};
-    
-    // Get counts from the response using the correct property names
+
     const totalDiamondsCount = diamondResult.unique_diamonds_count || Object.keys(uniqueDiamonds).length || 0;
-    const rootDiamondsCount = diamondResult.root_diamonds_count || Object.keys(rootDiamonds).length || 0;
+    const rootDiamondsCount = diamondResult.root_diamonds_count ||
+      Object.values(uniqueDiamonds).filter((d: any) => d.is_root_diamond).length || 0;
     const joinNodesCount = diamondResult.join_nodes_with_diamonds?.length || 0;
     
     // Calculate complexities from available data
@@ -197,14 +231,18 @@ export class DiamondAnalysisService {
   }
 
   analyzeJoinNodes(diamondResult: DiamondAnalysisResult): JoinNodeAnalysis[] {
-    console.log('💎 Analyzing join nodes from result:', diamondResult);
     const uniqueDiamonds = diamondResult.raw_unique_diamonds || {};
-    const rootDiamonds = diamondResult.raw_root_diamonds || {};
     const joinNodeMap: Map<number, JoinNodeAnalysis> = new Map();
 
-    // Process unique diamonds
+    // Process all unique diamonds (includes root diamonds via is_root_diamond flag)
     Object.values(uniqueDiamonds).forEach((diamond: any) => {
-      const joinNodes = diamond.sub_join_nodes || [];
+      // Use join_node (convergence point) if available, plus sub_join_nodes for internal structure
+      const joinNodes: number[] = [];
+      if (diamond.join_node !== undefined) joinNodes.push(diamond.join_node);
+      (diamond.sub_join_nodes || []).forEach((jn: number) => {
+        if (!joinNodes.includes(jn)) joinNodes.push(jn);
+      });
+
       joinNodes.forEach((joinNode: number) => {
         const existing = joinNodeMap.get(joinNode) || {
           nodeId: joinNode,
@@ -222,27 +260,7 @@ export class DiamondAnalysisService {
       });
     });
 
-    // Process root diamonds
-    Object.entries(rootDiamonds).forEach(([joinNodeStr, diamond]: [string, any]) => {
-      const joinNode = parseInt(joinNodeStr);
-      const existing = joinNodeMap.get(joinNode) || {
-        nodeId: joinNode,
-        diamondCount: 0,
-        centralityScore: 0,
-        convergencePatterns: [],
-        isBottleneck: false
-      };
-
-      existing.diamondCount++;
-      existing.centralityScore = this.calculateCentralityScore(joinNode, uniqueDiamonds);
-      existing.isBottleneck = existing.diamondCount > 1;
-
-      joinNodeMap.set(joinNode, existing);
-    });
-
-    const result = Array.from(joinNodeMap.values()).sort((a, b) => b.centralityScore - a.centralityScore);
-    console.log('💎 Analyzed join nodes:', result.length);
-    return result;
+    return Array.from(joinNodeMap.values()).sort((a, b) => b.centralityScore - a.centralityScore);
   }
 
   // **NEW: Create meaningful diamond identifiers**

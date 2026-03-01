@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 
@@ -20,6 +20,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
@@ -34,11 +35,33 @@ import {
   JoinNodeAnalysis,
   DiamondPattern,
   MultiScenarioDiamondResults,
-  ScenarioComparison
+  ScenarioComparison,
+  ReachabilityFileGroup
 } from '../../shared/models/network-analysis.models';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
 import { DiamondDetailsComponent } from './diamond-details/diamond-details.component';
 
+// ─── Interfaces ───────────────────────────────────────────────────────────────
+
+interface DiamondScenario {
+  name: string;
+  dataType: 'float' | 'interval' | 'pbox';
+  displayName: string;
+  networkPath: string | undefined;
+  nodePriorsFile: any;
+}
+
+interface DiamondScenarioTabState {
+  scenario: DiamondScenario;
+  status: 'idle' | 'computing' | 'computed' | 'error';
+  diamondResult: DiamondAnalysisResult | null;
+  error: string | null;
+  // Per-tab UI state
+  selectedPatternType: string;
+  innerTabIndex: number;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 @Component({
   selector: 'app-diamond-analysis',
@@ -64,12 +87,13 @@ import { DiamondDetailsComponent } from './diamond-details/diamond-details.compo
     MatDividerModule,
     MatSortModule,
     MatExpansionModule,
+    MatMenuModule,
     FormsModule
   ],
   templateUrl: './diamond-analysis.component.html',
   styleUrls: ['./diamond-analysis.component.scss']
 })
-export class DiamondAnalysisComponent implements OnInit, AfterViewInit, ScenarioAwareComponent {
+export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewInit, ScenarioAwareComponent {
   private analysisStateService = inject(AnalysisStateService);
   private diamondAnalysisService = inject(DiamondAnalysisService);
   private fileManagerService = inject(FileManagerService);
@@ -78,329 +102,415 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
 
-  // ViewChild references for table functionality
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) set paginatorRef(paginator: MatPaginator) {
+    if (paginator && this.dataSource) {
+      this.dataSource.paginator = paginator;
+    }
+  }
+  @ViewChild(MatSort) set sortRef(sort: MatSort) {
+    if (sort && this.dataSource) {
+      this.dataSource.sort = sort;
+    }
+  }
 
-  // ScenarioAwareComponent Implementation
+  // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   currentScenario = '';
   availableScenarios: ScenarioInfo[] = [];
   isLoading = false;
   error: string | null = null;
   networkData: any = null;
   analysisResults: any = null;
+  scenarioResults = new Map<string, any>();
 
-  // Multi-scenario state management
-  scenarioResults = new Map<string, DiamondAnalysisResult>();
-  private scenarioResultsSignal = signal(new Map<string, DiamondAnalysisResult>());
-  
-  // Scenario comparison state
-  comparisonMode = signal<boolean>(false);
-  selectedScenariosForComparison = signal<string[]>([]);
-  scenarioComparisons = signal<ScenarioComparison[]>([]);
+  // ─── Tab state management (same pattern as exact-inference) ───────────────
+  scenarioTabs = signal<Map<string, DiamondScenarioTabState>>(new Map());
+  activeTabIndex = signal(0);
 
-  // Internal signals for reactive updates
-  private currentScenarioSignal = signal<string>('');
-  selectedTab = signal<number>(0);
-  
-  // Hierarchy Visualizer State
-  multipleHierarchiesMode = signal<boolean>(false);
-  singleHierarchyMode = signal<boolean>(false);
-  selectedHierarchiesCount = signal<number>(0);
-  
-  // Filter State - Dynamic based on actual data
-  minNodeCount = signal<number>(0);
-  maxNodeCount = signal<number>(100);
-  selectedPatternType = signal<string>('');
-  
+  // Per-tab UI state signals
+  selectedPatternType = signal('');
+  innerTabIndex = signal(0);
+
+  // Comparison state
+  comparisonMode = signal(false);
+
+  // Filter state
+  minNodeCount = signal(0);
+  maxNodeCount = signal(100);
+
   // Table data source
   dataSource = new MatTableDataSource<DiamondPattern>([]);
-  
-  // Computed properties for reactive UI updates
-  availableScenariosComputed = computed(() => {
-    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    
-    const scenarios = reachabilityGroups
-      .filter(group => group.dataType === 'float' || group.dataType === 'interval' || group.dataType === 'pbox')
-      .map((group, index) => ({
-        name: group.scenarioName || `${group.dataType}-${index}`,
-        dataType: group.dataType as 'float' | 'interval' | 'pbox',
-        displayName: group.scenarioName ?
-          `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})` :
-          this.getDataTypeDisplayName(group.dataType),
-        path: group.nodePriorsFile?.path || '',
-        networkPath: group.networkPath,
-        nodePriorsFile: group.nodePriorsFile,
-        linkProbabilitiesFile: group.linkProbabilitiesFile,
-        computed: this.scenarioResults.has(group.scenarioName || `${group.dataType}-${index}`),
-        hasResults: this.scenarioResults.has(group.scenarioName || `${group.dataType}-${index}`)
-      }));
-    
-    // Update the interface property
-    this.availableScenarios = scenarios;
-    return scenarios;
+
+  // ─── Computed: scenario names (tab order) ─────────────────────────────────
+  scenarioNames = computed(() => Array.from(this.scenarioTabs().keys()));
+
+  // ─── Computed: active tab state ───────────────────────────────────────────
+  activeTab = computed((): DiamondScenarioTabState | null => {
+    const tabs = this.scenarioTabs();
+    const keys = Array.from(tabs.keys());
+    const idx = this.activeTabIndex();
+    if (idx < 0 || idx >= keys.length) return null;
+    return tabs.get(keys[idx]) || null;
   });
 
-  // Loading and error state computed properties
-  isLoadingComputed = computed(() => {
-    const loading = this.analysisStateService.isLoading();
-    this.isLoading = loading;
-    return loading;
-  });
-
-  errorComputed = computed(() => {
-    const error = this.analysisStateService.error();
-    this.error = error;
-    return error;
-  });
-
-  // ScenarioAwareComponent required methods
-  loadScenarios(): void {
-    const scenarios = this.availableScenariosComputed();
-    this.availableScenarios = scenarios;
-  }
-
-  loadScenarioData(scenarioName: string): void {
-    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    const matchingScenario = reachabilityGroups.find(group =>
-      (group.scenarioName || group.dataType) === scenarioName
-    );
-    
-    if (matchingScenario) {
-      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      if (sessionNetworkPath) {
-        console.log('🔄 Loading scenario data for:', scenarioName);
-        this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
-      }
+  // ─── Computed: completed scenario count ───────────────────────────────────
+  completedCount = computed((): number => {
+    let count = 0;
+    for (const tab of this.scenarioTabs().values()) {
+      if (tab.status === 'computed') count++;
     }
-  }
+    return count;
+  });
 
-  loadData(): void {
-    this.loadScenarios();
-    if (this.currentScenario) {
-      this.loadScenarioData(this.currentScenario);
-    }
-  }
-
-  // Get multi-scenario diamond results or fallback to single analysis
-  multiScenarioResults = computed(() => this.analysisStateService.multiScenarioDiamondResults());
-  
-  // **FIXED: Get current diamond analysis data - use component's own scenario results**
+  // ─── Computed: current diamond results from active tab ────────────────────
   currentDiamondResults = computed(() => {
-    const currentScenario = this.currentScenarioSignal();
-    // **CRITICAL: Make computed reactive to scenarioResultsSignal changes**
-    const scenarioResultsMap = this.scenarioResultsSignal();
-    
-    console.log('💎 currentDiamondResults computed - scenario:', currentScenario);
-    console.log('💎 scenarioResults Map has keys:', Array.from(scenarioResultsMap.keys()));
-    console.log('💎 scenarioResults Map size:', scenarioResultsMap.size);
-    
-    // **CRITICAL FIX: Use component's own scenario results first**
-    if (currentScenario && scenarioResultsMap.has(currentScenario)) {
-      const result = scenarioResultsMap.get(currentScenario);
-      console.log('💎 Using stored scenario result for:', currentScenario, result);
-      return result || null;
-    }
-    
-    console.log('💎 No result found in scenarioResults for:', currentScenario);
-    
-    // Try multi-scenario results from service as backup
-    const multiResults = this.multiScenarioResults();
-    if (multiResults && currentScenario) {
-      const result = multiResults.scenarios.get(currentScenario);
-      console.log('💎 Using service multi-scenario result for:', currentScenario, result);
-      return result || null;
-    }
-    
-    // Fallback to single diamond analysis only if no scenario is selected
-    if (!currentScenario) {
-      const diamondAnalysis = this.analysisStateService.diamondAnalysis();
-      console.log('💎 Using fallback single analysis:', diamondAnalysis?.diamond_analysis);
-      return diamondAnalysis?.diamond_analysis || null;
-    }
-    
-    console.log('💎 No diamond results found for scenario:', currentScenario);
-    return null;
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return null;
+    return tab.diamondResult;
   });
 
-  // Get the full current diamond analysis object for hierarchy visualization
-  currentDiamondAnalysis = computed(() => {
-    // Use the same logic as currentDiamondResults
-    return this.currentDiamondResults();
-  });
+  currentDiamondAnalysis = computed(() => this.currentDiamondResults());
 
-  // **FIXED: Diamond summary using component's stored results**
+  // ─── Computed: diamond summary ────────────────────────────────────────────
   diamondSummary = computed(() => {
-    const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenarioSignal();
-    console.log('💎 Computing diamond summary for scenario:', scenario, 'results:', currentResults);
-    
-    if (!currentResults) {
-      console.log('💎 No current results for diamond summary');
-      return null;
-    }
-    
-    const summary = this.diamondAnalysisService.processDiamondSummary(currentResults);
-    console.log('💎 Generated diamond summary:', summary);
-    return summary;
-  });
-  
-  // **ENHANCED: Convergence insights with risk analysis**
-  convergenceInsights = computed(() => {
-    const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenarioSignal();
-    console.log('🔍 Computing convergence insights for scenario:', scenario);
-    
-    if (!currentResults) return [];
-    return this.diamondAnalysisService.analyzeConvergencePatterns(currentResults);
-  });
-  
-  // **ENHANCED: Coverage metrics**
-  coverageMetrics = computed(() => {
-    const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenarioSignal();
-    console.log('📊 Computing coverage metrics for scenario:', scenario);
-    return this.calculateNetworkCoverage();
-  });
-  
-  // **ENHANCED: Join node analysis**
-  joinNodeAnalysis = computed(() => {
-    const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenarioSignal();
-    console.log('🔗 Computing join node analysis for scenario:', scenario);
-    
-    if (!currentResults) return [];
-    return this.diamondAnalysisService.analyzeJoinNodes(currentResults);
+    const results = this.currentDiamondResults();
+    if (!results) return null;
+    return this.diamondAnalysisService.processDiamondSummary(results);
   });
 
-  // **FIXED: Diamond patterns using component's stored results**
+  // ─── Computed: convergence insights ───────────────────────────────────────
+  convergenceInsights = computed(() => {
+    const results = this.currentDiamondResults();
+    if (!results) return [];
+    return this.diamondAnalysisService.analyzeConvergencePatterns(results);
+  });
+
+  // ─── Computed: coverage metrics ───────────────────────────────────────────
+  coverageMetrics = computed(() => this.calculateNetworkCoverage());
+
+  // ─── Computed: join node analysis ─────────────────────────────────────────
+  joinNodeAnalysis = computed(() => {
+    const results = this.currentDiamondResults();
+    if (!results) return [];
+    return this.diamondAnalysisService.analyzeJoinNodes(results);
+  });
+
+  // ─── Computed: diamond patterns ───────────────────────────────────────────
   diamondPatterns = computed(() => {
     const currentResults = this.currentDiamondResults();
-    const scenario = this.currentScenarioSignal();
-    console.log('🔷 Computing unique diamonds for scenario:', scenario, 'results:', currentResults);
-    
-    if (!currentResults) {
-      console.log('🔷 No current results for diamond patterns');
-      return [];
-    }
-    
-    // Get patterns from service
+    if (!currentResults) return [];
+
     const patterns = this.diamondAnalysisService.extractDiamondPatterns(currentResults);
-    console.log('🔷 Extracted patterns from service:', patterns);
-    
-    // Extract unique diamonds only and add diamond type using the is_root_diamond flag
     if (currentResults.raw_unique_diamonds && patterns) {
       const rawUnique = currentResults.raw_unique_diamonds;
-      
-      const processedPatterns = patterns.map((pattern, index) => {
+      return patterns.map((pattern, index) => {
         const diamondEntries = Object.entries(rawUnique);
         const [hash, diamondData] = diamondEntries[index] || ['', {}];
-        
-        // Use the is_root_diamond flag directly from the diamond data
         const isRootDiamond = (diamondData as any)?.is_root_diamond || false;
         const joinNode = (diamondData as any)?.join_node;
-        
         return {
           ...pattern,
           diamondType: isRootDiamond ? 'Root' : 'Nested',
           joinNode: joinNode || pattern.joinNode || null
         };
       });
-      
-      console.log('🔷 Processed diamond patterns:', processedPatterns);
-      return processedPatterns;
     }
-    
-    console.log('🔷 Returning raw patterns:', patterns);
     return patterns;
   });
-  
-  // Filtered diamond patterns
+
+  // ─── Computed: filtered diamond patterns ──────────────────────────────────
   filteredDiamondPatterns = computed(() => {
     const patterns = this.diamondPatterns();
     if (!patterns) return [];
-    
+
     const minNodes = this.minNodeCount();
     const maxNodes = this.maxNodeCount();
     const patternType = this.selectedPatternType();
-    
+
     const filtered = patterns.filter(pattern => {
-      // Node count filter
-      if (pattern.nodeCount < minNodes || pattern.nodeCount > maxNodes) {
-        return false;
-      }
-      
-      // Pattern type filter
+      if (pattern.nodeCount < minNodes || pattern.nodeCount > maxNodes) return false;
       if (patternType) {
         switch (patternType) {
-          case 'root':
-            return pattern.isRoot;
-          case 'nested':
-            return !pattern.isRoot;
-          case 'complex':
-            return pattern.complexity > 50;
-          case 'critical':
-            return pattern.riskLevel === 'critical' || pattern.riskLevel === 'high';
-          default:
-            return true;
+          case 'root': return pattern.isRoot;
+          case 'nested': return !pattern.isRoot;
+          case 'complex': return pattern.complexity > 50;
+          case 'critical': return pattern.riskLevel === 'critical' || pattern.riskLevel === 'high';
+          default: return true;
         }
       }
-      
       return true;
     });
-    
-    // Update data source when filters change
+
     setTimeout(() => this.updateDataSource(), 0);
     return filtered;
   });
 
-  // **REDESIGNED: Focused table configuration for system-wide DAG analysis**
+  // Table columns
   displayedColumns: string[] = ['joinNode', 'diamondType', 'conditioningNodes', 'diamondComplexity', 'cascadeRisk', 'systemRole', 'actions'];
-  
-  // **NEW: Track API calls to prevent duplicate requests**
-  private hasCalledDiamondAPI = false;
-  
+
+  private static readonly VIEW_KEY = 'diamond-analysis';
+
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
+
   ngOnInit(): void {
-    console.log('💎 DiamondAnalysisComponent initializing...');
-    
-    // **IMPROVED: Load scenarios and data first**
-    this.loadScenarios();
-    this.loadData();
-    
-    // Get network path and reachability scenarios
-    const currentSession = this.sessionService.getCurrentSession();
-    const networkPath = currentSession?.networkPath || this.analysisStateService.currentNetworkPath();
-    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    
-    if (networkPath && !this.hasCalledDiamondAPI) {
-      if (reachabilityGroups.length === 0) {
-        console.log('🔹 No reachability scenarios found - will load diamond analysis with default priors when user executes');
-        // Don't auto-load, let user trigger execution
-      } else if (reachabilityGroups.length === 1) {
-        console.log('🔹 Single reachability scenario found - auto-selecting:', reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
-        this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
-        // **CHANGED: Don't auto-execute, let user trigger**
-        console.log('🔹 Scenario selected, user can now execute diamond analysis');
-      } else {
-        console.log('🔹 Multiple reachability scenarios found - user needs to select:', reachabilityGroups.map(g => g.scenarioName || g.dataType));
-        // Initialize with first scenario but don't auto-load until user selects
-        this.setCurrentScenario(reachabilityGroups[0].scenarioName || reachabilityGroups[0].dataType);
-        console.log('🔹 First scenario selected, user can change and execute as needed');
+    // Restore cached state
+    const cached = this.analysisStateService.restoreViewState(DiamondAnalysisComponent.VIEW_KEY);
+    if (cached && cached.tabs.size > 0) {
+      this.scenarioTabs.set(cached.tabs as Map<string, DiamondScenarioTabState>);
+      this.activeTabIndex.set(cached.activeTabIndex);
+      if (cached.uiState) {
+        this.selectedPatternType.set(cached.uiState.selectedPatternType || '');
+        this.innerTabIndex.set(cached.uiState.innerTabIndex || 0);
+        this.comparisonMode.set(cached.uiState.comparisonMode || false);
       }
+      this.restoreActiveTabUIState();
+      this.updateFilterRanges();
+      return;
     }
-    
-    // Initialize dynamic filter ranges
-    this.updateFilterRanges();
+
+    // Normal initialization
+    this.loadScenarios();
+    // Manual trigger — don't auto-run. Tabs start as 'idle'.
+  }
+
+  ngOnDestroy(): void {
+    this.saveActiveTabUIState();
+    this.analysisStateService.saveViewState(
+      DiamondAnalysisComponent.VIEW_KEY,
+      this.scenarioTabs(),
+      this.activeTabIndex(),
+      {
+        selectedPatternType: this.selectedPatternType(),
+        innerTabIndex: this.innerTabIndex(),
+        comparisonMode: this.comparisonMode()
+      }
+    );
   }
 
   ngAfterViewInit(): void {
-    // Connect paginator and sort to data source
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
-    
-    // Update data source when filtered patterns change
     this.updateDataSource();
   }
+
+  // ─── ScenarioAwareComponent implementation ────────────────────────────────
+
+  loadScenarios(): void {
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    const validGroups = reachabilityGroups.filter(
+      (g: ReachabilityFileGroup) => g.dataType === 'float' || g.dataType === 'interval' || g.dataType === 'pbox'
+    );
+
+    this.availableScenarios = validGroups.map((group: ReachabilityFileGroup, index: number) => ({
+      name: group.scenarioName || `${group.dataType}-${index}`,
+      dataType: group.dataType as 'float' | 'interval' | 'pbox',
+      path: group.nodePriorsFile?.path || '',
+      displayName: group.scenarioName
+        ? `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})`
+        : this.getDataTypeDisplayName(group.dataType),
+      analysisType: 'reachability' as const,
+      description: ''
+    }));
+
+    // Initialize tab state for each scenario
+    const tabs = new Map<string, DiamondScenarioTabState>();
+    validGroups.forEach((group: ReachabilityFileGroup, index: number) => {
+      const name = group.scenarioName || `${group.dataType}-${index}`;
+      tabs.set(name, {
+        scenario: {
+          name,
+          dataType: group.dataType as 'float' | 'interval' | 'pbox',
+          displayName: group.scenarioName
+            ? `${group.scenarioName} (${this.getDataTypeDisplayName(group.dataType)})`
+            : this.getDataTypeDisplayName(group.dataType),
+          networkPath: group.networkPath,
+          nodePriorsFile: group.nodePriorsFile
+        },
+        status: 'idle',
+        diamondResult: null,
+        error: null,
+        selectedPatternType: '',
+        innerTabIndex: 0
+      });
+    });
+    this.scenarioTabs.set(tabs);
+
+    if (this.availableScenarios.length > 0) {
+      this.currentScenario = this.availableScenarios[0].name;
+    }
+  }
+
+  setCurrentScenario(scenarioName: string): void {
+    this.currentScenario = scenarioName;
+  }
+
+  loadScenarioData(scenarioName: string): void {
+    this.setCurrentScenario(scenarioName);
+  }
+
+  loadData(): void {
+    this.loadScenarios();
+  }
+
+  clearScenarioData(): void {
+    const tabs = new Map(this.scenarioTabs());
+    for (const [name, tab] of tabs.entries()) {
+      tabs.set(name, { ...tab, status: 'idle', diamondResult: null, error: null });
+    }
+    this.scenarioTabs.set(tabs);
+    this.scenarioResults.clear();
+    this.analysisStateService.clearViewState(DiamondAnalysisComponent.VIEW_KEY);
+  }
+
+  // ─── Run scenarios ────────────────────────────────────────────────────────
+
+  async runAllScenarios(): Promise<void> {
+    const tabs = this.scenarioTabs();
+    if (tabs.size === 0) return;
+
+    const promises: Promise<void>[] = [];
+    for (const name of tabs.keys()) {
+      const tab = tabs.get(name);
+      if (tab && (tab.status === 'idle' || tab.status === 'error')) {
+        promises.push(this.runScenario(name));
+      }
+    }
+    await Promise.allSettled(promises);
+  }
+
+  async runScenario(scenarioName: string): Promise<void> {
+    const tabs = this.scenarioTabs();
+    const tabState = tabs.get(scenarioName);
+    if (!tabState) return;
+
+    this.updateTabState(scenarioName, { status: 'computing', error: null });
+
+    try {
+      const scenario = tabState.scenario;
+      const request = this.buildDiamondRequest(scenario);
+      if (!request) {
+        throw new Error('Could not build request: missing file paths');
+      }
+
+      const response = await this.diamondAnalysisService.analyzeDiamonds(request).toPromise();
+
+      if (!response?.success || !response?.diamond_analysis) {
+        throw new Error(response?.message || 'No results returned from backend');
+      }
+
+      this.updateTabState(scenarioName, {
+        status: 'computed',
+        diamondResult: response.diamond_analysis,
+        error: null
+      });
+
+      this.scenarioResults.set(scenarioName, response.diamond_analysis);
+      this.analysisStateService.markTabCompleted('diamonds');
+      this.updateFilterRanges();
+      this.cdr.detectChanges();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Diamond analysis failed';
+      this.updateTabState(scenarioName, { status: 'error', error: msg });
+      this.cdr.detectChanges();
+    }
+  }
+
+  async rerunScenario(scenarioName: string): Promise<void> {
+    this.updateTabState(scenarioName, { status: 'idle', diamondResult: null, error: null });
+    await this.runScenario(scenarioName);
+  }
+
+  private buildDiamondRequest(scenario: DiamondScenario): any | null {
+    let networkPath = scenario.networkPath;
+    if (!networkPath) {
+      networkPath = this.sessionService.getCurrentSession()?.networkPath;
+    }
+    if (!networkPath) return null;
+
+    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
+    const matchingGroup = reachabilityGroups.find(
+      g => g.scenarioName === scenario.name && g.dataType === scenario.dataType
+    );
+
+    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
+    const baseNetworkPath = (sessionNetworkPath || matchingGroup?.networkPath || networkPath).replace(/\\/g, '/');
+    const networkName = baseNetworkPath.split('/').pop() || '';
+
+    let relativeNodePriorsPath = scenario.nodePriorsFile?.path || '';
+
+    // Strip network name prefix if present
+    if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
+      relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
+    }
+    // Remove duplicate network prefixes
+    const pathParts = relativeNodePriorsPath.split('/');
+    while (pathParts.length > 0 && pathParts[0] === networkName) {
+      pathParts.shift();
+    }
+    relativeNodePriorsPath = pathParts.join('/');
+
+    return {
+      networkPath: baseNetworkPath,
+      nodepriorsPath: relativeNodePriorsPath || undefined
+    };
+  }
+
+  // ─── Tab management ───────────────────────────────────────────────────────
+
+  onScenarioTabChange(newIndex: number): void {
+    this.saveActiveTabUIState();
+    this.activeTabIndex.set(newIndex);
+    this.restoreActiveTabUIState();
+    this.updateFilterRanges();
+    this.updateDataSource();
+  }
+
+  onInnerTabChange(index: number): void {
+    this.innerTabIndex.set(index);
+  }
+
+  private saveActiveTabUIState(): void {
+    const keys = Array.from(this.scenarioTabs().keys());
+    const currentKey = keys[this.activeTabIndex()];
+    if (!currentKey) return;
+    this.updateTabState(currentKey, {
+      selectedPatternType: this.selectedPatternType(),
+      innerTabIndex: this.innerTabIndex()
+    });
+  }
+
+  private restoreActiveTabUIState(): void {
+    const tab = this.activeTab();
+    if (!tab) return;
+    this.selectedPatternType.set(tab.selectedPatternType);
+    this.innerTabIndex.set(tab.innerTabIndex);
+  }
+
+  private updateTabState(name: string, update: Partial<DiamondScenarioTabState>): void {
+    const current = new Map(this.scenarioTabs());
+    const existing = current.get(name);
+    if (existing) {
+      current.set(name, { ...existing, ...update });
+      this.scenarioTabs.set(current);
+    }
+  }
+
+  // ─── Tab helpers (for template access) ────────────────────────────────────
+
+  getTabStatus(name: string): string {
+    return this.scenarioTabs().get(name)?.status || 'idle';
+  }
+
+  getTabError(name: string): string {
+    return this.scenarioTabs().get(name)?.error || '';
+  }
+
+  getTabDisplayName(name: string): string {
+    return this.scenarioTabs().get(name)?.scenario.displayName || name;
+  }
+
+  getTabDataType(name: string): string {
+    return this.scenarioTabs().get(name)?.scenario.dataType || 'float';
+  }
+
+  // ─── Data source and filters ──────────────────────────────────────────────
 
   private updateDataSource(): void {
     const patterns = this.filteredDiamondPatterns();
@@ -411,110 +521,43 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     const patterns = this.diamondPatterns();
     if (patterns && patterns.length > 0) {
       const nodeCounts = patterns.map(p => p.nodeCount);
-      const minNodes = Math.min(...nodeCounts);
-      const maxNodes = Math.max(...nodeCounts);
-      
-      // Set dynamic ranges based on actual data
-      this.minNodeCount.set(minNodes);
-      this.maxNodeCount.set(maxNodes);
+      this.minNodeCount.set(Math.min(...nodeCounts));
+      this.maxNodeCount.set(Math.max(...nodeCounts));
     }
   }
 
-  // **SIMPLIFIED: Scenario Management like exact-inference**
-  setCurrentScenario(scenarioName: string): void {
-    console.log('🔄 Changing diamond analysis scenario from', this.currentScenario, 'to', scenarioName);
-    this.currentScenario = scenarioName;
-    this.currentScenarioSignal.set(scenarioName);
-    this.analysisStateService.setCurrentDiamondScenario(scenarioName);
-    
-    // **IMPROVED: Just switch scenario, don't auto-execute**
-    // Check if we already have results for this scenario
-    if (this.scenarioResults.has(scenarioName)) {
-      console.log('✅ Using cached results for scenario:', scenarioName);
-      this.updateViewAfterScenarioChange(scenarioName);
-    } else {
-      console.log('🔄 Scenario changed to:', scenarioName, '- user can execute when ready');
-      // Clear current results to show empty state
-      this.updateViewAfterScenarioChange(scenarioName);
-    }
+  setMinNodeCount(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.minNodeCount.set(Math.max(0, Number(target.value)));
   }
 
-  // **NEW: Execute diamond analysis method like exact-inference**
-  async executeDiamondAnalysis(): Promise<void> {
-    const currentScenario = this.currentScenarioSignal();
-    if (!currentScenario) {
-      console.warn('⚠️ No scenario selected for diamond analysis');
-      return;
-    }
-
-    // Check if we already have results for this scenario
-    if (this.scenarioResults.has(currentScenario)) {
-      console.log('✅ Using cached results for scenario:', currentScenario);
-      this.updateViewAfterScenarioChange(currentScenario);
-      return;
-    }
-
-    // Find the scenario data and make API call
-    const reachabilityGroups = this.fileManagerService.analysisGroups().reachability;
-    const matchingScenario = reachabilityGroups.find(group =>
-      (group.scenarioName || group.dataType) === currentScenario
-    );
-
-    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-    
-    if (matchingScenario && sessionNetworkPath) {
-      console.log('🔄 Executing diamond analysis for scenario:', currentScenario);
-      // Reset the API call flag to allow new calls
-      this.hasCalledDiamondAPI = false;
-      this.loadDiamondWithScenario(sessionNetworkPath, matchingScenario);
-    } else if (!matchingScenario && sessionNetworkPath) {
-      // Handle no scenario case (default priors)
-      console.log('🔄 Executing diamond analysis with default priors');
-      this.hasCalledDiamondAPI = false;
-      this.loadDiamondWithDefaults(sessionNetworkPath);
-    } else {
-      console.warn('⚠️ Cannot execute diamond analysis - missing network path or scenario data');
-    }
+  setMaxNodeCount(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.maxNodeCount.set(Math.max(1, Number(target.value)));
   }
 
-  private updateViewAfterScenarioChange(scenarioName: string): void {
-    // Update filter ranges and data source
-    this.updateFilterRanges();
+  setPatternType(value: string): void {
+    this.selectedPatternType.set(value);
+  }
+
+  applyFilters(): void {
     this.updateDataSource();
-    
-    // Force recomputation by accessing computed properties
-    const summary = this.diamondSummary();
-    const patterns = this.diamondPatterns();
-    const coverage = this.coverageMetrics();
-    const insights = this.convergenceInsights();
-    const joinAnalysis = this.joinNodeAnalysis();
-    
-    console.log('✅ Scenario change complete. New data:', {
-      scenario: scenarioName,
-      summaryExists: !!summary,
-      patternsCount: patterns?.length || 0,
-      coveragePercentage: coverage?.percentage || 0
-    });
-    
-    // Trigger change detection
-    this.cdr.detectChanges();
   }
 
-  // Load multi-scenario diamond analysis
-  private loadMultiScenarioDiamondAnalysis(): void {
-    const networkPath = this.analysisStateService.currentNetworkPath();
-    if (networkPath) {
-      console.log('🔄 Loading multi-scenario diamond analysis for:', networkPath);
-      this.analysisStateService.loadMultiScenarioDiamondAnalysis(networkPath).subscribe({
-        next: () => {
-          console.log('✅ Multi-scenario diamond analysis loaded successfully');
-        },
-        error: (error) => {
-          console.error('❌ Failed to load multi-scenario diamond analysis:', error);
-        }
-      });
+  clearFilters(): void {
+    const patterns = this.diamondPatterns();
+    if (patterns && patterns.length > 0) {
+      const nodeCounts = patterns.map(p => p.nodeCount);
+      this.minNodeCount.set(Math.min(...nodeCounts));
+      this.maxNodeCount.set(Math.max(...nodeCounts));
+    } else {
+      this.minNodeCount.set(0);
+      this.maxNodeCount.set(100);
     }
+    this.selectedPatternType.set('');
   }
+
+  // ─── Formatting helpers ───────────────────────────────────────────────────
 
   getScenarioDisplayName(scenario: ScenarioInfo): string {
     return scenario.displayName || `${scenario.name} (${scenario.dataType.toUpperCase()})`;
@@ -529,34 +572,15 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
   }
 
-  // Tab Management
-  onTabChange(index: number): void {
-    this.selectedTab.set(index);
-  }
-
-  // **SIMPLIFIED: Network coverage calculation using diamond analysis data**
-  private calculateNetworkCoverage(): { covered: number; total: number; percentage: number } {
-    const results = this.currentDiamondResults();
-    if (!results) {
-      return { covered: 0, total: 0, percentage: 0 };
+  private getDataTypeDisplayName(dataType: string): string {
+    switch (dataType) {
+      case 'float': return 'Float (Deterministic)';
+      case 'interval': return 'Interval';
+      case 'pbox': return 'P-Box';
+      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
     }
-
-    // Count join nodes with diamonds as covered nodes
-    const joinNodesWithDiamonds = results.join_nodes_with_diamonds || [];
-    const covered = joinNodesWithDiamonds.length;
-    
-    // Use a reasonable estimate for total nodes based on the diamond count ratios
-    const rootCount = Object.keys(results.raw_root_diamonds || {}).length;
-    const estimatedTotal = rootCount > 0 ? Math.max(rootCount * 8, covered) : covered;
-    
-    return {
-      covered: covered,
-      total: estimatedTotal,
-      percentage: estimatedTotal > 0 ? (covered / estimatedTotal) * 100 : 0
-    };
   }
 
-  // **ENHANCED: UI Helper Methods with meaningful formatting**
   formatNumber(value: number): string {
     return new Intl.NumberFormat().format(value);
   }
@@ -566,90 +590,211 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   }
 
   formatDuration(milliseconds: number): string {
-    if (milliseconds < 1000) {
-      return `${milliseconds.toFixed(0)}ms`;
-    }
+    if (milliseconds < 1000) return `${milliseconds.toFixed(0)}ms`;
     return `${(milliseconds / 1000).toFixed(2)}s`;
   }
 
-  // **FIXED: Open diamond details with proper identification**
+  // ─── Network coverage ─────────────────────────────────────────────────────
+
+  private calculateNetworkCoverage(): { covered: number; total: number; percentage: number } {
+    const results = this.currentDiamondResults();
+    if (!results) return { covered: 0, total: 0, percentage: 0 };
+
+    const joinNodesWithDiamonds = results.join_nodes_with_diamonds || [];
+    const covered = joinNodesWithDiamonds.length;
+    const rootCount = Object.values(results.raw_unique_diamonds || {}).filter((d: any) => d.is_root_diamond).length;
+    const estimatedTotal = rootCount > 0 ? Math.max(rootCount * 8, covered) : covered;
+
+    return {
+      covered,
+      total: estimatedTotal,
+      percentage: estimatedTotal > 0 ? (covered / estimatedTotal) * 100 : 0
+    };
+  }
+
+  // ─── Diamond details modal ────────────────────────────────────────────────
+
   openDiamondDetailsModal(pattern: DiamondPattern): void {
-    console.log('Opening diamond details modal for:', {
-      id: pattern.id,
-      displayId: pattern.displayId,
-      conditioningNodes: pattern.conditioningNodes,
-      joinNode: pattern.joinNode
-    });
-    
-    const dialogRef = this.dialog.open(DiamondDetailsComponent, {
+    const tab = this.activeTab();
+    const request = tab ? this.buildDiamondRequest(tab.scenario) : null;
+
+    // Gather file paths from file manager
+    const groups = this.fileManagerService.analysisGroups();
+
+    // Get link probabilities path from the matching reachability group
+    const reachabilityGroups = groups.reachability;
+    const matchingGroup = tab ? reachabilityGroups.find(
+      g => g.scenarioName === tab.scenario.name && g.dataType === tab.scenario.dataType
+    ) : null;
+
+    // Helper: strip network name prefix from a file path to make it relative
+    const networkName = request?.networkPath?.split('/').pop() || '';
+    const makeRelative = (rawPath: string | undefined): string | undefined => {
+      if (!rawPath || !networkName) return rawPath;
+      let rel = rawPath;
+      if (rel.startsWith(networkName + '/')) {
+        rel = rel.substring(networkName.length + 1);
+      }
+      return rel;
+    };
+
+    const linkprobsPath = makeRelative(matchingGroup?.linkProbabilitiesFile?.path);
+
+    // Build all available reachability groups with relativized paths
+    const reachGroups = reachabilityGroups
+      .filter((g: any) => g.nodePriorsFile?.path && g.linkProbabilitiesFile?.path)
+      .map((g: any) => ({
+        scenarioName: g.scenarioName || `${g.dataType}`,
+        dataType: g.dataType,
+        nodepriorsPath: makeRelative(g.nodePriorsFile?.path),
+        linkprobsPath: makeRelative(g.linkProbabilitiesFile?.path),
+        networkPath: g.networkPath
+      }));
+
+    // Build all available capacity groups with relativized paths
+    const capacityGroups = (groups.capacity || []).map((g: any) => ({
+      scenarioName: g.scenarioName || 'Default',
+      capacitiesPath: makeRelative(g.capacitiesFile?.path),
+      networkPath: g.networkPath
+    })).filter((g: any) => g.capacitiesPath);
+
+    // Build all available CPM groups with relativized paths
+    const cpmGroups = (groups.cpm || []).map((g: any) => ({
+      scenarioName: g.scenarioName || 'Default',
+      cpmPath: makeRelative(g.cpmInputsFile?.path),
+      networkPath: g.networkPath,
+      hasTimeAnalysis: g.hasTimeAnalysis ?? true,
+      hasCostAnalysis: g.hasCostAnalysis ?? true
+    })).filter((g: any) => g.cpmPath);
+
+    // Determine which reachability group is the current/active one
+    const activeReachIndex = reachGroups.findIndex(
+      g => g.scenarioName === tab?.scenario.name && g.dataType === tab?.scenario.dataType
+    );
+
+    this.dialog.open(DiamondDetailsComponent, {
       width: '90vw',
       height: '90vh',
       maxWidth: '1400px',
       maxHeight: '900px',
-      data: { 
+      data: {
         diamondId: pattern.id,
         conditioningNodes: pattern.conditioningNodes,
         joinNode: pattern.joinNode,
-        diamondHash: pattern.diamondHash
+        diamondHash: pattern.diamondHash,
+        diamondAnalysisResult: tab?.diamondResult || null,
+        networkPath: request?.networkPath,
+        // All available scenario groups for dropdown selection
+        reachabilityGroups: reachGroups,
+        activeReachabilityIndex: Math.max(0, activeReachIndex),
+        capacityGroups,
+        cpmGroups,
+        activeDataType: tab?.scenario.dataType || 'float'
       },
       panelClass: 'diamond-details-dialog'
     });
+  }
 
-    dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Diamond details dialog closed');
+  // ─── Node analysis methods ────────────────────────────────────────────────
+
+  openNodeAnalysis(nodeId: number): void {
+    const networkStructure = this.analysisStateService.networkData();
+    if (!networkStructure) return;
+
+    const nodeDetails = this.buildNodeDetails(nodeId, networkStructure);
+    if (!nodeDetails) return;
+
+    import('../network-structure/node-details-dialog.component').then(({ NodeDetailsDialogComponent }) => {
+      this.dialog.open(NodeDetailsDialogComponent, {
+        data: { nodeId, nodeDetails, networkData: networkStructure },
+        width: '700px',
+        maxWidth: '95vw'
+      });
     });
   }
-  
-  // **ENHANCED: Filter Methods with meaningful options**
-  setMinNodeCount(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const value = Number(target.value);
-    this.minNodeCount.set(Math.max(0, value));
-  }
-  
-  setMaxNodeCount(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const value = Number(target.value);
-    this.maxNodeCount.set(Math.max(1, value));
-  }
-  
-  setPatternType(value: string): void {
-    this.selectedPatternType.set(value);
-  }
-  
-  applyFilters(): void {
-    // Filters are automatically applied via computed properties
-    this.updateDataSource();
-    console.log('Filters applied - showing', this.filteredDiamondPatterns().length, 'diamonds');
-  }
-  
-  clearFilters(): void {
-    const patterns = this.diamondPatterns();
-    if (patterns && patterns.length > 0) {
-      const nodeCounts = patterns.map(p => p.nodeCount);
-      this.minNodeCount.set(Math.min(...nodeCounts));
-      this.maxNodeCount.set(Math.max(...nodeCounts));
+
+  openConditioningNodeAnalysis(conditioningNodes: number[]): void {
+    if (conditioningNodes.length === 0) return;
+    if (conditioningNodes.length === 1) {
+      this.openNodeAnalysis(conditioningNodes[0]);
     } else {
-      this.minNodeCount.set(0);
-      this.maxNodeCount.set(100);
+      this.showNodeSelectorDialog(conditioningNodes);
     }
-    this.selectedPatternType.set('');
   }
-  
-  // **ENHANCED: Risk Assessment Methods with proper analysis**
-  getRiskLevel(pattern: DiamondPattern): string {
-    // Use pattern's own risk level if available
-    if (pattern.riskLevel) {
-      return pattern.riskLevel;
+
+  private showNodeSelectorDialog(nodes: number[]): void {
+    const networkStructure = this.analysisStateService.networkData();
+    import('./node-selector-dialog.component').then(({ NodeSelectorDialogComponent }) => {
+      const dialogRef = this.dialog.open(NodeSelectorDialogComponent, {
+        data: {
+          title: 'Select Conditioning Node',
+          subtitle: 'Choose which conditioning node to analyze in detail',
+          nodes,
+          networkStructure
+        },
+        width: '500px',
+        maxWidth: '95vw'
+      });
+      dialogRef.afterClosed().subscribe(result => {
+        if (result?.selectedNode) this.openNodeAnalysis(result.selectedNode);
+      });
+    });
+  }
+
+  private buildNodeDetails(nodeId: number, networkStructure: any) {
+    if (!networkStructure.nodes?.includes(nodeId)) return null;
+
+    const parents = networkStructure.incoming_index?.[nodeId.toString()] || [];
+    const children = networkStructure.outgoing_index?.[nodeId.toString()] || [];
+    const ancestors = networkStructure.ancestors?.[nodeId.toString()] || [];
+    const descendants = networkStructure.descendants?.[nodeId.toString()] || [];
+
+    const types: string[] = [];
+    if (networkStructure.source_nodes?.includes(nodeId)) types.push('Source');
+    if (networkStructure.sink_nodes?.includes(nodeId)) types.push('Sink');
+    if (networkStructure.fork_nodes?.includes(nodeId)) types.push('Fork');
+    if (networkStructure.join_nodes?.includes(nodeId)) types.push('Join');
+    if (types.length === 0) types.push('Regular');
+
+    let iterationSet = -1;
+    if (networkStructure.iteration_sets) {
+      for (let i = 0; i < networkStructure.iteration_sets.length; i++) {
+        if (networkStructure.iteration_sets[i].includes(nodeId)) { iterationSet = i; break; }
+      }
     }
-    
-    // Otherwise calculate based on structure
+
+    const isChokepoint = networkStructure.join_nodes?.includes(nodeId) && parents.length > 2;
+
+    return {
+      nodeId, types, inDegree: parents.length, outDegree: children.length,
+      parents, children, ancestors, descendants, iterationSet, isChokepoint,
+      connectivity: {
+        totalConnections: parents.length + children.length,
+        connectivityRatio: (parents.length + children.length) / networkStructure.total_nodes
+      }
+    };
+  }
+
+  openJoinNodeDiamondAnalysis(joinNodeData: any): void {
+    import('./join-node-diamond-analysis-dialog.component').then(({ JoinNodeDiamondAnalysisDialogComponent }) => {
+      this.dialog.open(JoinNodeDiamondAnalysisDialogComponent, {
+        data: joinNodeData,
+        width: '700px',
+        maxWidth: '95vw'
+      });
+    });
+  }
+
+  // ─── Risk assessment ──────────────────────────────────────────────────────
+
+  getRiskLevel(pattern: DiamondPattern): string {
+    if (pattern.riskLevel) return pattern.riskLevel;
     const riskScore = this.calculateRiskScore(pattern);
     if (riskScore >= 7) return 'high';
     if (riskScore >= 4) return 'medium';
     return 'low';
   }
-  
+
   getRiskIcon(pattern: DiamondPattern): string {
     const riskLevel = pattern.riskLevel || this.getRiskLevel(pattern);
     switch (riskLevel) {
@@ -660,47 +805,33 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
       default: return 'help';
     }
   }
-  
+
   calculateRiskScore(pattern: DiamondPattern): number {
     let score = 0;
-    
-    // Single conditioning node = critical risk
     if (pattern.conditioningNodes.length === 1) score += 5;
     else if (pattern.conditioningNodes.length === 0) score += 3;
-    
-    // Node count factor (larger diamonds = higher complexity)
     score += Math.min(pattern.nodeCount / 10, 3);
-    
-    // Complexity factor
     score += Math.min(pattern.complexity / 20, 4);
-    
-    // Root diamond factor (root diamonds are more critical)
     if (pattern.isRoot) score += 2;
-    
-    // Join node density factor
     if (pattern.joinNodes.length > 0) {
-      const joinNodeRatio = pattern.joinNodes.length / pattern.nodeCount;
-      score += joinNodeRatio * 2;
+      score += (pattern.joinNodes.length / pattern.nodeCount) * 2;
     }
-    
     return Math.min(score, 10);
   }
-  
+
   getMaxComplexity(): number {
     const patterns = this.diamondPatterns();
     if (!patterns || patterns.length === 0) return 100;
     return Math.max(...patterns.map(p => p.complexity));
   }
-  
+
   getComplexityLevel(pattern: DiamondPattern): string {
-    const maxComplexity = this.getMaxComplexity();
-    const ratio = pattern.complexity / maxComplexity;
+    const ratio = pattern.complexity / this.getMaxComplexity();
     if (ratio >= 0.7) return 'high';
     if (ratio >= 0.4) return 'medium';
     return 'low';
   }
-  
-  // **ENHANCED: Pattern Analysis Methods with meaningful categorization**
+
   getPatternIcon(patternType: string): string {
     switch (patternType.toLowerCase()) {
       case 'convergent': return 'merge_type';
@@ -712,338 +843,133 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
       default: return 'diamond';
     }
   }
-  
-  // Node Analysis Methods
-  openNodeAnalysis(nodeId: number): void {
-    const networkStructure = this.analysisStateService.networkData();
-    if (!networkStructure) {
-      console.warn('No network structure available for node analysis');
-      return;
-    }
-    
-    // Build node details from network structure
-    const nodeDetails = this.buildNodeDetails(nodeId, networkStructure);
-    if (!nodeDetails) {
-      console.warn('Could not build node details for node:', nodeId);
-      return;
-    }
-    
-    // Import and open the node details dialog with proper sizing
-    import('../network-structure/node-details-dialog.component').then(({ NodeDetailsDialogComponent }) => {
-      this.dialog.open(NodeDetailsDialogComponent, {
-        data: { 
-          nodeId: nodeId,
-          nodeDetails: nodeDetails,
-          networkData: networkStructure
-        },
-        width: '700px',
-        maxWidth: '95vw'
-      });
-    });
-  }
 
-  // Handle conditioning node clicks (single or multiple)
-  openConditioningNodeAnalysis(conditioningNodes: number[]): void {
-    if (conditioningNodes.length === 0) {
-      console.warn('No conditioning nodes to analyze');
-      return;
-    }
-    
-    if (conditioningNodes.length === 1) {
-      // Single node - open directly
-      this.openNodeAnalysis(conditioningNodes[0]);
-    } else {
-      // Multiple nodes - show selector dialog first
-      this.showNodeSelectorDialog(conditioningNodes);
-    }
-  }
+  // ─── High risk pattern analysis ───────────────────────────────────────────
 
-  private showNodeSelectorDialog(nodes: number[]): void {
-    const networkStructure = this.analysisStateService.networkData();
-    
-    import('./node-selector-dialog.component').then(({ NodeSelectorDialogComponent }) => {
-      const dialogRef = this.dialog.open(NodeSelectorDialogComponent, {
-        data: {
-          title: 'Select Conditioning Node',
-          subtitle: 'Choose which conditioning node to analyze in detail',
-          nodes: nodes,
-          networkStructure: networkStructure
-        },
-        width: '500px',
-        maxWidth: '95vw'
-      });
-
-      dialogRef.afterClosed().subscribe(result => {
-        if (result?.selectedNode) {
-          this.openNodeAnalysis(result.selectedNode);
-        }
-      });
-    });
-  }
-
-  private buildNodeDetails(nodeId: number, networkStructure: any) {
-    // Check if node exists
-    if (!networkStructure.nodes?.includes(nodeId)) {
-      return null;
-    }
-
-    // Get node connections
-    const parents = networkStructure.incoming_index?.[nodeId.toString()] || [];
-    const children = networkStructure.outgoing_index?.[nodeId.toString()] || [];
-    const ancestors = networkStructure.ancestors?.[nodeId.toString()] || [];
-    const descendants = networkStructure.descendants?.[nodeId.toString()] || [];
-
-    // Determine node types
-    const types: string[] = [];
-    if (networkStructure.source_nodes?.includes(nodeId)) types.push('Source');
-    if (networkStructure.sink_nodes?.includes(nodeId)) types.push('Sink');
-    if (networkStructure.fork_nodes?.includes(nodeId)) types.push('Fork');
-    if (networkStructure.join_nodes?.includes(nodeId)) types.push('Join');
-    if (types.length === 0) types.push('Regular');
-
-    // Find iteration set
-    let iterationSet = -1;
-    if (networkStructure.iteration_sets) {
-      for (let i = 0; i < networkStructure.iteration_sets.length; i++) {
-        if (networkStructure.iteration_sets[i].includes(nodeId)) {
-          iterationSet = i;
-          break;
-        }
-      }
-    }
-
-    // Check if it's a chokepoint (join node with high connectivity)
-    const isChokepoint = networkStructure.join_nodes?.includes(nodeId) && parents.length > 2;
-
-    return {
-      nodeId: nodeId,
-      types: types,
-      inDegree: parents.length,
-      outDegree: children.length,
-      parents: parents,
-      children: children,
-      ancestors: ancestors,
-      descendants: descendants,
-      iterationSet: iterationSet,
-      isChokepoint: isChokepoint,
-      connectivity: {
-        totalConnections: parents.length + children.length,
-        connectivityRatio: (parents.length + children.length) / networkStructure.total_nodes
-      }
-    };
-  }
-  
-  viewNodeInContext(nodeId: number): void {
-    console.log('Viewing node in context:', nodeId);
-    // TODO: Implement context view
-  }
-
-  // Open join node diamond analysis dialog
-  openJoinNodeDiamondAnalysis(joinNodeData: any): void {
-    import('./join-node-diamond-analysis-dialog.component').then(({ JoinNodeDiamondAnalysisDialogComponent }) => {
-      const dialogRef = this.dialog.open(JoinNodeDiamondAnalysisDialogComponent, {
-        data: joinNodeData,
-        width: '700px',
-        maxWidth: '95vw'
-      });
-
-      dialogRef.afterClosed().subscribe(result => {
-        if (result?.action === 'viewInNetwork') {
-          // Navigate to network structure view
-          console.log('Navigate to network view for node:', result.nodeId);
-          // TODO: Implement navigation to network structure
-        }
-      });
-    });
-  }
-
-  // **ENHANCED: Risk Pattern Methods with detailed structural analysis**
   getHighRiskPatterns(): Array<{
-    id: string, 
-    level: 'low' | 'medium' | 'high', 
-    icon: string, 
-    title: string, 
-    description: string, 
-    interpretation: string
+    id: string; level: 'low' | 'medium' | 'high'; icon: string;
+    title: string; description: string; interpretation: string;
   }> {
     const summary = this.diamondSummary();
     const results = this.currentDiamondResults();
     if (!summary || !results) return [];
-    
+
     const riskPatterns: Array<{
-      id: string, 
-      level: 'low' | 'medium' | 'high', 
-      icon: string, 
-      title: string, 
-      description: string,  
-      interpretation: string
+      id: string; level: 'low' | 'medium' | 'high'; icon: string;
+      title: string; description: string; interpretation: string;
     }> = [];
-    
-    // Single conditioning node analysis
+
     const singleConditioningNodes = this.analyzeSingleConditioningNodes();
     if (singleConditioningNodes.count > 0) {
       riskPatterns.push({
-        id: 'single-conditioning',
-        level: 'high' as const,
-        icon: 'error',
+        id: 'single-conditioning', level: 'high', icon: 'error',
         title: 'Single Points of Failure',
         description: `${singleConditioningNodes.count} diamonds with single conditioning nodes`,
         interpretation: 'Complete failure if conditioning node fails - no redundancy available'
       });
     }
 
-    // Deep nesting analysis
     const deepNesting = this.analyzeDeepNesting();
     if (deepNesting.maxDepth >= 3) {
       riskPatterns.push({
-        id: 'deep-nesting',
-        level: deepNesting.maxDepth >= 4 ? 'high' as const : 'medium' as const,
-        icon: 'waterfall_chart',
+        id: 'deep-nesting', level: deepNesting.maxDepth >= 4 ? 'high' : 'medium', icon: 'waterfall_chart',
         title: 'Cascading Failure Chains',
         description: `Maximum nesting depth: ${deepNesting.maxDepth} levels`,
-        interpretation: 'Deep nesting creates cascading failure chains - one failure can trigger multiple downstream failures'
+        interpretation: 'Deep nesting creates cascading failure chains'
       });
     }
 
-    // High join node overlap
     const joinOverlap = this.analyzeJoinNodeOverlap();
     if (joinOverlap.overlapRatio > 0.6) {
       riskPatterns.push({
-        id: 'join-overlap',
-        level: 'medium' as const,
-        icon: 'device_hub',
+        id: 'join-overlap', level: 'medium', icon: 'device_hub',
         title: 'System-wide Bottlenecks',
         description: `${Math.round(joinOverlap.overlapRatio * 100)}% of diamonds share join nodes`,
-        interpretation: 'High join node overlap creates system-wide bottlenecks affecting multiple diamonds'
+        interpretation: 'High join node overlap creates system-wide bottlenecks'
       });
     }
 
-    // Multiple conditioning nodes (positive indicator)
     const multipleConditioningNodes = this.analyzeMultipleConditioningNodes();
     if (multipleConditioningNodes.count > 0) {
       riskPatterns.push({
-        id: 'multiple-conditioning',
-        level: 'low' as const,
-        icon: 'check_circle',
+        id: 'multiple-conditioning', level: 'low', icon: 'check_circle',
         title: 'Resilient Structures',
         description: `${multipleConditioningNodes.count} diamonds with multiple conditioning nodes`,
         interpretation: 'Multiple conditioning nodes provide redundancy and graceful degradation'
       });
     }
-    
+
     return riskPatterns;
   }
 
-  // **NEW: Detailed analysis methods for risk patterns**
   private analyzeSingleConditioningNodes(): { count: number; diamonds: string[] } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
-
-    let count = 0;
-    const diamonds: string[] = [];
-
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
-      if (diamond.diamond?.conditioning_nodes?.length === 1) {
-        count++;
-        diamonds.push(key);
-      }
+    if (!results?.raw_unique_diamonds) return { count: 0, diamonds: [] };
+    let count = 0; const diamonds: string[] = [];
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (diamond.is_root_diamond && diamond.diamond?.conditioning_nodes?.length === 1) { count++; diamonds.push(key); }
     });
-
     return { count, diamonds };
   }
 
   private analyzeDeepNesting(): { maxDepth: number; deepDiamonds: string[] } {
     const results = this.currentDiamondResults();
     if (!results?.raw_unique_diamonds) return { maxDepth: 0, deepDiamonds: [] };
-
-    let maxDepth = 0;
-    const deepDiamonds: string[] = [];
-
+    let maxDepth = 0; const deepDiamonds: string[] = [];
     Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
       const depth = diamond.sub_iteration_sets_count || 0;
-      if (depth > maxDepth) {
-        maxDepth = depth;
-      }
-      if (depth >= 3) {
-        deepDiamonds.push(key);
-      }
+      if (depth > maxDepth) maxDepth = depth;
+      if (depth >= 3) deepDiamonds.push(key);
     });
-
     return { maxDepth, deepDiamonds };
   }
 
   private analyzeJoinNodeOverlap(): { overlapRatio: number; sharedNodes: number[] } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { overlapRatio: 0, sharedNodes: [] };
-
+    if (!results?.raw_unique_diamonds) return { overlapRatio: 0, sharedNodes: [] };
     const joinNodeCounts = new Map<number, number>();
-    const totalDiamonds = Object.keys(results.raw_root_diamonds).length;
-
-    Object.values(results.raw_root_diamonds).forEach(diamond => {
-      const joinNode = diamond.join_node;
-      if (joinNode !== undefined) {
-        joinNodeCounts.set(joinNode, (joinNodeCounts.get(joinNode) || 0) + 1);
+    const rootDiamonds = Object.values(results.raw_unique_diamonds).filter(d => d.is_root_diamond);
+    const totalDiamonds = rootDiamonds.length;
+    rootDiamonds.forEach(diamond => {
+      if ((diamond as any).join_node !== undefined) {
+        joinNodeCounts.set((diamond as any).join_node, (joinNodeCounts.get((diamond as any).join_node) || 0) + 1);
       }
     });
-
     const sharedNodes = Array.from(joinNodeCounts.entries())
-      .filter(([_, count]) => count > 1)
-      .map(([node, _]) => node);
-
-    const overlapRatio = totalDiamonds > 0 ? sharedNodes.length / totalDiamonds : 0;
-
-    return { overlapRatio, sharedNodes };
+      .filter(([_, count]) => count > 1).map(([node]) => node);
+    return { overlapRatio: totalDiamonds > 0 ? sharedNodes.length / totalDiamonds : 0, sharedNodes };
   }
 
   private analyzeMultipleConditioningNodes(): { count: number; diamonds: string[] } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
-
-    let count = 0;
-    const diamonds: string[] = [];
-
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
-      if (diamond.diamond?.conditioning_nodes?.length > 1) {
-        count++;
-        diamonds.push(key);
-      }
+    if (!results?.raw_unique_diamonds) return { count: 0, diamonds: [] };
+    let count = 0; const diamonds: string[] = [];
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (diamond.is_root_diamond && diamond.diamond?.conditioning_nodes?.length > 1) { count++; diamonds.push(key); }
     });
-
     return { count, diamonds };
   }
-  
-  // **ENHANCED: Optimization Methods with structural insights**
+
+  // ─── Optimization insights ────────────────────────────────────────────────
+
   getOptimizationInsights(): Array<{
-    id: string;
-    type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
-    priority: 'high' | 'medium' | 'low';
-    title: string;
-    description: string;
-    interpretation: string;
-    count: number;
-    recommendations: string[];
+    id: string; type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
+    priority: 'high' | 'medium' | 'low'; title: string; description: string;
+    interpretation: string; count: number; recommendations: string[];
   }> {
     const results = this.currentDiamondResults();
     if (!results) return [];
 
     const insights: Array<{
-      id: string;
-      type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
-      priority: 'high' | 'medium' | 'low';
-      title: string;
-      description: string;
-      interpretation: string;
-      count: number;
-      recommendations: string[];
+      id: string; type: 'symmetry' | 'asymmetry' | 'isolation' | 'merge' | 'redundancy';
+      priority: 'high' | 'medium' | 'low'; title: string; description: string;
+      interpretation: string; count: number; recommendations: string[];
     }> = [];
 
-    // Symmetric diamonds analysis
     const symmetricDiamonds = this.analyzeSymmetricDiamonds();
     if (symmetricDiamonds.count > 0) {
       insights.push({
-        id: 'symmetric-diamonds',
-        type: 'symmetry',
-        priority: 'low',
+        id: 'symmetric-diamonds', type: 'symmetry', priority: 'low',
         title: 'Well-Balanced Structures',
         description: `${symmetricDiamonds.count} symmetric diamonds detected`,
         interpretation: 'Symmetric diamonds provide good redundancy and balanced load distribution',
@@ -1052,13 +978,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
       });
     }
 
-    // Merge candidates analysis
     const mergeCandidates = this.analyzeMergeCandidates();
     if (mergeCandidates.count > 0) {
       insights.push({
-        id: 'merge-candidates',
-        type: 'merge',
-        priority: 'medium',
+        id: 'merge-candidates', type: 'merge', priority: 'medium',
         title: 'Diamond Consolidation Opportunities',
         description: `${mergeCandidates.count} diamond pairs with identical conditioning patterns`,
         interpretation: 'Diamonds with same conditioning nodes can be consolidated to reduce complexity',
@@ -1067,13 +990,10 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
       });
     }
 
-    // Redundancy opportunities
     const redundancyOpportunities = this.analyzeRedundancyOpportunities();
     if (redundancyOpportunities.count > 0) {
       insights.push({
-        id: 'redundancy-opportunities',
-        type: 'redundancy',
-        priority: 'high',
+        id: 'redundancy-opportunities', type: 'redundancy', priority: 'high',
         title: 'Critical Path Redundancy Needed',
         description: `${redundancyOpportunities.count} critical paths need backup mechanisms`,
         interpretation: 'Adding redundancy to critical paths will improve system resilience',
@@ -1083,90 +1003,59 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
 
     return insights.sort((a, b) => {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
+      const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     });
   }
 
-  // **NEW: Structural analysis methods for optimization**
   private analyzeSymmetricDiamonds(): { count: number; diamonds: string[] } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, diamonds: [] };
-
-    let count = 0;
-    const diamonds: string[] = [];
-
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+    if (!results?.raw_unique_diamonds) return { count: 0, diamonds: [] };
+    let count = 0; const diamonds: string[] = [];
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (!diamond.is_root_diamond) return;
       const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
       const relevantNodes = diamond.diamond?.relevant_nodes || [];
-      
-      // Simple symmetry check: balanced distribution
       if (conditioningNodes.length >= 2 && relevantNodes.length > conditioningNodes.length * 2) {
-        const avgPathLength = relevantNodes.length / conditioningNodes.length;
-        const isSymmetric = conditioningNodes.length >= 2 && avgPathLength >= 2;
-        
-        if (isSymmetric) {
-          count++;
-          diamonds.push(key);
-        }
+        count++; diamonds.push(key);
       }
     });
-
     return { count, diamonds };
   }
 
   private analyzeMergeCandidates(): { count: number; pairs: Array<[string, string]> } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, pairs: [] };
-
+    if (!results?.raw_unique_diamonds) return { count: 0, pairs: [] };
     const conditioningNodeGroups = new Map<string, string[]>();
     const pairs: Array<[string, string]> = [];
-
-    // Group diamonds by their conditioning nodes
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
-      const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-      const nodeKey = conditioningNodes.sort().join(',');
-      
-      if (!conditioningNodeGroups.has(nodeKey)) {
-        conditioningNodeGroups.set(nodeKey, []);
-      }
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (!diamond.is_root_diamond) return;
+      const nodeKey = (diamond.diamond?.conditioning_nodes || []).sort().join(',');
+      if (!conditioningNodeGroups.has(nodeKey)) conditioningNodeGroups.set(nodeKey, []);
       conditioningNodeGroups.get(nodeKey)!.push(key);
     });
-
-    // Find groups with multiple diamonds (merge candidates)
     conditioningNodeGroups.forEach(diamonds => {
       if (diamonds.length >= 2) {
-        for (let i = 0; i < diamonds.length - 1; i++) {
-          pairs.push([diamonds[i], diamonds[i + 1]]);
-        }
+        for (let i = 0; i < diamonds.length - 1; i++) pairs.push([diamonds[i], diamonds[i + 1]]);
       }
     });
-
     return { count: pairs.length, pairs };
   }
 
   private analyzeRedundancyOpportunities(): { count: number; criticalPaths: string[] } {
     const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return { count: 0, criticalPaths: [] };
-
-    let count = 0;
-    const criticalPaths: string[] = [];
-
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
+    if (!results?.raw_unique_diamonds) return { count: 0, criticalPaths: [] };
+    let count = 0; const criticalPaths: string[] = [];
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (!diamond.is_root_diamond) return;
       const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
-      const nonDiamondParents = diamond.non_diamond_parents || [];
-      
-      // Identify critical paths with single points of failure
-      if (conditioningNodes.length === 1 || nonDiamondParents.length > 0) {
-        count++;
-        criticalPaths.push(key);
+      if (conditioningNodes.length === 1) {
+        count++; criticalPaths.push(key);
       }
     });
-
     return { count, criticalPaths };
   }
 
-  // Helper methods for template
   getOptimizationIcon(type: string): string {
     switch (type) {
       case 'symmetry': return 'balance';
@@ -1187,12 +1076,15 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
   }
 
+  // ─── Export ───────────────────────────────────────────────────────────────
+
   exportDiamondData(): void {
     const patterns = this.diamondPatterns();
     const summary = this.diamondSummary();
-    
+    const tab = this.activeTab();
+
     const exportData = {
-      scenario: this.currentScenario,
+      scenario: tab?.scenario.name || 'unknown',
       summary,
       patterns: patterns.map(p => ({
         displayId: p.displayId,
@@ -1205,164 +1097,117 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
       })),
       timestamp: new Date().toISOString()
     };
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `diamond-analysis-${this.currentScenario}-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `diamond-analysis-${tab?.scenario.name || 'export'}-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    
-    console.log('✅ Diamond data exported successfully');
   }
 
-  refreshAnalysis(): void {
-    console.log('🔄 Refreshing diamond analysis...');
-    this.loadMultiScenarioDiamondAnalysis();
+  exportAllJSON(): void {
+    const allData: any = {};
+    for (const [name, tab] of this.scenarioTabs().entries()) {
+      if (tab.status === 'computed') {
+        allData[name] = { dataType: tab.scenario.dataType, diamondResult: tab.diamondResult };
+      }
+    }
+    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diamond-analysis-all-scenarios.json';
+    a.click();
+    URL.revokeObjectURL(url);
   }
+
+  // ─── Quick stat methods used by template ──────────────────────────────────
 
   hasInnerDiamonds(): boolean {
     const analysis = this.currentDiamondAnalysis();
     if (!analysis?.raw_unique_diamonds) return false;
-    
-    return Object.values(analysis.raw_unique_diamonds).some(diamond => 
+    return Object.values(analysis.raw_unique_diamonds).some(diamond =>
       diamond.sub_diamond_structures && Object.keys(diamond.sub_diamond_structures).length > 0
     );
   }
 
-  // **NEW: Helper methods for FileManagerService integration**
-  private loadDiamondWithDefaults(networkPath: string): void {
-    console.log('🔍 Loading diamond analysis with default node priors:', networkPath);
-    this.hasCalledDiamondAPI = true;
-    
-    this.analysisStateService.loadDiamondAnalysis(networkPath).subscribe({
-      next: () => {
-        console.log('✅ Diamond analysis with defaults loaded successfully');
-        this.updateFilterRanges();
-      },
-      error: (error) => {
-        console.error('❌ Failed to load diamond analysis with defaults:', error);
-        this.hasCalledDiamondAPI = false; // Reset on error to allow retry
+  getRootDiamondsCount(): number {
+    return Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
+      .filter((d: any) => d.is_root_diamond).length;
+  }
+
+  getUniqueDiamondsCount(): number {
+    return Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
+  }
+
+  getSingleConditioningCount(): number {
+    return Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
+      .filter((d: any) => d.is_root_diamond && d.diamond?.conditioning_nodes?.length === 1).length;
+  }
+
+  getHierarchicalComplexity(): string {
+    const uniqueDiamonds = this.currentDiamondResults()?.raw_unique_diamonds || {};
+    const rootCount = Object.values(uniqueDiamonds).filter((d: any) => d.is_root_diamond).length;
+    const totalCount = Object.keys(uniqueDiamonds).length;
+    return rootCount > 0 ? `${totalCount}:${rootCount}` : '0:0';
+  }
+
+  getCriticalSharedDependencies(): number {
+    const conditioningNodeFreq = new Map<number, number>();
+    Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {}).forEach((diamond: any) => {
+      if (!diamond.is_root_diamond) return;
+      diamond.diamond?.conditioning_nodes?.forEach((node: number) => {
+        conditioningNodeFreq.set(node, (conditioningNodeFreq.get(node) || 0) + 1);
+      });
+    });
+    return Array.from(conditioningNodeFreq.values()).filter(count => count > 1).length;
+  }
+
+  getBottleneckJoinNodes(): number {
+    const joinNodeFreq = new Map<number, number>();
+    Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {}).forEach((diamond: any) => {
+      if (!diamond.is_root_diamond) return;
+      if (diamond.join_node !== undefined) {
+        joinNodeFreq.set(diamond.join_node, (joinNodeFreq.get(diamond.join_node) || 0) + 1);
       }
     });
+    return Array.from(joinNodeFreq.values()).filter(count => count > 1).length;
   }
 
-  private loadDiamondWithScenario(networkPath: string, scenario: any): void {
-    console.log('🔍 Loading diamond analysis for scenario:', scenario.scenarioName || scenario.dataType, 'at path:', networkPath);
-    // **FIXED: Allow multiple API calls for different scenarios**
-    // Don't set hasCalledDiamondAPI = true here, so each scenario can make its own call
-    
-    // **FIXED: Construct full paths for backend**
-    // The session networkPath contains the full temp_uploads path
-    // The scenario paths are relative, so we need to combine them properly
-    
-    // Extract the temp_uploads prefix from session network path
-    const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath || networkPath;
-    console.log('📁 Session network path:', sessionNetworkPath);
-    console.log('📁 Scenario network path:', scenario.networkPath);
-    console.log('📁 NodePriors file path:', scenario.nodePriorsFile?.path);
-    
-    // **FIXED: Backend expects networkPath as full temp_uploads path and nodepriorsPath as relative**
-    // Convert Windows backslashes to forward slashes for backend compatibility
-    const fullNetworkPath = sessionNetworkPath.replace(/\\/g, '/');
-    
-    // **FIXED: Handle scenario-specific file paths properly**
-    // The nodePriorsFile.path should already be the correct relative path from FileManagerService
-    let relativeNodePriorsPath = scenario.nodePriorsFile?.path || '';
-    
-    // **CRITICAL FIX: Apply same path cleaning logic as exact-inference component**
-    // Extract the network name from the base network path for consistent stripping
-    const networkName = fullNetworkPath.split('/').pop() || '';
-    
-    // **FIXED: Improved path stripping logic to preserve folder structure**
-    // Only remove the network name prefix if it exists at the start, preserving folder structure
-    if (networkName && relativeNodePriorsPath.startsWith(networkName + '/')) {
-      relativeNodePriorsPath = relativeNodePriorsPath.substring(networkName.length + 1);
-    }
-    
-    // **ADDITIONAL FIX: Remove any duplicate network prefixes that might exist**
-    // This handles cases where the path might have multiple network prefixes
-    const pathParts = relativeNodePriorsPath.split('/');
-    while (pathParts.length > 0 && pathParts[0] === networkName) {
-      pathParts.shift(); // Remove the first element if it matches network name
-    }
-    relativeNodePriorsPath = pathParts.join('/');
-    
-    // **NEW: Fallback to construct path from scenario name if needed**
-    if (!relativeNodePriorsPath && scenario.scenarioName) {
-      // Try to construct the path based on scenario name and data type
-      relativeNodePriorsPath = `${scenario.scenarioName}/${networkName}-nodepriors.json`;
-    }
-    
-    console.log('🔍 Using full network path for backend:', fullNetworkPath);
-    console.log('🔍 Using relative nodepriors path for backend:', relativeNodePriorsPath);
-    console.log('🔍 Backend will construct full path as:', `${fullNetworkPath}/${relativeNodePriorsPath}`);
-    
-    // **IMPROVED: Validate paths before making API call**
-    if (!relativeNodePriorsPath) {
-      console.error('❌ No valid nodepriors path found for scenario:', scenario);
-      this.hasCalledDiamondAPI = false;
-      return;
-    }
-    
-    // Call diamond analysis service with specific nodepriors path
-    this.diamondAnalysisService.analyzeDiamonds({
-      networkPath: fullNetworkPath,
-      nodepriorsPath: relativeNodePriorsPath
-    }).subscribe({
-      next: (response) => {
-        if (response.success) {
-          console.log('✅ Diamond analysis for scenario loaded successfully:', scenario.scenarioName || scenario.dataType);
-          
-          // **CRITICAL FIX: Store results in component's own scenario results map**
-          const scenarioKey = scenario.scenarioName || scenario.dataType;
-          if (response?.diamond_analysis) {
-            this.scenarioResults.set(scenarioKey, response.diamond_analysis);
-            this.scenarioResultsSignal.set(new Map(this.scenarioResults));
-            console.log('💎 Stored diamond results for scenario:', scenarioKey, response.diamond_analysis);
-          }
-          
-          // Update the analysis state with the diamond analysis result (for backward compatibility)
-          const currentState = this.analysisStateService as any;
-          if (currentState.diamondAnalysisSignal) {
-            currentState.diamondAnalysisSignal.set(response);
-          }
-          this.analysisStateService.markTabCompleted('diamonds');
-          
-          // **FIXED: Properly update view after API response**
-          this.updateViewAfterScenarioChange(this.currentScenario);
-        } else {
-          console.error('❌ Diamond analysis failed:', response.message);
-        }
-      },
-      error: (error) => {
-        console.error('❌ Failed to load diamond analysis for scenario:', error);
-        // **FIXED: Don't use hasCalledDiamondAPI flag for individual scenario calls**
-      }
+  getSharedConditioningNodes(): Array<{nodeId: number, affectedDiamonds: string[]}> | null {
+    const results = this.currentDiamondResults();
+    if (!results?.raw_unique_diamonds) return null;
+    const nodeToDiamonds = new Map<number, string[]>();
+    Object.entries(results.raw_unique_diamonds).forEach(([key, diamond]) => {
+      if (!diamond.is_root_diamond) return;
+      diamond.diamond?.conditioning_nodes?.forEach((node: number) => {
+        if (!nodeToDiamonds.has(node)) nodeToDiamonds.set(node, []);
+        nodeToDiamonds.get(node)!.push(key);
+      });
     });
+    const sharedNodes = Array.from(nodeToDiamonds.entries())
+      .filter(([_, diamonds]) => diamonds.length > 1)
+      .map(([nodeId, affectedDiamonds]) => ({ nodeId, affectedDiamonds }));
+    return sharedNodes.length > 0 ? sharedNodes : null;
   }
 
-  private showScenarioSelector(scenarios: any[]): void {
-    console.log('📋 Multiple scenarios available - user needs to select:', scenarios.map(s => s.scenarioName || s.dataType));
-    // For now, auto-select first scenario - in future this could show a selection dialog
-    if (scenarios.length > 0) {
-      const firstScenario = scenarios[0];
-      const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      this.loadDiamondWithScenario(sessionNetworkPath || firstScenario.networkPath!, firstScenario);
-    }
+  getIndependentConvergences(): number {
+    const sharedNodes = this.getSharedConditioningNodes();
+    const totalConvergences = Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
+      .filter((d: any) => d.is_root_diamond).length;
+    if (!sharedNodes) return totalConvergences;
+    const dependentConvergences = sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
+    return Math.max(0, totalConvergences - dependentConvergences);
   }
 
-  private getDataTypeDisplayName(dataType: string): string {
-    switch (dataType) {
-      case 'float': return 'Float (Deterministic)';
-      case 'interval': return 'Interval';
-      case 'pbox': return 'P-Box';
-      default: return dataType.charAt(0).toUpperCase() + dataType.slice(1);
-    }
+  getDependentConvergences(): number {
+    const sharedNodes = this.getSharedConditioningNodes();
+    if (!sharedNodes) return 0;
+    return sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
   }
 
-  // **NEW: System-wide insight methods for enterprise dashboard**
   getSinglePointFailures(): number {
     const patterns = this.diamondPatterns();
     if (!patterns) return 0;
@@ -1372,9 +1217,7 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   getSystemRiskClass(): string {
     const singlePoints = this.getSinglePointFailures();
     const totalDiamonds = this.diamondPatterns()?.length || 0;
-    
     if (totalDiamonds === 0) return 'risk-low';
-    
     const riskRatio = singlePoints / totalDiamonds;
     if (riskRatio > 0.7) return 'risk-high';
     if (riskRatio > 0.3) return 'risk-medium';
@@ -1384,27 +1227,17 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
   getSystemHealth(): 'good' | 'fair' | 'poor' {
     const patterns = this.diamondPatterns();
     if (!patterns || patterns.length === 0) return 'good';
-    
     const singlePoints = this.getSinglePointFailures();
-    const totalDiamonds = patterns.length;
-    const singlePointRatio = singlePoints / totalDiamonds;
-    
-    // Consider average complexity as well
+    const singlePointRatio = singlePoints / patterns.length;
     const summary = this.diamondSummary();
     const avgComplexity = summary?.averageComplexity || 0;
-    
-    // High single point failures or very high complexity = poor health
     if (singlePointRatio > 0.6 || avgComplexity > 20) return 'poor';
-    
-    // Moderate single point failures or complexity = fair health  
     if (singlePointRatio > 0.3 || avgComplexity > 10) return 'fair';
-    
     return 'good';
   }
 
   getSystemHealthIcon(): string {
-    const health = this.getSystemHealth();
-    switch (health) {
+    switch (this.getSystemHealth()) {
       case 'good': return 'check_circle';
       case 'fair': return 'warning';
       case 'poor': return 'error';
@@ -1412,137 +1245,15 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
   }
 
-  // **NEW: Pattern analysis methods for accurate diamond categorization**
-  getComplexPatternCount(): number {
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    return patterns.filter(pattern => pattern.nodeCount >= 10).length;
-  }
-
-  getNestedPatternCount(): number {
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    // Count diamonds that have sub-diamonds
-    return patterns.filter(pattern => pattern.subDiamonds && pattern.subDiamonds.length > 0).length;
-  }
-
-  getSimplePatternCount(): number {
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    return patterns.filter(pattern => pattern.nodeCount < 10).length;
-  }
-
-  getTotalJoinNodes(): number {
-    const patterns = this.diamondPatterns();
-    if (!patterns) return 0;
-    // Count unique join nodes
-    const uniqueJoinNodes = new Set(patterns.map(pattern => pattern.joinNode));
-    return uniqueJoinNodes.size;
-  }
-
-  getAverageComplexity(): string {
-    const summary = this.diamondSummary();
-    return summary?.averageComplexity?.toFixed(1) || '0.0';
-  }
-
-  // **NEW: Algorithm-based helper methods**
-  getRootDiamondsCount(): number {
-    return Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
-  }
-
-  getUniqueDiamondsCount(): number {
-    return Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
-  }
-
-  getSingleConditioningCount(): number {
-    return Object.values(this.currentDiamondResults()?.raw_root_diamonds || {})
-      .filter(diamond => diamond.diamond?.conditioning_nodes?.length === 1).length;
-  }
-
-  getHierarchicalComplexity(): string {
-    const rootCount = Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
-    const totalCount = Object.keys(this.currentDiamondResults()?.raw_unique_diamonds || {}).length;
-    return rootCount > 0 ? `${totalCount}:${rootCount}` : '0:0';
-  }
-
-  getCriticalSharedDependencies(): number {
-    const conditioningNodeFreq = new Map<number, number>();
-    Object.values(this.currentDiamondResults()?.raw_root_diamonds || {}).forEach(diamond => {
-      diamond.diamond?.conditioning_nodes?.forEach(node => {
-        conditioningNodeFreq.set(node, (conditioningNodeFreq.get(node) || 0) + 1);
-      });
-    });
-    return Array.from(conditioningNodeFreq.values()).filter(count => count > 1).length;
-  }
-
-  getBottleneckJoinNodes(): number {
-    const joinNodeFreq = new Map<number, number>();
-    Object.values(this.currentDiamondResults()?.raw_root_diamonds || {}).forEach(diamond => {
-      const joinNode = diamond.join_node;
-      if (joinNode !== undefined) {
-        joinNodeFreq.set(joinNode, (joinNodeFreq.get(joinNode) || 0) + 1);
-      }
-    });
-    return Array.from(joinNodeFreq.values()).filter(count => count > 1).length;
-  }
-
-  // **NEW: Cross-diamond system analysis methods**
-  getSharedConditioningNodes(): Array<{nodeId: number, affectedDiamonds: string[]}> | null {
-    const results = this.currentDiamondResults();
-    if (!results?.raw_root_diamonds) return null;
-
-    const nodeToDeamonds = new Map<number, string[]>();
-    
-    Object.entries(results.raw_root_diamonds).forEach(([key, diamond]) => {
-      diamond.diamond?.conditioning_nodes?.forEach(node => {
-        if (!nodeToDeamonds.has(node)) {
-          nodeToDeamonds.set(node, []);
-        }
-        nodeToDeamonds.get(node)!.push(key);
-      });
-    });
-
-    const sharedNodes = Array.from(nodeToDeamonds.entries())
-      .filter(([_, diamonds]) => diamonds.length > 1)
-      .map(([nodeId, affectedDiamonds]) => ({ nodeId, affectedDiamonds }));
-
-    return sharedNodes.length > 0 ? sharedNodes : null;
-  }
-
-  getIndependentConvergences(): number {
-    const sharedNodes = this.getSharedConditioningNodes();
-    const totalConvergences = Object.keys(this.currentDiamondResults()?.raw_root_diamonds || {}).length;
-    
-    if (!sharedNodes) return totalConvergences;
-    
-    const dependentConvergences = sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
-    return Math.max(0, totalConvergences - dependentConvergences);
-  }
-
-  getDependentConvergences(): number {
-    const sharedNodes = this.getSharedConditioningNodes();
-    if (!sharedNodes) return 0;
-    
-    return sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
-  }
-
-  // **NEW: System role analysis for table**
   getSystemRole(pattern: DiamondPattern): string {
-    if (pattern.conditioningNodes.length === 1) {
-      return 'Critical Path';
-    }
-    if (pattern.nodeCount >= 10) {
-      return 'Complex Hub';
-    }
-    if (pattern.subDiamonds && pattern.subDiamonds.length > 0) {
-      return 'Hierarchical';
-    }
+    if (pattern.conditioningNodes.length === 1) return 'Critical Path';
+    if (pattern.nodeCount >= 10) return 'Complex Hub';
+    if (pattern.subDiamonds && pattern.subDiamonds.length > 0) return 'Hierarchical';
     return 'Standard';
   }
 
   getSystemRoleClass(pattern: DiamondPattern): string {
-    const role = this.getSystemRole(pattern);
-    switch (role) {
+    switch (this.getSystemRole(pattern)) {
       case 'Critical Path': return 'role-critical';
       case 'Complex Hub': return 'role-complex';
       case 'Hierarchical': return 'role-hierarchical';
@@ -1550,7 +1261,6 @@ export class DiamondAnalysisComponent implements OnInit, AfterViewInit, Scenario
     }
   }
 
-  // **NEW: System health and insight methods**
   hasCommonCauseVulnerabilities(): boolean {
     return this.getSingleConditioningCount() > 0;
   }

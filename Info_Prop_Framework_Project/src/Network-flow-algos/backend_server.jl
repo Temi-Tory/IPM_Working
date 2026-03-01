@@ -6,13 +6,13 @@ using HTTP, JSON
 using Dates, UUIDs
 using ProbabilityBoundsAnalysis
 
-# Include the IPAFramework module
-include("src/IPAFramework.jl")
-using .IPAFramework
+# Include the IPAFrameworkOptimized module (Float64-only, bit-masking reachability)
+include("src/IPAFrameworkOptimized.jl")
+using .IPAFrameworkOptimized
 
 # Import types for type checking
 const pbox = ProbabilityBoundsAnalysis.pbox
-const Interval = IPAFramework.Interval
+const Interval = IPAFrameworkOptimized.Interval
 
 const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
@@ -168,23 +168,38 @@ function serialize_root_diamonds_for_json(root_diamonds_dict)
     return serialized
 end
 
-function serialize_unique_diamonds_for_json(unique_diamonds_dict)
-    """Helper function to serialize unique diamond structures (DiamondComputationData) for JSON response"""
+function serialize_unique_diamonds_for_json(unique_diamonds_dict, root_diamonds=nothing)
+    """Helper function to serialize unique diamond structures (DiamondComputationData) for JSON response.
+    Now accepts root_diamonds to resolve join_node for root-level diamonds."""
     serialized = Dict()
-    
+
+    # Build hash → root join node lookup from root_diamonds
+    hash_to_root_join_node = Dict{UInt64, Int64}()
+    if root_diamonds !== nothing
+        for (root_join_node, diamonds_at_node) in root_diamonds
+            root_hash = IPAFrameworkOptimized.create_diamond_hash_key(diamonds_at_node.diamond)
+            hash_to_root_join_node[root_hash] = root_join_node
+        end
+    end
+
+    # Also build hash → parent join node lookup from sub_diamond_structures
+    hash_to_parent_join_node = Dict{UInt64, Int64}()
+    for (_, diamond_data) in unique_diamonds_dict
+        for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
+            sub_hash = IPAFrameworkOptimized.create_diamond_hash_key(diamonds_at_node.diamond)
+            hash_to_parent_join_node[sub_hash] = join_node
+        end
+    end
+
     for (diamond_hash, diamond_data) in unique_diamonds_dict
-        # diamond_data is of type DiamondComputationData{T}
-        # Use the is_rootDiamond field from the struct directly!
-        
         # Serialize sub_diamond_structures (Dict{Int64, DiamondsAtNode})
         sub_diamond_structures_serialized = Dict()
         for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
-            # Calculate the sub-diamond hash using DiamondProcessingModule's function
-            sub_diamond_hash = IPAFramework.create_diamond_hash_key(diamonds_at_node.diamond)
-            
+            sub_diamond_hash = IPAFrameworkOptimized.create_diamond_hash_key(diamonds_at_node.diamond)
+
             sub_diamond_structures_serialized[string(join_node)] = Dict(
                 "join_node" => diamonds_at_node.join_node,
-                "sub_diamond_hash" => string(sub_diamond_hash),  # NEW: Include the hash
+                "sub_diamond_hash" => string(sub_diamond_hash),
                 "diamond" => Dict(
                     "conditioning_nodes" => collect(diamonds_at_node.diamond.conditioning_nodes),
                     "relevant_nodes" => collect(diamonds_at_node.diamond.relevant_nodes),
@@ -195,10 +210,14 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
                 "non_diamond_parents" => collect(diamonds_at_node.non_diamond_parents)
             )
         end
-        
-        serialized[string(diamond_hash)] = Dict(
+
+        # Determine join_node: root join node if root diamond, otherwise parent join node
+        resolved_join_node = get(hash_to_root_join_node, diamond_hash,
+                              get(hash_to_parent_join_node, diamond_hash, nothing))
+
+        entry = Dict(
             "diamond_hash" => string(diamond_hash),
-            "is_root_diamond" => diamond_data.is_rootDiamond,  # <-- USE STRUCT FIELD
+            "is_root_diamond" => diamond_data.is_rootDiamond,
             "sub_outgoing_index" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_outgoing_index),
             "sub_incoming_index" => Dict(string(k) => collect(v) for (k, v) in diamond_data.sub_incoming_index),
             "sub_sources" => collect(diamond_data.sub_sources),
@@ -210,7 +229,6 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
             "sub_iteration_sets_count" => length(diamond_data.sub_iteration_sets),
             "sub_node_priors" => Dict(string(k) => convert_pbox_values(v) for (k, v) in diamond_data.sub_node_priors),
             "node_count" => length(diamond_data.sub_node_priors),
-            # NEW: Include missing fields from DiamondComputationData struct
             "sub_diamond_structures" => sub_diamond_structures_serialized,
             "diamond" => Dict(
                 "conditioning_nodes" => collect(diamond_data.diamond.conditioning_nodes),
@@ -220,65 +238,12 @@ function serialize_unique_diamonds_for_json(unique_diamonds_dict)
                 "node_count" => length(diamond_data.diamond.relevant_nodes)
             )
         )
-    end
-  
-    # **FIXED: Add sub-diamonds as separate top-level entries using their actual DiamondComputationData**
-    for (diamond_hash, diamond_data) in unique_diamonds_dict
-        for (join_node, diamonds_at_node) in diamond_data.sub_diamond_structures
-            sub_diamond_hash = IPAFramework.create_diamond_hash_key(diamonds_at_node.diamond)
-            
-            # **CRITICAL: Look up the actual DiamondComputationData for this sub-diamond**
-            if haskey(unique_diamonds_dict, sub_diamond_hash)
-                # Use the complete DiamondComputationData for the sub-diamond
-                sub_diamond_data = unique_diamonds_dict[sub_diamond_hash]
-                
-                # Serialize sub_diamond_structures for this sub-diamond
-                sub_diamond_sub_structures_serialized = Dict()
-                for (sub_join_node, sub_diamonds_at_node) in sub_diamond_data.sub_diamond_structures
-                    nested_sub_diamond_hash = IPAFramework.create_diamond_hash_key(sub_diamonds_at_node.diamond)
-                    
-                    sub_diamond_sub_structures_serialized[string(sub_join_node)] = Dict(
-                        "join_node" => sub_diamonds_at_node.join_node,
-                        "sub_diamond_hash" => string(nested_sub_diamond_hash),
-                        "diamond" => Dict(
-                            "conditioning_nodes" => collect(sub_diamonds_at_node.diamond.conditioning_nodes),
-                            "relevant_nodes" => collect(sub_diamonds_at_node.diamond.relevant_nodes),
-                            "edgelist" => collect(sub_diamonds_at_node.diamond.edgelist),
-                            "edge_count" => length(sub_diamonds_at_node.diamond.edgelist),
-                            "node_count" => length(sub_diamonds_at_node.diamond.relevant_nodes)
-                        ),
-                        "non_diamond_parents" => collect(sub_diamonds_at_node.non_diamond_parents)
-                    )
-                end
-                
-                # Create complete entry for sub-diamond with all its data
-                serialized[string(sub_diamond_hash)] = Dict(
-                    "diamond_hash" => string(sub_diamond_hash),
-                    "is_root_diamond" => sub_diamond_data.is_rootDiamond,
-                    "sub_outgoing_index" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_outgoing_index),
-                    "sub_incoming_index" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_incoming_index),
-                    "sub_sources" => collect(sub_diamond_data.sub_sources),
-                    "sub_fork_nodes" => collect(sub_diamond_data.sub_fork_nodes),
-                    "sub_join_nodes" => collect(sub_diamond_data.sub_join_nodes),
-                    "sub_ancestors" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_ancestors),
-                    "sub_descendants" => Dict(string(k) => collect(v) for (k, v) in sub_diamond_data.sub_descendants),
-                    "sub_iteration_sets" => [collect(s) for s in sub_diamond_data.sub_iteration_sets],
-                    "sub_iteration_sets_count" => length(sub_diamond_data.sub_iteration_sets),
-                    "sub_node_priors" => Dict(string(k) => convert_pbox_values(v) for (k, v) in sub_diamond_data.sub_node_priors),
-                    "node_count" => length(sub_diamond_data.sub_node_priors),
-                    "sub_diamond_structures" => sub_diamond_sub_structures_serialized,  # **FIXED: Include nested sub-diamonds**
-                    "diamond" => Dict(
-                        "conditioning_nodes" => collect(sub_diamond_data.diamond.conditioning_nodes),
-                        "relevant_nodes" => collect(sub_diamond_data.diamond.relevant_nodes),
-                        "edgelist" => collect(sub_diamond_data.diamond.edgelist),
-                        "edge_count" => length(sub_diamond_data.diamond.edgelist),
-                        "node_count" => length(sub_diamond_data.diamond.relevant_nodes)
-                    ),
-                    "join_node" => diamonds_at_node.join_node,
-                    "non_diamond_parents" => collect(diamonds_at_node.non_diamond_parents)
-                )
-            end
+
+        if resolved_join_node !== nothing
+            entry["join_node"] = resolved_join_node
         end
+
+        serialized[string(diamond_hash)] = entry
     end
 
     return serialized
@@ -396,6 +361,76 @@ function handle_file_request(req::HTTP.Request)
             "success" => false,
             "error" => string(e),
             "message" => "Failed to serve file"
+        )))
+    end
+end
+
+# Documentation serving endpoint - serves markdown files from docs/ directory
+function handle_docs_request(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "text/markdown; charset=utf-8"
+    ]
+
+    try
+        uri = HTTP.URI(req.target)
+        path_parts = split(uri.path, "/")
+
+        # Expected format: /docs/filename.md
+        if length(path_parts) < 3 || path_parts[2] != "docs"
+            return HTTP.Response(400, cors_headers, "Invalid docs path format. Expected: /docs/filename.md")
+        end
+
+        filename = join(path_parts[3:end], "/")
+
+        # Resolve docs directory relative to this script
+        docs_dir = joinpath(@__DIR__, "docs")
+        full_path = joinpath(docs_dir, filename)
+        full_path = normpath(full_path)
+
+        # Security: ensure resolved path is within docs directory
+        if !startswith(full_path, normpath(docs_dir))
+            return HTTP.Response(403, cors_headers, "Access denied: path traversal not allowed")
+        end
+
+        if !isfile(full_path)
+            return HTTP.Response(404, cors_headers, "Documentation file not found: $filename")
+        end
+
+        content = read(full_path, String)
+        return HTTP.Response(200, cors_headers, content)
+
+    catch e
+        println("Docs request error: ", e)
+        return HTTP.Response(500, cors_headers, "Failed to serve documentation: $(string(e))")
+    end
+end
+
+# List available documentation files
+function handle_docs_list(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+
+    try
+        docs_dir = joinpath(@__DIR__, "docs")
+        if !isdir(docs_dir)
+            return HTTP.Response(200, cors_headers, JSON.json(Dict("files" => [])))
+        end
+
+        md_files = filter(f -> endswith(f, ".md"), readdir(docs_dir))
+        return HTTP.Response(200, cors_headers, JSON.json(Dict("files" => md_files)))
+
+    catch e
+        println("Docs list error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e)
         )))
     end
 end
@@ -686,9 +721,9 @@ function handle_diamond_analysis(req::HTTP.Request)
             "total_computation_time" => root_computation_time + unique_computation_time,
             "diamond_efficiency" => length(unique_diamonds) / max(1, length(root_diamonds)),
             "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
-            "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
+            "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds, root_diamonds)
         )
-        
+
         result = Dict(
             "success" => true,
             "message" => "Diamond analysis completed",
@@ -706,6 +741,358 @@ function handle_diamond_analysis(req::HTTP.Request)
             "success" => false,
             "error" => string(e),
             "message" => "Diamond analysis failed"
+        )))
+    end
+end
+
+function handle_diamond_subgraph_analysis(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+
+    try
+        request_data = JSON.parse(String(req.body))
+        network_path = get(request_data, "networkPath", "")
+        edges_file_path = get(request_data, "edgesFilePath", "")
+        nodepriors_path = get(request_data, "nodepriorsPath", "")
+        linkprobs_path = get(request_data, "linkprobsPath", "")
+        capacities_path = get(request_data, "capacitiesPath", "")
+        cpm_path = get(request_data, "cpmPath", "")
+        diamond_hash_str = get(request_data, "diamondHash", "")
+        analyses = get(request_data, "analyses", String[])
+        source_overrides = get(request_data, "sourceOverrides", nothing)
+
+        if isempty(network_path) || isempty(diamond_hash_str)
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Network path and diamond hash required"
+            )))
+        end
+
+        # Determine edges file path
+        if isempty(edges_file_path)
+            if isdir(network_path)
+                edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+                if !isempty(edges_files)
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_edges_file = replace(edges_files[1], "\\" => "/")
+                    edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
+                    edges_file_path = replace(edges_file_path, "\\" => "/")
+                end
+            end
+        else
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
+            edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
+            edges_file_path = replace(edges_file_path, "\\" => "/")
+        end
+
+        # Validate edges file
+        is_valid, message = validate_network_file(edges_file_path)
+        if !is_valid
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Invalid network file: $message"
+            )))
+        end
+
+        # Load network structure
+        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
+        allnodes = collect(keys(incoming_index))
+        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
+
+        # Load node priors for diamond identification
+        node_priors = if !isempty(nodepriors_path)
+            normalized_network_path = replace(network_path, "\\" => "/")
+            normalized_nodepriors_path = replace(nodepriors_path, "\\" => "/")
+            full_path = joinpath(normalized_network_path, normalized_nodepriors_path)
+            full_path = replace(full_path, "\\" => "/")
+            if isfile(full_path)
+                try
+                    read_node_priors_from_json(full_path)
+                catch e
+                    create_default_node_priors(allnodes)
+                end
+            else
+                create_default_node_priors(allnodes)
+            end
+        else
+            create_default_node_priors(allnodes)
+        end
+
+        # Identify diamonds to find the requested one
+        root_diamonds = identify_and_group_diamonds(
+            join_nodes, incoming_index, ancestors, descendants,
+            source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+        )
+        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+            root_diamonds, node_priors, ancestors, descendants, iteration_sets
+        )
+
+        # Parse diamond hash
+        diamond_hash = parse(UInt64, diamond_hash_str)
+
+        if !haskey(unique_diamonds, diamond_hash)
+            return HTTP.Response(404, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Diamond with hash $diamond_hash_str not found"
+            )))
+        end
+
+        diamond_data = unique_diamonds[diamond_hash]
+
+        # Build response with diamond info
+        result_data = Dict{String, Any}(
+            "success" => true,
+            "diamond_hash" => diamond_hash_str,
+            "diamond_info" => Dict(
+                "join_nodes" => collect(diamond_data.sub_join_nodes),
+                "conditioning_nodes" => collect(diamond_data.diamond.conditioning_nodes),
+                "node_count" => length(diamond_data.sub_node_priors),
+                "edge_count" => length(diamond_data.diamond.edgelist),
+                "source_nodes" => collect(diamond_data.sub_sources),
+                "fork_nodes" => collect(diamond_data.sub_fork_nodes),
+                "is_root_diamond" => diamond_data.is_rootDiamond,
+                "source_priors" => Dict(string(src) => convert_pbox_values(get(diamond_data.sub_node_priors, src, 1.0)) for src in diamond_data.sub_sources)
+            )
+        )
+
+        # Run requested analyses on diamond subgraph
+        for analysis in analyses
+            if analysis == "reachability" && !isempty(linkprobs_path)
+                try
+                    # Load edge probabilities
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_linkprobs_path = replace(linkprobs_path, "\\" => "/")
+                    full_linkprobs_path = joinpath(normalized_network_path, normalized_linkprobs_path)
+                    full_linkprobs_path = replace(full_linkprobs_path, "\\" => "/")
+
+                    if isfile(full_linkprobs_path)
+                        edge_probabilities = read_edge_probabilities_from_json(full_linkprobs_path)
+
+                        # Apply reachability source prior overrides if provided
+                        effective_node_priors = copy(diamond_data.sub_node_priors)
+                        if source_overrides !== nothing && haskey(source_overrides, "reachability")
+                            for (node_str, value) in source_overrides["reachability"]
+                                node_id = parse(Int64, node_str)
+                                if haskey(effective_node_priors, node_id)
+                                    effective_node_priors[node_id] = Float64(value)
+                                end
+                            end
+                        end
+
+                        # Run reachability on diamond subgraph
+                        reachability_start = time()
+                        sub_output = IPAFrameworkOptimized.update_beliefs_iterative(
+                            diamond_data.diamond.edgelist,
+                            diamond_data.sub_iteration_sets,
+                            diamond_data.sub_outgoing_index,
+                            diamond_data.sub_incoming_index,
+                            diamond_data.sub_sources,
+                            effective_node_priors,
+                            edge_probabilities,
+                            diamond_data.sub_descendants,
+                            diamond_data.sub_ancestors,
+                            diamond_data.sub_diamond_structures,
+                            diamond_data.sub_join_nodes,
+                            diamond_data.sub_fork_nodes,
+                            unique_diamonds
+                        )
+                        reachability_time = time() - reachability_start
+
+                        beliefs_dict = Dict(string(k) => convert_pbox_values(v) for (k, v) in sub_output)
+
+                        result_data["reachability_result"] = Dict(
+                            "beliefs" => beliefs_dict,
+                            "computation_time" => reachability_time,
+                            "total_nodes_processed" => length(sub_output)
+                        )
+                    end
+                catch e
+                    println("Diamond subgraph reachability error: ", e)
+                    result_data["reachability_result"] = Dict("error" => string(e))
+                end
+
+            elseif analysis == "capacity" && !isempty(capacities_path)
+                try
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_capacities_path = replace(capacities_path, "\\" => "/")
+                    full_capacities_path = joinpath(normalized_network_path, normalized_capacities_path)
+                    full_capacities_path = replace(full_capacities_path, "\\" => "/")
+
+                    if isfile(full_capacities_path)
+                        capacity_data = JSON.parsefile(full_capacities_path)
+                        node_caps_raw = capacity_data["capacities"]["nodes"]
+                        edge_caps_raw = capacity_data["capacities"]["edges"]
+                        source_rates_raw = capacity_data["capacities"]["source_rates"]
+
+                        node_capacities = Dict{Int64,Float64}(parse(Int64, k) => Float64(v) for (k, v) in node_caps_raw)
+                        edge_capacities = Dict{Tuple{Int64,Int64},Float64}()
+                        for (k, v) in edge_caps_raw
+                            cleaned_key = replace(k, "(" => "", ")" => "")
+                            parts = split(cleaned_key, ",")
+                            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+                            edge_capacities[edge_key] = Float64(v)
+                        end
+                        source_rates = Dict{Int64,Float64}()
+                        for (k, v) in source_rates_raw
+                            rate = Float64(v)
+                            if rate > 0.0
+                                source_rates[parse(Int64, k)] = rate
+                            end
+                        end
+
+                        # Ensure diamond subgraph source nodes have source rates
+                        # (they may not be full-network sources — use node capacity as default)
+                        for src in diamond_data.sub_sources
+                            if !haskey(source_rates, src)
+                                source_rates[src] = get(node_capacities, src, 1.0)
+                            end
+                        end
+
+                        # Apply capacity source rate overrides if provided
+                        if source_overrides !== nothing && haskey(source_overrides, "capacity")
+                            for (node_str, value) in source_overrides["capacity"]
+                                node_id = parse(Int64, node_str)
+                                source_rates[node_id] = Float64(value)
+                            end
+                        end
+
+                        # Determine sub-graph sink nodes
+                        sub_allnodes = collect(keys(diamond_data.sub_incoming_index))
+                        sub_sink_nodes = filter(node -> !haskey(diamond_data.sub_outgoing_index, node) || isempty(diamond_data.sub_outgoing_index[node]), sub_allnodes)
+                        targets = Set{Int64}(sub_sink_nodes)
+
+                        capacity_start = time()
+                        capacity_params = CapacityParameters(node_capacities, edge_capacities, source_rates, targets)
+                        capacity_result = maximum_flow_capacity(
+                            diamond_data.sub_iteration_sets,
+                            diamond_data.sub_outgoing_index,
+                            diamond_data.sub_incoming_index,
+                            diamond_data.sub_sources,
+                            capacity_params
+                        )
+                        capacity_time = time() - capacity_start
+
+                        result_data["capacity_result"] = Dict(
+                            "node_max_flows" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.node_max_flows),
+                            "bottlenecks" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.bottlenecks),
+                            "network_utilization" => convert_pbox_values(capacity_result.network_utilization),
+                            "computation_time" => capacity_time,
+                            "node_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_capacities if haskey(diamond_data.sub_node_priors, k)),
+                            "source_rates_used" => Dict(string(src) => source_rates[src] for src in diamond_data.sub_sources if haskey(source_rates, src))
+                        )
+                    end
+                catch e
+                    println("Diamond subgraph capacity error: ", e)
+                    result_data["capacity_result"] = Dict("error" => string(e))
+                end
+
+            elseif analysis == "cpm" && !isempty(cpm_path)
+                try
+                    normalized_network_path = replace(network_path, "\\" => "/")
+                    normalized_cpm_path = replace(cpm_path, "\\" => "/")
+                    full_cpm_path = joinpath(normalized_network_path, normalized_cpm_path)
+                    full_cpm_path = replace(full_cpm_path, "\\" => "/")
+
+                    if isfile(full_cpm_path)
+                        cpm_data = JSON.parsefile(full_cpm_path)
+                        time_analysis = cpm_data["time_analysis"]
+                        cost_analysis = cpm_data["cost_analysis"]
+
+                        node_durations = Dict{Int64,Float64}(parse(Int64, k) => Float64(v) for (k, v) in time_analysis["node_durations"])
+                        edge_delays = Dict{Tuple{Int64,Int64},Float64}()
+                        for (k, v) in time_analysis["edge_delays"]
+                            cleaned_key = replace(k, "(" => "", ")" => "")
+                            parts = split(cleaned_key, ",")
+                            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+                            edge_delays[edge_key] = Float64(v)
+                        end
+
+                        node_costs = Dict{Int64,Float64}(parse(Int64, k) => Float64(v) for (k, v) in cost_analysis["node_costs"])
+                        edge_costs = Dict{Tuple{Int64,Int64},Float64}()
+                        for (k, v) in cost_analysis["edge_costs"]
+                            cleaned_key = replace(k, "(" => "", ")" => "")
+                            parts = split(cleaned_key, ",")
+                            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+                            edge_costs[edge_key] = Float64(v)
+                        end
+
+                        # Apply CPM source value overrides (separate time/cost)
+                        if source_overrides !== nothing
+                            if haskey(source_overrides, "cpm_time")
+                                for (node_str, value) in source_overrides["cpm_time"]
+                                    node_id = parse(Int64, node_str)
+                                    if haskey(node_durations, node_id)
+                                        node_durations[node_id] = Float64(value)
+                                    end
+                                end
+                            end
+                            if haskey(source_overrides, "cpm_cost")
+                                for (node_str, value) in source_overrides["cpm_cost"]
+                                    node_id = parse(Int64, node_str)
+                                    if haskey(node_costs, node_id)
+                                        node_costs[node_id] = Float64(value)
+                                    end
+                                end
+                            end
+                        end
+
+                        cpm_start = time()
+
+                        # Time analysis on subgraph
+                        time_params = CriticalPathParameters(node_durations, edge_delays, 0.0, max_combination, additive_propagation, additive_propagation)
+                        time_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, time_params)
+                        time_extended = backward_pass_analysis(time_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, time_params)
+
+                        # Cost analysis on subgraph
+                        cost_params = CriticalPathParameters(node_costs, edge_costs, 0.0, max_combination, additive_propagation, additive_propagation)
+                        cost_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, cost_params)
+                        cost_extended = backward_pass_analysis(cost_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, cost_params)
+
+                        cpm_time = time() - cpm_start
+
+                        result_data["cpm_result"] = Dict(
+                            "computation_time" => cpm_time,
+                            "time_result" => Dict(
+                                "critical_value" => time_result.critical_value,
+                                "critical_nodes" => collect(time_result.critical_nodes),
+                                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_result.node_values),
+                                "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.early_start),
+                                "late_finish" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.late_finish),
+                                "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.total_slack),
+                                "node_durations" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_durations if haskey(diamond_data.sub_node_priors, k))
+                            ),
+                            "cost_result" => Dict(
+                                "critical_value" => cost_result.critical_value,
+                                "critical_nodes" => collect(cost_result.critical_nodes),
+                                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_result.node_values),
+                                "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.early_start),
+                                "late_finish" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.late_finish),
+                                "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.total_slack),
+                                "node_costs" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_costs if haskey(diamond_data.sub_node_priors, k))
+                            )
+                        )
+                    end
+                catch e
+                    println("Diamond subgraph CPM error: ", e)
+                    result_data["cpm_result"] = Dict("error" => string(e))
+                end
+            end
+        end
+
+        return HTTP.Response(200, cors_headers, JSON.json(result_data))
+
+    catch e
+        println("Diamond subgraph analysis error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Diamond subgraph analysis failed"
         )))
     end
 end
@@ -829,7 +1216,7 @@ function handle_reachability_analysis(req::HTTP.Request)
                 "join_nodes_with_diamonds" => collect(keys(root_diamonds)),
                 "computation_time" => diamond_computation_time,
                 "raw_root_diamonds" => serialize_root_diamonds_for_json(root_diamonds),
-                "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds)
+                "raw_unique_diamonds" => serialize_unique_diamonds_for_json(unique_diamonds, root_diamonds)
             )
         end
         
@@ -852,7 +1239,7 @@ function handle_reachability_analysis(req::HTTP.Request)
                 unique_diamonds = Dict()  # Would need to deserialize
             end
             
-            output = IPAFramework.update_beliefs_iterative(
+            output = IPAFrameworkOptimized.update_beliefs_iterative(
                 edgelist, iteration_sets, outgoing_index, incoming_index,
                 source_nodes, node_priors, edge_probabilities,
                 descendants, ancestors, root_diamonds, join_nodes, fork_nodes, unique_diamonds
@@ -1037,7 +1424,42 @@ function handle_capacity_analysis(req::HTTP.Request)
                 target_flows[string(target)] = capacity_result.node_max_flows[target]
             end
         end
-        
+
+        # Compute edge utilization
+        edge_utilization = Dict{String, Dict{String, Any}}()
+        for ((src, dst), cap) in edge_capacities
+            src_flow = get(capacity_result.node_max_flows, src, 0.0)
+            flow_through = min(src_flow, cap)
+            edge_utilization["($src, $dst)"] = Dict(
+                "capacity" => cap,
+                "flow" => flow_through,
+                "utilization" => cap > 0 ? flow_through / cap : 0.0,
+                "spare" => cap - flow_through
+            )
+        end
+
+        # Run comparative analysis (realistic vs classical)
+        comparative_data = Dict{String, Any}()
+        try
+            comparative = comparative_capacity_analysis(
+                iteration_sets, outgoing_index, incoming_index,
+                source_nodes, capacity_params
+            )
+
+            comparative_data = Dict(
+                "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
+                "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
+                "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
+                "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
+                "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
+                "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
+                "strategic_recommendations" => comparative[:strategic_recommendations]
+            )
+        catch comp_err
+            println("Comparative analysis warning (non-fatal): ", comp_err)
+            comparative_data = Dict("error" => "Comparative analysis unavailable")
+        end
+
         result_data = Dict(
             "computation_time" => capacity_computation_time,
             "network_utilization" => capacity_result.network_utilization,
@@ -1049,10 +1471,12 @@ function handle_capacity_analysis(req::HTTP.Request)
             "node_capacities_count" => length(node_capacities),
             "edge_capacities_count" => length(edge_capacities),
             "input_files" => Dict("capacities_path" => capacities_path),
+            "comparative_analysis" => comparative_data,
             "raw_capacity_result" => Dict(
                 "node_max_flows" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.node_max_flows),
                 "node_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_capacities),
                 "edge_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in edge_capacities),
+                "edge_utilization" => edge_utilization,
                 "source_rates" => Dict(string(k) => convert_pbox_values(v) for (k, v) in source_rates),
                 "bottlenecks" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.bottlenecks),
                 "critical_paths" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.critical_paths),
@@ -1191,34 +1615,54 @@ function handle_cpm_analysis(req::HTTP.Request)
         
         # Run CPM analysis
         cpm_start_time = time()
-        
-        # Time-based critical path analysis
+
+        # Time-based critical path analysis (forward pass)
         time_params = CriticalPathParameters(
             node_durations, edge_delays, 0.0,
             max_combination, additive_propagation, additive_propagation
         )
         time_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, time_params)
-        
-        # Cost-based critical path analysis
+
+        # Time backward pass
+        time_extended = backward_pass_analysis(time_result, iteration_sets, outgoing_index, time_params)
+
+        # Cost-based critical path analysis (forward pass)
         cost_params = CriticalPathParameters(
             node_costs, edge_costs, 0.0,
             max_combination, additive_propagation, additive_propagation
         )
         cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
-        
+
+        # Cost backward pass
+        cost_extended = backward_pass_analysis(cost_result, iteration_sets, outgoing_index, cost_params)
+
         cpm_computation_time = time() - cpm_start_time
-        
+
         result_data = Dict(
             "computation_time" => cpm_computation_time,
             "time_result" => Dict(
                 "critical_value" => time_result.critical_value,
                 "critical_nodes" => collect(time_result.critical_nodes),
-                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_result.node_values)
+                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_result.node_values),
+                "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.early_start),
+                "late_finish" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.late_finish),
+                "late_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.late_start),
+                "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.total_slack)
             ),
             "cost_result" => Dict(
                 "critical_value" => cost_result.critical_value,
                 "critical_nodes" => collect(cost_result.critical_nodes),
-                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_result.node_values)
+                "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_result.node_values),
+                "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.early_start),
+                "late_finish" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.late_finish),
+                "late_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.late_start),
+                "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.total_slack)
+            ),
+            "input_data" => Dict(
+                "node_durations" => Dict(string(k) => v for (k, v) in node_durations),
+                "edge_delays" => Dict(string(k) => v for (k, v) in edge_delays),
+                "node_costs" => Dict(string(k) => v for (k, v) in node_costs),
+                "edge_costs" => Dict(string(k) => v for (k, v) in edge_costs)
             ),
             "node_durations_count" => length(node_durations),
             "edge_delays_count" => length(edge_delays),
@@ -1377,9 +1821,13 @@ function start_server()
     HTTP.register!(router, "POST", "/upload", handle_upload)
     # File serving endpoint for frontend data parsing
     HTTP.register!(router, "GET", "/files/*", handle_file_request)
+    # Documentation serving endpoints
+    HTTP.register!(router, "GET", "/docs-list", handle_docs_list)
+    HTTP.register!(router, "GET", "/docs/*", handle_docs_request)
     # Individual Analysis Endpoints
     HTTP.register!(router, "POST", "/network-structure", handle_network_structure)
     HTTP.register!(router, "POST", "/diamond-analysis", handle_diamond_analysis)
+    HTTP.register!(router, "POST", "/diamond-subgraph-analysis", handle_diamond_subgraph_analysis)
     HTTP.register!(router, "POST", "/reachability-analysis", handle_reachability_analysis)
     HTTP.register!(router, "POST", "/capacity-analysis", handle_capacity_analysis)
     HTTP.register!(router, "POST", "/cpm-analysis", handle_cpm_analysis)

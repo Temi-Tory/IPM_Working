@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,63 +9,88 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
 import { FileManagerService } from '../../shared/services/file-manager.service';
 import { CpmAnalysisService } from '../../shared/services/cpm-analysis.service';
 import { NetworkSessionService } from '../../shared/services/network-session.service';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
-import { ScenarioInfo, MultiScenarioCpmResults, CpmScenario, NetworkStructure, AnalysisResponse } from '../../shared/models/network-analysis.models';
+import {
+  ScenarioInfo,
+  NetworkStructure,
+  AnalysisResponse,
+  CpmScenario,
+  CpmPathResult,
+  CpmFileGroup
+} from '../../shared/models/network-analysis.models';
 
-interface TimeScenarioInfo {
-  name: string;
-  path: string;
-  displayName: string;
-  description: string;
-  networkPath: string | undefined;
-  cpmInputsFile: any;
-}
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
-interface TimeResult {
+interface TimeNodeResult {
   nodeId: number;
-  timeValue: number;
+  duration: number;        // Activity duration (from input_data)
+  earlyStart: number;      // ES
+  earlyFinish: number;     // EF (node_values)
+  lateStart: number;       // LS (from backward pass, or EF+slack fallback)
+  lateFinish: number;      // LF (from backward pass)
+  slack: number;           // True slack = LS - ES
   isOnCriticalPath: boolean;
-  earliestStart: number;
-  latestStart: number;
-  slack: number;
   nodeType: string;
 }
 
 interface TimeMetrics {
-  totalNodes: number;
+  computationTime: number;
   criticalPathDuration: number;
   criticalPathLength: number;
-  averageNodeTime: number;
-  maxSlackTime: number;
-  minSlackTime: number;
-  computationTime: number;
-  sourceNodes: number;
-  targetNodes: number;
-  criticalNodesCount: number;
+  averageSlack: number;
+  maxSlack: number;
+  criticalCount: number;
+  nearCriticalCount: number;
+  sourceCount: number;
+  sinkCount: number;
+  totalNodes: number;
 }
 
-/**
- * Network Time Analysis Component (CPM Time Analysis)
- * 
- * Professional component for critical path method time analysis including:
- * - Critical path duration calculation and path identification
- * - Node time values and slack time analysis
- * - Multi-scenario time-based comparison support
- * - Schedule optimization and time performance visualization
- */
+interface SlackBucket {
+  label: string;
+  count: number;
+  heightPercent: number;
+}
+
+interface ScenarioTabState {
+  scenario: { name: string; path: string; displayName: string; networkPath: string | undefined };
+  status: 'idle' | 'computing' | 'computed' | 'error';
+  nodeResults: TimeNodeResult[];
+  metrics: TimeMetrics | null;
+  rawScenario: CpmScenario | null;
+  error: string | null;
+  searchTerm: string;
+  selectedNodeTypes: string[];
+  pageIndex: number;
+  pageSize: number;
+  sortColumn: string;
+  sortDirection: 'asc' | 'desc' | '';
+  showAdvancedColumns: boolean;
+}
+
+interface ComparisonRow {
+  nodeId: number;
+  baseEF: number | null;
+  compareEF: number | null;
+  deltaEF: number | null;
+  baseSlack: number | null;
+  compareSlack: number | null;
+  deltaSlack: number | null;
+  nodeType: string;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 @Component({
   selector: 'app-time-analysis',
   standalone: true,
@@ -80,212 +105,356 @@ interface TimeMetrics {
     MatProgressBarModule,
     MatDividerModule,
     MatTooltipModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
     MatBadgeModule,
-    MatSlideToggleModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    MatMenuModule
   ],
   templateUrl: './time-analysis.component.html',
   styleUrl: './time-analysis.component.scss'
 })
-export class TimeAnalysisComponent implements OnInit, ScenarioAwareComponent {
+export class TimeAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareComponent {
 
-  // **NEW: Inject services using modern Angular pattern**
+  // ─── Service injection ────────────────────────────────────────────────────
   private analysisStateService = inject(AnalysisStateService);
   private fileManagerService = inject(FileManagerService);
   private cpmAnalysisService = inject(CpmAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
 
-  // **ENHANCED: ScenarioAwareComponent implementation**
+  // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
   analysisResults: AnalysisResponse | null = null;
   isLoading = false;
   error: string | null = null;
-  
-  // **NEW: Multi-scenario state management**
   availableScenarios: ScenarioInfo[] = [];
   currentScenario: string | null = null;
   scenarioResults: Map<string, any> = new Map();
-  
-  // **TIME-SPECIFIC: Keep existing signals for time analysis**
-  selectedScenario = signal<TimeScenarioInfo | null>(null);
-  timeResults = signal<TimeResult[]>([]);
-  timeMetrics = signal<TimeMetrics | null>(null);
-  isComputing = signal(false);
-  errorMessage = signal<string | null>(null);
-  
-  // **TIME-SPECIFIC: Get scenarios from FileManagerService CPM groups**
-  availableScenariosComputed = computed(() => {
-    const cpmGroups = this.fileManagerService.analysisGroups().cpm;
-    
-    return cpmGroups
-      .map((group, index) => ({
-        name: group.scenarioName || `cpm-time-${index}`, // Use scenarioName as unique identifier
-        displayName: group.scenarioName ? 
-          `${group.scenarioName} (Time Analysis)` : 
-          'Time Analysis',
-        path: group.cpmInputsFile?.path || '',
-        networkPath: group.networkPath,
-        cpmInputsFile: group.cpmInputsFile,
-        description: 'Critical Path Method time-based scheduling analysis with duration optimization'
-      }));
+
+  // ─── Tab state management ─────────────────────────────────────────────────
+  scenarioTabs = signal<Map<string, ScenarioTabState>>(new Map());
+  activeTabIndex = signal(0);
+
+  // Active tab UI state
+  activeSearchTerm = signal('');
+  activeSelectedNodeTypes = signal<string[]>([]);
+  activePageIndex = signal(0);
+  activePageSize = signal(25);
+  activeSortColumn = signal('nodeId');
+  activeSortDirection = signal<'asc' | 'desc' | ''>('');
+  showAdvancedColumns = signal(false);
+
+  // Comparison state
+  comparisonMode = signal(false);
+  baseScenarioName = signal('');
+  compareScenarioName = signal('');
+
+  // Copy feedback
+  copiedCellKey = signal('');
+
+  // ─── Computed: scenario names ─────────────────────────────────────────────
+  scenarioNames = computed(() => Array.from(this.scenarioTabs().keys()));
+
+  // ─── Computed: active tab state ───────────────────────────────────────────
+  activeTab = computed((): ScenarioTabState | null => {
+    const tabs = this.scenarioTabs();
+    const keys = Array.from(tabs.keys());
+    const idx = this.activeTabIndex();
+    if (idx < 0 || idx >= keys.length) return null;
+    return tabs.get(keys[idx]) || null;
   });
 
-  // Network structure information for context
+  // ─── Computed: network info ───────────────────────────────────────────────
   networkInfo = computed(() => {
-    const networkStructure = this.analysisStateService.networkData();
-    if (!networkStructure) return null;
-    
+    const ns = this.analysisStateService.networkData();
+    if (!ns) return null;
     return {
-      totalNodes: networkStructure.total_nodes || 0,
-      totalEdges: networkStructure.total_edges || 0,
-      sourceNodes: networkStructure.source_nodes || [],
-      joinNodes: networkStructure.join_nodes || [],
-      forkNodes: networkStructure.fork_nodes || [],
-      sinkNodes: networkStructure.sink_nodes || []
+      totalNodes: ns.total_nodes || 0,
+      totalEdges: ns.total_edges || 0,
+      sourceNodes: ns.source_nodes || [],
+      sinkNodes: ns.sink_nodes || [],
+      forkNodes: ns.fork_nodes || [],
+      joinNodes: ns.join_nodes || [],
     };
   });
 
-  // **NEW: Access parsed data for actual CPM values**
-  parsedData = computed(() => this.analysisStateService.parsedData());
+  // ─── Computed: filtered + sorted results for active tab ───────────────────
+  activeFilteredResults = computed((): TimeNodeResult[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
 
-  // **TIME-SPECIFIC: Enhanced network context with schedule metrics**
-  networkComplexity = computed(() => {
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) return 'Unknown';
-    
-    const totalNodes = networkInfo.totalNodes;
-    const totalEdges = networkInfo.totalEdges;
-    const edgeNodeRatio = totalEdges / totalNodes;
-    
-    if (edgeNodeRatio < 1.2) return 'Simple Schedule (Linear Process)';
-    if (edgeNodeRatio < 1.8) return 'Moderate Schedule (Parallel Tasks)';
-    if (edgeNodeRatio < 2.5) return 'Complex Schedule (Multiple Dependencies)';
-    return 'Very Complex Schedule (Highly Interdependent)';
+    let results = [...tab.nodeResults];
+    const search = this.activeSearchTerm().toLowerCase();
+    const types = this.activeSelectedNodeTypes();
+
+    if (search) {
+      results = results.filter(r => r.nodeId.toString().includes(search));
+    }
+    if (types.length > 0) {
+      results = results.filter(r => types.includes(r.nodeType));
+    }
+
+    const col = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (col && dir) {
+      results.sort((a, b) => {
+        const valA = this.getSortValue(a, col);
+        const valB = this.getSortValue(b, col);
+        return dir === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+    return results;
   });
 
-  // **TIME-SPECIFIC: Filtered results based on search and critical path filters**
-  filteredTimeResults = computed(() => {
-    const results = this.timeResults();
-    const search = this.searchTerm().toLowerCase();
-    const selectedTypes = this.selectedNodeTypes();
-    const showOnlyCritical = this.showOnlyCriticalPath();
-    const networkInfo = this.networkInfo();
-    
-    if (!networkInfo) return results;
-    
-    return results.filter(result => {
-      // Search filter
-      const matchesSearch = !search || result.nodeId.toString().includes(search);
-      
-      // Node type filter
-      let matchesType = selectedTypes.length === 0;
-      if (!matchesType) {
-        const nodeType = this.getNodeType(result.nodeId, networkInfo);
-        matchesType = selectedTypes.some(type => nodeType.includes(type));
-      }
-      
-      // Critical path filter
-      const matchesCriticalFilter = !showOnlyCritical || result.isOnCriticalPath;
-      
-      return matchesSearch && matchesType && matchesCriticalFilter;
+  // ─── Computed: paginated results ──────────────────────────────────────────
+  activePaginatedResults = computed((): TimeNodeResult[] => {
+    const filtered = this.activeFilteredResults();
+    const start = this.activePageIndex() * this.activePageSize();
+    return filtered.slice(start, start + this.activePageSize());
+  });
+
+  // ─── Computed: slack histogram ────────────────────────────────────────────
+  slackHistogram = computed((): SlackBucket[] => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed' || !tab.metrics) return [];
+
+    const results = tab.nodeResults;
+    const maxSlack = tab.metrics.criticalPathDuration;
+    if (maxSlack <= 0) return [];
+
+    const bucketCount = 10;
+    const bucketWidth = maxSlack / bucketCount;
+    const counts: number[] = [];
+
+    for (let i = 0; i < bucketCount; i++) {
+      const lo = i * bucketWidth;
+      const hi = (i + 1) * bucketWidth;
+      counts.push(results.filter(r => r.slack >= lo && (i === bucketCount - 1 ? r.slack <= hi : r.slack < hi)).length);
+    }
+
+    // Trim empty leading/trailing bins (same pattern as exact-inference)
+    let firstNonZero = counts.findIndex(c => c > 0);
+    let lastNonZero = counts.length - 1;
+    while (lastNonZero > 0 && counts[lastNonZero] === 0) lastNonZero--;
+    if (firstNonZero === -1) return [];
+
+    const trimmed = counts.slice(firstNonZero, lastNonZero + 1);
+    const maxCount = Math.max(...trimmed, 1);
+
+    return trimmed.map((count, i) => {
+      const idx = firstNonZero + i;
+      const lo = idx * bucketWidth;
+      const hi = (idx + 1) * bucketWidth;
+      return {
+        label: `${this.cleanValue(lo).toFixed(1)}-${this.cleanValue(hi).toFixed(1)}`,
+        count,
+        heightPercent: (count / maxCount) * 100
+      };
     });
   });
 
-  // **TIME-SPECIFIC: Paginated results**
-  paginatedTimeResults = computed(() => {
-    const filtered = this.filteredTimeResults();
-    const pageSize = this.pageSize();
-    const pageIndex = this.pageIndex();
-    const start = pageIndex * pageSize;
-    return filtered.slice(start, start + pageSize);
+  // ─── Computed: critical path comparison (time vs cost) ────────────────────
+  pathComparison = computed(() => {
+    const tab = this.activeTab();
+    if (!tab || !tab.rawScenario) return null;
+
+    const timeCritical = tab.rawScenario.time_result?.critical_nodes || [];
+    const costCritical = tab.rawScenario.cost_result?.critical_nodes || [];
+
+    if (timeCritical.length === 0 || costCritical.length === 0) return null;
+
+    const timeSet = new Set(timeCritical);
+    const costSet = new Set(costCritical);
+    const common = timeCritical.filter(n => costSet.has(n));
+    const timeOnly = timeCritical.filter(n => !costSet.has(n));
+    const costOnly = costCritical.filter(n => !timeSet.has(n));
+
+    return {
+      timePath: timeCritical,
+      costPath: costCritical,
+      commonNodes: common,
+      timeOnlyNodes: timeOnly,
+      costOnlyNodes: costOnly,
+      identical: timeOnly.length === 0 && costOnly.length === 0
+    };
   });
 
-  // Table columns for results display
-  displayedColumns: string[] = ['nodeId', 'timeValue', 'slack', 'criticalPath', 'nodeType'];
-  
-  // **TIME-SPECIFIC: Pagination and filtering state**
-  pageSize = signal(25);
-  pageIndex = signal(0);
-  searchTerm = signal('');
-  selectedNodeTypes = signal<string[]>([]);
-  showOnlyCriticalPath = signal(false);
+  // ─── Computed: node type stats ────────────────────────────────────────────
+  nodeTypeStats = computed(() => {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return [];
+
+    const typeMap = new Map<string, { count: number; totalSlack: number }>();
+    for (const r of tab.nodeResults) {
+      const entry = typeMap.get(r.nodeType) || { count: 0, totalSlack: 0 };
+      entry.count++;
+      entry.totalSlack += r.slack;
+      typeMap.set(r.nodeType, entry);
+    }
+
+    const iconMap: Record<string, string> = {
+      Source: 'login', Sink: 'logout', Fork: 'call_split', Join: 'call_merge', Regular: 'radio_button_unchecked'
+    };
+
+    return Array.from(typeMap.entries()).map(([type, data]) => ({
+      type,
+      count: data.count,
+      avgSlack: data.totalSlack / data.count,
+      icon: iconMap[type] || 'circle'
+    }));
+  });
+
+  // ─── Computed: comparison rows ────────────────────────────────────────────
+  comparisonRows = computed((): ComparisonRow[] => {
+    if (!this.comparisonMode()) return [];
+    const tabs = this.scenarioTabs();
+    const baseTab = tabs.get(this.baseScenarioName());
+    const compTab = tabs.get(this.compareScenarioName());
+    if (!baseTab || !compTab || baseTab.status !== 'computed' || compTab.status !== 'computed') return [];
+
+    const baseMap = new Map(baseTab.nodeResults.map(r => [r.nodeId, r]));
+    const compMap = new Map(compTab.nodeResults.map(r => [r.nodeId, r]));
+    const allNodeIds = new Set([...baseMap.keys(), ...compMap.keys()]);
+    const ni = this.networkInfo();
+
+    return Array.from(allNodeIds).sort((a, b) => a - b).map(nodeId => {
+      const base = baseMap.get(nodeId);
+      const comp = compMap.get(nodeId);
+      return {
+        nodeId,
+        baseEF: base?.earlyFinish ?? null,
+        compareEF: comp?.earlyFinish ?? null,
+        deltaEF: (base && comp) ? comp.earlyFinish - base.earlyFinish : null,
+        baseSlack: base?.slack ?? null,
+        compareSlack: comp?.slack ?? null,
+        deltaSlack: (base && comp) ? comp.slack - base.slack : null,
+        nodeType: ni ? this.getNodeType(nodeId, ni) : 'Regular'
+      };
+    });
+  });
+
+  // ─── Computed: comparison tab states (for summary cards) ────────────────
+  baseTabState = computed(() => this.scenarioTabs().get(this.baseScenarioName()) || null);
+  compareTabState = computed(() => this.scenarioTabs().get(this.compareScenarioName()) || null);
+
+  // ─── Lifecycle ────────────────────────────────────────────────────────────
+
+  private static readonly VIEW_KEY = 'time-analysis';
 
   ngOnInit(): void {
-    console.log('⏰ TimeAnalysisComponent initializing...');
-    this.loadScenarios();
     this.loadData();
+
+    // Restore cached state from previous navigation (avoids unnecessary re-run)
+    const cached = this.analysisStateService.restoreViewState(TimeAnalysisComponent.VIEW_KEY);
+    if (cached && cached.tabs.size > 0) {
+      this.scenarioTabs.set(cached.tabs as Map<string, ScenarioTabState>);
+      this.activeTabIndex.set(cached.activeTabIndex);
+      if (cached.uiState) {
+        this.activeSearchTerm.set(cached.uiState.searchTerm || '');
+        this.activeSelectedNodeTypes.set(cached.uiState.selectedNodeTypes || []);
+        this.activePageIndex.set(cached.uiState.pageIndex || 0);
+        this.activePageSize.set(cached.uiState.pageSize || 25);
+        this.activeSortColumn.set(cached.uiState.sortColumn || 'nodeId');
+        this.activeSortDirection.set(cached.uiState.sortDirection || '');
+        this.showAdvancedColumns.set(cached.uiState.showAdvancedColumns || false);
+        this.comparisonMode.set(cached.uiState.comparisonMode || false);
+        this.baseScenarioName.set(cached.uiState.baseScenarioName || '');
+        this.compareScenarioName.set(cached.uiState.compareScenarioName || '');
+      }
+      for (const [name, tab] of cached.tabs.entries()) {
+        if ((tab as any).rawScenario) this.scenarioResults.set(name, (tab as any).rawScenario);
+      }
+      return;
+    }
+
+    this.loadScenarios();
+    this.runAllScenarios();
   }
 
-  // **NEW: ScenarioAwareComponent interface implementation**
-  loadScenarios(): void {
-    const cpmGroups = this.fileManagerService.analysisGroups().cpm;
-    this.availableScenarios = cpmGroups
-      .map((group, index) => ({
-        name: group.scenarioName || `cpm-time-${index}`,
-        dataType: 'cpm' as any,
-        path: group.cpmInputsFile?.path || '',
-        displayName: group.scenarioName ?
-          `${group.scenarioName} (Time Analysis)` :
-          'Time Analysis',
-        analysisType: 'cpm' as const,
-        description: 'Critical Path Method time-based scheduling analysis with duration optimization'
-      }));
+  ngOnDestroy(): void {
+    // Save current tab's UI state before persisting
+    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    if (currentName) {
+      this.updateTabState(currentName, {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection()
+      });
+    }
+    this.analysisStateService.saveViewState(
+      TimeAnalysisComponent.VIEW_KEY,
+      this.scenarioTabs(),
+      this.activeTabIndex(),
+      {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection(),
+        showAdvancedColumns: this.showAdvancedColumns(),
+        comparisonMode: this.comparisonMode(),
+        baseScenarioName: this.baseScenarioName(),
+        compareScenarioName: this.compareScenarioName()
+      }
+    );
+  }
 
-    // Auto-select first scenario if available
-    if (this.availableScenarios.length > 0 && !this.currentScenario) {
-      this.setCurrentScenario(this.availableScenarios[0].name);
+  // ─── ScenarioAwareComponent implementation ────────────────────────────────
+
+  loadScenarios(): void {
+    const cpmGroups: CpmFileGroup[] = this.fileManagerService.analysisGroups().cpm;
+    const validGroups = cpmGroups.filter(g => g.cpmInputsFile);
+
+    this.availableScenarios = validGroups.map((group, index) => ({
+      name: group.scenarioName || `cpm-time-${index}`,
+      dataType: 'cpm' as any,
+      path: group.cpmInputsFile?.path || '',
+      displayName: group.scenarioName || `Time Scenario ${index + 1}`,
+      analysisType: 'cpm' as const,
+    }));
+
+    const tabs = new Map<string, ScenarioTabState>();
+    validGroups.forEach((group, index) => {
+      const name = group.scenarioName || `cpm-time-${index}`;
+      tabs.set(name, {
+        scenario: {
+          name,
+          path: group.cpmInputsFile?.path || '',
+          displayName: group.scenarioName || `Time Scenario ${index + 1}`,
+          networkPath: group.networkPath,
+        },
+        status: 'idle',
+        nodeResults: [],
+        metrics: null,
+        rawScenario: null,
+        error: null,
+        searchTerm: '',
+        selectedNodeTypes: [],
+        pageIndex: 0,
+        pageSize: 25,
+        sortColumn: 'nodeId',
+        sortDirection: '',
+        showAdvancedColumns: false
+      });
+    });
+    this.scenarioTabs.set(tabs);
+
+    if (this.availableScenarios.length > 0) {
+      this.currentScenario = this.availableScenarios[0].name;
     }
   }
 
   setCurrentScenario(scenarioName: string): void {
     this.currentScenario = scenarioName;
-    const scenario = this.availableScenarios.find(s => s.name === scenarioName);
-    if (scenario) {
-      // Convert ScenarioInfo to TimeScenarioInfo for backward compatibility
-      const cpmGroups = this.fileManagerService.analysisGroups().cpm;
-      const matchingGroup = cpmGroups.find(group =>
-        group.scenarioName === scenario.name
-      );
-      
-      if (matchingGroup) {
-        const timeScenario: TimeScenarioInfo = {
-          name: scenario.name,
-          path: scenario.path,
-          displayName: scenario.displayName || scenario.name,
-          description: scenario.description || '',
-          networkPath: matchingGroup.networkPath,
-          cpmInputsFile: matchingGroup.cpmInputsFile
-        };
-        this.selectedScenario.set(timeScenario);
-        
-        // **FIX: Auto-execute analysis when scenario changes via dropdown**
-        console.log('⏰ Current time analysis scenario set to:', scenarioName);
-        console.log('🔄 Auto-executing time analysis for new scenario selection');
-        this.executeTimeAnalysis();
-      }
-    }
   }
 
   loadScenarioData(scenarioName: string): void {
     this.setCurrentScenario(scenarioName);
-    
-    // **FIX: Clear previous results before loading new scenario**
-    this.timeResults.set([]);
-    this.timeMetrics.set(null);
-    this.errorMessage.set(null);
-    
-    // **FIX: Force UI update after clearing**
-    this.cdr.markForCheck();
-    this.cdr.detectChanges();
-    
-    // Trigger time analysis execution for the selected scenario
-    this.executeTimeAnalysis();
   }
 
   loadData(): void {
@@ -296,394 +465,344 @@ export class TimeAnalysisComponent implements OnInit, ScenarioAwareComponent {
   }
 
   clearScenarioData(): void {
+    const tabs = new Map(this.scenarioTabs());
+    for (const [name, tab] of tabs.entries()) {
+      tabs.set(name, { ...tab, status: 'idle', nodeResults: [], metrics: null, error: null, rawScenario: null });
+    }
+    this.scenarioTabs.set(tabs);
     this.scenarioResults.clear();
-    this.timeResults.set([]);
-    this.timeMetrics.set(null);
-    this.errorMessage.set(null);
-    console.log('🧹 Time analysis scenario data cleared');
+    this.cpmAnalysisService.clearCache();
+    this.analysisStateService.clearViewState(TimeAnalysisComponent.VIEW_KEY);
   }
 
-  /**
-   * Execute network time analysis using CPM
-   */
-  async executeTimeAnalysis(): Promise<void> {
-    const scenario = this.selectedScenario();
-    if (!scenario) {
-      this.errorMessage.set('No scenario selected');
-      return;
-    }
+  // ─── Auto-run all scenarios ───────────────────────────────────────────────
 
-    // **FIX: Prevent duplicate executions with state guard**
-    if (this.isComputing()) {
-      console.log('⚠️ Time analysis already in progress, skipping duplicate execution');
-      return;
-    }
+  async runAllScenarios(): Promise<void> {
+    const tabs = this.scenarioTabs();
+    if (tabs.size === 0) return;
 
-    this.isComputing.set(true);
-    this.errorMessage.set(null);
-    
+    const promises: Promise<void>[] = [];
+    for (const name of tabs.keys()) {
+      promises.push(this.runScenario(name));
+    }
+    await Promise.allSettled(promises);
+  }
+
+  async rerunScenario(scenarioName: string): Promise<void> {
+    await this.runScenario(scenarioName, true);
+  }
+
+  private async runScenario(scenarioName: string, bypassCache = false): Promise<void> {
+    const tabs = this.scenarioTabs();
+    const tabState = tabs.get(scenarioName);
+    if (!tabState) return;
+
+    this.updateTabState(scenarioName, { status: 'computing', error: null });
+
     try {
-      // Use networkPath from scenario if available, otherwise from session
-      let networkPath = scenario.networkPath;
-      if (!networkPath) {
-        const currentSession = this.sessionService.getCurrentSession();
-        networkPath = currentSession?.networkPath;
-      }
-      
-      if (!networkPath) {
-        throw new Error('No network path available');
-      }
-
-      console.log(`⏰ Executing time analysis for scenario: ${scenario.displayName}`);
-      console.log(`📂 Network path: ${networkPath}`);
-      console.log(`⏱️ CPM inputs path: ${scenario.path}`);
-      console.log(`🔗 CPM inputs file path: ${scenario.cpmInputsFile?.path}`);
-
-      // Check that scenario has all required file paths
-      if (!scenario.cpmInputsFile?.path) {
-        throw new Error('Missing required CPM inputs file for time analysis. Please upload CPM files first.');
-      }
-      
-      // Validate paths are not empty
-      if (!scenario.cpmInputsFile.path.trim()) {
-        throw new Error('CPM inputs file path cannot be empty. Please check uploaded files.');
-      }
-      
-      // Get edges file path from the CPM group
-      const cpmGroups = this.fileManagerService.analysisGroups().cpm;
-      const matchingGroup = cpmGroups.find(group => 
-        group.scenarioName === scenario.name
-      );
-      
-      if (!matchingGroup) {
-        throw new Error(`Could not find matching CPM group for scenario: ${scenario.name}`);
-      }
-      
-      // **FIXED: Construct edges file path correctly**
-      const edgesNetworkName = matchingGroup.networkPath?.split('/').pop() || 'network';
-      let edgesFilePath = matchingGroup.edgesFile?.path || `${edgesNetworkName}.EDGES`;
-      
-      // **CRITICAL FIX: Remove any network path prefix from edges file path**
-      if (edgesFilePath.includes('/')) {
-        edgesFilePath = edgesFilePath.split('/').pop() || `${edgesNetworkName}.EDGES`;
-      }
-      
-      console.log(`📊 Final edges file path: ${edgesFilePath}`);
-      
-      // **IMPROVED: Use session network path for consistency with backend expectations**
+      const scenario = tabState.scenario;
       const sessionNetworkPath = this.sessionService.getCurrentSession()?.networkPath;
-      const baseNetworkPath = sessionNetworkPath || matchingGroup.networkPath;
-      
-      if (!baseNetworkPath) {
-        throw new Error('No valid network path available for analysis');
-      }
-      
-      // **IMPROVED: Construct relative paths for backend compatibility**
-      const fullNetworkPath = baseNetworkPath.replace(/\\/g, '/');
-      
-      // Make paths relative to the network directory
-      let relativeCpmPath = scenario.cpmInputsFile.path;
-      
-      // **FIXED: Improved path stripping logic to preserve folder structure**
+      const baseNetworkPath = (sessionNetworkPath || scenario.networkPath || '').replace(/\\/g, '/');
+      if (!baseNetworkPath) throw new Error('No network path available');
+
       const networkName = baseNetworkPath.split('/').pop() || '';
-      
-      // Only remove the network name prefix if it exists at the start
-      if (networkName && relativeCpmPath.startsWith(networkName + '/')) {
-        relativeCpmPath = relativeCpmPath.substring(networkName.length + 1);
-      }
-      
-      // **DEBUG: Log path transformation for debugging**
-      console.log('🔧 TIME ANALYSIS PATH TRANSFORMATION DEBUG:');
-      console.log(`  networkName: '${networkName}'`);
-      console.log(`  original cpmPath: '${scenario.cpmInputsFile.path}'`);
-      console.log(`  transformed cpmPath: '${relativeCpmPath}'`);
-      
-      // Validate all paths are non-empty
-      if (!fullNetworkPath.trim()) {
-        throw new Error('Network path is empty');
-      }
-      if (!edgesFilePath.trim()) {
-        throw new Error('Edges file path is empty');
-      }
-      if (!relativeCpmPath.trim()) {
-        throw new Error('CPM inputs path is empty');
-      }
-      
-      // **TIME-SPECIFIC: Call CPM analysis service**
-      const results = await this.cpmAnalysisService.analyzeCpm({
-        networkPath: fullNetworkPath,
-        edgesFilePath: edgesFilePath,
-        cpmPath: relativeCpmPath
-      }).toPromise();
+      const edgesFilePath = `${networkName}.EDGES`;
 
-      // **ENHANCED: Add comprehensive result logging for debugging**
-      console.log('🔍 TIME ANALYSIS API RESPONSE DEBUG:');
-      console.log('  Full response:', JSON.stringify(results, null, 2));
-      console.log('  Response type:', typeof results);
-      console.log('  Response keys:', results ? Object.keys(results) : 'null');
-      
-      if (results?.cmp_result) {
-        console.log('  cmp_result keys:', Object.keys(results.cmp_result));
-        const cmpResult = results.cmp_result as any;
-        if (cmpResult.time_result) {
-          console.log('  time_result keys:', Object.keys(cmpResult.time_result));
-          console.log('  node_values count:', cmpResult.time_result.node_values ? Object.keys(cmpResult.time_result.node_values).length : 'none');
-          console.log('  critical_nodes count:', cmpResult.time_result.critical_nodes ? cmpResult.time_result.critical_nodes.length : 'none');
-        }
+      let cpmPath = scenario.path;
+      if (networkName && cpmPath.startsWith(networkName + '/')) {
+        cpmPath = cpmPath.substring(networkName.length + 1);
       }
 
-      // **TIME-SPECIFIC: Store results in scenario-aware map**
-      if (results?.cmp_result) {
-        this.scenarioResults.set(scenario.name, results.cmp_result);
+      const request = { networkPath: baseNetworkPath, edgesFilePath, cpmPath };
+
+      const response = await this.cpmAnalysisService.analyzeCpm(request, bypassCache).toPromise();
+
+      if (!response?.success) {
+        throw new Error(response?.message || 'CPM analysis failed');
       }
 
-      // Process and format results for display (TIME-FOCUSED)
-      const processedResults = this.processTimeResults(results);
-      const metrics = this.calculateTimeMetrics(results, processedResults);
-      
-      // **ENHANCED: Update signals and trigger change detection**
-      this.timeResults.set(processedResults);
-      this.timeMetrics.set(metrics);
-      
-      // **FIX: Force change detection to ensure UI updates**
-      this.cdr.markForCheck();
+      const raw = response.cpm_result;
+      if (!raw?.time_result) {
+        throw new Error('No time results in CPM response');
+      }
+
+      const nodeResults = this.processTimeResults(raw);
+      const metrics = this.calculateMetrics(raw, nodeResults);
+
+      this.updateTabState(scenarioName, {
+        status: 'computed',
+        nodeResults,
+        metrics,
+        rawScenario: raw,
+        error: null
+      });
+
+      this.scenarioResults.set(scenarioName, raw);
       this.cdr.detectChanges();
-      
-      // **FIX: Additional UI update trigger after a short delay**
-      setTimeout(() => {
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-      }, 100);
-      
-      console.log(`✅ Time analysis completed for scenario "${scenario.name}": ${processedResults.length} nodes analyzed`);
-      console.log(`⏱️ Computation time: ${metrics.computationTime.toFixed(3)}s`);
-      console.log(`🎯 Critical path duration: ${metrics.criticalPathDuration.toFixed(2)} time units`);
-      console.log(`📊 Critical path nodes: ${metrics.criticalNodesCount}`);
-      console.log(`🔄 UI update triggered for ${processedResults.length} time results`);
-      
     } catch (error) {
-      console.error('❌ Time analysis execution failed:', error);
-      this.errorMessage.set(error instanceof Error ? error.message : 'Time analysis execution failed');
-    } finally {
-      this.isComputing.set(false);
+      const msg = error instanceof Error ? error.message : 'Time analysis failed';
+      this.updateTabState(scenarioName, { status: 'error', error: msg });
+      this.cdr.detectChanges();
     }
   }
 
-  /**
-   * Process raw CPM results into structured time data (TIME-FOCUSED)
-   * **ENHANCED: Handle multiple API response formats and add comprehensive error handling**
-   */
-  private processTimeResults(results: any): TimeResult[] {
-    console.log('🔧 Processing time results...');
-    
-    // **FIX: Handle multiple possible response structures**
-    let timeResult = null;
-    
-    // Try different possible response structures
-    if (results?.cmp_result?.time_result) {
-      timeResult = results.cmp_result.time_result;
-      console.log('✅ Found cmp_result.time_result in response');
-    } else if (results?.cpm_result?.time_result) {
-      timeResult = results.cpm_result.time_result;
-      console.log('✅ Found cpm_result.time_result in response (alternative structure)');
-    } else if (results?.result?.time_result) {
-      timeResult = results.result.time_result;
-      console.log('✅ Found result.time_result in response (alternative structure)');
-    } else if (results?.time_result) {
-      timeResult = results.time_result;
-      console.log('✅ Found direct time_result in response');
-    } else if (results && typeof results === 'object' && (results.node_values || results.critical_nodes)) {
-      timeResult = results;
-      console.log('✅ Using direct response as time result');
-    } else {
-      console.warn('⚠️ No time results found in CPM response structure:', Object.keys(results || {}));
-      return [];
-    }
+  // ─── Results processing ─────────────────────────────────────────────────
 
-    const networkInfo = this.networkInfo();
-    if (!networkInfo) {
-      console.error('❌ No network info available for processing time results');
-      return [];
-    }
-    
-    const criticalNodesSet = new Set(timeResult.critical_nodes || []);
-    const nodeValues = timeResult.node_values || {};
+  private processTimeResults(raw: CpmScenario): TimeNodeResult[] {
+    const timeResult = raw.time_result;
+    if (!timeResult?.node_values) return [];
+
+    const ni = this.networkInfo();
+    const criticalSet = new Set(timeResult.critical_nodes || []);
     const criticalValue = timeResult.critical_value || 0;
-    
-    console.log(`📊 Processing time data for ${Object.keys(nodeValues).length} nodes`);
-    console.log(`🎯 Critical nodes: ${criticalNodesSet.size}, Critical value: ${criticalValue}`);
-    
-    const processedResults: TimeResult[] = [];
-    
-    // **ENHANCED: Process all nodes with time values with better error handling**
-    Object.entries(nodeValues).forEach(([nodeIdStr, timeValue]) => {
-      try {
-        const nodeId = parseInt(nodeIdStr);
-        if (isNaN(nodeId)) {
-          console.warn(`⚠️ Invalid node ID in time values: ${nodeIdStr}`);
-          return;
-        }
-        
-        const isOnCriticalPath = criticalNodesSet.has(nodeId);
-        const timeValueNum = typeof timeValue === 'number' ? timeValue : parseFloat(timeValue as string) || 0;
-        
-        // Calculate slack time (0 for critical path nodes, positive for non-critical)
-        const slack = isOnCriticalPath ? 0 : Math.max(0, criticalValue - timeValueNum);
-        
-        processedResults.push({
-          nodeId,
-          timeValue: timeValueNum,
-          isOnCriticalPath,
-          earliestStart: timeValueNum, // Simplified - in full CPM this would be calculated
-          latestStart: timeValueNum + slack,
-          slack,
-          nodeType: this.getNodeType(nodeId, networkInfo)
-        });
-      } catch (error) {
-        console.error(`❌ Error processing time data for node ${nodeIdStr}:`, error);
+
+    // Input data for durations
+    const nodeDurations = raw.input_data?.node_durations || {};
+
+    // Backward pass data (from enhanced backend)
+    const earlyStartData = timeResult.early_start || {};
+    const lateFinishData = timeResult.late_finish || {};
+    const lateStartData = timeResult.late_start || {};
+    const totalSlackData = timeResult.total_slack || {};
+
+    const hasBackwardPass = Object.keys(lateFinishData).length > 0;
+
+    return Object.entries(timeResult.node_values).map(([nodeIdStr, efValue]) => {
+      const nodeId = parseInt(nodeIdStr);
+      const ef = this.cleanValue(typeof efValue === 'number' ? efValue : parseFloat(efValue as string) || 0);
+      const duration = this.cleanValue(nodeDurations[nodeIdStr] ?? 0);
+      const isOnCriticalPath = criticalSet.has(nodeId);
+
+      let es: number, ls: number, lf: number, slack: number;
+
+      if (hasBackwardPass) {
+        es = this.cleanValue(earlyStartData[nodeIdStr] ?? (ef - duration));
+        lf = this.cleanValue(lateFinishData[nodeIdStr] ?? ef);
+        ls = this.cleanValue(lateStartData[nodeIdStr] ?? (lf - duration));
+        slack = this.cleanValue(totalSlackData[nodeIdStr] ?? (ls - es));
+      } else {
+        // Graceful degradation: compute from forward pass only
+        es = this.cleanValue(ef - duration);
+        slack = isOnCriticalPath ? 0 : Math.max(0, criticalValue - ef);
+        ls = es + slack;
+        lf = ef + slack;
       }
-    });
-    
-    console.log(`✅ Processed ${processedResults.length} time results`);
-    return processedResults.sort((a, b) => a.nodeId - b.nodeId);
+
+      return {
+        nodeId,
+        duration,
+        earlyStart: es,
+        earlyFinish: ef,
+        lateStart: ls,
+        lateFinish: lf,
+        slack: Math.max(0, slack),
+        isOnCriticalPath,
+        nodeType: ni ? this.getNodeType(nodeId, ni) : 'Regular'
+      };
+    }).sort((a, b) => a.nodeId - b.nodeId);
   }
 
-  /**
-   * Calculate comprehensive time performance metrics
-   */
-  private calculateTimeMetrics(results: any, processedResults: TimeResult[]): TimeMetrics {
-    const networkInfo = this.networkInfo();
-    
-    // **FIX: Handle multiple possible response structures for time result**
-    let timeResult = null;
-    let computationTime = 0;
-    
-    if (results?.cmp_result?.time_result) {
-      timeResult = results.cmp_result.time_result;
-      computationTime = results.cmp_result.computation_time || 0;
-    } else if (results?.cpm_result?.time_result) {
-      timeResult = results.cpm_result.time_result;
-      computationTime = results.cpm_result.computation_time || 0;
-    } else if (results?.time_result) {
-      timeResult = results.time_result;
-      computationTime = results.computation_time || 0;
-    }
-    
-    const criticalPathDuration = timeResult?.critical_value || 0;
-    const criticalNodesCount = timeResult?.critical_nodes?.length || 0;
-    const totalTimeValues = processedResults.reduce((sum, result) => sum + result.timeValue, 0);
-    const averageNodeTime = processedResults.length > 0
-      ? totalTimeValues / processedResults.length
-      : 0;
-    
-    const slackTimes = processedResults.map(r => r.slack).filter(s => s > 0);
-    const maxSlackTime = slackTimes.length > 0 ? Math.max(...slackTimes) : 0;
-    const minSlackTime = slackTimes.length > 0 ? Math.min(...slackTimes) : 0;
-    
-    const sourceNodes = networkInfo?.sourceNodes.length || 0;
-    const targetNodes = networkInfo?.sinkNodes.length || 0;
-    
-    console.log(`⏰ Time metrics calculated: Critical path duration: ${criticalPathDuration}, Critical nodes: ${criticalNodesCount}`);
-    
+  private calculateMetrics(raw: CpmScenario, results: TimeNodeResult[]): TimeMetrics {
+    const timeResult = raw.time_result;
+    const criticalValue = timeResult?.critical_value || 0;
+    const criticalNodes = timeResult?.critical_nodes || [];
+    const ni = this.networkInfo();
+
+    const slackValues = results.map(r => r.slack);
+    const nearCriticalThreshold = criticalValue * 0.05;
+
     return {
-      totalNodes: processedResults.length,
-      criticalPathDuration,
-      criticalPathLength: criticalNodesCount,
-      averageNodeTime,
-      maxSlackTime,
-      minSlackTime,
-      computationTime,
-      sourceNodes,
-      targetNodes,
-      criticalNodesCount
+      computationTime: raw.computation_time || 0,
+      criticalPathDuration: criticalValue,
+      criticalPathLength: criticalNodes.length,
+      averageSlack: slackValues.length > 0 ? slackValues.reduce((a, b) => a + b, 0) / slackValues.length : 0,
+      maxSlack: slackValues.length > 0 ? Math.max(...slackValues) : 0,
+      criticalCount: criticalNodes.length,
+      nearCriticalCount: results.filter(r => !r.isOnCriticalPath && r.slack > 0 && r.slack < nearCriticalThreshold).length,
+      sourceCount: ni?.sourceNodes.length || 0,
+      sinkCount: ni?.sinkNodes.length || 0,
+      totalNodes: results.length
     };
   }
 
-  /**
-   * Format time value for display
-   */
-  formatTime(timeValue: number): string {
-    if (timeValue >= 1000) {
-      return (timeValue / 1000).toFixed(1) + 'K';
-    } else {
-      return timeValue.toFixed(1);
+  // ─── Tab state management ─────────────────────────────────────────────────
+
+  private updateTabState(name: string, updates: Partial<ScenarioTabState>): void {
+    const tabs = new Map(this.scenarioTabs());
+    const tab = tabs.get(name);
+    if (tab) {
+      tabs.set(name, { ...tab, ...updates });
+      this.scenarioTabs.set(tabs);
     }
   }
 
-  /**
-   * Format slack time for display
-   */
-  formatSlack(slack: number): string {
-    return slack.toFixed(1);
+  onTabChange(index: number): void {
+    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    if (currentName) {
+      this.updateTabState(currentName, {
+        searchTerm: this.activeSearchTerm(),
+        selectedNodeTypes: this.activeSelectedNodeTypes(),
+        pageIndex: this.activePageIndex(),
+        pageSize: this.activePageSize(),
+        sortColumn: this.activeSortColumn(),
+        sortDirection: this.activeSortDirection()
+      });
+    }
+
+    this.activeTabIndex.set(index);
+
+    const newName = this.scenarioNames()[index];
+    const newTab = this.scenarioTabs().get(newName);
+    if (newTab) {
+      this.activeSearchTerm.set(newTab.searchTerm);
+      this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
+      this.activePageIndex.set(newTab.pageIndex);
+      this.activePageSize.set(newTab.pageSize);
+      this.activeSortColumn.set(newTab.sortColumn);
+      this.activeSortDirection.set(newTab.sortDirection);
+    }
   }
 
-  /**
-   * Get CSS class for critical path visualization
-   */
-  getCriticalPathColorClass(isOnCriticalPath: boolean): string {
-    return isOnCriticalPath ? 'critical-path' : 'non-critical-path';
+  // ─── UI event handlers ──────────────────────────────────────────────────
+
+  onSearchChange(event: Event): void {
+    this.activeSearchTerm.set((event.target as HTMLInputElement).value);
+    this.activePageIndex.set(0);
   }
 
-  /**
-   * Get tooltip text for critical path status
-   */
-  getCriticalPathTooltip(isOnCriticalPath: boolean): string {
-    return isOnCriticalPath 
-      ? 'Critical Path - any delay affects project duration'
-      : 'Non-Critical Path - has slack time available';
+  toggleNodeTypeFilter(type: string): void {
+    const current = this.activeSelectedNodeTypes();
+    if (current.includes(type)) {
+      this.activeSelectedNodeTypes.set(current.filter(t => t !== type));
+    } else {
+      this.activeSelectedNodeTypes.set([...current, type]);
+    }
+    this.activePageIndex.set(0);
   }
 
-  /**
-   * Clear current results and reset component state
-   */
-  clearResults(): void {
-    this.timeResults.set([]);
-    this.timeMetrics.set(null);
-    this.errorMessage.set(null);
-    this.clearScenarioData();
-    console.log('🧹 Cleared time analysis results');
-  }
-
-  // **NEW: Check if scenario has results**
-  hasScenarioResults(scenarioName: string): boolean {
-    return this.scenarioResults.has(scenarioName);
-  }
-
-  /**
-   * Get node type based on network structure from AnalysisStateService
-   */
-  getNodeType(nodeId: number, networkInfo: any): string {
-    const types: string[] = [];
-    
-    if (networkInfo.sourceNodes.includes(nodeId)) types.push('Source');
-    if (networkInfo.sinkNodes.includes(nodeId)) types.push('Sink');
-    if (networkInfo.forkNodes.includes(nodeId)) types.push('Fork');
-    if (networkInfo.joinNodes.includes(nodeId)) types.push('Join');
-    
-    return types.length > 0 ? types.join(' + ') : 'Regular';
-  }
-
-  /**
-   * Event handlers for pagination and filtering
-   */
   onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
+    this.activePageIndex.set(event.pageIndex);
+    this.activePageSize.set(event.pageSize);
   }
 
-  onSearch(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchTerm.set(target.value);
-    this.pageIndex.set(0); // Reset to first page
+  onSort(column: string): void {
+    const current = this.activeSortColumn();
+    const dir = this.activeSortDirection();
+    if (current === column) {
+      this.activeSortDirection.set(dir === 'asc' ? 'desc' : dir === 'desc' ? '' : 'asc');
+    } else {
+      this.activeSortColumn.set(column);
+      this.activeSortDirection.set('asc');
+    }
   }
 
-  onNodeTypeFilter(types: string[]): void {
-    this.selectedNodeTypes.set(types);
-    this.pageIndex.set(0); // Reset to first page
+  getSortIcon(column: string): string {
+    if (this.activeSortColumn() !== column) return 'unfold_more';
+    return this.activeSortDirection() === 'asc' ? 'arrow_upward' : this.activeSortDirection() === 'desc' ? 'arrow_downward' : 'unfold_more';
   }
 
-  onCriticalPathFilter(showOnly: boolean): void {
-    this.showOnlyCriticalPath.set(showOnly);
-    this.pageIndex.set(0); // Reset to first page
+  toggleAdvancedColumns(): void {
+    this.showAdvancedColumns.set(!this.showAdvancedColumns());
+  }
+
+  toggleComparisonMode(): void {
+    this.comparisonMode.set(!this.comparisonMode());
+    if (this.comparisonMode()) {
+      const names = this.scenarioNames();
+      if (names.length >= 2) {
+        this.baseScenarioName.set(names[0]);
+        this.compareScenarioName.set(names[1]);
+      }
+    }
+  }
+
+  copyToClipboard(value: any, key: string): void {
+    navigator.clipboard.writeText(String(value));
+    this.copiedCellKey.set(key);
+    setTimeout(() => this.copiedCellKey.set(''), 1500);
+  }
+
+  // ─── Export ───────────────────────────────────────────────────────────────
+
+  exportCSV(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+
+    let csv = 'Node ID,Duration,Early Start,Early Finish,Late Start,Late Finish,Slack,Critical Path,Node Type\n';
+    csv += tab.nodeResults.map(r =>
+      `${r.nodeId},${r.duration},${r.earlyStart.toFixed(1)},${r.earlyFinish.toFixed(1)},${r.lateStart.toFixed(1)},${r.lateFinish.toFixed(1)},${r.slack.toFixed(1)},${r.isOnCriticalPath},${r.nodeType}`
+    ).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `time-analysis-${tab.scenario.name}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportJSON(): void {
+    const tab = this.activeTab();
+    if (!tab || tab.status !== 'computed') return;
+
+    const data = { scenario: tab.scenario.name, metrics: tab.metrics, nodeResults: tab.nodeResults };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `time-analysis-${tab.scenario.name}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── Formatting helpers ─────────────────────────────────────────────────
+
+  cleanValue(val: number): number {
+    return parseFloat(val.toPrecision(10));
+  }
+
+  formatTime(val: number): string {
+    return this.cleanValue(val).toFixed(1);
+  }
+
+  getSlackClass(slack: number): string {
+    const tab = this.activeTab();
+    const criticalValue = tab?.metrics?.criticalPathDuration || 1;
+    if (slack === 0) return 'slack-critical';
+    if (slack < criticalValue * 0.05) return 'slack-near-critical';
+    return 'slack-safe';
+  }
+
+  getGanttLeftPercent(result: TimeNodeResult): number {
+    const criticalValue = this.activeTab()?.metrics?.criticalPathDuration || 1;
+    return (result.earlyStart / criticalValue) * 100;
+  }
+
+  getGanttWidthPercent(result: TimeNodeResult): number {
+    const criticalValue = this.activeTab()?.metrics?.criticalPathDuration || 1;
+    const duration = result.earlyFinish - result.earlyStart;
+    return Math.max(1, (duration / criticalValue) * 100);
+  }
+
+  getNodeType(nodeId: number, ni: any): string {
+    if (ni.sourceNodes.includes(nodeId)) return 'Source';
+    if (ni.sinkNodes.includes(nodeId)) return 'Sink';
+    if (ni.forkNodes.includes(nodeId)) return 'Fork';
+    if (ni.joinNodes.includes(nodeId)) return 'Join';
+    return 'Regular';
+  }
+
+  private getSortValue(r: TimeNodeResult, col: string): number {
+    switch (col) {
+      case 'nodeId': return r.nodeId;
+      case 'duration': return r.duration;
+      case 'earlyStart': return r.earlyStart;
+      case 'earlyFinish': return r.earlyFinish;
+      case 'lateStart': return r.lateStart;
+      case 'lateFinish': return r.lateFinish;
+      case 'slack': return r.slack;
+      default: return r.nodeId;
+    }
   }
 }

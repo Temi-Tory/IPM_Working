@@ -84,99 +84,136 @@
   }
 
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- Comparison Mode Panel -->
+  <!-- Comparison Mode (replaces tabs) -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   @if (comparisonMode()) {
-    <mat-card class="comparison-panel">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>compare_arrows</mat-icon>
-          Scenario Comparison
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="comparison-controls">
-          <div class="comparison-select-wrapper">
-            <label class="comparison-select-label">Base Scenario</label>
-            <select class="comparison-select"
-                    [value]="baseScenarioName()"
-                    (change)="onBaseScenarioChange($any($event.target).value)">
-              @for (name of computedScenarioNames(); track name) {
-                <option [value]="name">{{ getTabDisplayName(name) }}</option>
-              }
-            </select>
-          </div>
 
-          <mat-icon class="comparison-arrow">arrow_forward</mat-icon>
-
-          <div class="comparison-select-wrapper">
-            <label class="comparison-select-label">Compare Against</label>
-            <select class="comparison-select"
-                    [value]="compareScenarioName()"
-                    (change)="onCompareScenarioChange($any($event.target).value)">
-              @for (name of computedScenarioNames(); track name) {
-                <option [value]="name">{{ getTabDisplayName(name) }}</option>
-              }
-            </select>
-          </div>
+  <!-- Scenario Selectors -->
+  <mat-card class="comparison-card">
+    <mat-card-content>
+      <div class="comparison-selectors">
+        <div class="comparison-select-wrapper">
+          <label class="comparison-select-label">Base Scenario</label>
+          <select class="comparison-select"
+                  [value]="baseScenarioName()"
+                  (change)="onBaseScenarioChange($any($event.target).value)">
+            @for (name of computedScenarioNames(); track name) {
+              <option [value]="name">{{ getTabDisplayName(name) }}</option>
+            }
+          </select>
         </div>
 
-        <!-- Comparison Results Table -->
-        @if (comparisonResults().length > 0) {
-          <div class="table-container">
-            <table mat-table [dataSource]="comparisonResults()" class="comparison-table">
-              <ng-container matColumnDef="nodeId">
-                <th mat-header-cell *matHeaderCellDef>Node ID</th>
-                <td mat-cell *matCellDef="let row">{{ row.nodeId }}</td>
-              </ng-container>
-              <ng-container matColumnDef="baseBelief">
-                <th mat-header-cell *matHeaderCellDef>{{ getTabDisplayName(baseScenarioName()) }}</th>
-                <td mat-cell *matCellDef="let row">
-                  {{ row.baseBelief !== null ? formatBelief(row.baseBelief) : '—' }}
-                </td>
-              </ng-container>
-              <ng-container matColumnDef="compareBelief">
-                <th mat-header-cell *matHeaderCellDef>{{ getTabDisplayName(compareScenarioName()) }}</th>
-                <td mat-cell *matCellDef="let row">
-                  {{ row.compareBelief !== null ? formatBelief(row.compareBelief) : '—' }}
-                </td>
-              </ng-container>
-              <ng-container matColumnDef="delta">
-                <th mat-header-cell *matHeaderCellDef>&Delta; (Absolute)</th>
-                <td mat-cell *matCellDef="let row"
-                    [ngClass]="{
-                      'delta-positive': row.delta !== null && row.delta > 0,
-                      'delta-negative': row.delta !== null && row.delta < 0
-                    }">
-                  @if (row.delta !== null) {
-                    {{ row.delta > 0 ? '+' : '' }}{{ formatNumber(row.delta) }}
-                  } @else {
-                    —
-                  }
-                </td>
-              </ng-container>
-              <ng-container matColumnDef="nodeType">
-                <th mat-header-cell *matHeaderCellDef>Node Type</th>
-                <td mat-cell *matCellDef="let row">
-                  <mat-chip [ngClass]="'node-type-' + row.nodeType.toLowerCase()" selected>
-                    <mat-icon>{{ getNodeTypeIcon(row.nodeType) }}</mat-icon>
-                    {{ row.nodeType }}
-                  </mat-chip>
-                </td>
-              </ng-container>
-              <tr mat-header-row *matHeaderRowDef="comparisonColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: comparisonColumns;"></tr>
-            </table>
-          </div>
-        }
-      </mat-card-content>
-    </mat-card>
-  }
+        <mat-icon class="comparison-arrow">compare_arrows</mat-icon>
 
+        <div class="comparison-select-wrapper">
+          <label class="comparison-select-label">Compare Against</label>
+          <select class="comparison-select"
+                  [value]="compareScenarioName()"
+                  (change)="onCompareScenarioChange($any($event.target).value)">
+            @for (name of computedScenarioNames(); track name) {
+              <option [value]="name">{{ getTabDisplayName(name) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Summary Comparison Cards -->
+  @if (baseTabState()?.metrics; as baseM) {
+  @if (compareTabState()?.metrics; as compM) {
+  <div class="comparison-summary">
+    <div class="summary-column">
+      <h4>{{ getTabDisplayName(baseScenarioName()) }}</h4>
+      <div class="summary-metric"><span class="label">Avg Belief</span><span class="value">{{ formatNumber(baseM.averageBelief) }}</span></div>
+      <div class="summary-metric"><span class="label">Nodes</span><span class="value">{{ baseM.totalNodes }}</span></div>
+      <div class="summary-metric"><span class="label">Compute Time</span><span class="value">{{ baseM.computationTime.toFixed(3) }}s</span></div>
+      <div class="summary-metric"><span class="label">Complexity</span><span class="value">{{ baseM.algorithmComplexity }}</span></div>
+    </div>
+    <div class="summary-column delta">
+      <h4>Delta</h4>
+      <div class="summary-metric">
+        <span class="label">Avg Belief</span>
+        <span class="value" [class.positive-delta]="compM.averageBelief - baseM.averageBelief > 0"
+              [class.negative-delta]="compM.averageBelief - baseM.averageBelief < 0">
+          {{ (compM.averageBelief - baseM.averageBelief) > 0 ? '+' : '' }}{{ formatNumber(compM.averageBelief - baseM.averageBelief) }}
+        </span>
+      </div>
+      <div class="summary-metric">
+        <span class="label">Compute Time</span>
+        <span class="value" [class.positive-delta]="compM.computationTime - baseM.computationTime < 0"
+              [class.negative-delta]="compM.computationTime - baseM.computationTime > 0">
+          {{ (compM.computationTime - baseM.computationTime) > 0 ? '+' : '' }}{{ (compM.computationTime - baseM.computationTime).toFixed(3) }}s
+        </span>
+      </div>
+    </div>
+    <div class="summary-column">
+      <h4>{{ getTabDisplayName(compareScenarioName()) }}</h4>
+      <div class="summary-metric"><span class="label">Avg Belief</span><span class="value">{{ formatNumber(compM.averageBelief) }}</span></div>
+      <div class="summary-metric"><span class="label">Nodes</span><span class="value">{{ compM.totalNodes }}</span></div>
+      <div class="summary-metric"><span class="label">Compute Time</span><span class="value">{{ compM.computationTime.toFixed(3) }}s</span></div>
+      <div class="summary-metric"><span class="label">Complexity</span><span class="value">{{ compM.algorithmComplexity }}</span></div>
+    </div>
+  </div>
+  }}
+
+  <!-- Comparison Results Table -->
+  <mat-card class="results-card">
+    <mat-card-content>
+      @if (comparisonResults().length > 0) {
+        <div class="table-container">
+          <table mat-table [dataSource]="comparisonResults()" class="comparison-table">
+            <ng-container matColumnDef="nodeId">
+              <th mat-header-cell *matHeaderCellDef>Node ID</th>
+              <td mat-cell *matCellDef="let row">{{ row.nodeId }}</td>
+            </ng-container>
+            <ng-container matColumnDef="baseBelief">
+              <th mat-header-cell *matHeaderCellDef matTooltip="Reachability belief in base scenario">{{ getTabDisplayName(baseScenarioName()) }}</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.baseBelief !== null ? formatBelief(row.baseBelief) : '—' }}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="compareBelief">
+              <th mat-header-cell *matHeaderCellDef matTooltip="Reachability belief in comparison scenario">{{ getTabDisplayName(compareScenarioName()) }}</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.compareBelief !== null ? formatBelief(row.compareBelief) : '—' }}
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="delta">
+              <th mat-header-cell *matHeaderCellDef matTooltip="Compare - Base: positive means higher belief">&Delta; (Absolute)</th>
+              <td mat-cell *matCellDef="let row"
+                  [ngClass]="{
+                    'delta-positive': row.delta !== null && row.delta > 0,
+                    'delta-negative': row.delta !== null && row.delta < 0
+                  }">
+                @if (row.delta !== null) {
+                  {{ row.delta > 0 ? '+' : '' }}{{ formatNumber(row.delta) }}
+                } @else {
+                  —
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="nodeType">
+              <th mat-header-cell *matHeaderCellDef>Node Type</th>
+              <td mat-cell *matCellDef="let row">
+                <mat-chip [ngClass]="'node-type-' + row.nodeType.toLowerCase()" selected>
+                  <mat-icon>{{ getNodeTypeIcon(row.nodeType) }}</mat-icon>
+                  {{ row.nodeType }}
+                </mat-chip>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="comparisonColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: comparisonColumns;"></tr>
+          </table>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  } @else if (scenarioNames().length > 0) {
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- Tabbed Scenario Results -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  @if (scenarioNames().length > 0) {
     <mat-tab-group
       [selectedIndex]="activeTabIndex()"
       (selectedIndexChange)="onTabChange($event)"
@@ -638,12 +675,10 @@
         </mat-tab>
       }
     </mat-tab-group>
-  }
-
+  } @else {
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- Empty State (no scenarios detected) -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  @if (scenarioNames().length === 0) {
     <mat-card class="empty-state-card">
       <mat-card-content>
         <div class="empty-state">

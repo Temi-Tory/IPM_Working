@@ -18,7 +18,10 @@ export class CpmAnalysisService {
 
   private http: HttpClient = inject(HttpClient);
 
-  // **NEW: Multi-scenario state management**
+  // Response cache: avoids duplicate /cpm-analysis calls when time and cost views both need the same data
+  private cpmCache = new Map<string, CpmAnalysisResponse>();
+
+  // Multi-scenario state management
   private multiScenarioResultsSignal = signal<MultiScenarioCpmResults>({
     scenarios: new Map(),
     currentScenario: '',
@@ -34,37 +37,33 @@ export class CpmAnalysisService {
     return results.scenarios.get(results.currentScenario) || null;
   });
 
-  analyzeCpm(request: CpmAnalysisRequest): Observable<CpmAnalysisResponse> {
-    console.log('📊 CPM SERVICE DEBUG:');
-    console.log('📋 Request object keys:', Object.keys(request));
-    console.log('📋 Complete request object:', request);
-    console.log('🔍 DETAILED REQUEST ANALYSIS:');
-    console.log(`  networkPath: '${request.networkPath}' (type: ${typeof request.networkPath})`);
-    console.log(`  edgesFilePath: '${request.edgesFilePath}' (type: ${typeof request.edgesFilePath})`);
-    console.log(`  cpmPath: '${request.cpmPath}' (type: ${typeof request.cpmPath})`);
-    console.log('🚀 Sending HTTP POST to:', `${this.API_BASE}/cpm-analysis`);
-    
+  analyzeCpm(request: CpmAnalysisRequest, bypassCache = false): Observable<CpmAnalysisResponse> {
+    const cacheKey = `${request.networkPath}|${request.cpmPath}`;
+
+    if (!bypassCache) {
+      const cached = this.cpmCache.get(cacheKey);
+      if (cached) {
+        return of(cached);
+      }
+    } else {
+      this.cpmCache.delete(cacheKey);
+    }
+
     return this.http.post<CpmAnalysisResponse>(
       `${this.API_BASE}/cpm-analysis`,
       request
     ).pipe(
       tap(response => {
-        console.log('📊 CPM analysis response:', response.success ? 'SUCCESS' : 'FAILED');
-        if (!response.success) {
-          console.error('❌ CPM analysis failed:', response);
-        }
-        if (response.success && response.cmp_result) {
-          console.log('⏱️ CPM stats:', {
-            timeCriticalValue: response.cmp_result.time_result?.critical_value,
-            costCriticalValue: response.cmp_result.cost_result?.critical_value,
-            timeCriticalNodes: response.cmp_result.time_result?.critical_nodes?.length || 0,
-            costCriticalNodes: response.cmp_result.cost_result?.critical_nodes?.length || 0,
-            computationTime: response.cmp_result.computation_time,
-            inputFiles: response.cmp_result.input_files
-          });
+        // Only cache if response has actual data
+        if (response.success && response.cpm_result) {
+          this.cpmCache.set(cacheKey, response);
         }
       })
     );
+  }
+
+  clearCache(): void {
+    this.cpmCache.clear();
   }
 
   // **NEW: Multi-scenario CPM analysis**
@@ -81,7 +80,7 @@ export class CpmAnalysisService {
       return this.analyzeCpm(request).pipe(
         map(response => ({
           scenario: scenario.name,
-          result: response.success ? response.cmp_result : null,
+          result: response.success ? response.cpm_result : null,
           scenarioInfo: scenario
         })),
         catchError(error => {
@@ -143,6 +142,6 @@ export class CpmAnalysisService {
       currentScenario: '',
       availableScenarios: []
     });
-    console.log('🧹 Multi-scenario CPM state cleared');
+    this.cpmCache.clear();
   }
 }
