@@ -102,6 +102,13 @@ export class SystemProfileService {
         if (!existing.analysisType.includes(analysisType as any)) {
           // analysisType becomes the first one set — keep it as primary
         }
+        // Prefer the most specific reachability dataType (interval/pbox > float)
+        const validDataTypes = ['float', 'interval', 'pbox'];
+        if (validDataTypes.includes(dataType) && dataType !== 'float') {
+          existing.dataType = dataType as any;
+        } else if (!validDataTypes.includes(existing.dataType) && validDataTypes.includes(dataType)) {
+          existing.dataType = dataType as any;
+        }
         existing.computationTime += computationTime;
         Object.entries(metrics).forEach(([k, v]) => {
           if (v != null) existing.keyMetrics[k] = v;
@@ -156,7 +163,7 @@ export class SystemProfileService {
         mergeInto(scenarioName, 'capacity', 'float',
           Math.round(scenario.computation_time * 1000),
           {
-            networkUtilization: utilization != null ? utilization * 100 : null,
+            networkUtilization: utilization,
             bottleneckCount,
           },
           { capacityAnalysis: scenario }
@@ -273,16 +280,16 @@ export class SystemProfileService {
     let alertId = 0;
 
     for (const row of rows) {
-      // High utilisation (>90%)
+      // High throughput ratio (>0.9 means near capacity saturation)
       const util = row.metrics['networkUtilization'];
-      if (typeof util === 'number' && util > 90) {
+      if (typeof util === 'number' && util > 0.9) {
         alerts.push({
           id: `alert-${alertId++}`,
-          severity: util > 95 ? 'critical' : 'warning',
-          metric: 'Network Utilisation',
+          severity: util > 0.95 ? 'critical' : 'warning',
+          metric: 'Throughput Ratio',
           scenario: row.scenario,
-          value: `${util.toFixed(1)}%`,
-          message: `Network utilisation at ${util.toFixed(1)}% — near saturation`,
+          value: util.toFixed(2),
+          message: `Throughput ratio ${util.toFixed(2)} — high flow amplification`,
           drilldownRoute: '/capacity-analysis',
           drilldownParams: { scenario: row.scenario, highlight: 'utilization' }
         });

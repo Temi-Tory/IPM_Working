@@ -305,17 +305,17 @@ export class CrossScenarioInsightsComponent {
 
     if (utilValues.length >= 2) {
       const sorted = [...utilValues].sort((a, b) => a.value - b.value);
-      const progression = sorted.map(d => `${(d.value * 100).toFixed(1)}% (${d.scenario})`).join(' < ');
+      const progression = sorted.map(d => `${d.value.toFixed(2)} (${d.scenario})`).join(' < ');
       insights.push({
         icon: 'speed',
-        text: `Utilisation: ${progression}`,
-        severity: sorted[sorted.length - 1].value > 0.9 ? 'warning' : 'info'
+        text: `Throughput ratio: ${progression}`,
+        severity: 'info'
       });
     } else if (utilValues.length === 1) {
       insights.push({
         icon: 'speed',
-        text: `${utilValues[0].scenario}: ${(utilValues[0].value * 100).toFixed(1)}% network utilisation`,
-        severity: utilValues[0].value > 0.9 ? 'warning' : utilValues[0].value > 0.7 ? 'info' : 'good'
+        text: `${utilValues[0].scenario}: throughput ratio ${utilValues[0].value.toFixed(2)}`,
+        severity: 'info'
       });
     }
 

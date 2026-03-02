@@ -44,7 +44,9 @@
       "Bash(pdftotext:*)",
       "Read(//c/**)",
       "Bash(powershell:*)",
-      "Bash(pdflatex:*)"
+      "Bash(pdflatex:*)",
+      "WebFetch(domain:www.bnlearn.com)",
+      "Bash(node generate_scenarios.js:*)"
     ],
     "deny": [],
     "ask": []

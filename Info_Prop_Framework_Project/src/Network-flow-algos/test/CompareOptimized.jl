@@ -57,7 +57,8 @@ dag_ntwrk_files\drone-network-time-optimal-k2 =# #works 0.019s
     # ============================================================================
     # Test Function (Parameterized for both versions)
 # ============================================================================
-network_name = "drone-network-cost-optimal"  
+network_name = "water"  
+data_type="Emergency Response"
 function run_test(network_name, module_name, run_bp_func, data_type="float")
     println("\n" * "="^80)
     println("Testing: $module_name")
@@ -215,7 +216,7 @@ result = run_test(
 #println("\n✅ Test complete! Run CleanTest.jl separately to compare with original.")
 
 # Store result
-global test_result = result
+global test_result = result.beliefs
 #result.beliefs[253]
 #= for (k, d) in root_diamonds
     if isempty(d.diamond.conditioning_nodes)

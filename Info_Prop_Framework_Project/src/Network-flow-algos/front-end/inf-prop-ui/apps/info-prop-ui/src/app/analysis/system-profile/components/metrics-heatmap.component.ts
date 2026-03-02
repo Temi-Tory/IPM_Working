@@ -33,8 +33,8 @@ import {
           </h4>
           <div class="heatmap-controls">
             <mat-button-toggle-group [value]="mode()" (change)="mode.set($event.value)">
-              <mat-button-toggle value="absolute">Absolute</mat-button-toggle>
-              <mat-button-toggle value="difference">Difference</mat-button-toggle>
+              <mat-button-toggle value="absolute" matTooltip="Show raw metric values for each scenario">Absolute</mat-button-toggle>
+              <mat-button-toggle value="difference" matTooltip="Show deltas relative to a baseline scenario">Difference</mat-button-toggle>
             </mat-button-toggle-group>
             @if (mode() === 'difference' && rows().length >= 2) {
               <mat-select class="baseline-select" [value]="baselineScenario()"

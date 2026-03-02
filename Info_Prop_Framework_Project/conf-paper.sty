@@ -1,0 +1,379 @@
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  esrel2025-paper.tex   :   19/12/2018 			                     %%
+%%  Text file to use with rps-esrel2023. written in Latex2e.             %%
+%%  The content, structure, format and layout of this style file is the  %%
+%%  property of Research Publishing Services                             %%
+%%  Copyright (c) 2011-2023 Research Publishing Services,                %%
+%%  All rights are reserved.                                             %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[twocolumn]{rps-esrel2026}
+%\documentclass[draft, twocolumn]{rps-esrl2026} 
+
+\def\papername{\jobname}
+
+\def\ds{\displaystyle}
+
+
+%\usepackage[authoryear]{biblatex-chicago}
+
+\usepackage{natbib}
+
+%\usepackage[authoryear]{natbib}
+
+\begin{document}
+
+\markboth{Temitope Ohiani, Caroline Pyke and Edoardo Patelli}{Information Propagation and Network Analysis in Directed Acyclic Networks: A web interface}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% Plase keep this command for single column for abstract section.
+\twocolumn[
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Information Propagation and Network Analysis in Directed Acyclic Networks: A web interface}
+
+\author{Temitope Ohiani }
+
+\address{Department of Civil and Environmental Engineering, University of Strathclyde, UK. \email{temitope.ohiani@strath.ac.uk}}
+
+
+\author{Caroline Pyke}
+
+\address{United Kingdom National Nuclear Laboratory, UK. \email{caroline.pyke@uknnl.com}}
+
+\author{Edoardo Patelli}
+\address{Department of Civil and Environmental Engineering, University of Strathclyde, UK. \email{edoardo.patelli@strath.ac.uk}}
+
+\begin{abstract} 
+The abstract should summarize the context, content and conclusions of the paper in between 150 and 225 words. It should not 
+contain any references or displayed equations. Typeset the abstract in 9pt Times New Roman with line spacing of 11pt. Suggest approximately 6--12 keywords for indexing purposes (separated by commas) as below. 
+\end{abstract}
+
+\keywords{Network Analysis, Information Propagation, Directed Acrylic Networks, System Reliability, Web Interface, Julia.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% Please keep this closing bracket to complete the single column format for abstract.
+]
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+From the design stage to operation and maintenance, decision makers need access to tools and techniques that simultaneously allow them to efficiently model a system's characteristics, as well as trace and quantify the flow of resources against expected metrics. Graph theory has long played a central role in this kind of analysis for civil infrastructures and interconnected systems. The mathematical foundations able to describe the performance of the system and networks and to assess the uncertainty are well established \cite{pearl1988probabilistic, koller2009probabilistic, ferson2015}.  
+
+Unfortunately, the people who need these tools most are not always the same ones who develop them. Domain experts often have detailed knowledge of their systems but lack the programming skills required to effectively use many existing software approaches. Sometimes described as the ``last mile problem'', studies consistently report this gap between algorithmic availability and practical adoption~\cite{hannay2009scientists, prabhu2011survey}.
+
+In recent years, several tools have been developed with the goal of making network analysis more accessible, though many of these solutions only address part of the problem. For example, network visualization tools such as Gephi~\cite{bastian2009gephi} and Cytoscape~\cite{shannon2003cytoscape} offer an interactive environment for graph construction and rendering but they do not support any analytical work. These tools usually have to be combined with domain-specific software which often comes with its own data format requirements and a learning curve that can be steep for users that are not familiar with the algorithms.
+
+In many network-based reliability problems, data on component failure rates or link transmission probabilities can be sparse, incomplete, or derived from expert judgement, and require the right tool to fully capture dependency information. Although packages and libraries supporting probabilistic reasoning have been developed for Matlab \cite{OpenCossan}, R~\cite{ferson2019pbar}, Julia~\cite{gray2022pba_julia}, and Python~\cite{gray2022pba}, users wishing to use these methods must be prepared to write code directly against these libraries.
+
+In many cases, no single tool covers both the structural and quantitative aspects of an assessment. Accessibility requirements further reduce the pool of available tools. As a result, complete system profiling often requires combining several of these tools, transforming data between them and managing multiple separate workflows.
+
+Deployment architecture is another important factor that impacts the likelihood of adoption and accessibility of new scientific software. The local-first movement~\cite{kleppmann2019local} encourages the development of software that prioritizes user data sovereignty while maintaining collaborative features. Although cloud-based solutions can be convenient, they raise data sovereignty and privacy concerns~\cite{hashizume2013analysis} that often prevent their use in industries with proprietary data (such as nuclear and defence).
+
+To date, no existing tool offers a fully visual interface that combines structural and quantitative network analysis with native uncertainty quantification while running entirely on the user's local machine. This paper addresses this gap by presenting a web-based graphical interface for information propagation analysis on directed acyclic networks. Built on the \texttt{InformationPropagationAnalysis.jl} Julia package~\cite{infoprop2026_julia}, the toolkit provides a fully no-code environment supporting multiple analysis modes: network structure exploration, network decomposition, and probability propagation with interval uncertainty. The system operates entirely on the user's local machine and the decoupled frontend-backend architecture allows domain experts to use the interface without programming, while developers can extend each component independently.
+
+
+\section{The Information Propagation Framework}
+Written in Julia, the \texttt{InformationPropagationAnalysis.jl} package~\cite{infoprop2026_julia} is a multi algorithm framework developed for network analysis in directed acyclic graph (DAG) networks. The framework is made up of five modules. 
+
+The \textbf{Input Processing Module} is the primary entry point into the whole framework. The input module is an I/O handler for parsing and transforming data from raw network files and network adjacency information. Additional network data such as probabilities, cost and time constraints are all handled in this module. For instance, the graph object itself is a structure that contains properties such as adjacency list, precomputed topological sort, ancestor and descendant maps. The result is an enriched graph object that any of the framework's analysis algorithms can query directly with a simple lookup call.
+
+The \textbf{Subgraph Decomposition Module} scans for and extracts fork-join subgraphs from the enriched graph object. In real infrastructure processes, diamond subgraphs are formed when two or more distinct paths diverge from shared upstream nodes $f_1, \ldots, f_k$ and later re-converge at a downstream join node $j$ that is a descendant of those same shared nodes.
+
+The detection algorithm performs an exhaustive search for all possible diamonds in the network. For optimal traversal, the topological sort from the global graph object drives the discovery order. This order naturally builds a cache of already-discovered diamonds that is drawn on when building and resolving overlapping and nested structures. The sorting ensures that all diamond patterns in the network are processed in a single pass, even when the same previously discovered diamond appears later in the context of a larger diamond.
+
+The advantages of precomputing these subgraphs and their equivalent dependency structures become even more apparent in other modules that employ statistical conditioning and causal reasoning, because the dependency information is already resolved before propagation begins rather than having to be rediscovered and compiled every time a node has diamonds in its ancestry, which in large and dense networks can be costly. Beyond conditional probabilities, the unique diamond objects themselves are stored as the same type of graph object and can therefore be used for isolated or focused evaluation without needing to run a solution on the full network. As with all other modules, the decomposition module is designed to be extendable, so that other subgraph types beyond diamonds can be defined if needed.
+
+The semantic meaning of the node and edge probabilities in the \textbf{Reachability Module} depends on the application context. In a communication network a user might be interested in propagating transmission probabilities, whereas in a reliability model, the same network structure could be used to model component failure rates.  To this end, the module implements an exact belief propagation algorithm that, given the DAG structure, computes at each node the probability that at least one active path reaches it from the source nodes. 
+computes at each node the probability that at least one active path reaches it from the source nodes. The belief update at each node $n$ is given by: 
+\begin{equation}\label{eq:belief}
+B(n) = \pi(n) \cdot P\!\left(\text{at least one working path to } n\right)
+\end{equation}
+where $\pi(n)$ is the node prior. For a node with parents $p_1, \ldots, p_k$, the ``at least one path'' probability uses inclusion-exclusion:
+\begin{equation}\label{eq:inclexcl}
+P\!\Bigl(\bigcup_{i=1}^{k} A_i\Bigr) = \sum_{j=1}^{k} (-1)^{j+1} \!\!\sum_{|I|=j} \prod_{i \in I} S_i
+\end{equation}
+where $S_i = B(p_i) \cdot \ell(p_i, n)$ is the signal through parent $p_i$ and edge probability $\ell(p_i, n)$. For diamond joins, the algorithm conditions on all $2^k$ states of the shared ancestors:
+\begin{equation}\label{eq:diamond_cond}
+B(j) = \sum_{\mathbf{s} \in \{0,1\}^k} P(\mathbf{s}) \cdot P(j \mid \mathbf{s})
+\end{equation}
+
+The message passing sequence follows the topological sort inherited from the input module, and the full algorithmic details are described in detail in ~\cite{infoprop2026} and ~\cite{infoprop2026_julia}. For networks with diamond subgraphs, the causal boundaries through which shared causes must be conditioned can be read directly from those precomputed structures from the decomposition algorithm. Since data quality in real applications is often uneven, by default the BP algorithm supports fixed point values, intervals, and probability boxes (p-boxes) probabilistic data. At present the module does not support mixed input types within a single run since the input format is expected to match the output format. For mixed probability node and edge information, users may need to standardise their data beforehand. For algorithmic confidence, the module also exposes a full path enumeration method and a Monte Carlo implementation that can be run as independent validation against the algorithm’s results.
+
+Whilst the reachability module answers probabilistic questions about the network, decision makers typically require additional metrics to build a complete system profile. The framework therefore includes two utility modules that extend the probability-based reasoning with capacity and scheduling analysis. In contrast to the belief propagation algorithm, whose cost depends on the number of conditioning nodes in diamond subgraphs (Eq.~\ref{eq:diamond_cond}), both utility modules operate in a single topological pass over the network, requiring $O(|V| + |E|)$ time. For most practical networks, this corresponds to near real-time computation.
+
+The \textbf{Capacity Analysis Module} computes the maximum flow capacity of the network given node capacities, edge capacities, and source input rates. For each non-source node $n$, the sustainable flow is
+
+\begin{equation}\label{eq:maxflow}
+F(n) = \min\!\left(\sum_{p \in \mathrm{pa}(n)}
+\min\bigl(F(p),\, c_{p \to n}\bigr),\; c_n\right).
+\end{equation}
+
+Here $F(p)$ denotes the flow at parent $p$, $c_{p \to n}$ the edge capacity, and $c_n$ the node processing capacity. Beyond maximum flow estimation, the module can identify bottleneck nodes or edges that restrict throughput and determine the widest path, defined as the path whose minimum capacity is maximal from source to target. It also reports overall network throughput as the ratio of total flow reaching target nodes to the total source input rate, providing a direct measure of how effectively the network delivers available input. As in the reachability module, capacity parameters may be specified as fixed values, intervals, or probability boxes, with p-box arithmetic handled through \texttt{ProbabilityBoundsAnalysis.jl}.
+
+The \textbf{Critical Path Module} serves as a generalized propagation engine where user can decide on the combination function $\bigoplus$,  edge propagation function $f$, and node function $g$. For each non-source node, the resulting value is
+
+\begin{equation}\label{eq:cpm}
+V(n) = g\!\left(\bigoplus_{p \in \mathrm{pa}(n)} f\bigl(V(p),\, w_{p \to n}\bigr),\; w_n\right).
+\end{equation}
+
+For instance, when $\bigoplus = \max$ and both $f$ and $g$ are additive, Eq.~(\ref{eq:cpm}) reduces to the standard critical path method, and $V(n)$ represents the earliest completion time at node $n$. Setting $\bigoplus = \min$ yields a bottleneck analysis, whereas choosing $\bigoplus = \sum$ produces cost accumulation along paths. Because the module treats these functions as parameters, a single implementation supports multiple analysis types within the same solution.
+
+\subsection{ Software Architecture}
+The modules discussed in the previous section are developed and distributed as open-source Julia code in the \texttt{InformationPropagationAnalysis.jl} package. For developers and technical researchers, this already removes the need to reimplement these algorithms from scratch, since the exposed functions can be called directly and the package can be extended or overridden as needed. However, the majority of excluded users are not looking to write code at all. Domain experts who understand the implications of an analysis and know how to make decisions from results are often not programmers, and these are the users that the web interface was developed for.
+
+The web interface follows a client-server pattern where both the backend and the frontend run on the user's local machine, as illustrated in Figure~\ref{fig:architecture}. This architecture separates the computational backend (developed in Julia) from the interactive browser-based environment written in Angular). This allows each side to be extended, tested, and deployed independently. From the end-user's perspective, this separation is invisible; the frontend communicates with the backend through HTTP requests on \texttt{localhost}.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{images/info-prop.ui.png}
+    \caption{The IPA-Web decoupled software architecture}
+    \label{fig:architecture}
+\end{figure*}
+
+\subsection{Backend Server: Julia HTTP Engine}
+
+The backend server is a REST API that wraps the \texttt{InformationPropagationAnalysis.jl} julia library. Five analysis endpoints are provided by default; although more technical users can always extend this back end server with more functionality specific to the use case.  
+\begin{itemize}
+    \item \texttt{/network-structure}: Parses the network input files and computes structural properties including source nodes, sink nodes, fork nodes, join nodes, and topologically-sorted iteration sets.
+    \item \texttt{/diamond-analysis}: Identifies diamond substructures (re-convergent fork-join paths) within the network and returns enriched diamond structures details in decomposed DAG format.
+    \item \texttt{/reachability-analysis}: Performs probability propagation through the network using iterative belief updating, with support for fixed, interval and p-box probabilistic information.
+    \item \texttt{/capacity-analysis}: Computes maximum flow capacity through the network given node and edge capacity constraints from input files.
+    \item \texttt{/cpm-analysis}: Performs critical path method analysis for time and cost propagation.
+\end{itemize}
+
+\subsection{Walk Through Example - UI work through}%whats a good title?
+\clearpage
+
+\subsection{Example}\label{sec1}
+
+\section{Conclusions}\label{sec:conclusions}
+
+% Contributions to the 36th European Safety and Reliability Conference (ESREL2026), {\it Braga, Portugal, 14--19 June 2026} are to be in 
+% American English. Authors are encouraged to have their contribution checked for grammar.  American spelling should be used.  Abbreviations are allowed
+% but should be spelt out in full when first used. Integers ten and below are to be spelt out.  Italicize foreign language phrases (e.g.~Latin,
+% French). Authors are required to submit their manuscripts both in PDF and the typeset source (MS-Word or LaTex) formats, and should check
+% their formatting before submission.
+
+% \section{The Main Text and Important Considerations of the Paper} The text is to be typed in 10/12pt Times New Roman single spaced.  A4/US
+% letter size paper can be used.  The trim size is 247mm (height)
+% $\times$ 173mm (width).  Text area includes running title; the footer at the bottom
+% is 221mm deep and 146mm wide. {\bf The entire paper must be typeet using two column and must be within 8~pages maximum}. Final pagination and update of running titles/folios will be done
+% by the publisher.   Authors are encouraged to use this style template in LaTeX as provided. If you're not using this LaTeX template, please
+% ensure the page dimensions are followed accurately as in the PDF
+% sample typeset provided, as your manuscript will be reduced
+% electronically if it exceeds the page dimensions. \cite{sample1}
+
+% \section{Major Headings}
+
+% Major headings should be typeset in boldface in Title Case.  Leave
+% 6pt additional space after the major heading, and one line space
+% before. \cite{sample2}
+
+% \subsection{Sub-headings}
+
+% Sub-headings should be typeset in boldface italic. Capitalize the first letter of the first word only.  Leave no space after the sub-headings; leave one space
+% before.
+
+
+% \subsubsection{Sub-subheadings}
+
+% Typeset sub-subheadings in boldface italic and capitalize the first letter of the first word only. Number the sub-sub headings systematically, as illustrated.
+% Make sure that no heading, sub-heading, or sub-sub heading appears all by itself on the last line. Leave no line space after the sub-headings; leave one space
+% before.
+
+% \subsubsection{Numbering and Spacing of Headings}
+
+% Sections, sub-sections and sub-sub-sections are numbered uniformly in Arabic numerals.  Leave two spaces after the end of the numbering and beginning of
+% heading text. Flush left all paragraphs that follow after section headings.  Subsequent paragraphs should be indented.
+
+% \subsubsection{List of Items}
+
+% Lists may be laid out with each item marked by a bullet (dots only):
+
+% \begin{itemlist}
+
+% \item{}  Item one
+% \item{}  Item two
+
+% \end{itemlist}
+
+% Leave 6pt space before and after bullets.  Alternatively, items may also be numbered in lowercase Roman numerals:\cite{sample3}
+
+
+% \begin{romanlist}[(iii)]
+
+% \item{} item one
+% \item{} item two
+
+% \begin{alphlist}[(b)]
+% \item  lists within lists can be numbered with lowercase alphabets
+% \item  second item
+% \end{alphlist}
+
+
+% \item{} item three.
+% \end{romanlist}
+
+ 
+% \subsubsection{Equations}
+
+% The equations are typeset in 10pt size, centered.  Equation numbers must appear right aligned with open and closed parentheses (see Eq. (1)).
+% % USE WORD EQUATION EDITOR not MathType. Also, it is not needed to talk about Word equations in the latex template
+% %  In MathType please set
+% %the font size to 10pt by selecting the MathType menu ``Size'' $>$ ``Define''.  When %the ``Define Sizes'' dialog appears, set the value for ``Full'' as 10pt.
+
+% Displayed equations are to be centered on the page measure and have
+% at least 8pt empty space above and below the equations.  Displayed
+% equations should be numbered consecutively in the paper, with the
+% number set flush right and enclosed in parentheses, as below:        
+% \begin{equation}\label{eq1}
+% \mu (n,t) = \frac{\sum\nolimits_{i = 1}^\infty {1\left( {d_i < t,N\left( 
+% {d_i } \right) = n} \right)} }{\int_{\sigma = 0}^t {1\left( {N(\sigma ) = n} 
+% \right)d\sigma } }
+% \end{equation} 
+ 
+% Equations should be referred to in the text in abbreviated form,
+% e.g.~``Eq.~(\ref{eq1})'' or \hbox{ ``Eq.~(2) ''.} %do a reference example for Eq. (1) instead of text
+% \cite{sample4}
+
+% Conventional symbols should be adopted and used consistently. There
+% is no constraint on use of units.  Standard English letters like x
+% are to appear as \textit{x} (italicized) in the text if they are used as mathematical symbols. Punctuation marks are used at the end of equations as if they appeared directly in the text.\cite{sample5}
+
+
+
+% \section{Figures and Photographs}
+
+% Figures are to be inserted into the text nearest its first reference. The text in the figures should be large enough so that the text is reasonably readable.  
+%  Authors are advised that all photographs will be finally reproduced in grayscale/black and white.
+
+% \begin{figure}[b]
+% \epsfxsize=.60\hsize
+% \centerline{\epsfbox{ch01f01.eps}}
+% \caption{This is the caption for the figure in font 9pt. The short-line caption must be centered, and the long caption can be left justified.}
+% \label{fig1}
+% \end{figure}
+
+% Leave one line space before and after the figure caption. Leave one line space between the text and start of the figure.   Figures are to be placed closest to where
+% cited, but definitely within the same section as called.  Figures must be anchored to move with the text and be sequentially numbered in Arabic numerals.  The 9pt
+% font figure caption must be placed below the figure. \cite{sample6}
+%  % Do a reference example to Figure 1 
+% Figure should be placed top and bottom of the page. Please prepare the figures in high resolution (300 dpi) for
+% half-tone illustrations or images. Half-tone pictures must be sharp enough for reproduction.
+
+
+% Figures must be anchored to move with the text and be sequentially numbered in Arabic numerals.  The 9pt font figure caption must be placed below the figure. Short
+% line captions can be centered, while the long-captions must be justified. Whereas every effort should be made to place figures within a single column, larger sized
+% figures may span across both columns by inserting suitable section breaks. Please ensure the figures and the labels with reasonable size and for clear visibility. No
+% relabelling or enhancement of artwork will be done while
+% production/printing. \cite{sample7}
+
+% All authors must testify that their tables and figures are their own works, previously published figures must be accompanied by a written permission from the author
+% and publisher.
+
+% \section{Tables}
+
+% Tables should be inserted in the text as close to the point of reference as possible, and definitely within the same section. One line space should be left above and
+% below the table; also keep one line space after the text and start of the Table caption.
+
+% Tables should be numbered sequentially in the text in Arabic
+% numerals. (see Table~\ref{tab1}). % Use latex reference and do a reference example to Table 1 
+
+
+% \begin{table}
+% \tbl{This is the caption for this Table in font 9pt.  Short line
+% caption must be centered.\label{tab1}}
+% {\tabcolsep14pt
+% \begin{tabular}{@{}lll@{}}\toprule 
+% Year & Height of  Dam & Width at Base\\
+%      &  (m)          &     (m)\\  \colrule
+
+% 1200 & 10 & \phantom{0}50\\
+
+% 1350 & 15 & \phantom{0}70\\
+
+% 1625 & 17 & \phantom{0}90\\
+
+% 1865 & 25 & 119\\
+
+% 1950 & 30 & 135\\
+
+% 2006 & 39 & 155\\\botrule
+% \end{tabular}}
+% \tabnote[{\it Source}]{Sample typeset by RPS for ESREL2026 conference proceedings.}
+% \end{table}
+
+% The table captions must be in 9pt Times New Roman.  If tables need to
+% extend over to a second page or column, the continuation of the table
+% should be preceded by a caption, e.g.~``{\it Table~\ref{tab1} (Continued)}''. % Use latex reference and do a reference example to Table 1 
+% The text inside tables should be in 9pt.  Whereas every effort should be made to place tables within a \hbox{single} column, larger sized tables may span across both columns by inserting suitable \hbox{section} breaks.  In all events, tables must be anchored to move with the text. 
+
+% \section{Questions}
+
+% For questions on writing the paper and submitting manuscripts, please consult the this guideline first.  If your question is not answered,
+% kindly contact the {\bf Publisher} at editorial@rpsonline.com.sg or
+% {\bf ESREL2026 Conference Secretariat} at info@esrel2026.com.  Please adhere
+% to the submission schedule for best results to ensure your paper is published.
+
+% \section{Copyright Transfer Agreement}
+
+% The copyright transfer agreement, will be made available at the ESREL2026 website, and MUST be submitted along with the submission of the final paper.
+
+
+% \section{Typesetting}
+
+% All manuscripts will be processed as how it is submitted considering it as Camera Ready Copy (CRC). No separate proof to authors will be sent after pagination. Hence,
+% please adhere to the type size and the trim size specified in
+% Section~\ref{sec1}.
+
+% \section{Footnotes}
+
+% Footnotes must be numbered sequentially; select footnotes at the bottom of page by going {\it Insert$\longrightarrow$ Footnote.}\footnote{This is a sample footnote.  Aim to keep all footnotes with in two to three lines.  Footnotes take up space, so use them sparingly.} Endnotes will be permitted for legal affairs type of papers only.
+
+% \section{Final Manuscript}
+
+% The final PDF must submitted together with the MS-word or LaTeX files together with all other supporting files, such as, .eps, .cls, .sty, .tex etc.  It will be
+% printed directly without any further editing. There should not be any corrections on the final submitted manuscript. If your manuscript is not within the trim size
+% specified above, it will be reduced electronically to the trim size, so please ensure that indices and other small pieces of text are legible.
+
+% \section{Manuscript Submission}
+% The manuscript must be submitted  online the submission system found at 
+% \url{https://congressos.leading.pt/} {\tt geral/inserirresumo.aspx?evento=} {\tt 261\&formulario=615\&lingua=en-GB}. Submit a PDF file and a
+% WORD/LaTeX source document.  Kindly adhere to the submission deadlines.  
+
+
+\begin{acknowledgement}
+This section and its heading (unnumbered) should be in 9pt and come before the appendices and references.  Dedication and funding information may also be included here. 
+
+\renewcommand\theequation{A.\arabic{equation}}
+\setcounter{equation}{0}
+\section*{\headfont Appendix A. The Relation Between {\it R} and {\it V}}
+
+Appendices should be used only when absolutely necessary.  They
+should come before the References.  If there is more than one
+appendix, label them alphabetically.  Number the displayed equations
+occurring in the\break Appendix in this way, e.g.,~(\ref{eqA1}),
+(\ref{eqA2}), etc
+\begin{eqnarray}\label{eqA1}
+\frac{S_R (f)}{R^2} \cong \frac{\alpha _H }{nV_{\mbox{eff}} }\frac{1}{f^k}.
+\end{eqnarray}
+\begin{eqnarray}\label{eqA2}
+\mu (n,t) = \frac{{\sum}^{\infty}_{i=1}(d_i < t, N(d_i)=n)}{{\int}^{t}_{\sigma=0}1(N({\sigma})=n)d{\sigma}}
+\end{eqnarray}
+
+\section*{References}
+
+Type references in continuous format in 9pt Times New Roman with single line spacing.   The references need to be in a proper style, i.e., the
+Chicago bibliography style. Once you have the required package installed in your system, please uncomment the line at the tex premble to start using the 
+Chicago bibliography style references. For more information on how to
+and the samples, please visit: \url{https://ctan.org/pkg/}; \url{https://www.bibtex.com/}{\tt s/bibliography-\break style-chicago-chicago/}
+
+\bibliographystyle{chicago}
+\bibliography{References}
+\end{acknowledgement}
+
+
+\end{document}
+
+
+
+

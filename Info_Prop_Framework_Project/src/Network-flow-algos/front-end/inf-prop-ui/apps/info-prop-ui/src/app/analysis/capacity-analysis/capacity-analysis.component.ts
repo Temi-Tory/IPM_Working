@@ -461,17 +461,17 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       .sort((a, b) => a.util - b.util);
 
     if (utilRanking.length >= 2) {
-      const progression = utilRanking.map(v => `${(v.util * 100).toFixed(1)}% (${v.name})`).join(' < ');
+      const progression = utilRanking.map(v => `${v.util.toFixed(2)} (${v.name})`).join(' < ');
       observations.push({
         icon: 'speed',
-        text: `Utilisation: ${progression}`,
-        severity: utilRanking[utilRanking.length - 1].util > 0.9 ? 'warning' : 'info'
+        text: `Throughput ratio: ${progression}`,
+        severity: 'info'
       });
     } else if (utilRanking.length === 1) {
       observations.push({
         icon: 'speed',
-        text: `${utilRanking[0].name}: ${(utilRanking[0].util * 100).toFixed(1)}% utilisation`,
-        severity: utilRanking[0].util > 0.9 ? 'warning' : utilRanking[0].util > 0.7 ? 'info' : 'good'
+        text: `${utilRanking[0].name}: throughput ratio ${utilRanking[0].util.toFixed(2)}`,
+        severity: 'info'
       });
     }
 
