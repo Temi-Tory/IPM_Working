@@ -16,15 +16,43 @@
         
         <!-- Graph Controls -->
         <div class="graph-controls">
-          <button mat-icon-button (click)="centerGraph()" matTooltip="Center Graph">
-            <mat-icon>center_focus_strong</mat-icon>
+          <button mat-icon-button (click)="centerGraph()" matTooltip="Fit to View">
+            <mat-icon>fit_screen</mat-icon>
           </button>
-          <button mat-icon-button (click)="restartSimulation()" matTooltip="Restart Simulation">
+          <button mat-icon-button (click)="restartSimulation()" matTooltip="Reset Layout">
             <mat-icon>refresh</mat-icon>
           </button>
           <button mat-icon-button (click)="resetSelection()" matTooltip="Clear Selection">
             <mat-icon>clear</mat-icon>
           </button>
+          <mat-divider></mat-divider>
+          <button mat-icon-button
+            (click)="setLayoutMode('hierarchical')"
+            [class.active-layout]="layoutMode() === 'hierarchical'"
+            matTooltip="Left → Right">
+            <mat-icon>account_tree</mat-icon>
+          </button>
+          <button mat-icon-button
+            (click)="setLayoutMode('top-down')"
+            [class.active-layout]="layoutMode() === 'top-down'"
+            matTooltip="Top → Down">
+            <mat-icon>vertical_align_bottom</mat-icon>
+          </button>
+          <button mat-icon-button
+            (click)="setLayoutMode('force')"
+            [class.active-layout]="layoutMode() === 'force'"
+            matTooltip="Force-Directed">
+            <mat-icon>hub</mat-icon>
+          </button>
+        </div>
+
+        <!-- Legend -->
+        <div class="graph-legend">
+          <div class="legend-item"><span class="legend-dot source"></span> Source</div>
+          <div class="legend-item"><span class="legend-dot sink"></span> Sink</div>
+          <div class="legend-item"><span class="legend-dot fork"></span> Fork</div>
+          <div class="legend-item"><span class="legend-dot join"></span> Join</div>
+          <div class="legend-item"><span class="legend-dot regular"></span> Regular</div>
         </div>
       </div>
 
@@ -91,6 +119,16 @@
                     Connectivity
                   </h4>
                   <div class="connectivity-stats">
+                    <div class="connectivity-item">
+                      <span class="connectivity-label">Type</span>
+                      <span class="connectivity-value type-badge" [attr.data-node-type]="selectedNodeData().nodeType">
+                        {{ selectedNodeData().nodeType }}
+                      </span>
+                    </div>
+                    <div class="connectivity-item">
+                      <span class="connectivity-label">Layer</span>
+                      <span class="connectivity-value">{{ selectedNodeData().layer }}</span>
+                    </div>
                     <div class="connectivity-item">
                       <span class="connectivity-label">In-Degree</span>
                       <span class="connectivity-value">{{ selectedNodeData().inDegree }}</span>

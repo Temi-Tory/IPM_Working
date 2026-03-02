@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -85,6 +86,12 @@ interface ComparisonRow {
   nodeType: string;
 }
 
+interface SummaryObservation {
+  icon: string;
+  text: string;
+  severity: 'info' | 'warning' | 'good';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 @Component({
@@ -118,6 +125,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   private cpmAnalysisService = inject(CpmAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -158,9 +166,9 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   activeTab = computed((): ScenarioTabState | null => {
     const tabs = this.scenarioTabs();
     const keys = Array.from(tabs.keys());
-    const idx = this.activeTabIndex();
-    if (idx < 0 || idx >= keys.length) return null;
-    return tabs.get(keys[idx]) || null;
+    const scenarioIdx = this.activeTabIndex() - 1; // offset for Summary tab at index 0
+    if (scenarioIdx < 0 || scenarioIdx >= keys.length) return null;
+    return tabs.get(keys[scenarioIdx]) || null;
   });
 
   // ─── Computed: network info ───────────────────────────────────────────────
@@ -330,9 +338,85 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
     });
   });
 
+  // ─── Computed: completed scenario count ───────────────────────────────────
+  completedCount = computed((): number => {
+    let count = 0;
+    for (const tab of this.scenarioTabs().values()) {
+      if (tab.status === 'computed') count++;
+    }
+    return count;
+  });
+
   // ─── Computed: comparison tab states (for summary cards) ────────────────
   baseTabState = computed(() => this.scenarioTabs().get(this.baseScenarioName()) || null);
   compareTabState = computed(() => this.scenarioTabs().get(this.compareScenarioName()) || null);
+
+  // ─── Computed: cross-scenario summary ────────────────────────────────────
+  crossScenarioSummary = computed((): { observations: SummaryObservation[] } | null => {
+    const tabs = this.scenarioTabs();
+    const computedTabs = Array.from(tabs.entries()).filter(([, t]) => t.status === 'computed');
+    if (computedTabs.length === 0) return null;
+
+    const observations: SummaryObservation[] = [];
+
+    observations.push({
+      icon: 'assessment',
+      text: `${computedTabs.length}/${tabs.size} scenarios computed`,
+      severity: computedTabs.length === tabs.size ? 'good' : 'info'
+    });
+
+    // Total budget comparison
+    const budgetRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, budget: tab.metrics?.totalBudget ?? 0 }))
+      .sort((a, b) => a.budget - b.budget);
+
+    if (budgetRanking.length >= 2) {
+      const cheapest = budgetRanking[0];
+      const most = budgetRanking[budgetRanking.length - 1];
+      observations.push({
+        icon: 'payments',
+        text: `Budget: lowest ${cheapest.name} (${cheapest.budget.toFixed(0)}), highest ${most.name} (${most.budget.toFixed(0)})`,
+        severity: 'info'
+      });
+
+      if (cheapest.budget > 0) {
+        const pctDiff = ((most.budget - cheapest.budget) / cheapest.budget * 100).toFixed(0);
+        observations.push({
+          icon: 'trending_up',
+          text: `${most.name} costs ${pctDiff}% more than ${cheapest.name}`,
+          severity: 'info'
+        });
+      }
+    }
+
+    // Critical path cost comparison
+    const cpCostRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, cost: tab.metrics?.criticalPathCost ?? 0 }))
+      .sort((a, b) => a.cost - b.cost);
+
+    if (cpCostRanking.length >= 2) {
+      observations.push({
+        icon: 'route',
+        text: `Critical path cost: ${cpCostRanking.map(v => `${v.cost.toFixed(0)} (${v.name})`).join(' < ')}`,
+        severity: 'info'
+      });
+    }
+
+    // Critical count comparison
+    const critRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, critCount: tab.metrics?.criticalCount ?? 0 }))
+      .sort((a, b) => b.critCount - a.critCount);
+
+    if (critRanking.length >= 2) {
+      observations.push({
+        icon: 'priority_high',
+        text: `Critical activities: ${critRanking.map(v => `${v.critCount} (${v.name})`).join(', ')}`,
+        severity: 'info'
+      });
+    }
+
+    return { observations };
+  });
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -360,16 +444,22 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
       for (const [name, tab] of cached.tabs.entries()) {
         if ((tab as any).rawScenario) this.scenarioResults.set(name, (tab as any).rawScenario);
       }
-      return;
+      this.pushToCentralizedState();
+    } else {
+      this.loadScenarios();
     }
 
-    this.loadScenarios();
-    this.runAllScenarios();
+    // Drilldown support: if navigated from system profile with ?scenario=X, select that tab
+    const scenarioParam = this.route.snapshot.queryParamMap.get('scenario');
+    if (scenarioParam) {
+      const idx = this.scenarioNames().indexOf(scenarioParam);
+      if (idx >= 0) this.activeTabIndex.set(idx + 1);
+    }
   }
 
   ngOnDestroy(): void {
     // Save current tab's UI state before persisting
-    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
       this.updateTabState(currentName, {
         searchTerm: this.activeSearchTerm(),
@@ -396,6 +486,17 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
         compareScenarioName: this.compareScenarioName()
       }
     );
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    this.analysisStateService.setMultiScenarioCpmResults({
+      scenarios: new Map(this.scenarioResults) as Map<string, CpmScenario>,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -531,6 +632,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
       });
 
       this.scenarioResults.set(scenarioName, raw);
+      this.pushToCentralizedState();
       this.cdr.detectChanges();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Cost analysis failed';
@@ -620,29 +722,35 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   }
 
   onTabChange(index: number): void {
-    const currentName = this.scenarioNames()[this.activeTabIndex()];
-    if (currentName) {
-      this.updateTabState(currentName, {
-        searchTerm: this.activeSearchTerm(),
-        selectedNodeTypes: this.activeSelectedNodeTypes(),
-        pageIndex: this.activePageIndex(),
-        pageSize: this.activePageSize(),
-        sortColumn: this.activeSortColumn(),
-        sortDirection: this.activeSortDirection()
-      });
+    // Save current tab's UI state (skip for Summary tab)
+    if (this.activeTabIndex() > 0) {
+      const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
+      if (currentName) {
+        this.updateTabState(currentName, {
+          searchTerm: this.activeSearchTerm(),
+          selectedNodeTypes: this.activeSelectedNodeTypes(),
+          pageIndex: this.activePageIndex(),
+          pageSize: this.activePageSize(),
+          sortColumn: this.activeSortColumn(),
+          sortDirection: this.activeSortDirection()
+        });
+      }
     }
 
     this.activeTabIndex.set(index);
 
-    const newName = this.scenarioNames()[index];
-    const newTab = this.scenarioTabs().get(newName);
-    if (newTab) {
-      this.activeSearchTerm.set(newTab.searchTerm);
-      this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
-      this.activePageIndex.set(newTab.pageIndex);
-      this.activePageSize.set(newTab.pageSize);
-      this.activeSortColumn.set(newTab.sortColumn);
-      this.activeSortDirection.set(newTab.sortDirection);
+    // Restore new tab's UI state (skip for Summary tab)
+    if (index > 0) {
+      const newName = this.scenarioNames()[index - 1];
+      const newTab = this.scenarioTabs().get(newName);
+      if (newTab) {
+        this.activeSearchTerm.set(newTab.searchTerm);
+        this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
+        this.activePageIndex.set(newTab.pageIndex);
+        this.activePageSize.set(newTab.pageSize);
+        this.activeSortColumn.set(newTab.sortColumn);
+        this.activeSortDirection.set(newTab.sortDirection);
+      }
     }
   }
 
@@ -764,6 +872,10 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
     const hue = (1 - ratio) * 120;
     const lightness = isDark ? 25 : 90;
     return `hsl(${hue}, 70%, ${lightness}%)`;
+  }
+
+  getTabStatus(name: string): string {
+    return this.scenarioTabs().get(name)?.status || 'idle';
   }
 
   getNodeType(nodeId: number, ni: any): string {

@@ -1253,12 +1253,18 @@ function handle_reachability_analysis(req::HTTP.Request)
                 beliefs_dict[string(node)] = belief
             end
             
-            # Calculate statistics for numeric beliefs only
+            # Calculate statistics — extract representative numeric value from all types
             numeric_beliefs = []
             for belief in values(output)
                 if isa(belief, Float64)
                     push!(numeric_beliefs, belief)
-                elseif isa(belief, Real) && !isa(belief, pbox) && !isa(belief, Interval)
+                elseif isa(belief, Interval)
+                    # Midpoint of interval as representative value
+                    push!(numeric_beliefs, (belief.lower + belief.upper) / 2.0)
+                elseif isa(belief, pbox)
+                    # Midpoint of mean bounds as representative value
+                    push!(numeric_beliefs, (belief.ml + belief.mh) / 2.0)
+                elseif isa(belief, Real)
                     push!(numeric_beliefs, Float64(belief))
                 end
             end

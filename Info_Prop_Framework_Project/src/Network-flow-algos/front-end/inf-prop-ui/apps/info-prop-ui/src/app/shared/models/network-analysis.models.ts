@@ -579,10 +579,10 @@ export interface DiamondSubgraphAnalysisResponse {
     source_nodes: number[];
     fork_nodes: number[];
     is_root_diamond: boolean;
-    source_priors?: Record<string, number>;
+    source_priors?: Record<string, BeliefValue>;
   };
   reachability_result?: {
-    beliefs: Record<string, number>;
+    beliefs: Record<string, BeliefValue>;
     computation_time: number;
     total_nodes_processed: number;
     error?: string;

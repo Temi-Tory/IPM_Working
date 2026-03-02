@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,7 +29,8 @@ import {
   PboxData,
   IntervalData,
   BeliefValue,
-  ReachabilityFileGroup
+  ReachabilityFileGroup,
+  ReachabilityScenario
 } from '../../shared/models/network-analysis.models';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -103,6 +105,12 @@ interface NodeTypeStats {
   icon: string;
 }
 
+interface SummaryObservation {
+  icon: string;
+  text: string;
+  severity: 'info' | 'warning' | 'good';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 @Component({
@@ -137,6 +145,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   private reachabilityAnalysisService = inject(ReachabilityAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -178,9 +187,9 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   activeTab = computed((): ScenarioTabState | null => {
     const tabs = this.scenarioTabs();
     const keys = Array.from(tabs.keys());
-    const idx = this.activeTabIndex();
-    if (idx < 0 || idx >= keys.length) return null;
-    return tabs.get(keys[idx]) || null;
+    const scenarioIdx = this.activeTabIndex() - 1; // offset for Summary tab at index 0
+    if (scenarioIdx < 0 || scenarioIdx >= keys.length) return null;
+    return tabs.get(keys[scenarioIdx]) || null;
   });
 
   // ─── Computed: network info ───────────────────────────────────────────────
@@ -416,6 +425,80 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
     return count;
   });
 
+  // ─── Computed: cross-scenario summary ────────────────────────────────────
+  crossScenarioSummary = computed((): { observations: SummaryObservation[] } | null => {
+    const tabs = this.scenarioTabs();
+    const computedTabs = Array.from(tabs.entries()).filter(([, t]) => t.status === 'computed');
+    if (computedTabs.length === 0) return null;
+
+    const observations: SummaryObservation[] = [];
+
+    // Status overview
+    observations.push({
+      icon: 'assessment',
+      text: `${computedTabs.length}/${tabs.size} scenarios computed`,
+      severity: computedTabs.length === tabs.size ? 'good' : 'info'
+    });
+
+    // Data type distribution
+    const typeCount: Record<string, number> = {};
+    for (const [, tab] of computedTabs) {
+      const dt = tab.scenario.dataType;
+      typeCount[dt] = (typeCount[dt] || 0) + 1;
+    }
+    if (Object.keys(typeCount).length > 1) {
+      const typeParts = Object.entries(typeCount).map(([t, c]) => `${c} ${t}`).join(', ');
+      observations.push({ icon: 'category', text: `Data types: ${typeParts}`, severity: 'info' });
+    }
+
+    // Mean belief ranking
+    const beliefRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, meanBelief: tab.metrics?.averageBelief ?? 0 }))
+      .sort((a, b) => b.meanBelief - a.meanBelief);
+
+    if (beliefRanking.length >= 2) {
+      const best = beliefRanking[0];
+      const worst = beliefRanking[beliefRanking.length - 1];
+      observations.push({
+        icon: 'compare',
+        text: `Highest mean belief: ${best.name} (${best.meanBelief.toPrecision(6)}), lowest: ${worst.name} (${worst.meanBelief.toPrecision(6)})`,
+        severity: worst.meanBelief < 0.5 ? 'warning' : 'info'
+      });
+
+      if (beliefRanking.length >= 3) {
+        const progression = beliefRanking.map(v => `${v.meanBelief.toPrecision(6)} (${v.name})`).join(' > ');
+        observations.push({ icon: 'trending_down', text: `Belief ranking: ${progression}`, severity: 'info' });
+      }
+    } else if (beliefRanking.length === 1) {
+      observations.push({
+        icon: 'analytics',
+        text: `${beliefRanking[0].name}: mean belief ${beliefRanking[0].meanBelief.toPrecision(6)}`,
+        severity: beliefRanking[0].meanBelief >= 0.7 ? 'good' : beliefRanking[0].meanBelief >= 0.4 ? 'info' : 'warning'
+      });
+    }
+
+    // Uncertainty comparison for interval/pbox
+    const uncertaintyScenarios = computedTabs
+      .filter(([, tab]) => tab.scenario.dataType !== 'float' && tab.results.some(r => r.uncertaintyWidth !== null))
+      .map(([, tab]) => {
+        const widths = tab.results.filter(r => r.uncertaintyWidth !== null).map(r => r.uncertaintyWidth!);
+        const avgWidth = widths.reduce((a, b) => a + b, 0) / widths.length;
+        return { name: tab.scenario.displayName, avgWidth };
+      })
+      .sort((a, b) => b.avgWidth - a.avgWidth);
+
+    if (uncertaintyScenarios.length > 0) {
+      const widest = uncertaintyScenarios[0];
+      observations.push({
+        icon: 'unfold_more',
+        text: `Widest uncertainty: ${widest.name} (avg width ${widest.avgWidth.toPrecision(6)})`,
+        severity: widest.avgWidth > 0.3 ? 'warning' : 'info'
+      });
+    }
+
+    return { observations };
+  });
+
   // Table columns
   displayedColumns: string[] = ['nodeId', 'prior', 'belief', 'nodeType'];
   comparisonColumns: string[] = ['nodeId', 'baseBelief', 'compareBelief', 'delta', 'nodeType'];
@@ -447,11 +530,17 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
       for (const [name, tab] of cached.tabs.entries()) {
         if (tab.rawResponse) this.scenarioResults.set(name, tab.rawResponse);
       }
-      return;
+      this.pushToCentralizedState();
+    } else {
+      this.loadScenarios();
     }
 
-    this.loadScenarios();
-    this.runAllScenarios();
+    // Drilldown support: if navigated from system profile with ?scenario=X, select that tab
+    const scenarioParam = this.route.snapshot.queryParamMap.get('scenario');
+    if (scenarioParam) {
+      const idx = this.scenarioNames().indexOf(scenarioParam);
+      if (idx >= 0) this.activeTabIndex.set(idx + 1);
+    }
   }
 
   ngOnDestroy(): void {
@@ -473,6 +562,23 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
         compareScenarioName: this.compareScenarioName()
       }
     );
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    // scenarioResults may contain ReachabilityScenario (fresh) or full AnalysisResponse (cache restore)
+    const normalized = new Map<string, ReachabilityScenario>();
+    for (const [name, val] of this.scenarioResults) {
+      const scenario = val?.reachability_result ? val.reachability_result : val;
+      normalized.set(name, scenario as ReachabilityScenario);
+    }
+    this.analysisStateService.setMultiScenarioReachabilityResults({
+      scenarios: normalized,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -605,6 +711,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
       });
 
       this.scenarioResults.set(scenarioName, results.reachability_result);
+      this.pushToCentralizedState();
       this.cdr.detectChanges();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Inference execution failed';
@@ -994,14 +1101,14 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   // ─── Tab management ───────────────────────────────────────────────────────
 
   onTabChange(newIndex: number): void {
-    this.saveActiveTabUIState();
+    if (this.activeTabIndex() > 0) this.saveActiveTabUIState();
     this.activeTabIndex.set(newIndex);
-    this.restoreActiveTabUIState();
+    if (newIndex > 0) this.restoreActiveTabUIState();
   }
 
   private saveActiveTabUIState(): void {
     const keys = Array.from(this.scenarioTabs().keys());
-    const currentKey = keys[this.activeTabIndex()];
+    const currentKey = keys[this.activeTabIndex() - 1];
     if (!currentKey) return;
     this.updateTabState(currentKey, {
       searchTerm: this.activeSearchTerm(),

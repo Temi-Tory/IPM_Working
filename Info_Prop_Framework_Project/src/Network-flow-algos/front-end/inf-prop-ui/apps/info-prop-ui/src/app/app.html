@@ -235,6 +235,30 @@
         </div>
       </a>
 
+      @if (analysisState.systemProfileTab().enabled) {
+        <mat-divider></mat-divider>
+
+        <a mat-list-item
+           routerLink="/system-profile"
+           [class.completed]="analysisState.systemProfileTab().completed"
+           [matTooltip]="isSidenavCollapsed ? 'System Profile - Cross-scenario executive dashboard' : ''"
+           matTooltipPosition="right"
+           matTooltipClass="sidenav-tooltip">
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <div matListItemTitle>
+            <div class="nav-title">System Profile</div>
+            <div class="nav-subtitle">Cross-scenario overview</div>
+          </div>
+          <div class="nav-status">
+            @if (analysisState.systemProfileTab().completed) {
+              <mat-icon class="status-icon completed">check_circle</mat-icon>
+            } @else {
+              <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+            }
+          </div>
+        </a>
+      }
+
       <mat-divider></mat-divider>
 
       <a mat-list-item routerLink="/docs"

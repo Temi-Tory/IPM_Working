@@ -153,66 +153,12 @@ export class DiamondDetailsComponent implements OnInit {
     return analyses;
   });
 
-  // ─── Editable source value overrides per analysis type ───────────────────────
-  private reachabilityPriorOverrides = signal<Map<number, number>>(new Map());
-  private capacityRateOverrides = signal<Map<number, number>>(new Map());
-  private cpmTimeOverrides = signal<Map<number, number>>(new Map());
-  private cpmCostOverrides = signal<Map<number, number>>(new Map());
-
   // Source nodes from diamond structure
   sourceNodes = computed((): number[] => {
     const data = this.diamondDetailsData();
     if (!data) return [];
     const diamond = data.diamond as UniqueDiamondStructure;
     return diamond.sub_sources || [];
-  });
-
-  // Exact Inference source priors (probability 0–1) — defaults from backend source_priors
-  reachabilitySourceEntries = computed(() => {
-    const sources = this.sourceNodes();
-    const overrides = this.reachabilityPriorOverrides();
-    const result = this.subgraphAnalysisResult();
-    const defaults = result?.diamond_info?.source_priors || {};
-    return sources.map(node => ({
-      node,
-      value: overrides.get(node) ?? defaults[node.toString()] ?? 1.0
-    }));
-  });
-
-  // Capacity source rates — defaults from backend source_rates_used
-  capacitySourceEntries = computed(() => {
-    const sources = this.sourceNodes();
-    const overrides = this.capacityRateOverrides();
-    const result = this.subgraphAnalysisResult();
-    const defaults = result?.capacity_result?.source_rates_used || {};
-    return sources.map(node => ({
-      node,
-      value: overrides.get(node) ?? defaults[node.toString()] ?? 1.0
-    }));
-  });
-
-  // CPM Time — source durations
-  cpmTimeSourceEntries = computed(() => {
-    const sources = this.sourceNodes();
-    const overrides = this.cpmTimeOverrides();
-    const result = this.subgraphAnalysisResult();
-    const defaults = result?.cpm_result?.time_result?.node_durations || {};
-    return sources.map(node => ({
-      node,
-      value: overrides.get(node) ?? defaults[node.toString()] ?? 0.0
-    }));
-  });
-
-  // CPM Cost — source costs
-  cpmCostSourceEntries = computed(() => {
-    const sources = this.sourceNodes();
-    const overrides = this.cpmCostOverrides();
-    const result = this.subgraphAnalysisResult();
-    const defaults = result?.cpm_result?.cost_result?.node_costs || {};
-    return sources.map(node => ({
-      node,
-      value: overrides.get(node) ?? defaults[node.toString()] ?? 0.0
-    }));
   });
 
   // Pagination
@@ -850,8 +796,6 @@ export class DiamondDetailsComponent implements OnInit {
     this.subgraphAnalysisStatus.set('computing');
     this.subgraphAnalysisError.set(null);
 
-    const sourceOverrides = this.buildSourceOverrides();
-
     this.diamondAnalysisService.analyzeDiamondSubgraph({
       networkPath: this.dialogData.networkPath,
       nodepriorsPath: this.selectedNodepriorsPath(),
@@ -859,8 +803,7 @@ export class DiamondDetailsComponent implements OnInit {
       capacitiesPath: this.selectedCapacitiesPath(),
       cpmPath: this.selectedCpmPath(),
       diamondHash: hash,
-      analyses: analysesToRun,
-      sourceOverrides: Object.keys(sourceOverrides).length > 0 ? sourceOverrides : undefined
+      analyses: analysesToRun
     }).subscribe({
       next: (result) => {
         this.subgraphAnalysisResult.set(result);
@@ -881,20 +824,17 @@ export class DiamondDetailsComponent implements OnInit {
 
   onReachabilityGroupChange(index: number): void {
     this.selectedReachabilityIndex.set(index);
-    this.reachabilityPriorOverrides.set(new Map());
+    this.subgraphAnalysisResult.set(null);
   }
 
   onCapacityGroupChange(index: number): void {
     this.selectedCapacityIndex.set(index);
-    // Clear capacity-specific overrides when scenario changes
-    this.capacityRateOverrides.set(new Map());
+    this.subgraphAnalysisResult.set(null);
   }
 
   onCpmGroupChange(index: number): void {
     this.selectedCpmIndex.set(index);
-    // Clear CPM-specific overrides when scenario changes
-    this.cpmTimeOverrides.set(new Map());
-    this.cpmCostOverrides.set(new Map());
+    this.subgraphAnalysisResult.set(null);
   }
 
   onSubgraphTabChange(index: number): void {
@@ -905,109 +845,45 @@ export class DiamondDetailsComponent implements OnInit {
     this.runSubgraphAnalysis([type]);
   }
 
-  // ─── Source value override handlers ──────────────────────────────────────────
-  onReachabilitySourceChange(node: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = parseFloat(input.value);
-    if (!isNaN(value) && value >= 0 && value <= 1) {
-      const current = new Map(this.reachabilityPriorOverrides());
-      current.set(node, value);
-      this.reachabilityPriorOverrides.set(current);
-    }
-  }
 
-  onCapacitySourceChange(node: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = parseFloat(input.value);
-    if (!isNaN(value) && value >= 0) {
-      const current = new Map(this.capacityRateOverrides());
-      current.set(node, value);
-      this.capacityRateOverrides.set(current);
-    }
-  }
+  // ─── Belief value formatting (handles float, interval, pbox) ────────────────
 
-  onCpmTimeSourceChange(node: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = parseFloat(input.value);
-    if (!isNaN(value) && value >= 0) {
-      const current = new Map(this.cpmTimeOverrides());
-      current.set(node, value);
-      this.cpmTimeOverrides.set(current);
-    }
-  }
-
-  onCpmCostSourceChange(node: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = parseFloat(input.value);
-    if (!isNaN(value) && value >= 0) {
-      const current = new Map(this.cpmCostOverrides());
-      current.set(node, value);
-      this.cpmCostOverrides.set(current);
-    }
-  }
-
-  resetReachabilityPriors(): void {
-    this.reachabilityPriorOverrides.set(new Map());
-  }
-
-  resetCapacityRates(): void {
-    this.capacityRateOverrides.set(new Map());
-  }
-
-  resetCpmTimeValues(): void {
-    this.cpmTimeOverrides.set(new Map());
-  }
-
-  resetCpmCostValues(): void {
-    this.cpmCostOverrides.set(new Map());
-  }
-
-  private buildSourceOverrides(): Record<string, Record<string, number>> {
-    const sourceOverrides: Record<string, Record<string, number>> = {};
-
-    if (this.reachabilityPriorOverrides().size > 0) {
-      const priors: Record<string, number> = {};
-      for (const [node, value] of this.reachabilityPriorOverrides()) {
-        priors[node.toString()] = value;
+  formatBeliefValue(val: any): string {
+    if (val == null) return '\u2014';
+    if (typeof val === 'number') return val.toFixed(4);
+    if (typeof val === 'object') {
+      if (val.type === 'interval' && typeof val.lower === 'number' && typeof val.upper === 'number') {
+        return `[${val.lower.toFixed(4)}, ${val.upper.toFixed(4)}]`;
       }
-      sourceOverrides['reachability'] = priors;
-    }
-
-    if (this.capacityRateOverrides().size > 0) {
-      const rates: Record<string, number> = {};
-      for (const [node, value] of this.capacityRateOverrides()) {
-        rates[node.toString()] = value;
+      if (val.type === 'pbox' && typeof val.mean_lower === 'number' && typeof val.mean_upper === 'number') {
+        return `\u03BC\u2208[${val.mean_lower.toFixed(4)}, ${val.mean_upper.toFixed(4)}]`;
       }
-      sourceOverrides['capacity'] = rates;
     }
+    return String(val);
+  }
 
-    if (this.cpmTimeOverrides().size > 0) {
-      const durations: Record<string, number> = {};
-      for (const [node, value] of this.cpmTimeOverrides()) {
-        durations[node.toString()] = value;
-      }
-      sourceOverrides['cpm_time'] = durations;
+  extractNumericBelief(val: any): number {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'object') {
+      if (val.type === 'interval') return (val.lower + val.upper) / 2;
+      if (val.type === 'pbox') return (val.mean_lower + val.mean_upper) / 2;
     }
-
-    if (this.cpmCostOverrides().size > 0) {
-      const costs: Record<string, number> = {};
-      for (const [node, value] of this.cpmCostOverrides()) {
-        costs[node.toString()] = value;
-      }
-      sourceOverrides['cpm_cost'] = costs;
-    }
-
-    return sourceOverrides;
+    return 0;
   }
 
   // ─── Exact Inference helpers ─────────────────────────────────────────────────
 
-  getBeliefEntries(): Array<{node: string; belief: number}> {
+  getBeliefEntries(): Array<{node: string; belief: any; numericBelief: number; displayBelief: string}> {
     const result = this.subgraphAnalysisResult();
     if (!result?.reachability_result?.beliefs) return [];
     return Object.entries(result.reachability_result.beliefs)
-      .map(([node, belief]) => ({ node, belief }))
-      .sort((a, b) => b.belief - a.belief);
+      .map(([node, belief]) => ({
+        node,
+        belief,
+        numericBelief: this.extractNumericBelief(belief),
+        displayBelief: this.formatBeliefValue(belief)
+      }))
+      .sort((a, b) => b.numericBelief - a.numericBelief);
   }
 
   // ─── Capacity helpers ────────────────────────────────────────────────────────

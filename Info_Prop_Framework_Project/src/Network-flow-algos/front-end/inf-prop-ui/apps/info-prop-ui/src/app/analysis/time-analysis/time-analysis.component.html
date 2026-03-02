@@ -9,8 +9,9 @@
 <!-- Toolbar -->
 @if (scenarioNames().length > 0) {
 <div class="toolbar">
-  <button mat-stroked-button (click)="runAllScenarios()" matTooltip="Re-run all scenarios">
-    <mat-icon>refresh</mat-icon> Re-run All
+  <button mat-raised-button color="primary" (click)="runAllScenarios()" [disabled]="scenarioNames().length === 0"
+          [matTooltip]="completedCount() > 0 ? 'Re-run all scenarios' : 'Run all scenarios'">
+    <mat-icon>{{ completedCount() > 0 ? 'replay' : 'play_arrow' }}</mat-icon> {{ completedCount() > 0 ? 'Re-run All' : 'Run All' }}
   </button>
   <button mat-stroked-button (click)="toggleAdvancedColumns()" [class.active]="showAdvancedColumns()" matTooltip="Toggle Late Start / Late Finish columns from backward pass scheduling">
     <mat-icon>view_column</mat-icon> {{ showAdvancedColumns() ? 'Hide LS/LF' : 'Show LS/LF' }}
@@ -158,6 +159,54 @@
 } @else if (scenarioNames().length > 0) {
 <!-- ═══ Normal Scenario Tabs ═══ -->
 <mat-tab-group [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)" class="scenario-tabs">
+  <!-- Summary Tab -->
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <span class="tab-label">
+        <mat-icon class="summary-tab-icon">insights</mat-icon>
+        Summary
+      </span>
+    </ng-template>
+    <div class="summary-tab-content">
+      <div class="scenario-status-chips">
+        @for (name of scenarioNames(); track name) {
+          <span class="status-chip" [class]="getTabStatus(name)">
+            {{ name }}
+            @switch (getTabStatus(name)) {
+              @case ('computed') { <mat-icon class="chip-icon">check_circle</mat-icon> }
+              @case ('computing') { <mat-icon class="chip-icon spin">sync</mat-icon> }
+              @default { <mat-icon class="chip-icon">radio_button_unchecked</mat-icon> }
+            }
+          </span>
+        }
+      </div>
+      @if (completedCount() < scenarioNames().length) {
+        <div class="run-prompt">
+          <button mat-raised-button color="primary" (click)="runAllScenarios()">
+            <mat-icon>play_arrow</mat-icon>
+            Run {{ completedCount() === 0 ? 'All' : 'Remaining' }} Scenarios
+          </button>
+        </div>
+      }
+      @if (crossScenarioSummary(); as summary) {
+        <div class="summary-observations">
+          @for (obs of summary.observations; track obs.text) {
+            <div class="observation-item" [class]="obs.severity">
+              <mat-icon>{{ obs.icon }}</mat-icon>
+              <span>{{ obs.text }}</span>
+            </div>
+          }
+        </div>
+      }
+      @if (completedCount() === 0) {
+        <div class="empty-summary">
+          <mat-icon>analytics</mat-icon>
+          <p>Run scenarios to see cross-scenario insights here.</p>
+        </div>
+      }
+    </div>
+  </mat-tab>
+
   @for (name of scenarioNames(); track name; let i = $index) {
   <mat-tab>
     <ng-template mat-tab-label>
@@ -414,11 +463,16 @@
       @if (tab.status === 'idle') {
       <mat-card class="status-card idle">
         <mat-card-content>
-          <mat-icon>hourglass_empty</mat-icon>
-          <p>Waiting to run time analysis...</p>
-          <button mat-stroked-button (click)="rerunScenario(tab.scenario.name)">
-            <mat-icon>play_arrow</mat-icon> Run Analysis
-          </button>
+          <div class="status-content">
+            <mat-icon class="status-icon">play_circle_outline</mat-icon>
+            <div class="status-text">
+              <h3>Ready to Analyse</h3>
+              <p>Click below to run this scenario, or use "Run All" in the toolbar.</p>
+            </div>
+            <button mat-raised-button color="primary" (click)="rerunScenario(tab.scenario.name)">
+              <mat-icon>play_arrow</mat-icon> Run Analysis
+            </button>
+          </div>
         </mat-card-content>
       </mat-card>
       }

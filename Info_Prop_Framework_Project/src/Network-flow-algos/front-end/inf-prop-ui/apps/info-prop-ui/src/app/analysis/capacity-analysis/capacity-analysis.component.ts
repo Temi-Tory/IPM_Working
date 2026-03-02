@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, computed, signal, ChangeDetectorRef, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -112,6 +113,12 @@ interface ComparisonEdgeRow {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface SummaryObservation {
+  icon: string;
+  text: string;
+  severity: 'info' | 'warning' | 'good';
+}
+
 @Component({
   selector: 'app-capacity-analysis',
   standalone: true,
@@ -144,6 +151,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   private capacityAnalysisService = inject(CapacityAnalysisService);
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -184,9 +192,9 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   activeTab = computed((): ScenarioTabState | null => {
     const tabs = this.scenarioTabs();
     const keys = Array.from(tabs.keys());
-    const idx = this.activeTabIndex();
-    if (idx < 0 || idx >= keys.length) return null;
-    return tabs.get(keys[idx]) || null;
+    const scenarioIdx = this.activeTabIndex() - 1; // offset for Summary tab at index 0
+    if (scenarioIdx < 0 || scenarioIdx >= keys.length) return null;
+    return tabs.get(keys[scenarioIdx]) || null;
   });
 
   // ─── Computed: network info ───────────────────────────────────────────────
@@ -433,6 +441,80 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
     return count;
   });
 
+  // ─── Computed: cross-scenario summary ────────────────────────────────────
+  crossScenarioSummary = computed((): { observations: SummaryObservation[] } | null => {
+    const tabs = this.scenarioTabs();
+    const computedTabs = Array.from(tabs.entries()).filter(([, t]) => t.status === 'computed');
+    if (computedTabs.length === 0) return null;
+
+    const observations: SummaryObservation[] = [];
+
+    observations.push({
+      icon: 'assessment',
+      text: `${computedTabs.length}/${tabs.size} scenarios computed`,
+      severity: computedTabs.length === tabs.size ? 'good' : 'info'
+    });
+
+    // Network utilization ranking
+    const utilRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, util: tab.metrics?.networkUtilization ?? 0 }))
+      .sort((a, b) => a.util - b.util);
+
+    if (utilRanking.length >= 2) {
+      const progression = utilRanking.map(v => `${(v.util * 100).toFixed(1)}% (${v.name})`).join(' < ');
+      observations.push({
+        icon: 'speed',
+        text: `Utilisation: ${progression}`,
+        severity: utilRanking[utilRanking.length - 1].util > 0.9 ? 'warning' : 'info'
+      });
+    } else if (utilRanking.length === 1) {
+      observations.push({
+        icon: 'speed',
+        text: `${utilRanking[0].name}: ${(utilRanking[0].util * 100).toFixed(1)}% utilisation`,
+        severity: utilRanking[0].util > 0.9 ? 'warning' : utilRanking[0].util > 0.7 ? 'info' : 'good'
+      });
+    }
+
+    // Bottleneck count progression
+    const bnRanking = computedTabs
+      .map(([, tab]) => ({ name: tab.scenario.displayName, count: tab.metrics?.bottleneckCount ?? 0 }))
+      .sort((a, b) => a.count - b.count);
+
+    if (bnRanking.length >= 2 && bnRanking[bnRanking.length - 1].count > 0) {
+      const progression = bnRanking.map(v => `${v.count} (${v.name})`).join(' < ');
+      observations.push({
+        icon: 'block',
+        text: `Bottleneck count: ${progression}`,
+        severity: bnRanking[bnRanking.length - 1].count > 3 ? 'warning' : 'info'
+      });
+    } else if (bnRanking.length >= 1 && bnRanking.every(v => v.count === 0)) {
+      observations.push({ icon: 'check_circle', text: 'No bottlenecks detected in any scenario', severity: 'good' });
+    }
+
+    // Recurring bottleneck edges
+    const bottleneckEdgeCounts = new Map<string, number>();
+    for (const [, tab] of computedTabs) {
+      const bottlenecks = tab.edgeResults.filter(e => e.isBottleneck);
+      for (const bn of bottlenecks) {
+        bottleneckEdgeCounts.set(bn.edgeKey, (bottleneckEdgeCounts.get(bn.edgeKey) || 0) + 1);
+      }
+    }
+    const recurring = Array.from(bottleneckEdgeCounts.entries())
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1]);
+
+    if (recurring.length > 0) {
+      const topEdges = recurring.slice(0, 3).map(([key, count]) => `${key} (${count}x)`).join(', ');
+      observations.push({
+        icon: 'warning',
+        text: `Recurring bottleneck edges: ${topEdges}`,
+        severity: 'warning'
+      });
+    }
+
+    return { observations };
+  });
+
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   private static readonly VIEW_KEY = 'capacity-analysis';
@@ -460,16 +542,22 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       for (const [name, tab] of cached.tabs.entries()) {
         if ((tab as any).rawScenario) this.scenarioResults.set(name, (tab as any).rawScenario);
       }
-      return;
+      this.pushToCentralizedState();
+    } else {
+      this.loadScenarios();
     }
 
-    this.loadScenarios();
-    this.runAllScenarios();
+    // Drilldown support: if navigated from system profile with ?scenario=X, select that tab
+    const scenarioParam = this.route.snapshot.queryParamMap.get('scenario');
+    if (scenarioParam) {
+      const idx = this.scenarioNames().indexOf(scenarioParam);
+      if (idx >= 0) this.activeTabIndex.set(idx + 1);
+    }
   }
 
   ngOnDestroy(): void {
     // Save current tab's UI state before persisting
-    const currentName = this.scenarioNames()[this.activeTabIndex()];
+    const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
       this.updateTabState(currentName, {
         searchTerm: this.activeSearchTerm(),
@@ -497,6 +585,17 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
         compareScenarioName: this.compareScenarioName()
       }
     );
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    this.analysisStateService.setMultiScenarioCapacityResults({
+      scenarios: new Map(this.scenarioResults) as Map<string, CapacityScenario>,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -630,6 +729,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       });
 
       this.scenarioResults.set(scenarioName, raw);
+      this.pushToCentralizedState();
       this.cdr.detectChanges();
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Capacity analysis failed';
@@ -750,32 +850,40 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   }
 
   onTabChange(index: number): void {
-    // Save current tab's UI state
-    const currentName = this.scenarioNames()[this.activeTabIndex()];
-    if (currentName) {
-      this.updateTabState(currentName, {
-        searchTerm: this.activeSearchTerm(),
-        selectedNodeTypes: this.activeSelectedNodeTypes(),
-        pageIndex: this.activePageIndex(),
-        pageSize: this.activePageSize(),
-        sortColumn: this.activeSortColumn(),
-        sortDirection: this.activeSortDirection()
-      });
+    // Save current tab's UI state (skip for Summary tab)
+    if (this.activeTabIndex() > 0) {
+      const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
+      if (currentName) {
+        this.updateTabState(currentName, {
+          searchTerm: this.activeSearchTerm(),
+          selectedNodeTypes: this.activeSelectedNodeTypes(),
+          pageIndex: this.activePageIndex(),
+          pageSize: this.activePageSize(),
+          sortColumn: this.activeSortColumn(),
+          sortDirection: this.activeSortDirection()
+        });
+      }
     }
 
     this.activeTabIndex.set(index);
 
-    // Restore new tab's UI state
-    const newName = this.scenarioNames()[index];
-    const newTab = this.scenarioTabs().get(newName);
-    if (newTab) {
-      this.activeSearchTerm.set(newTab.searchTerm);
-      this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
-      this.activePageIndex.set(newTab.pageIndex);
-      this.activePageSize.set(newTab.pageSize);
-      this.activeSortColumn.set(newTab.sortColumn);
-      this.activeSortDirection.set(newTab.sortDirection);
+    // Restore new tab's UI state (skip for Summary tab)
+    if (index > 0) {
+      const newName = this.scenarioNames()[index - 1];
+      const newTab = this.scenarioTabs().get(newName);
+      if (newTab) {
+        this.activeSearchTerm.set(newTab.searchTerm);
+        this.activeSelectedNodeTypes.set(newTab.selectedNodeTypes);
+        this.activePageIndex.set(newTab.pageIndex);
+        this.activePageSize.set(newTab.pageSize);
+        this.activeSortColumn.set(newTab.sortColumn);
+        this.activeSortDirection.set(newTab.sortDirection);
+      }
     }
+  }
+
+  getTabStatus(name: string): string {
+    return this.scenarioTabs().get(name)?.status || 'idle';
   }
 
   // ─── UI event handlers ──────────────────────────────────────────────────

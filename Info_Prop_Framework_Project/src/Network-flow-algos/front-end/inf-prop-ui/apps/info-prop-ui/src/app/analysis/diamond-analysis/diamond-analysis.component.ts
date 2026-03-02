@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -101,6 +101,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private activatedRoute = inject(ActivatedRoute);
 
   @ViewChild(MatPaginator) set paginatorRef(paginator: MatPaginator) {
     if (paginator && this.dataSource) {
@@ -264,12 +265,18 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       }
       this.restoreActiveTabUIState();
       this.updateFilterRanges();
-      return;
+    } else {
+      // Normal initialization
+      this.loadScenarios();
+      // Manual trigger — don't auto-run. Tabs start as 'idle'.
     }
 
-    // Normal initialization
-    this.loadScenarios();
-    // Manual trigger — don't auto-run. Tabs start as 'idle'.
+    // Drilldown support: if navigated from system profile with ?scenario=X, select that tab
+    const scenarioParam = this.activatedRoute.snapshot.queryParamMap.get('scenario');
+    if (scenarioParam) {
+      const idx = this.scenarioNames().indexOf(scenarioParam);
+      if (idx >= 0) this.activeTabIndex.set(idx);
+    }
   }
 
   ngOnDestroy(): void {

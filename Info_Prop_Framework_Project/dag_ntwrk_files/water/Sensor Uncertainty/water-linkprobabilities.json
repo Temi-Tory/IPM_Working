@@ -1,0 +1,337 @@
+{
+  "links": {
+    "(1,9)": {
+      "lower": 0.8487,
+      "upper": 0.9578,
+      "type": "interval"
+    },
+    "(1,11)": {
+      "lower": 0.662,
+      "upper": 0.8846,
+      "type": "interval"
+    },
+    "(2,10)": {
+      "lower": 0.8544,
+      "upper": 0.9744,
+      "type": "interval"
+    },
+    "(2,11)": {
+      "lower": 0.6496,
+      "upper": 0.8886,
+      "type": "interval"
+    },
+    "(2,12)": {
+      "lower": 0.6811,
+      "upper": 0.9092,
+      "type": "interval"
+    },
+    "(3,11)": {
+      "lower": 0.856,
+      "upper": 0.9497,
+      "type": "interval"
+    },
+    "(3,13)": {
+      "lower": 0.6091,
+      "upper": 0.8441,
+      "type": "interval"
+    },
+    "(3,14)": {
+      "lower": 0.6325,
+      "upper": 0.8409,
+      "type": "interval"
+    },
+    "(4,12)": {
+      "lower": 0.8433,
+      "upper": 0.9571,
+      "type": "interval"
+    },
+    "(4,15)": {
+      "lower": 0.5853,
+      "upper": 0.8325,
+      "type": "interval"
+    },
+    "(5,11)": {
+      "lower": 0.5319,
+      "upper": 0.7728,
+      "type": "interval"
+    },
+    "(5,13)": {
+      "lower": 0.8351,
+      "upper": 0.9671,
+      "type": "interval"
+    },
+    "(5,16)": {
+      "lower": 0.6059,
+      "upper": 0.8514,
+      "type": "interval"
+    },
+    "(6,11)": {
+      "lower": 0.5056,
+      "upper": 0.7774,
+      "type": "interval"
+    },
+    "(6,14)": {
+      "lower": 0.8425,
+      "upper": 0.9674,
+      "type": "interval"
+    },
+    "(6,16)": {
+      "lower": 0.6116,
+      "upper": 0.8273,
+      "type": "interval"
+    },
+    "(7,12)": {
+      "lower": 0.5352,
+      "upper": 0.7922,
+      "type": "interval"
+    },
+    "(7,15)": {
+      "lower": 0.8548,
+      "upper": 0.9549,
+      "type": "interval"
+    },
+    "(7,16)": {
+      "lower": 0.6054,
+      "upper": 0.8396,
+      "type": "interval"
+    },
+    "(8,13)": {
+      "lower": 0.5006,
+      "upper": 0.7627,
+      "type": "interval"
+    },
+    "(8,14)": {
+      "lower": 0.5039,
+      "upper": 0.7499,
+      "type": "interval"
+    },
+    "(8,16)": {
+      "lower": 0.8555,
+      "upper": 0.9574,
+      "type": "interval"
+    },
+    "(9,17)": {
+      "lower": 0.8442,
+      "upper": 0.975,
+      "type": "interval"
+    },
+    "(9,19)": {
+      "lower": 0.6624,
+      "upper": 0.8713,
+      "type": "interval"
+    },
+    "(10,18)": {
+      "lower": 0.8592,
+      "upper": 0.9462,
+      "type": "interval"
+    },
+    "(10,19)": {
+      "lower": 0.6625,
+      "upper": 0.8725,
+      "type": "interval"
+    },
+    "(10,20)": {
+      "lower": 0.6782,
+      "upper": 0.8852,
+      "type": "interval"
+    },
+    "(11,19)": {
+      "lower": 0.8381,
+      "upper": 0.9722,
+      "type": "interval"
+    },
+    "(11,21)": {
+      "lower": 0.6267,
+      "upper": 0.8528,
+      "type": "interval"
+    },
+    "(11,22)": {
+      "lower": 0.62,
+      "upper": 0.862,
+      "type": "interval"
+    },
+    "(12,20)": {
+      "lower": 0.8521,
+      "upper": 0.9512,
+      "type": "interval"
+    },
+    "(12,23)": {
+      "lower": 0.5689,
+      "upper": 0.8346,
+      "type": "interval"
+    },
+    "(13,19)": {
+      "lower": 0.5119,
+      "upper": 0.7728,
+      "type": "interval"
+    },
+    "(13,21)": {
+      "lower": 0.844,
+      "upper": 0.9677,
+      "type": "interval"
+    },
+    "(13,24)": {
+      "lower": 0.6028,
+      "upper": 0.8541,
+      "type": "interval"
+    },
+    "(14,19)": {
+      "lower": 0.5181,
+      "upper": 0.7816,
+      "type": "interval"
+    },
+    "(14,22)": {
+      "lower": 0.8604,
+      "upper": 0.9577,
+      "type": "interval"
+    },
+    "(14,24)": {
+      "lower": 0.5866,
+      "upper": 0.8273,
+      "type": "interval"
+    },
+    "(15,20)": {
+      "lower": 0.5534,
+      "upper": 0.7978,
+      "type": "interval"
+    },
+    "(15,23)": {
+      "lower": 0.8476,
+      "upper": 0.9641,
+      "type": "interval"
+    },
+    "(15,24)": {
+      "lower": 0.6019,
+      "upper": 0.8402,
+      "type": "interval"
+    },
+    "(16,21)": {
+      "lower": 0.4921,
+      "upper": 0.7625,
+      "type": "interval"
+    },
+    "(16,22)": {
+      "lower": 0.5105,
+      "upper": 0.7522,
+      "type": "interval"
+    },
+    "(16,24)": {
+      "lower": 0.8364,
+      "upper": 0.9655,
+      "type": "interval"
+    },
+    "(17,25)": {
+      "lower": 0.8578,
+      "upper": 0.9632,
+      "type": "interval"
+    },
+    "(17,27)": {
+      "lower": 0.645,
+      "upper": 0.8712,
+      "type": "interval"
+    },
+    "(18,26)": {
+      "lower": 0.8514,
+      "upper": 0.9478,
+      "type": "interval"
+    },
+    "(18,27)": {
+      "lower": 0.6607,
+      "upper": 0.8811,
+      "type": "interval"
+    },
+    "(18,28)": {
+      "lower": 0.6729,
+      "upper": 0.8886,
+      "type": "interval"
+    },
+    "(19,27)": {
+      "lower": 0.8374,
+      "upper": 0.9724,
+      "type": "interval"
+    },
+    "(19,29)": {
+      "lower": 0.6304,
+      "upper": 0.8414,
+      "type": "interval"
+    },
+    "(19,30)": {
+      "lower": 0.6336,
+      "upper": 0.8644,
+      "type": "interval"
+    },
+    "(20,28)": {
+      "lower": 0.8634,
+      "upper": 0.9524,
+      "type": "interval"
+    },
+    "(20,31)": {
+      "lower": 0.5762,
+      "upper": 0.8058,
+      "type": "interval"
+    },
+    "(21,27)": {
+      "lower": 0.5141,
+      "upper": 0.7912,
+      "type": "interval"
+    },
+    "(21,29)": {
+      "lower": 0.8442,
+      "upper": 0.9746,
+      "type": "interval"
+    },
+    "(21,32)": {
+      "lower": 0.608,
+      "upper": 0.8412,
+      "type": "interval"
+    },
+    "(22,27)": {
+      "lower": 0.5328,
+      "upper": 0.7899,
+      "type": "interval"
+    },
+    "(22,30)": {
+      "lower": 0.8359,
+      "upper": 0.9509,
+      "type": "interval"
+    },
+    "(22,32)": {
+      "lower": 0.586,
+      "upper": 0.8462,
+      "type": "interval"
+    },
+    "(23,28)": {
+      "lower": 0.5371,
+      "upper": 0.7923,
+      "type": "interval"
+    },
+    "(23,31)": {
+      "lower": 0.8557,
+      "upper": 0.9546,
+      "type": "interval"
+    },
+    "(23,32)": {
+      "lower": 0.6102,
+      "upper": 0.8382,
+      "type": "interval"
+    },
+    "(24,29)": {
+      "lower": 0.496,
+      "upper": 0.7599,
+      "type": "interval"
+    },
+    "(24,30)": {
+      "lower": 0.4941,
+      "upper": 0.7694,
+      "type": "interval"
+    },
+    "(24,32)": {
+      "lower": 0.8509,
+      "upper": 0.9511,
+      "type": "interval"
+    }
+  },
+  "data_type": "Interval",
+  "serialization": "compact",
+  "description": "Link/edge probabilities (interval) for WATER network - Sensor Uncertainty scenario. Sensors approaching end of calibration cycle. Measurements have significant uncertainty bounds. Plant operating near normal but sensor readings are imprecise."
+}

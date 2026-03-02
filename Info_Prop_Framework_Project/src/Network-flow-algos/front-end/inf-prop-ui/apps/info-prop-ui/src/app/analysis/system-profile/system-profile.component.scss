@@ -1,0 +1,203 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// System Profile Component Styles
+// Uses app CSS variables for theming. Dark mode via [data-theme="dark"].
+// ═══════════════════════════════════════════════════════════════════════════════
+
+.system-profile-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.header-card {
+  background: linear-gradient(135deg, var(--primary-color-dark) 0%, var(--primary-color) 100%);
+  color: var(--on-primary);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0 0 4px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.95rem;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+
+  .header-actions {
+    button {
+      color: var(--on-primary);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+// ─── Loading State ───────────────────────────────────────────────────────────
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+// ─── Error State ─────────────────────────────────────────────────────────────
+
+.error-card {
+  background: rgba(220, 50, 47, 0.06);
+  border: 1px solid rgba(220, 50, 47, 0.3);
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #dc322f;
+
+  mat-icon { font-size: 24px; flex-shrink: 0; }
+  span { flex: 1; }
+  button { flex-shrink: 0; }
+}
+
+// ─── Empty State ─────────────────────────────────────────────────────────────
+
+.empty-card {
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+}
+
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+
+  h3 { margin: 0; color: var(--text-primary); }
+  p { margin: 0; color: var(--text-secondary); max-width: 400px; }
+}
+
+.empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--primary-color);
+  opacity: 0.6;
+}
+
+// ─── Bottom Grid (Cards + Alerts side by side) ─────────────────────────────
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.scenario-cards-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--primary-color);
+  }
+}
+
+.scenario-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+// ─── Profile Meta Footer ─────────────────────────────────────────────────────
+
+.profile-meta {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+// ─── Responsive ──────────────────────────────────────────────────────────────
+
+@media (max-width: 1100px) {
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .scenario-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+// ─── Dark mode adjustments ───────────────────────────────────────────────────
+
+[data-theme="dark"] {
+  .header-card {
+    background: linear-gradient(135deg, var(--surface-color), var(--surface-container));
+  }
+}

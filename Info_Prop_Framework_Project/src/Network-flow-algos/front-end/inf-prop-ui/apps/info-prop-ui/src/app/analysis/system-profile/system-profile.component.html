@@ -1,0 +1,110 @@
+<!-- Header -->
+<mat-card class="header-card">
+  <mat-card-content>
+    <div class="header-content">
+      <div>
+        <h2>System Profile</h2>
+        <p class="subtitle">Executive dashboard — cross-scenario analysis overview</p>
+      </div>
+      <div class="header-actions">
+        @if (hasData()) {
+        <button mat-stroked-button (click)="generateProfile()" matTooltip="Re-generate profile with latest data">
+          <mat-icon>refresh</mat-icon> Refresh
+        </button>
+        }
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Loading State -->
+@if (isLoading()) {
+<div class="loading-state">
+  <mat-spinner diameter="48"></mat-spinner>
+  <p>Running all scenario analyses and aggregating results...</p>
+</div>
+}
+
+<!-- Error State -->
+@if (error(); as err) {
+<mat-card class="error-card">
+  <mat-card-content>
+    <div class="error-content">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ err }}</span>
+      <button mat-stroked-button (click)="generateProfile()">
+        <mat-icon>refresh</mat-icon> Retry
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+}
+
+<!-- Empty State -->
+@if (!isLoading() && !error() && !hasData()) {
+<mat-card class="empty-card">
+  <mat-card-content>
+    <div class="empty-content">
+      <mat-icon class="empty-icon">analytics</mat-icon>
+      <h3>No profile data</h3>
+      <p>Run some analyses first (Capacity, Time, Exact Inference), then return here to see the cross-scenario
+        overview.</p>
+      <button mat-flat-button color="primary" (click)="generateProfile()">
+        <mat-icon>play_arrow</mat-icon> Generate Profile
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+}
+
+<!-- Dashboard Content -->
+@if (hasData() && !isLoading()) {
+
+<!-- 1. Network Identity Card -->
+@if (networkInfo(); as info) {
+<app-network-identity-card [networkInfo]="info" />
+}
+
+<!-- 2. Scenario Status Matrix -->
+<!--  <app-scenario-status-matrix
+      [scenarioResults]="scenarioResults()"
+      (scenarioClicked)="onScenarioClicked($event)" /> -->
+
+<!-- 3. Cross-Scenario Metrics Heatmap (the centrepiece) -->
+@if (metricRows().length > 0) {
+<app-metrics-heatmap [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()"
+  (cellClicked)="onCellClicked($event)" />
+}
+
+<!-- 4. Cross-Scenario Insights -->
+@if (metricRows().length > 0) {
+<app-cross-scenario-insights [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()" />
+}
+
+<!-- 5. Scenario Cards + Hotspot Alerts (side by side on wide screens) -->
+<div class="bottom-grid">
+  @if (metricRows().length > 0) {
+  <div class="scenario-cards-section">
+    <h4 class="section-title">
+      <mat-icon>dashboard</mat-icon>
+      Scenario Summaries
+    </h4>
+    <div class="scenario-cards-grid">
+      @for (row of metricRows(); track row.scenario) {
+      <app-scenario-card [row]="row" [aggregatedMetrics]="aggregatedMetrics()" />
+      }
+    </div>
+  </div>
+  }
+
+  <app-hotspot-alerts [alerts]="hotspotAlerts()" />
+</div>
+
+<!-- Footer meta -->
+<div class="profile-meta">
+  Generated at {{ profileData()!.generatedAt | date:'medium' }}
+  &middot; {{ scenarioResults().size }} scenarios
+  &middot; {{ profileData()!.computationTime }}ms total
+</div>
+
+}

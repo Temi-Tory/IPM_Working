@@ -1,28 +1,33 @@
-import { 
-  ScenarioInfo, 
-  DiamondAnalysisResult, 
-  ExactInferenceResult, 
-  CapacityScenario, 
+import {
+  ScenarioInfo,
+  DiamondAnalysisResult,
+  ExactInferenceResult,
+  CapacityScenario,
   CpmScenario,
-  NetworkStructure 
+  NetworkStructure
 } from './network-analysis.models';
 
 /**
  * System Profile Data Models
- * 
- * Comprehensive interfaces for system-wide analysis aggregation
- * and visualization across multiple scenarios and analysis types.
+ *
+ * Interfaces for the system profile executive dashboard.
+ * All metrics are factual (directly from API responses) — no fabricated scores.
  */
+
+// ─── Core Profile Data ───────────────────────────────────────────────
 
 export interface SystemProfileData {
   networkInfo: NetworkInfo;
   scenarioResults: Map<string, ScenarioAnalysisResult>;
-  aggregatedMetrics: SystemMetrics;
+  aggregatedMetrics: AggregatedMetrics;
+  metricRows: ScenarioMetricRow[];
+  hotspotAlerts: HotspotAlert[];
   visualizationData: VisualizationDataPoint[];
-  recommendations: SystemRecommendation[];
   generatedAt: string;
   computationTime: number;
 }
+
+// ─── Network Identity ────────────────────────────────────────────────
 
 export interface NetworkInfo {
   name: string;
@@ -42,7 +47,6 @@ export interface NetworkComplexity {
   edgeNodeRatio: number;
   averageDegree: number;
   maxDegree: number;
-  clustering: number;
 }
 
 export interface NetworkTopology {
@@ -53,83 +57,98 @@ export interface NetworkTopology {
   convergencePoints: number;
 }
 
+// ─── Per-Scenario Results ────────────────────────────────────────────
+
 export interface ScenarioAnalysisResult {
   scenarioName: string;
   analysisType: 'reachability' | 'capacity' | 'cpm';
   dataType: 'float' | 'interval' | 'pbox';
   computationTime: number;
-  keyMetrics: Record<string, number>;
-  riskAssessment: RiskAssessment;
-  performanceMetrics: PerformanceMetrics;
-  // Raw analysis results
+  status: 'complete' | 'partial' | 'failed';
+  keyMetrics: Record<string, number | string | null>;
+  // Raw analysis results for drilldown
   diamondAnalysis?: DiamondAnalysisResult;
   exactInference?: ExactInferenceResult;
   capacityAnalysis?: CapacityScenario;
   cpmAnalysis?: CpmScenario;
 }
 
-export interface RiskAssessment {
-  overallRisk: 'low' | 'medium' | 'high' | 'critical';
-  riskScore: number;
-  riskFactors: RiskFactor[];
-  mitigationStrategies: string[];
+// ─── Heatmap Data ────────────────────────────────────────────────────
+
+export interface ProfileMetricDefinition {
+  key: string;
+  label: string;
+  shortLabel: string;
+  unit: string;
+  source: 'capacity' | 'cpm' | 'reachability' | 'diamond';
+  higherIsBetter: boolean;
+  format: 'percent' | 'number' | 'integer' | 'duration' | 'probability';
 }
 
-export interface RiskFactor {
-  type: 'bottleneck' | 'single-point-failure' | 'cascade' | 'complexity' | 'uncertainty';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  description: string;
-  affectedNodes: number[];
-  likelihood: number;
-  impact: number;
+export interface ScenarioMetricRow {
+  scenario: string;
+  analysisTypes: string[];
+  dataType: string;
+  status: 'complete' | 'partial' | 'failed';
+  metrics: Record<string, number | string | null>;
+  computationTime: number;
 }
 
-export interface PerformanceMetrics {
-  throughput: number;
-  latency: number;
-  reliability: number;
-  efficiency: number;
-  scalability: number;
-  robustness: number;
-}
+// ─── Aggregated Metrics (factual min/max/mean across scenarios) ─────
 
-export interface SystemMetrics {
-  // Network-wide metrics
-  networkUtilization: number;
-  averageComplexity: number;
-  maxComplexity: number;
-  bottleneckCount: number;
-  singlePointFailures: number;
-  
-  // Performance metrics
-  averageComputationTime: number;
+export interface AggregatedMetrics {
+  scenarioCount: number;
   totalComputationTime: number;
-  memoryUsage: number;
-  
-  // Risk metrics
-  overallRiskScore: number;
-  criticalPathRisk: 'low' | 'medium' | 'high' | 'critical';
-  cascadeRisk: number;
-  uncertaintyLevel: number;
-  
-  // Reliability metrics
-  systemReliability: number;
-  redundancyLevel: number;
-  failureResistance: number;
-  
-  // Efficiency metrics
-  resourceUtilization: number;
-  pathEfficiency: number;
-  informationFlow: number;
+  averageComputationTime: number;
+  // Per-metric aggregation for heatmap normalisation
+  metricRanges: Record<string, MetricRange>;
 }
+
+export interface MetricRange {
+  min: number;
+  max: number;
+  mean: number;
+  values: { scenario: string; value: number }[];
+}
+
+// ─── Hotspot Alerts ──────────────────────────────────────────────────
+
+export interface HotspotAlert {
+  id: string;
+  severity: 'info' | 'warning' | 'critical';
+  metric: string;
+  scenario: string;
+  value: number | string;
+  message: string;
+  drilldownRoute: string;
+  drilldownParams: Record<string, string>;
+}
+
+// ─── Scenario Comparison ─────────────────────────────────────────────
+
+export interface ScenarioComparison {
+  baselineScenario: string;
+  scenarios: string[];
+  deltas: Map<string, Record<string, number | null>>;
+  insights: ComparisonInsight[];
+}
+
+export interface ComparisonInsight {
+  type: 'improvement' | 'degradation' | 'trade-off' | 'anomaly';
+  severity: 'minor' | 'moderate' | 'significant' | 'critical';
+  description: string;
+  affectedMetrics: string[];
+}
+
+// ─── Visualization Types ─────────────────────────────────────────────
 
 export interface VisualizationDataPoint {
   id: string;
-  type: 'bar' | 'histogram' | 'heatmap' | 'network' | 'radar' | 'scatter' | 'line';
-  category: 'performance' | 'risk' | 'topology' | 'comparison' | 'trend';
+  type: 'bar' | 'grouped-bar' | 'heatmap' | 'radar';
+  category: 'comparison' | 'fingerprint' | 'overview';
   title: string;
   description: string;
-  data: any; // Flexible data structure for different chart types
+  data: any;
   config: VisualizationConfig;
   metadata: {
     scenarios: string[];
@@ -142,154 +161,27 @@ export interface VisualizationDataPoint {
 export interface VisualizationConfig {
   width?: number;
   height?: number;
-  margins?: { top: number; right: number; bottom: number; left: number; };
+  margins?: { top: number; right: number; bottom: number; left: number };
   colors?: string[];
-  scales?: {
-    x?: 'linear' | 'ordinal' | 'time' | 'log';
-    y?: 'linear' | 'ordinal' | 'time' | 'log';
-  };
-  axes?: {
-    x?: { label: string; format?: string; };
-    y?: { label: string; format?: string; };
-  };
-  legend?: boolean;
   interactive?: boolean;
   animations?: boolean;
 }
 
-export interface SystemRecommendation {
-  id: string;
-  type: 'optimization' | 'risk-mitigation' | 'performance' | 'reliability';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  title: string;
-  description: string;
-  impact: string;
-  effort: 'low' | 'medium' | 'high';
-  affectedComponents: string[];
-  expectedBenefit: number;
-  implementationSteps: string[];
-}
-
-export interface ScenarioComparison {
-  scenarios: string[];
-  comparisonType: 'side-by-side' | 'overlay' | 'difference' | 'trend';
-  metrics: ComparisonMetrics;
-  visualizations: VisualizationDataPoint[];
-  insights: ComparisonInsight[];
-}
-
-export interface ComparisonMetrics {
-  performanceDelta: Record<string, number>;
-  riskDelta: Record<string, number>;
-  reliabilityDelta: Record<string, number>;
-  efficiencyDelta: Record<string, number>;
-  computationTimeDelta: Record<string, number>;
-}
-
-export interface ComparisonInsight {
-  type: 'improvement' | 'degradation' | 'trade-off' | 'anomaly';
-  severity: 'minor' | 'moderate' | 'significant' | 'critical';
-  description: string;
-  affectedMetrics: string[];
-  recommendation?: string;
-}
-
-export interface SystemHealthStatus {
-  overall: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  score: number;
-  components: {
-    performance: HealthComponent;
-    reliability: HealthComponent;
-    efficiency: HealthComponent;
-    risk: HealthComponent;
-  };
-  trends: {
-    improving: string[];
-    degrading: string[];
-    stable: string[];
-  };
-}
-
-export interface HealthComponent {
-  status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  score: number;
-  factors: string[];
-  recommendations: string[];
-}
-
 export interface D3VisualizationData {
-  // Bar Chart Data
-  barData?: {
-    categories: string[];
-    values: number[];
-    colors?: string[];
-    labels?: string[];
-  };
-  
-  // Histogram Data
-  histogramData?: {
-    bins: { x0: number; x1: number; count: number; }[];
-    statistics: {
-      mean: number;
-      median: number;
-      std: number;
-      min: number;
-      max: number;
-    };
-  };
-  
-  // Heatmap Data
-  heatmapData?: {
-    matrix: number[][];
-    rowLabels: string[];
-    columnLabels: string[];
-    colorScale: { min: number; max: number; };
-  };
-  
-  // Network Data
-  networkData?: {
-    nodes: { id: string; group: number; value: number; }[];
-    links: { source: string; target: string; value: number; }[];
-    clusters?: { id: string; nodes: string[]; }[];
-  };
-  
-  // Radar Chart Data
-  radarData?: {
-    axes: string[];
-    datasets: {
-      name: string;
-      values: number[];
-      color: string;
-    }[];
-  };
-  
-  // Scatter Plot Data
-  scatterData?: {
-    points: { x: number; y: number; label: string; category: string; }[];
-    xAxis: { label: string; domain: [number, number]; };
-    yAxis: { label: string; domain: [number, number]; };
-  };
-  
-  // Line Chart Data
-  lineData?: {
-    series: {
-      name: string;
-      data: { x: number | string; y: number; }[];
-      color: string;
-    }[];
-    xAxis: { label: string; type: 'linear' | 'time' | 'ordinal'; };
-    yAxis: { label: string; type: 'linear' | 'log'; };
+  // Heatmap Table — scenarios × metrics with heat coloring
+  heatmapTableData?: {
+    rows: ScenarioMetricRow[];
+    columns: ProfileMetricDefinition[];
+    colorScale: { min: number; max: number; colorRange: [string, string] };
   };
 }
+
+// ─── Request/Response ────────────────────────────────────────────────
 
 export interface SystemProfileRequest {
   networkPath: string;
   scenarios: ScenarioInfo[];
   analysisTypes: ('reachability' | 'capacity' | 'cpm')[];
-  includeVisualizations: boolean;
-  includeRecommendations: boolean;
-  comparisonMode?: boolean;
-  selectedScenarios?: string[];
 }
 
 export interface SystemProfileResponse {
@@ -301,6 +193,100 @@ export interface SystemProfileResponse {
     generatedAt: string;
     computationTime: number;
     scenariosProcessed: number;
-    visualizationsGenerated: number;
   };
 }
+
+// ─── Metric Definitions (constant, drives heatmap columns) ──────────
+
+export const PROFILE_METRICS: ProfileMetricDefinition[] = [
+  {
+    key: 'networkUtilization',
+    label: 'Network Utilisation',
+    shortLabel: 'Util %',
+    unit: '%',
+    source: 'capacity',
+    higherIsBetter: false,
+    format: 'percent'
+  },
+  {
+    key: 'bottleneckCount',
+    label: 'Bottlenecks',
+    shortLabel: 'Bottl.',
+    unit: 'count',
+    source: 'capacity',
+    higherIsBetter: false,
+    format: 'integer'
+  },
+  {
+    key: 'criticalPathDuration',
+    label: 'Critical Path Duration',
+    shortLabel: 'Crit. Path',
+    unit: 'time',
+    source: 'cpm',
+    higherIsBetter: false,
+    format: 'number'
+  },
+  {
+    key: 'totalSlack',
+    label: 'Total Slack',
+    shortLabel: 'Slack',
+    unit: 'time',
+    source: 'cpm',
+    higherIsBetter: true,
+    format: 'number'
+  },
+  {
+    key: 'criticalNodeCount',
+    label: 'Critical Nodes',
+    shortLabel: 'Crit. Nodes',
+    unit: 'count',
+    source: 'cpm',
+    higherIsBetter: false,
+    format: 'integer'
+  },
+  {
+    key: 'meanBelief',
+    label: 'Sink Reachability (Mean)',
+    shortLabel: 'Belief',
+    unit: 'probability',
+    source: 'reachability',
+    higherIsBetter: true,
+    format: 'probability'
+  },
+  {
+    key: 'beliefSpread',
+    label: 'Belief Spread',
+    shortLabel: 'Spread',
+    unit: 'probability',
+    source: 'reachability',
+    higherIsBetter: false,
+    format: 'probability'
+  },
+  {
+    key: 'diamondEfficiency',
+    label: 'Diamond Efficiency',
+    shortLabel: 'Dia. Eff.',
+    unit: 'ratio',
+    source: 'diamond',
+    higherIsBetter: true,
+    format: 'number'
+  },
+  {
+    key: 'rootDiamondCount',
+    label: 'Root Diamonds',
+    shortLabel: 'Diamonds',
+    unit: 'count',
+    source: 'diamond',
+    higherIsBetter: false,
+    format: 'integer'
+  },
+  {
+    key: 'computationTime',
+    label: 'Computation Time',
+    shortLabel: 'Time',
+    unit: 's',
+    source: 'reachability',
+    higherIsBetter: false,
+    format: 'duration'
+  }
+];

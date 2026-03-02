@@ -284,25 +284,13 @@ module ReachabilityModule
     end
 
     function inclusion_exclusion(belief_values::Vector{T}) where {T <: Union{Float64, pbox, Interval}}
-        combined_belief = zero_value(T)
-        num_beliefs = length(belief_values)
-        
-
-        for i in 1:num_beliefs
-            # Iterate through all possible combinations of belief values
-            for combination in combinations(belief_values, i)
-                # Calculate the intersection probability of the current combination
-                intersection_probability = prod_values(collect(combination))
-
-                # Add or subtract the intersection probability based on the number of beliefs in the combination
-                if isodd(i)
-                    combined_belief = add_values(combined_belief, intersection_probability)
-                else
-                    combined_belief = subtract_values(combined_belief, intersection_probability)
-                end
-            end
+        # P(A₁ ∪ ... ∪ Aₙ) = 1 - ∏(1 - P(Aᵢ))  for independent events
+        # Each variable appears once, avoiding the interval dependency problem
+        survival = one_value(T)
+        for bv in belief_values
+            survival = multiply_values(survival, complement_value(bv))
         end
-        return combined_belief
+        return complement_value(survival)
     end
 
    
@@ -372,57 +360,34 @@ module ReachabilityModule
         conditioning_nodes_list = collect(unique(conditioning_nodes))
 
 
-        # Generate all possible states of conditioning nodes (0 or 1)
-        final_belief = zero_value(T)
-
-        # PARALLEL VERSION: Use Threads.@spawn for each conditioning state
-        # Each state is mathematically independent - parallelization maintains exactness
+        # ============================================================================
+        # Phase 1: Compute R(s) = join belief for each conditioning state
+        # ============================================================================
         num_states = 2^length(conditioning_nodes_list)
+        join_results = Vector{T}(undef, num_states)
 
-        # Only parallelize if we have threads available (even n=1 -> 2 states can benefit from parallelism)
-        # The real benefit comes from recursive parallelism where small diamonds contain larger nested diamonds
         use_parallel = num_states >= 2 && Threads.nthreads() > 1
 
         if use_parallel
-            # Parallel execution using tasks
             tasks = Vector{Task}(undef, num_states)
 
             for state_idx in 0:(num_states - 1)
                 tasks[state_idx + 1] = Threads.@spawn begin
-                    # Calculate state probability
-                    state_probability = one_value(T)
-                    conditioning_state = Dict{Int64, T}()
+                    current_priors = copy(sub_node_priors)
 
                     for (i, node) in enumerate(conditioning_nodes_list)
-                        # Store original belief for this node
-                        original_belief = belief_dict[node]
-
-                        # Check if the i-th bit is set
                         if (state_idx & (1 << (i-1))) != 0
-                            conditioning_state[node] = one_value(T)
-                            state_probability = multiply_values(state_probability, original_belief)
+                            current_priors[node] = one_value(T)
                         else
-                            conditioning_state[node] = zero_value(T)
-                            state_probability = multiply_values(state_probability, complement_value(original_belief))
+                            current_priors[node] = zero_value(T)
                         end
                     end
 
-                    # Make a copy of sub_node_priors for this iteration
-                    current_priors = copy(sub_node_priors)
-
-                    # Set conditioning nodes to their current state
-                    for (node, value) in conditioning_state
-                        current_priors[node] = value
-                    end
-
-                    # Generate cache key
                     cache_key = make_cache_key(diamond.edgelist, current_priors)
 
-                    # Check cache first (need lock for thread safety)
                     local state_beliefs
                     lock(diamond_cache_lock) do
                         if haskey(diamond_cache, cache_key)
-                            # Use cached result
                             cached_entry = diamond_cache[cache_key]
                             state_beliefs = cached_entry.state_beliefs
                         else
@@ -430,7 +395,6 @@ module ReachabilityModule
                         end
                     end
 
-                    # Compute if not cached (this is the expensive part - do outside lock)
                     if state_beliefs === nothing
                         state_beliefs = update_beliefs_iterative(
                             diamond.edgelist,
@@ -449,61 +413,35 @@ module ReachabilityModule
                             diamond_cache
                         )
 
-                        # Store in cache (need lock)
                         lock(diamond_cache_lock) do
-                            # Check again in case another thread computed it
                             if !haskey(diamond_cache, cache_key)
                                 diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
                             end
                         end
                     end
 
-                    # Return the weighted contribution from this state
-                    join_belief = state_beliefs[join_node]
-                    multiply_values(join_belief, state_probability)
+                    state_beliefs[join_node]
                 end
             end
 
-            # Collect results from all parallel tasks and sum (reduction)
-            for task in tasks
-                partial_result = fetch(task)
-                final_belief = add_values(final_belief, partial_result)
+            for idx in 1:num_states
+                join_results[idx] = fetch(tasks[idx])
             end
         else
-            # Sequential execution (original implementation)
             for state_idx in 0:(num_states - 1)
-                # Calculate state probability
-                state_probability = one_value(T)
-                conditioning_state = Dict{Int64, T}()
+                current_priors = copy(sub_node_priors)
 
                 for (i, node) in enumerate(conditioning_nodes_list)
-                    # Store original belief for this node
-                    original_belief = belief_dict[node]
-
-                    # Check if the i-th bit is set
                     if (state_idx & (1 << (i-1))) != 0
-                        conditioning_state[node] = one_value(T)
-                        state_probability = multiply_values(state_probability, original_belief)
+                        current_priors[node] = one_value(T)
                     else
-                        conditioning_state[node] = zero_value(T)
-                        state_probability = multiply_values(state_probability, complement_value(original_belief))
+                        current_priors[node] = zero_value(T)
                     end
                 end
 
-                # Make a copy of sub_node_priors for this iteration
-                current_priors = copy(sub_node_priors)
-
-                # Set conditioning nodes to their current state
-                for (node, value) in conditioning_state
-                    current_priors[node] = value
-                end
-
-                # Generate cache key
                 cache_key = make_cache_key(diamond.edgelist, current_priors)
 
-                # Check cache first
                 if haskey(diamond_cache, cache_key)
-                    # Use cached result
                     cached_entry = diamond_cache[cache_key]
                     state_beliefs = cached_entry.state_beliefs
                 else
@@ -526,14 +464,65 @@ module ReachabilityModule
                     diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, current_priors, state_beliefs)
                 end
 
-                # Weight the result by the probability of this state
-                join_belief = state_beliefs[join_node]
-                final_belief = add_values(final_belief, multiply_values(join_belief, state_probability))
+                join_results[state_idx + 1] = state_beliefs[join_node]
             end
         end
-        
-        
-        return final_belief
+
+        # ============================================================================
+        # Phase 2: Combine R(s) with conditioning state probabilities
+        # For Interval: corner enumeration (multilinear → extremes at corners)
+        # For Float64/pbox: standard weighted sum
+        # ============================================================================
+        if T <: Interval
+            m = length(conditioning_nodes_list)
+            num_corners = 2^m
+            min_lo = Inf
+            max_hi = -Inf
+
+            for corner_idx in 0:(num_corners - 1)
+                corner_values = Vector{Float64}(undef, m)
+                for (i, node) in enumerate(conditioning_nodes_list)
+                    bel = belief_dict[node]::Interval
+                    corner_values[i] = (corner_idx & (1 << (i-1))) != 0 ? bel.upper : bel.lower
+                end
+
+                lo_sum = 0.0
+                hi_sum = 0.0
+                for state_idx in 0:(num_states - 1)
+                    weight = 1.0
+                    for i in 1:m
+                        if (state_idx & (1 << (i-1))) != 0
+                            weight *= corner_values[i]
+                        else
+                            weight *= (1.0 - corner_values[i])
+                        end
+                    end
+                    R = join_results[state_idx + 1]::Interval
+                    lo_sum += weight * R.lower
+                    hi_sum += weight * R.upper
+                end
+
+                min_lo = min(min_lo, lo_sum)
+                max_hi = max(max_hi, hi_sum)
+            end
+
+            return Interval(min_lo, max_hi)
+        else
+            final_belief = zero_value(T)
+            for state_idx in 0:(num_states - 1)
+                state_probability = one_value(T)
+                for (i, node) in enumerate(conditioning_nodes_list)
+                    original_belief = belief_dict[node]
+                    if (state_idx & (1 << (i-1))) != 0
+                        state_probability = multiply_values(state_probability, original_belief)
+                    else
+                        state_probability = multiply_values(state_probability, complement_value(original_belief))
+                    end
+                end
+                final_belief = add_values(final_belief, multiply_values(join_results[state_idx + 1], state_probability))
+            end
+            return final_belief
+        end
     end
 
     function calculate_diamond_groups_belief(

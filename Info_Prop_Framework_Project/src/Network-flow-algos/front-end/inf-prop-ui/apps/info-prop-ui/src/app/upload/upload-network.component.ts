@@ -71,6 +71,9 @@ export class UploadNetworkComponent {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
+    // Clear previous analysis results before loading new files
+    this.analysisState.clearState();
+
     try {
       // Upload files first and get network path
       const networkPath = await this.uploadFiles(input.files);
@@ -108,6 +111,9 @@ export class UploadNetworkComponent {
   async onFilesSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
+
+    // Clear previous analysis results before loading new files
+    this.analysisState.clearState();
 
     try {
       // Upload files first and get network path
@@ -177,6 +183,7 @@ export class UploadNetworkComponent {
    * Clear all files
    */
   clearAllFiles(): void {
+    this.analysisState.clearState();
     this.fileManager.clearAllFiles();
     this.saveStateToSession();
     this.snackBar.open('All files cleared', 'Close', { duration: 2000 });

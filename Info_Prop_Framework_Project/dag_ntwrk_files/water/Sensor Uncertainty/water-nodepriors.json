@@ -1,0 +1,167 @@
+{
+  "nodes": {
+    "1": {
+      "lower": 0.193,
+      "upper": 0.3445,
+      "type": "interval"
+    },
+    "2": {
+      "lower": 0.2091,
+      "upper": 0.3893,
+      "type": "interval"
+    },
+    "3": {
+      "lower": 0.0703,
+      "upper": 0.2632,
+      "type": "interval"
+    },
+    "4": {
+      "lower": 0.0385,
+      "upper": 0.2094,
+      "type": "interval"
+    },
+    "5": {
+      "lower": 0.127,
+      "upper": 0.2924,
+      "type": "interval"
+    },
+    "6": {
+      "lower": 0.0667,
+      "upper": 0.2232,
+      "type": "interval"
+    },
+    "7": {
+      "lower": 0.1062,
+      "upper": 0.2864,
+      "type": "interval"
+    },
+    "8": {
+      "lower": 0.082,
+      "upper": 0.2576,
+      "type": "interval"
+    },
+    "9": {
+      "lower": 0.4147,
+      "upper": 0.5866,
+      "type": "interval"
+    },
+    "10": {
+      "lower": 0.4231,
+      "upper": 0.6077,
+      "type": "interval"
+    },
+    "11": {
+      "lower": 0.3027,
+      "upper": 0.5075,
+      "type": "interval"
+    },
+    "12": {
+      "lower": 0.2389,
+      "upper": 0.4859,
+      "type": "interval"
+    },
+    "13": {
+      "lower": 0.355,
+      "upper": 0.5448,
+      "type": "interval"
+    },
+    "14": {
+      "lower": 0.2859,
+      "upper": 0.5104,
+      "type": "interval"
+    },
+    "15": {
+      "lower": 0.3261,
+      "upper": 0.5132,
+      "type": "interval"
+    },
+    "16": {
+      "lower": 0.286,
+      "upper": 0.4975,
+      "type": "interval"
+    },
+    "17": {
+      "lower": 0.4092,
+      "upper": 0.6087,
+      "type": "interval"
+    },
+    "18": {
+      "lower": 0.4231,
+      "upper": 0.6064,
+      "type": "interval"
+    },
+    "19": {
+      "lower": 0.2955,
+      "upper": 0.5195,
+      "type": "interval"
+    },
+    "20": {
+      "lower": 0.2551,
+      "upper": 0.4787,
+      "type": "interval"
+    },
+    "21": {
+      "lower": 0.3403,
+      "upper": 0.5456,
+      "type": "interval"
+    },
+    "22": {
+      "lower": 0.2897,
+      "upper": 0.5064,
+      "type": "interval"
+    },
+    "23": {
+      "lower": 0.3161,
+      "upper": 0.506,
+      "type": "interval"
+    },
+    "24": {
+      "lower": 0.2918,
+      "upper": 0.4896,
+      "type": "interval"
+    },
+    "25": {
+      "lower": 0.4106,
+      "upper": 0.6125,
+      "type": "interval"
+    },
+    "26": {
+      "lower": 0.4113,
+      "upper": 0.6174,
+      "type": "interval"
+    },
+    "27": {
+      "lower": 0.3073,
+      "upper": 0.5268,
+      "type": "interval"
+    },
+    "28": {
+      "lower": 0.257,
+      "upper": 0.476,
+      "type": "interval"
+    },
+    "29": {
+      "lower": 0.357,
+      "upper": 0.5508,
+      "type": "interval"
+    },
+    "30": {
+      "lower": 0.2744,
+      "upper": 0.513,
+      "type": "interval"
+    },
+    "31": {
+      "lower": 0.3311,
+      "upper": 0.5137,
+      "type": "interval"
+    },
+    "32": {
+      "lower": 0.2868,
+      "upper": 0.4904,
+      "type": "interval"
+    }
+  },
+  "data_type": "Interval",
+  "serialization": "compact",
+  "description": "Node prior probabilities (interval) for WATER network - Sensor Uncertainty scenario. Sensors approaching end of calibration cycle. Measurements have significant uncertainty bounds. Plant operating near normal but sensor readings are imprecise."
+}
