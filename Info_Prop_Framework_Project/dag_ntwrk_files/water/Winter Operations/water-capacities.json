@@ -1,133 +1,518 @@
 {
   "network_type": "capacity_flow",
-  "data_type": "Float64",
-  "conversion_formulas": {
-    "reliability_bonus": 0.8,
-    "base_edge_capacity": 16,
-    "edge_multiplier": 1.5,
-    "base_source_rate": 14,
-    "base_node_capacity": 20
-  },
+  "data_type": "Interval",
   "capacities": {
     "nodes": {
-      "1": 17.9019,
-      "2": 18.2115,
-      "3": 18.8055,
-      "4": 18.7532,
-      "5": 17.5262,
-      "6": 17.8927,
-      "7": 18.7394,
-      "8": 18.5663,
-      "9": 19.2131,
-      "10": 20.4151,
-      "11": 25.116,
-      "12": 16.7361,
-      "13": 16.5018,
-      "14": 19.615,
-      "15": 20.1892,
-      "16": 19.4941,
-      "17": 19.2142,
-      "18": 20.7084,
-      "19": 24.9643,
-      "20": 15.8139,
-      "21": 15.9297,
-      "22": 19.8528,
-      "23": 20.4712,
-      "24": 20.7324,
-      "25": 22.9621,
-      "26": 22.6145,
-      "27": 22.5847,
-      "28": 21.866,
-      "29": 22.3927,
-      "30": 22.5023,
-      "31": 23.0698,
-      "32": 21.7102
+      "1": {
+        "lower": 17.5666,
+        "upper": 23.1728,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 16.4005,
+        "upper": 22.8043,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 16.1621,
+        "upper": 23.5385,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 16.452,
+        "upper": 22.5479,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 16.2007,
+        "upper": 22.1844,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 16.2376,
+        "upper": 22.1721,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 17.1323,
+        "upper": 22.3773,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 16.4056,
+        "upper": 23.6719,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 19.8039,
+        "upper": 25.0232,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 18.4738,
+        "upper": 25.104,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 24.6125,
+        "upper": 29.9797,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 15.2909,
+        "upper": 20.6742,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 14.8041,
+        "upper": 21.5689,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 18.2854,
+        "upper": 25.4205,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 19.4274,
+        "upper": 24.074,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 18.5343,
+        "upper": 24.9629,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 19.3248,
+        "upper": 25.054,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 18.1655,
+        "upper": 24.1107,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 25.0871,
+        "upper": 29.7539,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 14.6464,
+        "upper": 21.5182,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 14.9485,
+        "upper": 20.8219,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 19.6024,
+        "upper": 24.7001,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 19.5561,
+        "upper": 24.7421,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 18.9409,
+        "upper": 25.1687,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 20.3299,
+        "upper": 26.7619,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 21.9298,
+        "upper": 26.5052,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 20.6547,
+        "upper": 26.3777,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 22.0274,
+        "upper": 28.0092,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 21.522,
+        "upper": 26.9571,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 21.9283,
+        "upper": 27.9436,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 21.7734,
+        "upper": 26.9261,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 21.3434,
+        "upper": 26.113,
+        "type": "interval"
+      }
     },
     "source_rates": {
-      "1": 14.2213,
-      "2": 16.1997,
-      "3": 0.01,
-      "4": 0.1945,
-      "5": 0.1604,
-      "6": 0.01,
-      "7": 0.01,
-      "8": 0.01
+      "1": {
+        "lower": 6.0064,
+        "upper": 9.7241,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 7.9752,
+        "upper": 12.1178,
+        "type": "interval"
+      }
     },
     "edges": {
-      "(1,9)": 15.682,
-      "(1,11)": 13.1968,
-      "(2,10)": 15.4594,
-      "(2,11)": 12.8898,
-      "(2,12)": 11.8769,
-      "(3,11)": 16.5454,
-      "(3,13)": 14.0446,
-      "(3,14)": 14.5296,
-      "(4,12)": 15.5872,
-      "(4,15)": 11.7728,
-      "(5,11)": 10.4088,
-      "(5,13)": 16.2623,
-      "(5,16)": 11.5124,
-      "(6,11)": 9.9209,
-      "(6,14)": 15.5329,
-      "(6,16)": 11.6452,
-      "(7,12)": 11.0304,
-      "(7,15)": 15.6008,
-      "(7,16)": 11.6562,
-      "(8,13)": 9.1049,
-      "(8,14)": 9.1938,
-      "(8,16)": 15.6642,
-      "(9,17)": 16.0638,
-      "(9,19)": 13.3381,
-      "(10,18)": 16.5532,
-      "(10,19)": 13.5689,
-      "(10,20)": 11.7095,
-      "(11,19)": 16.0845,
-      "(11,21)": 13.336,
-      "(11,22)": 14.4979,
-      "(12,20)": 16.1464,
-      "(12,23)": 11.0743,
-      "(13,19)": 10.3273,
-      "(13,21)": 16.6585,
-      "(13,24)": 11.9379,
-      "(14,19)": 9.8426,
-      "(14,22)": 16.6101,
-      "(14,24)": 12.4116,
-      "(15,20)": 11.1709,
-      "(15,23)": 16.2046,
-      "(15,24)": 12.3202,
-      "(16,21)": 9.114,
-      "(16,22)": 9.7006,
-      "(16,24)": 15.3689,
-      "(17,25)": 16.7658,
-      "(17,27)": 13.5882,
-      "(18,26)": 16.7257,
-      "(18,27)": 13.1057,
-      "(18,28)": 11.5682,
-      "(19,27)": 15.756,
-      "(19,29)": 14.0683,
-      "(19,30)": 14.2011,
-      "(20,28)": 15.4745,
-      "(20,31)": 11.4622,
-      "(21,27)": 9.8128,
-      "(21,29)": 16.1727,
-      "(21,32)": 11.7248,
-      "(22,27)": 9.6003,
-      "(22,30)": 15.6935,
-      "(22,32)": 11.9649,
-      "(23,28)": 10.698,
-      "(23,31)": 15.9776,
-      "(23,32)": 11.5568,
-      "(24,29)": 9.706,
-      "(24,30)": 9.4121,
-      "(24,32)": 15.4585
+      "(1,9)": {
+        "lower": 14.9598,
+        "upper": 20.2349,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 12.3837,
+        "upper": 16.4815,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 14.9004,
+        "upper": 20.6424,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 11.9278,
+        "upper": 16.4005,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 10.5541,
+        "upper": 16.4745,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 14.7676,
+        "upper": 20.6674,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 12.5635,
+        "upper": 17.9031,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 12.9962,
+        "upper": 18.3128,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 15.109,
+        "upper": 19.3093,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 10.1817,
+        "upper": 14.6953,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 9.155,
+        "upper": 13.6915,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 14.7152,
+        "upper": 19.4092,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 9.7665,
+        "upper": 15.9338,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 8.7866,
+        "upper": 13.6781,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 15.0698,
+        "upper": 19.3946,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 10.1189,
+        "upper": 15.5678,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 10.1703,
+        "upper": 14.4785,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 14.8805,
+        "upper": 19.8264,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 9.6243,
+        "upper": 15.8485,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 7.6884,
+        "upper": 12.7788,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 7.7002,
+        "upper": 12.827,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 14.8879,
+        "upper": 19.8383,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 14.5716,
+        "upper": 20.2314,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 12.1649,
+        "upper": 17.0533,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 15.1339,
+        "upper": 19.3789,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 12.1511,
+        "upper": 17.0345,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 10.6103,
+        "upper": 15.6561,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 14.447,
+        "upper": 20.1453,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 12.4062,
+        "upper": 18.0373,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 13.482,
+        "upper": 17.4436,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 14.4392,
+        "upper": 20.4024,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 10.0316,
+        "upper": 14.8534,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 9.1543,
+        "upper": 13.6153,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 14.8932,
+        "upper": 19.3371,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 10.2744,
+        "upper": 15.6381,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 8.6293,
+        "upper": 14.432,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 15.3365,
+        "upper": 19.3571,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 9.7612,
+        "upper": 16.46,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 10.1462,
+        "upper": 13.6432,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 14.7437,
+        "upper": 19.279,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 10.3071,
+        "upper": 16.4926,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 7.8262,
+        "upper": 12.7723,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 7.9007,
+        "upper": 12.7827,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 15.6935,
+        "upper": 20.1973,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 14.814,
+        "upper": 19.6586,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 12.2337,
+        "upper": 16.7796,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 15.1842,
+        "upper": 20.5255,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 11.993,
+        "upper": 16.5231,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 10.7508,
+        "upper": 16.2581,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 14.4881,
+        "upper": 20.3217,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 12.5195,
+        "upper": 17.8366,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 13.2954,
+        "upper": 17.872,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 14.8024,
+        "upper": 20.43,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 9.6513,
+        "upper": 14.7714,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 9.1898,
+        "upper": 14.189,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 15.2863,
+        "upper": 20.6031,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 10.4326,
+        "upper": 16.4709,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 9.3827,
+        "upper": 13.8109,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 14.2751,
+        "upper": 20.0672,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 10.3848,
+        "upper": 16.4143,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 9.9916,
+        "upper": 14.0182,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 15.1085,
+        "upper": 19.353,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 10.1094,
+        "upper": 15.6979,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 7.8832,
+        "upper": 13.3568,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 7.6309,
+        "upper": 12.61,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 14.79,
+        "upper": 19.9917,
+        "type": "interval"
+      }
     }
   },
-  "description": "Capacity analysis inputs for WATER network - Peak Hour Load scenario. Peak demand period (morning flush, 7-9 AM equivalent). Flow rates 1.5x normal. Some bottlenecks appearing at CBODD hub nodes. Represents typical daily peak stress.",
+  "description": "Capacity analysis inputs for WATER network - Winter Operations. Cold weather (<5C water temp) degrades all biological processes, especially nitrification. Sensors suffer cold-weather drift and ice buildup. All values are intervals reflecting both degraded performance and measurement uncertainty. Nitrogen pathways have widest bounds (most temperature-sensitive).",
   "generation_info": {
     "total_nodes": 32,
     "total_edges": 66,
-    "generated_from": "domain_model",
-    "timestamp": "2026-03-01T20:18:33.209Z",
     "source_nodes_count": 8
   }
 }

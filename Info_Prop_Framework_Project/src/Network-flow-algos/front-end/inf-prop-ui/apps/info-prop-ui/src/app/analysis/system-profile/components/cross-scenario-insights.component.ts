@@ -255,12 +255,12 @@ export class CrossScenarioInsightsComponent {
       const sorted = [...beliefValues].sort((a, b) => b.value - a.value);
       insights.push({
         icon: 'compare',
-        text: `Mean belief: highest ${sorted[0].scenario} (${sorted[0].value.toPrecision(6)}), lowest ${sorted[sorted.length - 1].scenario} (${sorted[sorted.length - 1].value.toPrecision(6)})`,
+        text: `Mean belief: highest ${sorted[0].scenario} (${sorted[0].value.toFixed(4)}), lowest ${sorted[sorted.length - 1].scenario} (${sorted[sorted.length - 1].value.toFixed(4)})`,
         severity: sorted[sorted.length - 1].value < 0.5 ? 'warning' : 'info'
       });
 
       if (sorted.length >= 3) {
-        const progression = sorted.map(v => `${v.value.toPrecision(6)} (${v.scenario})`).join(' > ');
+        const progression = sorted.map(v => `${v.value.toFixed(4)} (${v.scenario})`).join(' > ');
         insights.push({
           icon: 'trending_down',
           text: `Belief ranking: ${progression}`,
@@ -270,7 +270,7 @@ export class CrossScenarioInsightsComponent {
     } else if (beliefValues.length === 1) {
       insights.push({
         icon: 'analytics',
-        text: `${beliefValues[0].scenario}: mean belief ${beliefValues[0].value.toPrecision(6)}`,
+        text: `${beliefValues[0].scenario}: mean belief ${beliefValues[0].value.toFixed(4)}`,
         severity: beliefValues[0].value >= 0.7 ? 'good' : beliefValues[0].value >= 0.4 ? 'info' : 'warning'
       });
     }
@@ -285,7 +285,7 @@ export class CrossScenarioInsightsComponent {
       if (maxSpread.value > 0.3) {
         insights.push({
           icon: 'warning',
-          text: `High uncertainty in ${maxSpread.scenario} (spread ${maxSpread.value.toPrecision(6)}) — beliefs vary widely across nodes`,
+          text: `High uncertainty in ${maxSpread.scenario} (spread ${maxSpread.value.toFixed(4)}) — beliefs vary widely across nodes`,
           severity: 'warning'
         });
       }
@@ -305,17 +305,17 @@ export class CrossScenarioInsightsComponent {
 
     if (utilValues.length >= 2) {
       const sorted = [...utilValues].sort((a, b) => a.value - b.value);
-      const progression = sorted.map(d => `${d.value.toFixed(2)} (${d.scenario})`).join(' < ');
+      const progression = sorted.map(d => `${d.value.toFixed(1)}% (${d.scenario})`).join(' < ');
       insights.push({
         icon: 'speed',
-        text: `Throughput ratio: ${progression}`,
-        severity: 'info'
+        text: `Utilisation: ${progression}`,
+        severity: sorted[sorted.length - 1].value > 90 ? 'warning' : 'info'
       });
     } else if (utilValues.length === 1) {
       insights.push({
         icon: 'speed',
-        text: `${utilValues[0].scenario}: throughput ratio ${utilValues[0].value.toFixed(2)}`,
-        severity: 'info'
+        text: `${utilValues[0].scenario}: ${utilValues[0].value.toFixed(1)}% network utilisation`,
+        severity: utilValues[0].value > 90 ? 'warning' : utilValues[0].value > 70 ? 'info' : 'good'
       });
     }
 

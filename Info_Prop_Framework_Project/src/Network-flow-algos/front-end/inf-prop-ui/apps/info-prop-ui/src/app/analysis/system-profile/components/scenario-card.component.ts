@@ -242,11 +242,16 @@ export class ScenarioCardComponent {
     }
   }
 
-  private formatValue(val: number, def: ProfileMetricDefinition): string {
+  private formatValue(val: number | any, def: ProfileMetricDefinition): string {
+    if (typeof val !== 'number') {
+      // Handle interval/pbox objects
+      if (val?.lower != null && val?.upper != null) return `[${val.lower.toFixed(3)}, ${val.upper.toFixed(3)}]`;
+      return `${val}`;
+    }
     switch (def.format) {
       case 'percent': return `${val.toFixed(1)}%`;
       case 'integer': return `${Math.round(val)}`;
-      case 'probability': return val.toPrecision(6);
+      case 'probability': return val.toFixed(4);
       case 'duration': return `${val.toFixed(2)}s`;
       case 'number': return val.toFixed(2);
       default: return `${val}`;

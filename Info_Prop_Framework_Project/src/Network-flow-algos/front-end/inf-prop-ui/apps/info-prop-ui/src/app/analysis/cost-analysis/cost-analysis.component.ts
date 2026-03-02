@@ -367,7 +367,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
     // Total budget comparison
     const budgetRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, budget: tab.metrics?.totalBudget ?? 0 }))
+      .map(([, tab]) => ({ name: tab.scenario.displayName, budget: this.cleanValue(tab.metrics?.totalBudget ?? 0) }))
       .sort((a, b) => a.budget - b.budget);
 
     if (budgetRanking.length >= 2) {
@@ -391,7 +391,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
     // Critical path cost comparison
     const cpCostRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, cost: tab.metrics?.criticalPathCost ?? 0 }))
+      .map(([, tab]) => ({ name: tab.scenario.displayName, cost: this.cleanValue(tab.metrics?.criticalPathCost ?? 0) }))
       .sort((a, b) => a.cost - b.cost);
 
     if (cpCostRanking.length >= 2) {
@@ -458,6 +458,12 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   }
 
   ngOnDestroy(): void {
+    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
+    for (const [name, tab] of this.scenarioTabs()) {
+      if (tab.status === 'computing') {
+        this.updateTabState(name, { status: 'idle' });
+      }
+    }
     // Save current tab's UI state before persisting
     const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
@@ -845,8 +851,13 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
   // ─── Formatting helpers ─────────────────────────────────────────────────
 
-  cleanValue(val: number): number {
-    return parseFloat(val.toPrecision(10));
+  cleanValue(val: any): number {
+    if (typeof val === 'number') return parseFloat(val.toFixed(10));
+    if (val && typeof val === 'object') {
+      if (typeof val.lower === 'number' && typeof val.upper === 'number') return (val.lower + val.upper) / 2;
+      if (typeof val.mean_lower === 'number' && typeof val.mean_upper === 'number') return (val.mean_lower + val.mean_upper) / 2;
+    }
+    return 0;
   }
 
   formatCost(val: number): string {

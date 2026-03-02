@@ -441,21 +441,21 @@
       }
 
       <!-- Upgrade Priorities -->
-      @if (tab.rawScenario?.comparative_analysis && !tab.rawScenario!.comparative_analysis!.error) {
+      @if (tab.rawScenario?.comparative_analysis?.upgrade_priorities) {
       <mat-expansion-panel class="analysis-panel">
         <mat-expansion-panel-header>
           <mat-panel-title>Upgrade Priorities</mat-panel-title>
           <mat-panel-description>Ranked by potential impact</mat-panel-description>
         </mat-expansion-panel-header>
         <div class="upgrade-priorities">
-          @if (tab.rawScenario!.comparative_analysis!.strategic_recommendations) {
+          @if (tab.rawScenario?.comparative_analysis?.strategic_recommendations) {
           <div class="recommendations">
             @for (rec of tab.rawScenario!.comparative_analysis!.strategic_recommendations; track $index) {
             <p class="recommendation">{{ rec }}</p>
             }
           </div>
           }
-          @if (tab.rawScenario!.comparative_analysis!.upgrade_priorities.length) {
+          @if (tab.rawScenario?.comparative_analysis?.upgrade_priorities?.length) {
           <div class="priority-list">
             @for (p of tab.rawScenario!.comparative_analysis!.upgrade_priorities; track p.node) {
             <div class="priority-item">

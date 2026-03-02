@@ -201,12 +201,12 @@ export interface SystemProfileResponse {
 export const PROFILE_METRICS: ProfileMetricDefinition[] = [
   {
     key: 'networkUtilization',
-    label: 'Throughput Ratio (Sink Output / Source Input)',
-    shortLabel: 'Throughput',
-    unit: 'ratio',
+    label: 'Network Utilisation',
+    shortLabel: 'Util %',
+    unit: '%',
     source: 'capacity',
-    higherIsBetter: true,
-    format: 'number'
+    higherIsBetter: false,
+    format: 'percent'
   },
   {
     key: 'bottleneckCount',

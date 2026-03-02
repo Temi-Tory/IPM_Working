@@ -142,8 +142,10 @@ export class SystemProfileService {
         mergeInto(scenarioName, 'reachability', scenarioInfo?.dataType || 'float',
           Math.round(scenario.scenario_computation_time * 1000),
           {
-            meanBelief: beliefStats?.mean ?? null,
-            beliefSpread: beliefStats != null ? (beliefStats.max - beliefStats.min) : null,
+            meanBelief: this.extractNumericValue(beliefStats?.mean),
+            beliefSpread: beliefStats != null ? this.extractNumericValue(beliefStats.max) != null && this.extractNumericValue(beliefStats.min) != null
+              ? this.extractNumericValue(beliefStats.max)! - this.extractNumericValue(beliefStats.min)!
+              : null : null,
             diamondEfficiency: da?.diamond_efficiency ?? null,
             rootDiamondCount: da?.root_diamonds_count ?? null,
             computationTime: scenario.scenario_computation_time ?? null
@@ -163,7 +165,7 @@ export class SystemProfileService {
         mergeInto(scenarioName, 'capacity', 'float',
           Math.round(scenario.computation_time * 1000),
           {
-            networkUtilization: utilization,
+            networkUtilization: utilization != null ? utilization * 100 : null,
             bottleneckCount,
           },
           { capacityAnalysis: scenario }
@@ -280,16 +282,16 @@ export class SystemProfileService {
     let alertId = 0;
 
     for (const row of rows) {
-      // High throughput ratio (>0.9 means near capacity saturation)
+      // High utilisation (>90%)
       const util = row.metrics['networkUtilization'];
-      if (typeof util === 'number' && util > 0.9) {
+      if (typeof util === 'number' && util > 90) {
         alerts.push({
           id: `alert-${alertId++}`,
-          severity: util > 0.95 ? 'critical' : 'warning',
-          metric: 'Throughput Ratio',
+          severity: util > 95 ? 'critical' : 'warning',
+          metric: 'Network Utilisation',
           scenario: row.scenario,
-          value: util.toFixed(2),
-          message: `Throughput ratio ${util.toFixed(2)} — high flow amplification`,
+          value: `${util.toFixed(1)}%`,
+          message: `Network utilisation at ${util.toFixed(1)}% — near saturation`,
           drilldownRoute: '/capacity-analysis',
           drilldownParams: { scenario: row.scenario, highlight: 'utilization' }
         });
@@ -466,12 +468,12 @@ export class SystemProfileService {
     if (value == null) return null;
     if (typeof value === 'number') return isFinite(value) ? value : null;
     if (typeof value === 'object') {
-      // Interval: { type: 'interval', lower, upper }
-      if (value.type === 'interval' && typeof value.lower === 'number' && typeof value.upper === 'number') {
+      // Interval: { lower, upper } (with or without type field)
+      if (typeof value.lower === 'number' && typeof value.upper === 'number') {
         return (value.lower + value.upper) / 2;
       }
       // Pbox: { type: 'pbox', mean_lower, mean_upper }
-      if (value.type === 'pbox' && typeof value.mean_lower === 'number' && typeof value.mean_upper === 'number') {
+      if (typeof value.mean_lower === 'number' && typeof value.mean_upper === 'number') {
         return (value.mean_lower + value.mean_upper) / 2;
       }
     }

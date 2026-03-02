@@ -335,7 +335,7 @@
         </mat-expansion-panel-header>
         <div class="histogram">
           <div class="histogram-bars">
-            @for (bucket of costHistogram(); track bucket.label) {
+            @for (bucket of costHistogram(); track $index) {
             <div class="histogram-bar-wrapper">
               <span class="histogram-count">{{ bucket.count }}</span>
               <div class="histogram-bar" [style.height.%]="bucket.heightPercent"></div>

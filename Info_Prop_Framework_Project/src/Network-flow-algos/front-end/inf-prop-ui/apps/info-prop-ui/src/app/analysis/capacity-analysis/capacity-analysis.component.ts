@@ -457,21 +457,21 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
 
     // Network utilization ranking
     const utilRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, util: tab.metrics?.networkUtilization ?? 0 }))
+      .map(([, tab]) => ({ name: tab.scenario.displayName, util: this.cleanValue(tab.metrics?.networkUtilization ?? 0) }))
       .sort((a, b) => a.util - b.util);
 
     if (utilRanking.length >= 2) {
-      const progression = utilRanking.map(v => `${v.util.toFixed(2)} (${v.name})`).join(' < ');
+      const progression = utilRanking.map(v => `${(v.util * 100).toFixed(1)}% (${v.name})`).join(' < ');
       observations.push({
         icon: 'speed',
-        text: `Throughput ratio: ${progression}`,
-        severity: 'info'
+        text: `Utilisation: ${progression}`,
+        severity: utilRanking[utilRanking.length - 1].util > 0.9 ? 'warning' : 'info'
       });
     } else if (utilRanking.length === 1) {
       observations.push({
         icon: 'speed',
-        text: `${utilRanking[0].name}: throughput ratio ${utilRanking[0].util.toFixed(2)}`,
-        severity: 'info'
+        text: `${utilRanking[0].name}: ${(utilRanking[0].util * 100).toFixed(1)}% utilisation`,
+        severity: utilRanking[0].util > 0.9 ? 'warning' : utilRanking[0].util > 0.7 ? 'info' : 'good'
       });
     }
 
@@ -556,6 +556,12 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   }
 
   ngOnDestroy(): void {
+    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
+    for (const [name, tab] of this.scenarioTabs()) {
+      if (tab.status === 'computing') {
+        this.updateTabState(name, { status: 'idle' });
+      }
+    }
     // Save current tab's UI state before persisting
     const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
@@ -994,8 +1000,13 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
 
   // ─── Formatting helpers ─────────────────────────────────────────────────
 
-  cleanValue(val: number): number {
-    return parseFloat(val.toPrecision(10));
+  cleanValue(val: any): number {
+    if (typeof val === 'number') return parseFloat(val.toFixed(10));
+    if (val && typeof val === 'object') {
+      if (typeof val.lower === 'number' && typeof val.upper === 'number') return (val.lower + val.upper) / 2;
+      if (typeof val.mean_lower === 'number' && typeof val.mean_upper === 'number') return (val.mean_lower + val.mean_upper) / 2;
+    }
+    return 0;
   }
 
   formatValue(val: number, decimals = 1): string {

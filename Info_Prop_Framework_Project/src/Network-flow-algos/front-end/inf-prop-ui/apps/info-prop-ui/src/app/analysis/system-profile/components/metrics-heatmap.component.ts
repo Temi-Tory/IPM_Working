@@ -280,15 +280,21 @@ export class MetricsHeatmapComponent {
     const val = row.metrics[col.key];
     if (val == null) return '\u2014';
     if (typeof val === 'string') return val;
+    if (typeof val !== 'number') {
+      // Handle interval/pbox objects — extract midpoint
+      const obj = val as any;
+      if (obj.lower != null && obj.upper != null) return `[${obj.lower.toFixed(3)}, ${obj.upper.toFixed(3)}]`;
+      return JSON.stringify(val);
+    }
 
-    const num = val as number;
+    const num = val;
     const isDelta = this.mode() === 'difference' && row.scenario !== this.baselineScenario();
     const prefix = isDelta && num > 0 ? '+' : '';
 
     switch (col.format) {
       case 'percent': return `${prefix}${num.toFixed(1)}%`;
       case 'integer': return `${prefix}${Math.round(num)}`;
-      case 'probability': return `${prefix}${num.toPrecision(6)}`;
+      case 'probability': return `${prefix}${num.toFixed(4)}`;
       case 'duration': return `${prefix}${num.toFixed(2)}s`;
       case 'number': return `${prefix}${num.toFixed(2)}`;
       default: return `${prefix}${num}`;

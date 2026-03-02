@@ -371,7 +371,7 @@ export class TimeAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
     // Critical path duration comparison
     const durationRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, duration: tab.metrics?.criticalPathDuration ?? 0 }))
+      .map(([, tab]) => ({ name: tab.scenario.displayName, duration: this.cleanValue(tab.metrics?.criticalPathDuration ?? 0) }))
       .sort((a, b) => a.duration - b.duration);
 
     if (durationRanking.length >= 2) {
@@ -395,7 +395,7 @@ export class TimeAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
     // Average slack comparison
     const slackRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, slack: tab.metrics?.averageSlack ?? 0 }))
+      .map(([, tab]) => ({ name: tab.scenario.displayName, slack: this.cleanValue(tab.metrics?.averageSlack ?? 0) }))
       .sort((a, b) => b.slack - a.slack);
 
     if (slackRanking.length >= 2) {
@@ -463,6 +463,12 @@ export class TimeAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   }
 
   ngOnDestroy(): void {
+    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
+    for (const [name, tab] of this.scenarioTabs()) {
+      if (tab.status === 'computing') {
+        this.updateTabState(name, { status: 'idle' });
+      }
+    }
     // Save current tab's UI state before persisting
     const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
@@ -870,8 +876,13 @@ export class TimeAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
   // ─── Formatting helpers ─────────────────────────────────────────────────
 
-  cleanValue(val: number): number {
-    return parseFloat(val.toPrecision(10));
+  cleanValue(val: any): number {
+    if (typeof val === 'number') return parseFloat(val.toFixed(10));
+    if (val && typeof val === 'object') {
+      if (typeof val.lower === 'number' && typeof val.upper === 'number') return (val.lower + val.upper) / 2;
+      if (typeof val.mean_lower === 'number' && typeof val.mean_upper === 'number') return (val.mean_lower + val.mean_upper) / 2;
+    }
+    return 0;
   }
 
   formatTime(val: number): string {

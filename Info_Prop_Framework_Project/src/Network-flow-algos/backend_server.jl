@@ -114,15 +114,30 @@ function pbox_to_dict(pbox::ProbabilityBoundsAnalysis.pbox)
 end
 
 function convert_pbox_values(obj)
-    """Recursively convert any Pbox objects in a data structure to dictionaries"""
+    """Recursively convert any Pbox/Interval objects in a data structure to dictionaries"""
     if isa(obj, ProbabilityBoundsAnalysis.pbox)
         return pbox_to_dict(obj)
+    elseif isa(obj, Interval)
+        return Dict("lower" => obj.lower, "upper" => obj.upper, "type" => "interval")
     elseif isa(obj, Dict)
         return Dict(k => convert_pbox_values(v) for (k, v) in obj)
     elseif isa(obj, Array)
         return [convert_pbox_values(item) for item in obj]
     else
         return obj
+    end
+end
+
+"""Parse a JSON value as Float64 or Interval based on data_type"""
+function parse_typed_value(v, ::Type{Float64})
+    return Float64(v)
+end
+function parse_typed_value(v, ::Type{Interval})
+    if isa(v, Dict)
+        return Interval(Float64(v["lower"]), Float64(v["upper"]))
+    else
+        val = Float64(v)
+        return Interval(val, val)
     end
 end
 
@@ -1391,36 +1406,51 @@ function handle_capacity_analysis(req::HTTP.Request)
         node_caps_raw = capacity_data["capacities"]["nodes"]
         edge_caps_raw = capacity_data["capacities"]["edges"]
         source_rates_raw = capacity_data["capacities"]["source_rates"]
-        
-        # Convert to proper types
-        node_capacities = Dict{Int64,Float64}()
+
+        # Detect data type from JSON
+        cap_data_type = get(capacity_data, "data_type", "Float64")
+        T = cap_data_type == "Interval" ? Interval : Float64
+
+        # Convert to proper types using type-aware parsing
+        node_capacities = Dict{Int64,T}()
         for (k, v) in node_caps_raw
-            node_capacities[parse(Int64, k)] = Float64(v)
+            node_capacities[parse(Int64, k)] = parse_typed_value(v, T)
         end
-        
-        edge_capacities = Dict{Tuple{Int64,Int64},Float64}()
+
+        edge_capacities = Dict{Tuple{Int64,Int64},T}()
         for (k, v) in edge_caps_raw
             cleaned_key = replace(k, "(" => "", ")" => "")
             parts = split(cleaned_key, ",")
             edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
-            edge_capacities[edge_key] = Float64(v)
+            edge_capacities[edge_key] = parse_typed_value(v, T)
         end
-        
-        source_rates = Dict{Int64,Float64}()
+
+        source_rates = Dict{Int64,T}()
         for (k, v) in source_rates_raw
-            rate = Float64(v)
-            if rate > 0.0
-                source_rates[parse(Int64, k)] = rate
+            rate = parse_typed_value(v, T)
+            if T == Float64
+                if rate > 0.0
+                    source_rates[parse(Int64, k)] = rate
+                end
+            else
+                # For Interval: include if upper bound > 0
+                if rate.upper > 0.0
+                    source_rates[parse(Int64, k)] = rate
+                end
             end
         end
-        
+
         # Target nodes are sink nodes
         targets = Set{Int64}(sink_nodes)
-        
-        # Run capacity analysis
+
+        # Run capacity analysis — use uncertain variant for non-Float64 types
         capacity_start_time = time()
         capacity_params = CapacityParameters(node_capacities, edge_capacities, source_rates, targets)
-        capacity_result = maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
+        capacity_result = if T == Float64
+            maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
+        else
+            maximum_flow_capacity_uncertain(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
+        end
         capacity_computation_time = time() - capacity_start_time
         
         # Extract flow results
@@ -1431,46 +1461,55 @@ function handle_capacity_analysis(req::HTTP.Request)
             end
         end
 
-        # Compute edge utilization
+        # Compute edge utilization from actual edge flows (flow-conserving)
         edge_utilization = Dict{String, Dict{String, Any}}()
+        actual_edge_flows = capacity_result.edge_flows
         for ((src, dst), cap) in edge_capacities
-            src_flow = get(capacity_result.node_max_flows, src, 0.0)
-            flow_through = min(src_flow, cap)
+            flow_through = if actual_edge_flows !== nothing
+                get(actual_edge_flows, (src, dst), zero(T))
+            else
+                # Fallback for analysis types that don't track edge flows
+                min_values(get(capacity_result.node_max_flows, src, zero(T)), cap)
+            end
             edge_utilization["($src, $dst)"] = Dict(
-                "capacity" => cap,
-                "flow" => flow_through,
-                "utilization" => cap > 0 ? flow_through / cap : 0.0,
-                "spare" => cap - flow_through
+                "capacity" => convert_pbox_values(cap),
+                "flow" => convert_pbox_values(flow_through),
+                "utilization" => convert_pbox_values(T == Float64 ? (cap > 0 ? flow_through / cap : 0.0) : divide_values(flow_through, cap)),
+                "spare" => convert_pbox_values(T == Float64 ? cap - flow_through : subtract_values(cap, flow_through))
             )
         end
 
-        # Run comparative analysis (realistic vs classical)
+        # Run comparative analysis (realistic vs classical) — Float64 only
         comparative_data = Dict{String, Any}()
-        try
-            comparative = comparative_capacity_analysis(
-                iteration_sets, outgoing_index, incoming_index,
-                source_nodes, capacity_params
-            )
+        if T == Float64
+            try
+                comparative = comparative_capacity_analysis(
+                    iteration_sets, outgoing_index, incoming_index,
+                    source_nodes, capacity_params
+                )
 
-            comparative_data = Dict(
-                "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
-                "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
-                "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
-                "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
-                "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
-                "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
-                "strategic_recommendations" => comparative[:strategic_recommendations]
-            )
-        catch comp_err
-            println("Comparative analysis warning (non-fatal): ", comp_err)
-            comparative_data = Dict("error" => "Comparative analysis unavailable")
+                comparative_data = Dict(
+                    "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
+                    "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
+                    "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
+                    "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
+                    "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
+                    "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
+                    "strategic_recommendations" => comparative[:strategic_recommendations]
+                )
+            catch comp_err
+                println("Comparative analysis warning (non-fatal): ", comp_err)
+                comparative_data = Dict("error" => "Comparative analysis unavailable")
+            end
+        else
+            comparative_data = Dict("info" => "Comparative analysis not available for interval data")
         end
 
         result_data = Dict(
             "computation_time" => capacity_computation_time,
-            "network_utilization" => capacity_result.network_utilization,
-            "total_source_input" => sum(values(source_rates)),
-            "total_target_output" => sum(values(target_flows)),
+            "network_utilization" => convert_pbox_values(capacity_result.network_utilization),
+            "total_source_input" => convert_pbox_values(sum(collect(values(source_rates)))),
+            "total_target_output" => convert_pbox_values(sum(collect(values(target_flows)))),
             "target_flows" => target_flows,
             "active_sources" => collect(keys(source_rates)),
             "target_nodes" => collect(targets),
@@ -1584,47 +1623,52 @@ function handle_cpm_analysis(req::HTTP.Request)
         cpm_data = JSON.parsefile(full_cpm_path)
         time_analysis = cpm_data["time_analysis"]
         cost_analysis = cpm_data["cost_analysis"]
-        
+
+        # Detect data type from JSON
+        cpm_data_type = get(cpm_data, "data_type", "Float64")
+        T = cpm_data_type == "Interval" ? Interval : Float64
+        initial = zero(T)
+
         # Convert time analysis data
         node_durations_raw = time_analysis["node_durations"]
         edge_delays_raw = time_analysis["edge_delays"]
-        
-        node_durations = Dict{Int64,Float64}()
+
+        node_durations = Dict{Int64,T}()
         for (k, v) in node_durations_raw
-            node_durations[parse(Int64, k)] = Float64(v)
+            node_durations[parse(Int64, k)] = parse_typed_value(v, T)
         end
-        
-        edge_delays = Dict{Tuple{Int64,Int64},Float64}()
+
+        edge_delays = Dict{Tuple{Int64,Int64},T}()
         for (k, v) in edge_delays_raw
             cleaned_key = replace(k, "(" => "", ")" => "")
             parts = split(cleaned_key, ",")
             edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
-            edge_delays[edge_key] = Float64(v)
+            edge_delays[edge_key] = parse_typed_value(v, T)
         end
-        
+
         # Convert cost analysis data
         node_costs_raw = cost_analysis["node_costs"]
         edge_costs_raw = cost_analysis["edge_costs"]
-        
-        node_costs = Dict{Int64,Float64}()
+
+        node_costs = Dict{Int64,T}()
         for (k, v) in node_costs_raw
-            node_costs[parse(Int64, k)] = Float64(v)
+            node_costs[parse(Int64, k)] = parse_typed_value(v, T)
         end
-        
-        edge_costs = Dict{Tuple{Int64,Int64},Float64}()
+
+        edge_costs = Dict{Tuple{Int64,Int64},T}()
         for (k, v) in edge_costs_raw
             cleaned_key = replace(k, "(" => "", ")" => "")
             parts = split(cleaned_key, ",")
             edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
-            edge_costs[edge_key] = Float64(v)
+            edge_costs[edge_key] = parse_typed_value(v, T)
         end
-        
+
         # Run CPM analysis
         cpm_start_time = time()
 
         # Time-based critical path analysis (forward pass)
         time_params = CriticalPathParameters(
-            node_durations, edge_delays, 0.0,
+            node_durations, edge_delays, initial,
             max_combination, additive_propagation, additive_propagation
         )
         time_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, time_params)
@@ -1634,7 +1678,7 @@ function handle_cpm_analysis(req::HTTP.Request)
 
         # Cost-based critical path analysis (forward pass)
         cost_params = CriticalPathParameters(
-            node_costs, edge_costs, 0.0,
+            node_costs, edge_costs, initial,
             max_combination, additive_propagation, additive_propagation
         )
         cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
@@ -1644,11 +1688,21 @@ function handle_cpm_analysis(req::HTTP.Request)
 
         cpm_computation_time = time() - cpm_start_time
 
+        # Compute near-critical nodes (slack > 0 but < 10% of critical path duration)
+        time_near_critical_threshold = T == Float64 ? time_result.critical_value * 0.1 : 0.0
+        time_near_critical = if T == Float64
+            [k for (k, v) in time_extended.total_slack if v > 0 && v < time_near_critical_threshold]
+        else
+            Int64[]
+        end
+
         result_data = Dict(
             "computation_time" => cpm_computation_time,
             "time_result" => Dict(
-                "critical_value" => time_result.critical_value,
+                "critical_value" => convert_pbox_values(time_result.critical_value),
                 "critical_nodes" => collect(time_result.critical_nodes),
+                "near_critical_nodes" => time_near_critical,
+                "near_critical_count" => length(time_near_critical),
                 "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_result.node_values),
                 "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.early_start),
                 "late_finish" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.late_finish),
@@ -1656,7 +1710,7 @@ function handle_cpm_analysis(req::HTTP.Request)
                 "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in time_extended.total_slack)
             ),
             "cost_result" => Dict(
-                "critical_value" => cost_result.critical_value,
+                "critical_value" => convert_pbox_values(cost_result.critical_value),
                 "critical_nodes" => collect(cost_result.critical_nodes),
                 "node_values" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_result.node_values),
                 "early_start" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.early_start),
@@ -1665,10 +1719,10 @@ function handle_cpm_analysis(req::HTTP.Request)
                 "total_slack" => Dict(string(k) => convert_pbox_values(v) for (k, v) in cost_extended.total_slack)
             ),
             "input_data" => Dict(
-                "node_durations" => Dict(string(k) => v for (k, v) in node_durations),
-                "edge_delays" => Dict(string(k) => v for (k, v) in edge_delays),
-                "node_costs" => Dict(string(k) => v for (k, v) in node_costs),
-                "edge_costs" => Dict(string(k) => v for (k, v) in edge_costs)
+                "node_durations" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_durations),
+                "edge_delays" => Dict(string(k) => convert_pbox_values(v) for (k, v) in edge_delays),
+                "node_costs" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_costs),
+                "edge_costs" => Dict(string(k) => convert_pbox_values(v) for (k, v) in edge_costs)
             ),
             "node_durations_count" => length(node_durations),
             "edge_delays_count" => length(edge_delays),

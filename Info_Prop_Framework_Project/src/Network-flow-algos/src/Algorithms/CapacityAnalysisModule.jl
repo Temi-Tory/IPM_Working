@@ -142,23 +142,26 @@ module CapacityAnalysisModule
     struct CapacityResult{T}
         # Maximum sustainable flow rate to each node
         node_max_flows::Dict{Int64, T}
-        
+
         # Bottleneck edges/nodes limiting each target
         bottlenecks::Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}}
-        
+
         # Enhanced critical path analysis for each target
         critical_paths::Dict{Int64, Vector{Vector{Int64}}}  # Multiple paths per target
-        
+
         # Overall network capacity utilization
         network_utilization::T
-        
+
         # Specific analysis type performed
         analysis_type::Symbol
-        
+
         # Analysis metadata
         computation_time::Float64
         convergence_info::Dict{Symbol, Any}
-        
+
+        # Actual flow through each edge (tracks flow conservation)
+        edge_flows::Union{Dict{Tuple{Int64,Int64}, T}, Nothing}
+
         function CapacityResult(
             node_max_flows::Dict{Int64, T},
             bottlenecks::Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}},
@@ -166,10 +169,11 @@ module CapacityAnalysisModule
             network_utilization::T,
             analysis_type::Symbol;
             computation_time::Float64 = 0.0,
-            convergence_info::Dict{Symbol, Any} = Dict{Symbol, Any}()
+            convergence_info::Dict{Symbol, Any} = Dict{Symbol, Any}(),
+            edge_flows::Union{Dict{Tuple{Int64,Int64}, T}, Nothing} = nothing
         ) where T
-            new{T}(node_max_flows, bottlenecks, critical_paths, network_utilization, 
-                   analysis_type, computation_time, convergence_info)
+            new{T}(node_max_flows, bottlenecks, critical_paths, network_utilization,
+                   analysis_type, computation_time, convergence_info, edge_flows)
         end
     end
 
@@ -762,66 +766,86 @@ module CapacityAnalysisModule
         end
         
         node_flows = Dict{Int64, T}()
+        edge_flows = Dict{Tuple{Int64,Int64}, T}()  # Actual flow through each edge
         bottlenecks = Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}}()
-        
+
+        # Helper: large default capacity for missing entries
+        large_cap = T == Float64 ? 1e6 : T == Interval ? Interval(1e6, 1e6) : PBA.makepbox(PBA.interval(1e6, 1e6))
+
         # Process nodes in topological order using uncertainty arithmetic
         for (level, node_set) in enumerate(iteration_sets)
             if config.verbose
                 println("Processing level $level with nodes: $node_set")
             end
-            
+
             for node in node_set
                 if node in source_nodes
                     # Source nodes: limited by input rate and processing capacity
                     source_rate = get(capacity_params.source_input_rates, node, zero_value(T))
-                    node_capacity = get(capacity_params.node_capacities, node, one_value(T))
-                    
-                    # For large default capacity, use a large constant
-                    if node_capacity == one_value(T)
-                        # Create large capacity value
-                        if T == Float64
-                            node_capacity = 1e6
-                        elseif T == Interval
-                            node_capacity = Interval(1e6, 1e6)
-                        else # pbox
-                            node_capacity = PBA.makepbox(PBA.interval(1e6, 1e6))
-                        end
-                    end
-                    
+                    node_capacity = get(capacity_params.node_capacities, node, large_cap)
+
                     # Use uncertainty-aware min operation
                     node_flows[node] = min_values(source_rate, node_capacity)
                     bottlenecks[node] = [(:source_input, node)]
                 else
-                    # Regular nodes: aggregate flow using uncertainty arithmetic
+                    # Regular nodes: aggregate flow from ACTUAL edge flows (flow-conserving)
                     total_incoming_flow = zero_value(T)
                     limiting_factors = Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}()
-                    
+
                     for parent in incoming_index[node]
-                        if !haskey(node_flows, parent)
-                            throw(ErrorException("Parent node $parent not processed yet"))
-                        end
-                        
-                        parent_flow = node_flows[parent]
-                        edge_capacity = get(capacity_params.edge_capacities, (parent, node), 
-                                          T == Float64 ? 1e6 : 
-                                          T == Interval ? Interval(1e6, 1e6) :
-                                          PBA.makepbox(PBA.interval(1e6, 1e6)))
-                        
-                        # Use uncertainty-aware min and add operations
-                        edge_flow = min_values(parent_flow, edge_capacity)
-                        total_incoming_flow = add_values(total_incoming_flow, edge_flow)
-                        
+                        # Read from edge_flows (set during parent's distribution step)
+                        incoming = get(edge_flows, (parent, node), zero_value(T))
+                        total_incoming_flow = add_values(total_incoming_flow, incoming)
+
                         push!(limiting_factors, (parent, node))
                     end
-                    
+
                     # Node output limited by uncertainty-aware min operation
-                    node_capacity = get(capacity_params.node_capacities, node,
-                                      T == Float64 ? 1e6 :
-                                      T == Interval ? Interval(1e6, 1e6) :
-                                      PBA.makepbox(PBA.interval(1e6, 1e6)))
-                    
+                    node_capacity = get(capacity_params.node_capacities, node, large_cap)
                     node_flows[node] = min_values(total_incoming_flow, node_capacity)
                     bottlenecks[node] = limiting_factors
+                end
+
+                # DISTRIBUTE this node's output across outgoing edges (flow conservation)
+                if haskey(outgoing_index, node) && !isempty(outgoing_index[node])
+                    node_output = node_flows[node]
+                    children = collect(outgoing_index[node])
+
+                    # Compute demand per outgoing edge
+                    demands = Dict{Int64, T}()
+                    for child in children
+                        edge_cap = get(capacity_params.edge_capacities, (node, child), large_cap)
+                        demands[child] = min_values(node_output, edge_cap)
+                    end
+                    total_demand = sum_values(collect(values(demands)))
+
+                    # Proportional scaling: scale = min(1, node_output / total_demand)
+                    # Guard: if total_demand is zero or contains zero, distribute equally
+                    can_divide = if T == Float64
+                        total_demand > 0.0
+                    elseif T == Interval
+                        total_demand.lower > 0.0
+                    else # pbox
+                        true  # pbox division handles zero internally
+                    end
+
+                    if can_divide && !isempty(children)
+                        scale = divide_values(node_output, total_demand)
+                        capped_scale = min_values(scale, one_value(T))
+                        for child in children
+                            edge_flows[(node, child)] = multiply_values(demands[child], capped_scale)
+                        end
+                    else
+                        # Equal distribution fallback
+                        n_children = length(children)
+                        for child in children
+                            edge_flows[(node, child)] = if n_children > 0
+                                divide_values(node_output, T == Float64 ? Float64(n_children) : T == Interval ? Interval(Float64(n_children), Float64(n_children)) : PBA.makepbox(PBA.interval(Float64(n_children), Float64(n_children))))
+                            else
+                                zero_value(T)
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -860,7 +884,8 @@ module CapacityAnalysisModule
             utilization,
             :uncertainty_aware_flow,
             computation_time=computation_time,
-            convergence_info=Dict(:iterations => length(iteration_sets), :uncertainty_type => T)
+            convergence_info=Dict(:iterations => length(iteration_sets), :uncertainty_type => T),
+            edge_flows=edge_flows
         )
     end
 
@@ -902,72 +927,66 @@ module CapacityAnalysisModule
             )
         end
         
-        # Standard single-commodity analysis
+        # Standard single-commodity analysis with flow conservation
         node_flows = Dict{Int64, Float64}()
+        edge_flows = Dict{Tuple{Int64,Int64}, Float64}()  # Actual flow through each edge
         bottlenecks = Dict{Int64, Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}}()
         parent_selection = Dict{Int64, Int64}()  # For optimal path reconstruction
-        
+
         # Process nodes in topological order (using iteration sets)
         for (level, node_set) in enumerate(iteration_sets)
             if config.verbose
                 println("Processing level $level with nodes: $node_set")
             end
-            
+
             for node in node_set
                 if node in source_nodes
                     # Source nodes: limited by input rate
                     source_rate = get(capacity_params.source_input_rates, node, 0.0)
                     node_capacity = get(capacity_params.node_capacities, node, Inf)
-                    
+
                     # Source flow = min(input_rate, processing_capacity)
                     node_flows[node] = min(source_rate, node_capacity)
-                    
+
                     if source_rate < node_capacity - config.tolerance
                         bottlenecks[node] = [(:source_input, node)]
                     else
                         bottlenecks[node] = [node]  # Node processing is bottleneck
                     end
                 else
-                    # Regular nodes: aggregate flow from parents with optimal parent selection
+                    # Regular nodes: aggregate flow from ACTUAL edge flows (flow-conserving)
                     total_incoming_flow = 0.0
                     limiting_factors = Vector{Union{Int64, Tuple{Int64,Int64}, Tuple{Symbol,Int64}}}()
                     best_parent = -1
                     max_parent_contribution = 0.0
-                    
-                    # Calculate total flow arriving from all parents
+
                     for parent in incoming_index[node]
-                        if !haskey(node_flows, parent)
-                            throw(ErrorException("Parent node $parent not processed yet"))
-                        end
-                        
-                        parent_flow = node_flows[parent]
-                        edge_capacity = get(capacity_params.edge_capacities, (parent, node), Inf)
-                        
-                        # Flow through this edge is limited by min(parent_output, edge_capacity)
-                        edge_flow = min(parent_flow, edge_capacity)
-                        total_incoming_flow += edge_flow
-                        
+                        # Read from edge_flows (set during parent's distribution step)
+                        incoming = get(edge_flows, (parent, node), 0.0)
+                        total_incoming_flow += incoming
+
                         # Track best parent for path reconstruction
-                        if edge_flow > max_parent_contribution
-                            max_parent_contribution = edge_flow
+                        if incoming > max_parent_contribution
+                            max_parent_contribution = incoming
                             best_parent = parent
                         end
-                        
-                        # Track if edge is the limiting factor
-                        if edge_capacity < parent_flow - config.tolerance
+
+                        # Track if edge capacity limited the flow
+                        edge_capacity = get(capacity_params.edge_capacities, (parent, node), Inf)
+                        if edge_capacity < node_flows[parent] - config.tolerance
                             push!(limiting_factors, (parent, node))
                         end
                     end
-                    
+
                     # Store optimal parent selection for critical path reconstruction
                     if best_parent != -1
                         parent_selection[node] = best_parent
                     end
-                    
+
                     # Node output limited by min(incoming_flow, node_processing_capacity)
                     node_capacity = get(capacity_params.node_capacities, node, Inf)
                     node_flows[node] = min(total_incoming_flow, node_capacity)
-                    
+
                     # Determine bottleneck with tolerance checking
                     if node_capacity < total_incoming_flow - config.tolerance
                         bottlenecks[node] = [node]  # Node processing is bottleneck
@@ -975,10 +994,30 @@ module CapacityAnalysisModule
                         bottlenecks[node] = limiting_factors  # Edge(s) are bottleneck
                     end
                 end
+
+                # DISTRIBUTE this node's output across outgoing edges (flow conservation)
+                if haskey(outgoing_index, node) && !isempty(outgoing_index[node])
+                    node_output = node_flows[node]
+                    children = collect(outgoing_index[node])
+
+                    # Compute demand per outgoing edge: each child wants min(node_output, edge_cap)
+                    demands = Dict{Int64, Float64}()
+                    for child in children
+                        edge_cap = get(capacity_params.edge_capacities, (node, child), Inf)
+                        demands[child] = min(node_output, edge_cap)
+                    end
+                    total_demand = sum(values(demands))
+
+                    # Proportional scaling: if total demand > available, scale down proportionally
+                    scale = total_demand > config.tolerance ? min(1.0, node_output / total_demand) : 0.0
+                    for child in children
+                        edge_flows[(node, child)] = demands[child] * scale
+                    end
+                end
             end
         end
-        
-        # Calculate network utilization with proper handling of edge cases
+
+        # Calculate network utilization (now guaranteed ≤ 1.0 with flow conservation)
         total_possible_input = sum(values(capacity_params.source_input_rates))
         target_flows = [node_flows[node] for node in capacity_params.target_nodes if haskey(node_flows, node)]
         total_actual_output = isempty(target_flows) ? 0.0 : sum(target_flows)
@@ -999,12 +1038,13 @@ module CapacityAnalysisModule
         
         return CapacityResult(
             node_flows,
-            bottlenecks, 
+            bottlenecks,
             critical_paths,
             utilization,
             :maximum_flow,
             computation_time=computation_time,
-            convergence_info=Dict{Symbol, Any}(:iterations => length(iteration_sets), :tolerance_used => config.tolerance)
+            convergence_info=Dict{Symbol, Any}(:iterations => length(iteration_sets), :tolerance_used => config.tolerance),
+            edge_flows=edge_flows
         )
     end
 

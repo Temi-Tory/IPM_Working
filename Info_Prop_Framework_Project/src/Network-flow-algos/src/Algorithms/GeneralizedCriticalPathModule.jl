@@ -487,7 +487,7 @@ module GeneralizedCriticalPathModule
                     # Non-sink nodes: LF = min over successors { LS[s] - edge_value[n→s] }
                     # where LS[s] = LF[s] - node_duration[s]
                     successors = get(outgoing_index, node, Set{Int64}())
-                    min_val = typemax(Float64)
+                    min_val = critical_value  # Safe fallback: if no successors processed, LF = project end
 
                     for successor in successors
                         if !haskey(lf, successor)
@@ -507,7 +507,7 @@ module GeneralizedCriticalPathModule
                         end
                     end
 
-                    lf[node] = T(min_val)
+                    lf[node] = min_val
                 end
             end
         end

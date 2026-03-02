@@ -166,6 +166,26 @@ module InputProcessingModule
     # Constructor for creating interval from single value (deterministic case)
     Interval(value::Float64) = Interval(value, value)
 
+    # Base overloads for Interval — required by GeneralizedCriticalPathModule and CapacityAnalysisModule
+    Base.zero(::Type{Interval}) = Interval(0.0, 0.0)
+    Base.typemax(::Type{Interval}) = Interval(typemax(Float64), typemax(Float64))
+    Base.minimum(v::AbstractVector{Interval}) = Interval(minimum(x.lower for x in v), minimum(x.upper for x in v))
+    Base.maximum(v::AbstractVector{Interval}) = Interval(maximum(x.lower for x in v), maximum(x.upper for x in v))
+    Base.:(>)(a::Interval, b::Interval) = a.lower > b.upper
+    Base.:(<)(a::Interval, b::Interval) = a.upper < b.lower
+    Base.:(+)(a::Interval, b::Interval) = Interval(a.lower + b.lower, a.upper + b.upper)
+    Base.:(-)(a::Interval, b::Interval) = Interval(a.lower - b.upper, a.upper - b.lower)
+    Base.:(*)(a::Interval, b::Interval) = begin
+        products = (a.lower * b.lower, a.lower * b.upper, a.upper * b.lower, a.upper * b.upper)
+        Interval(min(products...), max(products...))
+    end
+    Base.:(/)(a::Interval, b::Real) = Interval(a.lower / b, a.upper / b)
+    Base.:(/)(a::Interval, b::Interval) = begin
+        (b.lower <= 0.0 && b.upper >= 0.0) && throw(ArgumentError("Division by interval containing zero"))
+        quotients = (a.lower / b.lower, a.lower / b.upper, a.upper / b.lower, a.upper / b.upper)
+        Interval(min(quotients...), max(quotients...))
+    end
+
     """
         read_graph_to_dict(filename::String)
 

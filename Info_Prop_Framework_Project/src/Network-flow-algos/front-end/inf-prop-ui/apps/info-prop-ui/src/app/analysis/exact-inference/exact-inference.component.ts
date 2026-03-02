@@ -461,18 +461,18 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
       const worst = beliefRanking[beliefRanking.length - 1];
       observations.push({
         icon: 'compare',
-        text: `Highest mean belief: ${best.name} (${best.meanBelief.toPrecision(6)}), lowest: ${worst.name} (${worst.meanBelief.toPrecision(6)})`,
+        text: `Highest mean belief: ${best.name} (${best.meanBelief.toFixed(4)}), lowest: ${worst.name} (${worst.meanBelief.toFixed(4)})`,
         severity: worst.meanBelief < 0.5 ? 'warning' : 'info'
       });
 
       if (beliefRanking.length >= 3) {
-        const progression = beliefRanking.map(v => `${v.meanBelief.toPrecision(6)} (${v.name})`).join(' > ');
+        const progression = beliefRanking.map(v => `${v.meanBelief.toFixed(4)} (${v.name})`).join(' > ');
         observations.push({ icon: 'trending_down', text: `Belief ranking: ${progression}`, severity: 'info' });
       }
     } else if (beliefRanking.length === 1) {
       observations.push({
         icon: 'analytics',
-        text: `${beliefRanking[0].name}: mean belief ${beliefRanking[0].meanBelief.toPrecision(6)}`,
+        text: `${beliefRanking[0].name}: mean belief ${beliefRanking[0].meanBelief.toFixed(4)}`,
         severity: beliefRanking[0].meanBelief >= 0.7 ? 'good' : beliefRanking[0].meanBelief >= 0.4 ? 'info' : 'warning'
       });
     }
@@ -491,7 +491,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
       const widest = uncertaintyScenarios[0];
       observations.push({
         icon: 'unfold_more',
-        text: `Widest uncertainty: ${widest.name} (avg width ${widest.avgWidth.toPrecision(6)})`,
+        text: `Widest uncertainty: ${widest.name} (avg width ${widest.avgWidth.toFixed(4)})`,
         severity: widest.avgWidth > 0.3 ? 'warning' : 'info'
       });
     }
@@ -544,6 +544,12 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   }
 
   ngOnDestroy(): void {
+    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
+    for (const [name, tab] of this.scenarioTabs()) {
+      if (tab.status === 'computing') {
+        this.updateTabState(name, { status: 'idle' });
+      }
+    }
     // Save state so navigating back restores results without re-running
     this.saveActiveTabUIState();
     this.analysisStateService.saveViewState(
@@ -837,7 +843,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   formatNumber(value: number): string {
     if (value === 0) return '0.00000';
     if (value === 1) return '1.00000';
-    return value.toPrecision(6);
+    return value.toFixed(5);
   }
 
   formatBelief(belief: BeliefValue): string {
