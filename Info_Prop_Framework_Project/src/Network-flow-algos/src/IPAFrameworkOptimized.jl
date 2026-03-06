@@ -8,7 +8,7 @@ module IPAFrameworkOptimized
     include("Algorithms/VisualizeGraphsModule.jl")
     include("Algorithms/UndirectedToDagModule.jl")
     include("Algorithms/DiamondClassificationModule.jl")
-    include("Algorithms/CapacityAnalysisModule.jl")
+    include("Algorithms/Capacity/CapacityAnalysisModule.jl")
     include("Algorithms/GeneralizedCriticalPathModule.jl")
 
     # UPDATED: Import from enhanced InputProcessingModule
@@ -42,13 +42,17 @@ module IPAFrameworkOptimized
                                  analyze_generated_dag, validate_dag
 
 
-    using .CapacityAnalysisModule: CapacityParameters, CapacityResult,
-           maximum_flow_capacity, maximum_flow_capacity_uncertain,
-           bottleneck_capacity_analysis, widest_path_analysis,
-           network_throughput_analysis, classical_maximum_flow,
-           comparative_capacity_analysis, AnalysisConfig,
-           MultiCommodityParameters, UncertaintyParameters,
-           validate_capacity_parameters, validate_capacity_results
+    # UPDATED: Import from refactored CapacityAnalysisModule (Phase 1: Deterministic Core)
+    using .CapacityAnalysisModule: 
+           # Core types
+           NetworkTopology, BasicCapacityProblem, CapacityAnalysisOptions,
+           CapacityAnalysisResult, BottleneckReport, ValidationReport,
+           EdgeUpgradeRecommendation, NodeUpgradeRecommendation, UpgradeAnalysis,
+           FlowPath, PathAnalysis, ComparativeAnalysis,
+           # Main API functions
+           analyze_capacity, analyze_capacity_validated, quick_capacity_check,
+           # Validation
+           validate_capacity_result
 
     # Updated DiamondClassification imports
     using .DiamondClassificationModule: DiamondClassification, classify_diamond_exhaustive,
@@ -111,14 +115,13 @@ module IPAFrameworkOptimized
         ForkStructure, InternalStructure, PathTopology, JoinStructure,
         ExternalConnectivity, DegenerateCases,
 
-        # Capacity Analysis
-        CapacityParameters, CapacityResult,
-        maximum_flow_capacity, maximum_flow_capacity_uncertain,
-        bottleneck_capacity_analysis, widest_path_analysis,
-        network_throughput_analysis, classical_maximum_flow,
-        comparative_capacity_analysis, AnalysisConfig,
-        MultiCommodityParameters, UncertaintyParameters,
-        validate_capacity_parameters, validate_capacity_results,
+        # Capacity Analysis - Phase 1: Deterministic Core (Refactored)
+        NetworkTopology, BasicCapacityProblem, CapacityAnalysisOptions,
+        CapacityAnalysisResult, BottleneckReport, ValidationReport,
+        EdgeUpgradeRecommendation, NodeUpgradeRecommendation, UpgradeAnalysis,
+        FlowPath, PathAnalysis, ComparativeAnalysis,
+        analyze_capacity, analyze_capacity_validated, quick_capacity_check,
+        validate_capacity_result,
 
         # Critical Path Analysis
         CriticalPathParameters, CriticalPathResult, ExtendedCriticalPathResult,
