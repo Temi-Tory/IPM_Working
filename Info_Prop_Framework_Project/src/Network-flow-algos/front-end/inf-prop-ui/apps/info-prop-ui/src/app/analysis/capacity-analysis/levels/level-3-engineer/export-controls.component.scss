@@ -1,0 +1,193 @@
+// Solarized Material M2 Colors
+$color-primary: #1976D2;
+$color-accent: #7B1FA2;
+$color-info: #0288D1;
+
+$background-light: #FAFAFA;
+$background-card: #FFFFFF;
+$text-primary: #212121;
+$text-secondary: #666666;
+$border-light: #E0E0E0;
+
+.export-controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--background-light, $background-light);
+  border-radius: 8px;
+}
+
+.export-header {
+  .title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary, $text-secondary);
+
+    strong {
+      color: var(--text-primary, $text-primary);
+      font-weight: 600;
+    }
+  }
+}
+
+.export-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .export-button {
+    flex: 1;
+    min-width: 140px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.full-package {
+      background: $color-primary;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: darken($color-primary, 5%);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+      }
+    }
+
+    .spinner {
+      margin-right: 8px;
+    }
+  }
+}
+
+.export-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.info-card {
+  background: var(--background-card, $background-card);
+  border: 1px solid var(--border-light, $border-light);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-primary, $text-primary);
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: $color-info;
+    }
+  }
+
+  .card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary, $text-secondary);
+    line-height: 1.4;
+
+    p {
+      margin: 0;
+
+      strong {
+        color: var(--text-primary, $text-primary);
+        font-weight: 600;
+      }
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .label {
+        font-weight: 600;
+        color: var(--text-secondary, $text-secondary);
+      }
+
+      .value {
+        color: var(--text-primary, $text-primary);
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+      }
+    }
+  }
+}
+
+.instructions {
+  background: var(--background-card, $background-card);
+  border: 1px solid var(--border-light, $border-light);
+  border-left: 3px solid $color-info;
+  border-radius: 4px;
+  padding: 12px;
+
+  .instructions-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, $text-secondary);
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+  }
+
+  .instructions-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: var(--text-secondary, $text-secondary);
+    line-height: 1.6;
+
+    li {
+      margin-bottom: 6px;
+
+      strong {
+        color: var(--text-primary, $text-primary);
+        font-weight: 600;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+::ng-deep {
+  mat-spinner {
+    margin: 0 !important;
+
+    circle {
+      stroke: white !important;
+    }
+  }
+}

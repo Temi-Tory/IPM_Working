@@ -1,0 +1,1017 @@
+{
+  "time_analysis": {
+    "edge_delays": {
+      "(1,9)": {
+        "lower": 1.2676,
+        "upper": 2.1536,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 2.5769,
+        "upper": 4.0284,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 1.2527,
+        "upper": 2.2382,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 2.4325,
+        "upper": 4.1327,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 2.0299,
+        "upper": 3.6187,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 1.1069,
+        "upper": 2.1653,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 2.2417,
+        "upper": 3.6454,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 2.3104,
+        "upper": 3.6919,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 1.2584,
+        "upper": 2.2317,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 1.725,
+        "upper": 2.9797,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 1.4748,
+        "upper": 2.6808,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 1.111,
+        "upper": 2.2725,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 1.9414,
+        "upper": 3.5877,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 1.615,
+        "upper": 2.8969,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 1.1652,
+        "upper": 2.1293,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 1.8992,
+        "upper": 3.3843,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 1.6293,
+        "upper": 2.7894,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 1.2839,
+        "upper": 2.2092,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 2.077,
+        "upper": 3.627,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 1.3003,
+        "upper": 2.8577,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 1.4599,
+        "upper": 2.9046,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 1.2799,
+        "upper": 2.2532,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 1.1609,
+        "upper": 2.1931,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 2.6906,
+        "upper": 3.8589,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 1.1323,
+        "upper": 2.1819,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 2.5794,
+        "upper": 3.916,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 1.8686,
+        "upper": 3.569,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 1.2237,
+        "upper": 2.1156,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 2.1252,
+        "upper": 3.6998,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 2.0764,
+        "upper": 3.6644,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 1.2571,
+        "upper": 2.2386,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 1.8905,
+        "upper": 3.1372,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 1.548,
+        "upper": 2.8004,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 1.2652,
+        "upper": 2.2071,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 1.9969,
+        "upper": 3.6396,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 1.5562,
+        "upper": 2.7245,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 1.1142,
+        "upper": 2.1265,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 1.8933,
+        "upper": 3.492,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 1.6402,
+        "upper": 2.7527,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 1.212,
+        "upper": 2.243,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 2.0358,
+        "upper": 3.6477,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 1.396,
+        "upper": 2.8409,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 1.3728,
+        "upper": 2.8237,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 1.1086,
+        "upper": 2.1121,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 1.2549,
+        "upper": 2.2764,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 2.5029,
+        "upper": 4.1214,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 1.1202,
+        "upper": 2.1629,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 2.3177,
+        "upper": 3.9739,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 2.0524,
+        "upper": 3.4799,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 1.272,
+        "upper": 2.2225,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 2.3223,
+        "upper": 3.9496,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 2.3108,
+        "upper": 3.6296,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 1.2881,
+        "upper": 2.196,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 1.9156,
+        "upper": 2.9914,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 1.6131,
+        "upper": 2.8404,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 1.168,
+        "upper": 2.1548,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 2.0419,
+        "upper": 3.6157,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 1.4654,
+        "upper": 2.8855,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 1.1372,
+        "upper": 2.2721,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 1.934,
+        "upper": 3.6154,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 1.6985,
+        "upper": 2.863,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 1.2288,
+        "upper": 2.2674,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 2.0405,
+        "upper": 3.343,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 1.4031,
+        "upper": 2.7579,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 1.3756,
+        "upper": 2.7278,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 1.294,
+        "upper": 2.1455,
+        "type": "interval"
+      }
+    },
+    "combination_function": "max_combination",
+    "initial_time": {
+      "lower": 0,
+      "upper": 0,
+      "type": "interval"
+    },
+    "analysis_type": "longest_path_time",
+    "propagation_function": "additive_propagation",
+    "node_durations": {
+      "1": {
+        "lower": 1.9643,
+        "upper": 3.5419,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 1.8979,
+        "upper": 3.4912,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 1.9102,
+        "upper": 3.4586,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 1.937,
+        "upper": 3.3563,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 2.1158,
+        "upper": 3.5324,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 1.8665,
+        "upper": 3.4994,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 1.9276,
+        "upper": 3.433,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 1.8992,
+        "upper": 3.4372,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 2.5764,
+        "upper": 4.1288,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 2.3148,
+        "upper": 4.0554,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 3.2901,
+        "upper": 5.3973,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 1.5054,
+        "upper": 3.0681,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 1.5828,
+        "upper": 3.0822,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 2.5616,
+        "upper": 3.8357,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 2.6946,
+        "upper": 3.8944,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 2.6785,
+        "upper": 3.9624,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 2.4404,
+        "upper": 3.8349,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 2.3661,
+        "upper": 3.9163,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 3.6474,
+        "upper": 5.4529,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 1.4556,
+        "upper": 2.9815,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 1.434,
+        "upper": 2.9091,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 2.3554,
+        "upper": 3.8484,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 2.4361,
+        "upper": 3.9304,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 2.6244,
+        "upper": 4.0206,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 0.9327,
+        "upper": 2.505,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 0.9292,
+        "upper": 2.4848,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 0.9844,
+        "upper": 2.4293,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 0.9957,
+        "upper": 2.4525,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 0.9903,
+        "upper": 2.5191,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 0.9548,
+        "upper": 2.4378,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 0.9272,
+        "upper": 2.571,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 0.9784,
+        "upper": 2.5634,
+        "type": "interval"
+      }
+    }
+  },
+  "network_type": "critical_path",
+  "data_type": "Interval",
+  "cost_analysis": {
+    "initial_cost": {
+      "lower": 0,
+      "upper": 0,
+      "type": "interval"
+    },
+    "combination_function": "max_combination",
+    "node_costs": {
+      "1": {
+        "lower": 136.7924,
+        "upper": 196.461,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 144.371,
+        "upper": 205.9956,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 138.2667,
+        "upper": 196.8313,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 138.4288,
+        "upper": 201.0326,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 141.7985,
+        "upper": 196.8265,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 134.4355,
+        "upper": 202.2971,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 144.6378,
+        "upper": 203.43,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 141.9624,
+        "upper": 206.1027,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 199.851,
+        "upper": 268.8508,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 193.2848,
+        "upper": 268.5587,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 266.684,
+        "upper": 345.8961,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 107.5057,
+        "upper": 176.4343,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 107.4982,
+        "upper": 172.8917,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 183.3749,
+        "upper": 278.9333,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 190.0187,
+        "upper": 274.6783,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 190.154,
+        "upper": 268.2157,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 195.3546,
+        "upper": 267.5738,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 197.8884,
+        "upper": 267.9112,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 256.3686,
+        "upper": 368.9516,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 113.697,
+        "upper": 172.0753,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 110.656,
+        "upper": 178.2921,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 183.8221,
+        "upper": 263.9828,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 197.9903,
+        "upper": 264.5343,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 196.2229,
+        "upper": 266.3778,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 86.4392,
+        "upper": 151.1469,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 89.8252,
+        "upper": 151.1326,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 92.0219,
+        "upper": 153.1814,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 92.0714,
+        "upper": 148.0047,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 90.0313,
+        "upper": 153.5345,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 87.537,
+        "upper": 151.8389,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 85.6749,
+        "upper": 152.6826,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 88.8279,
+        "upper": 153.2818,
+        "type": "interval"
+      }
+    },
+    "analysis_type": "total_project_cost",
+    "propagation_function": "additive_propagation",
+    "edge_costs": {
+      "(1,9)": {
+        "lower": 39.0365,
+        "upper": 62.7179,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 84.5343,
+        "upper": 123.3595,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 38.9848,
+        "upper": 60.1751,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 83.342,
+        "upper": 120.4926,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 63.9282,
+        "upper": 111.5895,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 36.0758,
+        "upper": 63.9707,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 72.5535,
+        "upper": 118.3167,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 73.967,
+        "upper": 119.8065,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 38.2947,
+        "upper": 59.7428,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 57.888,
+        "upper": 95.5118,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 52.6827,
+        "upper": 89.5728,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 39.7361,
+        "upper": 61.1886,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 60.941,
+        "upper": 97.0227,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 52.4742,
+        "upper": 86.7296,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 38.0491,
+        "upper": 63.3891,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 58.6993,
+        "upper": 96.4711,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 50.6538,
+        "upper": 80.0526,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 35.8119,
+        "upper": 63.4972,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 56.5596,
+        "upper": 103.5013,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 46.6015,
+        "upper": 75.3801,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 44.249,
+        "upper": 74.4376,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 35.7608,
+        "upper": 62.8023,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 37.7155,
+        "upper": 60.8644,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 81.2607,
+        "upper": 125.9537,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 35.8445,
+        "upper": 59.8037,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 79.8461,
+        "upper": 121.7652,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 66.4273,
+        "upper": 108.6866,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 38.4997,
+        "upper": 60.0614,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 79.8315,
+        "upper": 116.005,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 77.5591,
+        "upper": 119.684,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 37.413,
+        "upper": 61.5706,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 60.2155,
+        "upper": 98.3199,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 51.5077,
+        "upper": 87.4457,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 36.8843,
+        "upper": 61.218,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 63.1958,
+        "upper": 97.7204,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 49.4838,
+        "upper": 86.8269,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 37.2743,
+        "upper": 59.9551,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 57.1766,
+        "upper": 97.8593,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 45.7322,
+        "upper": 81.4833,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 36.2231,
+        "upper": 60.5387,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 56.8396,
+        "upper": 97.3942,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 46.5444,
+        "upper": 76.1242,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 44.2814,
+        "upper": 75.1966,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 38.0531,
+        "upper": 61.1534,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 37.1437,
+        "upper": 60.6715,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 76.4799,
+        "upper": 127.1499,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 38.1708,
+        "upper": 60.2406,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 82.3904,
+        "upper": 125.839,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 71.5885,
+        "upper": 111.4263,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 39.7857,
+        "upper": 63.9025,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 76.4777,
+        "upper": 119.3011,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 71.5043,
+        "upper": 116.6168,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 38.1505,
+        "upper": 62.0891,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 59.015,
+        "upper": 94.6797,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 55.0927,
+        "upper": 85.552,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 40.0139,
+        "upper": 60.7287,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 62.4586,
+        "upper": 98.3746,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 54.741,
+        "upper": 90.9796,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 36.1095,
+        "upper": 61.5569,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 58.5513,
+        "upper": 100.25,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 46.7693,
+        "upper": 80.3815,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 37.0753,
+        "upper": 61.0833,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 58.7052,
+        "upper": 99.207,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 43.0144,
+        "upper": 76.3548,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 41.3691,
+        "upper": 73.7967,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 37.2102,
+        "upper": 62.8962,
+        "type": "interval"
+      }
+    }
+  },
+  "description": "Critical Path Module inputs for WATER network - Winter Operations. Cold weather (<5C water temp) degrades all biological processes, especially nitrification. Sensors suffer cold-weather drift and ice buildup. All values are intervals reflecting both degraded performance and measurement uncertainty. Nitrogen pathways have widest bounds (most temperature-sensitive).",
+  "generation_info": {
+    "total_nodes": 32,
+    "total_edges": 66
+  }
+}

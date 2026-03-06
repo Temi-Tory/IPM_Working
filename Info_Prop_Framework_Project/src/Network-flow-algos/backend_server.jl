@@ -134,7 +134,14 @@ function parse_typed_value(v, ::Type{Float64})
 end
 function parse_typed_value(v, ::Type{Interval})
     if isa(v, Dict)
-        return Interval(Float64(v["lower"]), Float64(v["upper"]))
+        lower = Float64(v["lower"])
+        upper = Float64(v["upper"])
+        # Validate: ensure lower <= upper
+        if lower > upper
+            @warn "Malformed interval: lower=$lower > upper=$upper. Swapping."
+            lower, upper = upper, lower
+        end
+        return Interval(lower, upper)
     else
         val = Float64(v)
         return Interval(val, val)
@@ -1407,50 +1414,36 @@ function handle_capacity_analysis(req::HTTP.Request)
         edge_caps_raw = capacity_data["capacities"]["edges"]
         source_rates_raw = capacity_data["capacities"]["source_rates"]
 
-        # Detect data type from JSON
-        cap_data_type = get(capacity_data, "data_type", "Float64")
-        T = cap_data_type == "Interval" ? Interval : Float64
-
-        # Convert to proper types using type-aware parsing
-        node_capacities = Dict{Int64,T}()
+        # Capacity analysis only supports Float64 for mathematical exactness
+        # Convert all inputs to Float64
+        node_capacities = Dict{Int64,Float64}()
         for (k, v) in node_caps_raw
-            node_capacities[parse(Int64, k)] = parse_typed_value(v, T)
+            node_capacities[parse(Int64, k)] = parse_typed_value(v, Float64)
         end
 
-        edge_capacities = Dict{Tuple{Int64,Int64},T}()
+        edge_capacities = Dict{Tuple{Int64,Int64},Float64}()
         for (k, v) in edge_caps_raw
             cleaned_key = replace(k, "(" => "", ")" => "")
             parts = split(cleaned_key, ",")
             edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
-            edge_capacities[edge_key] = parse_typed_value(v, T)
+            edge_capacities[edge_key] = parse_typed_value(v, Float64)
         end
 
-        source_rates = Dict{Int64,T}()
+        source_rates = Dict{Int64,Float64}()
         for (k, v) in source_rates_raw
-            rate = parse_typed_value(v, T)
-            if T == Float64
-                if rate > 0.0
-                    source_rates[parse(Int64, k)] = rate
-                end
-            else
-                # For Interval: include if upper bound > 0
-                if rate.upper > 0.0
-                    source_rates[parse(Int64, k)] = rate
-                end
+            rate = parse_typed_value(v, Float64)
+            if rate > 0.0
+                source_rates[parse(Int64, k)] = rate
             end
         end
 
         # Target nodes are sink nodes
         targets = Set{Int64}(sink_nodes)
 
-        # Run capacity analysis — use uncertain variant for non-Float64 types
+        # Run capacity analysis (Float64 only for exact flow-conserving results)
         capacity_start_time = time()
         capacity_params = CapacityParameters(node_capacities, edge_capacities, source_rates, targets)
-        capacity_result = if T == Float64
-            maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
-        else
-            maximum_flow_capacity_uncertain(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
-        end
+        capacity_result = maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
         capacity_computation_time = time() - capacity_start_time
         
         # Extract flow results
@@ -1466,50 +1459,46 @@ function handle_capacity_analysis(req::HTTP.Request)
         actual_edge_flows = capacity_result.edge_flows
         for ((src, dst), cap) in edge_capacities
             flow_through = if actual_edge_flows !== nothing
-                get(actual_edge_flows, (src, dst), zero(T))
+                get(actual_edge_flows, (src, dst), 0.0)
             else
                 # Fallback for analysis types that don't track edge flows
-                min_values(get(capacity_result.node_max_flows, src, zero(T)), cap)
+                min(get(capacity_result.node_max_flows, src, 0.0), cap)
             end
             edge_utilization["($src, $dst)"] = Dict(
-                "capacity" => convert_pbox_values(cap),
-                "flow" => convert_pbox_values(flow_through),
-                "utilization" => convert_pbox_values(T == Float64 ? (cap > 0 ? flow_through / cap : 0.0) : divide_values(flow_through, cap)),
-                "spare" => convert_pbox_values(T == Float64 ? cap - flow_through : subtract_values(cap, flow_through))
+                "capacity" => cap,
+                "flow" => flow_through,
+                "utilization" => cap > 0.0 ? flow_through / cap : 0.0,
+                "spare" => cap - flow_through
             )
         end
 
-        # Run comparative analysis (realistic vs classical) — Float64 only
+        # Run comparative analysis (realistic vs classical)
         comparative_data = Dict{String, Any}()
-        if T == Float64
-            try
-                comparative = comparative_capacity_analysis(
-                    iteration_sets, outgoing_index, incoming_index,
-                    source_nodes, capacity_params
-                )
+        try
+            comparative = comparative_capacity_analysis(
+                iteration_sets, outgoing_index, incoming_index,
+                source_nodes, capacity_params
+            )
 
-                comparative_data = Dict(
-                    "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
-                    "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
-                    "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
-                    "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
-                    "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
-                    "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
-                    "strategic_recommendations" => comparative[:strategic_recommendations]
-                )
-            catch comp_err
-                println("Comparative analysis warning (non-fatal): ", comp_err)
-                comparative_data = Dict("error" => "Comparative analysis unavailable")
-            end
-        else
-            comparative_data = Dict("info" => "Comparative analysis not available for interval data")
+            comparative_data = Dict(
+                "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
+                "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
+                "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
+                "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
+                "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
+                "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
+                "strategic_recommendations" => comparative[:strategic_recommendations]
+            )
+        catch comp_err
+            println("Comparative analysis warning (non-fatal): ", comp_err)
+            comparative_data = Dict("error" => "Comparative analysis unavailable")
         end
 
         result_data = Dict(
             "computation_time" => capacity_computation_time,
-            "network_utilization" => convert_pbox_values(capacity_result.network_utilization),
-            "total_source_input" => convert_pbox_values(sum(collect(values(source_rates)))),
-            "total_target_output" => convert_pbox_values(sum(collect(values(target_flows)))),
+            "network_utilization" => capacity_result.network_utilization,
+            "total_source_input" => sum(collect(values(source_rates))),
+            "total_target_output" => sum(collect(values(target_flows))),
             "target_flows" => target_flows,
             "active_sources" => collect(keys(source_rates)),
             "target_nodes" => collect(targets),
@@ -1518,14 +1507,14 @@ function handle_capacity_analysis(req::HTTP.Request)
             "input_files" => Dict("capacities_path" => capacities_path),
             "comparative_analysis" => comparative_data,
             "raw_capacity_result" => Dict(
-                "node_max_flows" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.node_max_flows),
-                "node_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in node_capacities),
-                "edge_capacities" => Dict(string(k) => convert_pbox_values(v) for (k, v) in edge_capacities),
+                "node_max_flows" => Dict(string(k) => v for (k, v) in capacity_result.node_max_flows),
+                "node_capacities" => Dict(string(k) => v for (k, v) in node_capacities),
+                "edge_capacities" => Dict(string(k) => v for (k, v) in edge_capacities),
                 "edge_utilization" => edge_utilization,
-                "source_rates" => Dict(string(k) => convert_pbox_values(v) for (k, v) in source_rates),
-                "bottlenecks" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.bottlenecks),
-                "critical_paths" => Dict(string(k) => convert_pbox_values(v) for (k, v) in capacity_result.critical_paths),
-                "network_utilization" => convert_pbox_values(capacity_result.network_utilization),
+                "source_rates" => Dict(string(k) => v for (k, v) in source_rates),
+                "bottlenecks" => capacity_result.bottlenecks,
+                "critical_paths" => capacity_result.critical_paths,
+                "network_utilization" => capacity_result.network_utilization,
                 "analysis_type" => string(capacity_result.analysis_type),
                 "computation_time" => capacity_result.computation_time,
                 "convergence_info" => capacity_result.convergence_info

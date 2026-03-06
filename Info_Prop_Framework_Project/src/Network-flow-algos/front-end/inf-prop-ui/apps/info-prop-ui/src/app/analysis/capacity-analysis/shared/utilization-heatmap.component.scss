@@ -1,0 +1,23 @@
+.heatmap-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  width: 100%;
+
+  .heatmap-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    min-width: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .percentage {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 35px;
+    text-align: right;
+    color: var(--text-secondary, #555);
+  }
+}

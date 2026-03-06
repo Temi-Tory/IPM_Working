@@ -1,0 +1,303 @@
+// Solarized Material M2 Colors
+$color-primary: #1976D2;
+$color-good: #66BB6A;
+$color-warning: #FFA726;
+$color-critical: #EF5350;
+
+$background-light: #FAFAFA;
+$background-card: #FFFFFF;
+$text-primary: #212121;
+$text-secondary: #666666;
+$border-light: #E0E0E0;
+
+.upgrade-planner-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--background-light, $background-light);
+  border-radius: 8px;
+}
+
+.header-section {
+  .title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary, $text-secondary);
+  }
+}
+
+.current-state-card {
+  padding: 12px 16px;
+  background: var(--background-card, $background-card);
+  border-left: 3px solid $color-primary;
+  border-radius: 4px;
+  display: flex;
+  gap: 24px;
+
+  .state-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+
+    .state-label {
+      color: var(--text-secondary, $text-secondary);
+      font-weight: 500;
+    }
+
+    .state-value {
+      font-weight: 700;
+      color: var(--text-primary, $text-primary);
+      font-size: 14px;
+    }
+  }
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-card {
+  background: var(--background-card, $background-card);
+  border: 1px solid var(--border-light, $border-light);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: $color-primary;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #F5F5F5;
+    border-bottom: 1px solid var(--border-light, $border-light);
+
+    .priority-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+
+      &.priority-1 {
+        background: #FFEBEE;
+        color: $color-critical;
+      }
+
+      &.priority-2,
+      &.priority-3 {
+        background: #FFF3E0;
+        color: $color-warning;
+      }
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    .target-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .target-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: $color-primary;
+      }
+
+      .target-name {
+        font-weight: 600;
+        color: var(--text-primary, $text-primary);
+      }
+    }
+
+    .impact-score {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+
+      .score-value {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .score-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--text-secondary, $text-secondary);
+        letter-spacing: 0.3px;
+      }
+    }
+  }
+
+  mat-card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.metric-card {
+  padding: 12px;
+  background: #F9F9F9;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, $text-secondary);
+    letter-spacing: 0.3px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .metric-description {
+    font-size: 11px;
+    color: var(--text-secondary, $text-secondary);
+  }
+
+  .metric-bar {
+    height: 20px;
+    background: #E0E0E0;
+    border-radius: 2px;
+    overflow: hidden;
+
+    .bar {
+      height: 100%;
+      border-radius: 2px;
+    }
+  }
+
+  .impact-bar {
+    height: 4px;
+
+    &.impact-high {
+      background: $color-good;
+    }
+
+    &.impact-medium {
+      background: $color-warning;
+    }
+
+    &.impact-low {
+      background: #FFD54F;
+    }
+  }
+}
+
+.reason-section {
+  padding: 12px;
+  background: #F9F9F9;
+  border-left: 3px solid $color-primary;
+  border-radius: 2px;
+
+  .reason-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary, $text-secondary);
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+
+  .reason-text {
+    font-size: 13px;
+    color: var(--text-primary, $text-primary);
+    line-height: 1.5;
+  }
+}
+
+.benefit-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #F0F4FF;
+  border-radius: 4px;
+  font-size: 12px;
+  color: $color-primary;
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+
+  button {
+    flex: 1;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: $color-good;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary, $text-secondary);
+  }
+}
+
+::ng-deep {
+  .mat-progress-bar {
+    height: 4px !important;
+  }
+}

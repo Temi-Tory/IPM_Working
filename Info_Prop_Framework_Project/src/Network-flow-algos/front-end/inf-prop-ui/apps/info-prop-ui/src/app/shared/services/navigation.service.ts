@@ -98,6 +98,15 @@ export class NavigationService {
       order: 6
     },
     {
+      id: 'capacity-analysis-shell',
+      route: '/capacity-analysis-shell',
+      title: 'Capacity Analysis Shell',
+      subtitle: 'Flow analysis & bottleneck detection',
+      icon: 'timeline',
+      requiredData: 'networkData',
+      order: 6
+    },
+    {
       id: 'time-analysis',
       route: '/time-analysis',
       title: 'Time Analysis',

@@ -1,0 +1,98 @@
+<div class="flow-decomposition-container">
+  <h3 class="section-title">Flow Decomposition Analysis</h3>
+  <p class="section-description">Detailed breakdown of how sources distribute flow through the network</p>
+
+  <div class="sources-list">
+    @if (decomposition.sources && decomposition.sources.length > 0) {
+      @for (source of decomposition.sources; track source.nodeId) {
+        <mat-expansion-panel class="source-panel">
+          <mat-expansion-panel-header class="panel-header">
+            <div class="source-header">
+              <mat-icon class="source-icon">source</mat-icon>
+              <div class="source-title">
+                <span class="source-id">Source {{ source.nodeId }}</span>
+                <span class="source-output">{{ source.outputRate.toFixed(2) }} flow</span>
+              </div>
+              <div class="path-count">
+                <span class="badge">{{ source.flowDecomposition.length }} path{{ source.flowDecomposition.length !== 1 ? 's' : '' }}</span>
+              </div>
+            </div>
+          </mat-expansion-panel-header>
+
+          <div class="panel-content">
+            <div class="flow-narrative">
+              <p class="narrative-text">
+                This source contributes a total output of
+                <span class="flow-value">{{ source.outputRate.toFixed(2) }}</span>
+                , distributed across
+                <span class="count-value">{{ source.flowDecomposition.length }}</span>
+                path{{ source.flowDecomposition.length !== 1 ? 's' : '' }}.
+              </p>
+            </div>
+
+            <div class="paths-list">
+              <div class="paths-title">Flow Paths</div>
+              @for (path of source.flowDecomposition; track $index) {
+                <div class="path-row">
+                  <div class="path-visual">
+                    <div class="path-line" [style.background-color]="getContributionColor(path.percentOfSource)"></div>
+                    <span class="path-text">{{ path.pathToSink }}</span>
+                  </div>
+
+                  <div class="path-metrics">
+                    <div class="metric">
+                      <span class="metric-label">Flow:</span>
+                      <span class="metric-value">{{ path.flowAmount.toFixed(2) }}</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">%:</span>
+                      <span class="metric-value" [style.color]="getContributionColor(path.percentOfSource)">
+                        {{ formatPercent(path.percentOfSource) }}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="path-bar">
+                    <div
+                      class="bar-fill"
+                      [style.width.%]="path.percentOfSource * 100"
+                      [style.background-color]="getContributionColor(path.percentOfSource)"
+                    ></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-expansion-panel>
+      }
+    } @else {
+      <div class="empty-state">
+        <mat-icon>info</mat-icon>
+        <p>No flow decomposition data available</p>
+      </div>
+    }
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-title">Color Legend</div>
+    <div class="legend-items">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #66BB6A"></div>
+        <span>≥50% of source</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #FFD54F"></div>
+        <span>30-50%</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #FFA726"></div>
+        <span>10-30%</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #BDBDBD"></div>
+        <span>&lt;10%</span>
+      </div>
+    </div>
+  </div>
+</div>

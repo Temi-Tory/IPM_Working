@@ -1,0 +1,139 @@
+// Solarized Material M2 Colors
+$background-light: #FAFAFA;
+$background-card: #FFFFFF;
+$text-primary: #212121;
+$text-secondary: #666666;
+$border-light: #E0E0E0;
+
+.node-type-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--background-light, $background-light);
+  border-radius: 8px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary, $text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.stats-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--border-light, $border-light);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #999;
+    border-radius: 2px;
+
+    &:hover {
+      background: #666;
+    }
+  }
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background-card, $background-card);
+  border: 1px solid var(--border-light, $border-light);
+  border-radius: 6px;
+  flex-shrink: 0;
+  min-width: 160px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1976D2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .node-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  .stat-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .node-type {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary, $text-primary);
+    }
+
+    .stat-values {
+      font-size: 12px;
+      color: var(--text-secondary, $text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .count {
+        font-weight: 700;
+        color: var(--text-primary, $text-primary);
+      }
+
+      .separator {
+        opacity: 0.5;
+      }
+
+      .utilization {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .utilization-indicator {
+    width: 3px;
+    height: 32px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, $text-secondary);
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}

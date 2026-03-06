@@ -1,0 +1,836 @@
+// ============================================================================
+// CAPACITY STORY THEME - Comprehensive SCSS Styling
+// Handles styling for Levels 0-3 capacity analysis components
+// ============================================================================
+
+// ============================================================================
+// 1. COLOR SYSTEM (Solarized Palette)
+// ============================================================================
+
+// Primary color scheme for capacity levels
+$level-0-color: var(--primary-color);           // Health checks - Primary blue
+$level-1-color: var(--secondary-color);         // Bottlenecks - Green (functional)
+$level-2-color: var(--tertiary-color);          // Upgrades - Orange (action-oriented)
+$level-3-color: var(--accent-color);            // Engineer details - Accent (detail-oriented)
+
+// Status colors using Solarized palette
+$success-color: #859900;                        // Solarized green
+$warning-color: #b58900;                        // Solarized yellow
+$error-color: #dc322f;                          // Solarized red
+$info-color: #268bd2;                           // Solarized blue
+
+// Semantic color aliases
+$success: $success-color;
+$warning: $warning-color;
+$error: $error-color;
+$info: $info-color;
+
+// ============================================================================
+// 2. REUSABLE SCSS MIXINS
+// ============================================================================
+
+/// Metric card styling with colored left border
+/// @param {color} $color - The accent color for the left border
+@mixin metric-card-styling($color) {
+  border-left: 4px solid $color;
+  background: var(--surface-color);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba($color, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+/// Heatmap gradient animation for SVG-based visualizations
+/// @param {color} $min-color - Color for minimum values
+/// @param {color} $max-color - Color for maximum values
+@mixin heatmap-gradient($min-color, $max-color) {
+  background: linear-gradient(90deg, $min-color, $max-color);
+  animation: gradient-pulse 2s ease-in-out infinite alternate;
+}
+
+/// Table row hover styling with theme awareness
+/// @param {color} $color - Highlight color
+@mixin table-row-hover($color) {
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba($color, 0.1);
+    color: darken($color, 10%);
+  }
+}
+
+/// Bottleneck indicator styling with severity levels
+/// @param {string} $severity - 'critical', 'warning', or 'minor'
+@mixin bottleneck-indicator($severity) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  
+  @if $severity == 'critical' {
+    background-color: rgba($error, 0.1);
+    color: $error;
+    border: 1px solid $error;
+    
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: $error;
+      animation: glow-pulse 1.5s ease-in-out infinite;
+    }
+  } @else if $severity == 'warning' {
+    background-color: rgba($warning, 0.1);
+    color: $warning;
+    border: 1px solid $warning;
+    
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: $warning;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+  } @else {
+    background-color: rgba($info, 0.1);
+    color: $info;
+    border: 1px solid $info;
+  }
+}
+
+/// Level indicator badge styling
+/// @param {number} $level - Level number (0-3)
+/// @param {color} $color - Badge color
+@mixin level-indicator-badge($level, $color) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  background-color: $color;
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 2px 4px rgba($color, 0.3);
+}
+
+// ============================================================================
+// 3. THEME-AWARE UTILITIES (Light/Dark Mode)
+// ============================================================================
+
+// Light mode (default) theme variables
+:root {
+  // Backgrounds
+  --background-color: #fdf6e3;                  // Solarized base3 (light bg)
+  --surface-color: #fffdf7;                     // Lighter surface
+  --surface-secondary: #eee8d5;                 // Secondary surface
+
+  // Text colors
+  --text-primary: #657b83;                      // Solarized base00 (dark text)
+  --text-secondary: #93a1a1;                    // Solarized base1 (lighter text)
+  --text-muted: #b8860b;                        // Muted text
+
+  // Borders
+  --border-color: #eee8d5;                      // Light border
+  --border-color-subtle: #e8dcc5;               // Subtle border
+
+  // Interactive
+  --hover-overlay: rgba(101, 123, 131, 0.05);  // Light hover overlay
+  --focus-outline: #268bd2;                     // Focus outline color
+}
+
+// Dark mode theme variables
+[data-theme='dark'] {
+  --background-color: #002b36;                  // Solarized base03 (dark bg)
+  --surface-color: #073642;                     // Solarized base02 (dark surface)
+  --surface-secondary: #586e75;                 // Secondary surface
+
+  --text-primary: #93a1a1;                      // Solarized base1 (light text)
+  --text-secondary: #839496;                    // Solarized base0 (lighter text)
+  --text-muted: #657b83;                        // Muted text
+
+  --border-color: #094452;                      // Dark border
+  --border-color-subtle: #093f47;               // Subtle border
+
+  --hover-overlay: rgba(147, 161, 161, 0.1);   // Dark hover overlay
+  --focus-outline: #2aa198;                     // Focus outline (teal)
+}
+
+// System preference detection for dark mode
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --background-color: #002b36;
+    --surface-color: #073642;
+    --surface-secondary: #586e75;
+
+    --text-primary: #93a1a1;
+    --text-secondary: #839496;
+    --text-muted: #657b83;
+
+    --border-color: #094452;
+    --border-color-subtle: #093f47;
+
+    --hover-overlay: rgba(147, 161, 161, 0.1);
+    --focus-outline: #2aa198;
+  }
+}
+
+// ============================================================================
+// 4. COMPONENT-SPECIFIC STYLES
+// ============================================================================
+
+.capacity-analysis {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+  // Metrics Card Component
+  .metrics-card {
+    @include metric-card-styling($info-color);
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--surface-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    &__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    &__title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    &__value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: $info-color;
+      margin: 12px 0;
+    }
+
+    &__subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    // Level-specific card styling
+    &--level-0 {
+      border-left-color: $level-0-color;
+    }
+
+    &--level-1 {
+      border-left-color: $level-1-color;
+    }
+
+    &--level-2 {
+      border-left-color: $level-2-color;
+    }
+
+    &--level-3 {
+      border-left-color: $level-3-color;
+    }
+  }
+
+  // Utilization Bar Component
+  .utilization-bar {
+    height: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--surface-secondary);
+    border: 1px solid var(--border-color);
+
+    &__fill {
+      height: 100%;
+      @include heatmap-gradient($success-color, $error-color);
+      border-radius: 3px;
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+    }
+
+    &__label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      position: absolute;
+      top: 50%;
+      left: 8px;
+      transform: translateY(-50%);
+      z-index: 1;
+    }
+  }
+
+  // Bottleneck Table Component
+  .bottleneck-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    thead {
+      background-color: var(--surface-secondary);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    tbody tr {
+      @include table-row-hover($level-1-color);
+      border-bottom: 1px solid var(--border-color);
+
+      &:nth-child(odd) {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+
+      &:nth-child(even) {
+        background-color: var(--surface-color);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+
+    .bottleneck-severity {
+      @include bottleneck-indicator('warning');
+    }
+
+    .bottleneck-critical {
+      @include bottleneck-indicator('critical');
+    }
+  }
+
+  // Comparison Overlay Component
+  .comparison-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-end;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+
+    &--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &__panel {
+      background-color: var(--surface-color);
+      width: 100%;
+      max-width: 600px;
+      max-height: 80vh;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+      animation: slide-in 0.3s ease;
+      overflow-y: auto;
+      padding: 24px;
+
+      @media (max-width: 768px) {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+
+    &__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    &__title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    &__close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        color: var(--text-primary);
+      }
+
+      &:focus {
+        outline: 2px solid var(--focus-outline);
+        border-radius: 4px;
+      }
+    }
+  }
+
+  // Scenario Selector Component
+  .scenario-selector {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding: 16px;
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+
+    &__breadcrumb {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.875rem;
+
+      .breadcrumb-item {
+        color: var(--text-secondary);
+
+        &.active {
+          color: var(--text-primary);
+          font-weight: 600;
+        }
+      }
+
+      .breadcrumb-separator {
+        color: var(--border-color);
+      }
+    }
+
+    &__tabs {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+
+      @media (max-width: 768px) {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    &__tab {
+      padding: 8px 16px;
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: var(--hover-overlay);
+        color: var(--text-primary);
+      }
+
+      &:focus {
+        outline: 2px solid var(--focus-outline);
+        outline-offset: -1px;
+      }
+
+      &.active {
+        background-color: $info-color;
+        border-color: $info-color;
+        color: white;
+        font-weight: 600;
+      }
+    }
+  }
+
+  // Level Container
+  .level-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: var(--background-color);
+
+    &__title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    &__badge {
+      @include level-indicator-badge(0, $info-color);
+    }
+
+    &__content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+  }
+
+  // Level-specific container colors
+  .level-0 {
+    --level-accent: #{$level-0-color};
+  }
+
+  .level-1 {
+    --level-accent: #{$level-1-color};
+  }
+
+  .level-2 {
+    --level-accent: #{$level-2-color};
+  }
+
+  .level-3 {
+    --level-accent: #{$level-3-color};
+  }
+}
+
+// ============================================================================
+// 5. ANIMATIONS & TRANSITIONS
+// ============================================================================
+
+@keyframes slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-highlight {
+  0% {
+    background-color: rgba(255, 193, 7, 0.3);
+  }
+
+  50% {
+    background-color: rgba(255, 193, 7, 0.6);
+  }
+
+  100% {
+    background-color: rgba(255, 193, 7, 0.3);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 50, 47, 0.7);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 50, 47, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gradient-pulse {
+  from {
+    opacity: 0.8;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+// ============================================================================
+// 6. RESPONSIVE BREAKPOINTS
+// ============================================================================
+
+// Small screens (mobile)
+@media (max-width: 600px) {
+  .capacity-analysis {
+    .level-container {
+      padding: 16px;
+      max-width: 100%;
+
+      &__content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      &__title {
+        font-size: 1.25rem;
+      }
+    }
+
+    .metrics-card {
+      padding: 16px;
+
+      &__value {
+        font-size: 1.5rem;
+      }
+    }
+
+    .scenario-selector {
+      flex-direction: column;
+      gap: 12px;
+
+      &__tabs {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    .bottleneck-table {
+      font-size: 0.8rem;
+
+      th,
+      td {
+        padding: 8px;
+      }
+    }
+
+    .comparison-overlay__panel {
+      max-height: 90vh;
+    }
+  }
+}
+
+// Medium screens (tablet)
+@media (max-width: 1024px) {
+  .capacity-analysis {
+    .level-container {
+      padding: 20px;
+
+      &__content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+    }
+
+    .scenario-selector {
+      gap: 16px;
+
+      &__tabs {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+    }
+
+    .comparison-overlay__panel {
+      max-width: 80vw;
+    }
+  }
+}
+
+// Large screens (desktop)
+@media (min-width: 1200px) {
+  .capacity-analysis {
+    .level-container {
+      padding: 32px;
+
+      &__content {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 32px;
+      }
+    }
+
+    .comparison-overlay__panel {
+      max-width: 600px;
+    }
+  }
+}
+
+// ============================================================================
+// 7. ACCESSIBILITY
+// ============================================================================
+
+// Focus states for interactive elements
+.capacity-analysis {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    &:focus {
+      outline: 2px solid var(--focus-outline);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    &:focus:not(:focus-visible) {
+      outline: none;
+    }
+  }
+
+  // High contrast mode support
+  @media (prefers-contrast: more) {
+    .metrics-card {
+      border-width: 2px;
+    }
+
+    .bottleneck-table {
+      border: 2px solid var(--border-color);
+
+      th {
+        text-decoration: underline;
+      }
+    }
+
+    button {
+      border-width: 2px;
+    }
+  }
+
+  // Reduce motion support
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .utilization-bar__fill::after {
+      animation: none;
+    }
+
+    .bottleneck-indicator::before {
+      animation: none;
+    }
+  }
+
+  // Focus visible for keyboard navigation
+  .scenario-selector__tab:focus-visible {
+    outline: 3px solid var(--focus-outline);
+    outline-offset: -2px;
+  }
+
+  // High contrast link styling
+  a {
+    text-decoration: underline;
+
+    &:focus-visible {
+      outline: 3px dashed var(--focus-outline);
+    }
+  }
+}
+
+// ============================================================================
+// 8. PRINT STYLES
+// ============================================================================
+
+@media print {
+  .capacity-analysis {
+    background-color: white;
+    color: black;
+
+    // Hide interactive elements not needed for print
+    .scenario-selector,
+    .comparison-overlay,
+    button,
+    [role='navigation'] {
+      display: none !important;
+    }
+
+    // Optimize colors for grayscale printing
+    .metrics-card {
+      border-left-width: 6px;
+      page-break-inside: avoid;
+      border: 1px solid #000;
+    }
+
+    .bottleneck-table {
+      border-collapse: collapse;
+      page-break-inside: avoid;
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      th {
+        background-color: #ddd;
+        color: #000;
+        font-weight: bold;
+      }
+
+      td {
+        border: 1px solid #ccc;
+      }
+    }
+
+    .level-container {
+      max-width: 100%;
+      padding: 0;
+
+      &__content {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// END OF CAPACITY STORY THEME
+// ============================================================================

@@ -1,0 +1,135 @@
+// Solarized Material M2 Colors
+$color-critical: #EF5350;
+$color-warning: #FFA726;
+$color-yellow: #FFD54F;
+$color-good: #66BB6A;
+
+$background-light: #FAFAFA;
+$background-card: #FFFFFF;
+$text-primary: #212121;
+$text-secondary: #666666;
+$border-light: #E0E0E0;
+
+.bottleneck-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--background-light, $background-light);
+  border-radius: 8px;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 400px;
+
+  ::ng-deep {
+    .mat-mdc-form-field-infix {
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+  }
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-light, $border-light);
+  border-radius: 4px;
+  background: var(--background-card, $background-card);
+}
+
+.bottleneck-table {
+  width: 100%;
+  font-size: 13px;
+
+  th {
+    background: #F5F5F5;
+    font-weight: 600;
+    color: var(--text-secondary, $text-secondary);
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  td {
+    padding: 12px 8px;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .data-row {
+    border-bottom: 1px solid var(--border-light, $border-light);
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #F9F9F9;
+    }
+  }
+}
+
+.component-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+
+  &.type-node {
+    background: #E3F2FD;
+    color: #1565C0;
+  }
+
+  &.type-edge {
+    background: #F3E5F5;
+    color: #6A1B9A;
+  }
+}
+
+.utilization-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+
+  .utilization-bar {
+    height: 20px;
+    border-radius: 3px;
+    position: absolute;
+    left: 0;
+    opacity: 0.3;
+  }
+
+  .utilization-text {
+    position: relative;
+    z-index: 1;
+    font-weight: 600;
+  }
+}
+
+.status-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+
+  &.severity-good {
+    color: $color-good;
+  }
+
+  &.severity-warning {
+    color: $color-warning;
+  }
+
+  &.severity-critical {
+    color: $color-critical;
+  }
+}
+
+::ng-deep {
+  .mat-mdc-table {
+    background: var(--background-card, $background-card);
+  }
+
+  .mat-mdc-paginator {
+    background: #F5F5F5;
+    font-size: 12px;
+  }
+}

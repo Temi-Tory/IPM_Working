@@ -1,0 +1,100 @@
+@if (data) {
+  <div class="health-summary-container" [class]="'severity-' + data.severity">
+    <!-- Status Header -->
+    <div class="status-header">
+      <mat-icon class="severity-icon" [style.color]="severityColor">{{ severityIcon }}</mat-icon>
+      <div class="status-text">
+        <h2 class="status-title">{{ severityLabel }} - {{ data.networkSize | titlecase }} Network</h2>
+        <p class="status-message">{{ statusMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Detailed View (Small/Medium Networks) -->
+    @if (showDetails && data.observations && data.observations.length > 0) {
+      <div class="observations-section">
+        <h3 class="section-title">Key Observations</h3>
+        <div class="observations-chips">
+          @for (obs of data.observations; track $index) {
+            <mat-chip
+              [highlighted]="obs.severity !== 'info'"
+              [class]="'severity-' + obs.severity"
+              matTooltip="{{ obs.text }}"
+              matTooltipPosition="above"
+            >
+              <mat-icon matChipAvatar>{{ obs.icon }}</mat-icon>
+              {{ obs.text }}
+            </mat-chip>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Quick Metrics Cards -->
+    <div class="metrics-grid" [class.compact]="data.networkSize === 'large'">
+      <!-- Max Utilization Card -->
+      <div class="metric-card">
+        <div class="metric-label">Max Utilization</div>
+        <div class="metric-value">{{ (data.maxUtilization * 100).toFixed(1) }}%</div>
+        <mat-progress-bar
+          mode="determinate"
+          [value]="data.maxUtilization * 100"
+          class="utilization-bar"
+          [class]="'util-' + (data.maxUtilization > 0.95 ? 'critical' : data.maxUtilization > 0.85 ? 'warning' : 'good')"
+        ></mat-progress-bar>
+      </div>
+
+      <!-- Bottleneck Count Card -->
+      <div class="metric-card">
+        <div class="metric-label">Bottleneck Count</div>
+        <div class="metric-value">{{ data.bottleneckCount }}</div>
+        <div class="metric-bar" [style.width.%]="Math.min(data.bottleneckCount * 10, 100)"></div>
+      </div>
+
+      <!-- Average Utilization Card -->
+      <div class="metric-card">
+        <div class="metric-label">Avg Utilization</div>
+        <div class="metric-value">{{ (data.avgUtilization * 100).toFixed(1) }}%</div>
+        <mat-progress-bar
+          mode="determinate"
+          [value]="data.avgUtilization * 100"
+          class="utilization-bar util-good"
+        ></mat-progress-bar>
+      </div>
+
+      <!-- Flow Metrics (if shown) -->
+      @if (data.networkSize !== 'large') {
+        <div class="metric-card">
+          <div class="metric-label">Source Input</div>
+          <div class="metric-value">{{ data.sourceInputTotal.toFixed(2) }}</div>
+          <div class="metric-description">Total input flow</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Sink Output</div>
+          <div class="metric-value">{{ data.sinkOutputTotal.toFixed(2) }}</div>
+          <div class="metric-description">Total output flow</div>
+        </div>
+      }
+    </div>
+
+    <!-- Summary Card (Large Networks) -->
+    @if (data.networkSize === 'large') {
+      <mat-card class="summary-card">
+        <mat-card-content>
+          <div class="summary-row">
+            <span class="summary-label">Network Status:</span>
+            <span class="summary-value" [class]="'severity-' + data.severity">{{ severityLabel }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Critical Issues:</span>
+            <span class="summary-value">{{ data.bottleneckCount }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Peak Utilization:</span>
+            <span class="summary-value">{{ (data.maxUtilization * 100).toFixed(1) }}%</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

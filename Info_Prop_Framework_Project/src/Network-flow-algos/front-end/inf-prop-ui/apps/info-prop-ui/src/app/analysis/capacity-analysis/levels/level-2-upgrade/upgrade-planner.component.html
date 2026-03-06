@@ -1,0 +1,106 @@
+<div class="upgrade-planner-container">
+  <div class="header-section">
+    <h2 class="title">Recommended Upgrades</h2>
+    <p class="subtitle">Ordered by network impact score</p>
+  </div>
+
+  <!-- Current State Summary -->
+  @if (currentState) {
+    <div class="current-state-card">
+      <div class="state-row">
+        <span class="state-label">Current Max Utilization:</span>
+        <span class="state-value">{{ (currentState.maxUtilization * 100).toFixed(1) }}%</span>
+      </div>
+      <div class="state-row">
+        <span class="state-label">Bottlenecks:</span>
+        <span class="state-value">{{ currentState.bottleneckCount }}</span>
+      </div>
+    </div>
+  }
+
+  <!-- Upgrade Recommendations List -->
+  <div class="recommendations-list">
+    @if (recommendations.length > 0) {
+      @for (rec of recommendations; track rec.id; let idx = $index) {
+        <mat-card class="recommendation-card">
+          <div class="card-header">
+            <div class="priority-badge" [class]="'priority-' + (idx + 1)">
+              <mat-icon>{{ getPriorityBadge(idx).icon }}</mat-icon>
+              <span>{{ getPriorityBadge(idx).text }}</span>
+            </div>
+
+            <div class="target-info">
+              <mat-icon class="target-icon">{{ getTargetIcon(rec) }}</mat-icon>
+              <span class="target-name">{{ getTargetLabel(rec) }}</span>
+            </div>
+
+            <div class="impact-score">
+              <span class="score-value" [style.color]="getImpactColor(rec.impactScore)">
+                {{ rec.impactScore }}
+              </span>
+              <span class="score-label">Impact</span>
+            </div>
+          </div>
+
+          <mat-card-content>
+            <div class="metrics-grid">
+              <!-- Current Utilization -->
+              <div class="metric-card">
+                <div class="metric-label">Current</div>
+                <div class="metric-value">{{ (rec.currentUtilization * 100).toFixed(1) }}%</div>
+                <div class="metric-bar">
+                  <div class="bar" [style.width.%]="rec.currentUtilization * 100" 
+                       [style.background-color]="rec.currentUtilization > 0.85 ? '#EF5350' : '#FFA726'"></div>
+                </div>
+              </div>
+
+              <!-- Capacity Increase -->
+              <div class="metric-card">
+                <div class="metric-label">Increase Needed</div>
+                <div class="metric-value">+{{ formatIncreasePercent(rec.percentIncrease) }}%</div>
+                <div class="metric-description">{{ rec.currentCapacity.toFixed(2) }} → {{ rec.recommendedCapacity.toFixed(2) }}</div>
+              </div>
+
+              <!-- Impact Bar -->
+              <div class="metric-card">
+                <div class="metric-label">Impact Score</div>
+                <div class="metric-value">{{ rec.impactScore }}/100</div>
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="rec.impactScore"
+                  class="impact-bar"
+                  [class]="'impact-' + (rec.impactScore > 80 ? 'high' : rec.impactScore > 60 ? 'medium' : 'low')"
+                ></mat-progress-bar>
+              </div>
+            </div>
+
+            <!-- Reason -->
+            <div class="reason-section">
+              <div class="reason-label">Why this upgrade helps:</div>
+              <div class="reason-text">{{ rec.reason }}</div>
+            </div>
+
+            <!-- Benefit -->
+            <div class="benefit-badge">
+              <mat-icon>info</mat-icon>
+              <span>{{ getBenefitText(rec) }}</span>
+            </div>
+
+            <!-- Action Button -->
+            <div class="action-row">
+              <button mat-stroked-button color="primary" (click)="$event.stopPropagation()">
+                <mat-icon>edit</mat-icon>
+                What-If Simulation
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    } @else {
+      <div class="empty-state">
+        <mat-icon>check_circle</mat-icon>
+        <p>No upgrades recommended - network is healthy!</p>
+      </div>
+    }
+  </div>
+</div>

@@ -74,10 +74,10 @@
 <div class="comparison-summary">
   <div class="summary-column">
     <h4>{{ baseScenarioName() }}</h4>
-    <div class="summary-metric"><span class="label">Utilization</span><span class="value">{{ formatUtilization(baseM.networkUtilization) }}</span></div>
-    <div class="summary-metric"><span class="label">Source Input</span><span class="value">{{ formatValue(baseM.totalSourceInput) }}</span></div>
-    <div class="summary-metric"><span class="label">Target Output</span><span class="value">{{ formatValue(baseM.totalTargetOutput) }}</span></div>
-    <div class="summary-metric"><span class="label">Bottlenecks</span><span class="value">{{ baseM.bottleneckCount }}</span></div>
+    <div class="summary-metric"><span class="label">Utilization</span><span class="value">{{ formatUtilizationSafe(baseM.rawNetworkUtilization) }}</span></div>
+    <div class="summary-metric"><span class="label">Source Input</span><span class="value">{{ formatValueSafe(baseM.rawTotalSourceInput) }}</span></div>
+    <div class="summary-metric"><span class="label">Target Output</span><span class="value">{{ formatValueSafe(baseM.rawTotalTargetOutput) }}</span></div>
+    <div class="summary-metric"><span class="label">Bottlenecks</span><span class="value">{{ baseM.definiteBottlenecks }} def + {{ baseM.conditionalBottlenecks }} cond</span></div>
   </div>
   <div class="summary-column delta">
     <h4>Delta</h4>
@@ -296,19 +296,25 @@
         </div>
         <div class="metric-card">
           <span class="metric-label">Network Utilization</span>
-          <span class="metric-value">{{ formatUtilization(tab.metrics.networkUtilization) }}</span>
+          <span class="metric-value">{{ formatUtilizationSafe(tab.metrics.rawNetworkUtilization) }}</span>
+          @if (tab.metrics.rawNetworkUtilization && typeof tab.metrics.rawNetworkUtilization === 'object') {
+            <span class="metric-note">(midpoint: {{ formatUtilization(tab.metrics.networkUtilization) }})</span>
+          }
         </div>
         <div class="metric-card">
           <span class="metric-label">Total Source Input</span>
-          <span class="metric-value">{{ formatValue(tab.metrics.totalSourceInput) }}</span>
+          <span class="metric-value">{{ formatValueSafe(tab.metrics.rawTotalSourceInput) }}</span>
         </div>
         <div class="metric-card">
           <span class="metric-label">Total Target Output</span>
-          <span class="metric-value">{{ formatValue(tab.metrics.totalTargetOutput) }}</span>
+          <span class="metric-value">{{ formatValueSafe(tab.metrics.rawTotalTargetOutput) }}</span>
         </div>
         <div class="metric-card">
           <span class="metric-label">Bottlenecks</span>
           <span class="metric-value">{{ tab.metrics.bottleneckCount }}</span>
+          @if (tab.metrics.conditionalBottlenecks > 0) {
+            <span class="metric-breakdown">{{ tab.metrics.definiteBottlenecks }} definite + {{ tab.metrics.conditionalBottlenecks }} conditional</span>
+          }
         </div>
         <div class="metric-card">
           <span class="metric-label">Sources / Sinks</span>
@@ -503,29 +509,39 @@
                   <th class="sortable" (click)="onSort('spareCapacity')" matTooltip="Capacity - Max Flow: remaining unused capacity">
                     Spare <mat-icon class="sort-icon">{{ getSortIcon('spareCapacity') }}</mat-icon>
                   </th>
+                  <th matTooltip="Definite: always bottleneck; Conditional: bottleneck under some uncertainty; Not: not a bottleneck">Bottleneck</th>
                   <th>Type</th>
                 </tr>
               </thead>
               <tbody>
                 @for (r of activePaginatedResults(); track r.nodeId) {
-                <tr [class.bottleneck-row]="r.isBottleneck">
+                <tr [class.bottleneck-row]="r.bottleneckClass !== 'not'" [class.definite-bottleneck]="r.bottleneckClass === 'definite'">
                   <td class="node-id">{{ r.nodeId }}</td>
                   <td class="copyable" (click)="copyToClipboard(r.capacity, 'cap-' + r.nodeId)"
                       [class.copied]="copiedCellKey() === 'cap-' + r.nodeId">
-                    {{ formatValue(r.capacity) }}
+                    {{ formatValueSafe(r.rawCapacity) }}
                   </td>
                   <td class="copyable" (click)="copyToClipboard(r.maxFlow, 'flow-' + r.nodeId)"
                       [class.copied]="copiedCellKey() === 'flow-' + r.nodeId">
-                    {{ formatValue(r.maxFlow) }}
+                    {{ formatValueSafe(r.rawMaxFlow) }}
                   </td>
                   <td class="copyable utilization-cell" (click)="copyToClipboard(r.utilization, 'util-' + r.nodeId)"
                       [class.copied]="copiedCellKey() === 'util-' + r.nodeId"
                       [style.background]="getUtilizationHeatColor(r.utilization)">
-                    {{ formatUtilization(r.utilization) }}
+                    {{ formatUtilizationSafe(r.rawUtilization) }}
                   </td>
                   <td class="copyable" (click)="copyToClipboard(r.spareCapacity, 'spare-' + r.nodeId)"
                       [class.copied]="copiedCellKey() === 'spare-' + r.nodeId">
                     {{ formatValue(r.spareCapacity) }}
+                  </td>
+                  <td>
+                    @if (r.bottleneckClass === 'definite') {
+                      <mat-chip class="bottleneck-chip definite">Definite</mat-chip>
+                    } @else if (r.bottleneckClass === 'conditional') {
+                      <mat-chip class="bottleneck-chip conditional">Conditional</mat-chip>
+                    } @else {
+                      <span class="no-bottleneck">—</span>
+                    }
                   </td>
                   <td>
                     <mat-chip class="node-type-chip" [class]="'type-' + r.nodeType.toLowerCase()">{{ r.nodeType }}</mat-chip>
@@ -568,29 +584,39 @@
                   <th class="sortable" (click)="onSort('spare')" matTooltip="Remaining unused edge capacity">
                     Spare <mat-icon class="sort-icon">{{ getSortIcon('spare') }}</mat-icon>
                   </th>
+                  <th matTooltip="Definite: always bottleneck; Conditional: bottleneck under some uncertainty; Not: not a bottleneck">Bottleneck</th>
                 </tr>
               </thead>
               <tbody>
                 @for (r of activePaginatedEdgeResults(); track r.edgeKey) {
-                <tr [class.bottleneck-row]="r.isBottleneck">
+                <tr [class.bottleneck-row]="r.bottleneckClass !== 'not'" [class.definite-bottleneck]="r.bottleneckClass === 'definite'">
                   <td class="node-id">{{ r.from }}</td>
                   <td class="node-id">{{ r.to }}</td>
                   <td class="copyable" (click)="copyToClipboard(r.capacity, 'ecap-' + r.edgeKey)"
                       [class.copied]="copiedCellKey() === 'ecap-' + r.edgeKey">
-                    {{ formatValue(r.capacity) }}
+                    {{ formatValueSafe(r.rawCapacity) }}
                   </td>
                   <td class="copyable" (click)="copyToClipboard(r.flow, 'eflow-' + r.edgeKey)"
                       [class.copied]="copiedCellKey() === 'eflow-' + r.edgeKey">
-                    {{ formatValue(r.flow) }}
+                    {{ formatValueSafe(r.rawFlow) }}
                   </td>
                   <td class="copyable utilization-cell" (click)="copyToClipboard(r.utilization, 'eutil-' + r.edgeKey)"
                       [class.copied]="copiedCellKey() === 'eutil-' + r.edgeKey"
                       [style.background]="getUtilizationHeatColor(r.utilization)">
-                    {{ formatUtilization(r.utilization) }}
+                    {{ formatUtilizationSafe(r.rawUtilization) }}
                   </td>
                   <td class="copyable" (click)="copyToClipboard(r.spare, 'espare-' + r.edgeKey)"
                       [class.copied]="copiedCellKey() === 'espare-' + r.edgeKey">
                     {{ formatValue(r.spare) }}
+                  </td>
+                  <td>
+                    @if (r.bottleneckClass === 'definite') {
+                      <mat-chip class="bottleneck-chip definite">Definite</mat-chip>
+                    } @else if (r.bottleneckClass === 'conditional') {
+                      <mat-chip class="bottleneck-chip conditional">Conditional</mat-chip>
+                    } @else {
+                      <span class="no-bottleneck">—</span>
+                    }
                   </td>
                 </tr>
                 }

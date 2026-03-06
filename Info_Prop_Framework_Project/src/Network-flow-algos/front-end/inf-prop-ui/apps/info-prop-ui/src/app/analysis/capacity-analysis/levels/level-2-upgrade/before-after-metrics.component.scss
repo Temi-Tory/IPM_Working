@@ -1,0 +1,205 @@
+// Solarized Material M2 Colors
+$color-good: #66BB6A;
+$color-warning: #FFA726;
+$color-critical: #EF5350;
+
+$background-light: #FAFAFA;
+$background-card: #FFFFFF;
+$text-primary: #212121;
+$text-secondary: #666666;
+$border-light: #E0E0E0;
+
+.before-after-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--background-light, $background-light);
+  border-radius: 8px;
+}
+
+.header {
+  .title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary, $text-secondary);
+  }
+}
+
+.metrics-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+
+  &.has-whatif {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--background-card, $background-card);
+  border: 1px solid var(--border-light, $border-light);
+
+  .column-header {
+    font-size: 14px;
+    font-weight: 600;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-light, $border-light);
+    color: var(--text-primary, $text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+.before-column,
+.after-column {
+  .metric-row {
+    &:first-child .column-header {
+      color: $color-warning;
+    }
+  }
+}
+
+.delta-column {
+  background: #F9F9F9;
+  border-color: #E8E8E8;
+}
+
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.summary {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light, $border-light);
+  }
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary, $text-secondary);
+  letter-spacing: 0.3px;
+}
+
+.metric-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary, $text-primary);
+  }
+
+  .metric-bar-simple {
+    height: 16px;
+    background: #D0D0D0;
+    border-radius: 2px;
+  }
+
+  .util-bar {
+    height: 4px;
+    border-radius: 2px;
+
+    &.severity-good {
+      background: $color-good;
+    }
+
+    &.severity-warning {
+      background: $color-warning;
+    }
+
+    &.severity-critical {
+      background: $color-critical;
+    }
+
+    &.util-good {
+      background: $color-good;
+    }
+  }
+}
+
+.metric-delta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.metric-delta-text {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+
+  &.impact-good {
+    color: $color-good;
+  }
+
+  &.impact-bad {
+    color: $color-critical;
+  }
+}
+
+.summary-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &.impact-positive {
+    background: #E8F5E9;
+    color: $color-good;
+  }
+
+  &.impact-negative {
+    background: #FFEBEE;
+    color: $color-critical;
+  }
+
+  &.impact-mixed {
+    background: #FFF3E0;
+    color: $color-warning;
+  }
+}
+
+::ng-deep {
+  .mat-progress-bar {
+    height: 4px !important;
+  }
+}

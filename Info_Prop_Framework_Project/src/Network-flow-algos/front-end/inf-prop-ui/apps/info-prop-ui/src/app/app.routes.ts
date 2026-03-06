@@ -11,6 +11,7 @@ export const appRoutes: Route[] = [
   { path: 'exact-inference', loadComponent: () => import('./analysis/exact-inference/exact-inference.component').then(m => m.ExactInferenceComponent) },
   // Capacity, Time, and Cost Analysis components
   { path: 'capacity-analysis', loadComponent: () => import('./analysis/capacity-analysis/capacity-analysis.component').then(m => m.CapacityAnalysisComponent) },
+  { path: 'capacity-analysis-shell', loadComponent: () => import('./analysis/capacity-analysis/container/capacity-analysis-shell.component').then(m => m.CapacityAnalysisShellComponent) },
   { path: 'time-analysis', loadComponent: () => import('./analysis/time-analysis/time-analysis.component').then(m => m.TimeAnalysisComponent) },
   { path: 'cost-analysis', loadComponent: () => import('./analysis/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponent) },
   // System Profile - comprehensive analysis dashboard

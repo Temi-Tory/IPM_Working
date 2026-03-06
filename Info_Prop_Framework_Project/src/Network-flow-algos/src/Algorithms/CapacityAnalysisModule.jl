@@ -2,20 +2,13 @@ module CapacityAnalysisModule
     using Dates
     using ..DiamondProcessingModule
     using ..InputProcessingModule
-    
-    # Import uncertainty operations from InputProcessingModule
-    import ..InputProcessingModule: Interval, pbox, PBA,
-           zero_value, one_value, add_values, multiply_values,
-           min_values, max_values, sum_values, divide_values
 
     export CapacityParameters, CapacityResult,
            maximum_flow_capacity, bottleneck_capacity_analysis,
            widest_path_analysis, network_throughput_analysis,
            classical_maximum_flow, comparative_capacity_analysis,
            AnalysisConfig, MultiCommodityParameters, UncertaintyParameters,
-           validate_capacity_parameters, validate_capacity_results,
-           # NEW: Uncertainty-aware capacity analysis
-           maximum_flow_capacity_uncertain
+           validate_capacity_parameters, validate_capacity_results
 
     # Configuration for analysis tolerances and options
     struct AnalysisConfig
@@ -856,6 +849,37 @@ module CapacityAnalysisModule
         
         target_flows_vec = [node_flows[node] for node in capacity_params.target_nodes if haskey(node_flows, node)]
         total_actual_output = isempty(target_flows_vec) ? zero_value(T) : sum_values(target_flows_vec)
+        
+        # ENFORCE FLOW CONSERVATION: proportional scaling
+        # Independent target computations can produce sums exceeding input under interval arithmetic.
+        # Solution: scale all targets proportionally to respect flow constraint while preserving 
+        # interval structure and relative proportions.
+        # This maintains mathematical correctness: feasible output ∈ [0, min(demand, source)]
+        
+        needs_scaling = if T == Float64
+            total_actual_output > total_possible_input + config.tolerance
+        elseif T == Interval
+            total_actual_output.upper > total_possible_input.upper + config.tolerance
+        else
+            false  # pbox: assume type handles bound checking internally
+        end
+        
+        if needs_scaling && !isempty(target_flows_vec)
+            # Compute scale factor: constrained_max / unconstrained_sum
+            scale_factor = divide_values(total_possible_input, total_actual_output)
+            
+            # Apply proportional scaling to each target
+            scaled_flows = [multiply_values(f, scale_factor) for f in target_flows_vec]
+            
+            # Update node_flows dict with scaled values
+            target_node_list = [n for n in capacity_params.target_nodes if haskey(node_flows, n)]
+            for (i, node) in enumerate(target_node_list)
+                node_flows[node] = scaled_flows[i]
+            end
+            
+            # Recompute total with scaled flows
+            total_actual_output = sum_values(scaled_flows)
+        end
         
         # Use uncertainty-aware division for utilization
         utilization = if total_possible_input == zero_value(T)

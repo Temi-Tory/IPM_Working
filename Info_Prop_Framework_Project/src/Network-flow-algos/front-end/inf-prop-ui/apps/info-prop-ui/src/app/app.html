@@ -188,6 +188,30 @@
       </a>
       
       <a mat-list-item
+         routerLink="/capacity-analysis-shell"
+         [class.disabled]="!analysisState.capacityAnalysisTab().enabled"
+         [class.completed]="analysisState.capacityAnalysisTab().completed"
+         [attr.tabindex]="!analysisState.capacityAnalysisTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'Capacity Analysis Shell - Flow analysis & bottleneck detection' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>timeline</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">Capacity Analysis Shell</div>
+          <div class="nav-subtitle">Flow analysis & bottleneck detection</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.capacityAnalysisTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.capacityAnalysisTab().enabled) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
+      </a>
+      
+      <a mat-list-item
          routerLink="/time-analysis"
          [class.disabled]="!analysisState.criticalPathTab().enabled"
          [class.completed]="analysisState.criticalPathTab().completed"

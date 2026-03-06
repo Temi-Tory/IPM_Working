@@ -1,0 +1,94 @@
+<div class="export-controls-container">
+  <div class="export-header">
+    <h3 class="title">Export Results</h3>
+    <p class="subtitle">Scenario: <strong>{{ scenarioName }}</strong></p>
+  </div>
+
+  <div class="export-buttons">
+    <!-- CSV Export -->
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="exportAsCSV()"
+      matTooltip="Export node and edge metrics as CSV"
+      class="export-button"
+    >
+      <mat-icon>description</mat-icon>
+      <span>CSV Metrics</span>
+    </button>
+
+    <!-- JSON Export -->
+    <button
+      mat-raised-button
+      color="accent"
+      (click)="exportAsJSON()"
+      matTooltip="Export metrics as JSON (nodes and edges)"
+      class="export-button"
+    >
+      <mat-icon>data_object</mat-icon>
+      <span>JSON Metrics</span>
+    </button>
+
+    <!-- Full Package Export -->
+    <button
+      mat-raised-button
+      [color]="exportInProgress ? 'disabled' : 'primary'"
+      (click)="exportFullPackage()"
+      [disabled]="exportInProgress"
+      matTooltip="Export complete scenario data with all metadata"
+      class="export-button full-package"
+    >
+      <mat-spinner *ngIf="exportInProgress" diameter="20" class="spinner"></mat-spinner>
+      <mat-icon *ngIf="!exportInProgress">cloud_download</mat-icon>
+      <span>{{ exportInProgress ? 'Exporting...' : 'Full Package' }}</span>
+    </button>
+  </div>
+
+  <!-- Info Cards -->
+  <div class="export-info">
+    <!-- File Format Info -->
+    <div class="info-card">
+      <div class="card-title">
+        <mat-icon>info</mat-icon>
+        <span>Export Formats</span>
+      </div>
+      <div class="card-content">
+        <p><strong>CSV Metrics:</strong> Spreadsheet-compatible format (Excel, Google Sheets)</p>
+        <p><strong>JSON Metrics:</strong> Node and edge utilization data</p>
+        <p><strong>Full Package:</strong> Complete scenario including metadata and computation info</p>
+      </div>
+    </div>
+
+    <!-- Package Info -->
+    <div class="info-card">
+      <div class="card-title">
+        <mat-icon>storage</mat-icon>
+        <span>Package Information</span>
+      </div>
+      <div class="card-content">
+        <div class="info-row">
+          <span class="label">Estimated Size:</span>
+          <span class="value">{{ getFileSize() }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Scenario:</span>
+          <span class="value">{{ scenarioName }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Timestamp:</span>
+          <span class="value">{{ generatedAt.toLocaleString() }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Instructions -->
+  <div class="instructions">
+    <div class="instructions-title">How to Use</div>
+    <ol class="instructions-list">
+      <li><strong>CSV Metrics:</strong> Import into spreadsheet software for analysis</li>
+      <li><strong>JSON Metrics:</strong> Use for integration with other tools or APIs</li>
+      <li><strong>Full Package:</strong> Archive for complete scenario reproduction and validation</li>
+    </ol>
+  </div>
+</div>

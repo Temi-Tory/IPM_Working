@@ -1,0 +1,44 @@
+<div class="scenario-selector">
+  <div class="breadcrumb">
+    <span class="scenario-label">Scenario:</span>
+    <div class="scenario-dropdown">
+      <button
+        class="dropdown-trigger"
+        (click)="toggleDropdown()"
+        [attr.aria-expanded]="isDropdownOpen()"
+      >
+        {{ getCurrentScenarioName() }}
+        <span class="dropdown-icon">▼</span>
+      </button>
+      <div class="dropdown-menu" *ngIf="isDropdownOpen()">
+        <button
+          *ngFor="let scenario of scenarios"
+          class="dropdown-item"
+          [class.active]="scenario.name === currentScenario"
+          (click)="selectScenario(scenario.name)"
+        >
+          {{ scenario.displayName || scenario.name }}
+          <span class="description" *ngIf="scenario.description">
+            {{ scenario.description }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="level-indicator">
+    <span class="level-label">Level:</span>
+    <div class="level-tabs">
+      <button
+        *ngFor="let level of getLevels()"
+        class="level-tab"
+        [class.active]="level === currentLevel"
+        (click)="selectLevel(level)"
+        [attr.aria-pressed]="level === currentLevel"
+      >
+        <span class="level-number">{{ level }}</span>
+        <span class="level-name">{{ getLevelName(level) }}</span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -34,6 +34,9 @@ import {
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
+type ValueLike = number | { lower: number; upper: number } | { mean_lower: number; mean_upper: number };
+type BottleneckClass = 'definite' | 'conditional' | 'not';
+
 interface CapacityNodeResult {
   nodeId: number;
   capacity: number;
@@ -42,6 +45,11 @@ interface CapacityNodeResult {
   spareCapacity: number;
   nodeType: string;
   isBottleneck: boolean;
+  bottleneckClass: BottleneckClass;
+  // Raw values before midpoint conversion
+  rawCapacity?: ValueLike;
+  rawMaxFlow?: ValueLike;
+  rawUtilization?: ValueLike;
 }
 
 interface CapacityEdgeResult {
@@ -53,6 +61,11 @@ interface CapacityEdgeResult {
   utilization: number;
   spare: number;
   isBottleneck: boolean;
+  bottleneckClass: BottleneckClass;
+  // Raw values
+  rawCapacity?: ValueLike;
+  rawFlow?: ValueLike;
+  rawUtilization?: ValueLike;
 }
 
 interface CapacityMetrics {
@@ -61,8 +74,14 @@ interface CapacityMetrics {
   totalSourceInput: number;
   totalTargetOutput: number;
   bottleneckCount: number;
+  definiteBottlenecks: number;
+  conditionalBottlenecks: number;
   sourceCount: number;
   sinkCount: number;
+  // Raw values
+  rawNetworkUtilization?: ValueLike;
+  rawTotalSourceInput?: ValueLike;
+  rawTotalTargetOutput?: ValueLike;
 }
 
 interface ScenarioTabState {
@@ -475,39 +494,62 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       });
     }
 
-    // Bottleneck count progression
+    // Bottleneck count progression - now distinguish  definite vs conditional
     const bnRanking = computedTabs
-      .map(([, tab]) => ({ name: tab.scenario.displayName, count: tab.metrics?.bottleneckCount ?? 0 }))
-      .sort((a, b) => a.count - b.count);
+      .map(([, tab]) => ({
+        name: tab.scenario.displayName,
+        count: tab.metrics?.bottleneckCount ?? 0,
+        definite: tab.metrics?.definiteBottlenecks ?? 0,
+        conditional: tab.metrics?.conditionalBottlenecks ?? 0
+      }))
+      .sort((a, b) => a.definite - b.definite);
 
-    if (bnRanking.length >= 2 && bnRanking[bnRanking.length - 1].count > 0) {
-      const progression = bnRanking.map(v => `${v.count} (${v.name})`).join(' < ');
+    if (bnRanking.length >= 2 && bnRanking.some(r => r.definite > 0)) {
+      const progression = bnRanking
+        .filter(r => r.definite > 0)
+        .map(v => `${v.definite} definite (${v.name})`)
+        .join(' < ');
       observations.push({
         icon: 'block',
-        text: `Bottleneck count: ${progression}`,
-        severity: bnRanking[bnRanking.length - 1].count > 3 ? 'warning' : 'info'
+        text: `Definite bottlenecks: ${progression}`,
+        severity: bnRanking[bnRanking.length - 1].definite > 2 ? 'warning' : 'info'
       });
     } else if (bnRanking.length >= 1 && bnRanking.every(v => v.count === 0)) {
       observations.push({ icon: 'check_circle', text: 'No bottlenecks detected in any scenario', severity: 'good' });
+    } else if (bnRanking.some(r => r.conditional > 0)) {
+      const conditionalSummary = bnRanking.filter(r => r.conditional > 0).map(v => `${v.conditional} (${v.name})`).join(', ');
+      observations.push({
+        icon: 'help_outline',
+        text: `Conditional bottlenecks under uncertainty: ${conditionalSummary}`,
+        severity: 'info'
+      });
     }
 
-    // Recurring bottleneck edges
-    const bottleneckEdgeCounts = new Map<string, number>();
+    // Recurring bottleneck edges - now only definite ones
+    const bottleneckEdgeCounts = new Map<string, { definite: number; conditional: number }>();
     for (const [, tab] of computedTabs) {
-      const bottlenecks = tab.edgeResults.filter(e => e.isBottleneck);
-      for (const bn of bottlenecks) {
-        bottleneckEdgeCounts.set(bn.edgeKey, (bottleneckEdgeCounts.get(bn.edgeKey) || 0) + 1);
+      const definiteBottlenecks = tab.edgeResults.filter(e => e.bottleneckClass === 'definite');
+      const conditionalBottlenecks = tab.edgeResults.filter(e => e.bottleneckClass === 'conditional');
+      for (const bn of definiteBottlenecks) {
+        const entry = bottleneckEdgeCounts.get(bn.edgeKey) || { definite: 0, conditional: 0 };
+        entry.definite++;
+        bottleneckEdgeCounts.set(bn.edgeKey, entry);
+      }
+      for (const bn of conditionalBottlenecks) {
+        const entry = bottleneckEdgeCounts.get(bn.edgeKey) || { definite: 0, conditional: 0 };
+        entry.conditional++;
+        bottleneckEdgeCounts.set(bn.edgeKey, entry);
       }
     }
-    const recurring = Array.from(bottleneckEdgeCounts.entries())
-      .filter(([, count]) => count >= 2)
-      .sort((a, b) => b[1] - a[1]);
+    const recurringDefinite = Array.from(bottleneckEdgeCounts.entries())
+      .filter(([, counts]) => counts.definite >= 2)
+      .sort((a, b) => b[1].definite - a[1].definite);
 
-    if (recurring.length > 0) {
-      const topEdges = recurring.slice(0, 3).map(([key, count]) => `${key} (${count}x)`).join(', ');
+    if (recurringDefinite.length > 0) {
+      const topEdges = recurringDefinite.slice(0, 3).map(([key, counts]) => `${key} (${counts.definite}x)`).join(', ');
       observations.push({
         icon: 'warning',
-        text: `Recurring bottleneck edges: ${topEdges}`,
+        text: `Persistent bottleneck edges: ${topEdges}`,
         severity: 'warning'
       });
     }
@@ -723,7 +765,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       const raw = response.capacity_result;
       const nodeResults = this.processNodeResults(raw);
       const edgeResults = this.processEdgeResults(raw);
-      const metrics = this.calculateMetrics(raw);
+      const metrics = this.calculateMetrics(raw, edgeResults);
 
       this.updateTabState(scenarioName, {
         status: 'computed',
@@ -776,6 +818,14 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       const cap = this.cleanValue(capacity);
       const utilization = cap > 0 ? maxFlow / cap : 0;
 
+      const rawFlow = flow;
+      const rawCap = capacity;
+      const rawUtil = (cap > 0 && typeof flow === 'object' && typeof capacity === 'object')
+        ? this.computeIntervalUtilization(flow, capacity)
+        : utilization;
+
+      const bottleneckClass = this.classifyBottleneck(rawUtil);
+
       return {
         nodeId,
         capacity: cap,
@@ -783,9 +833,29 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
         utilization,
         spareCapacity: this.cleanValue(cap - maxFlow),
         nodeType: ni ? this.getNodeType(nodeId, ni) : 'Regular',
-        isBottleneck: bottleneckNodes.has(nodeId) || utilization > 0.95
+        isBottleneck: bottleneckNodes.has(nodeId) || bottleneckClass !== 'not',
+        bottleneckClass,
+        rawCapacity: rawCap,
+        rawMaxFlow: rawFlow,
+        rawUtilization: rawUtil
       };
     }).sort((a, b) => a.nodeId - b.nodeId);
+  }
+
+  private computeIntervalUtilization(flow: any, capacity: any): ValueLike {
+    if (typeof flow === 'number' && typeof capacity === 'number') {
+      return capacity > 0 ? flow / capacity : 0;
+    }
+    if (typeof flow === 'object' && typeof capacity === 'object') {
+      if ('lower' in flow && 'upper' in flow && 'lower' in capacity && 'upper' in capacity) {
+        // Interval division: [a,b] / [c,d] ≈ [a/d, b/c] when all positive
+        // Preserve raw conservative bounds—do not clip
+        const lower = capacity.upper > 0 ? flow.lower / capacity.upper : 0;
+        const upper = capacity.lower > 0 ? flow.upper / capacity.lower : Infinity;
+        return { lower: Math.max(0, lower), upper: isFinite(upper) ? upper : 999 };
+      }
+    }
+    return this.cleanValue(flow) / this.cleanValue(capacity);
   }
 
   private processEdgeResults(raw: CapacityScenario): CapacityEdgeResult[] {
@@ -811,6 +881,9 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       const from = match ? parseInt(match[1]) : 0;
       const to = match ? parseInt(match[2]) : 0;
 
+      const rawUtil = data.utilization;
+      const bottleneckClass = this.classifyBottleneck(rawUtil);
+
       return {
         edgeKey,
         from,
@@ -819,12 +892,16 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
         flow: this.cleanValue(data.flow),
         utilization: this.cleanValue(data.utilization),
         spare: this.cleanValue(data.spare),
-        isBottleneck: bottleneckEdges.has(edgeKey) || data.utilization > 0.95
+        isBottleneck: bottleneckEdges.has(edgeKey) || bottleneckClass !== 'not',
+        bottleneckClass,
+        rawCapacity: data.capacity,
+        rawFlow: data.flow,
+        rawUtilization: rawUtil
       };
     }).sort((a, b) => a.from - b.from || a.to - b.to);
   }
 
-  private calculateMetrics(raw: CapacityScenario): CapacityMetrics {
+  private calculateMetrics(raw: CapacityScenario, edgeResults: CapacityEdgeResult[]): CapacityMetrics {
     const rcr = raw.raw_capacity_result;
     let bottleneckCount = 0;
     if (rcr?.bottlenecks) {
@@ -833,14 +910,22 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
       }
     }
 
+    const definiteBottlenecks = edgeResults.filter(e => e.bottleneckClass === 'definite').length;
+    const conditionalBottlenecks = edgeResults.filter(e => e.bottleneckClass === 'conditional').length;
+
     return {
       computationTime: raw.computation_time,
       networkUtilization: this.cleanValue(raw.network_utilization),
       totalSourceInput: this.cleanValue(raw.total_source_input),
       totalTargetOutput: this.cleanValue(raw.total_target_output),
-      bottleneckCount,
+      bottleneckCount: definiteBottlenecks + conditionalBottlenecks,
+      definiteBottlenecks,
+      conditionalBottlenecks,
       sourceCount: raw.active_sources?.length || 0,
-      sinkCount: raw.target_nodes?.length || 0
+      sinkCount: raw.target_nodes?.length || 0,
+      rawNetworkUtilization: raw.network_utilization,
+      rawTotalSourceInput: raw.total_source_input,
+      rawTotalTargetOutput: raw.total_target_output
     };
   }
 
@@ -1009,12 +1094,70 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
     return 0;
   }
 
+  // NEW: interval-aware formatters
+  formatValueSafe(val: ValueLike | number | undefined, decimals = 1): string {
+    if (val === undefined || val === null) return '--';
+    if (typeof val === 'number') return val.toFixed(decimals);
+    if (typeof val === 'object') {
+      if ('lower' in val && 'upper' in val) {
+        return `[${val.lower.toFixed(decimals)}, ${val.upper.toFixed(decimals)}]`;
+      }
+      if ('mean_lower' in val && 'mean_upper' in val) {
+        return `[${val.mean_lower.toFixed(decimals)}, ${val.mean_upper.toFixed(decimals)}]`;
+      }
+    }
+    return this.cleanValue(val).toFixed(decimals);
+  }
+
+  formatUtilizationSafe(val: ValueLike | number | undefined): string {
+    if (val === undefined || val === null) return '--';
+    if (typeof val === 'number') return (val * 100).toFixed(1) + '%';
+    if (typeof val === 'object') {
+      if ('lower' in val && 'upper' in val) {
+        const lower = (val.lower * 100).toFixed(1);
+        const upper = isFinite(val.upper) ? (val.upper * 100).toFixed(1) : '∞';
+        return `[${lower}%, ${upper}%]`;
+      }
+      if ('mean_lower' in val && 'mean_upper' in val) {
+        const ml = (val.mean_lower * 100).toFixed(1);
+        const mu = (val.mean_upper * 100).toFixed(1);
+        return `[${ml}%, ${mu}%]`;
+      }
+    }
+    return (this.cleanValue(val) * 100).toFixed(1) + '%';
+  }
+
   formatValue(val: number, decimals = 1): string {
     return this.cleanValue(val).toFixed(decimals);
   }
 
   formatUtilization(val: number): string {
     return (this.cleanValue(val) * 100).toFixed(1) + '%';
+  }
+
+  // Classify bottleneck certainty
+  classifyBottleneck(rawUtil: ValueLike | number | undefined, threshold = 0.95): BottleneckClass {
+    if (rawUtil === undefined || rawUtil === null) return 'not';
+    if (typeof rawUtil === 'number') {
+      return rawUtil >= threshold ? 'definite' : 'not';
+    }
+    if (typeof rawUtil === 'object') {
+      if ('lower' in rawUtil && 'upper' in rawUtil) {
+        // Definite: lower bound exceeds threshold
+        // Conditional: upper bound exceeds threshold but lower doesn't
+        if (rawUtil.lower >= threshold) return 'definite';
+        if (rawUtil.upper >= threshold) return 'conditional';
+        return 'not';
+      }
+      if ('mean_lower' in rawUtil && 'mean_upper' in rawUtil) {
+        const ml = rawUtil.mean_lower;
+        const mu = rawUtil.mean_upper;
+        if (ml >= threshold) return 'definite';
+        if (mu >= threshold) return 'conditional';
+        return 'not';
+      }
+    }
+    return 'not';
   }
 
   getUtilizationHeatColor(utilization: number): string {
