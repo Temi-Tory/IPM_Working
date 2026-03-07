@@ -5,6 +5,7 @@
 module CapacityAnalysisModule
 
 using Dates
+using IntervalArithmetic
 
 # Include core types (no module wrapper needed)
 include("Core/Types.jl")
@@ -16,12 +17,16 @@ include("Algorithms/MinCut.jl")
 # Include core analysis
 include("Core/DeterministicCore.jl")
 
+# Include interval extension
+include("Extensions/IntervalExtension.jl")
+
 # Include validation
 include("Core/Validation.jl")
 
 # Export core analysis functions
 export analyze_capacity_deterministic, validate_capacity_result, 
-       quick_validate, print_validation_report
+    quick_validate, print_validation_report,
+    analyze_capacity_uncertain, analyze_capacity_uncertain_validated
 
 """
 High-level API: Analyze network capacity (deterministic)
@@ -111,6 +116,67 @@ function analyze_capacity_validated(
 end
 
 """
+Analyze network capacity with interval uncertainty (exact bounds)
+
+# Arguments
+- `topology`: NetworkTopology structure (from DiamondProcessingModule)
+- `node_capacities`: Interval processing capacity for each node
+- `edge_capacities`: Interval transmission capacity for each edge
+- `source_rates`: Interval source rates for each source node
+- `target_nodes`: Set of target/sink nodes
+- `options`: CapacityAnalysisOptions (optional configuration)
+
+# Returns
+- IntervalCapacityResult with guaranteed min/max throughput bounds
+"""
+function analyze_capacity_uncertain(
+    topology::NetworkTopology;
+    node_capacities::Dict{Int64, Interval{Float64}},
+    edge_capacities::Dict{Tuple{Int64,Int64}, Interval{Float64}},
+    source_rates::Dict{Int64, Interval{Float64}},
+    target_nodes::Set{Int64},
+    options::CapacityAnalysisOptions = CapacityAnalysisOptions()
+)
+    problem = UncertainCapacityProblem(
+        topology,
+        node_capacities,
+        edge_capacities,
+        source_rates,
+        target_nodes
+    )
+
+    return analyze_capacity_uncertain(problem, options)
+end
+
+"""
+Analyze uncertain capacity and return interval result with validation report
+
+# Returns
+- `(result, validation)` tuple
+"""
+function analyze_capacity_uncertain_validated(
+    topology::NetworkTopology;
+    node_capacities::Dict{Int64, Interval{Float64}},
+    edge_capacities::Dict{Tuple{Int64,Int64}, Interval{Float64}},
+    source_rates::Dict{Int64, Interval{Float64}},
+    target_nodes::Set{Int64},
+    options::CapacityAnalysisOptions = CapacityAnalysisOptions()
+)
+    problem = UncertainCapacityProblem(
+        topology,
+        node_capacities,
+        edge_capacities,
+        source_rates,
+        target_nodes
+    )
+
+    result = analyze_capacity_uncertain(problem, options)
+    validation = validate_capacity_result(result, problem)
+
+    return result, validation
+end
+
+"""
 Quick capacity check - returns only essential metrics
 
 # Returns
@@ -155,6 +221,8 @@ function quick_capacity_check(
 end
 
 # Export main API functions
-export analyze_capacity, analyze_capacity_validated, quick_capacity_check
+export analyze_capacity, analyze_capacity_validated,
+       analyze_capacity_uncertain, analyze_capacity_uncertain_validated,
+       quick_capacity_check
 
 end # module CapacityAnalysisModule

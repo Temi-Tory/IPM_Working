@@ -13,6 +13,10 @@ const RUN_LEGACY_CAPACITY_TESTS = get(ENV, "RUN_LEGACY_CAPACITY_TESTS", "0") == 
         include(joinpath(@__DIR__, "../src/Algorithms/Capacity/Tests/test_deterministic.jl"))
     end
 
+    @testset "Interval Capacity Tests" begin
+        include(joinpath(@__DIR__, "../src/Algorithms/Capacity/Tests/test_intervals.jl"))
+    end
+
     if RUN_LEGACY_CAPACITY_TESTS
         @testset "Legacy Capacity Tests (opt-in)" begin
             include(joinpath(@__DIR__, "CapacityModuleTests.jl"))

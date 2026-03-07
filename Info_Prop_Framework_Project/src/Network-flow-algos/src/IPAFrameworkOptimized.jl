@@ -45,12 +45,16 @@ module IPAFrameworkOptimized
     # UPDATED: Import from refactored CapacityAnalysisModule (Phase 1: Deterministic Core)
     using .CapacityAnalysisModule: 
            # Core types
-           NetworkTopology, BasicCapacityProblem, CapacityAnalysisOptions,
-           CapacityAnalysisResult, BottleneckReport, ValidationReport,
+            NetworkTopology, BasicCapacityProblem, UncertainCapacityProblem,
+            CapacityAnalysisOptions,
+            CapacityAnalysisResult, IntervalCapacityResult,
+            BottleneckReport, ValidationReport, IntervalValidationReport,
            EdgeUpgradeRecommendation, NodeUpgradeRecommendation, UpgradeAnalysis,
            FlowPath, PathAnalysis, ComparativeAnalysis,
            # Main API functions
-           analyze_capacity, analyze_capacity_validated, quick_capacity_check,
+            analyze_capacity, analyze_capacity_uncertain,
+            analyze_capacity_validated, analyze_capacity_uncertain_validated,
+            quick_capacity_check,
            # Validation
            validate_capacity_result
 
@@ -116,11 +120,15 @@ module IPAFrameworkOptimized
         ExternalConnectivity, DegenerateCases,
 
         # Capacity Analysis - Phase 1: Deterministic Core (Refactored)
-        NetworkTopology, BasicCapacityProblem, CapacityAnalysisOptions,
-        CapacityAnalysisResult, BottleneckReport, ValidationReport,
+        NetworkTopology, BasicCapacityProblem, UncertainCapacityProblem,
+        CapacityAnalysisOptions,
+        CapacityAnalysisResult, IntervalCapacityResult,
+        BottleneckReport, ValidationReport, IntervalValidationReport,
         EdgeUpgradeRecommendation, NodeUpgradeRecommendation, UpgradeAnalysis,
         FlowPath, PathAnalysis, ComparativeAnalysis,
-        analyze_capacity, analyze_capacity_validated, quick_capacity_check,
+        analyze_capacity, analyze_capacity_uncertain,
+        analyze_capacity_validated, analyze_capacity_uncertain_validated,
+        quick_capacity_check,
         validate_capacity_result,
 
         # Critical Path Analysis

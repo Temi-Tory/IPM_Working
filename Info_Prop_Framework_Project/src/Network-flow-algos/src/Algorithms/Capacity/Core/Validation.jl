@@ -6,6 +6,8 @@ if !isdefined(@__MODULE__, :NetworkTopology)
     include("Types.jl")
 end
 
+using IntervalArithmetic
+
 """
 Validate capacity analysis results for mathematical correctness
 
@@ -169,11 +171,98 @@ function validate_capacity_result(
 end
 
 """
+Validate interval capacity analysis outputs.
+
+Checks:
+- deterministic validity of worst and best scenarios
+- consistency of reported bounds
+"""
+function validate_capacity_result(
+    result::IntervalCapacityResult,
+    problem::UncertainCapacityProblem
+)
+    warnings = String[]
+    errors = String[]
+    tolerance = 1e-10
+
+    worst_problem = BasicCapacityProblem(
+        problem.topology,
+        Dict{Int64, Float64}(node => inf(capacity) for (node, capacity) in problem.node_capacities),
+        Dict{Tuple{Int64,Int64}, Float64}(edge => inf(capacity) for (edge, capacity) in problem.edge_capacities),
+        Dict{Int64, Float64}(node => inf(rate) for (node, rate) in problem.source_rates),
+        problem.target_nodes
+    )
+
+    best_problem = BasicCapacityProblem(
+        problem.topology,
+        Dict{Int64, Float64}(node => sup(capacity) for (node, capacity) in problem.node_capacities),
+        Dict{Tuple{Int64,Int64}, Float64}(edge => sup(capacity) for (edge, capacity) in problem.edge_capacities),
+        Dict{Int64, Float64}(node => sup(rate) for (node, rate) in problem.source_rates),
+        problem.target_nodes
+    )
+
+    worst_validation = validate_capacity_result(result.worst_case_scenario, worst_problem)
+    best_validation = validate_capacity_result(result.best_case_scenario, best_problem)
+
+    bounds_consistent = true
+
+    if result.guaranteed_min_flow > result.possible_max_flow + tolerance
+        bounds_consistent = false
+        push!(errors, "Invalid interval bounds: guaranteed_min_flow > possible_max_flow")
+    end
+
+    if abs(result.guaranteed_min_flow - result.worst_case_scenario.total_max_flow) > tolerance
+        bounds_consistent = false
+        push!(errors, "Guaranteed bound mismatch with worst-case scenario total_max_flow")
+    end
+
+    if abs(result.possible_max_flow - result.best_case_scenario.total_max_flow) > tolerance
+        bounds_consistent = false
+        push!(errors, "Possible bound mismatch with best-case scenario total_max_flow")
+    end
+
+    if result.uncertainty_range < -tolerance
+        bounds_consistent = false
+        push!(errors, "Uncertainty range is negative")
+    end
+
+    all_checks_passed = (
+        worst_validation.all_checks_passed &&
+        best_validation.all_checks_passed &&
+        bounds_consistent
+    )
+
+    if all_checks_passed
+        push!(warnings, "Interval validation checks passed ✓")
+    end
+
+    return IntervalValidationReport(
+        all_checks_passed,
+        bounds_consistent,
+        worst_validation,
+        best_validation,
+        warnings,
+        errors
+    )
+end
+
+"""
 Quick validation check - returns true if all critical checks pass
 """
 function quick_validate(
     result::CapacityAnalysisResult{Float64},
     problem::BasicCapacityProblem
+)::Bool
+    report = validate_capacity_result(result, problem)
+    return report.all_checks_passed
+end
+
+"""
+Quick validation for interval analysis results
+"""
+function quick_validate(
+    result::IntervalCapacityResult,
+    problem::UncertainCapacityProblem
 )::Bool
     report = validate_capacity_result(result, problem)
     return report.all_checks_passed

@@ -3,6 +3,7 @@
 # All structs used throughout the capacity analysis system
 
 using Dates
+using IntervalArithmetic
 
 """
 Network topology structure - represents DAG structure
@@ -22,6 +23,17 @@ struct BasicCapacityProblem
     node_capacities::Dict{Int64, Float64}
     edge_capacities::Dict{Tuple{Int64,Int64}, Float64}
     source_rates::Dict{Int64, Float64}
+    target_nodes::Set{Int64}
+end
+
+"""
+Uncertain capacity problem definition using exact intervals
+"""
+struct UncertainCapacityProblem
+    topology::NetworkTopology
+    node_capacities::Dict{Int64, Interval{Float64}}
+    edge_capacities::Dict{Tuple{Int64,Int64}, Interval{Float64}}
+    source_rates::Dict{Int64, Interval{Float64}}
     target_nodes::Set{Int64}
 end
 
@@ -234,6 +246,24 @@ struct CapacityAnalysisResult{T}
 end
 
 """
+Results for interval capacity analysis (exact bounds)
+"""
+struct IntervalCapacityResult
+    guaranteed_min_flow::Float64
+    possible_max_flow::Float64
+    expected_flow::Float64
+    uncertainty_range::Float64
+
+    robust_bottlenecks::Set{Union{Int64, Tuple{Int64,Int64}}}
+    potential_bottlenecks::Set{Union{Int64, Tuple{Int64,Int64}}}
+
+    worst_case_scenario::CapacityAnalysisResult{Float64}
+    best_case_scenario::CapacityAnalysisResult{Float64}
+
+    components_most_uncertain::Vector{Tuple{Union{Int64, Tuple{Int64,Int64}}, Float64}}
+end
+
+"""
 Validation report - mathematical correctness verification
 """
 struct ValidationReport
@@ -263,8 +293,21 @@ struct ValidationReport
     errors::Vector{String}
 end
 
+"""
+Validation report for interval capacity outputs
+"""
+struct IntervalValidationReport
+    all_checks_passed::Bool
+    bounds_consistent::Bool
+    worst_case_validation::ValidationReport
+    best_case_validation::ValidationReport
+    warnings::Vector{String}
+    errors::Vector{String}
+end
+
 # Export all types
-export NetworkTopology, BasicCapacityProblem, CapacityAnalysisOptions,
+export NetworkTopology, BasicCapacityProblem, UncertainCapacityProblem, CapacityAnalysisOptions,
        BottleneckReport, EdgeUpgradeRecommendation, NodeUpgradeRecommendation,
        UpgradeAnalysis, FlowPath, PathAnalysis, ComparativeAnalysis,
-       CapacityAnalysisResult, ValidationReport
+       CapacityAnalysisResult, IntervalCapacityResult,
+       ValidationReport, IntervalValidationReport
