@@ -1,0 +1,1017 @@
+{
+  "time_analysis": {
+    "edge_delays": {
+      "(1,9)": {
+        "lower": 1.2152,
+        "upper": 2.1251,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 2.3156,
+        "upper": 4.1263,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 1.1615,
+        "upper": 2.193,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 2.3106,
+        "upper": 4.012,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 1.8749,
+        "upper": 3.4881,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 1.2885,
+        "upper": 2.1806,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 2.3558,
+        "upper": 3.714,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 2.1947,
+        "upper": 3.8242,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 1.1323,
+        "upper": 2.1568,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 1.7849,
+        "upper": 3.0456,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 1.5674,
+        "upper": 2.8374,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 1.2267,
+        "upper": 2.1509,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 2.0479,
+        "upper": 3.4112,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 1.6164,
+        "upper": 2.7311,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 1.2781,
+        "upper": 2.1087,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 2.0108,
+        "upper": 3.6462,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 1.6315,
+        "upper": 2.8799,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 1.2316,
+        "upper": 2.1602,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 2.0025,
+        "upper": 3.5726,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 1.3192,
+        "upper": 2.7044,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 1.36,
+        "upper": 2.8686,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 1.1869,
+        "upper": 2.2274,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 1.155,
+        "upper": 2.1936,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 2.5101,
+        "upper": 3.9621,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 1.2151,
+        "upper": 2.2204,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 2.4031,
+        "upper": 3.8225,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 2.0057,
+        "upper": 3.373,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 1.2683,
+        "upper": 2.1206,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 2.2831,
+        "upper": 3.7526,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 2.1417,
+        "upper": 3.635,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 1.1884,
+        "upper": 2.1582,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 1.7577,
+        "upper": 3.0788,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 1.4067,
+        "upper": 2.7419,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 1.2445,
+        "upper": 2.2096,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 2.0157,
+        "upper": 3.6046,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 1.5176,
+        "upper": 2.7462,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 1.1646,
+        "upper": 2.164,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 2.0636,
+        "upper": 3.5553,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 1.7183,
+        "upper": 2.7285,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 1.2205,
+        "upper": 2.2361,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 1.9302,
+        "upper": 3.5697,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 1.3942,
+        "upper": 2.7471,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 1.4049,
+        "upper": 2.8286,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 1.1662,
+        "upper": 2.2014,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 1.2356,
+        "upper": 2.1712,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 2.6625,
+        "upper": 3.9739,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 1.2443,
+        "upper": 2.125,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 2.4767,
+        "upper": 4.1252,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 1.9054,
+        "upper": 3.5901,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 1.1778,
+        "upper": 2.1189,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 2.3475,
+        "upper": 3.7443,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 2.1191,
+        "upper": 3.6419,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 1.1329,
+        "upper": 2.2078,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 1.9062,
+        "upper": 3.0704,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 1.5081,
+        "upper": 2.8469,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 1.2826,
+        "upper": 2.1159,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 1.9776,
+        "upper": 3.5022,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 1.5814,
+        "upper": 2.7243,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 1.2911,
+        "upper": 2.2873,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 1.9127,
+        "upper": 3.3474,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 1.7248,
+        "upper": 2.6926,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 1.2339,
+        "upper": 2.1352,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 1.847,
+        "upper": 3.6013,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 1.4664,
+        "upper": 2.7977,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 1.4959,
+        "upper": 2.8744,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 1.153,
+        "upper": 2.1595,
+        "type": "interval"
+      }
+    },
+    "combination_function": "max_combination",
+    "initial_time": {
+      "lower": 0,
+      "upper": 0,
+      "type": "interval"
+    },
+    "analysis_type": "longest_path_time",
+    "propagation_function": "additive_propagation",
+    "node_durations": {
+      "1": {
+        "lower": 2.0099,
+        "upper": 3.5633,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 1.9121,
+        "upper": 3.5121,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 2.0453,
+        "upper": 3.6116,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 1.9568,
+        "upper": 3.3583,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 1.961,
+        "upper": 3.6347,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 1.9363,
+        "upper": 3.3437,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 2.0571,
+        "upper": 3.4197,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 1.9788,
+        "upper": 3.6301,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 2.4545,
+        "upper": 3.9488,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 2.4668,
+        "upper": 3.8659,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 3.2525,
+        "upper": 5.4422,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 1.4878,
+        "upper": 2.968,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 1.566,
+        "upper": 3.0761,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 2.6228,
+        "upper": 4.067,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 2.5019,
+        "upper": 4.1368,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 2.3596,
+        "upper": 4.0867,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 2.3593,
+        "upper": 3.8833,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 2.521,
+        "upper": 4.0316,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 3.5854,
+        "upper": 5.446,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 1.5367,
+        "upper": 2.906,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 1.5077,
+        "upper": 2.9496,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 2.5934,
+        "upper": 4.0635,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 2.6461,
+        "upper": 4.0758,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 2.3467,
+        "upper": 3.9591,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 0.9974,
+        "upper": 2.4299,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 0.9512,
+        "upper": 2.5469,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 0.936,
+        "upper": 2.4907,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 0.9805,
+        "upper": 2.529,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 0.9811,
+        "upper": 2.4948,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 1.0651,
+        "upper": 2.4219,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 1.0509,
+        "upper": 2.5518,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 0.929,
+        "upper": 2.4708,
+        "type": "interval"
+      }
+    }
+  },
+  "network_type": "critical_path",
+  "data_type": "Interval",
+  "cost_analysis": {
+    "initial_cost": {
+      "lower": 0,
+      "upper": 0,
+      "type": "interval"
+    },
+    "combination_function": "max_combination",
+    "node_costs": {
+      "1": {
+        "lower": 138.7088,
+        "upper": 207.6383,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 135.8342,
+        "upper": 197.0675,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 144.1361,
+        "upper": 199.951,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 135.7854,
+        "upper": 193.591,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 137.145,
+        "upper": 191.6929,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 142.9894,
+        "upper": 199.1146,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 132.5744,
+        "upper": 195.4765,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 148.3481,
+        "upper": 203.8026,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 186.4464,
+        "upper": 259.9321,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 190.7047,
+        "upper": 258.7212,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 267.069,
+        "upper": 365.7761,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 112.6342,
+        "upper": 172.0624,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 114.0066,
+        "upper": 177.2667,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 189.1263,
+        "upper": 268.4961,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 184.947,
+        "upper": 273.0574,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 195.0907,
+        "upper": 267.4911,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 194.7307,
+        "upper": 274.3935,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 193.6926,
+        "upper": 277.5196,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 272.3318,
+        "upper": 348.1019,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 114.2595,
+        "upper": 170.6526,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 115.3902,
+        "upper": 177.6203,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 181.0832,
+        "upper": 265.7292,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 183.9955,
+        "upper": 273.4351,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 187.9563,
+        "upper": 281.1742,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 90.3893,
+        "upper": 145.8141,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 89.6955,
+        "upper": 152.5236,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 89.6546,
+        "upper": 154.2994,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 87.971,
+        "upper": 146.7466,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 87.3917,
+        "upper": 145.8468,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 85.3337,
+        "upper": 145.633,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 85.2644,
+        "upper": 154.9197,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 92.0498,
+        "upper": 145.2247,
+        "type": "interval"
+      }
+    },
+    "analysis_type": "total_project_cost",
+    "propagation_function": "additive_propagation",
+    "edge_costs": {
+      "(1,9)": {
+        "lower": 36.4249,
+        "upper": 63.9587,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 79.5623,
+        "upper": 128.043,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 37.8719,
+        "upper": 60.3131,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 76.2342,
+        "upper": 122.8651,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 67.6035,
+        "upper": 105.5654,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 36.1439,
+        "upper": 61.7867,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 77.1148,
+        "upper": 121.2341,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 72.5616,
+        "upper": 117.8356,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 36.4725,
+        "upper": 61.1548,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 55.1115,
+        "upper": 92.1735,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 53.8369,
+        "upper": 86.7259,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 39.6836,
+        "upper": 61.8307,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 62.1908,
+        "upper": 100.032,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 49.3233,
+        "upper": 90.3195,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 35.8818,
+        "upper": 61.4133,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 59.6786,
+        "upper": 102.4148,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 49.3398,
+        "upper": 79.9458,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 39.526,
+        "upper": 63.8887,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 59.5299,
+        "upper": 98.623,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 44.0273,
+        "upper": 75.3317,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 45.4641,
+        "upper": 73.7781,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 38.1545,
+        "upper": 62.7801,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 37.987,
+        "upper": 63.8444,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 80.704,
+        "upper": 122.0516,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 36.0598,
+        "upper": 62.845,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 79.0607,
+        "upper": 126.2628,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 69.3858,
+        "upper": 106.9469,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 39.2299,
+        "upper": 61.444,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 74.7841,
+        "upper": 116.1171,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 76.2574,
+        "upper": 118.8541,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 38.3616,
+        "upper": 60.9332,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 54.9416,
+        "upper": 91.7718,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 50.587,
+        "upper": 90.5158,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 37.9439,
+        "upper": 60.2679,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 57.465,
+        "upper": 98.2583,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 51.2592,
+        "upper": 86.0303,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 38.0241,
+        "upper": 63.8302,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 59.3148,
+        "upper": 100.2141,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 47.6364,
+        "upper": 83.6888,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 38.4159,
+        "upper": 64.2559,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 58.0641,
+        "upper": 98.022,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 45.3976,
+        "upper": 73.0572,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 45.6028,
+        "upper": 75.6141,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 35.9522,
+        "upper": 63.1599,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 36.3935,
+        "upper": 62.908,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 83.1603,
+        "upper": 124.4207,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 37.7071,
+        "upper": 62.1965,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 79.3264,
+        "upper": 121.5263,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 65.2948,
+        "upper": 109.3405,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 38.8273,
+        "upper": 59.8897,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 74.3183,
+        "upper": 122.0847,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 78.0633,
+        "upper": 119.2755,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 39.1724,
+        "upper": 63.3122,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 59.0306,
+        "upper": 98.3069,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 49.1965,
+        "upper": 87.3522,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 38.8358,
+        "upper": 62.7443,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 58.0494,
+        "upper": 97.2915,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 52.2625,
+        "upper": 89.8173,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 37.397,
+        "upper": 60.3324,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 62.8004,
+        "upper": 101.3644,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 49.1726,
+        "upper": 82.4818,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 38.4539,
+        "upper": 62.3141,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 59.0078,
+        "upper": 96.4459,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 42.8379,
+        "upper": 74.8205,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 43.2563,
+        "upper": 72.6463,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 37.221,
+        "upper": 60.0773,
+        "type": "interval"
+      }
+    }
+  },
+  "description": "Critical Path Module inputs for WATER network - Winter Operations. Cold water (<5C) degrades all biological processes. Sensor drift from ice/cold. All values are intervals reflecting degraded performance + measurement uncertainty. Nitrogen pathways most temperature-sensitive (widest bounds).",
+  "generation_info": {
+    "total_nodes": 32,
+    "total_edges": 66
+  }
+}

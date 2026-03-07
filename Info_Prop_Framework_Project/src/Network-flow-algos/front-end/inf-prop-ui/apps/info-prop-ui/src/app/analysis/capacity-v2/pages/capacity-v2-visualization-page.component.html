@@ -1,0 +1,119 @@
+<div class="visualization-page">
+  @if (store.activeDeterministicDetail()) {
+    <!-- Controls Toolbar -->
+    <mat-toolbar class="viz-toolbar">
+      <mat-form-field appearance="outline" class="highlight-select">
+        <mat-label>Highlight Mode</mat-label>
+        <mat-select [value]="store.highlightMode()" (selectionChange)="onHighlightModeChange($event)">
+          @for (mode of highlightModes; track mode.value) {
+            <mat-option [value]="mode.value">{{ mode.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+
+      <div class="control-buttons">
+        <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom In">
+          <mat-icon>zoom_in</mat-icon>
+        </button>
+        <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom Out">
+          <mat-icon>zoom_out</mat-icon>
+        </button>
+        <button mat-icon-button (click)="pan(-50, 0)" matTooltip="Pan Left">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <button mat-icon-button (click)="pan(50, 0)" matTooltip="Pan Right">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+        <button mat-icon-button (click)="pan(0, -50)" matTooltip="Pan Up">
+          <mat-icon>expand_less</mat-icon>
+        </button>
+        <button mat-icon-button (click)="pan(0, 50)" matTooltip="Pan Down">
+          <mat-icon>expand_more</mat-icon>
+        </button>
+        <button mat-raised-button (click)="resetView()" matTooltip="Reset View">
+          <mat-icon>center_focus_strong</mat-icon>
+          Reset
+        </button>
+      </div>
+    </mat-toolbar>
+
+    <!-- Full Screen SVG Visualization -->
+    <div class="svg-container">
+      <svg [attr.viewBox]="'0 0 ' + width() + ' ' + height()" preserveAspectRatio="xMidYMid meet" class="network-svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+          </marker>
+        </defs>
+
+        <g [attr.transform]="transform()">
+          <!-- Edges -->
+          @for (edge of edges(); track trackEdge($index, edge)) {
+            <line
+              [attr.x1]="edge.x1"
+              [attr.y1]="edge.y1"
+              [attr.x2]="edge.x2"
+              [attr.y2]="edge.y2"
+              [attr.stroke-width]="edge.thickness"
+              [attr.class]="connectedEdgeClass(edge)"
+              marker-end="url(#arrowhead)">
+              <title>Edge {{ edge.from }} → {{ edge.to }} | Flow: {{ edge.utilization | percent: '1.1-2' }}</title>
+            </line>
+          }
+
+          <!-- Nodes -->
+          @for (node of nodes(); track trackNode($index, node)) {
+            <g>
+              <circle
+                [attr.cx]="node.x"
+                [attr.cy]="node.y"
+                [attr.r]="node.radius"
+                [attr.class]="nodeClass(node)"
+                (click)="selectNode(node.id)">
+                <title>Node {{ node.id }} | Util: {{ node.utilization | percent: '1.1-2' }}</title>
+              </circle>
+              <text 
+                [attr.x]="node.x" 
+                [attr.y]="node.y + 4" 
+                text-anchor="middle" 
+                class="node-label"
+                (click)="selectNode(node.id)">
+                {{ node.id }}
+              </text>
+            </g>
+          }
+        </g>
+      </svg>
+
+      <!-- Legend -->
+      <div class="legend">
+        <h4>Legend</h4>
+        <div class="legend-item">
+          <div class="legend-marker node bottleneck"></div>
+          <span>Bottleneck Node</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-marker node critical"></div>
+          <span>Critical Path Node</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-marker edge bottleneck"></div>
+          <span>Bottleneck Edge</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-marker edge saturated"></div>
+          <span>Saturated Edge</span>
+        </div>
+      </div>
+    </div>
+
+  } @else {
+    <div class="empty-state">
+      <mat-icon>hub</mat-icon>
+      <h2>No Visualization Available</h2>
+      <p>Run analysis to generate network visualization.</p>
+    </div>
+  }
+</div>

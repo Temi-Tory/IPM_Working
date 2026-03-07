@@ -1,0 +1,202 @@
+<div class="overview-container">
+  @if (store.result(); as result) {
+    <!-- Quick Stats Dashboard -->
+    <section class="overview-section">
+      <h3>Analysis Summary</h3>
+      <div class="stats-grid">
+        @if (store.summary(); as summary) {
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>water_drop</mat-icon>
+              <mat-card-title>Maximum Flow</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              @if (typeof summary.throughput === 'number') {
+                <div class="stat-value">{{ summary.throughput | number: '1.3-3' }}</div>
+              } @else {
+                <div class="stat-value">{{ summary.throughput.min | number: '1.2-2' }} - {{ summary.throughput.max | number: '1.2-2' }}</div>
+                <div class="stat-subtitle">Guaranteed: {{ summary.throughput.min | number: '1.2-2' }}</div>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>speed</mat-icon>
+              <mat-card-title>Network Utilization</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-value">{{ summary.utilization | percent: '1.1-2' }}</div>
+              <div class="stat-subtitle">{{ getUtilizationStatus(summary.utilization) }}</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>schedule</mat-icon>
+              <mat-card-title>Computation Time</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-value">{{ summary.computationTimeMs | number: '1.1-1' }} ms</div>
+              <div class="stat-subtitle">{{ getPerformanceStatus(summary.computationTimeMs) }}</div>
+            </mat-card-content>
+          </mat-card>
+
+          @if (summary.uncertaintyRange !== undefined) {
+            <mat-card class="stat-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>timeline</mat-icon>
+                <mat-card-title>Uncertainty Range</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="stat-value">{{ summary.uncertaintyRange | number: '1.2-2' }}</div>
+                <div class="stat-subtitle">{{ (summary.uncertaintyRange / summary.expectedFlow!) | percent: '1.0-0' }} of expected flow</div>
+              </mat-card-content>
+            </mat-card>
+          }
+        }
+      </div>
+    </section>
+
+    <!-- Network Health -->
+    @if (store.activeDeterministicDetail(); as detail) {
+      <section class="overview-section">
+        <h3>Network Health</h3>
+        <div class="health-grid">
+          <mat-card class="health-card">
+            <mat-card-content>
+              <div class="health-metric">
+                <mat-icon [class]="getHealthClass('bottlenecks', detail)">report</mat-icon>
+                <div class="metric-info">
+                  <div class="metric-label">Bottlenecks</div>
+                  <div class="metric-value">{{ countBottlenecks(detail) }}</div>
+                </div>
+              </div>
+              <div class="metric-status" [class]="getHealthClass('bottlenecks', detail)">
+                {{ getBottleneckStatus(detail) }}
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="health-card">
+            <mat-card-content>
+              <div class="health-metric">
+                <mat-icon [class]="getHealthClass('validation', detail)">verified</mat-icon>
+                <div class="metric-info">
+                  <div class="metric-label">Validation</div>
+                  <div class="metric-value">{{ detail.validation.allChecksPassed ? 'PASSED' : 'ISSUES' }}</div>
+                </div>
+              </div>
+              <div class="metric-status" [class]="getHealthClass('validation', detail)">
+                {{ getValidationStatus(detail) }}
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="health-card">
+            <mat-card-content>
+              <div class="health-metric">
+                <mat-icon [class]="getHealthClass('efficiency', detail)">insights</mat-icon>
+                <div class="metric-info">
+                  <div class="metric-label">Efficiency Loss</div>
+                  <div class="metric-value">{{ detail.comparative.efficiencyLoss | percent: '1.1-1' }}</div>
+                </div>
+              </div>
+              <div class="metric-status" [class]="getHealthClass('efficiency', detail)">
+                vs. classical max flow
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="health-card">
+            <mat-card-content>
+              <div class="health-metric">
+                <mat-icon class="status-info">route</mat-icon>
+                <div class="metric-info">
+                  <div class="metric-label">Critical Paths</div>
+                  <div class="metric-value">{{ detail.criticalPaths.criticalPaths.length }}</div>
+                </div>
+              </div>
+              <div class="metric-status status-info">
+                {{ detail.criticalPaths.singlePointsOfFailure.length }} single points of failure
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="overview-section">
+        <h3>Recommendations</h3>
+        <mat-card class="recommendations-card">
+          <mat-card-content>
+            <div class="recommendation-item">
+              <mat-icon>priority_high</mat-icon>
+              <div class="recommendation-text">
+                <strong>Primary Bottleneck:</strong> {{ detail.upgrades.primaryBottleneck }}
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <mat-icon>lightbulb</mat-icon>
+              <div class="recommendation-text">
+                <strong>Recommended Action:</strong> {{ detail.upgrades.recommendedAction }}
+              </div>
+            </div>
+            <div class="recommendation-item">
+              <mat-icon>insights</mat-icon>
+              <div class="recommendation-text">
+                <strong>Strategic Recommendation:</strong> {{ detail.comparative.strategicRecommendation }}
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- Network Topology Summary -->
+      @if (store.networkData(); as network) {
+        <section class="overview-section">
+          <h3>Network Topology</h3>
+          <div class="topology-grid">
+            <div class="topology-item">
+              <mat-icon>circle</mat-icon>
+              <div class="topology-info">
+                <div class="topology-value">{{ network.nodes.length }}</div>
+                <div class="topology-label">Nodes</div>
+              </div>
+            </div>
+            <div class="topology-item">
+              <mat-icon>arrow_forward</mat-icon>
+              <div class="topology-info">
+                <div class="topology-value">{{ network.edges.length }}</div>
+                <div class="topology-label">Edges</div>
+              </div>
+            </div>
+            <div class="topology-item">
+              <mat-icon>upload</mat-icon>
+              <div class="topology-info">
+                <div class="topology-value">{{ network.source_nodes.length }}</div>
+                <div class="topology-label">Sources</div>
+              </div>
+            </div>
+            <div class="topology-item">
+              <mat-icon>download</mat-icon>
+              <div class="topology-info">
+                <div class="topology-value">{{ network.sink_nodes.length }}</div>
+                <div class="topology-label">Sinks</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      }
+    }
+  } @else {
+    <div class="empty-overview">
+      <mat-icon>analytics</mat-icon>
+      <h2>No Analysis Results</h2>
+      <p>Configure and run a capacity analysis to view results and insights.</p>
+      <button mat-flat-button color="primary" (click)="navigateToInputs()">
+        Go to Inputs
+      </button>
+    </div>
+  }
+</div>

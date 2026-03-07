@@ -1,0 +1,133 @@
+.page-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+.table-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+
+.search-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-high);
+  min-width: 260px;
+
+  mat-icon {
+    color: var(--text-secondary);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+
+    &::placeholder {
+      color: var(--text-disabled);
+    }
+  }
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background: var(--surface-container);
+    
+    th {
+      text-align: left;
+      padding: 12px;
+      font-weight: 600;
+      border-bottom: 2px solid var(--outline-variant);
+
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+          color: var(--primary-color);
+        }
+      }
+
+      .sort-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+        margin-left: 4px;
+        color: var(--text-secondary);
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--outline-variant);
+
+      &:hover {
+        background: var(--surface-container-high);
+      }
+    }
+
+    td {
+      padding: 12px;
+    }
+  }
+}
+
+mat-paginator {
+  margin-top: 8px;
+  background: transparent;
+}
+
+.util-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.util-bar {
+  flex: 1;
+  height: 20px;
+  background: var(--outline-variant);
+  border-radius: 10px;
+  overflow: hidden;
+
+  .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50 0%, #ff9800 70%, #f44336 90%);
+    transition: width 0.3s ease;
+  }
+}
+
+.util-text {
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-disabled);
+  font-size: 1.1rem;
+}

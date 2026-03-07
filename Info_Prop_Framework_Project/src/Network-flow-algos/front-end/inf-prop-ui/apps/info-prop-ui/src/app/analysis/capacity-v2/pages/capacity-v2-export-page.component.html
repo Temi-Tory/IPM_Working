@@ -1,0 +1,101 @@
+<div class="page-container">
+  @if (store.result(); as result) {
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Export Analysis Results</mat-card-title>
+        <mat-card-subtitle>Download or copy analysis data in various formats</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="export-section">
+          <h3>Export Format</h3>
+          <mat-form-field appearance="outline">
+            <mat-label>Select format</mat-label>
+            <mat-select [(ngModel)]="selectedFormat">
+              <mat-option value="json">JSON (Complete data)</mat-option>
+              <mat-option value="csv">CSV (Summary)</mat-option>
+              <mat-option value="txt">Text Report</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="format-description">
+            @switch (selectedFormat) {
+              @case ('json') {
+                <p>📄 <strong>JSON Format:</strong> Complete analysis data including all metrics, bottlenecks, upgrades, and paths. Best for programmatic processing or re-importing.</p>
+              }
+              @case ('csv') {
+                <p>📊 <strong>CSV Format:</strong> Tabular summary of key metrics. Easy to import into spreadsheet applications like Excel.</p>
+              }
+              @case ('txt') {
+                <p>📝 <strong>Text Format:</strong> Human-readable report with summary statistics and key findings. Good for documentation.</p>
+              }
+            }
+          </div>
+
+          <div class="action-buttons">
+            <button mat-raised-button color="primary" (click)="exportData()">
+              <mat-icon>download</mat-icon>
+              Download {{ selectedFormat.toUpperCase() }}
+            </button>
+            <button mat-raised-button (click)="copyToClipboard()">
+              <mat-icon>content_copy</mat-icon>
+              Copy to Clipboard
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-section">
+          <h3>Data Preview</h3>
+          <div class="preview-stats">
+            <div class="stat-item">
+              <span class="label">Analysis Type:</span>
+              <span class="value">{{ result.kind === 'interval' ? 'Interval (Uncertainty)' : 'Deterministic' }}</span>
+            </div>
+            @if (store.summary(); as summary) {
+              <div class="stat-item">
+                <span class="label">Max Flow:</span>
+              <span class="value">{{ getThroughputValue(summary.throughput) | number: '1.3-3' }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Utilization:</span>
+                <span class="value">{{ summary.utilization | percent: '1.1-2' }}</span>
+              </div>
+            }
+            @if (store.activeDeterministicDetail(); as detail) {
+              <div class="stat-item">
+                <span class="label">Bottlenecks:</span>
+                <span class="value">
+                  {{ detail.bottlenecks.saturatedEdges.length + detail.bottlenecks.saturatedNodes.length }}
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Critical Paths:</span>
+                <span class="value">{{ detail.criticalPaths.criticalPaths.length }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h4>📋 Export Information</h4>
+          <ul>
+            <li><strong>JSON:</strong> Contains complete analysis results with full detail for all scenarios</li>
+            <li><strong>CSV:</strong> Includes summary metrics and lists of bottlenecks and upgrades</li>
+            <li><strong>Text:</strong> Generates a formatted report suitable for documentation</li>
+            <li><strong>Clipboard:</strong> Copies JSON data to clipboard for pasting into other applications</li>
+          </ul>
+          
+          <p class="note">
+            💡 <strong>Tip:</strong> For archival purposes or detailed analysis, use JSON format.
+            For sharing with non-technical stakeholders, use Text format.
+          </p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card>
+      <mat-card-content>
+        <p class="empty-state">Run an analysis to enable data export.</p>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

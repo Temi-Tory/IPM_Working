@@ -1,0 +1,201 @@
+<mat-card class="input-panel">
+  <mat-card-header>
+    <mat-card-title>Capacity Analysis Inputs</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="input-grid">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Network file</mat-label>
+        <mat-select [value]="store.selectedNetworkOption()" (selectionChange)="onNetworkChange($event)">
+          @for (option of store.networkOptions(); track option.scenarioName) {
+            <mat-option [value]="option">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <div class="section-block">
+        <div class="section-label">Analysis type is inferred from selected scenario</div>
+        <strong>{{ store.inputs().analysisType | titlecase }}</strong>
+      </div>
+
+      <mat-accordion class="input-accordion" [multi]="false">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>Node capacities</mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="table-block">
+            <table class="value-table">
+              <thead>
+                <tr>
+                  <th>Node</th>
+                  <th>Value</th>
+                  @if (store.inputs().analysisType === 'interval') {
+                    <th>Min</th>
+                    <th>Max</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of store.inputs().nodeCapacities; track trackByRow($index, row)) {
+                  <tr>
+                    <td>{{ row.key }}</td>
+                    <td>
+                      <input
+                        type="number"
+                        [ngModel]="row.deterministic"
+                        (ngModelChange)="updateDeterministic(row, $event, 'node', $index)"
+                      />
+                    </td>
+                    @if (store.inputs().analysisType === 'interval') {
+                      <td>
+                        <input type="number" [ngModel]="row.interval.min" (ngModelChange)="updateIntervalMin(row, $event, 'node', $index)" />
+                      </td>
+                      <td>
+                        <input type="number" [ngModel]="row.interval.max" (ngModelChange)="updateIntervalMax(row, $event, 'node', $index)" />
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>Edge capacities</mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="table-block">
+            <table class="value-table">
+              <thead>
+                <tr>
+                  <th>Edge</th>
+                  <th>Value</th>
+                  @if (store.inputs().analysisType === 'interval') {
+                    <th>Min</th>
+                    <th>Max</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of store.inputs().edgeCapacities; track trackByRow($index, row)) {
+                  <tr>
+                    <td>{{ row.key }}</td>
+                    <td>
+                      <input type="number" [ngModel]="row.deterministic" (ngModelChange)="updateDeterministic(row, $event, 'edge', $index)" />
+                    </td>
+                    @if (store.inputs().analysisType === 'interval') {
+                      <td>
+                        <input type="number" [ngModel]="row.interval.min" (ngModelChange)="updateIntervalMin(row, $event, 'edge', $index)" />
+                      </td>
+                      <td>
+                        <input type="number" [ngModel]="row.interval.max" (ngModelChange)="updateIntervalMax(row, $event, 'edge', $index)" />
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>Source rates</mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="table-block">
+            <table class="value-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Value</th>
+                  @if (store.inputs().analysisType === 'interval') {
+                    <th>Min</th>
+                    <th>Max</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of store.inputs().sourceRates; track trackByRow($index, row)) {
+                  <tr>
+                    <td>{{ row.key }}</td>
+                    <td>
+                      <input type="number" [ngModel]="row.deterministic" (ngModelChange)="updateDeterministic(row, $event, 'source', $index)" />
+                    </td>
+                    @if (store.inputs().analysisType === 'interval') {
+                      <td>
+                        <input type="number" [ngModel]="row.interval.min" (ngModelChange)="updateIntervalMin(row, $event, 'source', $index)" />
+                      </td>
+                      <td>
+                        <input type="number" [ngModel]="row.interval.max" (ngModelChange)="updateIntervalMax(row, $event, 'source', $index)" />
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-expansion-panel>
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>Target nodes</mat-panel-title>
+          </mat-expansion-panel-header>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Target nodes</mat-label>
+            <mat-select
+              [value]="store.inputs().targetNodes"
+              multiple
+              (selectionChange)="onTargetNodesChange($event.value)"
+            >
+              @for (target of store.networkData()?.sink_nodes ?? []; track target) {
+                <mat-option [value]="target">{{ target }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </mat-expansion-panel>
+      </mat-accordion>
+
+      <div class="options-grid">
+        <mat-checkbox
+          [checked]="store.inputs().options.computeAllMinCuts"
+          (change)="toggleOption('computeAllMinCuts', $event.checked)"
+        >
+          Compute all min-cuts
+        </mat-checkbox>
+        <mat-checkbox
+          [checked]="store.inputs().options.enumerateCriticalPaths"
+          (change)="toggleOption('enumerateCriticalPaths', $event.checked)"
+        >
+          Enumerate critical paths
+        </mat-checkbox>
+        <mat-checkbox
+          [checked]="store.inputs().options.computeUpgradePriorities"
+          (change)="toggleOption('computeUpgradePriorities', $event.checked)"
+        >
+          Compute upgrade priorities
+        </mat-checkbox>
+        <mat-checkbox
+          [checked]="store.inputs().options.includeClassicalComparison"
+          (change)="toggleOption('includeClassicalComparison', $event.checked)"
+        >
+          Include classical comparison
+        </mat-checkbox>
+      </div>
+    </div>
+
+    <div class="run-actions">
+      <button mat-flat-button color="primary" (click)="onRunAnalysis()" [disabled]="store.runState() === 'running'">
+        Run Analysis
+      </button>
+      @if (store.runState() === 'running') {
+        <mat-spinner diameter="24"></mat-spinner>
+      }
+    </div>
+
+    @if (store.error()) {
+      <p class="error-text">{{ store.error() }}</p>
+    }
+  </mat-card-content>
+</mat-card>

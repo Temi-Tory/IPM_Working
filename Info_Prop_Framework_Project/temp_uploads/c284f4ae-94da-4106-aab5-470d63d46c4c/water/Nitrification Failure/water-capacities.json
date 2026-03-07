@@ -1,0 +1,522 @@
+{
+  "network_type": "capacity_flow",
+  "data_type": "Interval",
+  "capacities": {
+    "nodes": {
+      "1": {
+        "lower": 15.8794,
+        "upper": 22.6662,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 14.6211,
+        "upper": 23.0777,
+        "type": "interval"
+      },
+      "3": {
+        "lower": 15.3081,
+        "upper": 22.6376,
+        "type": "interval"
+      },
+      "4": {
+        "lower": 16.0266,
+        "upper": 22.5498,
+        "type": "interval"
+      },
+      "5": {
+        "lower": 15.7369,
+        "upper": 22.9236,
+        "type": "interval"
+      },
+      "6": {
+        "lower": 15.3922,
+        "upper": 23.1008,
+        "type": "interval"
+      },
+      "7": {
+        "lower": 15.5576,
+        "upper": 23.7254,
+        "type": "interval"
+      },
+      "8": {
+        "lower": 14.9309,
+        "upper": 23.6966,
+        "type": "interval"
+      },
+      "9": {
+        "lower": 17.1562,
+        "upper": 25.8019,
+        "type": "interval"
+      },
+      "10": {
+        "lower": 17.3387,
+        "upper": 25.7902,
+        "type": "interval"
+      },
+      "11": {
+        "lower": 21.3443,
+        "upper": 32.1596,
+        "type": "interval"
+      },
+      "12": {
+        "lower": 13.217,
+        "upper": 20.5566,
+        "type": "interval"
+      },
+      "13": {
+        "lower": 13.9422,
+        "upper": 20.8218,
+        "type": "interval"
+      },
+      "14": {
+        "lower": 16.3099,
+        "upper": 24.8044,
+        "type": "interval"
+      },
+      "15": {
+        "lower": 7.3593,
+        "upper": 15.0317,
+        "type": "interval"
+      },
+      "16": {
+        "lower": 5.7926,
+        "upper": 12.5547,
+        "type": "interval"
+      },
+      "17": {
+        "lower": 16.2153,
+        "upper": 25.0042,
+        "type": "interval"
+      },
+      "18": {
+        "lower": 17.1888,
+        "upper": 24.6482,
+        "type": "interval"
+      },
+      "19": {
+        "lower": 21.2779,
+        "upper": 32.1291,
+        "type": "interval"
+      },
+      "20": {
+        "lower": 13.6943,
+        "upper": 20.461,
+        "type": "interval"
+      },
+      "21": {
+        "lower": 13.0327,
+        "upper": 20.7814,
+        "type": "interval"
+      },
+      "22": {
+        "lower": 17.2197,
+        "upper": 25.2796,
+        "type": "interval"
+      },
+      "23": {
+        "lower": 7.3594,
+        "upper": 14.964,
+        "type": "interval"
+      },
+      "24": {
+        "lower": 6.153,
+        "upper": 12.8242,
+        "type": "interval"
+      },
+      "25": {
+        "lower": 19.5703,
+        "upper": 28.1255,
+        "type": "interval"
+      },
+      "26": {
+        "lower": 20.1233,
+        "upper": 27.5661,
+        "type": "interval"
+      },
+      "27": {
+        "lower": 20.2661,
+        "upper": 27.4259,
+        "type": "interval"
+      },
+      "28": {
+        "lower": 20.2319,
+        "upper": 28.1374,
+        "type": "interval"
+      },
+      "29": {
+        "lower": 18.7846,
+        "upper": 27.7424,
+        "type": "interval"
+      },
+      "30": {
+        "lower": 19.1349,
+        "upper": 28.3582,
+        "type": "interval"
+      },
+      "31": {
+        "lower": 7.3091,
+        "upper": 14.9,
+        "type": "interval"
+      },
+      "32": {
+        "lower": 5.9319,
+        "upper": 12.3096,
+        "type": "interval"
+      }
+    },
+    "source_rates": {
+      "1": {
+        "lower": 6.6173,
+        "upper": 9.6114,
+        "type": "interval"
+      },
+      "2": {
+        "lower": 8.8207,
+        "upper": 11.2345,
+        "type": "interval"
+      }
+    },
+    "edges": {
+      "(1,9)": {
+        "lower": 13.9123,
+        "upper": 20.4586,
+        "type": "interval"
+      },
+      "(1,11)": {
+        "lower": 10.5797,
+        "upper": 18.1579,
+        "type": "interval"
+      },
+      "(2,10)": {
+        "lower": 14.0069,
+        "upper": 20.3286,
+        "type": "interval"
+      },
+      "(2,11)": {
+        "lower": 11.1276,
+        "upper": 18.2419,
+        "type": "interval"
+      },
+      "(2,12)": {
+        "lower": 10.4966,
+        "upper": 17.2671,
+        "type": "interval"
+      },
+      "(3,11)": {
+        "lower": 13.5524,
+        "upper": 21.4815,
+        "type": "interval"
+      },
+      "(3,13)": {
+        "lower": 12.4924,
+        "upper": 18.5742,
+        "type": "interval"
+      },
+      "(3,14)": {
+        "lower": 12.3692,
+        "upper": 18.7336,
+        "type": "interval"
+      },
+      "(4,12)": {
+        "lower": 13.8391,
+        "upper": 20.5489,
+        "type": "interval"
+      },
+      "(4,15)": {
+        "lower": 9.2769,
+        "upper": 15.4594,
+        "type": "interval"
+      },
+      "(5,11)": {
+        "lower": 8.6542,
+        "upper": 14.7471,
+        "type": "interval"
+      },
+      "(5,13)": {
+        "lower": 13.1552,
+        "upper": 20.6512,
+        "type": "interval"
+      },
+      "(5,16)": {
+        "lower": 4.1479,
+        "upper": 9.4414,
+        "type": "interval"
+      },
+      "(6,11)": {
+        "lower": 8.6154,
+        "upper": 14.8464,
+        "type": "interval"
+      },
+      "(6,14)": {
+        "lower": 13.67,
+        "upper": 20.528,
+        "type": "interval"
+      },
+      "(6,16)": {
+        "lower": 4.15,
+        "upper": 9.4597,
+        "type": "interval"
+      },
+      "(7,12)": {
+        "lower": 9.6181,
+        "upper": 15.0375,
+        "type": "interval"
+      },
+      "(7,15)": {
+        "lower": 13.0887,
+        "upper": 20.3856,
+        "type": "interval"
+      },
+      "(7,16)": {
+        "lower": 4.1283,
+        "upper": 9.2889,
+        "type": "interval"
+      },
+      "(8,13)": {
+        "lower": 3.3157,
+        "upper": 7.3334,
+        "type": "interval"
+      },
+      "(8,14)": {
+        "lower": 3.3887,
+        "upper": 7.3837,
+        "type": "interval"
+      },
+      "(8,16)": {
+        "lower": 12.9331,
+        "upper": 21.3641,
+        "type": "interval"
+      },
+      "(9,17)": {
+        "lower": 13.2957,
+        "upper": 20.9942,
+        "type": "interval"
+      },
+      "(9,19)": {
+        "lower": 10.5734,
+        "upper": 18.0324,
+        "type": "interval"
+      },
+      "(10,18)": {
+        "lower": 13.1533,
+        "upper": 21.6678,
+        "type": "interval"
+      },
+      "(10,19)": {
+        "lower": 11.5805,
+        "upper": 17.4646,
+        "type": "interval"
+      },
+      "(10,20)": {
+        "lower": 10.5682,
+        "upper": 16.7438,
+        "type": "interval"
+      },
+      "(11,19)": {
+        "lower": 13.0758,
+        "upper": 21.313,
+        "type": "interval"
+      },
+      "(11,21)": {
+        "lower": 12.4787,
+        "upper": 19.3311,
+        "type": "interval"
+      },
+      "(11,22)": {
+        "lower": 12.3773,
+        "upper": 18.4922,
+        "type": "interval"
+      },
+      "(12,20)": {
+        "lower": 14.1909,
+        "upper": 21.3089,
+        "type": "interval"
+      },
+      "(12,23)": {
+        "lower": 9.6058,
+        "upper": 15.8238,
+        "type": "interval"
+      },
+      "(13,19)": {
+        "lower": 8.3282,
+        "upper": 15.04,
+        "type": "interval"
+      },
+      "(13,21)": {
+        "lower": 13.2189,
+        "upper": 21.0354,
+        "type": "interval"
+      },
+      "(13,24)": {
+        "lower": 4.1525,
+        "upper": 9.2461,
+        "type": "interval"
+      },
+      "(14,19)": {
+        "lower": 8.8176,
+        "upper": 14.7197,
+        "type": "interval"
+      },
+      "(14,22)": {
+        "lower": 13.0035,
+        "upper": 20.6746,
+        "type": "interval"
+      },
+      "(14,24)": {
+        "lower": 4.4489,
+        "upper": 9.3257,
+        "type": "interval"
+      },
+      "(15,20)": {
+        "lower": 9.768,
+        "upper": 14.5948,
+        "type": "interval"
+      },
+      "(15,23)": {
+        "lower": 13.8721,
+        "upper": 20.9602,
+        "type": "interval"
+      },
+      "(15,24)": {
+        "lower": 4.0696,
+        "upper": 9.654,
+        "type": "interval"
+      },
+      "(16,21)": {
+        "lower": 3.2827,
+        "upper": 7.3716,
+        "type": "interval"
+      },
+      "(16,22)": {
+        "lower": 3.4365,
+        "upper": 7.368,
+        "type": "interval"
+      },
+      "(16,24)": {
+        "lower": 13.9688,
+        "upper": 21.5116,
+        "type": "interval"
+      },
+      "(17,25)": {
+        "lower": 14.221,
+        "upper": 20.7453,
+        "type": "interval"
+      },
+      "(17,27)": {
+        "lower": 11.2649,
+        "upper": 18.1346,
+        "type": "interval"
+      },
+      "(18,26)": {
+        "lower": 13.4388,
+        "upper": 20.3628,
+        "type": "interval"
+      },
+      "(18,27)": {
+        "lower": 11.1597,
+        "upper": 17.6519,
+        "type": "interval"
+      },
+      "(18,28)": {
+        "lower": 9.9446,
+        "upper": 16.3623,
+        "type": "interval"
+      },
+      "(19,27)": {
+        "lower": 14.2043,
+        "upper": 20.3463,
+        "type": "interval"
+      },
+      "(19,29)": {
+        "lower": 11.3832,
+        "upper": 18.5051,
+        "type": "interval"
+      },
+      "(19,30)": {
+        "lower": 12.3007,
+        "upper": 18.6204,
+        "type": "interval"
+      },
+      "(20,28)": {
+        "lower": 13.2113,
+        "upper": 20.938,
+        "type": "interval"
+      },
+      "(20,31)": {
+        "lower": 8.9078,
+        "upper": 15.426,
+        "type": "interval"
+      },
+      "(21,27)": {
+        "lower": 8.1993,
+        "upper": 14.8133,
+        "type": "interval"
+      },
+      "(21,29)": {
+        "lower": 13.7535,
+        "upper": 21.5901,
+        "type": "interval"
+      },
+      "(21,32)": {
+        "lower": 4.2072,
+        "upper": 9.6106,
+        "type": "interval"
+      },
+      "(22,27)": {
+        "lower": 8.2146,
+        "upper": 14.595,
+        "type": "interval"
+      },
+      "(22,30)": {
+        "lower": 13.5213,
+        "upper": 21.6775,
+        "type": "interval"
+      },
+      "(22,32)": {
+        "lower": 4.3537,
+        "upper": 9.2452,
+        "type": "interval"
+      },
+      "(23,28)": {
+        "lower": 9.2062,
+        "upper": 14.4224,
+        "type": "interval"
+      },
+      "(23,31)": {
+        "lower": 13.5714,
+        "upper": 20.719,
+        "type": "interval"
+      },
+      "(23,32)": {
+        "lower": 4.1278,
+        "upper": 9.4261,
+        "type": "interval"
+      },
+      "(24,29)": {
+        "lower": 3.3233,
+        "upper": 7.2483,
+        "type": "interval"
+      },
+      "(24,30)": {
+        "lower": 3.4805,
+        "upper": 7.4568,
+        "type": "interval"
+      },
+      "(24,32)": {
+        "lower": 13.9455,
+        "upper": 21.1628,
+        "type": "interval"
+      }
+    }
+  },
+  "description": "Capacity analysis inputs for WATER network - Nitrification Failure. Biological nitrification process failure (toxic shock). Nitrogen pathways degraded with uncertain recovery timeline. BOD treatment unaffected. Interval bounds reflect operational uncertainty during recovery phase.",
+  "generation_info": {
+    "total_nodes": 32,
+    "total_edges": 66,
+    "source_nodes_count": 8,
+    "redundancy_factor": [
+      0.85,
+      1.05
+    ]
+  }
+}

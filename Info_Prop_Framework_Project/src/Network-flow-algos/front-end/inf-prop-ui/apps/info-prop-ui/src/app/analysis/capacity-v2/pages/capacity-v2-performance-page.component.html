@@ -1,0 +1,125 @@
+<div class="page-container">
+  @if (store.activeDeterministicDetail(); as detail) {
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Capacity Summary</mat-card-title>
+        <mat-card-subtitle>Overall network health and comparative efficiency</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metrics-grid">
+          <div class="metric-box highlight">
+            <span class="label">Realistic max flow</span>
+            <strong class="value">{{ detail.comparative.realisticMaxFlow | number: '1.3-3' }}</strong>
+            <span class="sublabel">Accounting for node capacities</span>
+          </div>
+          <div class="metric-box">
+            <span class="label">Classical max flow</span>
+            <strong class="value">{{ detail.comparative.classicalMaxFlow | number: '1.3-3' }}</strong>
+            <span class="sublabel">Edge-only theoretical limit</span>
+          </div>
+          <div class="metric-box warning">
+            <span class="label">Efficiency loss</span>
+            <strong class="value">{{ detail.comparative.efficiencyLoss | percent: '1.1-2' }}</strong>
+            <span class="sublabel">Due to node constraints</span>
+          </div>
+          <div class="metric-box">
+            <span class="label">Primary limitation</span>
+            <mat-chip-set>
+              <mat-chip>{{ detail.comparative.primaryLimitation }}</mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+
+        <div class="section recommendation-section">
+          <h3>Strategic Recommendation</h3>
+          <div class="recommendation-box">
+            <p>{{ detail.comparative.strategicRecommendation }}</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Performance Insights</h3>
+          <div class="insights-grid">
+            <div class="insight-card">
+              <div class="insight-icon">📊</div>
+              <h4>Flow Efficiency</h4>
+              <p>
+                The network achieves 
+                <strong>{{ (1 - detail.comparative.efficiencyLoss) | percent: '1.0-0' }}</strong>
+                of its theoretical maximum when node capacities are considered.
+              </p>
+            </div>
+
+            <div class="insight-card">
+              <div class="insight-icon">🎯</div>
+              <h4>Primary Constraint</h4>
+              <p>
+                Network performance is primarily limited by 
+                <strong>{{ detail.comparative.primaryLimitation }}</strong>.
+                Addressing this constraint type will yield the greatest improvements.
+              </p>
+            </div>
+
+            <div class="insight-card">
+              <div class="insight-icon">📈</div>
+              <h4>Improvement Potential</h4>
+              <p>
+                By addressing the primary limitation, the network could potentially increase
+                throughput by 
+                <strong>{{ detail.comparative.efficiencyLoss | percent: '1.0-0' }}</strong>.
+              </p>
+            </div>
+
+            @if (store.summary(); as summary) {
+              <div class="insight-card">
+                <div class="insight-icon">⚡</div>
+                <h4>Current Utilization</h4>
+                <p>
+                  The network is operating at 
+                  <strong>{{ summary.utilization | percent: '1.0-0' }}</strong>
+                  of its realistic maximum capacity.
+                  @if (summary.utilization > 0.8) {
+                    <span class="warning-text">High utilization may indicate need for capacity expansion.</span>
+                  }
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="section comparison-chart">
+          <h3>Capacity Comparison</h3>
+          <div class="bar-chart">
+            <div class="bar-item">
+              <div class="bar-label">Classical Max Flow</div>
+              <div class="bar-container">
+                <div class="bar classical" 
+                     [style.width]="'100%'"
+                     [title]="detail.comparative.classicalMaxFlow | number: '1.3-3'">
+                </div>
+                <span class="bar-value">{{ detail.comparative.classicalMaxFlow | number: '1.3-3' }}</span>
+              </div>
+            </div>
+            
+            <div class="bar-item">
+              <div class="bar-label">Realistic Max Flow</div>
+              <div class="bar-container">
+                <div class="bar realistic" 
+                     [style.width]="(detail.comparative.realisticMaxFlow / detail.comparative.classicalMaxFlow * 100) + '%'"
+                     [title]="detail.comparative.realisticMaxFlow | number: '1.3-3'">
+                </div>
+                <span class="bar-value">{{ detail.comparative.realisticMaxFlow | number: '1.3-3' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card>
+      <mat-card-content>
+        <p class="empty-state">Run an analysis to see summary metrics.</p>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

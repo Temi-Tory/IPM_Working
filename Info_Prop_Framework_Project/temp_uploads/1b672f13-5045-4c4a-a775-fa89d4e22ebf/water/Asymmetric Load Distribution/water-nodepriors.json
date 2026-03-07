@@ -1,0 +1,135 @@
+{
+  "nodes": {
+    "1": {
+      "type": "float",
+      "value": 0.8270301657369847
+    },
+    "2": {
+      "type": "float",
+      "value": 0.8141168415507977
+    },
+    "3": {
+      "type": "float",
+      "value": 0.7569984577048712
+    },
+    "4": {
+      "type": "float",
+      "value": 0.7246034255005436
+    },
+    "5": {
+      "type": "float",
+      "value": 0.8042996603878866
+    },
+    "6": {
+      "type": "float",
+      "value": 0.7564087716510244
+    },
+    "7": {
+      "type": "float",
+      "value": 0.7413547229924966
+    },
+    "8": {
+      "type": "float",
+      "value": 0.7057346293083183
+    },
+    "9": {
+      "type": "float",
+      "value": 0.843596076538923
+    },
+    "10": {
+      "type": "float",
+      "value": 0.838439538139585
+    },
+    "11": {
+      "type": "float",
+      "value": 0.8185978326307914
+    },
+    "12": {
+      "type": "float",
+      "value": 0.8059679448406908
+    },
+    "13": {
+      "type": "float",
+      "value": 0.8129051145689795
+    },
+    "14": {
+      "type": "float",
+      "value": 0.7940181349401453
+    },
+    "15": {
+      "type": "float",
+      "value": 0.7861070239775634
+    },
+    "16": {
+      "type": "float",
+      "value": 0.7548088748536284
+    },
+    "17": {
+      "type": "float",
+      "value": 0.8381428747523108
+    },
+    "18": {
+      "type": "float",
+      "value": 0.8359133117551898
+    },
+    "19": {
+      "type": "float",
+      "value": 0.8222791522863869
+    },
+    "20": {
+      "type": "float",
+      "value": 0.8063042469543856
+    },
+    "21": {
+      "type": "float",
+      "value": 0.8234158089530701
+    },
+    "22": {
+      "type": "float",
+      "value": 0.7985445427389805
+    },
+    "23": {
+      "type": "float",
+      "value": 0.7831988959354098
+    },
+    "24": {
+      "type": "float",
+      "value": 0.7606769622333164
+    },
+    "25": {
+      "type": "float",
+      "value": 0.8332041438325044
+    },
+    "26": {
+      "type": "float",
+      "value": 0.8367130800526243
+    },
+    "27": {
+      "type": "float",
+      "value": 0.8274071320338666
+    },
+    "28": {
+      "type": "float",
+      "value": 0.7946139728400436
+    },
+    "29": {
+      "type": "float",
+      "value": 0.8205030520433932
+    },
+    "30": {
+      "type": "float",
+      "value": 0.8031478826726387
+    },
+    "31": {
+      "type": "float",
+      "value": 0.7803110971882914
+    },
+    "32": {
+      "type": "float",
+      "value": 0.7543395611549372
+    }
+  },
+  "data_type": "Float64",
+  "serialization": "compact",
+  "description": "Node prior probabilities for WATER network - Asymmetric Load Distribution. Operational bottleneck scenario: downstream discharged water quality sinks (29-32) demand significantly higher flow (80% of total) than upstream process outputs (25-28: 20% of total). Reflects realistic water treatment plant discharge allocation. Forces distributed routing with differentiated edge utilization across network layers. All treatment processes active."
+}

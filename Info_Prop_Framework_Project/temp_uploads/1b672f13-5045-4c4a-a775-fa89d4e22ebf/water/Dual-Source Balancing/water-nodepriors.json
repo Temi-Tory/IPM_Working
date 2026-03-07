@@ -1,0 +1,167 @@
+{
+  "nodes": {
+    "1": {
+      "type": "interval",
+      "lower": 0.7429095002596947,
+      "upper": 0.856626873623961
+    },
+    "2": {
+      "type": "interval",
+      "lower": 0.734747240863841,
+      "upper": 0.854270456469173
+    },
+    "3": {
+      "type": "interval",
+      "lower": 0.6786491637764848,
+      "upper": 0.7979014768792542
+    },
+    "4": {
+      "type": "interval",
+      "lower": 0.6378055201903621,
+      "upper": 0.7578552896963965
+    },
+    "5": {
+      "type": "interval",
+      "lower": 0.7194134092202767,
+      "upper": 0.8428285828747777
+    },
+    "6": {
+      "type": "interval",
+      "lower": 0.6820002606671052,
+      "upper": 0.7952105876054387
+    },
+    "7": {
+      "type": "interval",
+      "lower": 0.6616621282389892,
+      "upper": 0.7821423146211308
+    },
+    "8": {
+      "type": "interval",
+      "lower": 0.6163563095983862,
+      "upper": 0.7362665731057381
+    },
+    "9": {
+      "type": "interval",
+      "lower": 0.7845281894402193,
+      "upper": 0.8800665133839698
+    },
+    "10": {
+      "type": "interval",
+      "lower": 0.7846939102738678,
+      "upper": 0.8783965381581832
+    },
+    "11": {
+      "type": "interval",
+      "lower": 0.734669623958056,
+      "upper": 0.8596480254720483
+    },
+    "12": {
+      "type": "interval",
+      "lower": 0.6976456661106376,
+      "upper": 0.8181448571977054
+    },
+    "13": {
+      "type": "interval",
+      "lower": 0.755762902451944,
+      "upper": 0.8849534958271402
+    },
+    "14": {
+      "type": "interval",
+      "lower": 0.7243878336573754,
+      "upper": 0.8448613803337015
+    },
+    "15": {
+      "type": "interval",
+      "lower": 0.7051950253874874,
+      "upper": 0.8216738719301243
+    },
+    "16": {
+      "type": "interval",
+      "lower": 0.6832192985780063,
+      "upper": 0.8051939734639508
+    },
+    "17": {
+      "type": "interval",
+      "lower": 0.7780793298286423,
+      "upper": 0.8822118611000678
+    },
+    "18": {
+      "type": "interval",
+      "lower": 0.7828482227659675,
+      "upper": 0.878855956024476
+    },
+    "19": {
+      "type": "interval",
+      "lower": 0.7356436448990777,
+      "upper": 0.8541399192031536
+    },
+    "20": {
+      "type": "interval",
+      "lower": 0.7010696275432705,
+      "upper": 0.823767686105058
+    },
+    "21": {
+      "type": "interval",
+      "lower": 0.7547239578944672,
+      "upper": 0.8810102230018995
+    },
+    "22": {
+      "type": "interval",
+      "lower": 0.7186425221374814,
+      "upper": 0.8407527462602161
+    },
+    "23": {
+      "type": "interval",
+      "lower": 0.6992757975251658,
+      "upper": 0.8222099162213815
+    },
+    "24": {
+      "type": "interval",
+      "lower": 0.6828356620049089,
+      "upper": 0.8001031340262021
+    },
+    "25": {
+      "type": "interval",
+      "lower": 0.7804374347505724,
+      "upper": 0.8776891514499785
+    },
+    "26": {
+      "type": "interval",
+      "lower": 0.7800682190529995,
+      "upper": 0.8800716558325312
+    },
+    "27": {
+      "type": "interval",
+      "lower": 0.7386790361322287,
+      "upper": 0.8560344937401337
+    },
+    "28": {
+      "type": "interval",
+      "lower": 0.6980683678395218,
+      "upper": 0.8139567863922305
+    },
+    "29": {
+      "type": "interval",
+      "lower": 0.7581074205565024,
+      "upper": 0.8847602323498505
+    },
+    "30": {
+      "type": "interval",
+      "lower": 0.7231548755245799,
+      "upper": 0.8361463214072802
+    },
+    "31": {
+      "type": "interval",
+      "lower": 0.6966691512781135,
+      "upper": 0.8213724437281952
+    },
+    "32": {
+      "type": "interval",
+      "lower": 0.6804441167939879,
+      "upper": 0.7980296739466128
+    }
+  },
+  "data_type": "Interval",
+  "serialization": "compact",
+  "description": "Node prior probabilities for WATER network - Dual-Source Balancing. Supply uncertainty scenario: both primary water sources experience correlated uncertainty (seasonal/weather-driven supply variation). Measured supply ranges [7-11] units from each source. Worst-case scenario (both sources at minimum) requires full network utilization to meet sink demands. Best-case (both sources maximum) allows selective routing. Reflects realistic water supply variability."
+}

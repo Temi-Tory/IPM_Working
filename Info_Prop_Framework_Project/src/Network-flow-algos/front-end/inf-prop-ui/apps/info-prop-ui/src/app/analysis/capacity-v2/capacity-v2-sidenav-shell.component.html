@@ -1,0 +1,96 @@
+@if (isBootstrapping) {
+  <div class="loading-container">
+    <mat-spinner diameter="44"></mat-spinner>
+    <p>Preparing capacity analysis workspace...</p>
+  </div>
+} @else {
+  <div class="sidenav-shell">
+    <!-- Summary Header Bar (Always Visible) -->
+    <mat-toolbar class="summary-toolbar">
+      <button mat-icon-button (click)="toggleSidenav()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      
+      <div class="toolbar-content">
+        <div class="toolbar-title-section">
+          <h1 class="toolbar-title">Capacity Analysis</h1>
+          @if (currentScenarioTitle() !== 'Capacity Analysis') {
+            <p class="toolbar-subtitle">{{ currentScenarioTitle() }}</p>
+          }
+        </div>
+
+        @if (store.summary(); as summary) {
+          <div class="summary-metrics">
+            <div class="metric">
+              <span class="metric-label">Max Flow</span>
+              @if (typeof summary.throughput === 'number') {
+                <span class="metric-value">{{ summary.throughput | number: '1.2-2' }}</span>
+              } @else {
+                <span class="metric-value">{{ summary.throughput.min | number: '1.2-2' }} - {{ summary.throughput.max | number: '1.2-2' }}</span>
+              }
+            </div>
+
+            <div class="metric">
+              <span class="metric-label">Utilization</span>
+              <span class="metric-value">{{ summary.utilization | percent: '1.1-1' }}</span>
+            </div>
+
+            @if (summary.expectedFlow !== undefined) {
+              <div class="metric">
+                <span class="metric-label">Expected</span>
+                <span class="metric-value">{{ summary.expectedFlow | number: '1.2-2' }}</span>
+              </div>
+            }
+
+            <div class="metric">
+              <span class="metric-label">Time</span>
+              <span class="metric-value">{{ summary.computationTimeMs | number: '1.0-0' }}ms</span>
+            </div>
+          </div>
+
+          @if (store.hasIntervalResult()) {
+            <mat-button-toggle-group 
+              class="detail-toggle" 
+              [value]="store.selectedDetailSource()" 
+              (change)="store.setDetailSource($event.value)">
+              <mat-button-toggle value="worst">Worst Case</mat-button-toggle>
+              <mat-button-toggle value="best">Best Case</mat-button-toggle>
+            </mat-button-toggle-group>
+          }
+        }
+      </div>
+
+    </mat-toolbar>
+
+    <!-- Side Nav + Content -->
+    <mat-sidenav-container class="sidenav-container">
+      <mat-sidenav 
+        #sidenav 
+        mode="side" 
+        [opened]="sidenavOpened()"
+        class="sidenav">
+        <mat-nav-list>
+          @for (item of visibleNavItems(); track item.route) {
+            <a 
+              mat-list-item 
+              [routerLink]="[item.route]"
+              routerLinkActive="active"
+              [class.active]="isActiveRoute(item.route)">
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+              @if (item.badge) {
+                <mat-chip class="nav-badge">{{ item.badge }}</mat-chip>
+              }
+            </a>
+          }
+        </mat-nav-list>
+      </mat-sidenav>
+
+      <mat-sidenav-content class="sidenav-content">
+        <div class="content-wrapper">
+          <router-outlet></router-outlet>
+        </div>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+  </div>
+}

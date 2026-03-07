@@ -260,20 +260,20 @@ $dark-theme: mat.m2-define-dark-theme((
   --on-tertiary: #fdf6e3;
   --on-tertiary-container: #93a1a1;
   
-  // Dark surface hierarchy with solarized tones
-  --surface-background: #002b36;
-  --surface: #073642;
-  --surface-container: #0d454f;     // Slightly lighter than surface
-  --surface-container-high: #2d555e; // Even lighter for elevated surfaces
+  // Dark surface hierarchy with solarized tones - DARKER for proper contrast
+  --surface-background: #002b36;    // True dark base - darkest level
+  --surface: #073642;               // Dark surface - one level up
+  --surface-container: #0d545d;     // Medium-dark for containers (was #0d454f)
+  --surface-container-high: #134c57; // For elevated surfaces (was #2d555e)
   --surface-variant: #586e75;       // Solarized content tone
   
   --on-surface: #fdf6e3;
   --on-surface-variant: #93a1a1;
   
-  --outline: #586e75;
-  --outline-variant: #2d555e;
+  --outline: #2d555e;               // Slightly darker outlines in dark mode
+  --outline-variant: #1f3d45;       // Darker variant for subtle borders
   
-  --shadow: rgba(0, 0, 0, 0.4);     // Stronger shadows for dark theme
+  --shadow: rgba(0, 0, 0, 0.5);     // Stronger shadows for dark theme
   --surface-tint: var(--primary);
   
   // D3 Network Visualization Dark Theme Colors

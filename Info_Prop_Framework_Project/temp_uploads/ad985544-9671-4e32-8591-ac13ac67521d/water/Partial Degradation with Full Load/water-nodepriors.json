@@ -1,0 +1,167 @@
+{
+  "nodes": {
+    "1": {
+      "type": "interval",
+      "lower": 0.7246192553533818,
+      "upper": 0.8442513107227354
+    },
+    "2": {
+      "type": "interval",
+      "lower": 0.7149807550565399,
+      "upper": 0.8404886432003583
+    },
+    "3": {
+      "type": "interval",
+      "lower": 0.6644590194907667,
+      "upper": 0.7768925477299944
+    },
+    "4": {
+      "type": "interval",
+      "lower": 0.6230566878910235,
+      "upper": 0.7441563380393715
+    },
+    "5": {
+      "type": "interval",
+      "lower": 0.7002343685431441,
+      "upper": 0.8238755190929512
+    },
+    "6": {
+      "type": "interval",
+      "lower": 0.664895434359748,
+      "upper": 0.7755217704659126
+    },
+    "7": {
+      "type": "interval",
+      "lower": 0.6424891645087003,
+      "upper": 0.7587933247824575
+    },
+    "8": {
+      "type": "interval",
+      "lower": 0.6006565034817283,
+      "upper": 0.7179593318044767
+    },
+    "9": {
+      "type": "interval",
+      "lower": 0.7550242535999712,
+      "upper": 0.8558029051318026
+    },
+    "10": {
+      "type": "interval",
+      "lower": 0.7558934491862487,
+      "upper": 0.8610215367581489
+    },
+    "11": {
+      "type": "interval",
+      "lower": 0.7213462498312118,
+      "upper": 0.836290874588934
+    },
+    "12": {
+      "type": "interval",
+      "lower": 0.6845725461682707,
+      "upper": 0.7954963019129528
+    },
+    "13": {
+      "type": "interval",
+      "lower": 0.7362222175578803,
+      "upper": 0.8550096691018597
+    },
+    "14": {
+      "type": "interval",
+      "lower": 0.7040067674828518,
+      "upper": 0.8165895542299473
+    },
+    "15": {
+      "type": "interval",
+      "lower": 0.679054058319437,
+      "upper": 0.7965708528586891
+    },
+    "16": {
+      "type": "interval",
+      "lower": 0.6615836160694606,
+      "upper": 0.7818962015901916
+    },
+    "17": {
+      "type": "interval",
+      "lower": 0.7633255564506123,
+      "upper": 0.862297614132723
+    },
+    "18": {
+      "type": "interval",
+      "lower": 0.7543522426779946,
+      "upper": 0.8578610264967255
+    },
+    "19": {
+      "type": "interval",
+      "lower": 0.7230184579144755,
+      "upper": 0.8423254030483183
+    },
+    "20": {
+      "type": "interval",
+      "lower": 0.6755674770115944,
+      "upper": 0.8015696660793261
+    },
+    "21": {
+      "type": "interval",
+      "lower": 0.735607891239638,
+      "upper": 0.8588993840784935
+    },
+    "22": {
+      "type": "interval",
+      "lower": 0.6985605705767172,
+      "upper": 0.8220713376382545
+    },
+    "23": {
+      "type": "interval",
+      "lower": 0.6770614270830668,
+      "upper": 0.7981122452612865
+    },
+    "24": {
+      "type": "interval",
+      "lower": 0.6551092320936299,
+      "upper": 0.780518183817674
+    },
+    "25": {
+      "type": "interval",
+      "lower": 0.7555832694390368,
+      "upper": 0.8612763062890992
+    },
+    "26": {
+      "type": "interval",
+      "lower": 0.7592001959192501,
+      "upper": 0.8544634652452956
+    },
+    "27": {
+      "type": "interval",
+      "lower": 0.7237125330121268,
+      "upper": 0.8438420245416188
+    },
+    "28": {
+      "type": "interval",
+      "lower": 0.6785986647346661,
+      "upper": 0.8016707117939199
+    },
+    "29": {
+      "type": "interval",
+      "lower": 0.7349179485386215,
+      "upper": 0.8587618985987472
+    },
+    "30": {
+      "type": "interval",
+      "lower": 0.6976806034156304,
+      "upper": 0.8240300650028012
+    },
+    "31": {
+      "type": "interval",
+      "lower": 0.6818311700447925,
+      "upper": 0.7979272206005876
+    },
+    "32": {
+      "type": "interval",
+      "lower": 0.661186878148576,
+      "upper": 0.7838002007824855
+    }
+  },
+  "data_type": "Interval",
+  "serialization": "compact",
+  "description": "Node prior probabilities for WATER network - Partial Degradation with Full Load. Recovery scenario: key discharge hub nodes (19, 21, 22) operating at reduced capacity [10-14 units] due to partial equipment failure or maintenance. System must handle sustained demand [8-12 units from each source] despite hub constraints. Worst-case combines hub degradation with source uncertainty. Best-case assumes node recovery toward normal capacity. Forces alternative pathway utilization and tests network robustness."
+}

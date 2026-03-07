@@ -10,13 +10,6 @@
     
     <!-- Analysis Progress Header -->
     <div class="nav-header">
-      <div class="nav-header-title">Analysis Pipeline</div>
-      <div class="nav-header-progress">
-        <div class="progress-bar">
-          <div class="progress-fill" [style.width.%]="getOverallProgress()"></div>
-        </div>
-        <div class="progress-text">{{ getCompletedSteps() }}/{{ getTotalSteps() }} Complete</div>
-      </div>
       
       @if (analysisState.hasActiveAnalysis()) {
         <div class="network-summary">
@@ -187,29 +180,6 @@
         </div>
       </a>
       
-      <a mat-list-item
-         routerLink="/capacity-analysis-shell"
-         [class.disabled]="!analysisState.capacityAnalysisTab().enabled"
-         [class.completed]="analysisState.capacityAnalysisTab().completed"
-         [attr.tabindex]="!analysisState.capacityAnalysisTab().enabled ? -1 : 0"
-         [matTooltip]="isSidenavCollapsed ? 'Capacity Analysis Shell - Flow analysis & bottleneck detection' : ''"
-         matTooltipPosition="right"
-         matTooltipClass="sidenav-tooltip">
-        <mat-icon matListItemIcon>timeline</mat-icon>
-        <div matListItemTitle>
-          <div class="nav-title">Capacity Analysis Shell</div>
-          <div class="nav-subtitle">Flow analysis & bottleneck detection</div>
-        </div>
-        <div class="nav-status">
-          @if (analysisState.capacityAnalysisTab().completed) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
-          } @else if (analysisState.capacityAnalysisTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
-          } @else {
-            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
-          }
-        </div>
-      </a>
       
       <a mat-list-item
          routerLink="/time-analysis"
@@ -313,15 +283,7 @@
       
          <span class="spacer"></span>
 
-      @if (analysisState.hasActiveAnalysis()) {
-        <div class="network-banner">
-          @if (analysisState.getComprehensiveStructureData(); as structureData) {
-           <mat-chip><span class="network-name">{{ analysisState.getCurrentSnapshot()?.networkName || 'Current Network' }} : {{ structureData.total_nodes }} Nodes / {{ structureData.total_edges }} Edges </span>
-         </mat-chip>
-              }
-        </div>
-      }
-      
+   
       <span class="spacer"></span>
       
       <!-- Save/Export buttons - shown only when analysis is complete -->

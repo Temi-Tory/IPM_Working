@@ -1,0 +1,337 @@
+{
+  "links": {
+    "(1,9)": {
+      "lower": 0.8529,
+      "upper": 0.905,
+      "type": "interval"
+    },
+    "(1,11)": {
+      "lower": 0.6786,
+      "upper": 0.8108,
+      "type": "interval"
+    },
+    "(2,10)": {
+      "lower": 0.8359,
+      "upper": 0.9095,
+      "type": "interval"
+    },
+    "(2,11)": {
+      "lower": 0.6788,
+      "upper": 0.8168,
+      "type": "interval"
+    },
+    "(2,12)": {
+      "lower": 0.7018,
+      "upper": 0.845,
+      "type": "interval"
+    },
+    "(3,11)": {
+      "lower": 0.8424,
+      "upper": 0.9205,
+      "type": "interval"
+    },
+    "(3,13)": {
+      "lower": 0.5688,
+      "upper": 0.732,
+      "type": "interval"
+    },
+    "(3,14)": {
+      "lower": 0.5931,
+      "upper": 0.7405,
+      "type": "interval"
+    },
+    "(4,12)": {
+      "lower": 0.842,
+      "upper": 0.9246,
+      "type": "interval"
+    },
+    "(4,15)": {
+      "lower": 0.5535,
+      "upper": 0.7143,
+      "type": "interval"
+    },
+    "(5,11)": {
+      "lower": 0.5678,
+      "upper": 0.7099,
+      "type": "interval"
+    },
+    "(5,13)": {
+      "lower": 0.8499,
+      "upper": 0.9179,
+      "type": "interval"
+    },
+    "(5,16)": {
+      "lower": 0.4304,
+      "upper": 0.6225,
+      "type": "interval"
+    },
+    "(6,11)": {
+      "lower": 0.5691,
+      "upper": 0.7308,
+      "type": "interval"
+    },
+    "(6,14)": {
+      "lower": 0.8331,
+      "upper": 0.9272,
+      "type": "interval"
+    },
+    "(6,16)": {
+      "lower": 0.4146,
+      "upper": 0.6164,
+      "type": "interval"
+    },
+    "(7,12)": {
+      "lower": 0.4856,
+      "upper": 0.6724,
+      "type": "interval"
+    },
+    "(7,15)": {
+      "lower": 0.8448,
+      "upper": 0.9337,
+      "type": "interval"
+    },
+    "(7,16)": {
+      "lower": 0.4189,
+      "upper": 0.624,
+      "type": "interval"
+    },
+    "(8,13)": {
+      "lower": 0.3703,
+      "upper": 0.5842,
+      "type": "interval"
+    },
+    "(8,14)": {
+      "lower": 0.3693,
+      "upper": 0.578,
+      "type": "interval"
+    },
+    "(8,16)": {
+      "lower": 0.846,
+      "upper": 0.9092,
+      "type": "interval"
+    },
+    "(9,17)": {
+      "lower": 0.8466,
+      "upper": 0.9221,
+      "type": "interval"
+    },
+    "(9,19)": {
+      "lower": 0.6866,
+      "upper": 0.8084,
+      "type": "interval"
+    },
+    "(10,18)": {
+      "lower": 0.8307,
+      "upper": 0.9211,
+      "type": "interval"
+    },
+    "(10,19)": {
+      "lower": 0.6692,
+      "upper": 0.835,
+      "type": "interval"
+    },
+    "(10,20)": {
+      "lower": 0.702,
+      "upper": 0.8435,
+      "type": "interval"
+    },
+    "(11,19)": {
+      "lower": 0.8462,
+      "upper": 0.913,
+      "type": "interval"
+    },
+    "(11,21)": {
+      "lower": 0.5948,
+      "upper": 0.7486,
+      "type": "interval"
+    },
+    "(11,22)": {
+      "lower": 0.5742,
+      "upper": 0.7514,
+      "type": "interval"
+    },
+    "(12,20)": {
+      "lower": 0.8373,
+      "upper": 0.9184,
+      "type": "interval"
+    },
+    "(12,23)": {
+      "lower": 0.5375,
+      "upper": 0.7143,
+      "type": "interval"
+    },
+    "(13,19)": {
+      "lower": 0.5617,
+      "upper": 0.7218,
+      "type": "interval"
+    },
+    "(13,21)": {
+      "lower": 0.8438,
+      "upper": 0.9313,
+      "type": "interval"
+    },
+    "(13,24)": {
+      "lower": 0.4281,
+      "upper": 0.634,
+      "type": "interval"
+    },
+    "(14,19)": {
+      "lower": 0.5457,
+      "upper": 0.7141,
+      "type": "interval"
+    },
+    "(14,22)": {
+      "lower": 0.8449,
+      "upper": 0.935,
+      "type": "interval"
+    },
+    "(14,24)": {
+      "lower": 0.4166,
+      "upper": 0.6129,
+      "type": "interval"
+    },
+    "(15,20)": {
+      "lower": 0.4856,
+      "upper": 0.6882,
+      "type": "interval"
+    },
+    "(15,23)": {
+      "lower": 0.8537,
+      "upper": 0.9263,
+      "type": "interval"
+    },
+    "(15,24)": {
+      "lower": 0.4175,
+      "upper": 0.6246,
+      "type": "interval"
+    },
+    "(16,21)": {
+      "lower": 0.3759,
+      "upper": 0.5873,
+      "type": "interval"
+    },
+    "(16,22)": {
+      "lower": 0.3855,
+      "upper": 0.566,
+      "type": "interval"
+    },
+    "(16,24)": {
+      "lower": 0.8329,
+      "upper": 0.9191,
+      "type": "interval"
+    },
+    "(17,25)": {
+      "lower": 0.8484,
+      "upper": 0.9325,
+      "type": "interval"
+    },
+    "(17,27)": {
+      "lower": 0.6803,
+      "upper": 0.8275,
+      "type": "interval"
+    },
+    "(18,26)": {
+      "lower": 0.8532,
+      "upper": 0.9081,
+      "type": "interval"
+    },
+    "(18,27)": {
+      "lower": 0.6944,
+      "upper": 0.8318,
+      "type": "interval"
+    },
+    "(18,28)": {
+      "lower": 0.6958,
+      "upper": 0.8374,
+      "type": "interval"
+    },
+    "(19,27)": {
+      "lower": 0.8408,
+      "upper": 0.9281,
+      "type": "interval"
+    },
+    "(19,29)": {
+      "lower": 0.5889,
+      "upper": 0.7381,
+      "type": "interval"
+    },
+    "(19,30)": {
+      "lower": 0.5782,
+      "upper": 0.7447,
+      "type": "interval"
+    },
+    "(20,28)": {
+      "lower": 0.8433,
+      "upper": 0.9181,
+      "type": "interval"
+    },
+    "(20,31)": {
+      "lower": 0.5528,
+      "upper": 0.7072,
+      "type": "interval"
+    },
+    "(21,27)": {
+      "lower": 0.5736,
+      "upper": 0.7256,
+      "type": "interval"
+    },
+    "(21,29)": {
+      "lower": 0.8271,
+      "upper": 0.9342,
+      "type": "interval"
+    },
+    "(21,32)": {
+      "lower": 0.4274,
+      "upper": 0.6261,
+      "type": "interval"
+    },
+    "(22,27)": {
+      "lower": 0.5459,
+      "upper": 0.716,
+      "type": "interval"
+    },
+    "(22,30)": {
+      "lower": 0.8431,
+      "upper": 0.9121,
+      "type": "interval"
+    },
+    "(22,32)": {
+      "lower": 0.4298,
+      "upper": 0.6173,
+      "type": "interval"
+    },
+    "(23,28)": {
+      "lower": 0.4972,
+      "upper": 0.6833,
+      "type": "interval"
+    },
+    "(23,31)": {
+      "lower": 0.8281,
+      "upper": 0.9335,
+      "type": "interval"
+    },
+    "(23,32)": {
+      "lower": 0.4277,
+      "upper": 0.6302,
+      "type": "interval"
+    },
+    "(24,29)": {
+      "lower": 0.3797,
+      "upper": 0.5654,
+      "type": "interval"
+    },
+    "(24,30)": {
+      "lower": 0.3924,
+      "upper": 0.586,
+      "type": "interval"
+    },
+    "(24,32)": {
+      "lower": 0.8515,
+      "upper": 0.9326,
+      "type": "interval"
+    }
+  },
+  "data_type": "Interval",
+  "serialization": "compact",
+  "description": "Link/edge probabilities for WATER network - Winter Operations. Cold water (<5C) degrades all biological processes. Sensor drift from ice/cold. All values are intervals reflecting degraded performance + measurement uncertainty. Nitrogen pathways most temperature-sensitive (widest bounds)."
+}

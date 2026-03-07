@@ -1,0 +1,271 @@
+{
+  "links": {
+    "(1,9)": {
+      "type": "float",
+      "value": 0.9344445066691887
+    },
+    "(1,11)": {
+      "type": "float",
+      "value": 0.9171917762369532
+    },
+    "(2,10)": {
+      "type": "float",
+      "value": 0.9331658936676777
+    },
+    "(2,11)": {
+      "type": "float",
+      "value": 0.9196411492442997
+    },
+    "(2,12)": {
+      "type": "float",
+      "value": 0.9005707608176572
+    },
+    "(3,11)": {
+      "type": "float",
+      "value": 0.9326765119525334
+    },
+    "(3,13)": {
+      "type": "float",
+      "value": 0.8882144145523376
+    },
+    "(3,14)": {
+      "type": "float",
+      "value": 0.9012836170597477
+    },
+    "(4,12)": {
+      "type": "float",
+      "value": 0.9358156373442924
+    },
+    "(4,15)": {
+      "type": "float",
+      "value": 0.8979681852844902
+    },
+    "(5,11)": {
+      "type": "float",
+      "value": 0.9232403072654882
+    },
+    "(5,13)": {
+      "type": "float",
+      "value": 0.9313994368627069
+    },
+    "(5,16)": {
+      "type": "float",
+      "value": 0.888964767449346
+    },
+    "(6,11)": {
+      "type": "float",
+      "value": 0.9252551151344435
+    },
+    "(6,14)": {
+      "type": "float",
+      "value": 0.9347822048985786
+    },
+    "(6,16)": {
+      "type": "float",
+      "value": 0.8998335454303287
+    },
+    "(7,12)": {
+      "type": "float",
+      "value": 0.8908970031768257
+    },
+    "(7,15)": {
+      "type": "float",
+      "value": 0.9418545465516722
+    },
+    "(7,16)": {
+      "type": "float",
+      "value": 0.8923357465883075
+    },
+    "(8,13)": {
+      "type": "float",
+      "value": 0.8970436939375803
+    },
+    "(8,14)": {
+      "type": "float",
+      "value": 0.8893895783111689
+    },
+    "(8,16)": {
+      "type": "float",
+      "value": 0.9439912840672242
+    },
+    "(9,17)": {
+      "type": "float",
+      "value": 0.9356389592580442
+    },
+    "(9,19)": {
+      "type": "float",
+      "value": 0.9023666307161061
+    },
+    "(10,18)": {
+      "type": "float",
+      "value": 0.9309407349743053
+    },
+    "(10,19)": {
+      "type": "float",
+      "value": 0.898214840610256
+    },
+    "(10,20)": {
+      "type": "float",
+      "value": 0.8974671495357668
+    },
+    "(11,19)": {
+      "type": "float",
+      "value": 0.885739371090616
+    },
+    "(11,21)": {
+      "type": "float",
+      "value": 0.7998087089486474
+    },
+    "(11,22)": {
+      "type": "float",
+      "value": 0.9084525649496201
+    },
+    "(12,20)": {
+      "type": "float",
+      "value": 0.9381237625809802
+    },
+    "(12,23)": {
+      "type": "float",
+      "value": 0.8869555999892539
+    },
+    "(13,19)": {
+      "type": "float",
+      "value": 0.933236512372295
+    },
+    "(13,21)": {
+      "type": "float",
+      "value": 0.8858807076344201
+    },
+    "(13,24)": {
+      "type": "float",
+      "value": 0.9043119671325046
+    },
+    "(14,19)": {
+      "type": "float",
+      "value": 0.8849414865696961
+    },
+    "(14,22)": {
+      "type": "float",
+      "value": 0.8981637948074382
+    },
+    "(14,24)": {
+      "type": "float",
+      "value": 0.8966468708840047
+    },
+    "(15,20)": {
+      "type": "float",
+      "value": 0.798337403776139
+    },
+    "(15,23)": {
+      "type": "float",
+      "value": 0.896190880443825
+    },
+    "(15,24)": {
+      "type": "float",
+      "value": 0.8949078402331587
+    },
+    "(16,21)": {
+      "type": "float",
+      "value": 0.8554624009181796
+    },
+    "(16,22)": {
+      "type": "float",
+      "value": 0.8482335639651598
+    },
+    "(16,24)": {
+      "type": "float",
+      "value": 0.8936026834184398
+    },
+    "(17,25)": {
+      "type": "float",
+      "value": 0.8803355891300565
+    },
+    "(17,27)": {
+      "type": "float",
+      "value": 0.8880956225159427
+    },
+    "(18,26)": {
+      "type": "float",
+      "value": 0.8782112518112709
+    },
+    "(18,27)": {
+      "type": "float",
+      "value": 0.8796345220717848
+    },
+    "(18,28)": {
+      "type": "float",
+      "value": 0.8928180626847438
+    },
+    "(19,27)": {
+      "type": "float",
+      "value": 0.8833739351775991
+    },
+    "(19,29)": {
+      "type": "float",
+      "value": 0.8921340829845563
+    },
+    "(19,30)": {
+      "type": "float",
+      "value": 0.8868104034813494
+    },
+    "(20,28)": {
+      "type": "float",
+      "value": 0.8838415541275305
+    },
+    "(20,31)": {
+      "type": "float",
+      "value": 0.890229678050364
+    },
+    "(21,27)": {
+      "type": "float",
+      "value": 0.8713350561700353
+    },
+    "(21,29)": {
+      "type": "float",
+      "value": 0.8760416796604285
+    },
+    "(21,32)": {
+      "type": "float",
+      "value": 0.8078121428146527
+    },
+    "(22,27)": {
+      "type": "float",
+      "value": 0.8772552491631989
+    },
+    "(22,30)": {
+      "type": "float",
+      "value": 0.882154755318931
+    },
+    "(22,32)": {
+      "type": "float",
+      "value": 0.7958334331070605
+    },
+    "(23,28)": {
+      "type": "float",
+      "value": 0.8843541795242649
+    },
+    "(23,31)": {
+      "type": "float",
+      "value": 0.877082858850356
+    },
+    "(23,32)": {
+      "type": "float",
+      "value": 0.89297508325249
+    },
+    "(24,29)": {
+      "type": "float",
+      "value": 0.8979680589862159
+    },
+    "(24,30)": {
+      "type": "float",
+      "value": 0.8815162376539232
+    },
+    "(24,32)": {
+      "type": "float",
+      "value": 0.8855274810173388
+    }
+  },
+  "data_type": "Float64",
+  "serialization": "compact",
+  "description": "Link/edge probabilities for WATER network - Elevated Summer Demand. Mid-summer operational peak: sustained high demand (20 units) distributed equally across both water sources. Both supply lines must operate simultaneously, forcing multi-path utilization. All intermediate hubs and discharge routes active under load. Temperature nominal; all treatment processes at baseline efficiency."
+}

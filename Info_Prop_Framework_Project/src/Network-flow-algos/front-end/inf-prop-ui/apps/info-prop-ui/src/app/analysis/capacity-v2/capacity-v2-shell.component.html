@@ -1,0 +1,26 @@
+@if (isBootstrapping) {
+  <div class="capacity-v2-loading">
+    <mat-spinner diameter="44"></mat-spinner>
+    <p>Preparing capacity analysis workspace...</p>
+  </div>
+} @else {
+  <section class="capacity-v2-layout">
+    <aside class="left-panel">
+      <app-capacity-v2-input />
+    </aside>
+
+    <main class="main-panel">
+      @if (store.result()) {
+        <app-capacity-v2-summary />
+        <app-capacity-v2-tabs />
+        <app-capacity-v2-export />
+      }
+    </main>
+
+    <aside class="right-panel">
+      @if (store.result()) {
+        <app-capacity-v2-viz />
+      }
+    </aside>
+  </section>
+}

@@ -1,0 +1,271 @@
+{
+  "links": {
+    "(1,9)": {
+      "type": "float",
+      "value": 0.9487486339849206
+    },
+    "(1,11)": {
+      "type": "float",
+      "value": 0.9379297233365559
+    },
+    "(2,10)": {
+      "type": "float",
+      "value": 0.9417522728324799
+    },
+    "(2,11)": {
+      "type": "float",
+      "value": 0.9324404153245154
+    },
+    "(2,12)": {
+      "type": "float",
+      "value": 0.9188220563769959
+    },
+    "(3,11)": {
+      "type": "float",
+      "value": 0.9566141968778582
+    },
+    "(3,13)": {
+      "type": "float",
+      "value": 0.9009307349990877
+    },
+    "(3,14)": {
+      "type": "float",
+      "value": 0.915639951035271
+    },
+    "(4,12)": {
+      "type": "float",
+      "value": 0.9593145147281792
+    },
+    "(4,15)": {
+      "type": "float",
+      "value": 0.9078742003613249
+    },
+    "(5,11)": {
+      "type": "float",
+      "value": 0.9215027034038965
+    },
+    "(5,13)": {
+      "type": "float",
+      "value": 0.9455943153372732
+    },
+    "(5,16)": {
+      "type": "float",
+      "value": 0.902650954783006
+    },
+    "(6,11)": {
+      "type": "float",
+      "value": 0.937846957169551
+    },
+    "(6,14)": {
+      "type": "float",
+      "value": 0.9565064239025981
+    },
+    "(6,16)": {
+      "type": "float",
+      "value": 0.9030102315310091
+    },
+    "(7,12)": {
+      "type": "float",
+      "value": 0.9135755688373319
+    },
+    "(7,15)": {
+      "type": "float",
+      "value": 0.9458533668758441
+    },
+    "(7,16)": {
+      "type": "float",
+      "value": 0.9172762116676197
+    },
+    "(8,13)": {
+      "type": "float",
+      "value": 0.9172885007129834
+    },
+    "(8,14)": {
+      "type": "float",
+      "value": 0.9131656238142651
+    },
+    "(8,16)": {
+      "type": "float",
+      "value": 0.9549741093123005
+    },
+    "(9,17)": {
+      "type": "float",
+      "value": 0.9450637735118521
+    },
+    "(9,19)": {
+      "type": "float",
+      "value": 0.9188641619453418
+    },
+    "(10,18)": {
+      "type": "float",
+      "value": 0.9365724084448982
+    },
+    "(10,19)": {
+      "type": "float",
+      "value": 0.9131119951315507
+    },
+    "(10,20)": {
+      "type": "float",
+      "value": 0.9139530809214361
+    },
+    "(11,19)": {
+      "type": "float",
+      "value": 0.9144133889212848
+    },
+    "(11,21)": {
+      "type": "float",
+      "value": 0.8333365523949084
+    },
+    "(11,22)": {
+      "type": "float",
+      "value": 0.9277277664894461
+    },
+    "(12,20)": {
+      "type": "float",
+      "value": 0.9398311510010443
+    },
+    "(12,23)": {
+      "type": "float",
+      "value": 0.9137762135625096
+    },
+    "(13,19)": {
+      "type": "float",
+      "value": 0.9406242932693321
+    },
+    "(13,21)": {
+      "type": "float",
+      "value": 0.9056335087813673
+    },
+    "(13,24)": {
+      "type": "float",
+      "value": 0.9169141427313415
+    },
+    "(14,19)": {
+      "type": "float",
+      "value": 0.9009365364119155
+    },
+    "(14,22)": {
+      "type": "float",
+      "value": 0.9141729326487424
+    },
+    "(14,24)": {
+      "type": "float",
+      "value": 0.9217939448474515
+    },
+    "(15,20)": {
+      "type": "float",
+      "value": 0.8371500223671448
+    },
+    "(15,23)": {
+      "type": "float",
+      "value": 0.9069294024766595
+    },
+    "(15,24)": {
+      "type": "float",
+      "value": 0.9216843513605958
+    },
+    "(16,21)": {
+      "type": "float",
+      "value": 0.8887662758987132
+    },
+    "(16,22)": {
+      "type": "float",
+      "value": 0.8780111743002877
+    },
+    "(16,24)": {
+      "type": "float",
+      "value": 0.9188894489453742
+    },
+    "(17,25)": {
+      "type": "float",
+      "value": 0.9031300997208901
+    },
+    "(17,27)": {
+      "type": "float",
+      "value": 0.8945404223227791
+    },
+    "(18,26)": {
+      "type": "float",
+      "value": 0.8966610828053855
+    },
+    "(18,27)": {
+      "type": "float",
+      "value": 0.901609473368216
+    },
+    "(18,28)": {
+      "type": "float",
+      "value": 0.9009677607437888
+    },
+    "(19,27)": {
+      "type": "float",
+      "value": 0.9070066991182276
+    },
+    "(19,29)": {
+      "type": "float",
+      "value": 0.9082662122774613
+    },
+    "(19,30)": {
+      "type": "float",
+      "value": 0.9186641157567678
+    },
+    "(20,28)": {
+      "type": "float",
+      "value": 0.9065803669416098
+    },
+    "(20,31)": {
+      "type": "float",
+      "value": 0.9078171937831104
+    },
+    "(21,27)": {
+      "type": "float",
+      "value": 0.8919797995637895
+    },
+    "(21,29)": {
+      "type": "float",
+      "value": 0.8923050845707939
+    },
+    "(21,32)": {
+      "type": "float",
+      "value": 0.8356320160723612
+    },
+    "(22,27)": {
+      "type": "float",
+      "value": 0.9064613452229594
+    },
+    "(22,30)": {
+      "type": "float",
+      "value": 0.9081955110498007
+    },
+    "(22,32)": {
+      "type": "float",
+      "value": 0.8271648243412051
+    },
+    "(23,28)": {
+      "type": "float",
+      "value": 0.9092332033888921
+    },
+    "(23,31)": {
+      "type": "float",
+      "value": 0.8964229597587402
+    },
+    "(23,32)": {
+      "type": "float",
+      "value": 0.9071150457294136
+    },
+    "(24,29)": {
+      "type": "float",
+      "value": 0.9016807816966124
+    },
+    "(24,30)": {
+      "type": "float",
+      "value": 0.913423462879678
+    },
+    "(24,32)": {
+      "type": "float",
+      "value": 0.8919392231588763
+    }
+  },
+  "data_type": "Float64",
+  "serialization": "compact",
+  "description": "Link/edge probabilities for WATER network - Asymmetric Load Distribution. Operational bottleneck scenario: downstream discharged water quality sinks (29-32) demand significantly higher flow (80% of total) than upstream process outputs (25-28: 20% of total). Reflects realistic water treatment plant discharge allocation. Forces distributed routing with differentiated edge utilization across network layers. All treatment processes active."
+}

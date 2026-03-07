@@ -1,0 +1,18 @@
+<mat-card class="export-card">
+  <mat-card-header>
+    <mat-card-title>Export</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="export-actions">
+      <button mat-stroked-button (click)="exportJson()">Export JSON</button>
+      <button mat-stroked-button (click)="exportCsv()">Export CSV</button>
+      <button mat-stroked-button (click)="exportPdf()">Export PDF</button>
+      <button mat-flat-button color="primary" (click)="copySummary()">Copy Summary</button>
+    </div>
+
+    @if (feedback()) {
+      <p class="feedback">{{ feedback() }}</p>
+    }
+  </mat-card-content>
+</mat-card>
