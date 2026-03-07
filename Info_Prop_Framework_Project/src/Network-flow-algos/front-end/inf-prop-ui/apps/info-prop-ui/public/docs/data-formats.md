@@ -165,8 +165,16 @@ Edge probabilities define the transmission probability of each edge.
 
 Capacity data defines throughput limits for nodes and edges.
 
+Supported capacity uncertainty types:
+
+- `Float64` (deterministic)
+- `Interval` (exact bounds)
+
+`pbox` is **not** currently supported for capacity analysis.
+
 ```json
 {
+  "data_type": "Float64",
   "capacities": {
     "nodes": {
       "1": 100.0,
@@ -198,13 +206,35 @@ Capacity data defines throughput limits for nodes and edges.
 }
 ```
 
+### Interval Capacity Example
+
+```json
+{
+  "data_type": "Interval",
+  "capacities": {
+    "nodes": {
+      "1": { "type": "interval", "lower": 90.0, "upper": 110.0 },
+      "2": { "type": "interval", "lower": 140.0, "upper": 160.0 }
+    },
+    "edges": {
+      "(1,3)": { "type": "interval", "lower": 45.0, "upper": 55.0 },
+      "(2,4)": { "type": "interval", "lower": 58.0, "upper": 66.0 }
+    },
+    "source_rates": {
+      "1": { "type": "interval", "lower": 70.0, "upper": 85.0 },
+      "2": { "type": "interval", "lower": 110.0, "upper": 125.0 }
+    }
+  }
+}
+```
+
 | Section | Key Format | Value | Description |
 |---------|-----------|-------|------------|
-| `nodes` | `"node_id"` | Float | Maximum throughput of the node |
-| `edges` | `"(src,dst)"` | Float | Maximum flow the edge can carry |
-| `source_rates` | `"node_id"` | Float (> 0) | Input rate at each source node |
+| `nodes` | `"node_id"` | Float or Interval object | Maximum throughput of the node |
+| `edges` | `"(src,dst)"` | Float or Interval object | Maximum flow the edge can carry |
+| `source_rates` | `"node_id"` | Float or Interval object (> 0 active) | Input rate at each source node |
 
-> Only source nodes with `source_rate > 0` are treated as active sources.
+> Only source nodes with rate `> 0` are treated as active sources. Zero/negative source rates are ignored by the backend.
 
 ---
 
@@ -331,7 +361,8 @@ Each subdirectory becomes a separate scenario tab in the UI.
 | All probabilities in [0, 1] | Node priors, edge probs | Values outside this range are rejected |
 | All nodes have priors | Belief propagation | Missing nodes default to 1.0 |
 | All edges have probabilities | Belief propagation | Missing edges cause errors |
-| Capacities > 0 | Capacity analysis | Zero or negative capacities are invalid |
+| Capacity `data_type` | Capacity analysis | Must be `Float64` or `Interval` |
+| Capacity interval bounds | Capacity analysis | `lower <= upper` (malformed intervals are corrected) |
 | Source rates > 0 | Capacity analysis | Only positive rates create active sources |
 | Durations >= 0 | CPM | Negative durations are invalid |
 | DAG structure | All | Cycles are detected and reported as errors |

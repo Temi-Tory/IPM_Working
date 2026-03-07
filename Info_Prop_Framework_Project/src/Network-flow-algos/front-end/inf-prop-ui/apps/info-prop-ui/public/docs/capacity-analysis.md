@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Capacity Analysis computes the **maximum flow** through a network given node processing capacities, edge transmission capacities, and source input rates. It identifies bottlenecks, quantifies edge utilisation, and provides upgrade prioritisation through comparative analysis.
+Capacity Analysis computes the **maximum flow** through a network given node processing capacities, edge transmission capacities, and source input rates. It identifies bottlenecks, quantifies edge utilisation, provides upgrade prioritisation, and includes built-in mathematical validation.
 
 ---
 
@@ -16,6 +16,15 @@ A capacities JSON file containing:
 | **Edge capacities** | Maximum flow each connection can carry |
 | **Source rates** | Input rate at each source node (> 0 for active sources) |
 
+Optional request fields:
+
+| Field | Description |
+|------|-------------|
+| `uncertaintyMode` | `"deterministic"` (default) or `"interval"` |
+| `options` | Advanced backend options (algorithm, critical path enumeration, upgrade priorities, validation tolerance, etc.) |
+
+`uncertaintyMode` can also be inferred from the capacities file (`data_type: "Interval"`).
+
 ---
 
 ## Reading the Results
@@ -24,10 +33,11 @@ A capacities JSON file containing:
 
 | Metric | Description |
 |--------|------------|
-| **Network Utilisation** | `total_sink_output / total_source_input`. Indicates what fraction of input reaches the outputs. |
-| **Total Source Input** | Sum of all source rates |
-| **Total Target Output** | Sum of flow arriving at all sink nodes |
-| **Bottleneck Count** | Number of elements operating at full capacity |
+| **Total Max Flow** | Maximum feasible throughput to sink nodes |
+| **Target Flows** | Throughput reaching each sink node |
+| **Network Utilisation** | Aggregate utilisation metric over finite node/edge capacities |
+| **Algorithm Used** | Capacity solver selected in options |
+| **Validation** | Flow conservation, capacity constraints, flow balance, and max-flow/min-cut consistency |
 
 ### Node Results
 
@@ -90,15 +100,21 @@ A ranked list of elements whose capacity upgrade would produce the largest impro
 
 ## Analysis Variants
 
-The backend supports several capacity analysis modes:
+The backend currently supports:
 
 | Mode | Description |
 |------|------------|
-| **Maximum Flow** | Standard forward-pass analysis (default) |
-| **Bottleneck Analysis** | Identifies the single limiting factor per path |
-| **Widest Path** | Finds the path with the highest minimum capacity |
-| **Multi-Commodity** | Analyses multiple flow types through shared infrastructure |
-| **Uncertainty-Aware** | Monte Carlo with uncertain capacity parameters |
+| **Deterministic (exact)** | Float64 capacities and source rates with exact max-flow + bottleneck/comparative analyses |
+| **Interval (exact bounds)** | Interval capacities and source rates, returning guaranteed min flow and possible max flow |
+
+In interval mode, outputs include:
+
+- `guaranteed_min_flow`
+- `possible_max_flow`
+- `expected_flow`
+- `uncertainty_range`
+- `robust_bottlenecks` and `potential_bottlenecks`
+- `worst_case_scenario` and `best_case_scenario` (each with validation)
 
 ---
 

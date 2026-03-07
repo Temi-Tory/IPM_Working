@@ -58,9 +58,39 @@ Runs belief propagation. Returns per-node beliefs, priors, statistics (mean/min/
 
 ### `POST /capacity-analysis`
 
-**Body**: `{ "networkPath": "...", "capacitiesPath": "..." }`
+**Body**:
 
-Returns node max flows, bottlenecks, edge utilisation, network utilisation, comparative analysis (capacity gaps, upgrade priorities, strategic recommendations).
+```json
+{
+  "networkPath": "...",
+  "edgesFilePath": "...",        
+  "capacitiesPath": "...",
+  "uncertaintyMode": "deterministic",
+  "options": {
+    "algorithm": "ford_fulkerson_dag",
+    "computeAllMinCuts": false,
+    "enumerateCriticalPaths": true,
+    "maxPathsToReturn": 10,
+    "computeUpgradePriorities": true,
+    "includeClassicalComparison": true,
+    "tolerance": 1e-10,
+    "maxIterations": 100000,
+    "verbosity": "standard"
+  }
+}
+```
+
+Notes:
+
+- `networkPath` and `capacitiesPath` are required.
+- `edgesFilePath` is optional (auto-discovered from `networkPath` if omitted).
+- `uncertaintyMode` can be `"deterministic"` or `"interval"`.
+- Interval mode can also be inferred from the capacities file (`"data_type": "Interval"`).
+
+Returns:
+
+- **Deterministic**: `total_max_flow`, `target_flows`, `node_flows`, `edge_flows`, `edge_utilization`, `bottlenecks`, `upgrade_priorities`, `critical_paths`, `comparative_analysis`, `validation`, metadata.
+- **Interval**: `guaranteed_min_flow`, `possible_max_flow`, `expected_flow`, `uncertainty_range`, robust/potential bottlenecks, `worst_case_scenario`, `best_case_scenario`, plus worst/best validations.
 
 ### `POST /cpm-analysis`
 
@@ -81,7 +111,7 @@ The main framework module. Includes and re-exports all sub-modules:
 | InputProcessingModule | InputProcessingModule.jl | Read graphs (CSV/EDGES), node priors (JSON), edge probabilities (JSON) |
 | DiamondProcessingModule | DiamondProcessingModule.jl | Identify diamonds at join nodes, build pre-computed diamond storage |
 | ReachabilityModuleRecurseOptimized | ReachabilityModuleRecurseOptimized.jl | Belief propagation with bit-masking inclusion-exclusion (Float64 only) |
-| CapacityAnalysisModule | CapacityAnalysisModule.jl | Maximum flow, bottleneck, widest-path, comparative, multi-commodity |
+| CapacityAnalysisModule | CapacityAnalysisModule.jl | Deterministic + interval capacity analysis, bottlenecks, comparative analysis, validation |
 | GeneralizedCriticalPathModule | GeneralizedCriticalPathModule.jl | Generalised CPM with customisable combination/propagation functions |
 | DiamondClassificationModule | DiamondClassificationModule.jl | Classify diamonds by structure, topology, connectivity |
 | ComparisonModules | ComparisonModules.jl | Monte Carlo and path-enumeration verification |
@@ -105,11 +135,27 @@ struct DiamondComputationData{T}
   sub_diamond_structures
 end
 
-# Capacity parameters
-struct CapacityParameters{T}
-  node_capacities::Dict{Int64, T}
-  edge_capacities::Dict{Tuple{Int64,Int64}, T}
-  source_input_rates::Dict{Int64, T}
+# Capacity topology/problem types
+struct NetworkTopology
+  iteration_sets::Vector{Set{Int64}}
+  outgoing_index::Dict{Int64, Set{Int64}}
+  incoming_index::Dict{Int64, Set{Int64}}
+  source_nodes::Set{Int64}
+end
+
+struct BasicCapacityProblem
+  topology::NetworkTopology
+  node_capacities::Dict{Int64, Float64}
+  edge_capacities::Dict{Tuple{Int64,Int64}, Float64}
+  source_rates::Dict{Int64, Float64}
+  target_nodes::Set{Int64}
+end
+
+struct UncertainCapacityProblem
+  topology::NetworkTopology
+  node_capacities::Dict{Int64, Interval{Float64}}
+  edge_capacities::Dict{Tuple{Int64,Int64}, Interval{Float64}}
+  source_rates::Dict{Int64, Interval{Float64}}
   target_nodes::Set{Int64}
 end
 
@@ -146,8 +192,11 @@ build_unique_diamond_storage_depth_first_parallel(...)  # Threaded version
 update_beliefs_iterative(edges, sets, outgoing, incoming, sources, priors, probs, descendants, ancestors, diamonds, joins, forks, lookup)
 
 # Capacity
-maximum_flow_capacity(sets, outgoing, incoming, sources, params)
-comparative_capacity_analysis(sets, outgoing, incoming, sources, params)
+analyze_capacity(topology; node_capacities, edge_capacities, source_rates, target_nodes, options)
+analyze_capacity_validated(topology; node_capacities, edge_capacities, source_rates, target_nodes, options)
+analyze_capacity_uncertain(topology; node_capacities, edge_capacities, source_rates, target_nodes, options)
+analyze_capacity_uncertain_validated(topology; node_capacities, edge_capacities, source_rates, target_nodes, options)
+quick_capacity_check(topology; node_capacities, edge_capacities, source_rates, target_nodes)
 
 # CPM
 critical_path_analysis(sets, outgoing, incoming, sources, params)
