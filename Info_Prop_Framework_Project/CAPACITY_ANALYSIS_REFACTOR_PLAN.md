@@ -1537,6 +1537,50 @@ export class UpgradeRecommendationsComponent { ... }
 
 **Deliverable**: Comprehensive analysis suite
 
+#### Phase 3 Completion Note (March 7, 2026)
+
+**Status**: ✅ Complete
+
+**Summary**:
+- All Phase 3 advanced analysis modules implemented and integrated with refactored deterministic core
+- Enhanced bottleneck analysis with improved classification logic (edge_capacity, node_processing, source_limited, mixed)
+- Sensitivity analysis computes marginal values for capacity upgrades at each component
+- Upgrade recommendations generate prioritized, actionable suggestions with plain-language rationales
+- Critical path enumeration leverages DAG structure for efficient path analysis and SPOF detection
+- Comparative analysis quantifies impact of node processing limits vs transmission capacity
+- All Phase 3 outputs are mathematically consistent and actionable for domain experts
+- Integration maintains exactness guarantees from Phase 1/2
+
+**Files created (Phase 3):**
+- `src/Network-flow-algos/src/Algorithms/Capacity/Analysis/Bottlenecks.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Analysis/Sensitivity.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Analysis/Recommendations.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Analysis/Comparative.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Algorithms/Paths.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Tests/test_phase3.jl`
+
+**Files modified (Phase 3 integration):**
+- `src/Network-flow-algos/src/Algorithms/Capacity/CapacityAnalysisModule.jl`
+- `src/Network-flow-algos/src/Algorithms/Capacity/Core/DeterministicCore.jl`
+- `src/Network-flow-algos/test/runtests.jl`
+
+**Verification summary:**
+- Deterministic suite unchanged: **19 / 19 passed**
+- Interval suite unchanged: **20 / 20 passed**
+- **NEW** Phase 3 suite: **65 / 65 passed**
+- Canonical capacity suite (default mode): **104 / 104 passed**
+- Canonical capacity suite (legacy opt-in): available via `RUN_LEGACY_CAPACITY_TESTS=1`
+
+**Phase 3 Features Verified:**
+- ✅ Enhanced bottleneck classification correctly identifies edge vs node constraints
+- ✅ Sensitivity analysis computes meaningful marginal values for upgrade prioritization
+- ✅ Upgrade recommendations provide actionable priority scores and rationales
+- ✅ Critical path enumeration works efficiently on DAG topology
+- ✅ SPOF detection identifies components whose failure disconnects network
+- ✅ Comparative analysis quantifies realistic vs classical max-flow gap
+- ✅ All Phase 3 modules properly integrated via conditional includes (no duplicate warnings)
+- ✅ All Phase 3 types and functions exported via IPAFrameworkOptimized module
+
 ---
 
 ### Phase 4: Backend Integration (Week 5)

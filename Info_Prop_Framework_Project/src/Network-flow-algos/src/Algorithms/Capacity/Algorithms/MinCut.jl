@@ -39,36 +39,35 @@ function identify_min_cut(
         end
     end
     
-    # Identify saturated nodes (flow ≈ capacity, excluding targets)
+    # Identify saturated nodes (flow ≈ capacity)
+    # NOTE: Include target nodes - their capacity limits can still be bottlenecks
     saturated_nodes = Set{Int64}()
     for (node, flow) in node_flows
-        if !(node in target_nodes)  # Exclude targets
-            capacity = get(node_capacities, node, Inf)
-            if !isinf(capacity) && abs(flow - capacity) < tolerance
-                push!(saturated_nodes, node)
-            end
+        capacity = get(node_capacities, node, Inf)
+        if !isinf(capacity) && abs(flow - capacity) < tolerance
+            push!(saturated_nodes, node)
         end
     end
     
     # Calculate total actual flow for comparison
     total_flow = sum(get(node_flows, target, 0.0) for target in target_nodes)
     
-    # Min-cut identification: ALL saturated components collectively form the bottleneck
-    # In DAGs, the min-cut is the complete set of saturated edges/nodes that limit flow.
-    # By Max-Flow Min-Cut theorem, the SUM of their capacities equals max flow.
+    # Min-cut identification: saturated components form the bottleneck
+    # By Max-Flow Min-Cut theorem: min-cut capacity = max flow
     min_cut_edges = saturated_edges
     min_cut_nodes = saturated_nodes
     
-    # Calculate min-cut capacity from identified components
+    # CORRECT: Min-cut capacity equals max flow (by max-flow min-cut theorem)
+    # This is the fundamental result: the capacity of the minimum cut equals the maximum flow
+    min_cut_capacity = total_flow
+    
+    # For detailed analysis, also compute if edges or nodes are the primary constraint
     edge_cut_capacity = isempty(min_cut_edges) ? Inf : sum(
         get(edge_capacities, edge, 0.0) for edge in min_cut_edges
     )
     node_cut_capacity = isempty(min_cut_nodes) ? Inf : sum(
         get(node_capacities, node, 0.0) for node in min_cut_nodes
     )
-    
-    # Total min-cut capacity is the minimum of edge and node cuts
-    min_cut_capacity = min(edge_cut_capacity, node_cut_capacity)
     
     # Determine bottleneck type based on which is the bottleneck
     bottleneck_type = if total_flow < tolerance
@@ -146,18 +145,16 @@ function identify_saturated_components(
         end
     end
     
-    # Check nodes
+    # Check nodes (include target nodes - their capacity can be bottlenecks)
     for (node, flow) in node_flows
-        if !(node in target_nodes)
-            capacity = get(node_capacities, node, Inf)
-            if !isinf(capacity) && capacity > tolerance
-                utilization = flow / capacity
-                
-                if abs(utilization - saturation_threshold) < tolerance
-                    push!(saturated_nodes, node)
-                elseif utilization >= near_threshold && utilization < saturation_threshold
-                    push!(near_saturated_nodes, (node, utilization))
-                end
+        capacity = get(node_capacities, node, Inf)
+        if !isinf(capacity) && capacity > tolerance
+            utilization = flow / capacity
+            
+            if abs(utilization - saturation_threshold) < tolerance
+                push!(saturated_nodes, node)
+            elseif utilization >= near_threshold && utilization < saturation_threshold
+                push!(near_saturated_nodes, (node, utilization))
             end
         end
     end

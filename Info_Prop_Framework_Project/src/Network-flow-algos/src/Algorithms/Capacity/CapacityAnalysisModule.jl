@@ -13,6 +13,13 @@ include("Core/Types.jl")
 # Include algorithms (no module wrapper)
 include("Algorithms/MaxFlow.jl")
 include("Algorithms/MinCut.jl")
+include("Algorithms/Paths.jl")
+
+# Include analysis modules (Phase 3)
+include("Analysis/Bottlenecks.jl")
+include("Analysis/Sensitivity.jl")
+include("Analysis/Recommendations.jl")
+include("Analysis/Comparative.jl")
 
 # Include core analysis
 include("Core/DeterministicCore.jl")
