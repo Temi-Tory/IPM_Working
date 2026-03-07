@@ -13,4 +13,8 @@ import { CapacityV2Store } from '../capacity-v2.store';
 })
 export class CapacityV2PerformancePageComponent {
   readonly store = inject(CapacityV2Store);
+
+  hasMeaningfulEfficiencyLoss(value: number | null | undefined): boolean {
+    return typeof value === 'number' && value > 0.0001;
+  }
 }

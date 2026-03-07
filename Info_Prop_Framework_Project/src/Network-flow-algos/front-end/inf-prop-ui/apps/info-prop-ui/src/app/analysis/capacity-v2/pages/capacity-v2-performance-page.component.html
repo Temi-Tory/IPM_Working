@@ -17,11 +17,13 @@
             <strong class="value">{{ detail.comparative.classicalMaxFlow | number: '1.3-3' }}</strong>
             <span class="sublabel">Edge-only theoretical limit</span>
           </div>
-          <div class="metric-box warning">
-            <span class="label">Efficiency loss</span>
-            <strong class="value">{{ detail.comparative.efficiencyLoss | percent: '1.1-2' }}</strong>
-            <span class="sublabel">Due to node constraints</span>
-          </div>
+          @if (hasMeaningfulEfficiencyLoss(detail.comparative.efficiencyLoss)) {
+            <div class="metric-box warning">
+              <span class="label">Efficiency loss</span>
+              <strong class="value">{{ detail.comparative.efficiencyLoss | percent: '1.1-2' }}</strong>
+              <span class="sublabel">Due to node constraints</span>
+            </div>
+          }
           <div class="metric-box">
             <span class="label">Primary limitation</span>
             <mat-chip-set>
@@ -60,15 +62,17 @@
               </p>
             </div>
 
-            <div class="insight-card">
-              <div class="insight-icon">📈</div>
-              <h4>Improvement Potential</h4>
-              <p>
-                By addressing the primary limitation, the network could potentially increase
-                throughput by 
-                <strong>{{ detail.comparative.efficiencyLoss | percent: '1.0-0' }}</strong>.
-              </p>
-            </div>
+            @if (hasMeaningfulEfficiencyLoss(detail.comparative.efficiencyLoss)) {
+              <div class="insight-card">
+                <div class="insight-icon">📈</div>
+                <h4>Improvement Potential</h4>
+                <p>
+                  By addressing the primary limitation, the network could potentially increase
+                  throughput by 
+                  <strong>{{ detail.comparative.efficiencyLoss | percent: '1.0-0' }}</strong>.
+                </p>
+              </div>
+            }
 
             @if (store.summary(); as summary) {
               <div class="insight-card">

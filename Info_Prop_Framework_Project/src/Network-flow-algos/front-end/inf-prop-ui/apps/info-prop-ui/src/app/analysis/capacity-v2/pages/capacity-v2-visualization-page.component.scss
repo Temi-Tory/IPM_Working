@@ -1,8 +1,9 @@
 .visualization-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
-  overflow: hidden;
+  min-height: calc(100vh - 120px);
+  overflow: visible;
+  min-width: 0;
 }
 
 .viz-toolbar {
@@ -35,9 +36,10 @@
 
 .svg-container {
   flex: 1;
+  min-height: 520px;
   position: relative;
   background: var(--surface-background);
-  overflow: hidden;
+  overflow: auto;
   transition: background-color 0.3s ease;
 
   .network-svg {

@@ -63,7 +63,7 @@
     </mat-toolbar>
 
     <!-- Side Nav + Content -->
-    <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav-container class="sidenav-container" [autosize]="true">
       <mat-sidenav 
         #sidenav 
         mode="side" 
@@ -75,6 +75,7 @@
               mat-list-item 
               [routerLink]="[item.route]"
               routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }"
               [class.active]="isActiveRoute(item.route)">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>

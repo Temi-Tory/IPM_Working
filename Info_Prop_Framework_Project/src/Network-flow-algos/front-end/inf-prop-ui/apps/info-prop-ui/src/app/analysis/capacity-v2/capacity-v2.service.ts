@@ -218,8 +218,8 @@ export class CapacityV2Service {
         singlePointsOfFailure: this.asStringArray(pathsRaw['single_points_of_failure'])
       },
       comparative: this.normalizeComparative(comparativeRaw),
-      nodeFlows: this.normalizeNodeFlows(raw['node_flows']),
-      edgeFlows: this.normalizeEdgeFlows(raw['edge_flows'], bottlenecksRaw),
+      nodeFlows: this.normalizeNodeFlows(raw['node_flows'], bottlenecksRaw),
+      edgeFlows: this.normalizeEdgeFlows(raw['edge_flows'], raw['edge_utilization'], bottlenecksRaw),
       validation: this.normalizeValidation(raw['validation']),
       metadata: {
         algorithmUsed: this.str(metadataRaw['algorithm_used']),
@@ -314,29 +314,101 @@ export class CapacityV2Service {
     };
   }
 
-  private normalizeNodeFlows(rawValue: unknown): CapacityV2FlowNode[] {
-    const record = this.asRecord(rawValue);
-    return Object.keys(record).map((key) => ({
-      nodeId: this.num(key),
-      flow: this.num(record[key]),
-      utilization: 0
-    }));
-  }
-
-  private normalizeEdgeFlows(rawValue: unknown, bottlenecksRaw: Record<string, unknown>): CapacityV2FlowEdge[] {
+  private normalizeNodeFlows(rawValue: unknown, bottlenecksRaw: Record<string, unknown>): CapacityV2FlowNode[] {
     const record = this.asRecord(rawValue);
     const utilByComponent = this.toNumberRecord(this.asRecord(bottlenecksRaw['utilization_by_component']));
 
+    return Object.keys(record).map((key) => ({
+      nodeId: this.num(key),
+      flow: this.num(record[key]),
+      utilization: this.num(utilByComponent[key])
+    }));
+  }
+
+  private normalizeEdgeFlows(
+    rawValue: unknown,
+    edgeUtilizationRaw: unknown,
+    bottlenecksRaw: Record<string, unknown>
+  ): CapacityV2FlowEdge[] {
+    const record = this.asRecord(rawValue);
+    const utilByComponent = this.toNumberRecord(this.asRecord(bottlenecksRaw['utilization_by_component']));
+    const edgeUtilizationLookup = this.buildEdgeUtilizationLookup(edgeUtilizationRaw);
+
     return Object.keys(record).map((edgeKey) => {
       const tuple = this.parseEdgeKey(edgeKey);
+      const normalizedEdgeKeyNoSpaces = `(${tuple[0]},${tuple[1]})`;
+      const normalizedEdgeKeyWithSpaces = `(${tuple[0]}, ${tuple[1]})`;
+      const canonicalEdgeKey = normalizedEdgeKeyNoSpaces;
+
+      const fromEdgeUtilization = this.num(
+        edgeUtilizationLookup[canonicalEdgeKey] ??
+          edgeUtilizationLookup[normalizedEdgeKeyWithSpaces] ??
+          edgeUtilizationLookup[edgeKey]
+      );
+
+      const fromUtilizationByComponent = this.num(
+        utilByComponent[normalizedEdgeKeyWithSpaces] ?? utilByComponent[normalizedEdgeKeyNoSpaces]
+      );
+
       return {
         edgeKey,
         from: tuple[0],
         to: tuple[1],
         flow: this.num(record[edgeKey]),
-        utilization: this.num(utilByComponent[`(${tuple[0]}, ${tuple[1]})`] ?? utilByComponent[`(${tuple[0]},${tuple[1]})`])
+        utilization:
+          fromEdgeUtilization > 0
+            ? fromEdgeUtilization
+            : fromUtilizationByComponent > 0
+              ? fromUtilizationByComponent
+              : this.computeUtilizationFromEdgeRecord(edgeUtilizationRaw, edgeKey, normalizedEdgeKeyNoSpaces, normalizedEdgeKeyWithSpaces)
       };
     });
+  }
+
+  private buildEdgeUtilizationLookup(rawValue: unknown): Record<string, number> {
+    const edgeUtilization = this.asRecord(rawValue);
+    const lookup: Record<string, number> = {};
+
+    for (const key of Object.keys(edgeUtilization)) {
+      const entry = this.asRecord(edgeUtilization[key]);
+      const tuple = this.parseEdgeKey(key);
+      const canonicalKey = `(${tuple[0]},${tuple[1]})`;
+      const directUtilization = this.num(entry['utilization']);
+      const fallbackUtilization = this.computeUtilizationFromFlowAndCapacity(entry);
+      const utilization = directUtilization > 0 ? directUtilization : fallbackUtilization;
+
+      if (utilization > 0) {
+        lookup[key] = utilization;
+        lookup[canonicalKey] = utilization;
+        lookup[`(${tuple[0]}, ${tuple[1]})`] = utilization;
+      }
+    }
+
+    return lookup;
+  }
+
+  private computeUtilizationFromEdgeRecord(
+    edgeUtilizationRaw: unknown,
+    edgeKey: string,
+    normalizedEdgeKeyNoSpaces: string,
+    normalizedEdgeKeyWithSpaces: string
+  ): number {
+    const edgeUtilization = this.asRecord(edgeUtilizationRaw);
+    const entry = this.asRecord(
+      edgeUtilization[edgeKey] ??
+        edgeUtilization[normalizedEdgeKeyNoSpaces] ??
+        edgeUtilization[normalizedEdgeKeyWithSpaces]
+    );
+    return this.computeUtilizationFromFlowAndCapacity(entry);
+  }
+
+  private computeUtilizationFromFlowAndCapacity(edgeRecord: Record<string, unknown>): number {
+    const flow = this.num(edgeRecord['flow']);
+    const capacity = this.num(edgeRecord['capacity']);
+    if (capacity <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(flow / capacity, 1));
   }
 
   private normalizeEdgeTupleArray(raw: unknown): [number, number][] {

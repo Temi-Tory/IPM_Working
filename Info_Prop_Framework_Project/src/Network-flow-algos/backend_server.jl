@@ -1517,7 +1517,7 @@ function serialize_deterministic_capacity_result(result::CapacityAnalysisResult{
         "target_flows" => target_flows,
         "network_utilization" => result.network_utilization,
         "node_flows" => Dict(string(k) => v for (k, v) in result.node_flows),
-        "edge_flows" => Dict("($k[1],$k[2])" => v for (k, v) in result.edge_flows),
+        "edge_flows" => Dict("($src,$dst)" => v for ((src, dst), v) in result.edge_flows),
         "edge_utilization" => edge_utilization,
         "bottlenecks" => serialize_bottleneck_report(result.bottlenecks),
         "upgrade_priorities" => serialize_upgrade_analysis(result.upgrade_priorities),
