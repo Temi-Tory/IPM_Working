@@ -4,519 +4,519 @@
   "capacities": {
     "nodes": {
       "1": {
-        "lower": 15.8794,
-        "upper": 22.6662,
+        "lower": 15.3335,
+        "upper": 25.494,
         "type": "interval"
       },
       "2": {
-        "lower": 14.6211,
-        "upper": 23.0777,
+        "lower": 15.3915,
+        "upper": 24.8368,
         "type": "interval"
       },
       "3": {
-        "lower": 15.3081,
-        "upper": 22.6376,
+        "lower": 15.3912,
+        "upper": 25.916,
         "type": "interval"
       },
       "4": {
-        "lower": 16.0266,
-        "upper": 22.5498,
+        "lower": 14.8194,
+        "upper": 24.8697,
         "type": "interval"
       },
       "5": {
-        "lower": 15.7369,
-        "upper": 22.9236,
+        "lower": 15.7972,
+        "upper": 25.0975,
         "type": "interval"
       },
       "6": {
-        "lower": 15.3922,
-        "upper": 23.1008,
+        "lower": 15.3336,
+        "upper": 25.5484,
         "type": "interval"
       },
       "7": {
-        "lower": 15.5576,
-        "upper": 23.7254,
+        "lower": 16.045,
+        "upper": 25.646,
         "type": "interval"
       },
       "8": {
-        "lower": 14.9309,
-        "upper": 23.6966,
+        "lower": 15.4011,
+        "upper": 24.8649,
         "type": "interval"
       },
       "9": {
-        "lower": 17.1562,
-        "upper": 25.8019,
+        "lower": 17.3466,
+        "upper": 27.0711,
         "type": "interval"
       },
       "10": {
-        "lower": 17.3387,
-        "upper": 25.7902,
+        "lower": 16.5417,
+        "upper": 28.2412,
         "type": "interval"
       },
       "11": {
-        "lower": 21.3443,
-        "upper": 32.1596,
+        "lower": 21.0223,
+        "upper": 32.7849,
         "type": "interval"
       },
       "12": {
-        "lower": 13.217,
-        "upper": 20.5566,
+        "lower": 12.9461,
+        "upper": 22.5134,
         "type": "interval"
       },
       "13": {
-        "lower": 13.9422,
-        "upper": 20.8218,
+        "lower": 13.1954,
+        "upper": 23.1413,
         "type": "interval"
       },
       "14": {
-        "lower": 16.3099,
-        "upper": 24.8044,
+        "lower": 17.5464,
+        "upper": 28.2184,
         "type": "interval"
       },
       "15": {
-        "lower": 7.3593,
-        "upper": 15.0317,
+        "lower": 17.8956,
+        "upper": 27.721,
         "type": "interval"
       },
       "16": {
-        "lower": 5.7926,
-        "upper": 12.5547,
+        "lower": 17.217,
+        "upper": 28.2813,
         "type": "interval"
       },
       "17": {
-        "lower": 16.2153,
-        "upper": 25.0042,
+        "lower": 17.412,
+        "upper": 27.8831,
         "type": "interval"
       },
       "18": {
-        "lower": 17.1888,
-        "upper": 24.6482,
+        "lower": 17.4763,
+        "upper": 27.914,
         "type": "interval"
       },
       "19": {
-        "lower": 21.2779,
-        "upper": 32.1291,
+        "lower": 21.1927,
+        "upper": 32.4109,
         "type": "interval"
       },
       "20": {
-        "lower": 13.6943,
-        "upper": 20.461,
+        "lower": 13.3755,
+        "upper": 23.317,
         "type": "interval"
       },
       "21": {
-        "lower": 13.0327,
-        "upper": 20.7814,
+        "lower": 13.3564,
+        "upper": 23.4821,
         "type": "interval"
       },
       "22": {
-        "lower": 17.2197,
-        "upper": 25.2796,
+        "lower": 16.451,
+        "upper": 27.6302,
         "type": "interval"
       },
       "23": {
-        "lower": 7.3594,
-        "upper": 14.964,
+        "lower": 17.7517,
+        "upper": 27.8388,
         "type": "interval"
       },
       "24": {
-        "lower": 6.153,
-        "upper": 12.8242,
+        "lower": 17.5126,
+        "upper": 27.8958,
         "type": "interval"
       },
       "25": {
-        "lower": 19.5703,
-        "upper": 28.1255,
+        "lower": 18.5072,
+        "upper": 29.5617,
         "type": "interval"
       },
       "26": {
-        "lower": 20.1233,
-        "upper": 27.5661,
+        "lower": 19.792,
+        "upper": 29.8414,
         "type": "interval"
       },
       "27": {
-        "lower": 20.2661,
-        "upper": 27.4259,
+        "lower": 19.4165,
+        "upper": 29.2348,
         "type": "interval"
       },
       "28": {
-        "lower": 20.2319,
-        "upper": 28.1374,
+        "lower": 18.4291,
+        "upper": 30.1531,
         "type": "interval"
       },
       "29": {
-        "lower": 18.7846,
-        "upper": 27.7424,
+        "lower": 19.493,
+        "upper": 29.437,
         "type": "interval"
       },
       "30": {
-        "lower": 19.1349,
-        "upper": 28.3582,
+        "lower": 18.3527,
+        "upper": 29.7843,
         "type": "interval"
       },
       "31": {
-        "lower": 7.3091,
-        "upper": 14.9,
+        "lower": 18.1006,
+        "upper": 28.9375,
         "type": "interval"
       },
       "32": {
-        "lower": 5.9319,
-        "upper": 12.3096,
+        "lower": 18.9495,
+        "upper": 28.8778,
         "type": "interval"
       }
     },
     "source_rates": {
       "1": {
-        "lower": 6.6173,
-        "upper": 9.6114,
+        "lower": 6.8052,
+        "upper": 9.5377,
         "type": "interval"
       },
       "2": {
-        "lower": 8.8207,
-        "upper": 11.2345,
+        "lower": 8.2728,
+        "upper": 11.8824,
         "type": "interval"
       }
     },
     "edges": {
       "(1,9)": {
-        "lower": 13.9123,
-        "upper": 20.4586,
+        "lower": 13.9514,
+        "upper": 21.3792,
         "type": "interval"
       },
       "(1,11)": {
-        "lower": 10.5797,
-        "upper": 18.1579,
+        "lower": 11.3256,
+        "upper": 19.1065,
         "type": "interval"
       },
       "(2,10)": {
-        "lower": 14.0069,
-        "upper": 20.3286,
+        "lower": 13.212,
+        "upper": 21.6585,
         "type": "interval"
       },
       "(2,11)": {
-        "lower": 11.1276,
-        "upper": 18.2419,
+        "lower": 10.5277,
+        "upper": 18.5859,
         "type": "interval"
       },
       "(2,12)": {
-        "lower": 10.4966,
-        "upper": 17.2671,
+        "lower": 10.362,
+        "upper": 17.1255,
         "type": "interval"
       },
       "(3,11)": {
-        "lower": 13.5524,
-        "upper": 21.4815,
+        "lower": 13.0648,
+        "upper": 21.5626,
         "type": "interval"
       },
       "(3,13)": {
-        "lower": 12.4924,
-        "upper": 18.5742,
+        "lower": 11.7852,
+        "upper": 19.7996,
         "type": "interval"
       },
       "(3,14)": {
-        "lower": 12.3692,
-        "upper": 18.7336,
+        "lower": 12.0886,
+        "upper": 20.2978,
         "type": "interval"
       },
       "(4,12)": {
-        "lower": 13.8391,
-        "upper": 20.5489,
+        "lower": 13.0698,
+        "upper": 22.0043,
         "type": "interval"
       },
       "(4,15)": {
-        "lower": 9.2769,
-        "upper": 15.4594,
+        "lower": 8.6947,
+        "upper": 16.1438,
         "type": "interval"
       },
       "(5,11)": {
-        "lower": 8.6542,
-        "upper": 14.7471,
+        "lower": 8.0779,
+        "upper": 15.0476,
         "type": "interval"
       },
       "(5,13)": {
-        "lower": 13.1552,
-        "upper": 20.6512,
+        "lower": 13.8131,
+        "upper": 22.2656,
         "type": "interval"
       },
       "(5,16)": {
-        "lower": 4.1479,
-        "upper": 9.4414,
+        "lower": 8.9037,
+        "upper": 17.5281,
         "type": "interval"
       },
       "(6,11)": {
-        "lower": 8.6154,
-        "upper": 14.8464,
+        "lower": 8.3365,
+        "upper": 15.6579,
         "type": "interval"
       },
       "(6,14)": {
-        "lower": 13.67,
-        "upper": 20.528,
+        "lower": 13.5329,
+        "upper": 21.4257,
         "type": "interval"
       },
       "(6,16)": {
-        "lower": 4.15,
-        "upper": 9.4597,
+        "lower": 8.9472,
+        "upper": 17.6569,
         "type": "interval"
       },
       "(7,12)": {
-        "lower": 9.6181,
-        "upper": 15.0375,
+        "lower": 9.2109,
+        "upper": 15.46,
         "type": "interval"
       },
       "(7,15)": {
-        "lower": 13.0887,
-        "upper": 20.3856,
+        "lower": 13.1047,
+        "upper": 21.7637,
         "type": "interval"
       },
       "(7,16)": {
-        "lower": 4.1283,
-        "upper": 9.2889,
+        "lower": 8.6704,
+        "upper": 17.9992,
         "type": "interval"
       },
       "(8,13)": {
-        "lower": 3.3157,
-        "upper": 7.3334,
+        "lower": 7.2817,
+        "upper": 13.9909,
         "type": "interval"
       },
       "(8,14)": {
-        "lower": 3.3887,
-        "upper": 7.3837,
+        "lower": 6.971,
+        "upper": 14.0934,
         "type": "interval"
       },
       "(8,16)": {
-        "lower": 12.9331,
-        "upper": 21.3641,
+        "lower": 13.7775,
+        "upper": 22.0576,
         "type": "interval"
       },
       "(9,17)": {
-        "lower": 13.2957,
-        "upper": 20.9942,
+        "lower": 13.2377,
+        "upper": 21.4,
         "type": "interval"
       },
       "(9,19)": {
-        "lower": 10.5734,
-        "upper": 18.0324,
+        "lower": 10.2831,
+        "upper": 19.1844,
         "type": "interval"
       },
       "(10,18)": {
-        "lower": 13.1533,
-        "upper": 21.6678,
+        "lower": 12.9412,
+        "upper": 22.1953,
         "type": "interval"
       },
       "(10,19)": {
-        "lower": 11.5805,
-        "upper": 17.4646,
+        "lower": 10.9319,
+        "upper": 18.5629,
         "type": "interval"
       },
       "(10,20)": {
-        "lower": 10.5682,
-        "upper": 16.7438,
+        "lower": 9.6276,
+        "upper": 17.1458,
         "type": "interval"
       },
       "(11,19)": {
-        "lower": 13.0758,
-        "upper": 21.313,
+        "lower": 13.2744,
+        "upper": 21.6126,
         "type": "interval"
       },
       "(11,21)": {
-        "lower": 12.4787,
-        "upper": 19.3311,
+        "lower": 11.5166,
+        "upper": 19.3783,
         "type": "interval"
       },
       "(11,22)": {
-        "lower": 12.3773,
-        "upper": 18.4922,
+        "lower": 11.2987,
+        "upper": 19.5879,
         "type": "interval"
       },
       "(12,20)": {
-        "lower": 14.1909,
-        "upper": 21.3089,
+        "lower": 12.9911,
+        "upper": 22.3217,
         "type": "interval"
       },
       "(12,23)": {
-        "lower": 9.6058,
-        "upper": 15.8238,
+        "lower": 8.5881,
+        "upper": 16.6481,
         "type": "interval"
       },
       "(13,19)": {
-        "lower": 8.3282,
-        "upper": 15.04,
+        "lower": 7.775,
+        "upper": 15.0073,
         "type": "interval"
       },
       "(13,21)": {
-        "lower": 13.2189,
-        "upper": 21.0354,
+        "lower": 14.1706,
+        "upper": 22.0974,
         "type": "interval"
       },
       "(13,24)": {
-        "lower": 4.1525,
-        "upper": 9.2461,
+        "lower": 9.2349,
+        "upper": 17.4623,
         "type": "interval"
       },
       "(14,19)": {
-        "lower": 8.8176,
-        "upper": 14.7197,
+        "lower": 8.2195,
+        "upper": 15.6503,
         "type": "interval"
       },
       "(14,22)": {
-        "lower": 13.0035,
-        "upper": 20.6746,
+        "lower": 13.758,
+        "upper": 21.954,
         "type": "interval"
       },
       "(14,24)": {
-        "lower": 4.4489,
-        "upper": 9.3257,
+        "lower": 8.5956,
+        "upper": 17.4596,
         "type": "interval"
       },
       "(15,20)": {
-        "lower": 9.768,
-        "upper": 14.5948,
+        "lower": 8.6739,
+        "upper": 14.9615,
         "type": "interval"
       },
       "(15,23)": {
-        "lower": 13.8721,
-        "upper": 20.9602,
+        "lower": 13.2002,
+        "upper": 21.3589,
         "type": "interval"
       },
       "(15,24)": {
-        "lower": 4.0696,
-        "upper": 9.654,
+        "lower": 8.9887,
+        "upper": 18.0158,
         "type": "interval"
       },
       "(16,21)": {
-        "lower": 3.2827,
-        "upper": 7.3716,
+        "lower": 7.3475,
+        "upper": 13.9848,
         "type": "interval"
       },
       "(16,22)": {
-        "lower": 3.4365,
-        "upper": 7.368,
+        "lower": 7.4662,
+        "upper": 14.1686,
         "type": "interval"
       },
       "(16,24)": {
-        "lower": 13.9688,
-        "upper": 21.5116,
+        "lower": 14.0384,
+        "upper": 22.3131,
         "type": "interval"
       },
       "(17,25)": {
-        "lower": 14.221,
-        "upper": 20.7453,
+        "lower": 12.832,
+        "upper": 21.9077,
         "type": "interval"
       },
       "(17,27)": {
-        "lower": 11.2649,
-        "upper": 18.1346,
+        "lower": 10.3607,
+        "upper": 19.0988,
         "type": "interval"
       },
       "(18,26)": {
-        "lower": 13.4388,
-        "upper": 20.3628,
+        "lower": 14.0614,
+        "upper": 22.018,
         "type": "interval"
       },
       "(18,27)": {
-        "lower": 11.1597,
-        "upper": 17.6519,
+        "lower": 11.084,
+        "upper": 19.1305,
         "type": "interval"
       },
       "(18,28)": {
-        "lower": 9.9446,
-        "upper": 16.3623,
+        "lower": 10.3277,
+        "upper": 17.8854,
         "type": "interval"
       },
       "(19,27)": {
-        "lower": 14.2043,
-        "upper": 20.3463,
+        "lower": 13.7993,
+        "upper": 21.4733,
         "type": "interval"
       },
       "(19,29)": {
-        "lower": 11.3832,
-        "upper": 18.5051,
+        "lower": 11.4941,
+        "upper": 19.4666,
         "type": "interval"
       },
       "(19,30)": {
-        "lower": 12.3007,
-        "upper": 18.6204,
+        "lower": 11.5808,
+        "upper": 20.1855,
         "type": "interval"
       },
       "(20,28)": {
-        "lower": 13.2113,
-        "upper": 20.938,
+        "lower": 13.3332,
+        "upper": 21.7147,
         "type": "interval"
       },
       "(20,31)": {
-        "lower": 8.9078,
-        "upper": 15.426,
+        "lower": 9.448,
+        "upper": 16.7247,
         "type": "interval"
       },
       "(21,27)": {
-        "lower": 8.1993,
-        "upper": 14.8133,
+        "lower": 7.9482,
+        "upper": 15.5041,
         "type": "interval"
       },
       "(21,29)": {
-        "lower": 13.7535,
-        "upper": 21.5901,
+        "lower": 13.7748,
+        "upper": 22.5728,
         "type": "interval"
       },
       "(21,32)": {
-        "lower": 4.2072,
-        "upper": 9.6106,
+        "lower": 9.4006,
+        "upper": 17.3469,
         "type": "interval"
       },
       "(22,27)": {
-        "lower": 8.2146,
-        "upper": 14.595,
+        "lower": 7.9968,
+        "upper": 15.4859,
         "type": "interval"
       },
       "(22,30)": {
-        "lower": 13.5213,
-        "upper": 21.6775,
+        "lower": 13.1881,
+        "upper": 21.3903,
         "type": "interval"
       },
       "(22,32)": {
-        "lower": 4.3537,
-        "upper": 9.2452,
+        "lower": 9.2588,
+        "upper": 18.0196,
         "type": "interval"
       },
       "(23,28)": {
-        "lower": 9.2062,
-        "upper": 14.4224,
+        "lower": 9.1526,
+        "upper": 15.2958,
         "type": "interval"
       },
       "(23,31)": {
-        "lower": 13.5714,
-        "upper": 20.719,
+        "lower": 13.8423,
+        "upper": 22.6689,
         "type": "interval"
       },
       "(23,32)": {
-        "lower": 4.1278,
-        "upper": 9.4261,
+        "lower": 9.1766,
+        "upper": 17.491,
         "type": "interval"
       },
       "(24,29)": {
-        "lower": 3.3233,
-        "upper": 7.2483,
+        "lower": 7.3316,
+        "upper": 14.4878,
         "type": "interval"
       },
       "(24,30)": {
-        "lower": 3.4805,
-        "upper": 7.4568,
+        "lower": 6.9931,
+        "upper": 14.2502,
         "type": "interval"
       },
       "(24,32)": {
-        "lower": 13.9455,
-        "upper": 21.1628,
+        "lower": 13.4424,
+        "upper": 22.3026,
         "type": "interval"
       }
     }
   },
-  "description": "Capacity analysis inputs for WATER network - Nitrification Failure. Biological nitrification process failure (toxic shock). Nitrogen pathways degraded with uncertain recovery timeline. BOD treatment unaffected. Interval bounds reflect operational uncertainty during recovery phase.",
+  "description": "Capacity analysis inputs for WATER network - Winter Operations. Cold water (<5C) degrades all biological processes. Sensor drift from ice/cold. All values are intervals reflecting degraded performance + measurement uncertainty. Nitrogen pathways most temperature-sensitive (widest bounds).",
   "generation_info": {
     "total_nodes": 32,
     "total_edges": 66,
     "source_nodes_count": 8,
     "redundancy_factor": [
-      0.85,
-      1.05
+      0.9,
+      1.1
     ]
   }
 }

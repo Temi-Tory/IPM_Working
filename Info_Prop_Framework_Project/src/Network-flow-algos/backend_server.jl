@@ -5,8 +5,9 @@
 using HTTP, JSON
 using Dates, UUIDs
 using ProbabilityBoundsAnalysis
+using IntervalArithmetic
 
-# Include the IPAFrameworkOptimized module (Float64-only, bit-masking reachability)
+# Include the IPAFrameworkOptimized module (includes CapacityAnalysisModule via re-export)
 include("src/IPAFrameworkOptimized.jl")
 using .IPAFrameworkOptimized
 
@@ -1341,6 +1342,359 @@ function handle_reachability_analysis(req::HTTP.Request)
     end
 end
 
+# ============================================
+# CAPACITY ANALYSIS HELPERS (Phase 4)
+# ============================================
+
+"""Parse CapacityAnalysisOptions from JSON request"""
+function parse_capacity_analysis_options(options_dict::Dict)
+    return IPAFrameworkOptimized.CapacityAnalysisOptions(
+        algorithm = Symbol(get(options_dict, "algorithm", "ford_fulkerson_dag")),
+        compute_all_min_cuts = get(options_dict, "computeAllMinCuts", false),
+        enumerate_critical_paths = get(options_dict, "enumerateCriticalPaths", true),
+        max_paths_to_return = get(options_dict, "maxPathsToReturn", 10),
+        compute_upgrade_priorities = get(options_dict, "computeUpgradePriorities", true),
+        include_classical_comparison = get(options_dict, "includeClassicalComparison", true),
+        target_demands = nothing,  # Not yet supported
+        edge_costs = nothing,      # Not yet supported
+        target_values = nothing,   # Not yet supported
+        tolerance = get(options_dict, "tolerance", 1e-10),
+        max_iterations = get(options_dict, "maxIterations", 100000),
+        verbosity = Symbol(get(options_dict, "verbosity", "standard"))
+    )
+end
+
+"""Parse node capacities from JSON (with proper interval support)"""
+function parse_node_capacities_deterministic(node_caps_raw::Dict)
+    node_capacities = Dict{Int64, Float64}()
+    for (k, v) in node_caps_raw
+        node_capacities[parse(Int64, k)] = parse_typed_value(v, Float64)
+    end
+    return node_capacities
+end
+
+function parse_node_capacities_interval(node_caps_raw::Dict)
+    node_capacities = Dict{Int64, IntervalArithmetic.Interval{Float64}}()
+    for (k, v) in node_caps_raw
+        interval = parse_typed_value(v, Interval)
+        node_capacities[parse(Int64, k)] = IntervalArithmetic.Interval(interval.lower, interval.upper)
+    end
+    return node_capacities
+end
+
+"""Parse edge capacities from JSON"""
+function parse_edge_capacities_deterministic(edge_caps_raw::Dict)
+    edge_capacities = Dict{Tuple{Int64,Int64}, Float64}()
+    for (k, v) in edge_caps_raw
+        cleaned_key = replace(k, "(" => "", ")" => "")
+        parts = split(cleaned_key, ",")
+        edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+        edge_capacities[edge_key] = parse_typed_value(v, Float64)
+    end
+    return edge_capacities
+end
+
+function parse_edge_capacities_interval(edge_caps_raw::Dict)
+    edge_capacities = Dict{Tuple{Int64,Int64}, IntervalArithmetic.Interval{Float64}}()
+    for (k, v) in edge_caps_raw
+        cleaned_key = replace(k, "(" => "", ")" => "")
+        parts = split(cleaned_key, ",")
+        edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
+        interval = parse_typed_value(v, Interval)
+        edge_capacities[edge_key] = IntervalArithmetic.Interval(interval.lower, interval.upper)
+    end
+    return edge_capacities
+end
+
+"""Parse source rates from JSON"""
+function parse_source_rates_deterministic(source_rates_raw::Dict)
+    source_rates = Dict{Int64, Float64}()
+    for (k, v) in source_rates_raw
+        rate = parse_typed_value(v, Float64)
+        if rate > 0.0
+            source_rates[parse(Int64, k)] = rate
+        end
+    end
+    return source_rates
+end
+
+function parse_source_rates_interval(source_rates_raw::Dict)
+    source_rates = Dict{Int64, IntervalArithmetic.Interval{Float64}}()
+    for (k, v) in source_rates_raw
+        interval = parse_typed_value(v, Interval)
+        if interval.upper > 0.0
+            source_rates[parse(Int64, k)] = IntervalArithmetic.Interval(interval.lower, interval.upper)
+        end
+    end
+    return source_rates
+end
+
+"""Implementation: Deterministic capacity analysis with new refactored module"""
+function handle_deterministic_capacity_analysis_impl(
+    topology::IPAFrameworkOptimized.NetworkTopology,
+    node_caps_raw::Dict,
+    edge_caps_raw::Dict,
+    source_rates_raw::Dict,
+    targets::Set{Int64},
+    options::IPAFrameworkOptimized.CapacityAnalysisOptions
+)
+    # Parse inputs
+    node_capacities = parse_node_capacities_deterministic(node_caps_raw)
+    edge_capacities = parse_edge_capacities_deterministic(edge_caps_raw)
+    source_rates = parse_source_rates_deterministic(source_rates_raw)
+    
+    # Run analysis with new API
+    result, validation = analyze_capacity_validated(
+        topology,
+        node_capacities = node_capacities,
+        edge_capacities = edge_capacities,
+        source_rates = source_rates,
+        target_nodes = targets,
+        options = options
+    )
+    
+    return result, validation
+end
+
+"""Implementation: Interval capacity analysis with new refactored module"""
+function handle_interval_capacity_analysis_impl(
+    topology::IPAFrameworkOptimized.NetworkTopology,
+    node_caps_raw::Dict,
+    edge_caps_raw::Dict,
+    source_rates_raw::Dict,
+    targets::Set{Int64},
+    options::IPAFrameworkOptimized.CapacityAnalysisOptions
+)
+    println("DEBUG: Starting interval capacity analysis")
+    println("DEBUG: Parsing node capacities...")
+    # Parse interval inputs
+    node_capacities = parse_node_capacities_interval(node_caps_raw)
+    println("DEBUG: Parsed $(length(node_capacities)) node capacities")
+    
+    println("DEBUG: Parsing edge capacities...")
+    edge_capacities = parse_edge_capacities_interval(edge_caps_raw)
+    println("DEBUG: Parsed $(length(edge_capacities)) edge capacities")
+    
+    println("DEBUG: Parsing source rates...")
+    source_rates = parse_source_rates_interval(source_rates_raw)
+    println("DEBUG: Parsed $(length(source_rates)) source rates")
+    
+    println("DEBUG: Calling analyze_capacity_uncertain_validated...")
+    # Run interval analysis with new API
+    result, validation = analyze_capacity_uncertain_validated(
+        topology,
+        node_capacities = node_capacities,
+        edge_capacities = edge_capacities,
+        source_rates = source_rates,
+        target_nodes = targets,
+        options = options
+    )
+    println("DEBUG: Analysis complete")
+    
+    return result, validation
+end
+
+"""Serialize deterministic capacity result for JSON response"""
+function serialize_deterministic_capacity_result(result::CapacityAnalysisResult{Float64}, validation::ValidationReport)
+    # Target flows
+    target_flows = Dict(string(k) => v for (k, v) in result.target_flows)
+    
+    # Edge utilization
+    edge_utilization = Dict{String, Any}()
+    for ((src, dst), flow) in result.edge_flows
+        cap = result.bottlenecks.utilization_by_component[(src, dst)] > 0 ? 
+              flow / result.bottlenecks.utilization_by_component[(src, dst)] : flow
+        edge_utilization["($src,$dst)"] = Dict(
+            "capacity" => cap,
+            "flow" => flow,
+            "utilization" => get(result.bottlenecks.utilization_by_component, (src, dst), 0.0),
+            "spare" => cap - flow
+        )
+    end
+    
+    return Dict(
+        "total_max_flow" => result.total_max_flow,
+        "target_flows" => target_flows,
+        "network_utilization" => result.network_utilization,
+        "node_flows" => Dict(string(k) => v for (k, v) in result.node_flows),
+        "edge_flows" => Dict("($k[1],$k[2])" => v for (k, v) in result.edge_flows),
+        "edge_utilization" => edge_utilization,
+        "bottlenecks" => serialize_bottleneck_report(result.bottlenecks),
+        "upgrade_priorities" => serialize_upgrade_analysis(result.upgrade_priorities),
+        "critical_paths" => serialize_path_analysis(result.critical_paths),
+        "comparative_analysis" => serialize_comparative_analysis(result.comparative_analysis),
+        "metadata" => Dict(
+            "timestamp" => result.analysis_timestamp,
+            "computation_time_ms" => result.computation_time_ms,
+            "algorithm_used" => string(result.algorithm_used),
+            "convergence_achieved" => result.convergence_achieved,
+            "exactness_guaranteed" => result.exactness_guaranteed
+        ),
+        "validation" => serialize_validation_report(validation)
+    )
+end
+
+"""Serialize interval capacity result for JSON response"""
+function serialize_interval_capacity_result(result::IntervalCapacityResult, validation::NamedTuple)
+    return Dict(
+        "guaranteed_min_flow" => result.guaranteed_min_flow,
+        "possible_max_flow" => result.possible_max_flow,
+        "expected_flow" => result.expected_flow,
+        "uncertainty_range" => result.uncertainty_range,
+        "robust_bottlenecks" => collect(result.robust_bottlenecks),
+        "potential_bottlenecks" => collect(result.potential_bottlenecks),
+        "worst_case_scenario" => serialize_deterministic_capacity_result(
+            result.worst_case_scenario, validation.worst
+        ),
+        "best_case_scenario" => serialize_deterministic_capacity_result(
+            result.best_case_scenario, validation.best
+        ),
+        "components_most_uncertain" => [
+            Dict("component" => string(c), "impact" => imp) 
+            for (c, imp) in result.components_most_uncertain
+        ]
+    )
+end
+
+"""Serialize bottleneck report"""
+function serialize_bottleneck_report(bottlenecks::BottleneckReport)
+    return Dict(
+        "min_cut_capacity" => bottlenecks.min_cut_capacity,
+        "min_cut_edges" => [collect(e) for e in bottlenecks.min_cut_edges],
+        "min_cut_nodes" => collect(bottlenecks.min_cut_nodes),
+        "bottleneck_type" => string(bottlenecks.bottleneck_type),
+        "capacity_gap" => bottlenecks.capacity_gap,
+        "saturated_edges" => [collect(e) for e in bottlenecks.saturated_edges],
+        "saturated_nodes" => collect(bottlenecks.saturated_nodes),
+        "near_saturated_edges" => [
+            Dict("edge" => collect(e), "utilization" => u) 
+            for (e, u) in bottlenecks.near_saturated_edges
+        ],
+        "near_saturated_nodes" => [
+            Dict("node" => n, "utilization" => u) 
+            for (n, u) in bottlenecks.near_saturated_nodes
+        ],
+        "total_spare_edge_capacity" => bottlenecks.total_spare_edge_capacity,
+        "total_spare_node_capacity" => bottlenecks.total_spare_node_capacity,
+        "utilization_by_component" => Dict(
+            string(k) => v for (k, v) in bottlenecks.utilization_by_component
+        )
+    )
+end
+
+"""Serialize upgrade analysis"""
+function serialize_upgrade_analysis(upgrade_analysis::UpgradeAnalysis)
+    return Dict(
+        "edge_priorities" => [
+            Dict(
+                "edge" => collect(rec.edge),
+                "current_capacity" => rec.current_capacity,
+                "current_flow" => rec.current_flow,
+                "current_utilization" => rec.current_utilization,
+                "marginal_value" => rec.marginal_value,
+                "recommended_capacity" => rec.recommended_capacity,
+                "expected_flow_increase" => rec.expected_flow_increase,
+                "priority_score" => rec.priority_score,
+                "rationale" => rec.rationale
+            )
+            for rec in upgrade_analysis.edge_priorities
+        ],
+        "node_priorities" => [
+            Dict(
+                "node" => rec.node,
+                "current_capacity" => rec.current_capacity,
+                "current_flow" => rec.current_flow,
+                "current_utilization" => rec.current_utilization,
+                "marginal_value" => rec.marginal_value,
+                "recommended_capacity" => rec.recommended_capacity,
+                "expected_flow_increase" => rec.expected_flow_increase,
+                "priority_score" => rec.priority_score,
+                "rationale" => rec.rationale
+            )
+            for rec in upgrade_analysis.node_priorities
+        ],
+        "primary_bottleneck" => upgrade_analysis.primary_bottleneck,
+        "recommended_action" => upgrade_analysis.recommended_action,
+        "investment_efficiency" => Dict(
+            string(k) => v for (k, v) in upgrade_analysis.investment_efficiency
+        )
+    )
+end
+
+"""Serialize path analysis"""
+function serialize_path_analysis(path_analysis::PathAnalysis)
+    return Dict(
+        "critical_paths" => [
+            Dict(
+                "path" => path.path,
+                "capacity" => path.capacity,
+                "flow" => path.flow,
+                "is_saturated" => path.is_saturated,
+                "spare_capacity" => path.spare_capacity,
+                "length" => path.length,
+                "bottleneck_location" => string(path.bottleneck_location)
+            )
+            for path in path_analysis.critical_paths
+        ],
+        "path_redundancy" => Dict(string(k) => v for (k, v) in path_analysis.path_redundancy),
+        "single_points_of_failure" => [string(spof) for spof in path_analysis.single_points_of_failure],
+        "path_flow_distribution" => [
+            Dict("path" => p, "flow" => f) 
+            for (p, f) in path_analysis.path_flow_distribution
+        ]
+    )
+end
+
+"""Serialize comparative analysis"""
+function serialize_comparative_analysis(comparative_analysis::ComparativeAnalysis)
+    return Dict(
+        "realistic_max_flow" => comparative_analysis.realistic_max_flow,
+        "realistic_bottleneck_type" => string(comparative_analysis.realistic_bottleneck_type),
+        "classical_max_flow" => comparative_analysis.classical_max_flow,
+        "classical_min_cut" => [collect(e) for e in comparative_analysis.classical_min_cut],
+        "efficiency_loss" => comparative_analysis.efficiency_loss,
+        "capacity_gap" => comparative_analysis.capacity_gap,
+        "primary_limitation" => string(comparative_analysis.primary_limitation),
+        "strategic_recommendation" => comparative_analysis.strategic_recommendation,
+        "transmission_bottlenecks" => [collect(e) for e in comparative_analysis.transmission_bottlenecks],
+        "processing_bottlenecks" => collect(comparative_analysis.processing_bottlenecks),
+        "capacity_gaps_by_component" => Dict(
+            string(k) => v for (k, v) in comparative_analysis.capacity_gaps_by_component
+        )
+    )
+end
+
+"""Serialize validation report"""
+function serialize_validation_report(validation::ValidationReport)
+    return Dict(
+        "all_checks_passed" => validation.all_checks_passed,
+        "flow_conservation_satisfied" => validation.flow_conservation_satisfied,
+        "conservation_violations" => [
+            Dict("node" => n, "violation" => v) 
+            for (n, v) in validation.conservation_violations
+        ],
+        "max_conservation_error" => validation.max_conservation_error,
+        "capacity_constraints_satisfied" => validation.capacity_constraints_satisfied,
+        "capacity_violations" => [
+            Dict("component" => string(c), "violation" => v) 
+            for (c, v) in validation.capacity_violations
+        ],
+        "total_source_rate" => validation.total_source_rate,
+        "total_target_flow" => validation.total_target_flow,
+        "flow_balance_satisfied" => validation.flow_balance_satisfied,
+        "optimality_verified" => validation.optimality_verified,
+        "min_cut_capacity" => validation.min_cut_capacity,
+        "max_flow_value" => validation.max_flow_value,
+        "warnings" => validation.warnings,
+        "errors" => validation.errors
+    )
+end
+
+"""
+POST /api/capacity-analysis
+Comprehensive capacity analysis using refactored CapacityAnalysisModule (Phase 1-3)
+Supports deterministic (Float64) and interval uncertainty modes
+"""
 function handle_capacity_analysis(req::HTTP.Request)
     cors_headers = [
         "Access-Control-Allow-Origin" => "*",
@@ -1354,6 +1708,7 @@ function handle_capacity_analysis(req::HTTP.Request)
         network_path = get(request_data, "networkPath", "")
         edges_file_path = get(request_data, "edgesFilePath", "")
         capacities_path = get(request_data, "capacitiesPath", "")
+        uncertainty_mode = get(request_data, "uncertaintyMode", "deterministic")  # "deterministic" or "interval"
         
         if isempty(network_path) || isempty(capacities_path)
             return HTTP.Response(400, cors_headers, JSON.json(Dict(
@@ -1364,11 +1719,9 @@ function handle_capacity_analysis(req::HTTP.Request)
         
         # Determine edges file path
         if isempty(edges_file_path)
-            # Look for .EDGES files in the network path
             if isdir(network_path)
                 edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
                 if !isempty(edges_files)
-                    # Use Julia's built-in joinpath with normalization
                     normalized_network_path = replace(network_path, "\\" => "/")
                     normalized_edges_file = replace(edges_files[1], "\\" => "/")
                     edges_file_path = joinpath(normalized_network_path, normalized_edges_file)
@@ -1376,7 +1729,6 @@ function handle_capacity_analysis(req::HTTP.Request)
                 end
             end
         else
-            # Use Julia's built-in joinpath with normalization
             normalized_network_path = replace(network_path, "\\" => "/")
             normalized_edges_file_path = replace(edges_file_path, "\\" => "/")
             edges_file_path = joinpath(normalized_network_path, normalized_edges_file_path)
@@ -1392,12 +1744,16 @@ function handle_capacity_analysis(req::HTTP.Request)
             )))
         end
         
+        # Load network topology
         edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(edges_file_path)
         allnodes = collect(keys(incoming_index))
         sink_nodes = filter(node -> !haskey(outgoing_index, node) || isempty(outgoing_index[node]), allnodes)
         iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
         
-        # Load capacity data - use Julia's built-in joinpath with normalization
+        # Build topology structure for new API
+        topology = IPAFrameworkOptimized.NetworkTopology(iteration_sets, outgoing_index, incoming_index, Set(source_nodes))
+        
+        # Load capacity data
         normalized_network_path = replace(network_path, "\\" => "/")
         normalized_capacities_path = replace(capacities_path, "\\" => "/")
         full_capacities_path = joinpath(normalized_network_path, normalized_capacities_path)
@@ -1410,130 +1766,51 @@ function handle_capacity_analysis(req::HTTP.Request)
         end
         
         capacity_data = JSON.parsefile(full_capacities_path)
+        data_type_in_file = get(capacity_data, "data_type", "Float64")
         node_caps_raw = capacity_data["capacities"]["nodes"]
         edge_caps_raw = capacity_data["capacities"]["edges"]
         source_rates_raw = capacity_data["capacities"]["source_rates"]
-
-        # Capacity analysis only supports Float64 for mathematical exactness
-        # Convert all inputs to Float64
-        node_capacities = Dict{Int64,Float64}()
-        for (k, v) in node_caps_raw
-            node_capacities[parse(Int64, k)] = parse_typed_value(v, Float64)
-        end
-
-        edge_capacities = Dict{Tuple{Int64,Int64},Float64}()
-        for (k, v) in edge_caps_raw
-            cleaned_key = replace(k, "(" => "", ")" => "")
-            parts = split(cleaned_key, ",")
-            edge_key = (parse(Int64, strip(parts[1])), parse(Int64, strip(parts[2])))
-            edge_capacities[edge_key] = parse_typed_value(v, Float64)
-        end
-
-        source_rates = Dict{Int64,Float64}()
-        for (k, v) in source_rates_raw
-            rate = parse_typed_value(v, Float64)
-            if rate > 0.0
-                source_rates[parse(Int64, k)] = rate
-            end
-        end
-
+        
         # Target nodes are sink nodes
         targets = Set{Int64}(sink_nodes)
-
-        # Run capacity analysis (Float64 only for exact flow-conserving results)
+        
+        # Parse options from request (optional)
+        options_raw = get(request_data, "options", Dict())
+        options = parse_capacity_analysis_options(options_raw)
+        
         capacity_start_time = time()
-        capacity_params = CapacityParameters(node_capacities, edge_capacities, source_rates, targets)
-        capacity_result = maximum_flow_capacity(iteration_sets, outgoing_index, incoming_index, source_nodes, capacity_params)
+        
+        # Dispatch based on uncertainty mode
+        if uncertainty_mode == "interval" || data_type_in_file == "Interval"
+            # INTERVAL MODE  
+            result, validation = handle_interval_capacity_analysis_impl(
+                topology, node_caps_raw, edge_caps_raw, source_rates_raw, targets, options
+            )
+            response = serialize_interval_capacity_result(result, (worst=validation.worst_case_validation, best=validation.best_case_validation))
+        else
+            # DETERMINISTIC MODE (default)
+            result, validation = handle_deterministic_capacity_analysis_impl(
+                topology, node_caps_raw, edge_caps_raw, source_rates_raw, targets, options
+            )
+            response = serialize_deterministic_capacity_result(result, validation)
+        end
+        
         capacity_computation_time = time() - capacity_start_time
         
-        # Extract flow results
-        target_flows = Dict()
-        for target in targets
-            if haskey(capacity_result.node_max_flows, target)
-                target_flows[string(target)] = capacity_result.node_max_flows[target]
-            end
-        end
-
-        # Compute edge utilization from actual edge flows (flow-conserving)
-        edge_utilization = Dict{String, Dict{String, Any}}()
-        actual_edge_flows = capacity_result.edge_flows
-        for ((src, dst), cap) in edge_capacities
-            flow_through = if actual_edge_flows !== nothing
-                get(actual_edge_flows, (src, dst), 0.0)
-            else
-                # Fallback for analysis types that don't track edge flows
-                min(get(capacity_result.node_max_flows, src, 0.0), cap)
-            end
-            edge_utilization["($src, $dst)"] = Dict(
-                "capacity" => cap,
-                "flow" => flow_through,
-                "utilization" => cap > 0.0 ? flow_through / cap : 0.0,
-                "spare" => cap - flow_through
-            )
-        end
-
-        # Run comparative analysis (realistic vs classical)
-        comparative_data = Dict{String, Any}()
-        try
-            comparative = comparative_capacity_analysis(
-                iteration_sets, outgoing_index, incoming_index,
-                source_nodes, capacity_params
-            )
-
-            comparative_data = Dict(
-                "capacity_gaps" => Dict(string(k) => v for (k, v) in comparative[:capacity_gaps]),
-                "processing_limitations" => Dict(string(k) => v for (k, v) in comparative[:processing_limitations]),
-                "infrastructure_bottlenecks" => [string(b) for b in comparative[:infrastructure_bottlenecks]],
-                "processing_bottlenecks" => [b for b in comparative[:processing_bottlenecks]],
-                "upgrade_priorities" => [Dict("node" => p[1], "gap" => p[2], "priority" => p[3]) for p in comparative[:upgrade_priorities]],
-                "efficiency_metrics" => Dict(string(k) => v for (k, v) in comparative[:efficiency_metrics]),
-                "strategic_recommendations" => comparative[:strategic_recommendations]
-            )
-        catch comp_err
-            println("Comparative analysis warning (non-fatal): ", comp_err)
-            comparative_data = Dict("error" => "Comparative analysis unavailable")
-        end
-
-        result_data = Dict(
-            "computation_time" => capacity_computation_time,
-            "network_utilization" => capacity_result.network_utilization,
-            "total_source_input" => sum(collect(values(source_rates))),
-            "total_target_output" => sum(collect(values(target_flows))),
-            "target_flows" => target_flows,
-            "active_sources" => collect(keys(source_rates)),
-            "target_nodes" => collect(targets),
-            "node_capacities_count" => length(node_capacities),
-            "edge_capacities_count" => length(edge_capacities),
-            "input_files" => Dict("capacities_path" => capacities_path),
-            "comparative_analysis" => comparative_data,
-            "raw_capacity_result" => Dict(
-                "node_max_flows" => Dict(string(k) => v for (k, v) in capacity_result.node_max_flows),
-                "node_capacities" => Dict(string(k) => v for (k, v) in node_capacities),
-                "edge_capacities" => Dict(string(k) => v for (k, v) in edge_capacities),
-                "edge_utilization" => edge_utilization,
-                "source_rates" => Dict(string(k) => v for (k, v) in source_rates),
-                "bottlenecks" => capacity_result.bottlenecks,
-                "critical_paths" => capacity_result.critical_paths,
-                "network_utilization" => capacity_result.network_utilization,
-                "analysis_type" => string(capacity_result.analysis_type),
-                "computation_time" => capacity_result.computation_time,
-                "convergence_info" => capacity_result.convergence_info
-            )
-        )
+        # Add metadata
+        response["success"] = true
+        response["message"] = "Capacity analysis completed"
+        response["edges_file_path"] = edges_file_path
+        response["capacities_path"] = capacities_path
+        response["uncertainty_mode"] = uncertainty_mode
+        response["timestamp"] = Dates.now()
+        response["computation_time_ms"] = capacity_computation_time * 1000
         
-        result = Dict(
-            "success" => true,
-            "message" => "Capacity analysis completed",
-            "edges_file_path" => edges_file_path,
-            "capacities_path" => capacities_path,
-            "timestamp" => Dates.now(),
-            "capacity_result" => result_data
-        )
-        
-        return HTTP.Response(200, cors_headers, JSON.json(result))
+        return HTTP.Response(200, cors_headers, JSON.json(response))
         
     catch e
         println("Capacity analysis error: ", e)
+        println(stacktrace(catch_backtrace()))
         return HTTP.Response(500, cors_headers, JSON.json(Dict(
             "success" => false,
             "error" => string(e),

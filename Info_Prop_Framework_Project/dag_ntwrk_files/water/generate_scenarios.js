@@ -1,11 +1,17 @@
 /**
- * WATER Network Scenario Generator — Case Study Edition
+ * WATER Network Scenario Generator — Enhanced Realism Edition (Phase 4)
  *
  * Generates 4 complete "state of the world" scenarios for the WATER Bayesian network
  * (waste water treatment plant, Jensen et al. 1989). Each scenario contains:
  *   - Reachability data (node priors + link probabilities)
- *   - Capacity data (node caps + edge caps + source rates)
+ *   - Capacity data (node caps + edge caps + source rates) — Intervals for uncertainty
  *   - CPM data (time: durations + delays, cost: node costs + edge costs)
+ *
+ * **Phase 4 Updates:**
+ *   - Removed P-box types entirely (use exact interval arithmetic only)
+ *   - Enhanced scenarios with more realistic redundancy patterns
+ *   - All interval data uses lower/upper bounds (no P-box construction)
+ *   - Capacity analysis integrates with refactored CapacityAnalysisModule (Phases 1-3)
  *
  * Domain: 8 water quality variables measured at 4 time steps (15-min intervals)
  *   0: C_NI   - Nitrogen Input Concentration (influent)
@@ -21,8 +27,8 @@
  *
  * Scenarios:
  *   1. Normal Operations (Float)       — baseline dry-weather operation
- *   2. Storm Event (Float)             — acute hydraulic stress, CSO
- *   3. Nitrification Failure (Float)   — localized N-removal breakdown
+ *   2. Storm Event (Float)             — acute hydraulic stress, CSO, high redundancy
+ *   3. Nitrification Failure (Interval)— localized N-removal breakdown (uncertain recovery)
  *   4. Winter Operations (Interval)    — cold weather + sensor uncertainty
  */
 
@@ -117,35 +123,35 @@ function ensureDir(dir) {
 // ============================================================
 
 const SCENARIOS = {
-
   // ---- SCENARIO 1: Normal Operations (Float) ----
   'Normal Operations': {
     dataType: 'Float64',
-    description: 'Typical dry-weather day. Plant operating within design parameters. Treatment effective across all stages. Moderate influent loading, strong temporal persistence.',
+    description: 'Baseline dry-weather operation. Moderate BOD/nitrogen loads. All treatment processes functioning normally. Standard operational redundancy.',
     reachability: {
-      sourcePriors:      { 0: 0.25, 1: 0.30, 2: 0.15, 3: 0.10, 4: 0.20, 5: 0.12, 6: 0.18, 7: 0.15 },
-      interiorPriorsByVar: { 0: 0.50, 1: 0.55, 2: 0.40, 3: 0.35, 4: 0.45, 5: 0.38, 6: 0.42, 7: 0.40 },
+      sourcePriors:      { 0: 0.52, 1: 0.55, 2: 0.48, 3: 0.45, 4: 0.40, 5: 0.50, 6: 0.42, 7: 0.38 },
+      interiorPriorsByVar: { 0: 0.68, 1: 0.72, 2: 0.65, 3: 0.60, 4: 0.58, 5: 0.62, 6: 0.56, 7: 0.54 },
       edgeProbs: {
-        self_temporal: 0.92, input_to_bod: 0.78, input_to_discharge: 0.80,
-        bod_chain: 0.75, discharge_to_process: 0.72, feedback_to_bod: 0.68,
-        nitrogen_chain: 0.74, reverse_nitrogen: 0.65, discharge_feedback: 0.70, other: 0.70
+        self_temporal: 0.92, input_to_bod: 0.88, input_to_discharge: 0.86,
+        bod_chain: 0.85, discharge_to_process: 0.80, feedback_to_bod: 0.78,
+        nitrogen_chain: 0.75, reverse_nitrogen: 0.68, discharge_feedback: 0.72, other: 0.75
       }
     },
     capacity: {
-      sourceRateBase: { 0: 8.0, 1: 10.0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+      sourceRateBase: { 0: 12.0, 1: 15.0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
       nodeCapBase:    { source: 20, hub: 28, process: 22, discharge: 18, sink: 25 },
       edgeCapBase: {
         self_temporal: 18, input_to_bod: 15, input_to_discharge: 14,
         bod_chain: 16, discharge_to_process: 13, feedback_to_bod: 12,
-        nitrogen_chain: 14, reverse_nitrogen: 11, discharge_feedback: 12.5, other: 13
-      }
+        nitrogen_chain: 14, reverse_nitrogen: 10, discharge_feedback: 12, other: 13
+      },
+      redundancyFactor: 1.15  // 15% capacity headroom for normal ops
     },
     cpm: {
-      nodeDurations: { source: 2.5, hub: 4.0, process: 3.0, discharge: 2.0, sink: 1.5 },
+      nodeDurations: { source: 2.0, hub: 3.5, process: 2.5, discharge: 1.5, sink: 1.2 },
       edgeDelays: {
-        self_temporal: 1.5, input_to_bod: 3.0, input_to_discharge: 2.5,
-        bod_chain: 2.8, discharge_to_process: 2.2, feedback_to_bod: 2.0,
-        nitrogen_chain: 2.5, reverse_nitrogen: 1.8, discharge_feedback: 2.0, other: 2.0
+        self_temporal: 1.2, input_to_bod: 2.5, input_to_discharge: 2.0,
+        bod_chain: 2.2, discharge_to_process: 1.8, feedback_to_bod: 1.5,
+        nitrogen_chain: 2.0, reverse_nitrogen: 1.4, discharge_feedback: 1.6, other: 1.8
       },
       nodeCosts: { source: 150, hub: 280, process: 200, discharge: 120, sink: 100 },
       edgeCosts: {
@@ -156,84 +162,83 @@ const SCENARIOS = {
     }
   },
 
-  // ---- SCENARIO 2: Storm Event (Float) ----
+  // ---- SCENARIO 2: Storm Event (Float) — ENHANCED REDUNDANCY ----
   'Storm Event': {
     dataType: 'Float64',
-    description: 'Heavy rainfall causes combined sewer overflow. Influent flow 2.5-3x normal. Pollutant concentrations spike at input. Treatment capacity overwhelmed. Expedited processing at higher cost.',
+    description: 'Heavy rainfall: CSO, 2.5x normal flow, high pollutant loads. Emergency bypass paths activated. Parallel processing at multiple BOD hubs provides resilience. Increased capacity reflects storm infrastructure design.',
     reachability: {
-      sourcePriors:      { 0: 0.70, 1: 0.65, 2: 0.80, 3: 0.55, 4: 0.60, 5: 0.75, 6: 0.50, 7: 0.45 },
-      interiorPriorsByVar: { 0: 0.72, 1: 0.70, 2: 0.75, 3: 0.60, 4: 0.65, 5: 0.70, 6: 0.58, 7: 0.55 },
+      sourcePriors:      { 0: 0.75, 1: 0.72, 2: 0.82, 3: 0.60, 4: 0.65, 5: 0.78, 6: 0.55, 7: 0.50 },
+      interiorPriorsByVar: { 0: 0.78, 1: 0.76, 2: 0.80, 3: 0.68, 4: 0.72, 5: 0.75, 6: 0.64, 7: 0.62 },
       edgeProbs: {
-        self_temporal: 0.85, input_to_bod: 0.90, input_to_discharge: 0.88,
-        bod_chain: 0.87, discharge_to_process: 0.82, feedback_to_bod: 0.85,
-        nitrogen_chain: 0.83, reverse_nitrogen: 0.78, discharge_feedback: 0.80, other: 0.80
+        self_temporal: 0.90, input_to_bod: 0.94, input_to_discharge: 0.92,
+        bod_chain: 0.91, discharge_to_process: 0.86, feedback_to_bod: 0.88,
+        nitrogen_chain: 0.87, reverse_nitrogen: 0.82, discharge_feedback: 0.84, other: 0.85
       }
     },
     capacity: {
-      sourceRateBase: { 0: 22.0, 1: 25.0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
-      nodeCapBase:    { source: 16, hub: 20, process: 17, discharge: 14, sink: 19 },
+      sourceRateBase: { 0: 30.0, 1: 35.0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+      nodeCapBase:    { source: 22, hub: 32, process: 24, discharge: 20, sink: 28 },  // Storm design capacity
       edgeCapBase: {
-        self_temporal: 14, input_to_bod: 11, input_to_discharge: 10,
-        bod_chain: 12, discharge_to_process: 9.5, feedback_to_bod: 8,
-        nitrogen_chain: 10, reverse_nitrogen: 7.5, discharge_feedback: 9, other: 9.5
-      }
+        self_temporal: 20, input_to_bod: 18, input_to_discharge: 16,
+        bod_chain: 19, discharge_to_process: 15, feedback_to_bod: 14,
+        nitrogen_chain: 16, reverse_nitrogen: 12, discharge_feedback: 14, other: 15
+      },
+      redundancyFactor: 1.35  // 35% redundancy for storm resilience
     },
     cpm: {
-      nodeDurations: { source: 1.5, hub: 2.5, process: 1.8, discharge: 1.2, sink: 0.8 },
+      nodeDurations: { source: 1.2, hub: 2.0, process: 1.4, discharge: 1.0, sink: 0.7 },  // Faster processing under storm
       edgeDelays: {
-        self_temporal: 0.8, input_to_bod: 1.8, input_to_discharge: 1.5,
-        bod_chain: 1.6, discharge_to_process: 1.3, feedback_to_bod: 1.2,
-        nitrogen_chain: 1.5, reverse_nitrogen: 1.0, discharge_feedback: 1.2, other: 1.2
+        self_temporal: 0.6, input_to_bod: 1.4, input_to_discharge: 1.2,
+        bod_chain: 1.3, discharge_to_process: 1.0, feedback_to_bod: 0.9,
+        nitrogen_chain: 1.2, reverse_nitrogen: 0.8, discharge_feedback: 0.9, other: 1.0
       },
-      nodeCosts: { source: 210, hub: 390, process: 280, discharge: 170, sink: 140 },
+      nodeCosts: { source: 250, hub: 450, process: 320, discharge: 200, sink: 160 },  // Emergency operation premium
       edgeCosts: {
-        self_temporal: 65, input_to_bod: 135, input_to_discharge: 115,
-        bod_chain: 128, discharge_to_process: 100, feedback_to_bod: 92,
-        nitrogen_chain: 108, reverse_nitrogen: 78, discharge_feedback: 85, other: 92
+        self_temporal: 75, input_to_bod: 155, input_to_discharge: 130,
+        bod_chain: 145, discharge_to_process: 115, feedback_to_bod: 105,
+        nitrogen_chain: 125, reverse_nitrogen: 90, discharge_feedback: 100, other:110
       }
     }
   },
 
-  // ---- SCENARIO 3: Nitrification Failure (Float) ----
+  // ---- SCENARIO 3: Nitrification Failure (Interval) — UNCERTAIN RECOVERY ----
   'Nitrification Failure': {
-    dataType: 'Float64',
-    description: 'Biological nitrification process has failed (toxic shock / pH shift / low dissolved oxygen). Ammonia-to-nitrate conversion stops. Nitrogen pathways broken while BOD treatment continues normally. The most analytically interesting scenario — localized degradation.',
+    dataType: 'Interval',
+    description: 'Biological nitrification process failure (toxic shock). Nitrogen pathways degraded with uncertain recovery timeline. BOD treatment unaffected. Interval bounds reflect operational uncertainty during recovery phase.',
     reachability: {
-      sourcePriors:      { 0: 0.30, 1: 0.35, 2: 0.18, 3: 0.40, 4: 0.12, 5: 0.15, 6: 0.55, 7: 0.10 },
-      interiorPriorsByVar: { 0: 0.52, 1: 0.58, 2: 0.42, 3: 0.58, 4: 0.25, 5: 0.40, 6: 0.68, 7: 0.22 },
+      sourcePriors:      { 0: [0.25, 0.35], 1: [0.30, 0.42], 2: [0.16, 0.22], 3: [0.35, 0.48], 4: [0.10, 0.16], 5: [0.12, 0.20], 6: [0.48, 0.62], 7: [0.08, 0.14] },
+      interiorPriorsByVar: { 0: [0.48, 0.58], 1: [0.52, 0.64], 2: [0.38, 0.48], 3: [0.52, 0.64], 4: [0.20, 0.32], 5: [0.35, 0.48], 6: [0.62, 0.74], 7: [0.18, 0.28] },
       edgeProbs: {
-        self_temporal: 0.92, input_to_bod: 0.78, input_to_discharge: 0.82,
-        bod_chain: 0.75, discharge_to_process: 0.72, feedback_to_bod: 0.68,
-        nitrogen_chain: 0.35, reverse_nitrogen: 0.30, discharge_feedback: 0.72, other: 0.70
+        self_temporal: [0.88, 0.96], input_to_bod: [0.72, 0.84], input_to_discharge: [0.76, 0.88],
+        bod_chain: [0.68, 0.82], discharge_to_process: [0.65, 0.79], feedback_to_bod: [0.60, 0.76],
+        nitrogen_chain: [0.28, 0.42], reverse_nitrogen: [0.22, 0.38], discharge_feedback: [0.64, 0.80], other: [0.62, 0.78]
       }
     },
     capacity: {
-      sourceRateBase: { 0: 8.0, 1: 10.0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
-      // Nitrogen-related nodes have reduced capacity; BOD nodes unchanged
-      nodeCapBase:    { source: 20, hub: 28, process: 22, discharge: 18, sink: 25 },
-      // Override for nitrogen-specific nodes handled in generator
-      nitrogenNodeCapOverride: { 6: 12, 7: 10 },  // CKNN, CNON nodes halved
+      sourceRateBase: { 0: [6.5, 9.5], 1: [8.5, 11.5], 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
+      nodeCapBase:    { source: [18, 22], hub: [26, 30], process: [20, 24], discharge: [16, 20], sink: [23, 27] },
+      nitrogenNodeCapOverride: { 6: [9, 14], 7: [7, 12] },  // CKNN, CNON severely degraded
       edgeCapBase: {
-        self_temporal: 18, input_to_bod: 15, input_to_discharge: 14,
-        bod_chain: 16, discharge_to_process: 13, feedback_to_bod: 12,
-        nitrogen_chain: 7, reverse_nitrogen: 5.5, discharge_feedback: 12.5, other: 13
-      }
+        self_temporal: [16, 20], input_to_bod: [13, 17], input_to_discharge: [12, 16],
+        bod_chain: [14, 18], discharge_to_process: [11, 15], feedback_to_bod: [10, 14],
+        nitrogen_chain: [5, 9], reverse_nitrogen: [4, 7], discharge_feedback: [11, 14], other: [11, 15]
+      },
+      redundancyFactor: [0.85, 1.05]  // Reduced redundancy during failure mode
     },
     cpm: {
-      nodeDurations: { source: 2.5, hub: 4.0, process: 3.0, discharge: 2.0, sink: 1.5 },
-      // Override for nitrogen nodes
-      nitrogenDurationOverride: { 6: 5.4, 7: 5.0 },  // 80% longer
+      nodeDurations: { source: [2.2, 2.8], hub: [3.8, 4.5], process: [2.8, 3.5], discharge: [1.8, 2.4], sink: [1.3, 1.8] },
+      nitrogenDurationOverride: { 6: [5.0, 6.2], 7: [4.6, 5.8] },  // 90-100% longer processing
       edgeDelays: {
-        self_temporal: 1.5, input_to_bod: 3.0, input_to_discharge: 2.5,
-        bod_chain: 2.8, discharge_to_process: 2.2, feedback_to_bod: 2.0,
-        nitrogen_chain: 4.5, reverse_nitrogen: 3.6, discharge_feedback: 2.0, other: 2.0
+        self_temporal: [1.3, 1.8], input_to_bod: [2.8, 3.4], input_to_discharge: [2.3, 2.9],
+        bod_chain: [2.6, 3.2], discharge_to_process: [2.0, 2.6], feedback_to_bod: [1.8, 2.4],
+        nitrogen_chain: [4.2, 5.2], reverse_nitrogen: [3.2, 4.2], discharge_feedback: [1.8, 2.4], other: [1.8, 2.4]
       },
-      nodeCosts: { source: 150, hub: 280, process: 200, discharge: 120, sink: 100 },
-      nitrogenCostOverride: { 6: 320, 7: 260 },  // 60% higher
+      nodeCosts: { source: [145, 165], hub: [270, 300], process: [190, 220], discharge: [115, 135], sink: [95, 115] },
+      nitrogenCostOverride: { 6: [310, 350], 7: [250, 290] },  // 70-80% cost premium
       edgeCosts: {
-        self_temporal: 45, input_to_bod: 95, input_to_discharge: 80,
-        bod_chain: 90, discharge_to_process: 70, feedback_to_bod: 65,
-        nitrogen_chain: 112, reverse_nitrogen: 82, discharge_feedback: 60, other: 65
+        self_temporal: [42, 52], input_to_bod: [88, 108], input_to_discharge: [74, 92],
+        bod_chain: [84, 102], discharge_to_process: [65, 80], feedback_to_bod: [60, 75],
+        nitrogen_chain: [105, 130], reverse_nitrogen: [75, 95], discharge_feedback: [55, 70], other: [60, 75]
       }
     }
   },
@@ -241,7 +246,7 @@ const SCENARIOS = {
   // ---- SCENARIO 4: Winter Operations (Interval) ----
   'Winter Operations': {
     dataType: 'Interval',
-    description: 'Cold weather (<5C water temp) degrades all biological processes, especially nitrification. Sensors suffer cold-weather drift and ice buildup. All values are intervals reflecting both degraded performance and measurement uncertainty. Nitrogen pathways have widest bounds (most temperature-sensitive).',
+    description: 'Cold water (<5C) degrades all biological processes. Sensor drift from ice/cold. All values are intervals reflecting degraded performance + measurement uncertainty. Nitrogen pathways most temperature-sensitive (widest bounds).',
     reachability: {
       sourcePriors: {
         0: [0.28, 0.42], 1: [0.32, 0.48], 2: [0.20, 0.35], 3: [0.18, 0.33],
@@ -268,7 +273,8 @@ const SCENARIOS = {
         bod_chain: [13, 18], discharge_to_process: [10, 15], feedback_to_bod: [9, 14],
         nitrogen_chain: [10, 16], reverse_nitrogen: [8, 13], discharge_feedback: [10, 14],
         other: [10, 15]
-      }
+      },
+      redundancyFactor: [0.90, 1.10]  // Modest headroom with uncertainty
     },
     cpm: {
       nodeDurations: {
@@ -352,6 +358,9 @@ function generateCapacity(scenarioName, config) {
   const isInterval = config.dataType === 'Interval';
   const cap = config.capacity;
 
+  // Extract redundancy factor (default 1.0 if not specified)
+  const redundancyFactor = cap.redundancyFactor !== undefined ? cap.redundancyFactor : 1.0;
+
   const nodesCap = {};
   const sourceRates = {};
   const edgesCap = {};
@@ -365,14 +374,19 @@ function generateCapacity(scenarioName, config) {
     const nitrogenOverride = cap.nitrogenNodeCapOverride && cap.nitrogenNodeCapOverride[v];
     const effectiveCap = nitrogenOverride !== undefined && timeStep(n) > 0 ? nitrogenOverride : baseCap;
 
+    // Apply redundancy factor
+    let finalCap;
     if (isInterval) {
       const base = Array.isArray(effectiveCap) ? effectiveCap : [effectiveCap, effectiveCap];
-      nodesCap[String(n)] = rObj(noiseIntervalUnbounded(base[0], base[1], base[0] * 0.05));
+      const redundancy = Array.isArray(redundancyFactor) ? redundancyFactor : [redundancyFactor, redundancyFactor];
+      finalCap = [base[0] * redundancy[0], base[1] * redundancy[1]];
+      nodesCap[String(n)] = rObj(noiseIntervalUnbounded(finalCap[0], finalCap[1], finalCap[0] * 0.05));
     } else {
-      nodesCap[String(n)] = r(noise(effectiveCap, effectiveCap * 0.05, false));
+      finalCap = effectiveCap * redundancyFactor;
+      nodesCap[String(n)] = r(noise(finalCap, finalCap * 0.05, false));
     }
 
-    // Source rates
+    // Source rates (no redundancy factor applied)
     if (timeStep(n) === 0) {
       const rateBase = cap.sourceRateBase[v];
       if (isInterval) {
@@ -392,11 +406,17 @@ function generateCapacity(scenarioName, config) {
   for (const [src, dst] of EDGES) {
     const et = edgeType(src, dst);
     const baseCap = cap.edgeCapBase[et] || cap.edgeCapBase.other;
+    
+    // Apply redundancy factor to edge capacities
+    let finalEdgeCap;
     if (isInterval) {
       const base = Array.isArray(baseCap) ? baseCap : [baseCap, baseCap];
-      edgesCap[`(${src},${dst})`] = rObj(noiseIntervalUnbounded(base[0], base[1], base[0] * 0.05));
+      const redundancy = Array.isArray(redundancyFactor) ? redundancyFactor : [redundancyFactor, redundancyFactor];
+      finalEdgeCap = [base[0] * redundancy[0], base[1] * redundancy[1]];
+      edgesCap[`(${src},${dst})`] = rObj(noiseIntervalUnbounded(finalEdgeCap[0], finalEdgeCap[1], finalEdgeCap[0] * 0.05));
     } else {
-      edgesCap[`(${src},${dst})`] = r(noise(baseCap, baseCap * 0.05, false));
+      finalEdgeCap = baseCap * redundancyFactor;
+      edgesCap[`(${src},${dst})`] = r(noise(finalEdgeCap, finalEdgeCap * 0.05, false));
     }
   }
 
@@ -405,7 +425,12 @@ function generateCapacity(scenarioName, config) {
     data_type: isInterval ? 'Interval' : 'Float64',
     capacities: { nodes: nodesCap, source_rates: sourceRates, edges: edgesCap },
     description: `Capacity analysis inputs for WATER network - ${scenarioName}. ${config.description}`,
-    generation_info: { total_nodes: 32, total_edges: 66, source_nodes_count: 8 }
+    generation_info: { 
+      total_nodes: 32, 
+      total_edges: 66, 
+      source_nodes_count: 8,
+      redundancy_factor: redundancyFactor 
+    }
   };
 
   fs.writeFileSync(path.join(dir, 'water-capacities.json'), JSON.stringify(capacities, null, 2));
@@ -513,7 +538,7 @@ for (const [name, config] of Object.entries(SCENARIOS)) {
 console.log('=== Done! Generated 4 scenarios (12 files) ===');
 console.log('\nScenario summary:');
 console.log('  1. Normal Operations      (Float)    — baseline');
-console.log('  2. Storm Event            (Float)    — acute hydraulic stress');
-console.log('  3. Nitrification Failure  (Float)    — localized N-removal breakdown');
+console.log('  2. Storm Event            (Float)    — acute hydraulic stress + redundancy');
+console.log('  3. Nitrification Failure  (Interval) — uncertain recovery timeline');
 console.log('  4. Winter Operations      (Interval) — cold weather + sensor uncertainty');
 console.log('\nEach scenario contains: reachability + capacity + CPM = complete profile');

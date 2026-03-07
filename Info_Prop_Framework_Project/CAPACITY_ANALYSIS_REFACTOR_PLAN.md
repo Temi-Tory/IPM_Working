@@ -1610,11 +1610,53 @@ export class UpgradeRecommendationsComponent { ... }
    - Meaningful error messages
 
 5. ✅ Integration testing
-   - Test with real network files
-   - Verify JSON serialization
-   - Performance benchmarking
+    - Test with real network files
+    - Verify JSON serialization
+    - Performance benchmarking
+
+6. ✅ Generator update
+    - Remove P-box types from all scenarios (use Float64/Interval only)
+    - Add redundancy factors for realistic capacity modeling
+    - Enhance scenarios with uncertainty patterns for advanced analysis
+    - Update scenario 3 (Nitrification Failure) to use intervals for recovery uncertainty
 
 **Deliverable**: Updated backend with new capacity module
+
+#### Phase 4 Completion Note (March 8, 2026)
+
+**Status**: ✅ Complete
+
+**Summary**:
+- Backend server endpoint completely refactored to use Phase 1-3 capacity analysis module
+- Old handle_capacity_analysis() replaced with new implementation supporting deterministic and interval modes
+- Comprehensive input parsing layer converts JSON to proper Julia types (Float64/IntervalArithmetic.Interval)
+- Complete output serialization for all Phase 3 result types (bottleneck reports, upgrade analysis, path analysis, comparative analysis, validation reports)
+- Scenario generator enhanced with redundancy factors and realistic uncertainty patterns
+- All P-box types removed from scenarios (now only Float64 and Interval)
+- Nitrification Failure scenario updated to use intervals reflecting uncertain recovery timeline
+
+**Files modified (Phase 4):**
+- `backend_server.jl` (lines 1344-1678: endpoint + parsers + serializers)
+- `dag_ntwrk_files/water/generate_scenarios.js` (scenarios + redundancy factors + interval enhancements)
+
+**Integration summary:**
+- Old endpoint used legacy CapacityParameters → new endpoint uses NetworkTopology
+- Old endpoint called maximum_flow_capacity() → new endpoint calls analyze_capacity_validated/analyze_capacity_uncertain_validated
+- Request schema preserved for backward compatibility (uncertainty_mode: "deterministic"/"interval")
+- Response schema extended to include Phase 3 advanced analysis results
+- Scenario generator creates 4 realistic scenarios:
+  1. Normal Operations (Float) — 15% capacity redundancy
+  2. Storm Event (Float) — 35% capacity redundancy for resilience
+  3. Nitrification Failure (Interval) — uncertain recovery with [0.85, 1.05] redundancy bounds
+  4. Winter Operations (Interval) — cold weather uncertainty with [0.90, 1.10] redundancy bounds
+
+**Phase 4 Features Verified:**
+- ✅ Backend correctly dispatches deterministic vs interval analysis based on uncertainty_mode
+- ✅ Input parsers handle both Float64 and Interval types from JSON
+- ✅ Output serializers correctly format all Phase 3 result types for JSON response
+- ✅ Scenario generator applies redundancy factors correctly (verified in generation_info metadata)
+- ✅ All scenarios use only Float64/Interval (no P-box types)
+- ✅ Generator output aligns with refactored module API
 
 ---
 

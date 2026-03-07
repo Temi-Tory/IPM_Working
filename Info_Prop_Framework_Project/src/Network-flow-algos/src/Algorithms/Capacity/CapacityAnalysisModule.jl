@@ -30,6 +30,11 @@ include("Extensions/IntervalExtension.jl")
 # Include validation
 include("Core/Validation.jl")
 
+# Export core types
+export NetworkTopology, CapacityAnalysisOptions,
+    BasicCapacityProblem, UncertainCapacityProblem,
+    CapacityAnalysisResult, IntervalCapacityResult
+
 # Export core analysis functions
 export analyze_capacity_deterministic, validate_capacity_result, 
     quick_validate, print_validation_report,
