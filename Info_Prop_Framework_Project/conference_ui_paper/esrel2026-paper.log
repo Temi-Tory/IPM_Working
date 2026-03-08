@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  8 MAR 2026 12:45
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  8 MAR 2026 13:54
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -504,18 +504,18 @@ pdfTeX warning: pdflatex (file ./images/architecture_paper.pdf): PDF inclusion: 
 <images/architecture_paper.pdf, id=60, 1200.485pt x 767.86874pt>
 File: images/architecture_paper.pdf Graphic file (type pdf)
 <use images/architecture_paper.pdf>
-Package pdftex.def Info: images/architecture_paper.pdf  used on input line 86.
-(pdftex.def)             Requested size: 415.41023pt x 265.71173pt.
-<images/network-visuliation.png, id=64, 1888.05376pt x 1016.29688pt>
+Package pdftex.def Info: images/architecture_paper.pdf  used on input line 87.
+(pdftex.def)             Requested size: 415.41339pt x 265.71173pt.
+<images/network-visuliation.png, id=64, 1884.28969pt x 957.5775pt>
 File: images/network-visuliation.png Graphic file (type png)
 <use images/network-visuliation.png>
 Package pdftex.def Info: images/network-visuliation.png  used on input line 100.
-(pdftex.def)             Requested size: 203.55328pt x 109.55992pt.
-<images/network-structure-view.png, id=66, 1885.79532pt x 993.7125pt>
+(pdftex.def)             Requested size: 199.16446pt x 101.21342pt.
+<images/network-structure-view.png, id=66, 1869.98625pt x 998.9822pt>
 File: images/network-structure-view.png Graphic file (type png)
 <use images/network-structure-view.png>
 Package pdftex.def Info: images/network-structure-view.png  used on input line 104.
-(pdftex.def)             Requested size: 203.55328pt x 107.26173pt.
+(pdftex.def)             Requested size: 199.16492pt x 106.39767pt.
 [2] [3 <./images/architecture_paper.pdf> <./images/network-visuliation.png> <./images/network-structure-view.png>] [4]
 <images/profile-ovrview.png, id=134, 1014.03844pt x 409.53pt>
 File: images/profile-ovrview.png Graphic file (type png)
@@ -525,12 +525,12 @@ Package pdftex.def Info: images/profile-ovrview.png  used on input line 167.
 <images/profile-insights.png, id=135, 1207.51125pt x 912.40875pt>
 File: images/profile-insights.png Graphic file (type png)
 <use images/profile-insights.png>
-Package pdftex.def Info: images/profile-insights.png  used on input line 169.
+Package pdftex.def Info: images/profile-insights.png  used on input line 171.
 (pdftex.def)             Requested size: 415.41263pt x 212.73149pt.
 <images/profile-optimization.png, id=136, 1231.60126pt x 389.20406pt>
 File: images/profile-optimization.png Graphic file (type png)
 <use images/profile-optimization.png>
-Package pdftex.def Info: images/profile-optimization.png  used on input line 171.
+Package pdftex.def Info: images/profile-optimization.png  used on input line 175.
 (pdftex.def)             Requested size: 415.39378pt x 170.18727pt.
  [5] [6 <./images/profile-ovrview.png> <./images/profile-insights.png> <./images/profile-optimization.png>] (esrel2026-paper.bbl [7
 
@@ -589,13 +589,13 @@ Package natbib Warning: Citation `shannon2003cytoscape' multiply defined.
 Here is how much of TeX's memory you used:
  11642 strings out of 478547
  186387 string characters out of 2841835
- 485232 words of memory out of 3000000
+ 485222 words of memory out of 3000000
  29626 multiletter control sequences out of 15000+600000
  490377 words of font info for 70 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,12n,77p,1071b,422s stack positions out of 10000i,1000n,20000p,200000b,80000s
 {C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}<C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx7.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/urw/courier/ucrr8a.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pfb>
-Output written on esrel2026-paper.pdf (8 pages, 1972264 bytes).
+Output written on esrel2026-paper.pdf (8 pages, 2010251 bytes).
 PDF statistics:
  246 PDF objects out of 1000 (max. 8388607)
  41 named destinations out of 1000 (max. 500000)

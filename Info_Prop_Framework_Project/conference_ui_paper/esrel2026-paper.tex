@@ -81,9 +81,11 @@ From the end-user's perspective, this separation is invisible; the frontend comm
 For developers and technical researchers, this already removes the need to reimplement these algorithms from scratch, since the exposed functions can be called directly and the package can be extended or overridden as needed. However, the majority of excluded users are not looking to write code at all.
 
 Domain experts who understand the implications of an analysis and know how to make decisions from results are often not programmers, and these are the users that the web interface was developed for.
+
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\textwidth]{images/architecture_paper.pdf}
+    \includegraphics[height=0.45\textheight,width=\textwidth,keepaspectratio]{images/architecture_paper.pdf}
+    
     \caption{The IPA-Web decoupled software architecture}
     \label{fig:architecture}
 \end{figure*}
@@ -91,21 +93,19 @@ Domain experts who understand the implications of an analysis and know how to ma
 \subsection{ Available Network Analysis Tools}
 Developed with a Julia language fronte-end and angular backe-end; the \texttt{InformationPropagationAnalysis.jl} package~\cite{infoprop2026_julia} is a multi algorithm framework developed for network analysis in directed acyclic graph (DAG) networks. The framework is made up of five modules. 
 
-The \textbf{Input Processing Module} is the primary entry point into the whole framework. The input module is an I/O handler for parsing and transforming data from raw network files and network adjacency information. Additional network data such as probabilities, cost and time constraints are all handled in this module. For instance, the graph object itself is a structure that contains properties such as adjacency list, precomputed topological sort, ancestor and descendant maps. The result is an enriched graph object (Figure~\ref{fig:ui_structure_combo}) that any of the framework's analysis algorithms can query directly with a simple lookup call.
+The \textbf{Input Processing Module} is the primary entry point into the whole framework. The input module is an I/O handler for parsing and transforming data from raw network files and network adjacency information. Additional network data such as probabilities, cost and time constraints are all handled in this module. For instance, the graph object itself is a structure that contains properties such as adjacency list, precomputed topological sort, ancestor and descendant maps. The result is an enriched graph object (Fig.~\ref{fig:ui_structure_combo}a) that any of the framework's analysis algorithms can query directly with a simple lookup call.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \begin{minipage}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/network-visuliation.png}
-    \end{minipage}\hfill
-    \begin{minipage}[t]{0.49\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/network-structure-view.png}
-    \end{minipage}
-    \caption{Combined interface view: (left) interactive network visualization and (right) network structure analysis output.}
+    \includegraphics[height=\textheight,width=\linewidth,keepaspectratio]{images/network-visuliation.png}
+    
+    \vspace{0.5cm}
+    
+    \includegraphics[height=\textheight,width=\linewidth,keepaspectratio]{images/network-structure-view.png}
+    
+    \caption{Combined graph object view: (a) interactive network visualization and (b) network structure dashboard.}
     \label{fig:ui_structure_combo}
-\end{figure*}
+\end{figure}
 
 The \textbf{Subgraph Decomposition Module} scans for and extracts fork-join subgraphs from the enriched graph object. In real infrastructure processes, diamond subgraphs are formed when two or more distinct paths diverge from shared upstream nodes $f_1, \ldots, f_k$ and later re-converge at a downstream join node $j$ that is a descendant of those same shared nodes.
 
@@ -153,7 +153,7 @@ For instance, when $\bigoplus = \max$ and both $f$ and $g$ are additive, Eq.~(\r
 \section{Application Example: Benchmark Wastewater Treatment Network} 
 The user interface is used to evaluate using a well-established benchmark. The WATER network is ~\cite{water_benchmark} is a Bayesian wastewater treatment network commonly used to testing DAG algorithms.  At 32 nodes and 66 directed edges (average Markov blanket size 7.69), it's compact enough to visualize clearly while still exhibiting the structural complexity we want to demonstrate.
 
-More importantly, WATER's internal organization mirrors patterns we often see in real infrastructure systems. It's built from four repeated processing blocks, with dependencies that cross between layers. This creates fork-join patterns at multiple scales, exactly the kind of diamond subgraphs our decomposition module is designed to handle. The layered flow also lets us show how constraints ripple forward through consecutive stages, which is central to capacity analysis in sequential processes. Figure~\ref{fig:ui_structure_combo} shows how users first encounter the network: the left panel presents the interactive visual graph object, while the right panel summarizes its structural properties once loaded.
+More importantly, WATER's internal organization mirrors patterns we often see in real infrastructure systems. It's built from four repeated processing blocks, with dependencies that cross between layers. This creates fork-join patterns at multiple scales, exactly the kind of diamond subgraphs the decomposition module is designed to handle. The layered flow also lets us show how constraints ripple forward through consecutive stages, which is central to capacity analysis in sequential processes. Figure~\ref{fig:ui_structure_combo} shows how users first encounter the network: (a) presents the interactive visual graph object, while (b) summarizes its structural properties once loaded.
 
 \subsection{Scenario design and walkthrough}\label{sec1}
 Rather than test the system on a single configuration, seven operation scenarios were developed to  explore different failure modes and  regimes. Five use deterministic inputs to isolate specific bottleneck behaviours: \textit{Edge Bottleneck} restricts transmission capacity while leaving node processing unconstrained; \textit{Node Bottleneck} does the opposite. \textit{Mixed Bottleneck} imposes both types of constraints simultaneously, revealing how they compound. \textit{Source Limited} tests a system where internal capacity is plentiful but input supply falls short. \textit{Single Point of Failure} forces most flow through a critical hub, stressing the network's resilience when redundancy is removed.
@@ -162,13 +162,18 @@ The last two scenarios shift from point estimates to interval bounds. \textit{In
 
 After running all available analysis including capacity and reachability across all seven scenarios, users can compare results in the System Profile dashboard (Figure~\ref{fig:profile_combo}). The overview panel displays key metrics such as bottleneck locations and critical paths, while the insights panel suggests decision support recommendations, and the optimization panel presents potential improvements. This consolidated view helps operators quickly spot which scenarios produce critical constraints and where interventions might have the greatest impact. The full interface is available on the framework's GitHub page~\cite{infoprop2026_julia}.
 
-\begin{figure*}[p]  % 'p' means put it on a dedicated float page
+\begin{figure*}[p]
     \centering
     \includegraphics[width=\textwidth,height=0.22\textheight]{images/profile-ovrview.png}
+    
     \vspace{0.2em}
+    
     \includegraphics[width=\textwidth,height=0.35\textheight]{images/profile-insights.png}
+    
     \vspace{0.2em}
+    
     \includegraphics[width=\textwidth,height=0.28\textheight]{images/profile-optimization.png}
+    
     \caption{System Profile dashboard: (top) cross-scenario overview, (middle) profile insights for decision support, (bottom) optimization recommendations.}
     \label{fig:profile_combo}
 \end{figure*}
@@ -185,7 +190,6 @@ Beyond visualisation and basic network structure, the framework features multipl
 By serving both the Julia backend and Angular frontend entirely on the user's machine, the system is designed specifically to guarantee data sovereignty and address privacy concerns that often prevent the use of cloud-based analysis tools with proprietary data. With this decoupled client-server structure, developers and domain experts can independently extend either end of the tech-stack depending on use-case. 
 
 The application of the system to the WATER benchmark network demonstrates its ability to handle realistic infrastructure patterns across multiple operating contexts . The seven scenarios tested span edge-limited, node-limited, and mixed-constraint configurations, as well as interval-valued analyses that bound system performance under parameter uncertainty. The consolidated Profile dashboard shows system performance characteristics results across scenarios, supporting the comparative analysis that target users often need for design decisions.
-
 
 
 

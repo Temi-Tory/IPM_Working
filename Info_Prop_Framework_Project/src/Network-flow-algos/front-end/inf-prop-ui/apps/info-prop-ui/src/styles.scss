@@ -199,7 +199,7 @@ $dark-theme: mat.m2-define-dark-theme((
   --d3-node-default: #657b83;       // Content tone for default nodes
   
   // Edge and connection colors
-  --d3-edge-default: #93a1a1;       // Light grey for normal edges
+  --d3-edge-default: #586e75;       // Darker grey for normal edges (better contrast on light)
   --d3-edge-active: #268bd2;        // Primary blue for active/selected edges
   --d3-edge-hover: #cb4b16;         // Orange for hover state
   --d3-edge-critical: #dc322f;      // Red for critical path edges
@@ -287,7 +287,7 @@ $dark-theme: mat.m2-define-dark-theme((
   --d3-node-default: #839496;       // Brighter grey for visibility on dark
   
   // Edge and connection colors for dark theme
-  --d3-edge-default: #586e75;       // Darker grey for subtle edges
+  --d3-edge-default: #93a1a1;       // Lighter grey for better visibility on dark
   --d3-edge-active: #268bd2;        // Primary blue (consistent)
   --d3-edge-hover: #cb4b16;         // Orange for hover (consistent)
   --d3-edge-critical: #dc322f;      // Red for critical paths (consistent)

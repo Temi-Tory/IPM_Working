@@ -92,6 +92,12 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
   private links: D3Link[] = [];
   private width = 0;
   private height = 0;
+  
+  // Dynamic scaling factors
+  private scaleFactor = 1.0;
+  private baseNodeRadius = 14;
+  private baseEdgeWidth = 3;
+  private baseFontSize = 12;
 
   // Layout data from network structure
   private iterationSets: number[][] = [];
@@ -153,9 +159,10 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
   resetSelection(): void {
     this.selectedNodeId.set(null);
     if (this.svg) {
+      const nodeStrokeWidth = 2 * this.scaleFactor;
       this.svg.selectAll('.node circle')
         .attr('stroke', (d: any) => d3.color(d.color)!.darker(0.6).formatHex())
-        .attr('stroke-width', 1.5);
+        .attr('stroke-width', nodeStrokeWidth);
     }
   }
 
@@ -205,6 +212,7 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     this.setupDimensions();
     this.extractStructuralInfo(networkData);
     this.prepareData(networkData);
+    this.calculateScaleFactor(); // Calculate dynamic scaling after data is prepared
     this.createSVG();
     this.renderVisualization();
     this.applyLayout();
@@ -215,6 +223,30 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     const rect = this.svgContainer.nativeElement.getBoundingClientRect();
     this.width = rect.width || 800;
     this.height = Math.max(600, rect.height || 600);
+  }
+
+  private calculateScaleFactor(): void {
+    const nodeCount = this.nodes.length;
+    const edgeCount = this.links.length;
+    
+    // Calculate area available per node
+    const totalArea = this.width * this.height;
+    const areaPerNode = totalArea / Math.max(nodeCount, 1);
+    
+    // Base scale on density - more nodes = smaller scale
+    // Target: ~10000 sq pixels per node for optimal viewing
+    const densityScale = Math.sqrt(areaPerNode / 10000);
+    
+    // Also consider container size - larger containers can have larger elements
+    const sizeScale = Math.min(this.width, this.height) / 600; // 600 is baseline
+    
+    // Combine factors with weights and clamp to reasonable range
+    this.scaleFactor = Math.max(0.4, Math.min(2.5, densityScale * 0.7 + sizeScale * 0.3));
+    
+    // Adjust base sizes based on scale
+    this.baseNodeRadius = 14 * this.scaleFactor;
+    this.baseEdgeWidth = 3 * this.scaleFactor;
+    this.baseFontSize = 12 * this.scaleFactor;
   }
 
   private extractStructuralInfo(networkData: any): void {
@@ -289,13 +321,25 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
       source: nodeMap.get(edge[0].toString())!,
       target: nodeMap.get(edge[1].toString())!,
       id: `${edge[0]}-${edge[1]}`,
-      strokeWidth: 1.5,
-      color: '#93a1a1' // solarized-base1 — good contrast on both themes
+      strokeWidth: this.baseEdgeWidth, // Will be set properly after calculateScaleFactor
+      color: 'var(--d3-edge-default)' // CSS variable adapts to theme
     } as D3Link));
+    
+    // Update edge widths after scale calculation
+    this.updateEdgeWidths();
   }
 
   private calculateNodeRadius(totalDegree: number): number {
-    return 8 + Math.min(totalDegree * 0.5, 12);
+    // Base radius scaled to graph + degree-based addition (capped)
+    const degreeBonus = Math.min(totalDegree * 0.8 * this.scaleFactor, 20 * this.scaleFactor);
+    return this.baseNodeRadius + degreeBonus;
+  }
+  
+  private updateEdgeWidths(): void {
+    // Update all edge widths after scale factor is calculated
+    this.links.forEach(link => {
+      link.strokeWidth = this.baseEdgeWidth;
+    });
   }
 
   // ─── SVG creation ──────────────────────────────────────────────────
@@ -327,36 +371,7 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     if (!this.svg) return;
     const g = this.svg.select('.main-group');
 
-    // Arrowhead marker
     const defs = this.svg.append('defs');
-    defs.append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 12).attr('refY', 0)
-      .attr('markerWidth', 5).attr('markerHeight', 5)
-      .attr('orient', 'auto')
-      .append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', '#93a1a1');
-
-    // Links — render as paths (curved) for better readability
-    g.selectAll('.link')
-      .data(this.links)
-      .enter()
-      .append('path')
-      .attr('class', 'link')
-      .attr('stroke', d => d.color)
-      .attr('stroke-width', d => d.strokeWidth)
-      .attr('stroke-opacity', 0.5)
-      .attr('fill', 'none')
-      .attr('marker-end', 'url(#arrowhead)');
-
-    // Node groups
-    const node = g.selectAll('.node')
-      .data(this.nodes)
-      .enter()
-      .append('g')
-      .attr('class', 'node')
-      .style('cursor', 'pointer')
-      .call(this.createDragBehavior());
 
     // Drop shadow filter for depth
     defs.append('filter')
@@ -368,20 +383,59 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
       .attr('stdDeviation', 1.5)
       .attr('flood-color', 'rgba(0,0,0,0.3)');
 
+    // Links — render as groups containing line and arrow polygon
+    const linkGroup = g.selectAll('.link-group')
+      .data(this.links)
+      .enter()
+      .append('g')
+      .attr('class', 'link-group');
+
+    // Draw the edge line
+    linkGroup.append('path')
+      .attr('class', 'link')
+      .attr('stroke', d => d.color)
+      .attr('stroke-width', d => d.strokeWidth)
+      .attr('stroke-opacity', 0.8)
+      .attr('fill', 'none');
+
+    // Draw the arrowhead as a polygon
+    linkGroup.append('polygon')
+      .attr('class', 'arrow')
+      .attr('fill', d => d.color)
+      .attr('fill-opacity', 0.8);
+
+    // Node groups
+    const node = g.selectAll('.node')
+      .data(this.nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .style('cursor', 'pointer')
+      .call(this.createDragBehavior());
+
+    const nodeStrokeWidth = 2 * this.scaleFactor;
     node.append('circle')
       .attr('r', d => d.radius)
       .attr('fill', d => d.color)
       .attr('stroke', d => d3.color(d.color)!.darker(0.6).formatHex())
-      .attr('stroke-width', 1.5)
+      .attr('stroke-width', nodeStrokeWidth)
       .style('filter', 'url(#node-shadow)');
 
     node.append('text')
       .text(d => d.id)
       .attr('text-anchor', 'middle')
       .attr('dy', '.35em')
-      .attr('font-size', d => d.radius > 12 ? '11px' : '9px')
-      .attr('font-weight', '600')
-      .attr('fill', '#fff')
+      .attr('font-size', d => {
+        // Scale font based on node size and overall scale
+        const largeFontSize = this.baseFontSize * 1.15;
+        const smallFontSize = this.baseFontSize * 0.9;
+        return d.radius > (this.baseNodeRadius * 1.3) ? `${largeFontSize}px` : `${smallFontSize}px`;
+      })
+      .attr('font-weight', '700')
+      .attr('fill', 'var(--on-surface)')
+      .attr('stroke', 'var(--surface)')
+      .attr('stroke-width', '0.3px')
+      .attr('paint-order', 'stroke')
       .attr('pointer-events', 'none');
 
     node.on('click', (event, d) => {
@@ -490,14 +544,21 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     const g = this.svg.select('.main-group');
     const dur = animate ? 600 : 0;
 
-    // Update link paths (curved)
-    const linkSel = g.selectAll<SVGPathElement, D3Link>('.link');
-    if (animate) {
-      linkSel.transition().duration(dur)
-        .attr('d', d => this.linkPath(d));
-    } else {
-      linkSel.attr('d', d => this.linkPath(d));
-    }
+    // Update link paths and arrows
+    const linkGroups = g.selectAll<SVGGElement, D3Link>('.link-group');
+    linkGroups.each((d, i, nodes) => {
+      const group = d3.select(nodes[i]);
+      const pathData = this.linkPath(d);
+      const arrowPoints = this.getArrowPoints(d);
+      
+      if (animate) {
+        group.select('.link').transition().duration(dur).attr('d', pathData);
+        group.select('.arrow').transition().duration(dur).attr('points', arrowPoints);
+      } else {
+        group.select('.link').attr('d', pathData);
+        group.select('.arrow').attr('points', arrowPoints);
+      }
+    });
 
     // Update node positions
     const nodeSel = g.selectAll<SVGGElement, D3Node>('.node');
@@ -519,11 +580,14 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
     const dx = tx - sx, dy = ty - sy;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
+    // Arrow size based on scale
+    const arrowLength = 10 * this.scaleFactor;
+    
     // Pull back from source and target by their radii
     const startX = sx + (dx / dist) * s.radius;
     const startY = sy + (dy / dist) * s.radius;
-    const endX = tx - (dx / dist) * (t.radius + 4); // +4 for arrowhead
-    const endY = ty - (dy / dist) * (t.radius + 4);
+    const endX = tx - (dx / dist) * (t.radius + arrowLength); // Account for arrow
+    const endY = ty - (dy / dist) * (t.radius + arrowLength);
 
     const mode = this.layoutMode();
     if (mode === 'hierarchical') {
@@ -537,6 +601,41 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
       return `M${startX},${startY} C${startX},${midY} ${endX},${midY} ${endX},${endY}`;
     }
     return `M${startX},${startY} L${endX},${endY}`;
+  }
+
+  /** Calculate arrowhead points for directed edge */
+  private getArrowPoints(d: D3Link): string {
+    const s = d.source as D3Node;
+    const t = d.target as D3Node;
+    if (s.x == null || s.y == null || t.x == null || t.y == null) return '';
+
+    const sx = s.x, sy = s.y, tx = t.x, ty = t.y;
+    const dx = tx - sx, dy = ty - sy;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    // Arrow dimensions based on scale
+    const arrowLength = 10 * this.scaleFactor;
+    const arrowWidth = 6 * this.scaleFactor;
+
+    // Arrow tip position (at target node edge)
+    const tipX = tx - (dx / dist) * t.radius;
+    const tipY = ty - (dy / dist) * t.radius;
+
+    // Arrow base position
+    const baseX = tipX - (dx / dist) * arrowLength;
+    const baseY = tipY - (dy / dist) * arrowLength;
+
+    // Perpendicular vector for arrow wings
+    const perpX = -dy / dist;
+    const perpY = dx / dist;
+
+    // Arrow wing points
+    const leftX = baseX + perpX * arrowWidth;
+    const leftY = baseY + perpY * arrowWidth;
+    const rightX = baseX - perpX * arrowWidth;
+    const rightY = baseY - perpY * arrowWidth;
+
+    return `${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}`;
   }
 
   // ─── Drag behavior ─────────────────────────────────────────────────
@@ -574,19 +673,22 @@ export class NetworkVisualizationComponent implements OnInit, AfterViewInit, OnD
   private highlightConnections(nodeId: string, highlight: boolean): void {
     if (!this.svg) return;
 
-    const opacity = highlight ? 0.1 : 0.5;
-    const highlightOpacity = highlight ? 0.9 : 0.5;
+    const opacity = highlight ? 0.2 : 0.8;
+    const highlightOpacity = highlight ? 1.0 : 0.8;
+    const highlightBoost = 2 * this.scaleFactor;
 
-    this.svg.selectAll('.link')
-      .style('stroke-opacity', opacity);
+    this.svg.selectAll('.link-group')
+      .style('opacity', opacity);
 
     if (highlight) {
-      this.svg.selectAll('.link')
+      this.svg.selectAll('.link-group')
         .filter((d: any) => d.source.id === nodeId || d.target.id === nodeId)
-        .style('stroke-opacity', highlightOpacity)
-        .style('stroke-width', (d: any) => d.strokeWidth + 1);
+        .style('opacity', 1.0)
+        .selectAll('.link')
+        .style('stroke-width', (d: any) => d.strokeWidth + highlightBoost);
     } else {
-      this.svg.selectAll('.link')
+      this.svg.selectAll('.link-group')
+        .selectAll('.link')
         .style('stroke-width', (d: any) => d.strokeWidth);
     }
   }

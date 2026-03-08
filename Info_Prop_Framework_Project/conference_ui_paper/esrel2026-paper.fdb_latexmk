@@ -1,12 +1,12 @@
 # Fdb version 3
-["bibtex esrel2026-paper"] 1772973927 "esrel2026-paper.aux" "esrel2026-paper.bbl" "esrel2026-paper" 1772973933
+["bibtex esrel2026-paper"] 1772978076 "esrel2026-paper.aux" "esrel2026-paper.bbl" "esrel2026-paper" 1772978083
   "./chicago.bst" 1772944134 37416 2ae04276c51f11eda70770f4081293b7 ""
   "References.bib" 1772973926 5953 71aea3eba6ee109c0c1d5ed01f67f904 ""
-  "esrel2026-paper.aux" 1772973932 5703 4c9181c5ba81720478312b5ba12c352f "pdflatex"
+  "esrel2026-paper.aux" 1772978082 5683 8176d0452e2ec48414076357e4903fd6 "pdflatex"
   (generated)
   "esrel2026-paper.bbl"
   "esrel2026-paper.blg"
-["pdflatex"] 1772973928 "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/conference_ui_paper/esrel2026-paper.tex" "esrel2026-paper.pdf" "esrel2026-paper" 1772973933
+["pdflatex"] 1772978077 "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/conference_ui_paper/esrel2026-paper.tex" "esrel2026-paper.pdf" "esrel2026-paper" 1772978083
   "C:/Users/ohian/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1772969037 82686 2381c3433487640bf26aa76a10db7eb2 ""
   "C:/Users/ohian/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1651229781 10255042 dba6b9d1d8c345ae820fe259278ab279 ""
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc" 1458473887 4993 80dc9bab7f31fb78a000ccfed0e27cab ""
@@ -124,14 +124,14 @@
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/tex/latex/url/url.sty" 1388490452 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/tex/latex/varwidth/varwidth.sty" 1238465940 10894 d359a13923460b2a73d4312d613554c8 ""
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1623002090 4902 efb3d66683a2da2a232f71e3a571a899 ""
-  "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/conference_ui_paper/esrel2026-paper.tex" 1772973806 22638 a2de7549249dff936c040c56c10d7e19 ""
-  "esrel2026-paper.aux" 1772973932 5703 4c9181c5ba81720478312b5ba12c352f "pdflatex"
-  "esrel2026-paper.bbl" 1772973928 5782 d8beafe8b5aae2a5b0b7b2b38456cd80 "bibtex esrel2026-paper"
-  "esrel2026-paper.out" 1772973932 887 f2f1c66978c9f3eb3c91306d64f253ab "pdflatex"
-  "esrel2026-paper.tex" 1772973806 22638 a2de7549249dff936c040c56c10d7e19 ""
+  "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/conference_ui_paper/esrel2026-paper.tex" 1772978059 22559 8f6bd67f47b5db178a13e02621bf848e ""
+  "esrel2026-paper.aux" 1772978082 5683 8176d0452e2ec48414076357e4903fd6 "pdflatex"
+  "esrel2026-paper.bbl" 1772978077 5782 d8beafe8b5aae2a5b0b7b2b38456cd80 "bibtex esrel2026-paper"
+  "esrel2026-paper.out" 1772978082 887 f2f1c66978c9f3eb3c91306d64f253ab "pdflatex"
+  "esrel2026-paper.tex" 1772978059 22559 8f6bd67f47b5db178a13e02621bf848e ""
   "images/architecture_paper.pdf" 1772941122 33276 7454354766938dcc63bad324f3fc0ea2 ""
-  "images/network-structure-view.png" 1772944134 895188 d9b63f72114600da24bf9ccf01b031ec ""
-  "images/network-visuliation.png" 1772944134 882461 4e78ee6f86bb84a55694eed33d1fd638 ""
+  "images/network-structure-view.png" 1772976347 769304 b482597a093de310304e984ab58c8664 ""
+  "images/network-visuliation.png" 1772976268 1057427 b9b90e28a27e1383bcdaca80ea0dfb2e ""
   "images/profile-insights.png" 1772968850 413518 051419e6c7a8952dd8397aa4078c736e ""
   "images/profile-optimization.png" 1772968889 206227 9666cd7594882470253554a220c1f855 ""
   "images/profile-ovrview.png" 1772966862 252097 43764e7cc57b2b9650be03f436fc84f6 ""
