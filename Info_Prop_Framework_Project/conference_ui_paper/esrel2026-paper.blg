@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: esrel2026-paper.aux
+Reallocating 'name_of_file' (item size: 1) to 8 items.
+The style file: chicago.bst
+Reallocating 'name_of_file' (item size: 1) to 11 items.
+Database file #1: References.bib
+You've used 16 entries,
+            2861 wiz_defined-function locations,
+            715 strings with 8629 characters,
+and the built_in function-call counts, 13605 in all, are:
+= -- 1017
+> -- 1332
+< -- 5
++ -- 421
+- -- 431
+* -- 1348
+:= -- 2530
+add.period$ -- 52
+call.type$ -- 16
+change.case$ -- 146
+chr.to.int$ -- 16
+cite$ -- 16
+duplicate$ -- 327
+empty$ -- 670
+format.name$ -- 483
+if$ -- 2530
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 14
+newline$ -- 84
+num.names$ -- 162
+pop$ -- 129
+preamble$ -- 1
+purify$ -- 244
+quote$ -- 0
+skip$ -- 323
+stack$ -- 0
+substring$ -- 531
+swap$ -- 112
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 300
+warning$ -- 0
+while$ -- 134
+width$ -- 0
+write$ -- 225

@@ -1,0 +1,120 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{Bastian, Heymann, and Jacomy}{Bastian
+  et~al.}{2009}]{bastian2009gephi}
+Bastian, M., S.~Heymann, and M.~Jacomy (2009).
+\newblock Gephi: An open source software for exploring and manipulating
+  networks.
+\newblock In {\em Proceedings of the International {AAAI} Conference on Web and
+  Social Media}, Volume~3, pp.\  361--362.
+
+\bibitem[\protect\citeauthoryear{Beer, Ferson, and Kreinovich}{Beer
+  et~al.}{2013}]{ferson2013}
+Beer, M., S.~Ferson, and V.~Kreinovich (2013).
+\newblock Imprecise probabilities in engineering analyses.
+\newblock {\em Mechanical Systems and Signal Processing\/}~{\em 37\/}(1),
+  4--29.
+
+\bibitem[\protect\citeauthoryear{Ferson}{Ferson}{2019}]{ferson2019pbar}
+Ferson, S. (2019).
+\newblock pba.r: Probability bounds analysis in r.
+\newblock \url{https://github.com/ScottFerson/pba.r}.
+
+\bibitem[\protect\citeauthoryear{Gray, Ferson, and Patelli}{Gray
+  et~al.}{2021}]{gray2022pba_julia}
+Gray, A., S.~Ferson, and E.~Patelli (2021).
+\newblock Probabilityboundsanalysis.jl: Arithmetic with sets of distributions.
+\newblock Proceedings of JuliaCon.
+
+\bibitem[\protect\citeauthoryear{Gray, Ferson, De~Angelis, Gray, and
+  de~Oliveira}{Gray et~al.}{2022}]{gray2022pba}
+Gray, N., S.~Ferson, M.~De~Angelis, A.~Gray, and F.~B. de~Oliveira (2022).
+\newblock Probability bounds analysis for python.
+\newblock {\em Software Impacts\/}~{\em 12}, 100246.
+
+\bibitem[\protect\citeauthoryear{Hannay, MacLeod, Singer, Langtangen, Pfahl,
+  and Wilson}{Hannay et~al.}{2009}]{hannay2009scientists}
+Hannay, J.~E., C.~MacLeod, J.~Singer, H.~P. Langtangen, D.~Pfahl, and G.~Wilson
+  (2009).
+\newblock How do scientists develop and use scientific software?
+\newblock In {\em Proceedings of the 2009 {ICSE} Workshop on Software
+  Engineering for Computational Science and Engineering}, pp.\  1--8. IEEE.
+
+\bibitem[\protect\citeauthoryear{Hashizume, Rosado, Fern\'{a}ndez-Medina, and
+  Fern\'{a}ndez}{Hashizume et~al.}{2013}]{hashizume2013analysis}
+Hashizume, K., D.~G. Rosado, E.~Fern\'{a}ndez-Medina, and E.~B. Fern\'{a}ndez
+  (2013).
+\newblock An analysis of security issues for cloud computing.
+\newblock {\em Journal of Internet Services and Applications\/}~{\em 4\/}(1),
+  1--13.
+
+\bibitem[\protect\citeauthoryear{Jensen, Olesen, and Andersen}{Jensen
+  et~al.}{1990}]{water_benchmark}
+Jensen, F.~V., K.~G. Olesen, and S.~K. Andersen (1990).
+\newblock An algebra of {Bayesian} belief universes for knowledge-based
+  systems.
+\newblock {\em Networks\/}~{\em 20\/}(5), 637--659.
+
+\bibitem[\protect\citeauthoryear{Kleppmann, Wiggins, van Hardenberg, and
+  McGranaghan}{Kleppmann et~al.}{2019}]{kleppmann2019local}
+Kleppmann, M., A.~Wiggins, P.~van Hardenberg, and M.~McGranaghan (2019).
+\newblock Local-first software: You own your data, in spite of the cloud.
+\newblock In {\em Proceedings of the 2019 ACM SIGPLAN International Symposium
+  on New Ideas, New Paradigms, and Reflections on Programming and Software},
+  Onward! 2019, pp.\  154--178. ACM.
+
+\bibitem[\protect\citeauthoryear{Koller and Friedman}{Koller and
+  Friedman}{2009}]{koller2009probabilistic}
+Koller, D. and N.~Friedman (2009).
+\newblock {\em Probabilistic Graphical Models: Principles and Techniques}.
+\newblock Cambridge, MA: MIT Press.
+
+\bibitem[\protect\citeauthoryear{Ohiani}{Ohiani}{2026}]{infoprop2026_julia}
+Ohiani, T. (2026).
+\newblock {InformationPropagationAnalysis.jl}: {A} {Julia} framework for
+  network analysis.
+\newblock GitHub repository,
+  \url{https://github.com/Temi-Tory/InformationPropagationAnalysis.jl}.
+\newblock Accessed March 8, 2026.
+
+\bibitem[\protect\citeauthoryear{Ohiani, Pyke, and Patelli}{Ohiani
+  et~al.}{2026}]{infoprop2026}
+Ohiani, T., C.~Pyke, and E.~Patelli (2026).
+\newblock Information propagation analysis in directed acyclic networks.
+\newblock Under review. Preprint forthcoming on arXiv.
+
+\bibitem[\protect\citeauthoryear{Patelli, George-Williams, Sadeghi, Rocchetta,
+  Broggi, and Angelis}{Patelli et~al.}{2018}]{OpenCossan}
+Patelli, E., H.~George-Williams, J.~Sadeghi, R.~Rocchetta, M.~Broggi, and M.~d.
+  Angelis (2018).
+\newblock {OpenCossan} 2.0: An efficient computational toolbox for risk,
+  reliability and resilience analysis.
+\newblock In A.~T. Beck, G.~F. M.~d. Souza, and M.~A. Trindade (Eds.), {\em
+  Proceedings of the Joint {ICVRAM} {ISUMA} {UNCERTAINTIES} Conference}.
+
+\bibitem[\protect\citeauthoryear{Pearl}{Pearl}{1988}]{pearl1988probabilistic}
+Pearl, J. (1988).
+\newblock {\em Probabilistic Reasoning in Intelligent Systems: Networks of
+  Plausible Inference}.
+\newblock San Francisco, CA: Morgan Kaufmann.
+
+\bibitem[\protect\citeauthoryear{Prabhu, Jablin, Raman, Zhang, Huang, Kim,
+  Johnson, Liu, Ghosh, Beard, Oh, Zoufaly, Walker, and August}{Prabhu
+  et~al.}{2011}]{prabhu2011survey}
+Prabhu, P., T.~B. Jablin, A.~Raman, Y.~Zhang, J.~Huang, H.~Kim, N.~P. Johnson,
+  F.~Liu, S.~Ghosh, S.~Beard, T.~Oh, M.~Zoufaly, D.~Walker, and D.~I. August
+  (2011).
+\newblock A survey of the practice of computational science.
+\newblock In {\em Proceedings of 2011 International Conference for High
+  Performance Computing, Networking, Storage and Analysis}, SC '11, New York,
+  NY, USA, pp.\  1--12. ACM.
+
+\bibitem[\protect\citeauthoryear{Shannon, Markiel, Ozier, Baliga, Wang, Ramage,
+  Amin, Schwikowski, and Ideker}{Shannon et~al.}{2003}]{shannon2003cytoscape}
+Shannon, P., A.~Markiel, O.~Ozier, N.~S. Baliga, J.~T. Wang, D.~Ramage,
+  N.~Amin, B.~Schwikowski, and T.~Ideker (2003).
+\newblock Cytoscape: A software environment for integrated models of
+  biomolecular interaction networks.
+\newblock {\em Genome Research\/}~{\em 13\/}(11), 2498--2504.
+
+\end{thebibliography}
