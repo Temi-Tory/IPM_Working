@@ -30,6 +30,18 @@
   }
 }
 
+mat-chip.bottleneck-node {
+  background: color-mix(in srgb, var(--warning-color, #ff9800) 18%, transparent);
+}
+
+mat-chip.bottleneck-edge {
+  background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+mat-chip.bottleneck-mixed {
+  background: color-mix(in srgb, var(--outline-variant) 28%, transparent);
+}
+
 .section {
   margin-top: 24px;
 
@@ -142,7 +154,53 @@ mat-paginator {
     border-left: 3px solid #1976d2;
     margin-bottom: 6px;
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
+}
+
+.component-meta {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.utilization-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.utilization-row {
+  display: grid;
+  grid-template-columns: 96px minmax(120px, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+}
+
+.band-label,
+.band-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.band-count {
+  text-align: right;
+  font-weight: 600;
+}
+
+.band-bar-track {
+  height: 10px;
+  background: var(--surface-container-high);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.band-bar {
+  height: 100%;
+  background: var(--primary-color);
 }
 
 .no-data {

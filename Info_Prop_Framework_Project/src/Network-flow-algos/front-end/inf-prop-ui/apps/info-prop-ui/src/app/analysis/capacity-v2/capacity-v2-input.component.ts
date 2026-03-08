@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectChange, MatSelectModule } from '@angular/material/select';
+import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { CapacityV2Store } from './capacity-v2.store';
-import { CapacityV2InputRow, CapacityV2NetworkOption } from './capacity-v2.models';
+import { CapacityV2InputRow } from './capacity-v2.models';
 
 @Component({
   selector: 'app-capacity-v2-input',
@@ -31,19 +31,8 @@ import { CapacityV2InputRow, CapacityV2NetworkOption } from './capacity-v2.model
 export class CapacityV2InputComponent {
   readonly store = inject(CapacityV2Store);
 
-  async onNetworkChange(event: MatSelectChange): Promise<void> {
-    const option = event.value as CapacityV2NetworkOption | null;
-    if (option) {
-      await this.store.setNetworkOptionAndReload(option);
-    }
-  }
-
   onTargetNodesChange(value: number[]): void {
     this.store.setTargetNodes(value);
-  }
-
-  async onRunAnalysis(): Promise<void> {
-    await this.store.runAnalysis();
   }
 
   updateDeterministic(row: CapacityV2InputRow, value: string, type: 'node' | 'edge' | 'source', index: number): void {

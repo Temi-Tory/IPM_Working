@@ -1,6 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { NetworkStructure, CapacityFileGroup } from '../../shared/models/network-analysis.models';
+import {
+  NetworkStructure,
+  CapacityFileGroup,
+  CapacityScenario,
+  MultiScenarioCapacityResults,
+  ScenarioInfo
+} from '../../shared/models/network-analysis.models';
 import {
   CapacityV2AnalysisType,
   CapacityV2DetailSource,
@@ -13,10 +19,21 @@ import {
   CapacityV2Validation
 } from './capacity-v2.models';
 import { CapacityV2Service } from './capacity-v2.service';
+import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+
+interface CapacityV2ScenarioRunSnapshot {
+  key: string;
+  label: string;
+  status: CapacityV2RunState;
+  error: string | null;
+  updatedAt: string | null;
+  hasResult: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class CapacityV2Store {
   private readonly service = inject(CapacityV2Service);
+  private readonly analysisState = inject(AnalysisStateService);
 
   private readonly runStateSignal = signal<CapacityV2RunState>('idle');
   private readonly errorSignal = signal<string | null>(null);
@@ -27,7 +44,12 @@ export class CapacityV2Store {
   private readonly selectedDetailSourceSignal = signal<CapacityV2DetailSource>('worst');
   private readonly highlightModeSignal = signal<CapacityV2HighlightMode>('bottlenecks');
   private readonly selectedNodeIdSignal = signal<string | null>(null);
+  private readonly viewModeSignal = signal<'single' | 'all' | 'comparison'>('single');
   private readonly capacityGroupsSignal = signal<CapacityFileGroup[]>([]);
+  private readonly scenarioRunStatesSignal = signal<Map<string, CapacityV2RunState>>(new Map());
+  private readonly scenarioErrorsSignal = signal<Map<string, string | null>>(new Map());
+  private readonly scenarioUpdatedAtSignal = signal<Map<string, string>>(new Map());
+  private readonly scenarioResultsSignal = signal<Map<string, CapacityV2ResultEntity>>(new Map());
 
   readonly runState = computed(() => this.runStateSignal());
   readonly error = computed(() => this.errorSignal());
@@ -50,6 +72,7 @@ export class CapacityV2Store {
   readonly selectedDetailSource = computed(() => this.selectedDetailSourceSignal());
   readonly highlightMode = computed(() => this.highlightModeSignal());
   readonly selectedNodeId = computed(() => this.selectedNodeIdSignal());
+  readonly viewMode = computed(() => this.viewModeSignal());
 
   readonly activeDeterministicDetail = computed(() => {
     const current = this.resultSignal();
@@ -85,6 +108,40 @@ export class CapacityV2Store {
   });
 
   readonly hasIntervalResult = computed(() => this.resultSignal()?.kind === 'interval');
+  readonly scenarioRunSnapshots = computed<CapacityV2ScenarioRunSnapshot[]>(() => {
+    const options = this.networkOptionsSignal();
+    const statuses = this.scenarioRunStatesSignal();
+    const errors = this.scenarioErrorsSignal();
+    const updatedAt = this.scenarioUpdatedAtSignal();
+    const results = this.scenarioResultsSignal();
+
+    return options.map((option) => {
+      const key = option.scenarioName;
+      return {
+        key,
+        label: option.label,
+        status: statuses.get(key) ?? 'idle',
+        error: errors.get(key) ?? null,
+        updatedAt: updatedAt.get(key) ?? null,
+        hasResult: results.has(key)
+      };
+    });
+  });
+  readonly completedCount = computed(() =>
+    this.scenarioRunSnapshots().filter((snapshot) => snapshot.status === 'success').length
+  );
+  readonly runningCount = computed(() =>
+    this.scenarioRunSnapshots().filter((snapshot) => snapshot.status === 'running').length
+  );
+  readonly errorCount = computed(() =>
+    this.scenarioRunSnapshots().filter((snapshot) => snapshot.status === 'error').length
+  );
+  readonly totalScenarioCount = computed(() => this.scenarioRunSnapshots().length);
+  readonly hasPendingScenarios = computed(() =>
+    this.scenarioRunSnapshots().some((snapshot) => snapshot.status !== 'success')
+  );
+  readonly hasAnyRunResults = computed(() => this.completedCount() > 0);
+  readonly scenarioResults = computed(() => this.scenarioResultsSignal());
 
   initializeFromSession(
     networkData: NetworkStructure | null,
@@ -166,6 +223,17 @@ export class CapacityV2Store {
     this.selectedDetailSourceSignal.set('worst');
     this.highlightModeSignal.set('bottlenecks');
     this.selectedNodeIdSignal.set(null);
+
+    const statusMap = new Map<string, CapacityV2RunState>();
+    const errorMap = new Map<string, string | null>();
+    options.forEach((option) => {
+      statusMap.set(option.scenarioName, 'idle');
+      errorMap.set(option.scenarioName, null);
+    });
+    this.scenarioRunStatesSignal.set(statusMap);
+    this.scenarioErrorsSignal.set(errorMap);
+    this.scenarioUpdatedAtSignal.set(new Map());
+    this.scenarioResultsSignal.set(new Map());
   }
 
   setAnalysisType(type: CapacityV2AnalysisType): void {
@@ -234,10 +302,13 @@ export class CapacityV2Store {
         sourceCount: sourceRows.length
       });
 
+      this.applyCachedScenarioView(option.scenarioName);
+
     } catch (error) {
       console.error('❌ Failed to reload scenario:', error);
       // Fall back to just updating paths without reloading values
       this.setNetworkOption(option);
+      this.applyCachedScenarioView(option.scenarioName);
     }
   }
 
@@ -279,28 +350,92 @@ export class CapacityV2Store {
     this.selectedNodeIdSignal.set(nodeId);
   }
 
+  setViewMode(mode: 'single' | 'all' | 'comparison'): void {
+    this.viewModeSignal.set(mode);
+  }
+
   async runAnalysis(): Promise<void> {
     const inputs = this.inputsSignal();
+    const scenarioKey = this.selectedNetworkOption()?.scenarioName || this.getScenarioKeyFromInputs(inputs);
 
     if (!inputs.networkPath || !inputs.capacitiesPath) {
       this.runStateSignal.set('error');
       this.errorSignal.set('Network path and capacities file are required.');
+      this.updateScenarioStatus(scenarioKey, 'error', 'Network path and capacities file are required.');
       return;
     }
 
     this.runStateSignal.set('running');
     this.errorSignal.set(null);
+    this.updateScenarioStatus(scenarioKey, 'running', null);
 
     try {
       const normalized = await firstValueFrom(this.service.analyze(inputs));
       this.resultSignal.set(normalized);
       this.runStateSignal.set('success');
       this.selectedDetailSourceSignal.set('worst');
+      this.scenarioResultsSignal.update((state) => {
+        const next = new Map(state);
+        next.set(scenarioKey, normalized);
+        return next;
+      });
+      this.updateScenarioStatus(scenarioKey, 'success', null);
+      this.syncSharedCapacityState(normalized);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Capacity analysis failed';
       this.runStateSignal.set('error');
       this.resultSignal.set(null);
-      this.errorSignal.set(error instanceof Error ? error.message : 'Capacity analysis failed');
+      this.errorSignal.set(message);
+      this.updateScenarioStatus(scenarioKey, 'error', message);
     }
+  }
+
+  async runAllScenarios(): Promise<void> {
+    const options = this.networkOptionsSignal();
+    if (options.length === 0) {
+      return;
+    }
+
+    const originallySelected = this.selectedNetworkOption();
+
+    for (const option of options) {
+      await this.setNetworkOptionAndReload(option);
+      await this.runAnalysis();
+    }
+
+    if (originallySelected) {
+      await this.setNetworkOptionAndReload(originallySelected);
+    }
+  }
+
+  async runRemainingScenarios(): Promise<void> {
+    const options = this.networkOptionsSignal();
+    const statuses = this.scenarioRunStatesSignal();
+    const remaining = options.filter((option) => statuses.get(option.scenarioName) !== 'success');
+
+    if (remaining.length === 0) {
+      return;
+    }
+
+    const originallySelected = this.selectedNetworkOption();
+
+    for (const option of remaining) {
+      await this.setNetworkOptionAndReload(option);
+      await this.runAnalysis();
+    }
+
+    if (originallySelected) {
+      await this.setNetworkOptionAndReload(originallySelected);
+    }
+  }
+
+  async selectScenarioByName(scenarioName: string): Promise<void> {
+    const option = this.networkOptionsSignal().find((candidate) => candidate.scenarioName === scenarioName);
+    if (!option) {
+      return;
+    }
+
+    await this.setNetworkOptionAndReload(option);
   }
 
   getExportPayload(): Record<string, unknown> | null {
@@ -531,6 +666,166 @@ export class CapacityV2Store {
         verbosity: 'standard'
       }
     };
+  }
+
+  private updateScenarioStatus(
+    scenarioKey: string,
+    status: CapacityV2RunState,
+    error: string | null
+  ): void {
+    this.scenarioRunStatesSignal.update((state) => {
+      const next = new Map(state);
+      next.set(scenarioKey, status);
+      return next;
+    });
+
+    this.scenarioErrorsSignal.update((state) => {
+      const next = new Map(state);
+      next.set(scenarioKey, error);
+      return next;
+    });
+
+    if (status === 'success') {
+      this.scenarioUpdatedAtSignal.update((state) => {
+        const next = new Map(state);
+        next.set(scenarioKey, new Date().toISOString());
+        return next;
+      });
+    }
+  }
+
+  private applyCachedScenarioView(scenarioKey: string): void {
+    const cachedResult = this.scenarioResultsSignal().get(scenarioKey) ?? null;
+    const cachedStatus = this.scenarioRunStatesSignal().get(scenarioKey) ?? 'idle';
+    const cachedError = this.scenarioErrorsSignal().get(scenarioKey) ?? null;
+
+    this.resultSignal.set(cachedResult);
+    this.runStateSignal.set(cachedStatus);
+    this.errorSignal.set(cachedError);
+  }
+
+  private getScenarioKeyFromInputs(inputs: CapacityV2RunInputs): string {
+    return this.selectedNetworkOption()?.scenarioName || inputs.capacitiesPath || 'capacity-v2';
+  }
+
+  private syncSharedCapacityState(result: CapacityV2ResultEntity): void {
+    const scenarioName = this.selectedNetworkOption()?.scenarioName || this.selectedNetworkOption()?.label || 'capacity-v2';
+    const currentInputs = this.inputsSignal();
+    const detail = result.kind === 'deterministic' ? result.deterministic : result.interval.worstCase;
+    const summary = result.kind === 'deterministic' ? result.deterministic.summary : result.interval.summary;
+
+    const saturatedComponents = {
+      ...Object.fromEntries(detail.bottlenecks.saturatedNodes.map((node) => [String(node), true])),
+      ...Object.fromEntries(
+        detail.bottlenecks.saturatedEdges.map((edge) => [`(${edge[0]},${edge[1]})`, true])
+      )
+    };
+
+    const scenario: CapacityScenario = {
+      computation_time: summary.computationTimeMs / 1000,
+      network_utilization: summary.utilization,
+      total_source_input: currentInputs.sourceRates.reduce((sum, row) => sum + row.deterministic, 0),
+      total_target_output:
+        typeof summary.throughput === 'number'
+          ? summary.throughput
+          : summary.throughput.max,
+      target_flows: detail.targetFlows,
+      source_inputs: Object.fromEntries(
+        currentInputs.sourceRates.map((row) => [row.key, row.deterministic])
+      ),
+      active_sources: currentInputs.sourceRates
+        .map((row) => Number(row.key))
+        .filter((value) => Number.isFinite(value)),
+      target_nodes: currentInputs.targetNodes,
+      node_capacities_count: currentInputs.nodeCapacities.length,
+      edge_capacities_count: currentInputs.edgeCapacities.length,
+      input_files: {
+        capacities_path: currentInputs.capacitiesPath
+      },
+      raw_capacity_result: {
+        node_max_flows: Object.fromEntries(
+          detail.nodeFlows.map((node) => [String(node.nodeId), node.flow])
+        ),
+        node_capacities: Object.fromEntries(
+          currentInputs.nodeCapacities.map((row) => [row.key, row.deterministic])
+        ),
+        edge_capacities: Object.fromEntries(
+          currentInputs.edgeCapacities.map((row) => [row.key, row.deterministic])
+        ),
+        source_rates: Object.fromEntries(
+          currentInputs.sourceRates.map((row) => [row.key, row.deterministic])
+        ),
+        edge_flows: Object.fromEntries(detail.edgeFlows.map((edge) => [edge.edgeKey, edge.flow])),
+        edge_utilization: Object.fromEntries(
+          detail.edgeFlows.map((edge) => [
+            edge.edgeKey,
+            (() => {
+              const inferredCapacity = edge.utilization > 0 ? edge.flow / edge.utilization : edge.flow;
+              return {
+                capacity: inferredCapacity,
+                flow: edge.flow,
+                utilization: edge.utilization,
+                spare: Math.max(0, inferredCapacity - edge.flow)
+              };
+            })()
+          ])
+        ),
+        bottlenecks: saturatedComponents as any,
+        critical_paths: {
+          paths: detail.criticalPaths.criticalPaths.map((path) => path.path)
+        } as any,
+        network_utilization: summary.utilization,
+        analysis_type: currentInputs.analysisType,
+        computation_time: summary.computationTimeMs / 1000,
+        convergence_info: {}
+      }
+    };
+
+    const existing = this.analysisState.multiScenarioCapacityResults();
+    const scenarios = new Map(existing?.scenarios ?? new Map<string, CapacityScenario>());
+    scenarios.set(scenarioName, scenario);
+
+    const availableFromState = existing?.availableScenarios ?? [];
+    const availableScenarios = this.mergeScenarioInfo(
+      availableFromState,
+      this.analysisState.availableScenarios().capacity,
+      scenarioName,
+      currentInputs.capacitiesPath
+    );
+
+    const updated: MultiScenarioCapacityResults = {
+      scenarios,
+      currentScenario: scenarioName,
+      availableScenarios
+    };
+
+    this.analysisState.setMultiScenarioCapacityResults(updated);
+    this.analysisState.setGlobalCurrentScenario(scenarioName);
+  }
+
+  private mergeScenarioInfo(
+    current: ScenarioInfo[],
+    fromAnalysisState: ScenarioInfo[],
+    scenarioName: string,
+    path: string
+  ): ScenarioInfo[] {
+    const merged = new Map<string, ScenarioInfo>();
+
+    [...fromAnalysisState, ...current].forEach((info) => {
+      merged.set(info.name, info);
+    });
+
+    if (!merged.has(scenarioName)) {
+      merged.set(scenarioName, {
+        name: scenarioName,
+        displayName: scenarioName,
+        analysisType: 'capacity',
+        dataType: 'float',
+        path
+      });
+    }
+
+    return Array.from(merged.values());
   }
 
   private asRecord(value: unknown): Record<string, unknown> {

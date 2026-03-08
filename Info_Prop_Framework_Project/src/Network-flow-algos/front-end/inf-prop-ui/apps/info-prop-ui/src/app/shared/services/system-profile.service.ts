@@ -160,13 +160,36 @@ export class SystemProfileService {
     if (capacityResults) {
       for (const [scenarioName, scenario] of capacityResults.scenarios) {
         const utilization = this.extractNumericValue(scenario.network_utilization);
-        const bottleneckCount = Object.keys(scenario.raw_capacity_result?.bottlenecks || {}).length;
+        const bottleneckCount = this.getBottleneckCount(scenario);
+        const totalSourceInput = this.extractNumericValue(scenario.total_source_input);
+        const totalTargetOutput = this.extractNumericValue(scenario.total_target_output);
+        const throughputCaptureRatio =
+          totalSourceInput && totalSourceInput > 0 && totalTargetOutput != null
+            ? totalTargetOutput / totalSourceInput
+            : null;
 
-        mergeInto(scenarioName, 'capacity', 'float',
+        const edgeUtilizationValues = Object.values(scenario.raw_capacity_result?.edge_utilization ?? {});
+        const totalSpareCapacity = edgeUtilizationValues.reduce((sum, item) => {
+          const spare = this.extractNumericValue((item as { spare?: number }).spare);
+          return sum + (spare ?? 0);
+        }, 0);
+
+        const criticalPathCount = this.getCriticalPathCount(scenario);
+        const efficiencyLoss = this.getCapacityEfficiencyLoss(scenario);
+        const upgradePressure = this.getUpgradePressure(scenario);
+        const scenarioDataType = this.getCapacityScenarioDataType(scenario);
+
+        mergeInto(scenarioName, 'capacity', scenarioDataType,
           Math.round(scenario.computation_time * 1000),
           {
             networkUtilization: utilization != null ? utilization * 100 : null,
             bottleneckCount,
+            capacityThroughput: totalTargetOutput,
+            throughputCaptureRatio,
+            totalSpareCapacity,
+            criticalPathCount,
+            efficiencyLoss,
+            upgradePressure,
           },
           { capacityAnalysis: scenario }
         );
@@ -309,6 +332,48 @@ export class SystemProfileService {
           message: `${bottlenecks} bottleneck nodes detected`,
           drilldownRoute: '/capacity-analysis',
           drilldownParams: { scenario: row.scenario, highlight: 'bottlenecks' }
+        });
+      }
+
+      const efficiencyLoss = row.metrics['efficiencyLoss'];
+      if (typeof efficiencyLoss === 'number' && efficiencyLoss > 0.2) {
+        alerts.push({
+          id: `alert-${alertId++}`,
+          severity: efficiencyLoss > 0.35 ? 'critical' : 'warning',
+          metric: 'Capacity Efficiency Loss',
+          scenario: row.scenario,
+          value: `${(efficiencyLoss * 100).toFixed(1)}%`,
+          message: `High capacity efficiency loss (${(efficiencyLoss * 100).toFixed(1)}%) indicates major real-vs-classical flow gap`,
+          drilldownRoute: '/capacity-analysis',
+          drilldownParams: { scenario: row.scenario, highlight: 'efficiency' }
+        });
+      }
+
+      const captureRatio = row.metrics['throughputCaptureRatio'];
+      if (typeof captureRatio === 'number' && captureRatio < 0.7) {
+        alerts.push({
+          id: `alert-${alertId++}`,
+          severity: captureRatio < 0.5 ? 'critical' : 'warning',
+          metric: 'Throughput Capture',
+          scenario: row.scenario,
+          value: `${(captureRatio * 100).toFixed(1)}%`,
+          message: `Only ${(captureRatio * 100).toFixed(1)}% of source flow reaches targets`,
+          drilldownRoute: '/capacity-analysis',
+          drilldownParams: { scenario: row.scenario, highlight: 'summary' }
+        });
+      }
+
+      const upgradePressure = row.metrics['upgradePressure'];
+      if (typeof upgradePressure === 'number' && upgradePressure >= 4) {
+        alerts.push({
+          id: `alert-${alertId++}`,
+          severity: upgradePressure >= 6 ? 'critical' : 'warning',
+          metric: 'Upgrade Pressure',
+          scenario: row.scenario,
+          value: upgradePressure,
+          message: `${upgradePressure} high-priority upgrade candidates detected`,
+          drilldownRoute: '/capacity-analysis',
+          drilldownParams: { scenario: row.scenario, highlight: 'upgrades' }
         });
       }
 
@@ -478,5 +543,77 @@ export class SystemProfileService {
       }
     }
     return null;
+  }
+
+  private getBottleneckCount(scenario: CapacityScenario): number {
+    const bottlenecks = scenario.raw_capacity_result?.bottlenecks;
+    if (!bottlenecks) {
+      return 0;
+    }
+
+    let count = 0;
+    for (const value of Object.values(bottlenecks)) {
+      if (Array.isArray(value)) {
+        count += value.length;
+      } else if (value != null) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  private getCriticalPathCount(scenario: CapacityScenario): number {
+    const pathsByTarget = scenario.raw_capacity_result?.critical_paths;
+    if (!pathsByTarget) {
+      return 0;
+    }
+
+    let total = 0;
+    for (const paths of Object.values(pathsByTarget)) {
+      if (Array.isArray(paths)) {
+        total += paths.length;
+      }
+    }
+    return total;
+  }
+
+  private getCapacityEfficiencyLoss(scenario: CapacityScenario): number | null {
+    const efficiency = scenario.comparative_analysis?.efficiency_metrics;
+    if (!efficiency) {
+      return null;
+    }
+
+    const direct = this.extractNumericValue((efficiency as Record<string, unknown>)['efficiency_loss']);
+    if (direct != null) {
+      return direct;
+    }
+
+    const relativeGap = this.extractNumericValue((efficiency as Record<string, unknown>)['relative_gap']);
+    if (relativeGap != null) {
+      return relativeGap;
+    }
+
+    const flowEfficiency = this.extractNumericValue((efficiency as Record<string, unknown>)['flow_efficiency']);
+    if (flowEfficiency != null) {
+      return Math.max(0, 1 - flowEfficiency);
+    }
+
+    return null;
+  }
+
+  private getUpgradePressure(scenario: CapacityScenario): number {
+    const priorities = scenario.comparative_analysis?.upgrade_priorities;
+    return Array.isArray(priorities) ? priorities.length : 0;
+  }
+
+  private getCapacityScenarioDataType(scenario: CapacityScenario): 'float' | 'interval' | 'pbox' {
+    const marker = String(scenario.raw_capacity_result?.analysis_type ?? '').toLowerCase();
+    if (marker.includes('interval')) {
+      return 'interval';
+    }
+    if (marker.includes('pbox')) {
+      return 'pbox';
+    }
+    return 'float';
   }
 }

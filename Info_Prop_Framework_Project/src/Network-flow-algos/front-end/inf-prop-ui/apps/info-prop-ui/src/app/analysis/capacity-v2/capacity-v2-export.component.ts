@@ -93,8 +93,8 @@ export class CapacityV2ExportComponent {
           <h2>UPGRADE PRIORITIES</h2>
           <p>Primary bottleneck: ${detail.upgrades.primaryBottleneck}</p>
           <p>Recommended action: ${detail.upgrades.recommendedAction}</p>
-          <h2>CRITICAL PATHS</h2>
-          <p>Paths: ${detail.criticalPaths.criticalPaths.length}</p>
+          <h2>SPOF-STYLE CONSTRAINTS</h2>
+          <p>Constraint count: ${detail.criticalPaths.singlePointsOfFailure.length}</p>
           <h2>COMPARATIVE ANALYSIS</h2>
           <p>Realistic max flow: ${detail.comparative.realisticMaxFlow}</p>
           <p>Classical max flow: ${detail.comparative.classicalMaxFlow}</p>

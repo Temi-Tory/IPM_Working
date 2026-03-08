@@ -23,11 +23,11 @@
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="metric-card" (click)="navigateTo('paths')">
+      <mat-card class="metric-card" (click)="navigateTo('bottlenecks')">
         <mat-card-content>
           <mat-icon>route</mat-icon>
-          <div class="value">{{ (store.activeDeterministicDetail()?.criticalPaths?.criticalPaths?.length ?? 0) }}</div>
-          <div class="label">Critical Paths</div>
+          <div class="value">{{ (store.activeDeterministicDetail()?.criticalPaths?.singlePointsOfFailure?.length ?? 0) }}</div>
+          <div class="label">SPOF Constraints</div>
         </mat-card-content>
       </mat-card>
 

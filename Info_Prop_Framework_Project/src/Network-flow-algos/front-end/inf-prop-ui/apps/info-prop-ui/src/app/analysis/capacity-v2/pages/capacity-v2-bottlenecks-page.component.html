@@ -11,12 +11,14 @@
             <span class="label">Min-cut capacity</span>
             <strong class="value">{{ detail.bottlenecks.minCutCapacity | number: '1.3-3' }}</strong>
           </div>
-          @if (detail.bottlenecks.bottleneckType && detail.bottlenecks.bottleneckType.toLowerCase() !== 'mixed') {
-            <div class="metric-box">
-              <span class="label">Bottleneck type</span>
-              <mat-chip-set><mat-chip>{{ detail.bottlenecks.bottleneckType }}</mat-chip></mat-chip-set>
-            </div>
-          }
+          <div class="metric-box">
+            <span class="label">Bottleneck type</span>
+            <mat-chip-set>
+              <mat-chip [ngClass]="getBottleneckTypeClass(detail.bottlenecks.bottleneckType)">
+                {{ detail.bottlenecks.bottleneckType }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
           <div class="metric-box">
             <span class="label">Spare capacity (edges)</span>
             <strong class="value">{{ detail.bottlenecks.totalSpareEdgeCapacity | number: '1.3-3' }}</strong>
@@ -24,6 +26,10 @@
           <div class="metric-box">
             <span class="label">Spare capacity (nodes)</span>
             <strong class="value">{{ detail.bottlenecks.totalSpareNodeCapacity | number: '1.3-3' }}</strong>
+          </div>
+          <div class="metric-box">
+            <span class="label" [title]="'Single Points of Failure: Critical components whose failure would compromise network capacity'">SPOF-style constraints</span>
+            <strong class="value">{{ detail.criticalPaths.singlePointsOfFailure.length }}</strong>
           </div>
         </div>
 
@@ -42,8 +48,11 @@
           </div>
           @if (filteredSaturatedEdges().length > 0) {
             <ul class="component-list">
-              @for (edge of filteredSaturatedEdges(); track edge) {
-                <li>{{ edge }}</li>
+              @for (edge of filteredSaturatedEdges(); track edge.edgeLabel) {
+                <li>
+                  <span>{{ edge.edgeLabel }}</span>
+                  <span class="component-meta">{{ edge.utilization | percent: '1.1-2' }}</span>
+                </li>
               }
             </ul>
           } @else {
@@ -123,6 +132,49 @@
             ></mat-paginator>
           } @else {
             <p class="no-data">No near-saturated components.</p>
+          }
+        </div>
+
+        <div class="section">
+          <h3>Utilization Distribution</h3>
+          @if (utilizationBands().length > 0) {
+            <div class="utilization-chart">
+              @for (band of utilizationBands(); track band.label) {
+                <div class="utilization-row">
+                  <div class="band-label">{{ band.label }}</div>
+                  <div class="band-bar-track">
+                    <div class="band-bar" [style.width]="getUtilizationBandWidth(band.count)"></div>
+                  </div>
+                  <div class="band-count">{{ band.count }}</div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="no-data">Utilization distribution is unavailable for this run.</p>
+          }
+        </div>
+
+        <div class="section">
+          <h3 [title]="'Single Points of Failure: Critical components whose failure would compromise network capacity'">SPOF-Style Constraints</h3>
+          <div class="table-controls">
+            <div class="search-wrapper">
+              <mat-icon>search</mat-icon>
+              <input
+                type="text"
+                placeholder="Search SPOF constraint..."
+                [value]="spofSearchTerm()"
+                (input)="onSpofSearchChange($event)"
+              />
+            </div>
+          </div>
+          @if (filteredSpofConstraints().length > 0) {
+            <ul class="component-list">
+              @for (item of filteredSpofConstraints(); track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="no-data">No SPOF-style constraints were returned or derived for this run.</p>
           }
         </div>
       </mat-card-content>

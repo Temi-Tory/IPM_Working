@@ -17,7 +17,6 @@ interface VizNode {
   radius: number;
   utilization: number;
   isBottleneck: boolean;
-  isCritical: boolean;
 }
 
 interface VizEdge {
@@ -32,7 +31,6 @@ interface VizEdge {
   utilization: number;
   isBottleneck: boolean;
   isSaturated: boolean;
-  isCritical: boolean;
 }
 
 @Component({
@@ -80,7 +78,6 @@ export class CapacityV2VisualizationPageComponent {
   readonly highlightModes: Array<{ label: string; value: CapacityV2HighlightMode }> = [
     { label: 'Bottlenecks', value: 'bottlenecks' },
     { label: 'Saturated', value: 'saturated' },
-    { label: 'Critical Paths', value: 'critical-paths' },
     { label: 'All', value: 'all' },
     { label: 'None', value: 'none' }
   ];
@@ -138,11 +135,6 @@ export class CapacityV2VisualizationPageComponent {
       ...detail.bottlenecks.nearSaturatedNodes.map((entry) => entry.node)
     ]);
 
-    const criticalNodeSet = new Set<number>();
-    detail.criticalPaths.criticalPaths.forEach((path) => {
-      path.path.forEach((nodeId) => criticalNodeSet.add(nodeId));
-    });
-
     return network.nodes.map((nodeId) => {
       const position = positions.get(nodeId) || { x: 40, y: 40 };
       const flow = nodeCapMap.get(nodeId) ?? 0;
@@ -158,8 +150,7 @@ export class CapacityV2VisualizationPageComponent {
         y: position.y,
         radius: 8 + Math.min(Math.max(capacity, 0), 30),
         utilization,
-        isBottleneck: isBottleneck.has(nodeId),
-        isCritical: criticalNodeSet.has(nodeId)
+        isBottleneck: isBottleneck.has(nodeId)
       };
     });
   });
@@ -180,13 +171,6 @@ export class CapacityV2VisualizationPageComponent {
     ]);
 
     const saturatedSet = new Set<string>(detail.bottlenecks.saturatedEdges.map((edge) => this.edgeTupleKey(edge[0], edge[1])));
-
-    const criticalEdgeSet = new Set<string>();
-    detail.criticalPaths.criticalPaths.forEach((path) => {
-      for (let i = 0; i < path.path.length - 1; i += 1) {
-        criticalEdgeSet.add(this.edgeTupleKey(path.path[i], path.path[i + 1]));
-      }
-    });
 
     const edgeFlowMap = new Map(detail.edgeFlows.map((edge) => [this.edgeTupleKey(edge.from, edge.to), edge]));
 
@@ -209,8 +193,7 @@ export class CapacityV2VisualizationPageComponent {
         thickness: 1 + Math.min(flow, 8),
         utilization,
         isBottleneck: bottleneckEdgeSet.has(key),
-        isSaturated: saturatedSet.has(key),
-        isCritical: criticalEdgeSet.has(key)
+        isSaturated: saturatedSet.has(key)
       };
     });
   });
@@ -251,14 +234,12 @@ export class CapacityV2VisualizationPageComponent {
 
     if (highlightMode === 'all') {
       if (edge.isBottleneck) return 'viz-edge is-bottleneck';
-      if (edge.isCritical) return 'viz-edge is-critical';
       if (edge.isSaturated) return 'viz-edge is-saturated';
       return 'viz-edge';
     }
 
     if (highlightMode === 'bottlenecks' && edge.isBottleneck) return 'viz-edge is-bottleneck';
     if (highlightMode === 'saturated' && edge.isSaturated) return 'viz-edge is-saturated';
-    if (highlightMode === 'critical-paths' && edge.isCritical) return 'viz-edge is-critical';
 
     return 'viz-edge';
   }
@@ -271,7 +252,6 @@ export class CapacityV2VisualizationPageComponent {
     }
 
     if (node.isBottleneck) return 'viz-node is-bottleneck';
-    if (node.isCritical) return 'viz-node is-critical';
     if (node.utilization >= 0.9) return 'viz-node util-high';
     if (node.utilization >= 0.6) return 'viz-node util-mid';
 

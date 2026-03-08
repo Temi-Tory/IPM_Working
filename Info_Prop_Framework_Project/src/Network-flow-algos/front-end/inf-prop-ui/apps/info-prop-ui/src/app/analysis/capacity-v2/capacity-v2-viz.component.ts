@@ -59,7 +59,6 @@ export class CapacityV2VizComponent {
   readonly highlightModes: Array<{ label: string; value: CapacityV2HighlightMode }> = [
     { label: 'Bottlenecks', value: 'bottlenecks' },
     { label: 'Saturated', value: 'saturated' },
-    { label: 'Critical Paths', value: 'critical-paths' },
     { label: 'All', value: 'all' },
     { label: 'None', value: 'none' }
   ];
@@ -246,10 +245,6 @@ export class CapacityV2VizComponent {
 
     if (highlightMode === 'saturated' && edge.isSaturated) {
       return 'viz-edge is-saturated';
-    }
-
-    if (highlightMode === 'critical-paths' && edge.isCritical) {
-      return 'viz-edge is-critical';
     }
 
     return 'viz-edge';

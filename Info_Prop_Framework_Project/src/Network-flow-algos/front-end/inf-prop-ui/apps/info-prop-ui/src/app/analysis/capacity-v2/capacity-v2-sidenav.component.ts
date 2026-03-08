@@ -18,7 +18,7 @@ import { CapacityV2InputComponent } from './capacity-v2-input.component';
 import { CapacityV2VizComponent } from './capacity-v2-viz.component';
 
 type ViewId = 'overview' | 'inputs' | 'visualization' | 'bottlenecks' | 'upgrades' | 
-              'critical-paths' | 'components' | 'uncertainty' | 'validation' | 'performance' | 'export';
+              'components' | 'uncertainty' | 'validation' | 'performance' | 'export';
 
 interface NavItem {
   id: ViewId;
@@ -62,7 +62,6 @@ export class CapacityV2SidenavComponent implements OnInit {
     { id: 'visualization', label: 'Visualization', icon: 'account_tree' },
     { id: 'bottlenecks', label: 'Bottlenecks', icon: 'report_problem' },
     { id: 'upgrades', label: 'Upgrade Priorities', icon: 'trending_up' },
-    { id: 'critical-paths', label: 'Critical Paths', icon: 'route' },
     { id: 'components', label: 'Component Details', icon: 'view_list' },
     { id: 'uncertainty', label: 'Uncertainty Analysis', icon: 'analytics' },
     { id: 'validation', label: 'Validation', icon: 'fact_check' },

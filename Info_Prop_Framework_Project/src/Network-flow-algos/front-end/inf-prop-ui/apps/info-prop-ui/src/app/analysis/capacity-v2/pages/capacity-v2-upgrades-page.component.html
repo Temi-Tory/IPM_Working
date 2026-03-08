@@ -42,6 +42,18 @@
                   <th class="sortable" (click)="onEdgeSort('priorityScore')">
                     Priority <mat-icon class="sort-icon">{{ getEdgeSortIcon('priorityScore') }}</mat-icon>
                   </th>
+                  <th class="sortable" (click)="onEdgeSort('urgency')">
+                    Urgency <mat-icon class="sort-icon">{{ getEdgeSortIcon('urgency') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('currentCapacity')">
+                    Current Cap. <mat-icon class="sort-icon">{{ getEdgeSortIcon('currentCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('recommendedCapacity')">
+                    Recommended Cap. <mat-icon class="sort-icon">{{ getEdgeSortIcon('recommendedCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('marginalValue')">
+                    Marginal Value <mat-icon class="sort-icon">{{ getEdgeSortIcon('marginalValue') }}</mat-icon>
+                  </th>
                   <th class="sortable" (click)="onEdgeSort('expectedFlowIncrease')">
                     Expected Increase <mat-icon class="sort-icon">{{ getEdgeSortIcon('expectedFlowIncrease') }}</mat-icon>
                   </th>
@@ -55,6 +67,14 @@
                   <tr>
                     <td>{{ asEdgeLabel(edge.edge) }}</td>
                     <td>{{ edge.priorityScore | number: '1.2-2' }}</td>
+                    <td>
+                      <span class="urgency-pill" [ngClass]="getUrgencyClass(edge.priorityScore)">
+                        {{ getUrgencyLabel(edge.priorityScore) }}
+                      </span>
+                    </td>
+                    <td>{{ edge.currentCapacity | number: '1.3-3' }}</td>
+                    <td>{{ edge.recommendedCapacity | number: '1.3-3' }}</td>
+                    <td>{{ edge.marginalValue | number: '1.3-3' }}</td>
                     <td>{{ edge.expectedFlowIncrease | number: '1.3-3' }}</td>
                     <td>{{ edge.rationale }}</td>
                   </tr>
@@ -97,6 +117,18 @@
                   <th class="sortable" (click)="onNodeSort('priorityScore')">
                     Priority <mat-icon class="sort-icon">{{ getNodeSortIcon('priorityScore') }}</mat-icon>
                   </th>
+                  <th class="sortable" (click)="onNodeSort('urgency')">
+                    Urgency <mat-icon class="sort-icon">{{ getNodeSortIcon('urgency') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('currentCapacity')">
+                    Current Cap. <mat-icon class="sort-icon">{{ getNodeSortIcon('currentCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('recommendedCapacity')">
+                    Recommended Cap. <mat-icon class="sort-icon">{{ getNodeSortIcon('recommendedCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('marginalValue')">
+                    Marginal Value <mat-icon class="sort-icon">{{ getNodeSortIcon('marginalValue') }}</mat-icon>
+                  </th>
                   <th class="sortable" (click)="onNodeSort('expectedFlowIncrease')">
                     Expected Increase <mat-icon class="sort-icon">{{ getNodeSortIcon('expectedFlowIncrease') }}</mat-icon>
                   </th>
@@ -110,6 +142,14 @@
                   <tr>
                     <td>{{ node.node }}</td>
                     <td>{{ node.priorityScore | number: '1.2-2' }}</td>
+                    <td>
+                      <span class="urgency-pill" [ngClass]="getUrgencyClass(node.priorityScore)">
+                        {{ getUrgencyLabel(node.priorityScore) }}
+                      </span>
+                    </td>
+                    <td>{{ node.currentCapacity | number: '1.3-3' }}</td>
+                    <td>{{ node.recommendedCapacity | number: '1.3-3' }}</td>
+                    <td>{{ node.marginalValue | number: '1.3-3' }}</td>
                     <td>{{ node.expectedFlowIncrease | number: '1.3-3' }}</td>
                     <td>{{ node.rationale }}</td>
                   </tr>

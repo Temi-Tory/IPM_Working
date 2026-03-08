@@ -5,14 +5,10 @@
 
   <mat-card-content>
     <div class="input-grid">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Network file</mat-label>
-        <mat-select [value]="store.selectedNetworkOption()" (selectionChange)="onNetworkChange($event)">
-          @for (option of store.networkOptions(); track option.scenarioName) {
-            <mat-option [value]="option">{{ option.label }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="section-block editor-intro">
+        <div class="section-label">Scenario selection and run controls are in the header toolbar.</div>
+        <strong>Use this page to edit capacities, source rates, and target nodes for the selected scenario.</strong>
+      </div>
 
       <div class="section-block">
         <div class="section-label">Analysis type is inferred from selected scenario</div>
@@ -168,7 +164,7 @@
           [checked]="store.inputs().options.enumerateCriticalPaths"
           (change)="toggleOption('enumerateCriticalPaths', $event.checked)"
         >
-          Enumerate critical paths
+          Identify SPOF-style constraints
         </mat-checkbox>
         <mat-checkbox
           [checked]="store.inputs().options.computeUpgradePriorities"
@@ -183,15 +179,6 @@
           Include classical comparison
         </mat-checkbox>
       </div>
-    </div>
-
-    <div class="run-actions">
-      <button mat-flat-button color="primary" (click)="onRunAnalysis()" [disabled]="store.runState() === 'running'">
-        Run Analysis
-      </button>
-      @if (store.runState() === 'running') {
-        <mat-spinner diameter="24"></mat-spinner>
-      }
     </div>
 
     @if (store.error()) {

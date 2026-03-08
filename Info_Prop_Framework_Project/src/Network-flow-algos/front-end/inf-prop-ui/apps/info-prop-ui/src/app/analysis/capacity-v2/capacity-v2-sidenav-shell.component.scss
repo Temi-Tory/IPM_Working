@@ -37,11 +37,13 @@
     align-items: center;
     gap: 24px;
     flex: 1;
+    width: 100%;
 
     .toolbar-title-section {
       display: flex;
       flex-direction: column;
       gap: 2px;
+      flex-shrink: 0;
     }
 
     .toolbar-title {
@@ -62,43 +64,11 @@
       transition: color 0.3s ease;
     }
 
-    .summary-metrics {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-
-      .metric {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 8px 14px;
-        background: var(--surface);
-        border-radius: 8px;
-        border: 1px solid var(--outline-variant);
-        color: var(--text-primary);
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: var(--surface-container);
-          border-color: var(--primary-color);
-        }
-
-        .metric-label {
-          font-size: 11px;
-          text-transform: uppercase;
-          opacity: 0.75;
-          letter-spacing: 0.5px;
-          color: var(--text-secondary);
-          transition: color 0.3s ease;
-        }
-
-        .metric-value {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--primary-color);
-          transition: color 0.3s ease;
-        }
-      }
+    .scenario-picker {
+      width: 320px;
+      min-width: 220px;
+      margin-bottom: -1.2em;
+      flex-shrink: 0;
     }
 
     .detail-toggle {
@@ -106,6 +76,7 @@
       border: 1px solid var(--outline-variant);
       border-radius: 6px;
       transition: all 0.2s ease;
+      flex-shrink: 0;
 
       ::ng-deep .mat-button-toggle {
         color: var(--text-secondary);
@@ -120,6 +91,55 @@
         &:hover {
           background: var(--surface-container);
           color: var(--text-primary);
+        }
+      }
+    }
+
+    .run-action {
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .view-mode-toggle {
+      background: var(--surface);
+      border: 1px solid var(--outline-variant);
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      margin-left: auto;
+      flex-shrink: 0;
+
+      .toggle-label {
+        margin-left: 4px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      ::ng-deep .mat-button-toggle {
+        color: var(--text-secondary);
+        border: none;
+        padding: 4px 12px;
+
+        &.mat-button-toggle-checked {
+          background: var(--primary-color-light);
+          color: var(--primary-color);
+          font-weight: 500;
+        }
+
+        &:hover:not(:disabled) {
+          background: var(--surface-container);
+          color: var(--text-primary);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        mat-icon {
+          margin-right: 4px;
         }
       }
     }
@@ -152,7 +172,28 @@
   width: 240px;
   border-right: 1px solid var(--outline-variant);
   background: var(--surface);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, width 0.25s ease;
+
+  &.collapsed {
+    width: 72px;
+
+    a[mat-list-item] {
+      padding-left: 8px;
+      justify-content: center;
+
+      &.active {
+        padding-left: 5px;
+      }
+
+      ::ng-deep .mdc-list-item__content {
+        display: none;
+      }
+
+      mat-icon {
+        margin: 0 auto;
+      }
+    }
+  }
 
   a[mat-list-item] {
     color: var(--text-primary);
@@ -211,6 +252,10 @@
   transition: background-color 0.3s ease;
 }
 
+.mode-content-full {
+  min-height: calc(100vh - 64px);
+}
+
 .content-wrapper {
   display: flex;
   flex-direction: column;
@@ -232,6 +277,12 @@
       .toolbar-title {
         color: var(--primary-color);
       }
+
+        .scenario-picker {
+          ::ng-deep .mat-mdc-text-field-wrapper {
+            background: var(--surface);
+          }
+        }
 
       .detail-toggle {
         background: var(--surface-container);
@@ -292,16 +343,18 @@
       flex-wrap: wrap;
       gap: 12px;
 
-      .summary-metrics {
-        order: 3;
+      .scenario-picker {
         width: 100%;
-        justify-content: space-around;
       }
     }
   }
 
   .sidenav {
     width: 200px;
+
+    &.collapsed {
+      width: 64px;
+    }
   }
 
   .content-wrapper {

@@ -8,8 +8,24 @@ import { CapacityV2Store } from '../capacity-v2.store';
 import { CapacityV2UpgradeRecommendationEdge, CapacityV2UpgradeRecommendationNode } from '../capacity-v2.models';
 
 type SortDirection = 'asc' | 'desc';
-type EdgeSortField = 'edge' | 'priorityScore' | 'expectedFlowIncrease' | 'rationale';
-type NodeSortField = 'node' | 'priorityScore' | 'expectedFlowIncrease' | 'rationale';
+type EdgeSortField =
+  | 'edge'
+  | 'priorityScore'
+  | 'currentCapacity'
+  | 'recommendedCapacity'
+  | 'marginalValue'
+  | 'expectedFlowIncrease'
+  | 'urgency'
+  | 'rationale';
+type NodeSortField =
+  | 'node'
+  | 'priorityScore'
+  | 'currentCapacity'
+  | 'recommendedCapacity'
+  | 'marginalValue'
+  | 'expectedFlowIncrease'
+  | 'urgency'
+  | 'rationale';
 
 @Component({
   selector: 'app-capacity-v2-upgrades-page',
@@ -180,14 +196,39 @@ export class CapacityV2UpgradesPageComponent {
     return this.nodeSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
 
+  getUrgencyLabel(priorityScore: number): string {
+    if (priorityScore >= 0.8) {
+      return 'High';
+    }
+
+    if (priorityScore >= 0.5) {
+      return 'Medium';
+    }
+
+    return 'Low';
+  }
+
+  getUrgencyClass(priorityScore: number): string {
+    const urgency = this.getUrgencyLabel(priorityScore).toLowerCase();
+    return `urgency-${urgency}`;
+  }
+
   private getEdgeSortValue(item: CapacityV2UpgradeRecommendationEdge, field: EdgeSortField): string | number {
     switch (field) {
       case 'edge':
         return this.asEdgeLabel(item.edge);
       case 'priorityScore':
         return item.priorityScore;
+      case 'currentCapacity':
+        return item.currentCapacity;
+      case 'recommendedCapacity':
+        return item.recommendedCapacity;
+      case 'marginalValue':
+        return item.marginalValue;
       case 'expectedFlowIncrease':
         return item.expectedFlowIncrease;
+      case 'urgency':
+        return item.priorityScore;
       case 'rationale':
         return item.rationale;
       default:
@@ -201,8 +242,16 @@ export class CapacityV2UpgradesPageComponent {
         return item.node;
       case 'priorityScore':
         return item.priorityScore;
+      case 'currentCapacity':
+        return item.currentCapacity;
+      case 'recommendedCapacity':
+        return item.recommendedCapacity;
+      case 'marginalValue':
+        return item.marginalValue;
       case 'expectedFlowIncrease':
         return item.expectedFlowIncrease;
+      case 'urgency':
+        return item.priorityScore;
       case 'rationale':
         return item.rationale;
       default:

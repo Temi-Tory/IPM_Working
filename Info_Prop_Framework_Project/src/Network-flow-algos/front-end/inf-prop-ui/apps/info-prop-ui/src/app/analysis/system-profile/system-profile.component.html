@@ -81,7 +81,40 @@
 <app-cross-scenario-insights [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()" />
 }
 
-<!-- 5. Scenario Cards + Hotspot Alerts (side by side on wide screens) -->
+<!-- 5. Capacity Optimizations -->
+@if (capacityOptimizations().length > 0) {
+<mat-card class="optimizations-card">
+  <mat-card-content>
+    <h4 class="section-title">
+      <mat-icon>build_circle</mat-icon>
+      Capacity Optimizations
+    </h4>
+    <p class="optimizations-subtitle">Top scenarios where targeted upgrades can improve throughput, resilience, or efficiency.</p>
+
+    <div class="optimizations-grid">
+      @for (item of capacityOptimizations(); track item.scenario) {
+      <div class="optimization-item">
+        <div class="optimization-header-row">
+          <span class="optimization-scenario">{{ item.scenario }}</span>
+          <span class="priority-badge">Priority {{ formatNumber(item.score * 10, 1) }}</span>
+        </div>
+
+        <div class="optimization-metrics">
+          <span>Utilization: <strong>{{ formatNumber(item.utilization, 1) }}%</strong></span>
+          <span>Efficiency Loss: <strong>{{ formatPercent(item.efficiencyLoss) }}</strong></span>
+          <span>Capture: <strong>{{ formatPercent(item.captureRatio) }}</strong></span>
+          <span>Upgrades: <strong>{{ formatNumber(item.upgradePressure, 0) }}</strong></span>
+        </div>
+
+        <p class="optimization-recommendation">{{ item.recommendation }}</p>
+      </div>
+      }
+    </div>
+  </mat-card-content>
+</mat-card>
+}
+
+<!-- 6. Scenario Cards + Hotspot Alerts (side by side on wide screens) -->
 <div class="bottom-grid">
   @if (metricRows().length > 0) {
   <div class="scenario-cards-section">

@@ -191,6 +191,7 @@ export class CapacityV2Service {
     const pathsRaw = this.asRecord(raw['critical_paths']);
     const comparativeRaw = this.asRecord(raw['comparative_analysis']);
     const metadataRaw = this.asRecord(raw['metadata']);
+    const derivedSpofConstraints = this.deriveSpofConstraints(pathsRaw, bottlenecksRaw);
 
     return {
       summary: {
@@ -215,7 +216,7 @@ export class CapacityV2Service {
           };
         }),
         pathRedundancy: this.toNumberRecord(pathsRaw['path_redundancy']),
-        singlePointsOfFailure: this.asStringArray(pathsRaw['single_points_of_failure'])
+        singlePointsOfFailure: derivedSpofConstraints
       },
       comparative: this.normalizeComparative(comparativeRaw),
       nodeFlows: this.normalizeNodeFlows(raw['node_flows'], bottlenecksRaw),
@@ -227,6 +228,46 @@ export class CapacityV2Service {
         timestamp: this.str(metadataRaw['timestamp'])
       }
     };
+  }
+
+  private deriveSpofConstraints(
+    pathsRaw: Record<string, unknown>,
+    bottlenecksRaw: Record<string, unknown>
+  ): string[] {
+    const explicit = this.asStringArray(pathsRaw['single_points_of_failure']);
+    if (explicit.length > 0) {
+      return explicit;
+    }
+
+    const constraints = new Set<string>();
+
+    const saturatedEdges = this.normalizeEdgeTupleArray(bottlenecksRaw['saturated_edges']);
+    saturatedEdges.forEach(([from, to]) => constraints.add(`Edge (${from},${to}) [saturated]`));
+
+    const saturatedNodes = this.asNumberArray(bottlenecksRaw['saturated_nodes']);
+    saturatedNodes.forEach((node) => constraints.add(`Node ${node} [saturated]`));
+
+    const minCutEdges = this.normalizeEdgeTupleArray(bottlenecksRaw['min_cut_edges']);
+    minCutEdges.forEach(([from, to]) => constraints.add(`Edge (${from},${to}) [min-cut]`));
+
+    const minCutNodes = this.asNumberArray(bottlenecksRaw['min_cut_nodes']);
+    minCutNodes.forEach((node) => constraints.add(`Node ${node} [min-cut]`));
+
+    const utilizationByComponent = this.toNumberRecord(bottlenecksRaw['utilization_by_component']);
+    Object.keys(utilizationByComponent).forEach((component) => {
+      const utilization = utilizationByComponent[component];
+      if (utilization < 0.999) {
+        return;
+      }
+
+      if (component.startsWith('(') && component.endsWith(')')) {
+        constraints.add(`Edge ${component} [100% utilized]`);
+      } else {
+        constraints.add(`Node ${component} [100% utilized]`);
+      }
+    });
+
+    return Array.from(constraints).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }
 
   private normalizeBottlenecks(raw: Record<string, unknown>): CapacityV2BottleneckEntity {

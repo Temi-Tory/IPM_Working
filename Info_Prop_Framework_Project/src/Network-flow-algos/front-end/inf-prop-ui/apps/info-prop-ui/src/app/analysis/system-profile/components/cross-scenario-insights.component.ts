@@ -342,6 +342,49 @@ export class CrossScenarioInsightsComponent {
       }
     }
 
+    const captureValues = rows
+      .map(r => ({ scenario: r.scenario, value: r.metrics['throughputCaptureRatio'] }))
+      .filter((v): v is { scenario: string; value: number } => typeof v.value === 'number');
+
+    if (captureValues.length >= 2) {
+      const sorted = [...captureValues].sort((a, b) => b.value - a.value);
+      insights.push({
+        icon: 'call_received',
+        text: `Flow capture: best ${sorted[0].scenario} (${(sorted[0].value * 100).toFixed(1)}%), worst ${sorted[sorted.length - 1].scenario} (${(sorted[sorted.length - 1].value * 100).toFixed(1)}%)`,
+        severity: sorted[sorted.length - 1].value < 0.7 ? 'warning' : 'info'
+      });
+    }
+
+    const effLossValues = rows
+      .map(r => ({ scenario: r.scenario, value: r.metrics['efficiencyLoss'] }))
+      .filter((v): v is { scenario: string; value: number } => typeof v.value === 'number');
+
+    if (effLossValues.length >= 1) {
+      const worst = effLossValues.reduce((a, b) => (a.value > b.value ? a : b));
+      if (worst.value > 0.2) {
+        insights.push({
+          icon: 'warning',
+          text: `Highest capacity efficiency loss: ${worst.scenario} (${(worst.value * 100).toFixed(1)}%)`,
+          severity: worst.value > 0.35 ? 'warning' : 'info'
+        });
+      }
+    }
+
+    const upgradePressureValues = rows
+      .map(r => ({ scenario: r.scenario, value: r.metrics['upgradePressure'] }))
+      .filter((v): v is { scenario: string; value: number } => typeof v.value === 'number');
+
+    if (upgradePressureValues.length >= 1) {
+      const mostPressured = upgradePressureValues.reduce((a, b) => (a.value > b.value ? a : b));
+      if (mostPressured.value > 0) {
+        insights.push({
+          icon: 'build',
+          text: `Optimization hotspot: ${mostPressured.scenario} has ${mostPressured.value} prioritized upgrades`,
+          severity: mostPressured.value >= 4 ? 'warning' : 'info'
+        });
+      }
+    }
+
     return insights;
   }
 

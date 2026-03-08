@@ -1,7 +1,7 @@
 export type CapacityV2AnalysisType = 'deterministic' | 'interval';
 export type CapacityV2RunState = 'idle' | 'running' | 'success' | 'error';
 export type CapacityV2DetailSource = 'worst' | 'best';
-export type CapacityV2HighlightMode = 'bottlenecks' | 'saturated' | 'critical-paths' | 'all' | 'none';
+export type CapacityV2HighlightMode = 'bottlenecks' | 'saturated' | 'all' | 'none';
 
 export interface CapacityV2Interval {
   min: number;

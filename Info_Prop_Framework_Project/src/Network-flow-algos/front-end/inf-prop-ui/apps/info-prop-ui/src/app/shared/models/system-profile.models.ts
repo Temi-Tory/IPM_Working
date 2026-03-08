@@ -218,6 +218,60 @@ export const PROFILE_METRICS: ProfileMetricDefinition[] = [
     format: 'integer'
   },
   {
+    key: 'capacityThroughput',
+    label: 'Delivered Throughput',
+    shortLabel: 'Throughput',
+    unit: 'flow',
+    source: 'capacity',
+    higherIsBetter: true,
+    format: 'number'
+  },
+  {
+    key: 'throughputCaptureRatio',
+    label: 'Source→Target Capture',
+    shortLabel: 'Capture %',
+    unit: '%',
+    source: 'capacity',
+    higherIsBetter: true,
+    format: 'percent'
+  },
+  {
+    key: 'criticalPathCount',
+    label: 'Critical Paths',
+    shortLabel: 'Crit Paths',
+    unit: 'count',
+    source: 'capacity',
+    higherIsBetter: false,
+    format: 'integer'
+  },
+  {
+    key: 'totalSpareCapacity',
+    label: 'Total Spare Capacity',
+    shortLabel: 'Spare Cap.',
+    unit: 'flow',
+    source: 'capacity',
+    higherIsBetter: true,
+    format: 'number'
+  },
+  {
+    key: 'efficiencyLoss',
+    label: 'Capacity Efficiency Loss',
+    shortLabel: 'Eff Loss',
+    unit: '%',
+    source: 'capacity',
+    higherIsBetter: false,
+    format: 'percent'
+  },
+  {
+    key: 'upgradePressure',
+    label: 'Upgrade Pressure',
+    shortLabel: 'Upgrades',
+    unit: 'count',
+    source: 'capacity',
+    higherIsBetter: false,
+    format: 'integer'
+  },
+  {
     key: 'criticalPathDuration',
     label: 'Critical Path Duration',
     shortLabel: 'Crit. Path',

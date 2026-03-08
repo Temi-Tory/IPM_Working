@@ -14,15 +14,15 @@ export const appRoutes: Route[] = [
     path: 'capacity-analysis', 
     loadComponent: () => import('./analysis/capacity-v2/capacity-v2-sidenav-shell.component').then(m => m.CapacityV2SidenavShellComponent),
     children: [
-      { path: '', redirectTo: 'inputs', pathMatch: 'full' },
+      { path: '', redirectTo: 'summary', pathMatch: 'full' },
       { path: 'overview', redirectTo: 'summary', pathMatch: 'full' },
       { path: 'inputs', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-inputs-page.component').then(m => m.CapacityV2InputsPageComponent) },
       { path: 'summary', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-performance-page.component').then(m => m.CapacityV2PerformancePageComponent) },
       { path: 'visualization', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-visualization-page.component').then(m => m.CapacityV2VisualizationPageComponent) },
       { path: 'bottlenecks', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-bottlenecks-page.component').then(m => m.CapacityV2BottlenecksPageComponent) },
       { path: 'upgrades', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-upgrades-page.component').then(m => m.CapacityV2UpgradesPageComponent) },
-      { path: 'paths', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-paths-page.component').then(m => m.CapacityV2PathsPageComponent) },
       { path: 'flows', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-flows-page.component').then(m => m.CapacityV2FlowsPageComponent) },
+      { path: 'comparison', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-comparison-page.component').then(m => m.CapacityV2ComparisonPageComponent) },
       { path: 'export', loadComponent: () => import('./analysis/capacity-v2/pages/capacity-v2-export-page.component').then(m => m.CapacityV2ExportPageComponent) }
     ]
   },
