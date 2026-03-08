@@ -48,7 +48,6 @@ import {
           </div>
         </div>
 
-        <!-- Heatmap table -->
         <div class="heatmap-table-wrapper">
           <table class="heatmap-table">
             <thead>
@@ -68,8 +67,9 @@ import {
                   @for (col of visibleColumns(); track col.key) {
                     <td class="metric-cell"
                         [style.background]="getCellColor(row, col)"
-                        [matTooltip]="getCellTooltip(row, col)"
-                        (click)="onCellClick(row, col)"
+                        [matTooltip]="getCellTooltip(row, col) + ' · Click to select, double-click to open analysis'"
+                        (click)="onCellSelect(row, col)"
+                        (dblclick)="onCellClick(row, col)"
                         tabindex="0"
                         (keydown.enter)="onCellClick(row, col)">
                       {{ formatCellValue(row, col) }}
@@ -182,6 +182,7 @@ import {
 export class MetricsHeatmapComponent {
   rows = input.required<ScenarioMetricRow[]>();
   aggregatedMetrics = input.required<AggregatedMetrics>();
+  cellSelected = output<{ scenario: string; metricKey: string; source: string }>();
   cellClicked = output<{ scenario: string; metricKey: string; source: string }>();
 
   mode = signal<'absolute' | 'difference'>('absolute');
@@ -215,13 +216,11 @@ export class MetricsHeatmapComponent {
   });
 
   constructor() {
-    // Set baseline to first scenario when rows change
     const checkBaseline = () => {
       if (!this.baselineScenario() && this.rows().length > 0) {
         this.baselineScenario.set(this.rows()[0].scenario);
       }
     };
-    // Defer to next microtask to avoid signal read during construction
     Promise.resolve().then(checkBaseline);
   }
 
@@ -281,8 +280,7 @@ export class MetricsHeatmapComponent {
     if (val == null) return '\u2014';
     if (typeof val === 'string') return val;
     if (typeof val !== 'number') {
-      // Handle interval/pbox objects — extract midpoint
-      const obj = val as any;
+      const obj = val as { lower?: number; upper?: number };
       if (obj.lower != null && obj.upper != null) return `[${obj.lower.toFixed(3)}, ${obj.upper.toFixed(3)}]`;
       return JSON.stringify(val);
     }
@@ -304,11 +302,19 @@ export class MetricsHeatmapComponent {
   getCellTooltip(row: ScenarioMetricRow, col: ProfileMetricDefinition): string {
     const val = row.metrics[col.key];
     if (val == null) return `${col.label}: No data for ${row.scenario}`;
-    return `${col.label}: ${this.formatCellValue(row, col)} (${col.unit}) — Click to view in ${col.source} analysis`;
+    return `${col.label}: ${this.formatCellValue(row, col)} (${col.unit}) — Open in ${col.source} analysis`;
   }
 
   onCellClick(row: ScenarioMetricRow, col: ProfileMetricDefinition): void {
     this.cellClicked.emit({
+      scenario: row.scenario,
+      metricKey: col.key,
+      source: col.source
+    });
+  }
+
+  onCellSelect(row: ScenarioMetricRow, col: ProfileMetricDefinition): void {
+    this.cellSelected.emit({
       scenario: row.scenario,
       metricKey: col.key,
       source: col.source

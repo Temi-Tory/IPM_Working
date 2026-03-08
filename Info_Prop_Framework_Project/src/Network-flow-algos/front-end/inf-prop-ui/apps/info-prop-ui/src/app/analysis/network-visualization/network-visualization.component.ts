@@ -14,9 +14,9 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import * as d3 from 'd3';
 
 import { AnalysisStateService } from '../../shared/services/analysis-state.service';
+import { NODE_TYPE_COLORS, NodeType } from '../../shared/utils/network-graph-primitives';
 
 type LayoutMode = 'hierarchical' | 'top-down' | 'force';
-type NodeType = 'source' | 'sink' | 'fork' | 'join' | 'regular';
 
 interface D3Node extends d3.SimulationNodeDatum {
   id: string;
@@ -45,15 +45,6 @@ interface NetworkStats {
   avgDegree: number;
   density: number;
 }
-
-// Solarized colors for node types
-const NODE_TYPE_COLORS: Record<NodeType, string> = {
-  source: '#859900',   // solarized green
-  sink: '#dc322f',     // solarized red
-  fork: '#cb4b16',     // solarized orange
-  join: '#2aa198',     // solarized cyan
-  regular: '#268bd2',  // solarized blue
-};
 
 @Component({
   selector: 'app-network-visualization',

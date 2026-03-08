@@ -236,15 +236,6 @@ export const PROFILE_METRICS: ProfileMetricDefinition[] = [
     format: 'percent'
   },
   {
-    key: 'criticalPathCount',
-    label: 'Critical Paths',
-    shortLabel: 'Crit Paths',
-    unit: 'count',
-    source: 'capacity',
-    higherIsBetter: false,
-    format: 'integer'
-  },
-  {
     key: 'totalSpareCapacity',
     label: 'Total Spare Capacity',
     shortLabel: 'Spare Cap.',
@@ -261,15 +252,6 @@ export const PROFILE_METRICS: ProfileMetricDefinition[] = [
     source: 'capacity',
     higherIsBetter: false,
     format: 'percent'
-  },
-  {
-    key: 'upgradePressure',
-    label: 'Upgrade Pressure',
-    shortLabel: 'Upgrades',
-    unit: 'count',
-    source: 'capacity',
-    higherIsBetter: false,
-    format: 'integer'
   },
   {
     key: 'criticalPathDuration',

@@ -55,4 +55,12 @@ State initialization: AnalysisStateService calls /network-structure on the backe
 
 Analysis views (exact-inference, capacity, time, cost, diamonds): Each view uses a tabbed scenario pattern — one tab per scenario, each with independent idle → computing → computed status. Users explicitly trigger runScenario() or runAllScenarios(). Results are cached in view state so navigation doesn't re-trigger backend calls. After computation, each view pushes results to the centralized state via pushToCentralizedState().
 
-System Profile (system-profile.service.ts): A read-only aggregation dashboard that makes zero backend calls. It reads all cached multi-scenario results from AnalysisStateService, extracts numeric values (using midpoint for intervals, mean midpoint for p-boxes), generates hotspot alerts, and displays cross-scenario heatmaps. Clicking a cell drills down to the specific analysis view with ?scenario=X query params.
+System Profile (system-profile.service.ts): A read-only aggregation dashboard that makes zero backend calls. It reads cached multi-scenario outputs from AnalysisStateService, extracts numeric values (midpoint for intervals, mean midpoint for p-boxes), generates hotspot alerts, and presents a 3-tab decision workflow:
+
+- Decision Workspace: scenario status matrix, cross-scenario heatmap, and network lens.
+- Insights & Recommendations: collapsible cross-scenario insight groups plus optimization recommendations.
+- Scenario Cards: per-scenario compact cards and alert context.
+
+Network Lens graph options are data-driven per selected scenario (capacity bottlenecks/upgrades/critical paths, CPM critical nodes, low-belief reachability nodes, diamond structure nodes). Only options with backing API result data are shown.
+
+Heatmap double-click drilldown navigates to the relevant analysis page with scenario/metric context in query params.

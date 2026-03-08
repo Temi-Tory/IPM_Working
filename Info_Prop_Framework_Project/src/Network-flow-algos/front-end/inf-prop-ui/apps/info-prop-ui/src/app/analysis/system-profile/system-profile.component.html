@@ -2,18 +2,42 @@
 <mat-card class="header-card">
   <mat-card-content>
     <div class="header-content">
-      <div>
-        <h2>System Profile</h2>
-        <p class="subtitle">Executive dashboard — cross-scenario analysis overview</p>
+      <div class="header-title-block">
+        @if (networkInfo(); as info) {
+          <h2>System Profile: {{ info.name }}</h2>
+          <span class="topology-badge" [class]="info.topology.type">
+            {{ info.topology.type | uppercase }}
+          </span>
+          <div class="network-stats">
+            <span>{{ info.totalNodes }} nodes</span>
+            <span>{{ info.totalEdges }} edges</span>
+            <span>{{ info.topology.layers }} layers</span>
+            <span>Max width: {{ info.topology.maxWidth }}</span>
+          </div>
+        } @else {
+          <h2>System Profile</h2>
+        }
       </div>
       <div class="header-actions">
         @if (hasData()) {
         <button mat-stroked-button (click)="generateProfile()" matTooltip="Re-generate profile with latest data">
           <mat-icon>refresh</mat-icon> Refresh
         </button>
+        <button mat-stroked-button (click)="rerunAllAnalyses()" [disabled]="isRerunning() || rerunnableCount() === 0"
+          matTooltip="Run all available analysis groups and refresh this profile">
+          <mat-icon>replay</mat-icon> Re-run All
+        </button>
+        <button mat-stroked-button (click)="rerunRemainingAnalyses()"
+          [disabled]="isRerunning() || remainingRerunnableCount() === 0"
+          matTooltip="Run only analysis groups that are missing results, then refresh this profile">
+          <mat-icon>pending_actions</mat-icon> Re-run Remaining
+        </button>
         }
       </div>
     </div>
+    @if (actionMessage(); as actionMsg) {
+    <p class="header-status">{{ actionMsg }}</p>
+    }
   </mat-card-content>
 </mat-card>
 
@@ -60,78 +84,140 @@
 <!-- Dashboard Content -->
 @if (hasData() && !isLoading()) {
 
-<!-- 1. Network Identity Card -->
-@if (networkInfo(); as info) {
-<app-network-identity-card [networkInfo]="info" />
-}
-
-<!-- 2. Scenario Status Matrix -->
-<!--  <app-scenario-status-matrix
-      [scenarioResults]="scenarioResults()"
-      (scenarioClicked)="onScenarioClicked($event)" /> -->
-
-<!-- 3. Cross-Scenario Metrics Heatmap (the centrepiece) -->
-@if (metricRows().length > 0) {
-<app-metrics-heatmap [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()"
-  (cellClicked)="onCellClicked($event)" />
-}
-
-<!-- 4. Cross-Scenario Insights -->
-@if (metricRows().length > 0) {
-<app-cross-scenario-insights [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()" />
-}
-
-<!-- 5. Capacity Optimizations -->
-@if (capacityOptimizations().length > 0) {
-<mat-card class="optimizations-card">
-  <mat-card-content>
-    <h4 class="section-title">
-      <mat-icon>build_circle</mat-icon>
-      Capacity Optimizations
-    </h4>
-    <p class="optimizations-subtitle">Top scenarios where targeted upgrades can improve throughput, resilience, or efficiency.</p>
-
-    <div class="optimizations-grid">
-      @for (item of capacityOptimizations(); track item.scenario) {
-      <div class="optimization-item">
-        <div class="optimization-header-row">
-          <span class="optimization-scenario">{{ item.scenario }}</span>
-          <span class="priority-badge">Priority {{ formatNumber(item.score * 10, 1) }}</span>
-        </div>
-
-        <div class="optimization-metrics">
-          <span>Utilization: <strong>{{ formatNumber(item.utilization, 1) }}%</strong></span>
-          <span>Efficiency Loss: <strong>{{ formatPercent(item.efficiencyLoss) }}</strong></span>
-          <span>Capture: <strong>{{ formatPercent(item.captureRatio) }}</strong></span>
-          <span>Upgrades: <strong>{{ formatNumber(item.upgradePressure, 0) }}</strong></span>
-        </div>
-
-        <p class="optimization-recommendation">{{ item.recommendation }}</p>
-      </div>
+<mat-tab-group class="profile-tabs" [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabIndexChanged($event)">
+  <mat-tab label="Overview">
+    <div class="tab-content">
+      @if (metricRows().length > 0) {
+      <app-metrics-heatmap [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()"
+        (cellSelected)="onCellSelected($any($event))" (cellClicked)="onCellClicked($any($event))" />
       }
     </div>
-  </mat-card-content>
-</mat-card>
-}
+  </mat-tab>
 
-<!-- 6. Scenario Cards + Hotspot Alerts (side by side on wide screens) -->
-<div class="bottom-grid">
-  @if (metricRows().length > 0) {
-  <div class="scenario-cards-section">
-    <h4 class="section-title">
-      <mat-icon>dashboard</mat-icon>
-      Scenario Summaries
-    </h4>
-    <div class="scenario-cards-grid">
-      @for (row of metricRows(); track row.scenario) {
-      <app-scenario-card [row]="row" [aggregatedMetrics]="aggregatedMetrics()" />
+  <mat-tab label="Network Lens">
+    <div class="tab-content">
+      @if (metricRows().length > 0) {
+      <mat-accordion class="lens-controls-accordion" multi="true">
+        <mat-expansion-panel class="lens-controls-panel" [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title">
+                <mat-icon>tune</mat-icon>
+                Graph Focus & Filters
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="lens-controls">
+            <mat-select class="lens-select" [value]="selectedScenario()"
+              (selectionChange)="onScenarioSelectionChanged($event.value)"
+              matTooltip="Scenario used for graph focus mapping and cross-scenario context">
+              @for (scenario of scenarioNames(); track scenario) {
+              <mat-option [value]="scenario">{{ scenario }}</mat-option>
+              }
+            </mat-select>
+
+            <mat-select class="lens-select" [value]="selectedGraphFocus()"
+              (selectionChange)="onGraphFocusChanged($event.value)"
+              matTooltip="Only graph focuses with available data for the selected scenario are listed">
+              @for (option of graphFocusOptions(); track option.key) {
+              <mat-option [value]="option.key" [matTooltip]="option.description">{{ option.label }}</mat-option>
+              }
+            </mat-select>
+
+            <mat-select class="lens-select" [value]="selectedMetricKey()"
+              (selectionChange)="selectedMetricKey.set($event.value)"
+              matTooltip="Metric shown in selection details across scenarios">
+              @for (metric of availableMetrics(); track metric.key) {
+              <mat-option [value]="metric.key">{{ metric.shortLabel }}</mat-option>
+              }
+            </mat-select>
+          </div>
+          <p class="metric-source-label">
+            Metric source: {{ selectedMetricSource() }} &middot; Graph focus options are scenario-data aware.
+          </p>
+        </mat-expansion-panel>
+      </mat-accordion>
+
+      <app-network-lens [rows]="metricRows()" [scenarioResults]="scenarioResults()" [selectedScenario]="selectedScenario()"
+        [selectedMetricKey]="selectedMetricKey()" [selectedGraphFocus]="selectedGraphFocus()" />
       }
     </div>
-  </div>
-  }
+  </mat-tab>
 
-  <app-hotspot-alerts [alerts]="hotspotAlerts()" />
-</div>
+  <mat-tab label="Insights & Recommendations">
+    <div class="tab-content">
+      <mat-accordion class="recommendations-accordion" multi="true">
+        @if (metricRows().length > 0) {
+        <mat-expansion-panel class="recommendation-panel" [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title">
+                <mat-icon>psychology</mat-icon>
+                Cross-Scenario Insights
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <app-cross-scenario-insights [rows]="metricRows()" [aggregatedMetrics]="aggregatedMetrics()" />
+        </mat-expansion-panel>
+        }
+
+        <mat-expansion-panel class="recommendation-panel" [expanded]="capacityOptimizations().length > 0 || hotspotAlerts().length > 0">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title">
+                <mat-icon>build_circle</mat-icon>
+                Capacity Optimization
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          @if (capacityOptimizations().length > 0) {
+          <mat-card class="optimizations-card">
+            <mat-card-content>
+              <p class="optimizations-subtitle">Top scenarios where targeted upgrades can improve throughput, resilience, or efficiency.</p>
+
+              <div class="optimizations-grid">
+                @for (item of capacityOptimizations(); track item.scenario) {
+                <div class="optimization-item">
+                  <div class="optimization-header-row">
+                    <span class="optimization-scenario">{{ item.scenario }}</span>
+                    <span class="priority-badge">Priority {{ formatNumber(item.score * 10, 1) }}</span>
+                  </div>
+
+                  <div class="optimization-metrics">
+                    <span>Utilization: <strong>{{ formatNumber(item.utilization, 1) }}%</strong></span>
+                    <span>Efficiency Loss: <strong>{{ formatPercent(item.efficiencyLoss) }}</strong></span>
+                    <span>Capture: <strong>{{ formatPercent(item.captureRatio) }}</strong></span>
+                    <span>Upgrades: <strong>{{ formatNumber(item.upgradePressure, 0) }}</strong></span>
+                  </div>
+
+                  <p class="optimization-recommendation">{{ item.recommendation }}</p>
+                </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+          }
+
+          <mat-accordion class="sub-recommendations" multi="true">
+            <mat-expansion-panel class="recommendation-panel hotspot-sub-panel" [expanded]="hotspotAlerts().length > 0">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <div class="panel-title">
+                    <mat-icon>notifications_active</mat-icon>
+                    Hotspot Alerts
+                  </div>
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <app-hotspot-alerts [alerts]="hotspotAlerts()" />
+            </mat-expansion-panel>
+          </mat-accordion>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+  </mat-tab>
+</mat-tab-group>
 
 <!-- Footer meta -->
 <div class="profile-meta">

@@ -39,13 +39,45 @@
     z-index: 1;
   }
 
-  .subtitle {
-    color: rgba(255, 255, 255, 0.8);
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.95rem;
-    margin: 0;
-    position: relative;
-    z-index: 1;
+}
+
+.header-title-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topology-badge {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--on-primary);
+  
+  &.dag { background: rgba(38, 139, 210, 0.3); }
+  &.tree { background: rgba(133, 153, 0, 0.3); }
+  &.cyclic { background: rgba(220, 50, 47, 0.3); }
+  &.mixed { background: rgba(203, 75, 22, 0.3); }
+}
+
+.network-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.88);
+  
+  span {
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    padding-right: 12px;
+    
+    &:last-child {
+      border-right: none;
+    }
   }
 }
 
@@ -57,11 +89,21 @@
   z-index: 1;
 
   .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
     button {
       color: var(--on-primary);
       border-color: rgba(255, 255, 255, 0.4);
     }
   }
+}
+
+.header-status {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
 }
 
 @keyframes shimmer {
@@ -136,6 +178,47 @@
   align-items: start;
 }
 
+.profile-tabs {
+  margin-top: 4px;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 10px;
+}
+
+.lens-controls-card {
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+}
+
+.lens-controls-accordion {
+  display: block;
+}
+
+.lens-controls-panel {
+  border: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+}
+
+.lens-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.lens-select {
+  min-width: 210px;
+}
+
+.metric-source-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
 .scenario-cards-section {
   display: flex;
   flex-direction: column;
@@ -162,6 +245,30 @@
 .optimizations-card {
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);
+}
+
+.recommendations-accordion,
+.sub-recommendations {
+  display: block;
+}
+
+.recommendation-panel {
+  margin-bottom: 12px;
+  border: 1px solid var(--outline-variant);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotspot-sub-panel {
+  margin-top: 12px;
 }
 
 .optimizations-subtitle {
@@ -263,6 +370,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .lens-select {
+    min-width: 100%;
   }
 }
 

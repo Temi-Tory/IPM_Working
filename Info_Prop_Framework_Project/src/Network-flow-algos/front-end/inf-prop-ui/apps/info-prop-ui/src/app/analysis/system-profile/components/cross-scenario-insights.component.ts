@@ -2,9 +2,11 @@ import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatExpansionModule } from '@angular/material/expansion';
 import {
   ScenarioMetricRow,
-  AggregatedMetrics
+  AggregatedMetrics,
+  PROFILE_METRICS
 } from '../../../shared/models/system-profile.models';
 
 interface Insight {
@@ -22,7 +24,7 @@ interface InsightGroup {
 @Component({
   selector: 'app-cross-scenario-insights',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule],
+  imports: [CommonModule, MatCardModule, MatIconModule, MatExpansionModule],
   template: `
     <mat-card class="insights-card">
       <mat-card-content>
@@ -37,22 +39,29 @@ interface InsightGroup {
             <span>Run more scenarios to see cross-scenario observations</span>
           </div>
         } @else {
-          @for (group of insights(); track group.title) {
-            <div class="insight-group">
-              <div class="group-header">
-                <mat-icon>{{ group.icon }}</mat-icon>
-                <span>{{ group.title }}</span>
-              </div>
-              <div class="insight-list">
-                @for (insight of group.insights; track insight.text) {
-                  <div class="insight-item" [class]="insight.severity">
-                    <mat-icon class="insight-icon">{{ insight.icon }}</mat-icon>
-                    <span class="insight-text">{{ insight.text }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
+          <mat-accordion class="insights-accordion" multi="true">
+            @for (group of insights(); track group.title) {
+              <mat-expansion-panel class="insight-panel" [expanded]="group.title === 'Pareto & Trade-offs' || group.title === 'Scenario Stability'">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <div class="group-header">
+                      <mat-icon>{{ group.icon }}</mat-icon>
+                      <span>{{ group.title }}</span>
+                    </div>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+
+                <div class="insight-list">
+                  @for (insight of group.insights; track insight.text) {
+                    <div class="insight-item" [class]="insight.severity">
+                      <mat-icon class="insight-icon">{{ insight.icon }}</mat-icon>
+                      <span class="insight-text">{{ insight.text }}</span>
+                    </div>
+                  }
+                </div>
+              </mat-expansion-panel>
+            }
+          </mat-accordion>
         }
       </mat-card-content>
     </mat-card>
@@ -86,8 +95,15 @@ interface InsightGroup {
       mat-icon { font-size: 24px; width: 24px; height: 24px; opacity: 0.5; }
     }
 
-    .insight-group {
-      margin-bottom: 16px;
+    .insights-accordion {
+      display: block;
+    }
+
+    .insight-panel {
+      margin-bottom: 10px;
+      background: color-mix(in srgb, var(--surface-container) 90%, transparent);
+      border: 1px solid var(--outline-variant);
+      border-radius: 8px;
 
       &:last-child { margin-bottom: 0; }
     }
@@ -96,7 +112,7 @@ interface InsightGroup {
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 0;
       font-size: 0.85rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -170,6 +186,11 @@ export class CrossScenarioInsightsComponent {
       groups.push({ title: 'Analysis Coverage', icon: 'inventory_2', insights: coverageInsights });
     }
 
+    const gapInsights = this.generateCoverageGapInsights(rows);
+    if (gapInsights.length > 0) {
+      groups.push({ title: 'Coverage Gaps', icon: 'rule', insights: gapInsights });
+    }
+
     // ─── Reachability Insights ───
     const reachRows = rows.filter(r => r.analysisTypes.includes('reachability'));
     if (reachRows.length > 0) {
@@ -195,6 +216,21 @@ export class CrossScenarioInsightsComponent {
       if (tInsights.length > 0) {
         groups.push({ title: 'CPM Time / Cost', icon: 'timeline', insights: tInsights });
       }
+    }
+
+    const paretoInsights = this.generateParetoInsights(rows);
+    if (paretoInsights.length > 0) {
+      groups.push({ title: 'Pareto & Trade-offs', icon: 'polyline', insights: paretoInsights });
+    }
+
+    const sensitivityInsights = this.generateDataTypeSensitivityInsights(rows);
+    if (sensitivityInsights.length > 0) {
+      groups.push({ title: 'Data Type Sensitivity', icon: 'tune', insights: sensitivityInsights });
+    }
+
+    const stabilityInsights = this.generateStabilityInsights(rows);
+    if (stabilityInsights.length > 0) {
+      groups.push({ title: 'Scenario Stability', icon: 'query_stats', insights: stabilityInsights });
     }
 
     return groups;
@@ -240,6 +276,43 @@ export class CrossScenarioInsightsComponent {
     }
 
     return insights;
+  }
+
+  private generateCoverageGapInsights(rows: ScenarioMetricRow[]): Insight[] {
+    const insights: Insight[] = [];
+    const requiredTypes = ['reachability', 'capacity', 'cpm'];
+
+    for (const row of rows) {
+      const missing = requiredTypes.filter(type => !row.analysisTypes.includes(type));
+      if (missing.length > 0) {
+        insights.push({
+          icon: 'warning',
+          text: `${row.scenario} missing: ${missing.join(', ')}`,
+          severity: missing.length >= 2 ? 'warning' : 'info'
+        });
+      }
+    }
+
+    const sparseMetrics = rows
+      .map(r => {
+        const availableCount = Object.values(r.metrics).filter(v => typeof v === 'number').length;
+        return { scenario: r.scenario, availableCount };
+      })
+      .sort((a, b) => a.availableCount - b.availableCount);
+
+    if (sparseMetrics.length > 1) {
+      const min = sparseMetrics[0];
+      const max = sparseMetrics[sparseMetrics.length - 1];
+      if (min.availableCount < max.availableCount) {
+        insights.push({
+          icon: 'table_view',
+          text: `${min.scenario} has the sparsest metric coverage (${min.availableCount} numeric metrics)`,
+          severity: min.availableCount < 4 ? 'warning' : 'info'
+        });
+      }
+    }
+
+    return insights.slice(0, 5);
   }
 
   // ─── Reachability ───
@@ -429,6 +502,148 @@ export class CrossScenarioInsightsComponent {
         text: `Most scheduling flexibility: ${sorted[0].scenario} (slack ${sorted[0].value.toFixed(1)}), least: ${sorted[sorted.length - 1].scenario} (${sorted[sorted.length - 1].value.toFixed(1)})`,
         severity: sorted[sorted.length - 1].value <= 0 ? 'warning' : 'info'
       });
+    }
+
+    return insights;
+  }
+
+  private generateParetoInsights(rows: ScenarioMetricRow[]): Insight[] {
+    const insights: Insight[] = [];
+
+    const capRows = rows
+      .map(row => ({
+        scenario: row.scenario,
+        throughput: row.metrics['capacityThroughput'],
+        utilization: row.metrics['networkUtilization']
+      }))
+      .filter((row): row is { scenario: string; throughput: number; utilization: number } =>
+        typeof row.throughput === 'number' && typeof row.utilization === 'number'
+      );
+
+    if (capRows.length >= 2) {
+      const frontier = capRows.filter(candidate =>
+        !capRows.some(other =>
+          other.scenario !== candidate.scenario &&
+          other.throughput >= candidate.throughput &&
+          other.utilization <= candidate.utilization &&
+          (other.throughput > candidate.throughput || other.utilization < candidate.utilization)
+        )
+      );
+
+      insights.push({
+        icon: 'timeline',
+        text: `Throughput/utilisation Pareto frontier: ${frontier.map(s => s.scenario).join(', ')}`,
+        severity: frontier.length <= 2 ? 'good' : 'info'
+      });
+
+      const bestThroughput = [...capRows].sort((a, b) => b.throughput - a.throughput)[0];
+      const bestUtilization = [...capRows].sort((a, b) => a.utilization - b.utilization)[0];
+      if (bestThroughput.scenario !== bestUtilization.scenario) {
+        insights.push({
+          icon: 'swap_horiz',
+          text: `Trade-off: ${bestThroughput.scenario} maximizes throughput while ${bestUtilization.scenario} minimizes utilization`,
+          severity: 'info'
+        });
+      }
+    }
+
+    const reachRows = rows
+      .map(row => ({ scenario: row.scenario, belief: row.metrics['meanBelief'], time: row.metrics['computationTime'] }))
+      .filter((row): row is { scenario: string; belief: number; time: number } =>
+        typeof row.belief === 'number' && typeof row.time === 'number'
+      );
+
+    if (reachRows.length >= 2) {
+      const bestBelief = [...reachRows].sort((a, b) => b.belief - a.belief)[0];
+      const bestTime = [...reachRows].sort((a, b) => a.time - b.time)[0];
+      if (bestBelief.scenario !== bestTime.scenario) {
+        insights.push({
+          icon: 'compare_arrows',
+          text: `Belief/time trade-off: ${bestBelief.scenario} gives highest belief; ${bestTime.scenario} runs fastest`,
+          severity: 'info'
+        });
+      }
+    }
+
+    return insights;
+  }
+
+  private generateDataTypeSensitivityInsights(rows: ScenarioMetricRow[]): Insight[] {
+    const insights: Insight[] = [];
+    const metricCandidates = ['meanBelief', 'capacityThroughput', 'criticalPathDuration'];
+
+    for (const metricKey of metricCandidates) {
+      const winnersByType = new Map<string, string>();
+      const higherIsBetter = PROFILE_METRICS.find(m => m.key === metricKey)?.higherIsBetter ?? true;
+
+      const byType = new Map<string, Array<{ scenario: string; value: number }>>();
+      for (const row of rows) {
+        const val = row.metrics[metricKey];
+        if (typeof val !== 'number') continue;
+        if (!byType.has(row.dataType)) byType.set(row.dataType, []);
+        byType.get(row.dataType)!.push({ scenario: row.scenario, value: val });
+      }
+
+      for (const [type, values] of byType.entries()) {
+        if (values.length === 0) continue;
+        const ordered = [...values].sort((a, b) => higherIsBetter ? b.value - a.value : a.value - b.value);
+        winnersByType.set(type, ordered[0].scenario);
+      }
+
+      if (winnersByType.size >= 2) {
+        const winnerSet = new Set(winnersByType.values());
+        if (winnerSet.size > 1) {
+          const summary = Array.from(winnersByType.entries())
+            .map(([type, scenario]) => `${type}: ${scenario}`)
+            .join(' | ');
+          insights.push({
+            icon: 'science',
+            text: `Data-type sensitivity on ${metricKey}: ${summary}`,
+            severity: 'warning'
+          });
+        }
+      }
+    }
+
+    return insights;
+  }
+
+  private generateStabilityInsights(rows: ScenarioMetricRow[]): Insight[] {
+    const insights: Insight[] = [];
+    const winCounts = new Map<string, number>();
+    let evaluatedMetrics = 0;
+
+    for (const metric of PROFILE_METRICS) {
+      const values = rows
+        .map(row => ({ scenario: row.scenario, value: row.metrics[metric.key] }))
+        .filter((item): item is { scenario: string; value: number } => typeof item.value === 'number');
+
+      if (values.length < 2) continue;
+      evaluatedMetrics += 1;
+
+      const ordered = [...values].sort((a, b) => metric.higherIsBetter ? b.value - a.value : a.value - b.value);
+      const winner = ordered[0].scenario;
+      winCounts.set(winner, (winCounts.get(winner) ?? 0) + 1);
+    }
+
+    if (winCounts.size > 0 && evaluatedMetrics > 0) {
+      const ranked = Array.from(winCounts.entries()).sort((a, b) => b[1] - a[1]);
+      const [topScenario, wins] = ranked[0];
+      const stability = (wins / evaluatedMetrics) * 100;
+      insights.push({
+        icon: 'workspace_premium',
+        text: `Most stable top performer: ${topScenario} leads ${wins}/${evaluatedMetrics} metrics (${stability.toFixed(0)}%)`,
+        severity: stability >= 50 ? 'good' : 'info'
+      });
+
+      if (ranked.length > 1) {
+        const spread = ranked.slice(0, 3).map(([scenario, count]) => `${scenario}(${count})`).join(', ');
+        insights.push({
+          icon: 'leaderboard',
+          text: `Top-metric winners distribution: ${spread}`,
+          severity: 'info'
+        });
+      }
     }
 
     return insights;
