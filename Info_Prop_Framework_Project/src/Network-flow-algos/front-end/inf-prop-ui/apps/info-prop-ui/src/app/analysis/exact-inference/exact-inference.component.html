@@ -156,57 +156,119 @@
 </div>
 }}
 
-<!-- Comparison Results Table -->
+<!-- Cross-Scenario Metric Matrix -->
 <mat-card class="results-card">
   <mat-card-content>
-    @if (comparisonResults().length > 0) {
-    <div class="table-container">
-      <table mat-table [dataSource]="comparisonResults()" class="comparison-table">
-        <ng-container matColumnDef="nodeId">
-          <th mat-header-cell *matHeaderCellDef>Node ID</th>
-          <td mat-cell *matCellDef="let row">{{ row.nodeId }}</td>
-        </ng-container>
-        <ng-container matColumnDef="baseBelief">
-          <th mat-header-cell *matHeaderCellDef matTooltip="Reachability belief in base scenario">{{
-            getTabDisplayName(baseScenarioName()) }}</th>
-          <td mat-cell *matCellDef="let row">
-            {{ row.baseBelief !== null ? formatBelief(row.baseBelief) : '—' }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="compareBelief">
-          <th mat-header-cell *matHeaderCellDef matTooltip="Reachability belief in comparison scenario">{{
-            getTabDisplayName(compareScenarioName()) }}</th>
-          <td mat-cell *matCellDef="let row">
-            {{ row.compareBelief !== null ? formatBelief(row.compareBelief) : '—' }}
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="delta">
-          <th mat-header-cell *matHeaderCellDef matTooltip="Compare - Base: positive means higher belief">&Delta;
-            (Absolute)</th>
-          <td mat-cell *matCellDef="let row" [ngClass]="{
-                    'delta-positive': row.delta !== null && row.delta > 0,
-                    'delta-negative': row.delta !== null && row.delta < 0
-                  }">
-            @if (row.delta !== null) {
-            {{ row.delta > 0 ? '+' : '' }}{{ formatNumber(row.delta) }}
-            } @else {
-            —
+    <div class="comparison-matrix-controls">
+      <div class="matrix-controls-row">
+        <span class="filter-label">Metric:</span>
+        <mat-form-field appearance="outline" class="metric-select-field">
+          <mat-select [value]="comparisonMetricKey()" (selectionChange)="comparisonMetricKey.set($event.value)">
+            @for (metric of availableComparisonMetrics; track metric.key) {
+              <mat-option [value]="metric.key">{{ metric.label }}</mat-option>
             }
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="nodeType">
-          <th mat-header-cell *matHeaderCellDef>Node Type</th>
-          <td mat-cell *matCellDef="let row">
-            <mat-chip [ngClass]="'node-type-' + row.nodeType.toLowerCase()" selected>
-              <mat-icon>{{ getNodeTypeIcon(row.nodeType) }}</mat-icon>
-              {{ row.nodeType }}
-            </mat-chip>
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="comparisonColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: comparisonColumns;"></tr>
-      </table>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="matrix-controls-row">
+        <span class="filter-label">Scenarios:</span>
+        <div class="scenario-select-actions">
+          <button mat-stroked-button (click)="selectAllComparisonScenarios()">Select All</button>
+          <button mat-stroked-button (click)="clearComparisonScenarioSelection()">Clear</button>
+        </div>
+      </div>
+
+      <div class="scenario-selector-grid">
+        @for (name of computedScenarioNames(); track name) {
+          <button
+            mat-stroked-button
+            class="scenario-filter-btn"
+            [class.selected]="isComparisonScenarioSelected(name)"
+            (click)="toggleComparisonScenario(name)">
+            <span>{{ getTabDisplayName(name) }}</span>
+            <mat-chip [ngClass]="'data-type-' + getTabDataType(name)" selected class="tab-badge">{{ getTabDataType(name) }}</mat-chip>
+          </button>
+        }
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="matrix-controls-row">
+        <input matInput type="text" placeholder="Search nodes..." 
+          [value]="comparisonFilterSearchTerm()"
+          (input)="comparisonFilterSearchTerm.set($any($event.target).value)"
+          class="filter-search">
+        
+        @if (comparisonFilterNodeType().length > 0 || comparisonFilterSearchTerm()) {
+          <button mat-icon-button (click)="clearComparisonFilters()" matTooltip="Clear all filters">
+            <mat-icon>clear_all</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Filter by Node Type:</span>
+        <span class="filter-hint">Default is Sink nodes only. Select additional types to broaden comparison.</span>
+        <div class="node-type-filters">
+          @for (nodeType of availableComparisonNodeTypes(); track nodeType) {
+            <button mat-stroked-button
+              [class.selected]="isComparisonNodeTypeSelected(nodeType)"
+              (click)="toggleComparisonNodeTypeFilter(nodeType)"
+              class="node-type-filter-btn">
+              <mat-icon>{{ getNodeTypeIcon(nodeType) }}</mat-icon>
+              {{ nodeType }}
+              @if (isComparisonNodeTypeSelected(nodeType)) {
+                <mat-icon class="check-icon">check-icon</mat-icon>
+              }
+            </button>
+          }
+        </div>
+      </div>
     </div>
+
+    @if (multiScenarioComparisonRows().length > 0) {
+      <div class="table-container">
+        <table class="comparison-table matrix-table">
+          <thead>
+            <tr>
+              <th class="sortable-header" (click)="sortMultiComparisonTable('nodeId')">
+                Node ID
+                <mat-icon class="sort-icon">{{ getMultiSortIcon('nodeId') }}</mat-icon>
+              </th>
+              <th class="sortable-header" (click)="sortMultiComparisonTable('nodeType')">
+                Node Type
+                <mat-icon class="sort-icon">{{ getMultiSortIcon('nodeType') }}</mat-icon>
+              </th>
+              @for (scenarioName of selectedComparisonScenarioNames(); track scenarioName) {
+                <th class="sortable-header" (click)="sortMultiComparisonTable(scenarioName)">
+                  {{ getTabDisplayName(scenarioName) }}
+                  <mat-icon class="sort-icon">{{ getMultiSortIcon(scenarioName) }}</mat-icon>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of multiScenarioComparisonRows(); track row.nodeId) {
+              <tr>
+                <td>{{ row.nodeId }}</td>
+                <td>
+                  <mat-chip [ngClass]="'node-type-' + row.nodeType.toLowerCase()" selected>
+                    <mat-icon>{{ getNodeTypeIcon(row.nodeType) }}</mat-icon>
+                    {{ row.nodeType }}
+                  </mat-chip>
+                </td>
+                @for (scenarioName of selectedComparisonScenarioNames(); track scenarioName) {
+                  <td>{{ formatComparisonMetricValue(row.values[scenarioName]) }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="no-results">
+        No cross-scenario rows to display for current selections.
+      </div>
     }
   </mat-card-content>
 </mat-card>
@@ -520,7 +582,7 @@
       </div>
 
       <!-- ─── Node Comparison Panel (click a node row) ────────── -->
-      @if (selectedNodeForComparison() !== null && nodeComparisonData()) {
+      @if (selectedNodeForComparison() !== null && selectedNodeComparisonData()) {
       <mat-card class="node-comparison-card">
         <mat-card-header>
           <mat-card-title>
@@ -540,7 +602,7 @@
               <span>Belief</span>
               <span>Sensitivity</span>
             </div>
-            @for (row of nodeComparisonData()!; track row.scenarioName) {
+            @for (row of selectedNodeComparisonData()!; track row.scenarioName) {
             <div class="node-comparison-row">
               <span>{{ row.scenarioName }}</span>
               <span>

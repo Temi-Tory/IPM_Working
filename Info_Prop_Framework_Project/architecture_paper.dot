@@ -1,0 +1,118 @@
+digraph IPAWebArchitecture {
+    rankdir=LR;
+    splines=ortho;
+    nodesep=0.35;
+    ranksep=0.75;
+    compound=true;
+    bgcolor="white";
+    pad=0.2;
+
+    graph [fontname="Times New Roman", fontsize=12];
+    node [fontname="Times New Roman", fontsize=10, shape=box, style="rounded,filled", fillcolor="white", color="#5A5A5A", penwidth=1.0];
+    edge [fontname="Times New Roman", fontsize=9, color="#4A4A4A", arrowsize=0.65, penwidth=1.0];
+
+    // -------------------------------------------------
+    // INPUT DATA
+    // -------------------------------------------------
+    subgraph cluster_inputs {
+        label=<<b>Input Data</b>>;
+        labeljust="l";
+        style="rounded,filled";
+        fillcolor="#F5F5F5";
+        color="#8A8A8A";
+        penwidth=1.1;
+
+        edges_file [label=<<b>.EDGES</b><br/>Network topology>];
+        node_priors [label=<<b>nodepriors.json</b><br/>Float | Interval | P-box>];
+        link_probs [label=<<b>linkprobabilities.json</b><br/>Float | Interval | P-box>];
+        capacities_file [label=<<b>capacities.json</b><br/>Node/edge capacities>];
+        cpm_file [label=<<b>cpm.json</b><br/>Time and cost parameters>];
+    }
+
+    // -------------------------------------------------
+    // LOCAL WEB APPLICATION
+    // -------------------------------------------------
+    subgraph cluster_platform {
+        label=<<b>IPA-Web (Localhost)</b>>;
+        labeljust="l";
+        style="rounded,filled";
+        fillcolor="#ECECEC";
+        color="#6F6F6F";
+        penwidth=1.2;
+
+        frontend [
+            label=<<b>Angular Frontend</b><br/>Upload | Navigation | Scenario management>,
+            width=2.45
+        ];
+
+        api [
+            label=<<b>REST API Server</b><br/>Julia + HTTP.jl>,
+            width=2.1
+        ];
+
+        ipa [
+            label=<<b>InformationPropagationAnalysis.jl</b><br/>Core algorithms>,
+            width=2.45
+        ];
+
+        pba [
+            label=<<b>ProbabilityBoundsAnalysis.jl</b><br/>Interval and P-box arithmetic>,
+            width=2.35
+        ];
+    }
+
+    // -------------------------------------------------
+    // ANALYSIS VIEWS
+    // -------------------------------------------------
+    subgraph cluster_views {
+        label=<<b>Analysis Views</b>>;
+        labeljust="l";
+        style="rounded,filled";
+        fillcolor="#F7F7F7";
+        color="#8A8A8A";
+        penwidth=1.1;
+
+        viz_view [label=<<b>Network Visualization</b><br/>Interactive graph view>];
+        struct_view [label=<<b>Network Structure</b><br/>Sources | Sinks | Fork/Join>];
+        diamond_view [label=<<b>Diamond Analysis</b><br/>Fork-join decomposition>];
+        exact_view [label=<<b>Exact Inference</b><br/>Belief propagation>];
+        cap_view [label=<<b>Capacity Analysis</b><br/>Flow and bottlenecks>];
+        time_view [label=<<b>Time Analysis</b><br/>Critical path timing>];
+        cost_view [label=<<b>Cost Analysis</b><br/>Path-based cost accumulation>];
+        profile_view [label=<<b>System Profile</b><br/>Cross-scenario dashboard>];
+    }
+
+    // -------------------------------------------------
+    // DATA FLOW: Inputs -> Frontend
+    // -------------------------------------------------
+    edges_file -> frontend;
+    node_priors -> frontend [style=dashed];
+    link_probs -> frontend [style=dashed];
+    capacities_file -> frontend [style=dashed];
+    cpm_file -> frontend [style=dashed];
+
+    // Internal pipeline
+    frontend -> api;
+    api -> ipa;
+    ipa -> pba [style=dashed];
+
+    // -------------------------------------------------
+    // API endpoints -> views
+    // -------------------------------------------------
+    api -> viz_view;
+    api -> struct_view;
+    api -> diamond_view;
+    api -> exact_view;
+    api -> cap_view;
+    api -> time_view;
+    api -> cost_view;
+
+    // Cross-module summary output
+    viz_view -> profile_view [style=dotted, arrowhead=none];
+    struct_view -> profile_view [style=dotted, arrowhead=none];
+    diamond_view -> profile_view [style=dotted, arrowhead=none];
+    exact_view -> profile_view [style=dotted, arrowhead=none];
+    cap_view -> profile_view [style=dotted, arrowhead=none];
+    time_view -> profile_view [style=dotted, arrowhead=none];
+    cost_view -> profile_view [style=dotted, arrowhead=none];
+}

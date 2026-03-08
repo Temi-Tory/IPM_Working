@@ -65,18 +65,6 @@ import {
 
           <svg class="lens-svg" [attr.viewBox]="'0 0 ' + graphData()!.width + ' ' + graphData()!.height" role="img"
             aria-label="Network lens graph">
-            <defs>
-              <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 Z" [attr.fill]="'var(--text-secondary)'" />
-              </marker>
-              <marker id="arrowhead-highlight" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 Z" [attr.fill]="'var(--primary-color)'" />
-              </marker>
-              <marker id="arrowhead-muted" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 Z" [attr.fill]="'var(--text-disabled)'" />
-              </marker>
-            </defs>
-            
             <g [attr.transform]="graphTransform()">
               @for (edge of graphData()!.edges; track edge.id) {
                 <line [attr.x1]="nodePositionMap().get(edge.source)?.x" [attr.y1]="nodePositionMap().get(edge.source)?.y"
@@ -84,8 +72,11 @@ import {
                   [attr.stroke]="edgeStroke(edge.source, edge.target)"
                   [attr.stroke-opacity]="edgeStrokeOpacity(edge.source, edge.target)"
                   [attr.stroke-width]="edgeStrokeWidth(edge.source, edge.target)"
-                  [attr.marker-end]="edgeMarker(edge.source, edge.target)"
                   class="lens-edge" (click)="selectEdge(edge.source, edge.target)" />
+                <!-- Arrow head for directed edge -->
+                <polygon [attr.points]="edgeArrowPoints(edge.source, edge.target)"
+                  [attr.fill]="edgeArrowFill(edge.source, edge.target)"
+                  [attr.opacity]="edgeStrokeOpacity(edge.source, edge.target)" />
               }
 
               @for (node of graphData()!.nodes; track node.id) {
@@ -145,6 +136,28 @@ import {
               <mat-icon>info_outline</mat-icon>
               <span>{{ highlightReasonSummary() }}</span>
             </div>
+            
+            @if (!debugInfo().hasData) {
+            <div class="legend-item warning">
+              <mat-icon>warning</mat-icon>
+              <span>No scenario data loaded. Select a scenario first.</span>
+            </div>
+            } @else if (highlightedNodeSet().size === 0) {
+            <div class="legend-item debug">
+              <mat-icon>bug_report</mat-icon>
+              <div class="debug-content">
+                <span><strong>Debug Info:</strong> Graph Focus: {{ selectedGraphFocus() }}</span>
+                <span>Analysis Types: {{ debugInfo().analysisTypes.join(', ') || 'none' }}</span>
+                @if (debugInfo().selectedGraphFocus === 'capacity-critical-paths') {
+                  @if (!debugInfo().hasCapacityData) {
+                    <span>⚠ Capacity data not available</span>
+                  } @else if (!debugInfo().hasCriticalPaths) {
+                    <span>⚠ No critical paths found in capacity result</span>
+                  }
+                }
+              </div>
+            </div>
+            }
           </div>
         }
       </mat-card-content>
@@ -416,6 +429,32 @@ import {
         color: var(--primary-color);
         flex-shrink: 0;
       }
+
+      &.warning {
+        border: 1px solid color-mix(in srgb, #ff9800 30%, var(--outline-variant));
+        background: color-mix(in srgb, #ff9800 8%, var(--surface));
+        
+        mat-icon {
+          color: #ff9800;
+        }
+      }
+
+      &.debug {
+        border: 1px solid color-mix(in srgb, var(--primary-color) 25%, var(--outline-variant));
+        background: color-mix(in srgb, var(--primary-color) 5%, var(--surface));
+        font-size: 0.75rem;
+
+        .debug-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        span {
+          font-family: 'Monaco', 'Courier New', monospace;
+          color: var(--text-secondary);
+        }
+      }
     }
 
     .lens-empty {
@@ -531,7 +570,38 @@ export class NetworkLensComponent {
     
     return `Highlighting ${parts.join(' and ')} based on ${graphFocus} for ${this.selectedScenario() || 'selected scenario'}.`;
   });
+  debugInfo = computed(() => {
+    const scenario = this.scenarioResults().get(this.selectedScenario());
+    const graphFocus = this.selectedGraphFocus();
+    
+    if (!scenario) {
+      return { hasData: false, analysisTypes: [] };
+    }
 
+    const analysisTypes: string[] = [];
+    let hasCapacityData = false;
+    let hasCriticalPaths = false;
+
+    if (scenario.capacityAnalysis) {
+      analysisTypes.push('capacity');
+      const raw = scenario.capacityAnalysis.raw_capacity_result;
+      hasCapacityData = !!raw;
+      if (raw) {
+        hasCriticalPaths = Object.keys(raw.critical_paths ?? {}).length > 0;
+      }
+    }
+    if (scenario.cpmAnalysis) analysisTypes.push('cpm');
+    if (scenario.exactInference) analysisTypes.push('exactInference');
+    if (scenario.diamondAnalysis) analysisTypes.push('diamond');
+
+    return {
+      hasData: true,
+      analysisTypes,
+      hasCapacityData,
+      hasCriticalPaths,
+      selectedGraphFocus: graphFocus
+    };
+  });
   selectedGraphFocusLabel = computed(() => {
     switch (this.selectedGraphFocus()) {
       case 'capacity-bottlenecks': return 'Capacity Bottlenecks';
@@ -560,19 +630,41 @@ export class NetworkLensComponent {
     return this.highlightedEdgeSet().has(this.edgeKey(source, target));
   }
 
-  edgeMarker(source: string, target: string): string {
-    const key = this.edgeKey(source, target);
-    const isSelected = this._selectedEdgeId() === key;
-    const isHighlighted = this.isEdgeHighlighted(source, target);
-    const hasAnyHighlights = this.highlightedEdgeSet().size > 0;
+  edgeArrowPoints(source: string, target: string): string {
+    const srcPos = this.nodePositionMap().get(source);
+    const tgtPos = this.nodePositionMap().get(target);
+    if (!srcPos || !tgtPos) return '';
 
-    if (isSelected || isHighlighted) {
-      return 'url(#arrowhead-highlight)';
-    }
-    if (hasAnyHighlights) {
-      return 'url(#arrowhead-muted)';
-    }
-    return 'url(#arrowhead)';
+    const dx = tgtPos.x - srcPos.x;
+    const dy = tgtPos.y - srcPos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return '';
+
+    // Normalize and offset from target node
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const nodeR = 7;
+    const arrowBack = 10;
+    const arrowWidth = 5;
+
+    // Arrow tip (at edge end)
+    const arrowX = tgtPos.x - nx * nodeR;
+    const arrowY = tgtPos.y - ny * nodeR;
+
+    // Arrow back point
+    const backX = arrowX - nx * arrowBack;
+    const backY = arrowY - ny * arrowBack;
+
+    // Perpendicular for width
+    const px = -ny * arrowWidth;
+    const py = nx * arrowWidth;
+
+    return `${arrowX},${arrowY} ${backX + px},${backY + py} ${backX - px},${backY - py}`;
+  }
+
+  edgeArrowFill(source: string, target: string): string {
+    // Use the same color logic as edge stroke
+    return this.edgeStroke(source, target);
   }
 
   selectNode(nodeId: string): void {

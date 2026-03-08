@@ -6,11 +6,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -98,6 +101,13 @@ interface ComparisonRow {
   nodeType: string;
 }
 
+interface MultiScenarioComparisonRow {
+  nodeId: number;
+  nodeType: string;
+  values: Record<string, BeliefValue | number | null>;
+  numericValues: Record<string, number | null>;
+}
+
 interface NodeTypeStats {
   type: string;
   count: number;
@@ -123,11 +133,14 @@ interface SummaryObservation {
     MatIconModule,
     MatTabsModule,
     MatTableModule,
+    MatSortModule,
     MatChipsModule,
     MatProgressBarModule,
     MatDividerModule,
     MatTooltipModule,
     MatSelectModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
     MatBadgeModule,
@@ -173,6 +186,16 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   comparisonMode = signal(false);
   baseScenarioName = signal('');
   compareScenarioName = signal('');
+  
+  // ─── Comparison table state (sorting & filtering) ────────────────────────
+  comparisonSortColumn = signal<string>('nodeId');
+  comparisonSortDirection = signal<'asc' | 'desc'>('asc');
+  comparisonFilterNodeType = signal<string[]>([]);
+  comparisonFilterSearchTerm = signal('');
+  comparisonMetricKey = signal<'belief' | 'prior' | 'sensitivity' | 'uncertaintyWidth'>('belief');
+  comparisonSelectedScenarios = signal<string[]>([]);
+  multiComparisonSortColumn = signal<string>('nodeId');
+  multiComparisonSortDirection = signal<'asc' | 'desc'>('asc');
 
   // ─── Node detail state ────────────────────────────────────────────────────
   selectedNodeForComparison = signal<number | null>(null);
@@ -390,8 +413,170 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
     });
   });
 
-  // ─── Computed: node comparison across scenarios ───────────────────────────
-  nodeComparisonData = computed(() => {
+  // ─── Computed: filtered and sorted comparison results ──────────────────────
+  filteredComparisonResults = computed((): ComparisonRow[] => {
+    let results = this.comparisonResults();
+    
+    // Apply node type filter
+    const selectedTypes = this.comparisonFilterNodeType();
+    if (selectedTypes.length > 0) {
+      results = results.filter(row => selectedTypes.includes(row.nodeType));
+    }
+    
+    // Apply search filter
+    const searchTerm = this.comparisonFilterSearchTerm().toLowerCase();
+    if (searchTerm) {
+      results = results.filter(row => 
+        String(row.nodeId).includes(searchTerm) || 
+        row.nodeType.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    // Apply sorting
+    const sortCol = this.comparisonSortColumn();
+    const sortDir = this.comparisonSortDirection();
+    
+    return results.sort((a, b) => {
+      let aVal: any, bVal: any;
+      
+      switch (sortCol) {
+        case 'nodeId':
+          aVal = a.nodeId;
+          bVal = b.nodeId;
+          break;
+        case 'baseBelief':
+          aVal = a.baseBelief !== null ? this.getNumericBelief(a.baseBelief) : null;
+          bVal = b.baseBelief !== null ? this.getNumericBelief(b.baseBelief) : null;
+          break;
+        case 'compareBelief':
+          aVal = a.compareBelief !== null ? this.getNumericBelief(a.compareBelief) : null;
+          bVal = b.compareBelief !== null ? this.getNumericBelief(b.compareBelief) : null;
+          break;
+        case 'delta':
+          aVal = a.delta ?? -Infinity;
+          bVal = b.delta ?? -Infinity;
+          break;
+        case 'nodeType':
+          aVal = a.nodeType;
+          bVal = b.nodeType;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal === null || aVal === undefined) aVal = -Infinity;
+      if (bVal === null || bVal === undefined) bVal = -Infinity;
+      
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+  });
+
+  selectedComparisonScenarioNames = computed((): string[] => {
+    const computed = this.computedScenarioNames();
+    const selected = this.comparisonSelectedScenarios().filter(name => computed.includes(name));
+    return selected.length > 0 ? selected : computed;
+  });
+
+  multiScenarioComparisonRows = computed((): MultiScenarioComparisonRow[] => {
+    if (!this.comparisonMode()) {
+      return [];
+    }
+
+    const metricKey = this.comparisonMetricKey();
+    const selectedScenarios = this.selectedComparisonScenarioNames();
+    const tabs = this.scenarioTabs();
+    const ni = this.networkInfo();
+
+    if (selectedScenarios.length === 0) {
+      return [];
+    }
+
+    const nodeIds = new Set<number>();
+    const scenarioResultMaps = new Map<string, Map<number, InferenceResult>>();
+
+    for (const scenarioName of selectedScenarios) {
+      const tab = tabs.get(scenarioName);
+      if (!tab || tab.status !== 'computed') {
+        continue;
+      }
+
+      const resultMap = new Map<number, InferenceResult>();
+      for (const result of tab.results) {
+        resultMap.set(result.nodeId, result);
+        nodeIds.add(result.nodeId);
+      }
+      scenarioResultMaps.set(scenarioName, resultMap);
+    }
+
+    const search = this.comparisonFilterSearchTerm().toLowerCase().trim();
+    const nodeTypeFilter = this.comparisonFilterNodeType();
+
+    let rows: MultiScenarioComparisonRow[] = Array.from(nodeIds).map(nodeId => {
+      const nodeType = ni ? this.getNodeType(nodeId, ni) : 'Unknown';
+      const values: Record<string, BeliefValue | number | null> = {};
+      const numericValues: Record<string, number | null> = {};
+
+      for (const scenarioName of selectedScenarios) {
+        const result = scenarioResultMaps.get(scenarioName)?.get(nodeId) ?? null;
+        const metricValue = this.extractComparisonMetricValue(result, metricKey);
+        values[scenarioName] = metricValue;
+        numericValues[scenarioName] = this.toComparableMetricNumber(metricValue, metricKey);
+      }
+
+      return {
+        nodeId,
+        nodeType,
+        values,
+        numericValues
+      };
+    });
+
+    if (search) {
+      rows = rows.filter(row =>
+        String(row.nodeId).includes(search) ||
+        row.nodeType.toLowerCase().includes(search)
+      );
+    }
+
+    if (nodeTypeFilter.length > 0) {
+      rows = rows.filter(row => nodeTypeFilter.some(type => row.nodeType.includes(type)));
+    }
+
+    const sortColumn = this.multiComparisonSortColumn();
+    const sortDirection = this.multiComparisonSortDirection();
+
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortColumn === 'nodeId') {
+        cmp = a.nodeId - b.nodeId;
+      } else if (sortColumn === 'nodeType') {
+        cmp = a.nodeType.localeCompare(b.nodeType);
+      } else {
+        const av = a.numericValues[sortColumn] ?? -Infinity;
+        const bv = b.numericValues[sortColumn] ?? -Infinity;
+        cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      }
+      return sortDirection === 'desc' ? -cmp : cmp;
+    });
+
+    return rows;
+  });
+
+  // ─── Computed: available node types for filter ────────────────────────────
+  availableComparisonNodeTypes = computed((): string[] => {
+    const types = new Set(this.comparisonResults().map(r => r.nodeType));
+    return Array.from(types).sort();
+  });
+
+  availableComparisonMetrics = [
+    { key: 'belief', label: 'Belief' },
+    { key: 'prior', label: 'Prior' },
+    { key: 'sensitivity', label: 'Sensitivity' },
+    { key: 'uncertaintyWidth', label: 'Uncertainty Width' }
+  ] as const;
+
+  selectedNodeComparisonData = computed(() => {
     const nodeId = this.selectedNodeForComparison();
     if (nodeId === null) return null;
     const tabs = this.scenarioTabs();
@@ -525,6 +710,10 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
         this.comparisonMode.set(cached.uiState.comparisonMode || false);
         this.baseScenarioName.set(cached.uiState.baseScenarioName || '');
         this.compareScenarioName.set(cached.uiState.compareScenarioName || '');
+        this.comparisonMetricKey.set(cached.uiState.comparisonMetricKey || 'belief');
+        this.comparisonSelectedScenarios.set(cached.uiState.comparisonSelectedScenarios || []);
+        this.multiComparisonSortColumn.set(cached.uiState.multiComparisonSortColumn || 'nodeId');
+        this.multiComparisonSortDirection.set(cached.uiState.multiComparisonSortDirection || 'asc');
       }
       // Rebuild availableScenarios and scenarioResults from tabs
       for (const [name, tab] of cached.tabs.entries()) {
@@ -565,7 +754,11 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
         sortDirection: this.activeSortDirection(),
         comparisonMode: this.comparisonMode(),
         baseScenarioName: this.baseScenarioName(),
-        compareScenarioName: this.compareScenarioName()
+        compareScenarioName: this.compareScenarioName(),
+        comparisonMetricKey: this.comparisonMetricKey(),
+        comparisonSelectedScenarios: this.comparisonSelectedScenarios(),
+        multiComparisonSortColumn: this.multiComparisonSortColumn(),
+        multiComparisonSortDirection: this.multiComparisonSortDirection()
       }
     );
   }
@@ -1085,7 +1278,137 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
         this.baseScenarioName.set(computed[0]);
         this.compareScenarioName.set(computed[1]);
       }
+      this.comparisonSelectedScenarios.set(computed);
+      if (this.comparisonFilterNodeType().length === 0) {
+        this.comparisonFilterNodeType.set(['Sink']);
+      }
     }
+  }
+
+  // ─── Comparison table sorting & filtering ─────────────────────────────────
+
+  sortComparisonTable(column: string): void {
+    if (this.comparisonSortColumn() === column) {
+      // Toggle sort direction if same column clicked
+      this.comparisonSortDirection.set(
+        this.comparisonSortDirection() === 'asc' ? 'desc' : 'asc'
+      );
+    } else {
+      // New column, default to ascending
+      this.comparisonSortColumn.set(column);
+      this.comparisonSortDirection.set('asc');
+    }
+  }
+
+  toggleComparisonNodeTypeFilter(nodeType: string): void {
+    const current = this.comparisonFilterNodeType();
+    if (current.includes(nodeType)) {
+      this.comparisonFilterNodeType.set(current.filter(t => t !== nodeType));
+    } else {
+      this.comparisonFilterNodeType.set([...current, nodeType]);
+    }
+  }
+
+  clearComparisonFilters(): void {
+    this.comparisonFilterNodeType.set([]);
+    this.comparisonFilterSearchTerm.set('');
+    this.comparisonSortColumn.set('nodeId');
+    this.comparisonSortDirection.set('asc');
+  }
+
+  isComparisonNodeTypeSelected(nodeType: string): boolean {
+    return this.comparisonFilterNodeType().includes(nodeType);
+  }
+
+  toggleComparisonScenario(scenarioName: string): void {
+    const current = this.comparisonSelectedScenarios();
+    if (current.includes(scenarioName)) {
+      this.comparisonSelectedScenarios.set(current.filter(name => name !== scenarioName));
+    } else {
+      this.comparisonSelectedScenarios.set([...current, scenarioName]);
+    }
+  }
+
+  selectAllComparisonScenarios(): void {
+    this.comparisonSelectedScenarios.set(this.computedScenarioNames());
+  }
+
+  clearComparisonScenarioSelection(): void {
+    this.comparisonSelectedScenarios.set([]);
+  }
+
+  isComparisonScenarioSelected(scenarioName: string): boolean {
+    return this.selectedComparisonScenarioNames().includes(scenarioName);
+  }
+
+  sortMultiComparisonTable(column: string): void {
+    if (this.multiComparisonSortColumn() === column) {
+      this.multiComparisonSortDirection.set(this.multiComparisonSortDirection() === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    this.multiComparisonSortColumn.set(column);
+    this.multiComparisonSortDirection.set('asc');
+  }
+
+  getMultiSortIcon(column: string): string {
+    if (this.multiComparisonSortColumn() !== column) {
+      return 'unfold_more';
+    }
+    return this.multiComparisonSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  formatComparisonMetricValue(value: BeliefValue | number | null): string {
+    if (value == null) {
+      return '—';
+    }
+
+    const metricKey = this.comparisonMetricKey();
+    if (metricKey === 'belief' || metricKey === 'prior') {
+      return this.formatBelief(value as BeliefValue);
+    }
+
+    if (typeof value === 'number') {
+      return this.formatNumber(value);
+    }
+
+    return '—';
+  }
+
+  private extractComparisonMetricValue(
+    result: InferenceResult | null,
+    metricKey: 'belief' | 'prior' | 'sensitivity' | 'uncertaintyWidth'
+  ): BeliefValue | number | null {
+    if (!result) {
+      return null;
+    }
+
+    switch (metricKey) {
+      case 'belief':
+        return result.belief;
+      case 'prior':
+        return result.prior;
+      case 'sensitivity':
+        return result.sensitivityScore;
+      case 'uncertaintyWidth':
+        return result.uncertaintyWidth;
+      default:
+        return null;
+    }
+  }
+
+  private toComparableMetricNumber(
+    value: BeliefValue | number | null,
+    metricKey: 'belief' | 'prior' | 'sensitivity' | 'uncertaintyWidth'
+  ): number | null {
+    if (value == null) {
+      return null;
+    }
+
+    if (metricKey === 'belief' || metricKey === 'prior') {
+      return this.getNumericBelief(value as BeliefValue);
+    }
+
+    return typeof value === 'number' ? value : null;
   }
 
   onBaseScenarioChange(name: string): void {
