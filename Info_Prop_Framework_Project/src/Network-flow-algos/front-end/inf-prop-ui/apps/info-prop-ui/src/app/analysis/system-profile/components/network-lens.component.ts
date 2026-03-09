@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -106,22 +106,32 @@ import {
 
               <div class="selection-content">
                 <div class="focus-summary">
-                  <span class="focus-label">Cross-Scenario Coverage:</span>
-                  <span class="focus-value">{{ selectionFocusCount() }} / {{ rows().length }} scenarios highlight this {{ selectedNodeId() ? 'node' : 'edge' }}</span>
+                  <span class="focus-label">Metrics Across Scenarios:</span>
+                  <span class="focus-value">{{ selectionFocusCount() }} / {{ rows().length }} scenarios have data</span>
                 </div>
 
                 <div class="scenario-list">
                   @for (row of selectionScenarioDetails(); track row.scenario) {
-                  <div class="scenario-item" [class.highlighted]="row.inFocus">
+                  <div class="scenario-item" [class.has-data]="row.metrics.length > 0">
                     <div class="scenario-header">
                       <span class="scenario-name">{{ row.scenario }}</span>
-                      <span class="scenario-status" [class.focused]="row.inFocus">
-                        <mat-icon>{{ row.inFocus ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
-                        {{ row.inFocus ? 'Highlighted' : 'Not highlighted' }}
+                      <span class="data-types" *ngIf="row.dataTypes.length > 0">
+                        @for (dtype of row.dataTypes; track dtype) {
+                          <span class="dtype-badge">{{ dtype }}</span>
+                        }
                       </span>
                     </div>
-                    @if (row.roleInfo) {
-                    <div class="scenario-role">{{ row.roleInfo }}</div>
+                    @if (row.metrics.length > 0) {
+                    <div class="scenario-metrics">
+                      @for (metric of row.metrics; track metric.label) {
+                        <div class="metric-row">
+                          <span class="metric-label">{{ metric.label }}:</span>
+                          <span class="metric-value">{{ metric.value }}</span>
+                        </div>
+                      }
+                    </div>
+                    } @else {
+                    <div class="scenario-empty">No data for this element in this scenario</div>
                     }
                   </div>
                   }
@@ -356,9 +366,9 @@ import {
       background: var(--surface-container);
       transition: all 150ms ease;
 
-      &.highlighted {
-        border-color: color-mix(in srgb, var(--primary-color) 50%, var(--outline-variant));
-        background: color-mix(in srgb, var(--primary-color) 8%, var(--surface));
+      &.has-data {
+        border-color: color-mix(in srgb, var(--primary-color) 40%, var(--outline-variant));
+        background: color-mix(in srgb, var(--primary-color) 5%, var(--surface));
       }
     }
 
@@ -367,6 +377,7 @@ import {
       align-items: center;
       justify-content: space-between;
       gap: 10px;
+      margin-bottom: 8px;
     }
 
     .scenario-name {
@@ -375,34 +386,59 @@ import {
       font-weight: 600;
     }
 
-    .scenario-status {
+    .data-types {
       display: flex;
-      align-items: center;
       gap: 4px;
-      font-size: 0.78rem;
-      color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
 
-      mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-      }
+    .dtype-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--primary-color) 15%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--outline-variant));
+      font-size: 0.7rem;
+      color: var(--primary-color);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
 
-      &.focused {
-        color: var(--primary-color);
-        font-weight: 500;
+    .scenario-metrics {
+      display: grid;
+      gap: 6px;
+    }
 
-        mat-icon {
-          color: var(--primary-color);
-        }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.82rem;
+      padding: 4px 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 50%, transparent);
+
+      &:last-child {
+        border-bottom: none;
       }
     }
 
-    .scenario-role {
-      margin-top: 6px;
-      font-size: 0.78rem;
+    .metric-label {
       color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .metric-value {
+      color: var(--primary-color);
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-weight: 600;
+    }
+
+    .scenario-empty {
+      font-size: 0.78rem;
+      color: var(--text-disabled);
       font-style: italic;
+      padding: 4px 0;
     }
 
     .lens-legend {
@@ -470,11 +506,15 @@ export class NetworkLensComponent {
   private _selectedEdgeId = signal<string | null>(null);
   private zoomLevel = signal(1);
 
+  // Inputs
   rows = input.required<ScenarioMetricRow[]>();
   scenarioResults = input.required<Map<string, ScenarioAnalysisResult>>();
   selectedScenario = input.required<string>();
-  selectedMetricKey = input.required<string>();
   selectedGraphFocus = input.required<string>();
+
+  // Outputs for parent to react to selections
+  nodeSelected = output<{ nodeId: string; scenario: string; focus: string }>();
+  edgeSelected = output<{ source: string; target: string; scenario: string }>();
 
   zoomPercent = computed(() => `${Math.round(this.zoomLevel() * 100)}%`);
 
@@ -511,8 +551,15 @@ export class NetworkLensComponent {
   });
 
   selectedMetricLabel = computed(() => {
-    const metric = PROFILE_METRICS.find(m => m.key === this.selectedMetricKey());
-    return metric?.label ?? this.selectedMetricKey();
+    const selectedNode = this._selectedNodeId();
+    if (selectedNode) {
+      return `Node ${selectedNode} Metrics`;
+    }
+    const selectedEdge = this._selectedEdgeId();
+    if (selectedEdge) {
+      return `Edge ${selectedEdge} Metrics`;
+    }
+    return 'Selection Details';
   });
 
   selectedNodeId = computed(() => this._selectedNodeId());
@@ -521,34 +568,104 @@ export class NetworkLensComponent {
   selectionScenarioDetails = computed(() => {
     const selectedNode = this._selectedNodeId();
     const selectedEdge = this._selectedEdgeId();
-    const graphFocus = this.selectedGraphFocus();
 
     if (!selectedNode && !selectedEdge) {
-      return [] as Array<{ scenario: string; inFocus: boolean; roleInfo?: string }>;
+      return [] as Array<{ scenario: string; metrics: Array<{ label: string; value: string }>; dataTypes: string[] }>;
     }
 
     return this.rows().map(row => {
-      const inFocus = selectedNode
-        ? this.getHighlightedNodeSetForScenario(row.scenario).has(selectedNode)
-        : selectedEdge
-          ? this.getHighlightedEdgeSetForScenario(row.scenario).has(selectedEdge)
-          : false;
+      const metrics: Array<{ label: string; value: string }> = [];
+      const dataTypes = new Set<string>();
 
-      let roleInfo: string | undefined;
-      if (inFocus && selectedNode) {
-        roleInfo = this.getNodeRoleInfo(row.scenario, selectedNode, graphFocus);
+      const scenario = this.scenarioResults().get(row.scenario);
+      if (!scenario) {
+        return { scenario: row.scenario, metrics, dataTypes: Array.from(dataTypes) };
       }
 
-      return {
-        scenario: row.scenario,
-        inFocus,
-        roleInfo
-      };
+      if (selectedNode) {
+        // Extract node metrics from capacity analysis
+        if (scenario.capacityAnalysis?.raw_capacity_result) {
+          const raw = scenario.capacityAnalysis.raw_capacity_result;
+          const nodeFlows = (raw.node_max_flows as Record<string, number>)?.[selectedNode];
+          const nodeCap = (raw.node_capacities as Record<string, number>)?.[selectedNode];
+          const nodeUtil = nodeCap ? ((nodeFlows || 0) / nodeCap * 100).toFixed(1) : 'NA';
+          
+          if (nodeFlows != null || nodeCap != null) {
+            metrics.push(
+              { label: 'Capacity', value: `${nodeCap?.toFixed(2) ?? 'NA'}` },
+              { label: 'Max Flow', value: `${nodeFlows?.toFixed(2) ?? 'NA'}` },
+              { label: 'Utilization', value: `${nodeUtil}%` }
+            );
+            dataTypes.add('capacity');
+          }
+        }
+
+        // Extract node metrics from CPM
+        if (scenario.cpmAnalysis?.time_result) {
+          const nodeData = (scenario.cpmAnalysis.time_result.node_durations as Record<string, unknown>)?.[selectedNode];
+          if (nodeData) {
+            const duration = typeof nodeData === 'object' && 'duration' in nodeData ? (nodeData as Record<string, unknown>)['duration'] : nodeData;
+            const slack = typeof nodeData === 'object' && 'slack' in nodeData ? (nodeData as Record<string, unknown>)['slack'] : 'NA';
+            metrics.push(
+              { label: 'CPM Duration', value: `${duration}` },
+              { label: 'Slack', value: `${slack}` }
+            );
+            dataTypes.add('cpm');
+          }
+        }
+
+        if (scenario.cpmAnalysis?.time_result?.node_durations && selectedNode) {
+          const nodeDurations = scenario.cpmAnalysis.time_result.node_durations as Record<string, unknown>;
+          const duration = nodeDurations[selectedNode];
+          if (duration != null) {
+            metrics.push({
+              label: 'CPM Duration',
+              value: `${typeof duration === 'object' ? JSON.stringify(duration) : duration}`
+            });
+            dataTypes.add('cpm');
+          }
+        }
+
+        // Extract node metrics from reachability
+        if (scenario.exactInference?.beliefs) {
+          const belief = (scenario.exactInference.beliefs as Record<string, unknown>)[selectedNode];
+          if (belief != null) {
+            const numericBelief = this.toNumeric(belief);
+            metrics.push({
+              label: 'Belief',
+              value: numericBelief != null ? `${(numericBelief * 100).toFixed(1)}%` : String(belief)
+            });
+            dataTypes.add('reachability');
+          }
+        }
+      } else if (selectedEdge) {
+        // Extract edge metrics
+        const [src, tgt] = selectedEdge.split('->');
+        const edgeStr = `(${src},${tgt})`;
+
+        if (scenario.capacityAnalysis?.raw_capacity_result) {
+          const raw = scenario.capacityAnalysis.raw_capacity_result;
+          const edgeFlow = (raw.edge_flows as Record<string, number>)?.[edgeStr];
+          const edgeCap = (raw.edge_capacities as Record<string, number>)?.[edgeStr];
+          const edgeUtil = edgeCap ? ((edgeFlow || 0) / edgeCap * 100).toFixed(1) : 'NA';
+          
+          if (edgeFlow != null || edgeCap != null) {
+            metrics.push(
+              { label: 'Capacity', value: `${edgeCap?.toFixed(2) ?? 'NA'}` },
+              { label: 'Flow', value: `${edgeFlow?.toFixed(2) ?? 'NA'}` },
+              { label: 'Utilization', value: `${edgeUtil}%` }
+            );
+            dataTypes.add('capacity');
+          }
+        }
+      }
+
+      return { scenario: row.scenario, metrics, dataTypes: Array.from(dataTypes) };
     });
   });
 
   selectionFocusCount = computed(() => {
-    return this.selectionScenarioDetails().filter(d => d.inFocus).length;
+    return this.selectionScenarioDetails().filter(d => d.metrics.length > 0).length;
   });
 
   highlightReasonSummary = computed(() => {
@@ -615,7 +732,13 @@ export class NetworkLensComponent {
   });
 
   highlightedNodeSet = computed(() => {
-    return this.getHighlightedNodeSetForScenario(this.selectedScenario());
+    const set = this.getHighlightedNodeSetForScenario(this.selectedScenario());
+    if (set.size > 0) {
+      console.log(`[NetworkLens] Highlighted ${set.size} nodes for scenario ${this.selectedScenario()}, focus: ${this.selectedGraphFocus()}, nodes:`, Array.from(set));
+    } else {
+      console.warn(`[NetworkLens] No nodes highlighted for scenario ${this.selectedScenario()}, focus: ${this.selectedGraphFocus()}`);
+    }
+    return set;
   });
 
   highlightedEdgeSet = computed(() => {
@@ -670,11 +793,23 @@ export class NetworkLensComponent {
   selectNode(nodeId: string): void {
     this._selectedNodeId.set(nodeId);
     this._selectedEdgeId.set(null);
+    this.nodeSelected.emit({
+      nodeId,
+      scenario: this.selectedScenario(),
+      focus: this.selectedGraphFocus()
+    });
+    console.log(`[NetworkLens] Node ${nodeId} selected in scenario ${this.selectedScenario()}`);
   }
 
   selectEdge(source: string, target: string): void {
     this._selectedNodeId.set(null);
     this._selectedEdgeId.set(this.edgeKey(source, target));
+    this.edgeSelected.emit({
+      source,
+      target,
+      scenario: this.selectedScenario()
+    });
+    console.log(`[NetworkLens] Edge ${source}->${target} selected in scenario ${this.selectedScenario()}`);
   }
 
   clearSelection(): void {
@@ -863,9 +998,12 @@ export class NetworkLensComponent {
       }
 
       if (graphFocus === 'capacity-bottlenecks') {
-        for (const values of Object.values(raw?.bottlenecks ?? {})) {
-          this.extractNodeIds(values).forEach(nodeId => set.add(nodeId));
-        }
+        // bottlenecks is a map: {nodeId: true/false}
+        Object.keys(raw?.bottlenecks ?? {}).forEach(nodeId => {
+          if ((raw?.bottlenecks as Record<string, unknown>)?.[nodeId]) {
+            set.add(nodeId);
+          }
+        });
       }
 
       if (graphFocus === 'capacity-critical-paths') {

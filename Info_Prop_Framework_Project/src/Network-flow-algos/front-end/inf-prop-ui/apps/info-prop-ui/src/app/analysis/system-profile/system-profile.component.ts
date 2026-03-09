@@ -60,7 +60,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
   actionMessage = signal<string | null>(null);
   activeTabIndex = signal(0);
   selectedScenario = signal('');
-  selectedMetricKey = signal('networkUtilization');
   selectedGraphFocus = signal('capacity-bottlenecks');
   isRerunning = signal(false);
 
@@ -77,37 +76,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
   });
   hotspotAlerts = computed(() => this.profileData()?.hotspotAlerts ?? []);
   scenarioNames = computed(() => this.metricRows().map(r => r.scenario));
-  availableMetrics = computed(() => {
-    const priorityOrder = [
-      'throughputCaptureRatio',
-      'capacityThroughput',
-      'networkUtilization',
-      'efficiencyLoss',
-      'upgradePressure',
-      'bottleneckCount',
-      'meanBelief',
-      'beliefSpread',
-      'criticalPathDuration',
-      'totalSlack',
-      'criticalNodeCount',
-      'diamondEfficiency',
-      'rootDiamondCount',
-      'computationTime'
-    ];
-
-    const ranges = this.aggregatedMetrics().metricRanges;
-    return PROFILE_METRICS
-      .filter(m => ranges[m.key])
-      .sort((a, b) => {
-        const ai = priorityOrder.indexOf(a.key);
-        const bi = priorityOrder.indexOf(b.key);
-        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-      });
-  });
-  selectedMetricSource = computed(() => {
-    const match = PROFILE_METRICS.find(m => m.key === this.selectedMetricKey());
-    return match?.source ?? 'capacity';
-  });
   rerunnableGroups = computed(() => this.getRerunnableGroups());
   remainingRerunnableGroups = computed(() => this.getRemainingRerunnableGroups());
   rerunnableCount = computed(() => this.rerunnableGroups().length);
@@ -231,9 +199,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
       if (typeof savedState.uiState.selectedScenario === 'string') {
         this.selectedScenario.set(savedState.uiState.selectedScenario);
       }
-      if (typeof savedState.uiState.selectedMetricKey === 'string') {
-        this.selectedMetricKey.set(savedState.uiState.selectedMetricKey);
-      }
       if (typeof savedState.uiState.selectedGraphFocus === 'string') {
         this.selectedGraphFocus.set(savedState.uiState.selectedGraphFocus);
       }
@@ -257,7 +222,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
           profileData: this.profileData(),
           activeTabIndex: this.activeTabIndex(),
           selectedScenario: this.selectedScenario(),
-          selectedMetricKey: this.selectedMetricKey(),
           selectedGraphFocus: this.selectedGraphFocus()
         }
       );
@@ -297,7 +261,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
 
   onCellSelected(event: { scenario: string; metricKey: string; source: string }): void {
     this.selectedScenario.set(event.scenario);
-    this.selectedMetricKey.set(event.metricKey);
     this.syncGraphFocusDefaults();
   }
 
@@ -308,6 +271,23 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
 
   onGraphFocusChanged(graphFocus: string): void {
     this.selectedGraphFocus.set(graphFocus);
+  }
+
+  onNetworkLensNodeSelected(event: { nodeId: string; scenario: string; focus: string }): void {
+    console.log(`[SystemProfile] Network lens node selected: ${event.nodeId} in scenario ${event.scenario}`);
+    // Ensure the selected scenario is active
+    this.selectedScenario.set(event.scenario);
+    // You can optionally navigate to a detailed view or highlight related metrics
+    this.actionMessage.set(`Selected node ${event.nodeId} in ${event.focus} context`);
+    setTimeout(() => this.actionMessage.set(null), 3000);
+  }
+
+  onNetworkLensEdgeSelected(event: { source: string; target: string; scenario: string }): void {
+    console.log(`[SystemProfile] Network lens edge selected: ${event.source}->${event.target} in scenario ${event.scenario}`);
+    // Ensure the selected scenario is active
+    this.selectedScenario.set(event.scenario);
+    this.actionMessage.set(`Selected edge ${event.source}→${event.target}`);
+    setTimeout(() => this.actionMessage.set(null), 3000);
   }
 
   onCellClicked(event: { scenario: string; metricKey: string; source: string }): void {
@@ -351,12 +331,6 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
     if (scenarios.length > 0 && !scenarios.includes(this.selectedScenario())) {
       this.selectedScenario.set(scenarios[0]);
     }
-
-    const metricKeys = this.availableMetrics().map(m => m.key);
-    if (metricKeys.length > 0 && !metricKeys.includes(this.selectedMetricKey())) {
-      this.selectedMetricKey.set(metricKeys[0]);
-    }
-
     this.syncGraphFocusDefaults();
   }
 

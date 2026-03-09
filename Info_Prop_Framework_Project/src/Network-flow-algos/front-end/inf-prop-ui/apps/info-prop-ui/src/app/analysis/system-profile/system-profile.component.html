@@ -111,7 +111,7 @@
           <div class="lens-controls">
             <mat-select class="lens-select" [value]="selectedScenario()"
               (selectionChange)="onScenarioSelectionChanged($event.value)"
-              matTooltip="Scenario used for graph focus mapping and cross-scenario context">
+              matTooltip="Primary scenario for graph layout and highlighting">
               @for (scenario of scenarioNames(); track scenario) {
               <mat-option [value]="scenario">{{ scenario }}</mat-option>
               }
@@ -119,28 +119,21 @@
 
             <mat-select class="lens-select" [value]="selectedGraphFocus()"
               (selectionChange)="onGraphFocusChanged($event.value)"
-              matTooltip="Only graph focuses with available data for the selected scenario are listed">
+              matTooltip="Which nodes/edges to highlight based on analysis results">
               @for (option of graphFocusOptions(); track option.key) {
               <mat-option [value]="option.key" [matTooltip]="option.description">{{ option.label }}</mat-option>
               }
             </mat-select>
-
-            <mat-select class="lens-select" [value]="selectedMetricKey()"
-              (selectionChange)="selectedMetricKey.set($event.value)"
-              matTooltip="Metric shown in selection details across scenarios">
-              @for (metric of availableMetrics(); track metric.key) {
-              <mat-option [value]="metric.key">{{ metric.shortLabel }}</mat-option>
-              }
-            </mat-select>
           </div>
           <p class="metric-source-label">
-            Metric source: {{ selectedMetricSource() }} &middot; Graph focus options are scenario-data aware.
+            Click nodes or edges to see their metrics across all scenarios.
           </p>
         </mat-expansion-panel>
       </mat-accordion>
 
       <app-network-lens [rows]="metricRows()" [scenarioResults]="scenarioResults()" [selectedScenario]="selectedScenario()"
-        [selectedMetricKey]="selectedMetricKey()" [selectedGraphFocus]="selectedGraphFocus()" />
+        [selectedGraphFocus]="selectedGraphFocus()"
+        (nodeSelected)="onNetworkLensNodeSelected($event)" (edgeSelected)="onNetworkLensEdgeSelected($event)" />
       }
     </div>
   </mat-tab>
