@@ -286,7 +286,11 @@ function handle_session_item(req::HTTP.Request)
             println("📤 GET /sessions/$session_id - Returning file_manager_state: $(session_meta["file_manager_state"] !== nothing ? "YES" : "NULL")")
             if session_meta["file_manager_state"] !== nothing && isa(session_meta["file_manager_state"], Dict)
                 fms = session_meta["file_manager_state"]
-                println("   📁 Analysis groups: reachability=$(length(get(fms, "analysisGroups", Dict())["reachability"])), capacity=$(length(get(fms, "analysisGroups", Dict())["capacity"])), cpm=$(length(get(fms, "analysisGroups", Dict())["cpm"]))")
+                analysis_groups = get(fms, "analysisGroups", Dict{String, Any}())
+                reachability_count = length(get(analysis_groups, "reachability", Any[]))
+                capacity_count = length(get(analysis_groups, "capacity", Any[]))
+                cpm_count = length(get(analysis_groups, "cpm", Any[]))
+                println("   📁 Analysis groups: reachability=$reachability_count, capacity=$capacity_count, cpm=$cpm_count")
             end
 
             return HTTP.Response(200, cors_headers, JSON.json(Dict(
@@ -309,12 +313,21 @@ function handle_session_item(req::HTTP.Request)
             else
                 println("⚠️ file_manager_state NOT in payload")
             end
+
+            if haskey(payload, "fileManagerState") && !haskey(payload, "file_manager_state")
+                payload["file_manager_state"] = payload["fileManagerState"]
+                println("🔁 Normalized fileManagerState → file_manager_state")
+            end
             
             for key in [
                 "network_path", "network_name", "network_data", "analysis_results",
                 "analysis_history", "parsed_data", "file_manager_state"
             ]
                 if haskey(payload, key)
+                    if key == "file_manager_state" && payload[key] === nothing && get(session_meta, "file_manager_state", nothing) !== nothing
+                        println("⚠️ Skipping null file_manager_state overwrite for session $session_id")
+                        continue
+                    end
                     session_meta[key] = payload[key]
                 end
             end
@@ -1544,7 +1557,6 @@ end
 function parse_capacity_analysis_options(options_dict::Dict)
     return IPAFrameworkOptimized.CapacityAnalysisOptions(
         algorithm = Symbol(get(options_dict, "algorithm", "ford_fulkerson_dag")),
-        compute_all_min_cuts = get(options_dict, "computeAllMinCuts", false),
         enumerate_critical_paths = get(options_dict, "enumerateCriticalPaths", true),
         max_paths_to_return = get(options_dict, "maxPathsToReturn", 10),
         compute_upgrade_priorities = get(options_dict, "computeUpgradePriorities", true),
@@ -2356,6 +2368,20 @@ function start_server()
     
     # Add CORS middleware
     HTTP.register!(router, "OPTIONS", "/*", handle_cors)
+    # Explicit preflight routes (HTTP.Router wildcard matching can be strict on some patterns)
+    HTTP.register!(router, "OPTIONS", "/upload", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/sessions", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/sessions/*", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/files/*", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/docs-list", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/docs/*", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/network-structure", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/diamond-analysis", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/diamond-subgraph-analysis", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/reachability-analysis", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/capacity-analysis", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/cpm-analysis", handle_cors)
+    HTTP.register!(router, "OPTIONS", "/health", handle_cors)
     
     # API routes
     HTTP.register!(router, "POST", "/upload", handle_upload)
