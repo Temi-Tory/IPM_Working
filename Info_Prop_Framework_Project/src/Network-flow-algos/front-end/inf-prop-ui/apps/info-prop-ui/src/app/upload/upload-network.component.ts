@@ -16,6 +16,12 @@ import { FileUploadService } from '../shared/services/file-upload.service';
 import { AnalysisStateService } from '../shared/services/analysis-state.service';
 import { CategorizedFile, AnalysisType } from '../shared/models/network-analysis.models';
 
+interface UploadedSessionInfo {
+  networkPath: string;
+  networkName?: string;
+  sessionId?: string;
+}
+
 @Component({
   selector: 'app-upload-network',
   standalone: true,
@@ -76,13 +82,14 @@ export class UploadNetworkComponent {
 
     try {
       // Upload files first and get network path
-      const networkPath = await this.uploadFiles(input.files);
+      const uploaded = await this.uploadFiles(input.files);
       
       // Then process and categorize them using FileManagerService
       this.fileManager.processUploadedFiles(input.files).subscribe({
         next: (categorizedFiles) => {
           // Save state to session with network path
-          this.saveStateToSession(networkPath);
+          this.saveStateToSession(uploaded);
+          queueMicrotask(() => this.saveStateToSession(uploaded));
           
           const fileCount = input.files!.length;
           const networkFiles = this.analysisGroups().network.files.length;
@@ -117,13 +124,14 @@ export class UploadNetworkComponent {
 
     try {
       // Upload files first and get network path
-      const networkPath = await this.uploadFiles(input.files);
+      const uploaded = await this.uploadFiles(input.files);
       
       // Then process and categorize them using FileManagerService
       this.fileManager.processUploadedFiles(input.files).subscribe({
         next: (categorizedFiles) => {
           // Save state to session with network path
-          this.saveStateToSession(networkPath);
+          this.saveStateToSession(uploaded);
+          queueMicrotask(() => this.saveStateToSession(uploaded));
           
           const fileCount = input.files!.length;
           this.snackBar.open(`Added ${fileCount} files`, 'Close', { duration: 2000 });
@@ -143,13 +151,16 @@ export class UploadNetworkComponent {
   /**
    * Upload files to backend
    */
-  private async uploadFiles(files: FileList): Promise<string> {
+  private async uploadFiles(files: FileList): Promise<UploadedSessionInfo> {
     return new Promise((resolve, reject) => {
       this.fileUpload.uploadFiles(files).subscribe({
         next: (response) => {
           if (response.success) {
-            // Store the network path for session creation
-            resolve(response.network_path);
+            resolve({
+              networkPath: response.network_path,
+              networkName: response.network_name,
+              sessionId: response.upload_id
+            });
           } else {
             reject(new Error(response.message || 'Upload failed'));
           }
@@ -419,20 +430,61 @@ export class UploadNetworkComponent {
   /**
    * Save current file manager state to session
    */
-  private saveStateToSession(networkPath?: string): void {
+  private saveStateToSession(uploadInfo?: UploadedSessionInfo): void {
+    const fmState = this.fileManagerState();
+    
+    console.log('💾 saveStateToSession called:');
+    console.log('  fileManagerState exists:', !!fmState);
+    if (fmState) {
+      console.log('  uploadedFiles count:', fmState.uploadedFiles?.length ?? 0);
+      console.log('  analysisGroups:', fmState.analysisGroups);
+      if (fmState.analysisGroups) {
+        console.log('    - reachability scenarios:', fmState.analysisGroups.reachability?.length ?? 0);
+        console.log('    - capacity scenarios:', fmState.analysisGroups.capacity?.length ?? 0);
+        console.log('    - cpm scenarios:', fmState.analysisGroups.cpm?.length ?? 0);
+      }
+    } else {
+      console.warn('  ⚠️ fileManagerState is NULL when trying to save!');
+    }
+    
+    if (uploadInfo?.sessionId) {
+      console.log('  Binding save to uploaded session:', uploadInfo.sessionId);
+      this.sessionService.createNewSession(
+        uploadInfo.networkPath || 'file-upload',
+        uploadInfo.networkName,
+        uploadInfo.sessionId
+      );
+      this.sessionService.updateSession({
+        fileManagerState: fmState,
+        ...(uploadInfo.networkPath && { networkPath: uploadInfo.networkPath }),
+        ...(uploadInfo.networkName && { networkName: uploadInfo.networkName })
+      });
+      return;
+    }
+
     const currentSession = this.sessionService.getCurrentSession();
     if (currentSession) {
+      console.log('  Updating existing session:', currentSession.sessionId);
       this.sessionService.updateSession({
-        fileManagerState: this.fileManagerState(),
-        ...(networkPath && { networkPath })
+        fileManagerState: fmState,
+        ...(uploadInfo?.networkPath && { networkPath: uploadInfo.networkPath }),
+        ...(uploadInfo?.networkName && { networkName: uploadInfo.networkName })
       });
-    } else {
-      // Create new session with file manager state and network path
-      const session = this.sessionService.createNewSession(networkPath || 'file-upload');
-      this.sessionService.updateSession({
-        fileManagerState: this.fileManagerState()
-      });
+      return;
     }
+
+    console.log('  Creating new session');
+    this.sessionService.createNewSession(
+      uploadInfo?.networkPath || 'file-upload',
+      uploadInfo?.networkName,
+      uploadInfo?.sessionId
+    );
+    console.log('  Updating new session with fileManagerState');
+    this.sessionService.updateSession({
+      fileManagerState: fmState,
+      ...(uploadInfo?.networkPath && { networkPath: uploadInfo.networkPath }),
+      ...(uploadInfo?.networkName && { networkName: uploadInfo.networkName })
+    });
   }
 
   /**

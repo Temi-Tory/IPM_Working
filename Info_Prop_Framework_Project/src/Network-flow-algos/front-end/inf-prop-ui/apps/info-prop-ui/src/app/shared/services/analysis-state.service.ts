@@ -554,7 +554,7 @@ export class AnalysisStateService {
         .subscribe({
           next: (response) => {
             if (response.success) {
-              this.networkDataSignal.set(response.network_structure);
+              this.setNetworkData(response.network_structure);
               this.markTabCompleted('network-structure');
               observer.next();
               observer.complete();

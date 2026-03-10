@@ -158,6 +158,200 @@ function setup_server()
     println("Upload directory: $UPLOAD_DIR")
 end
 
+function session_file_path(upload_id::AbstractString)
+    return joinpath(UPLOAD_DIR, String(upload_id), "session.json")
+end
+
+function derive_network_name(uploaded_files::Vector{String}, edges_files::Vector{String}, network_path::String)
+    if !isempty(edges_files)
+        edges_name = basename(edges_files[1])
+        return replace(edges_name, r"\.EDGES$" => "", count=1)
+    end
+
+    if !isempty(uploaded_files)
+        first_name = basename(uploaded_files[1])
+        stem = splitext(first_name)[1]
+        return isempty(stem) ? first_name : stem
+    end
+
+    fallback = basename(network_path)
+    return isempty(fallback) ? "Network Upload" : fallback
+end
+
+function read_session_metadata(upload_id::AbstractString)
+    meta_path = session_file_path(upload_id)
+    if !isfile(meta_path)
+        return nothing
+    end
+
+    try
+        return JSON.parsefile(meta_path)
+    catch e
+        println("Failed to parse session metadata for $upload_id: $e")
+        return nothing
+    end
+end
+
+function write_session_metadata(upload_id::AbstractString, metadata::Dict)
+    meta_path = session_file_path(upload_id)
+    open(meta_path, "w") do io
+        write(io, JSON.json(metadata))
+    end
+end
+
+function handle_sessions_list(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+
+    try
+        if !isdir(UPLOAD_DIR)
+            return HTTP.Response(200, cors_headers, JSON.json(Dict(
+                "success" => true,
+                "sessions" => Any[]
+            )))
+        end
+
+        sessions = Any[]
+        for entry in readdir(UPLOAD_DIR)
+            folder_path = joinpath(UPLOAD_DIR, entry)
+            if !isdir(folder_path)
+                continue
+            end
+
+            session_meta = read_session_metadata(entry)
+            if session_meta === nothing
+                continue
+            end
+
+            push!(sessions, Dict(
+                "session_id" => get(session_meta, "session_id", entry),
+                "upload_id" => get(session_meta, "upload_id", entry),
+                "network_name" => get(session_meta, "network_name", "Network Upload"),
+                "network_path" => get(session_meta, "network_path", ""),
+                "timestamp" => get(session_meta, "updated_at", get(session_meta, "created_at", string(Dates.now()))),
+                "has_analysis_results" => get(session_meta, "analysis_results", nothing) !== nothing
+            ))
+        end
+
+        sort!(sessions, by = s -> get(s, "timestamp", ""), rev = true)
+
+        return HTTP.Response(200, cors_headers, JSON.json(Dict(
+            "success" => true,
+            "sessions" => sessions
+        )))
+    catch e
+        println("Session list error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Failed to list sessions"
+        )))
+    end
+end
+
+function handle_session_item(req::HTTP.Request)
+    cors_headers = [
+        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Methods" => "GET, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Content-Type" => "application/json"
+    ]
+
+    try
+        uri = HTTP.URI(req.target)
+        parts = split(uri.path, "/")
+        if length(parts) < 3 || isempty(parts[3])
+            return HTTP.Response(400, cors_headers, JSON.json(Dict(
+                "success" => false,
+                "message" => "Missing session id"
+            )))
+        end
+
+        session_id = parts[3]
+        folder_path = joinpath(UPLOAD_DIR, session_id)
+
+        if req.method == "GET"
+            session_meta = read_session_metadata(session_id)
+            if session_meta === nothing
+                return HTTP.Response(404, cors_headers, JSON.json(Dict(
+                    "success" => false,
+                    "message" => "Session not found"
+                )))
+            end
+
+            println("📤 GET /sessions/$session_id - Returning file_manager_state: $(session_meta["file_manager_state"] !== nothing ? "YES" : "NULL")")
+            if session_meta["file_manager_state"] !== nothing && isa(session_meta["file_manager_state"], Dict)
+                fms = session_meta["file_manager_state"]
+                println("   📁 Analysis groups: reachability=$(length(get(fms, "analysisGroups", Dict())["reachability"])), capacity=$(length(get(fms, "analysisGroups", Dict())["capacity"])), cpm=$(length(get(fms, "analysisGroups", Dict())["cpm"]))")
+            end
+
+            return HTTP.Response(200, cors_headers, JSON.json(Dict(
+                "success" => true,
+                "session" => session_meta
+            )))
+        elseif req.method == "PUT"
+            session_meta = read_session_metadata(session_id)
+            if session_meta === nothing
+                return HTTP.Response(404, cors_headers, JSON.json(Dict(
+                    "success" => false,
+                    "message" => "Session not found"
+                )))
+            end
+
+            payload = JSON.parse(String(req.body))
+            println("📥 PUT /sessions/$session_id - Received payload keys: $(keys(payload))")
+            if haskey(payload, "file_manager_state")
+                println("📁 file_manager_state received: $(payload["file_manager_state"] !== nothing ? "YES" : "NULL")")
+            else
+                println("⚠️ file_manager_state NOT in payload")
+            end
+            
+            for key in [
+                "network_path", "network_name", "network_data", "analysis_results",
+                "analysis_history", "parsed_data", "file_manager_state"
+            ]
+                if haskey(payload, key)
+                    session_meta[key] = payload[key]
+                end
+            end
+            session_meta["updated_at"] = string(Dates.now())
+
+            write_session_metadata(session_id, session_meta)
+            println("✅ Session $session_id saved with file_manager_state: $(session_meta["file_manager_state"] !== nothing ? "YES" : "NULL")")
+
+            return HTTP.Response(200, cors_headers, JSON.json(Dict(
+                "success" => true,
+                "session" => session_meta
+            )))
+        elseif req.method == "DELETE"
+            if isdir(folder_path)
+                rm(folder_path; force=true, recursive=true)
+            end
+
+            return HTTP.Response(200, cors_headers, JSON.json(Dict(
+                "success" => true,
+                "message" => "Session deleted"
+            )))
+        end
+
+        return HTTP.Response(405, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "message" => "Method not allowed"
+        )))
+    catch e
+        println("Session item error: ", e)
+        return HTTP.Response(500, cors_headers, JSON.json(Dict(
+            "success" => false,
+            "error" => string(e),
+            "message" => "Session operation failed"
+        )))
+    end
+end
+
 function validate_network_file(edges_file_path::String)
     # Simple validation - just check if .EDGES file exists
     if !isfile(edges_file_path)
@@ -2094,10 +2288,30 @@ function handle_upload(req::HTTP.Request)
             network_path = dirname(full_edges_path)
         end
         
+        network_name = derive_network_name(uploaded_files, edges_files, network_path)
+
+        session_metadata = Dict(
+            "session_id" => upload_id,
+            "upload_id" => upload_id,
+            "network_name" => network_name,
+            "network_path" => network_path,
+            "uploaded_files" => uploaded_files,
+            "edges_files" => edges_files,
+            "created_at" => string(Dates.now()),
+            "updated_at" => string(Dates.now()),
+            "network_data" => nothing,
+            "analysis_results" => nothing,
+            "analysis_history" => Any[],
+            "parsed_data" => nothing,
+            "file_manager_state" => nothing
+        )
+        write_session_metadata(upload_id, session_metadata)
+
         response_data = Dict(
             "success" => true,
             "message" => "Files uploaded successfully",
             "network_path" => network_path,
+            "network_name" => network_name,
             "upload_id" => upload_id,
             "files_count" => length(uploaded_files),
             "uploaded_files" => uploaded_files,
@@ -2122,7 +2336,7 @@ end
 function handle_cors(req::HTTP.Request)
     headers = [
         "Access-Control-Allow-Origin" => "*",
-        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods" => "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers" => "Content-Type, Authorization"
     ]
     
@@ -2145,6 +2359,10 @@ function start_server()
     
     # API routes
     HTTP.register!(router, "POST", "/upload", handle_upload)
+    HTTP.register!(router, "GET", "/sessions", handle_sessions_list)
+    HTTP.register!(router, "GET", "/sessions/*", handle_session_item)
+    HTTP.register!(router, "PUT", "/sessions/*", handle_session_item)
+    HTTP.register!(router, "DELETE", "/sessions/*", handle_session_item)
     # File serving endpoint for frontend data parsing
     HTTP.register!(router, "GET", "/files/*", handle_file_request)
     # Documentation serving endpoints
@@ -2161,7 +2379,7 @@ function start_server()
     # Health check
     HTTP.register!(router, "GET", "/health", req -> HTTP.Response(200, [
         "Access-Control-Allow-Origin" => "*",
-        "Access-Control-Allow-Methods" => "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods" => "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers" => "Content-Type, Authorization",
         "Content-Type" => "application/json"
     ], JSON.json(Dict("status" => "healthy"))))

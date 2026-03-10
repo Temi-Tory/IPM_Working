@@ -394,6 +394,40 @@ body {
   background: var(--surface-color) !important;
 }
 
+.cdk-overlay-pane.diamond-details-dialog {
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+
+  .mat-mdc-dialog-container {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    padding: 0 !important;
+  }
+
+  .mdc-dialog__container {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .mdc-dialog__surface {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  app-diamond-details,
+  .mat-mdc-dialog-component-host {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
 // Table improvements
 .mat-mdc-table {
   background: var(--surface-color) !important;

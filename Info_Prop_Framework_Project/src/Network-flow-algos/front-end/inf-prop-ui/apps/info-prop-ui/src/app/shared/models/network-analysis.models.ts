@@ -118,18 +118,6 @@ export interface EnhancedNetworkStructure extends NetworkStructure {
   };
 }
 
-export interface RootDiamondStructure {
-  join_node: number;
-  diamond: {
-    conditioning_nodes: number[];
-    relevant_nodes: number[];
-    edgelist: [number, number][];
-    edge_count: number;
-    node_count: number;
-  };
-  non_diamond_parents: number[];
-}
-
 export interface UniqueDiamondStructure {
   diamond_hash: string;
   is_root_diamond: boolean;
@@ -180,8 +168,7 @@ export interface DiamondAnalysisResult {
   total_computation_time: number;
   diamond_efficiency: number;
   note?: string;
-  // **NEW: Raw diamond structures (two different types)**
-  raw_root_diamonds?: Record<string, RootDiamondStructure>;
+  // **NEW: Raw diamond structures (unique list includes roots via is_root_diamond)**
   raw_unique_diamonds?: Record<string, UniqueDiamondStructure>;
 }
 
@@ -329,7 +316,7 @@ export interface DiamondDetailsData {
   conditioningNodes: number[];
   joinNode?: number; // For root diamonds
   diamondHash?: string; // For unique diamonds
-  diamond: RootDiamondStructure | UniqueDiamondStructure;
+  diamond: UniqueDiamondStructure;
   networkSubset: {
     nodes: number[];
     edges: [number, number][];
@@ -672,6 +659,8 @@ export interface UploadResponse {
   success: boolean;
   message: string;
   network_path: string;
+  network_name: string;
+  upload_id: string;
   uploaded_files: string[];
   edges_files: string[];
 }

@@ -1159,4 +1159,10 @@ export class FileManagerService {
     
     return [];
   }
+
+  restoreFileManagerState(state: FileManagerState): void {
+    if (state) {
+      this.fileManagerStateSignal.set(state);
+    }
+  }
 }

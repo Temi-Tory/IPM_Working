@@ -30,51 +30,6 @@ end
 if !isdefined(@__MODULE__, :perform_comparative_analysis)
     include("../Analysis/Comparative.jl")
 end
-if !isdefined(@__MODULE__, :enumerate_critical_paths)
-    include("../Algorithms/Paths.jl")
-end
-if !isdefined(@__MODULE__, :analyze_bottlenecks)
-    include("../Analysis/Bottlenecks.jl")
-end
-if !isdefined(@__MODULE__, :compute_sensitivity_analysis)
-    include("../Analysis/Sensitivity.jl")
-end
-if !isdefined(@__MODULE__, :generate_upgrade_recommendations)
-    include("../Analysis/Recommendations.jl")
-end
-if !isdefined(@__MODULE__, :perform_comparative_analysis)
-    include("../Analysis/Comparative.jl")
-end
-if !isdefined(@__MODULE__, :enumerate_critical_paths)
-    include("../Algorithms/Paths.jl")
-end
-if !isdefined(@__MODULE__, :analyze_bottlenecks)
-    include("../Analysis/Bottlenecks.jl")
-end
-if !isdefined(@__MODULE__, :compute_sensitivity_analysis)
-    include("../Analysis/Sensitivity.jl")
-end
-if !isdefined(@__MODULE__, :generate_upgrade_recommendations)
-    include("../Analysis/Recommendations.jl")
-end
-if !isdefined(@__MODULE__, :perform_comparative_analysis)
-    include("../Analysis/Comparative.jl")
-end
-if !isdefined(@__MODULE__, :enumerate_critical_paths)
-    include("../Algorithms/Paths.jl")
-end
-if !isdefined(@__MODULE__, :analyze_bottlenecks)
-    include("../Analysis/Bottlenecks.jl")
-end
-if !isdefined(@__MODULE__, :compute_sensitivity_analysis)
-    include("../Analysis/Sensitivity.jl")
-end
-if !isdefined(@__MODULE__, :generate_upgrade_recommendations)
-    include("../Analysis/Recommendations.jl")
-end
-if !isdefined(@__MODULE__, :perform_comparative_analysis)
-    include("../Analysis/Comparative.jl")
-end
 
 """
 Perform complete deterministic capacity analysis

@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, OnInit, Inject } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, Inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { MatCardModule } from '@angular/material/card';
@@ -23,7 +23,6 @@ import { AnalysisStateService } from '../../../shared/services/analysis-state.se
 import { DiamondAnalysisService } from '../../../shared/services/diamond-analysis.service';
 import {
   DiamondAnalysisResponse,
-  RootDiamondStructure,
   UniqueDiamondStructure,
   SubDiamondStructure,
   DiamondDetailsData,
@@ -98,7 +97,28 @@ export class DiamondDetailsComponent implements OnInit {
 
   // Component state
   diamondId = signal<string>('');
-  currentView = signal<'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis'>('overview');
+  currentView = signal<'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis' | 'visualization'>('overview');
+
+  // Visualization state
+  visualizationHighlight = signal<'all' | 'conditioning' | 'forks' | 'sources' | 'joins' | 'diamondjoin' | 'subdiamond' | 'bottlenecks'>('diamondjoin');
+  visualizationGraphScope = signal<'diamond' | 'main'>('diamond');
+  visualizationSelectedSubDiamondId = signal<string>('');
+  visualizationZoom = signal(1.0);
+  visualizationSelectedNode = signal<number | null>(null);
+  visualizationHoveredNode = signal<number | null>(null);
+  visualizationPanX = signal(0);
+  visualizationPanY = signal(0);
+  visualizationNodePositionOverrides = signal<Record<number, { x: number; y: number }>>({});
+  private draggingNodeId: number | null = null;
+  private draggingSvg: SVGSVGElement | null = null;
+  private dragOffsetX = 0;
+  private dragOffsetY = 0;
+  private isPanning = false;
+  private panningSvg: SVGSVGElement | null = null;
+  private panStartMouseX = 0;
+  private panStartMouseY = 0;
+  private panStartX = 0;
+  private panStartY = 0;
 
   // Subgraph analysis state
   subgraphAnalysisResult = signal<DiamondSubgraphAnalysisResponse | null>(null);
@@ -288,25 +308,21 @@ export class DiamondDetailsComponent implements OnInit {
     if (!data) return null;
 
     const { diamond, networkSubset, subDiamonds, conditioningNodes, joinNode, displayId, structuralInfo } = data;
-    
-    // Handle different diamond types
-    const isRootDiamond = 'join_node' in diamond;
-    const diamondData = isRootDiamond ? (diamond as RootDiamondStructure).diamond : null;
-    const uniqueDiamond = !isRootDiamond ? (diamond as UniqueDiamondStructure) : null;
+    const uniqueDiamond = diamond as UniqueDiamondStructure;
     
     return {
       diamondId: data.diamondId,
       displayId: displayId, // **FIXED: Use meaningful display ID**
       conditioningNodes: conditioningNodes,
       joinNode: joinNode,
-      rootNodes: isRootDiamond ? [joinNode!] : (uniqueDiamond?.sub_sources || []),
-      leafNodes: isRootDiamond ? [joinNode!] : (uniqueDiamond?.sub_join_nodes || []),
+      rootNodes: uniqueDiamond.sub_sources || [],
+      leafNodes: uniqueDiamond.sub_join_nodes || [],
       totalNodes: networkSubset.nodes.length,
       totalEdges: networkSubset.edges.length,
       conditioningNodesCount: conditioningNodes.length,
       bridgeEdges: networkSubset.bridgeEdges.length,
       diamondJoinEdges: networkSubset.diamondJoinEdges.length,
-      pathCount: diamondData?.node_count || uniqueDiamond?.node_count || 0,
+      pathCount: uniqueDiamond.node_count || uniqueDiamond.diamond?.node_count || 0,
       subDiamondsCount: subDiamonds.length,
       riskScore: structuralInfo.riskLevel === 'critical' ? 0.9 : 
                  structuralInfo.riskLevel === 'high' ? 0.7 :
@@ -325,9 +341,7 @@ export class DiamondDetailsComponent implements OnInit {
     const { diamond, networkSubset, subDiamonds, conditioningNodes, joinNode, displayId } = data;
     const insights: Array<{type: 'info' | 'warning' | 'success' | 'critical', message: string, detail: string}> = [];
 
-    const isRootDiamond = 'join_node' in diamond;
-    const diamondData = isRootDiamond ? (diamond as RootDiamondStructure).diamond : null;
-    const uniqueDiamond = !isRootDiamond ? (diamond as UniqueDiamondStructure) : null;
+    const uniqueDiamond = diamond as UniqueDiamondStructure;
 
     // **ENHANCED: Diamond identification insight with meaningful info**
     insights.push({
@@ -337,19 +351,11 @@ export class DiamondDetailsComponent implements OnInit {
     });
 
     // Structure type insight
-    if (isRootDiamond) {
-      insights.push({
-        type: 'info',
-        message: 'Root Diamond Structure',
-        detail: `${diamondData?.node_count || 0} relevant nodes, ${diamondData?.edgelist?.length || 0} edges`
-      });
-    } else {
-      insights.push({
-        type: 'info',
-        message: 'Unique Diamond Structure',
-        detail: `Pre-computed subgraph with ${uniqueDiamond?.node_count || 0} nodes`
-      });
-    }
+    insights.push({
+      type: 'info',
+      message: uniqueDiamond.is_root_diamond ? 'Unique Root Diamond Structure' : 'Unique Sub-Diamond Structure',
+      detail: `Pre-computed subgraph with ${uniqueDiamond.node_count || uniqueDiamond.diamond?.node_count || 0} nodes`
+    });
 
     // **ENHANCED: Conditioning nodes analysis with risk assessment**
     if (conditioningNodes.length === 0) {
@@ -373,9 +379,9 @@ export class DiamondDetailsComponent implements OnInit {
     }
 
     // **NEW: Network complexity analysis**
-    if (isRootDiamond && diamondData) {
-      const relevantNodes = diamondData.relevant_nodes?.length || 0;
-      const edgeCount = diamondData.edgelist?.length || 0;
+    if (uniqueDiamond.diamond) {
+      const relevantNodes = uniqueDiamond.diamond.relevant_nodes?.length || 0;
+      const edgeCount = uniqueDiamond.diamond.edgelist?.length || 0;
       
       if (relevantNodes > 0 && edgeCount > 0) {
         const density = edgeCount / (relevantNodes * (relevantNodes - 1));
@@ -452,7 +458,6 @@ export class DiamondDetailsComponent implements OnInit {
 
     const allEdges = [
       ...data.networkSubset.edges.map(([s, t]) => ({ source: s, target: t, type: 'diamond-internal' as const })),
-      ...data.networkSubset.bridgeEdges.map(([s, t]) => ({ source: s, target: t, type: 'bridge' as const })),
       ...data.networkSubset.diamondJoinEdges.map(([s, t]) => ({ source: s, target: t, type: 'diamond-join' as const }))
     ];
 
@@ -531,38 +536,20 @@ export class DiamondDetailsComponent implements OnInit {
   });
 
   // **ENHANCED: Helper methods with improved logic**
-  private createNetworkSubset(diamond: RootDiamondStructure | UniqueDiamondStructure, isRoot: boolean) {
-    // Extract network subset based on diamond type
-    if (isRoot) {
-      const rootDiamond = diamond as RootDiamondStructure;
-      const nodes = rootDiamond.diamond.relevant_nodes;
-      const edges = rootDiamond.diamond.edgelist;
-      const conditioningNodes = rootDiamond.diamond.conditioning_nodes;
-      
-      return {
-        nodes,
-        edges,
-        conditioningNodes,
-        bridgeEdges: [] as [number, number][], // Would need full network to calculate
-        diamondJoinEdges: [] as [number, number][] // Would need full network to calculate
-      };
-    } else {
-      const uniqueDiamond = diamond as UniqueDiamondStructure;
-      // Extract nodes from sub_iteration_sets and diamond structure
-      const nodes = uniqueDiamond.diamond.relevant_nodes || uniqueDiamond.sub_iteration_sets.flat();
-      const edges = uniqueDiamond.diamond.edgelist || [];
-      
-      return {
-        nodes,
-        edges,
-        conditioningNodes: uniqueDiamond.diamond.conditioning_nodes || [],
-        bridgeEdges: [] as [number, number][],
-        diamondJoinEdges: [] as [number, number][]
-      };
-    }
+  private createNetworkSubset(diamond: UniqueDiamondStructure, _isRoot: boolean) {
+    const nodes = diamond.diamond?.relevant_nodes || diamond.sub_iteration_sets.flat();
+    const edges = diamond.diamond?.edgelist || [];
+
+    return {
+      nodes,
+      edges,
+      conditioningNodes: diamond.diamond?.conditioning_nodes || [],
+      bridgeEdges: [] as [number, number][],
+      diamondJoinEdges: [] as [number, number][]
+    };
   }
 
-  private extractSubDiamonds(diamond: RootDiamondStructure | UniqueDiamondStructure, isRoot: boolean): DiamondPattern[] {
+  private extractSubDiamonds(diamond: UniqueDiamondStructure, _isRoot: boolean): DiamondPattern[] {
     const subDiamonds: DiamondPattern[] = [];
     
     // **FIXED: Type guard for UniqueDiamondStructure with sub_diamond_structures**
@@ -597,12 +584,10 @@ export class DiamondDetailsComponent implements OnInit {
     return subDiamonds;
   }
 
-  private calculateStructuralInfo(diamond: RootDiamondStructure | UniqueDiamondStructure, isRoot: boolean, networkSubset: any) {
+  private calculateStructuralInfo(diamond: UniqueDiamondStructure, _isRoot: boolean, networkSubset: any) {
     const nodeCount = networkSubset.nodes.length;
     const edgeCount = networkSubset.edges.length;
-    const conditioningNodes = isRoot ? 
-      (diamond as RootDiamondStructure).diamond.conditioning_nodes :
-      (diamond as UniqueDiamondStructure).diamond.conditioning_nodes || [];
+    const conditioningNodes = diamond.diamond?.conditioning_nodes || [];
 
     // Calculate complexity based on structure
     const complexity = nodeCount + edgeCount + (conditioningNodes.length * 2);
@@ -645,38 +630,22 @@ export class DiamondDetailsComponent implements OnInit {
   // **Enhanced node analysis methods**
   private getNodeType(nodeId: number, data: DiamondDetailsData): string {
     const types: string[] = [];
-    const isRoot = 'join_node' in data.diamond;
-    
-    if (isRoot) {
-      const rootDiamond = data.diamond as RootDiamondStructure;
-      if (nodeId === rootDiamond.join_node) types.push('Join');
-      if (rootDiamond.diamond.conditioning_nodes.includes(nodeId)) types.push('Conditioning');
-    } else {
-      const uniqueDiamond = data.diamond as UniqueDiamondStructure;
-      if (uniqueDiamond.sub_sources.includes(nodeId)) types.push('Source');
-      if (uniqueDiamond.sub_join_nodes.includes(nodeId)) types.push('Join');
-      if (uniqueDiamond.sub_fork_nodes.includes(nodeId)) types.push('Fork');
-    }
+    const uniqueDiamond = data.diamond as UniqueDiamondStructure;
+
+    if (uniqueDiamond.sub_sources.includes(nodeId)) types.push('Source');
+    if (uniqueDiamond.sub_join_nodes.includes(nodeId) || uniqueDiamond.join_node === nodeId) types.push('Join');
+    if (uniqueDiamond.sub_fork_nodes.includes(nodeId)) types.push('Fork');
+    if (uniqueDiamond.diamond?.conditioning_nodes?.includes(nodeId)) types.push('Conditioning');
     
     return types.length > 0 ? types.join(' + ') : 'Internal';
   }
 
   private getNodeRole(nodeId: number, data: DiamondDetailsData): 'root' | 'leaf' | 'conditioning' | 'bridge' | 'internal' {
-    const isRoot = 'join_node' in data.diamond;
-    
-    if (isRoot) {
-      const rootDiamond = data.diamond as RootDiamondStructure;
-      if (nodeId === rootDiamond.join_node) return 'root';
-      if (rootDiamond.diamond.conditioning_nodes.includes(nodeId)) return 'conditioning';
-    } else {
-      const uniqueDiamond = data.diamond as UniqueDiamondStructure;
-      if (uniqueDiamond.sub_sources.includes(nodeId)) return 'root';
-      if (uniqueDiamond.sub_join_nodes.includes(nodeId)) return 'leaf';
-    }
-    
-    // Check if it's a bridge node (connected to bridge edges)
-    const isBridge = data.networkSubset.bridgeEdges.some(([s, t]) => s === nodeId || t === nodeId);
-    if (isBridge) return 'bridge';
+    const uniqueDiamond = data.diamond as UniqueDiamondStructure;
+
+    if (uniqueDiamond.sub_sources.includes(nodeId)) return 'root';
+    if (uniqueDiamond.sub_join_nodes.includes(nodeId) || uniqueDiamond.join_node === nodeId) return 'leaf';
+    if (uniqueDiamond.diamond?.conditioning_nodes?.includes(nodeId)) return 'conditioning';
     
     return 'internal';
   }
@@ -721,9 +690,6 @@ export class DiamondDetailsComponent implements OnInit {
 
   // **Enhanced edge analysis methods**
   private getEdgeRole(source: number, target: number, data: DiamondDetailsData): string {
-    if (data.networkSubset.bridgeEdges.some(([s, t]) => s === source && t === target)) {
-      return 'Bridge Connection';
-    }
     if (data.networkSubset.diamondJoinEdges.some(([s, t]) => s === source && t === target)) {
       return 'Diamond Join';
     }
@@ -771,7 +737,7 @@ export class DiamondDetailsComponent implements OnInit {
 
   // **Event handlers remain the same but with enhanced functionality**
   switchView(event: MatButtonToggleChange): void {
-    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis');
+    this.currentView.set(event.value as 'overview' | 'nodes' | 'edges' | 'subdiamonds' | 'subgraphAnalysis' | 'visualization');
   }
 
   // ─── Subgraph Analysis Methods ──────────────────────────────────────────────
@@ -988,6 +954,595 @@ export class DiamondDetailsComponent implements OnInit {
     if (belief >= 0.8) return 'var(--success-color)';
     if (belief >= 0.5) return 'var(--warning-color)';
     return 'var(--error-color)';
+  }
+
+  // ─── Visualization methods ──────────────────────────────────────────────────
+
+  diamondGraphData = computed(() => {
+    const data = this.diamondDetailsData();
+    if (!data) return null;
+
+    const { networkSubset, conditioningNodes, diamond } = data;
+    const scope = this.visualizationGraphScope();
+    const fullNetwork = this.analysisState.networkData();
+
+    const allNodes = scope === 'main' && fullNetwork?.nodes?.length
+      ? fullNetwork.nodes
+      : networkSubset.nodes;
+
+    const allEdges: [number, number][] = scope === 'main' && fullNetwork?.edges?.length
+      ? fullNetwork.edges
+      : [
+          ...networkSubset.edges,
+          ...networkSubset.diamondJoinEdges
+        ];
+
+    const diamondNodeSet = new Set(networkSubset.nodes);
+    const diamondEdgeSet = new Set(networkSubset.edges.map(([s, t]) => `${s}-${t}`));
+
+    // Extract actual diamond structure properties from unified unique-diamond payload
+    const uniqueDiamond = diamond as UniqueDiamondStructure;
+    
+    // Get actual sets from the diamond structure
+    const actualForkNodes = new Set(uniqueDiamond.sub_fork_nodes || []);
+    const actualSourceNodes = new Set(uniqueDiamond.sub_sources || []);
+    const actualJoinNodes = new Set([...(uniqueDiamond.sub_join_nodes || []), ...(uniqueDiamond.join_node !== undefined ? [uniqueDiamond.join_node] : [])]);
+
+    // Build simple layered layout
+    const nodePositions = this.computeGraphLayout(allNodes, allEdges, data);
+    const positionOverrides = this.visualizationNodePositionOverrides();
+
+    return {
+      nodes: allNodes.map(nodeId => ({
+        id: nodeId,
+        x: positionOverrides[nodeId]?.x ?? nodePositions.get(nodeId)?.x ?? 0,
+        y: positionOverrides[nodeId]?.y ?? nodePositions.get(nodeId)?.y ?? 0,
+        isConditioning: conditioningNodes.includes(nodeId),
+        isFork: actualForkNodes.has(nodeId),
+        isSource: actualSourceNodes.has(nodeId),
+        isJoin: actualJoinNodes.has(nodeId),
+        isInDiamond: diamondNodeSet.has(nodeId)
+      })),
+      edges: allEdges.map(([source, target]) => ({
+        source,
+        target,
+        isDiamondJoin: networkSubset.diamondJoinEdges.some(([s, t]) => s === source && t === target),
+        isInDiamond: diamondEdgeSet.has(`${source}-${target}`)
+      }))
+    };
+  });
+
+  selectedVisualizationSubDiamond = computed(() => {
+    const data = this.diamondDetailsData();
+    if (!data) return null;
+    const selectedId = this.visualizationSelectedSubDiamondId();
+    if (!selectedId) return null;
+    return data.subDiamonds.find(sub => sub.id === selectedId) || null;
+  });
+
+  private computeGraphLayout(nodes: number[], edges: [number, number][], data: DiamondDetailsData): Map<number, {x: number, y: number}> {
+    const positions = new Map<number, {x: number, y: number}>();
+    const width = 800;
+    const height = 600;
+    const padding = 50;
+
+    // Simple topological sort for layering
+    const inDegree = new Map<number, number>();
+    const adjList = new Map<number, number[]>();
+    
+    nodes.forEach(n => {
+      inDegree.set(n, 0);
+      adjList.set(n, []);
+    });
+    
+    edges.forEach(([s, t]) => {
+      adjList.get(s)?.push(t);
+      inDegree.set(t, (inDegree.get(t) || 0) + 1);
+    });
+
+    const layers: number[][] = [];
+    const queue: number[] = nodes.filter(n => (inDegree.get(n) || 0) === 0);
+    const processed = new Set<number>();
+
+    while (queue.length > 0) {
+      const currentLayer = [...queue];
+      layers.push(currentLayer);
+      queue.length = 0;
+
+      currentLayer.forEach(node => {
+        processed.add(node);
+        adjList.get(node)?.forEach(neighbor => {
+          const degree = inDegree.get(neighbor)! - 1;
+          inDegree.set(neighbor, degree);
+          if (degree === 0 && !processed.has(neighbor)) {
+            queue.push(neighbor);
+          }
+        });
+      });
+    }
+
+    // Handle any remaining nodes (cycles)
+    nodes.forEach(n => {
+      if (!processed.has(n)) {
+        if (layers.length === 0) layers.push([]);
+        layers[layers.length - 1].push(n);
+      }
+    });
+
+    // Position nodes
+    const usableWidth = width - 2 * padding;
+    const usableHeight = height - 2 * padding;
+    const layerSpacing = layers.length > 1 ? usableWidth / (layers.length - 1) : 0;
+
+    layers.forEach((layer, layerIdx) => {
+      const nodeSpacing = layer.length > 1 ? usableHeight / (layer.length - 1) : usableHeight / 2;
+      layer.forEach((node, nodeIdx) => {
+        const x = padding + layerIdx * layerSpacing;
+        const y = padding + (layer.length > 1 ? nodeIdx * nodeSpacing : usableHeight / 2);
+        positions.set(node, { x, y });
+      });
+    });
+
+    return positions;
+  }
+
+  highlightedNodes = computed(() => {
+    const mode = this.visualizationHighlight();
+    const graphData = this.diamondGraphData();
+    const data = this.diamondDetailsData();
+    if (!graphData || !data) return new Set<number>();
+
+    switch (mode) {
+      case 'conditioning':
+        // Use actual conditioning nodes from diamond structure
+        return new Set(data.conditioningNodes);
+      case 'forks':
+        // Use actual fork nodes from diamond structure
+        return new Set(graphData.nodes.filter(n => n.isFork).map(n => n.id));
+      case 'sources':
+        // Use actual source nodes from diamond structure
+        return new Set(graphData.nodes.filter(n => n.isSource).map(n => n.id));
+      case 'diamondjoin': {
+        const diamondJoinNodes = new Set<number>();
+        data.networkSubset.diamondJoinEdges.forEach(([s, t]) => {
+          diamondJoinNodes.add(s);
+          diamondJoinNodes.add(t);
+        });
+        if (data.joinNode !== undefined) {
+          diamondJoinNodes.add(data.joinNode);
+        }
+        return diamondJoinNodes;
+      }
+      case 'subdiamond': {
+        const selectedSubDiamond = this.selectedVisualizationSubDiamond();
+        if (!selectedSubDiamond) return new Set<number>();
+        return new Set(selectedSubDiamond.relevantNodes || []);
+      }
+      case 'bottlenecks':
+        // Use actual bottleneck flags from node analysis
+        const nodeDetailsMap = this.nodeDetails();
+        return new Set(nodeDetailsMap.filter(n => n.isBottleneck).map(n => n.nodeId));
+      case 'joins':
+        // Use actual join nodes from diamond structure
+        return new Set(graphData.nodes.filter(n => n.isJoin).map(n => n.id));
+      case 'all':
+      default:
+        if (this.visualizationGraphScope() === 'main') {
+          return new Set(graphData.nodes.filter(n => n.isInDiamond).map(n => n.id));
+        }
+        return new Set(graphData.nodes.map(n => n.id));
+    }
+  });
+
+  highlightedEdges = computed(() => {
+    const mode = this.visualizationHighlight();
+    const graphData = this.diamondGraphData();
+    if (!graphData) return new Set<string>();
+
+    // Only edge-specific filters should affect edge highlighting
+    // Node-only filters (joins, forks, sources, conditioning, bottlenecks) should NOT highlight edges
+    switch (mode) {
+      case 'diamondjoin':
+        return new Set(graphData.edges.filter(e => e.isDiamondJoin).map(e => `${e.source}-${e.target}`));
+
+      case 'subdiamond':
+        const selectedSubDiamond = this.selectedVisualizationSubDiamond();
+        const edgeList = selectedSubDiamond?.edgeList || [];
+        return new Set(edgeList.map(([s, t]) => `${s}-${t}`));
+
+      case 'all':
+        if (this.visualizationGraphScope() === 'main') {
+          return new Set(graphData.edges.filter(e => e.isInDiamond).map(e => `${e.source}-${e.target}`));
+        }
+        return new Set(graphData.edges.map(e => `${e.source}-${e.target}`));
+
+      // Node-only filters: joins, forks, sources, conditioning, bottlenecks
+      // These should NOT highlight edges - return empty set
+      case 'joins':
+      case 'forks':
+      case 'sources':
+      case 'conditioning':
+      case 'bottlenecks':
+      default:
+        return new Set<string>();
+    }
+  });
+
+  hoverNeighborEdges = computed(() => {
+    const hoveredNode = this.visualizationHoveredNode();
+    const graphData = this.diamondGraphData();
+    const neighborEdges = new Set<string>();
+
+    if (hoveredNode === null || !graphData) return neighborEdges;
+
+    for (const edge of graphData.edges) {
+      if (edge.source === hoveredNode || edge.target === hoveredNode) {
+        neighborEdges.add(`${edge.source}-${edge.target}`);
+      }
+    }
+
+    return neighborEdges;
+  });
+
+  hoverNeighborNodes = computed(() => {
+    const hoveredNode = this.visualizationHoveredNode();
+    const graphData = this.diamondGraphData();
+    const neighborNodes = new Set<number>();
+
+    if (hoveredNode === null || !graphData) return neighborNodes;
+
+    neighborNodes.add(hoveredNode);
+    for (const edge of graphData.edges) {
+      if (edge.source === hoveredNode) {
+        neighborNodes.add(edge.target);
+      }
+      if (edge.target === hoveredNode) {
+        neighborNodes.add(edge.source);
+      }
+    }
+
+    return neighborNodes;
+  });
+
+  graphTransform = computed(() => {
+    const zoom = this.visualizationZoom();
+    const panX = this.visualizationPanX();
+    const panY = this.visualizationPanY();
+    return `translate(${panX}, ${panY}) scale(${zoom})`;
+  });
+
+  private isFilterHighlightActive(): boolean {
+    return this.visualizationHighlight() !== 'all';
+  }
+
+  private getVisualizationGraphEdge(source: number, target: number) {
+    return this.diamondGraphData()?.edges.find(edge => edge.source === source && edge.target === target);
+  }
+
+  getNodeFill(nodeId: number): string {
+    const highlighted = this.highlightedNodes();
+    const isHighlighted = highlighted.has(nodeId);
+
+    if (!this.isFilterHighlightActive()) {
+      return 'var(--viz-node-base-fill)';
+    }
+
+    if (!isHighlighted) return 'var(--viz-node-base-fill)';
+    return 'var(--viz-filter-node)';
+  }
+
+  getNodeOpacity(nodeId: number): number {
+    const hoveredNode = this.visualizationHoveredNode();
+    if (hoveredNode === null) return 1;
+
+    return this.hoverNeighborNodes().has(nodeId) ? 1 : 0.22;
+  }
+
+  getNodeStroke(nodeId: number): string {
+    const isHighlighted = this.highlightedNodes().has(nodeId) && this.isFilterHighlightActive();
+    return isHighlighted ? 'var(--viz-filter-node-stroke)' : 'var(--viz-node-base-stroke)';
+  }
+
+  getNodeStrokeWidth(nodeId: number): number {
+    let width = this.highlightedNodes().has(nodeId) && this.isFilterHighlightActive() ? 1.9 : 1.1;
+    const hoveredNode = this.visualizationHoveredNode();
+
+    if (hoveredNode === nodeId) {
+      width = Math.max(width, 2.4);
+    } else if (hoveredNode !== null && this.hoverNeighborNodes().has(nodeId)) {
+      width = Math.max(width, 1.5);
+    }
+
+    return width;
+  }
+
+  getEdgeStroke(source: number, target: number): string {
+    const highlighted = this.highlightedEdges();
+    const edgeId = `${source}-${target}`;
+    const edge = this.getVisualizationGraphEdge(source, target);
+
+    if (this.isFilterHighlightActive() && highlighted.has(edgeId)) {
+      return 'var(--viz-filter-edge)';
+    }
+
+    if (edge?.isInDiamond || edge?.isDiamondJoin) {
+      return 'var(--viz-diamond-edge)';
+    }
+
+    return 'var(--viz-edge-base)';
+  }
+
+  getEdgeOpacity(source: number, target: number): number {
+    const hoveredNode = this.visualizationHoveredNode();
+    if (hoveredNode === null) return 1;
+
+    const edgeId = `${source}-${target}`;
+    return this.hoverNeighborEdges().has(edgeId) ? 1 : 0.18;
+  }
+
+  getEdgeStrokeWidth(source: number, target: number): number {
+    const highlighted = this.highlightedEdges();
+    const edgeId = `${source}-${target}`;
+    const edge = this.getVisualizationGraphEdge(source, target);
+    const hoveredNode = this.visualizationHoveredNode();
+
+    let width = 1.1;
+    if (edge?.isInDiamond || edge?.isDiamondJoin) {
+      width = 1.8;
+    }
+    if (this.isFilterHighlightActive() && highlighted.has(edgeId)) {
+      width = 2.7;
+    }
+    if (hoveredNode !== null && this.hoverNeighborEdges().has(edgeId)) {
+      width = Math.max(width, 2.2);
+    }
+
+    return width;
+  }
+
+  getEdgePath(source: number, target: number): string {
+    const sourceNode = this.getVisualizationGraphNode(source);
+    const targetNode = this.getVisualizationGraphNode(target);
+    if (!sourceNode || !targetNode) return '';
+
+    const sx = sourceNode.x;
+    const sy = sourceNode.y;
+    const tx = targetNode.x;
+    const ty = targetNode.y;
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nodeRadius = 10;
+    const arrowLength = 9;
+
+    const startX = sx + (dx / dist) * nodeRadius;
+    const startY = sy + (dy / dist) * nodeRadius;
+    const endX = tx - (dx / dist) * (nodeRadius + arrowLength);
+    const endY = ty - (dy / dist) * (nodeRadius + arrowLength);
+    const midX = (startX + endX) / 2;
+
+    return `M${startX},${startY} C${midX},${startY} ${midX},${endY} ${endX},${endY}`;
+  }
+
+  getEdgeArrowPoints(source: number, target: number): string {
+    const sourceNode = this.getVisualizationGraphNode(source);
+    const targetNode = this.getVisualizationGraphNode(target);
+    if (!sourceNode || !targetNode) return '';
+
+    const sx = sourceNode.x;
+    const sy = sourceNode.y;
+    const tx = targetNode.x;
+    const ty = targetNode.y;
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nodeRadius = 10;
+    const arrowLength = 9;
+    const arrowWidth = 5;
+
+    const tipX = tx - (dx / dist) * nodeRadius;
+    const tipY = ty - (dy / dist) * nodeRadius;
+    const baseX = tipX - (dx / dist) * arrowLength;
+    const baseY = tipY - (dy / dist) * arrowLength;
+    const perpX = -dy / dist;
+    const perpY = dx / dist;
+
+    const leftX = baseX + perpX * arrowWidth;
+    const leftY = baseY + perpY * arrowWidth;
+    const rightX = baseX - perpX * arrowWidth;
+    const rightY = baseY - perpY * arrowWidth;
+
+    return `${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}`;
+  }
+
+  getVisualizationGraphNode(nodeId: number) {
+    return this.diamondGraphData()?.nodes.find(node => node.id === nodeId);
+  }
+
+  getVisualizationNodeDetail(nodeId: number) {
+    return this.nodeDetails().find(node => node.nodeId === nodeId);
+  }
+
+  startNodeDrag(event: MouseEvent, nodeId: number): void {
+    if (event.button !== 0) return;
+
+    const currentNode = this.getVisualizationGraphNode(nodeId);
+    if (!currentNode) return;
+
+    const svg = this.resolveSvgFromEvent(event);
+    if (!svg) return;
+
+    const pointer = this.toGraphCoordinates(event, svg);
+    this.draggingNodeId = nodeId;
+    this.draggingSvg = svg;
+    this.dragOffsetX = currentNode.x - pointer.x;
+    this.dragOffsetY = currentNode.y - pointer.y;
+
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  startGraphPan(event: MouseEvent): void {
+    if (event.button !== 0 || this.draggingNodeId !== null) return;
+
+    const target = event.target as Element | null;
+    if (target?.closest('.graph-node')) return;
+
+    const svg = this.resolveSvgFromEvent(event);
+    if (!svg) return;
+
+    this.isPanning = true;
+    this.panningSvg = svg;
+    this.panStartMouseX = event.clientX;
+    this.panStartMouseY = event.clientY;
+    this.panStartX = this.visualizationPanX();
+    this.panStartY = this.visualizationPanY();
+    event.preventDefault();
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onGlobalMouseMove(event: MouseEvent): void {
+    if (this.draggingNodeId !== null && this.draggingSvg) {
+      const pointer = this.toGraphCoordinates(event, this.draggingSvg);
+      const nextX = this.clamp(pointer.x + this.dragOffsetX, 20, 780);
+      const nextY = this.clamp(pointer.y + this.dragOffsetY, 20, 580);
+      const nodeId = this.draggingNodeId;
+
+      this.visualizationNodePositionOverrides.update(prev => ({
+        ...prev,
+        [nodeId]: { x: nextX, y: nextY }
+      }));
+      return;
+    }
+
+    if (!this.isPanning || !this.panningSvg) return;
+
+    const rect = this.panningSvg.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? 800 / rect.width : 1;
+    const scaleY = rect.height > 0 ? 600 / rect.height : 1;
+    const deltaX = (event.clientX - this.panStartMouseX) * scaleX;
+    const deltaY = (event.clientY - this.panStartMouseY) * scaleY;
+
+    this.visualizationPanX.set(this.panStartX + deltaX);
+    this.visualizationPanY.set(this.panStartY + deltaY);
+  }
+
+  @HostListener('window:mouseup')
+  onGlobalMouseUp(): void {
+    this.draggingNodeId = null;
+    this.draggingSvg = null;
+    this.isPanning = false;
+    this.panningSvg = null;
+  }
+
+  isGraphPanning(): boolean {
+    return this.isPanning;
+  }
+
+  isNodeDragging(nodeId: number): boolean {
+    return this.draggingNodeId === nodeId;
+  }
+
+  private resolveSvgFromEvent(event: MouseEvent): SVGSVGElement | null {
+    const target = event.currentTarget as Element | null;
+    const svg = target?.closest('svg');
+    return svg instanceof SVGSVGElement ? svg : null;
+  }
+
+  private toGraphCoordinates(event: MouseEvent, svg: SVGSVGElement): { x: number; y: number } {
+    const rect = svg.getBoundingClientRect();
+    const viewWidth = 800;
+    const viewHeight = 600;
+    const svgX = ((event.clientX - rect.left) / rect.width) * viewWidth;
+    const svgY = ((event.clientY - rect.top) / rect.height) * viewHeight;
+    const zoom = this.visualizationZoom();
+    const panX = this.visualizationPanX();
+    const panY = this.visualizationPanY();
+
+    return {
+      x: (svgX - panX) / zoom,
+      y: (svgY - panY) / zoom
+    };
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  clearVisualizationSelection(): void {
+    this.visualizationSelectedNode.set(null);
+  }
+
+  setHoveredNode(nodeId: number): void {
+    this.visualizationHoveredNode.set(nodeId);
+  }
+
+  clearHoveredNode(): void {
+    this.visualizationHoveredNode.set(null);
+  }
+
+  setHighlightMode(mode: 'all' | 'conditioning' | 'forks' | 'sources' | 'joins' | 'diamondjoin' | 'subdiamond' | 'bottlenecks'): void {
+    this.visualizationHighlight.set(mode);
+    if (mode === 'subdiamond') {
+      const data = this.diamondDetailsData();
+      if (!this.visualizationSelectedSubDiamondId() && data?.subDiamonds?.length) {
+        this.visualizationSelectedSubDiamondId.set(data.subDiamonds[0].id);
+      }
+    } else {
+      this.visualizationSelectedSubDiamondId.set('');
+    }
+  }
+
+  toggleHighlightMode(mode: 'all' | 'conditioning' | 'forks' | 'sources' | 'joins' | 'diamondjoin' | 'subdiamond' | 'bottlenecks'): void {
+    const current = this.visualizationHighlight();
+    if (current === mode && mode !== 'all') {
+      this.setHighlightMode('all');
+      return;
+    }
+    this.setHighlightMode(mode);
+  }
+
+  setVisualizationGraphScope(scope: 'diamond' | 'main'): void {
+    this.visualizationGraphScope.set(scope);
+    this.resetVisualizationZoom();
+  }
+
+  setVisualizationSubDiamond(subDiamondId: string): void {
+    this.visualizationSelectedSubDiamondId.set(subDiamondId || '');
+  }
+
+  zoomInVisualization(): void {
+    this.visualizationZoom.update(z => Math.min(z * 1.2, 3));
+  }
+
+  zoomOutVisualization(): void {
+    this.visualizationZoom.update(z => Math.max(z / 1.2, 0.3));
+  }
+
+  resetVisualizationZoom(): void {
+    this.visualizationZoom.set(1.0);
+    this.visualizationPanX.set(0);
+    this.visualizationPanY.set(0);
+  }
+
+  getHighlightLabel(): string {
+    const mode = this.visualizationHighlight();
+    switch (mode) {
+      case 'all': return 'All Diamond Nodes';
+      case 'conditioning': return 'Conditioning Nodes (from diamond structure)';
+      case 'forks': return 'Fork Nodes (sub_fork_nodes)';
+      case 'sources': return 'Source Nodes (sub_sources)';
+      case 'joins': return 'Join Nodes (sub_join_nodes)';
+      case 'diamondjoin': return 'Diamond Join Nodes/Edges';
+      case 'subdiamond': {
+        const selectedSubDiamond = this.selectedVisualizationSubDiamond();
+        return selectedSubDiamond?.displayId
+          ? `Sub-Diamond: ${selectedSubDiamond.displayId}`
+          : 'Sub-Diamond Nodes';
+      }
+      case 'bottlenecks': return 'Bottleneck Nodes (from analysis)';
+      default: return 'All Nodes';
+    }
   }
 
   getFlowColor(flow: number, maxFlow: number): string {

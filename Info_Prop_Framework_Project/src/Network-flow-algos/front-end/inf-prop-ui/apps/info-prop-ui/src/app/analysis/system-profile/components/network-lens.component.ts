@@ -633,7 +633,7 @@ export class NetworkLensComponent {
             const numericBelief = this.toNumeric(belief);
             metrics.push({
               label: 'Belief',
-              value: numericBelief != null ? `${(numericBelief * 100).toFixed(1)}%` : String(belief)
+              value: numericBelief != null ? `${numericBelief.toFixed(3)}` : String(belief)
             });
             dataTypes.add('reachability');
           }
@@ -1040,7 +1040,8 @@ export class NetworkLensComponent {
     }
 
     if (scenario.diamondAnalysis && graphFocus === 'diamond-structure') {
-      for (const value of Object.values(scenario.diamondAnalysis.raw_root_diamonds ?? {})) {
+      for (const value of Object.values(scenario.diamondAnalysis.raw_unique_diamonds ?? {})) {
+        if (!value.is_root_diamond) continue;
         value.diamond.conditioning_nodes.forEach(node => set.add(String(node)));
         value.diamond.relevant_nodes.forEach(node => set.add(String(node)));
       }

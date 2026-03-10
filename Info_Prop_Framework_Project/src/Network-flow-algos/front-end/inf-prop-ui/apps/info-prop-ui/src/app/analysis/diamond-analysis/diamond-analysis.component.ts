@@ -36,7 +36,8 @@ import {
   DiamondPattern,
   MultiScenarioDiamondResults,
   ScenarioComparison,
-  ReachabilityFileGroup
+  ReachabilityFileGroup,
+  UniqueDiamondStructure
 } from '../../shared/models/network-analysis.models';
 import { ScenarioAwareComponent } from '../../shared/interfaces/analysis-component.interface';
 import { DiamondDetailsComponent } from './diamond-details/diamond-details.component';
@@ -205,13 +206,13 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       const rawUnique = currentResults.raw_unique_diamonds;
       return patterns.map((pattern, index) => {
         const diamondEntries = Object.entries(rawUnique);
-        const [hash, diamondData] = diamondEntries[index] || ['', {}];
-        const isRootDiamond = (diamondData as any)?.is_root_diamond || false;
-        const joinNode = (diamondData as any)?.join_node;
+        const [, diamondData] = diamondEntries[index] || ['', undefined as unknown as UniqueDiamondStructure];
+        const isRootDiamond = diamondData?.is_root_diamond || false;
+        const joinNode = diamondData?.join_node;
         return {
           ...pattern,
           diamondType: isRootDiamond ? 'Root' : 'Nested',
-          joinNode: joinNode || pattern.joinNode || null
+          joinNode: joinNode ?? pattern.joinNode
         };
       });
     }
@@ -609,7 +610,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
 
     const joinNodesWithDiamonds = results.join_nodes_with_diamonds || [];
     const covered = joinNodesWithDiamonds.length;
-    const rootCount = Object.values(results.raw_unique_diamonds || {}).filter((d: any) => d.is_root_diamond).length;
+    const rootCount = this.getCurrentUniqueDiamonds(results).filter(d => d.is_root_diamond).length;
     const estimatedTotal = rootCount > 0 ? Math.max(rootCount * 8, covered) : covered;
 
     return {
@@ -680,10 +681,10 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
     );
 
     this.dialog.open(DiamondDetailsComponent, {
-      width: '90vw',
-      height: '90vh',
-      maxWidth: '1400px',
-      maxHeight: '900px',
+      width: '80%',
+      height: '80%',
+      maxWidth: '80%',
+      maxHeight: '80%',
       data: {
         diamondId: pattern.id,
         conditioningNodes: pattern.conditioningNodes,
@@ -938,8 +939,8 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
     const rootDiamonds = Object.values(results.raw_unique_diamonds).filter(d => d.is_root_diamond);
     const totalDiamonds = rootDiamonds.length;
     rootDiamonds.forEach(diamond => {
-      if ((diamond as any).join_node !== undefined) {
-        joinNodeCounts.set((diamond as any).join_node, (joinNodeCounts.get((diamond as any).join_node) || 0) + 1);
+      if (diamond.join_node !== undefined) {
+        joinNodeCounts.set(diamond.join_node, (joinNodeCounts.get(diamond.join_node) || 0) + 1);
       }
     });
     const sharedNodes = Array.from(joinNodeCounts.entries())
@@ -1141,8 +1142,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   getRootDiamondsCount(): number {
-    return Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
-      .filter((d: any) => d.is_root_diamond).length;
+    return this.getCurrentUniqueDiamonds().filter(d => d.is_root_diamond).length;
   }
 
   getUniqueDiamondsCount(): number {
@@ -1150,20 +1150,20 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   getSingleConditioningCount(): number {
-    return Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
-      .filter((d: any) => d.is_root_diamond && d.diamond?.conditioning_nodes?.length === 1).length;
+    return this.getCurrentUniqueDiamonds()
+      .filter(d => d.is_root_diamond && d.diamond?.conditioning_nodes?.length === 1).length;
   }
 
   getHierarchicalComplexity(): string {
     const uniqueDiamonds = this.currentDiamondResults()?.raw_unique_diamonds || {};
-    const rootCount = Object.values(uniqueDiamonds).filter((d: any) => d.is_root_diamond).length;
+    const rootCount = Object.values(uniqueDiamonds).filter(d => d.is_root_diamond).length;
     const totalCount = Object.keys(uniqueDiamonds).length;
     return rootCount > 0 ? `${totalCount}:${rootCount}` : '0:0';
   }
 
   getCriticalSharedDependencies(): number {
     const conditioningNodeFreq = new Map<number, number>();
-    Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {}).forEach((diamond: any) => {
+    this.getCurrentUniqueDiamonds().forEach(diamond => {
       if (!diamond.is_root_diamond) return;
       diamond.diamond?.conditioning_nodes?.forEach((node: number) => {
         conditioningNodeFreq.set(node, (conditioningNodeFreq.get(node) || 0) + 1);
@@ -1174,7 +1174,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
 
   getBottleneckJoinNodes(): number {
     const joinNodeFreq = new Map<number, number>();
-    Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {}).forEach((diamond: any) => {
+    this.getCurrentUniqueDiamonds().forEach(diamond => {
       if (!diamond.is_root_diamond) return;
       if (diamond.join_node !== undefined) {
         joinNodeFreq.set(diamond.join_node, (joinNodeFreq.get(diamond.join_node) || 0) + 1);
@@ -1202,11 +1202,16 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
 
   getIndependentConvergences(): number {
     const sharedNodes = this.getSharedConditioningNodes();
-    const totalConvergences = Object.values(this.currentDiamondResults()?.raw_unique_diamonds || {})
-      .filter((d: any) => d.is_root_diamond).length;
+    const totalConvergences = this.getCurrentUniqueDiamonds().filter(d => d.is_root_diamond).length;
     if (!sharedNodes) return totalConvergences;
     const dependentConvergences = sharedNodes.reduce((sum, node) => sum + node.affectedDiamonds.length, 0);
     return Math.max(0, totalConvergences - dependentConvergences);
+  }
+
+  private getCurrentUniqueDiamonds(result?: DiamondAnalysisResult | null): UniqueDiamondStructure[] {
+    const diamondResult = result ?? this.currentDiamondResults();
+    if (!diamondResult?.raw_unique_diamonds) return [];
+    return Object.values(diamondResult.raw_unique_diamonds);
   }
 
   getDependentConvergences(): number {

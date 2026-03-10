@@ -89,6 +89,10 @@
             <mat-icon>account_tree</mat-icon>
             Sub-Diamonds ({{ data.subDiamonds.length }})
           </mat-button-toggle>
+          <mat-button-toggle value="visualization">
+            <mat-icon>hub</mat-icon>
+            Visualization
+          </mat-button-toggle>
           @if (hasAnySubgraphAnalysis()) {
             <mat-button-toggle value="subgraphAnalysis">
               <mat-icon>science</mat-icon>
@@ -165,8 +169,8 @@
                       <div class="structure-label">Conditioning</div>
                     </div>
                     <div class="structure-item bridges">
-                      <div class="structure-count">{{ summary.bridgeEdges }}</div>
-                      <div class="structure-label">Bridge Edges</div>
+                      <div class="structure-count">{{ summary.diamondJoinEdges }}</div>
+                      <div class="structure-label">Diamond Join Edges</div>
                     </div>
                   </div>
                 }
@@ -320,7 +324,6 @@
                     <mat-option value="root">Root</mat-option>
                     <mat-option value="leaf">Leaf</mat-option>
                     <mat-option value="conditioning">Conditioning</mat-option>
-                    <mat-option value="bridge">Bridge</mat-option>
                     <mat-option value="internal">Internal</mat-option>
                   </mat-select>
                 </mat-form-field>
@@ -459,7 +462,6 @@
                              (selectionChange)="onEdgeTypeFilter($event.value)"
                              multiple>
                     <mat-option value="diamond-internal">Diamond Internal</mat-option>
-                    <mat-option value="bridge">Bridge</mat-option>
                     <mat-option value="diamond-join">Diamond Join</mat-option>
                     <mat-option value="conditioning">Conditioning</mat-option>
                   </mat-select>
@@ -651,6 +653,220 @@
         </div>
       }
 
+      <!-- Visualization Tab -->
+      @if (currentView() === 'visualization') {
+        <div class="visualization-content">
+          
+          @if (diamondGraphData(); as graphData) {
+            <!-- Visualization Controls -->
+            <mat-card class="controls-card">
+              <mat-card-content>
+                <div class="visualization-controls">
+                  <div class="control-group">
+                    <label class="control-label">
+                      <mat-icon>filter_center_focus</mat-icon>
+                      Graph Scope
+                    </label>
+                    <mat-button-toggle-group
+                      [value]="visualizationGraphScope()"
+                      (change)="setVisualizationGraphScope($event.value)">
+                      <mat-button-toggle value="diamond">
+                        <mat-icon>hub</mat-icon>
+                        Diamond
+                      </mat-button-toggle>
+                      <mat-button-toggle value="main">
+                        <mat-icon>account_tree</mat-icon>
+                        Main Network
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </div>
+
+                  <div class="control-group">
+                    <label class="control-label">
+                      <mat-icon>highlight</mat-icon>
+                      Highlight Mode
+                    </label>
+                    <mat-button-toggle-group 
+                      [value]="visualizationHighlight()" 
+                      class="highlight-toggle">
+                      <mat-button-toggle value="all" (click)="toggleHighlightMode('all')">
+                        <mat-icon>select_all</mat-icon>
+                        All
+                      </mat-button-toggle>
+                      <mat-button-toggle value="conditioning" (click)="toggleHighlightMode('conditioning')">
+                        <mat-icon>hub</mat-icon>
+                        Conditioning
+                      </mat-button-toggle>
+                      <mat-button-toggle value="forks" (click)="toggleHighlightMode('forks')">
+                        <mat-icon>call_split</mat-icon>
+                        Forks
+                      </mat-button-toggle>
+                      <mat-button-toggle value="sources" (click)="toggleHighlightMode('sources')">
+                        <mat-icon>source</mat-icon>
+                        Sources
+                      </mat-button-toggle>
+                      <mat-button-toggle value="joins" (click)="toggleHighlightMode('joins')">
+                        <mat-icon>join_inner</mat-icon>
+                        Joins
+                      </mat-button-toggle>
+                      <mat-button-toggle value="diamondjoin" (click)="toggleHighlightMode('diamondjoin')">
+                        <mat-icon>alt_route</mat-icon>
+                        Diamond Join
+                      </mat-button-toggle>
+                      @if (data.subDiamonds.length > 0) {
+                        <mat-button-toggle value="subdiamond" (click)="toggleHighlightMode('subdiamond')">
+                          <mat-icon>account_tree</mat-icon>
+                          Sub-Diamond
+                        </mat-button-toggle>
+                      }
+                      <mat-button-toggle value="bottlenecks" (click)="toggleHighlightMode('bottlenecks')">
+                        <mat-icon>warning</mat-icon>
+                        Bottlenecks
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </div>
+
+                  @if (visualizationHighlight() === 'subdiamond' && data.subDiamonds.length > 0) {
+                    <div class="control-group">
+                      <mat-form-field appearance="outline" class="filter-field">
+                        <mat-label>Select Sub-Diamond</mat-label>
+                        <mat-select
+                          [value]="visualizationSelectedSubDiamondId()"
+                          (selectionChange)="setVisualizationSubDiamond($event.value)">
+                          @for (subDiamond of data.subDiamonds; track subDiamond.id) {
+                            <mat-option [value]="subDiamond.id">
+                              {{ subDiamond.displayId || subDiamond.id }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  }
+
+                  <div class="control-group zoom-controls">
+                    <label class="control-label">
+                      <mat-icon>zoom_in</mat-icon>
+                      Zoom
+                    </label>
+                    <button mat-icon-button (click)="zoomOutVisualization()" matTooltip="Zoom out">
+                      <mat-icon>zoom_out</mat-icon>
+                    </button>
+                    <span class="zoom-value">{{ (visualizationZoom() * 100).toFixed(0) }}%</span>
+                    <button mat-icon-button (click)="zoomInVisualization()" matTooltip="Zoom in">
+                      <mat-icon>zoom_in</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="resetVisualizationZoom()" matTooltip="Reset view">
+                      <mat-icon>center_focus_strong</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="info-badge">
+                    <mat-icon>info</mat-icon>
+                    {{ visualizationGraphScope() === 'main' ? 'Main Network Scope' : 'Diamond Scope' }} · {{ getHighlightLabel() }} · {{ highlightedNodes().size }} / {{ graphData.nodes.length }} nodes
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Graph Visualization -->
+            <mat-card class="graph-card">
+              <mat-card-content>
+                <div class="graph-container">
+                  <svg class="diamond-graph-svg" [class.panning]="isGraphPanning()" (mousedown)="startGraphPan($event)" (mouseleave)="clearHoveredNode()" viewBox="0 0 800 600" role="img" aria-label="Diamond structure graph">
+                    <defs>
+                      <filter id="diamond-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="rgba(0,0,0,0.28)" />
+                      </filter>
+                    </defs>
+
+                    <g [attr.transform]="graphTransform()">
+                      <!-- Edges -->
+                      @for (edge of graphData.edges; track edge.source + '-' + edge.target) {
+                        <g class="graph-edge-group" [class.diamond-join-edge]="edge.isDiamondJoin" [attr.opacity]="getEdgeOpacity(edge.source, edge.target)">
+                          <path
+                            [attr.d]="getEdgePath(edge.source, edge.target)"
+                            [attr.stroke]="getEdgeStroke(edge.source, edge.target)"
+                            [attr.stroke-width]="getEdgeStrokeWidth(edge.source, edge.target)"
+                            class="graph-edge" />
+                          <polygon
+                            [attr.points]="getEdgeArrowPoints(edge.source, edge.target)"
+                            [attr.fill]="getEdgeStroke(edge.source, edge.target)"
+                            class="graph-arrow" />
+                        </g>
+                      }
+
+                      <!-- Nodes -->
+                      @for (node of graphData.nodes; track node.id) {
+                        <g class="graph-node" [class.dragging]="isNodeDragging(node.id)" [attr.opacity]="getNodeOpacity(node.id)" (mousedown)="startNodeDrag($event, node.id)" (mouseenter)="setHoveredNode(node.id)" (mouseleave)="clearHoveredNode()">
+                          <circle 
+                            [attr.cx]="node.x" 
+                            [attr.cy]="node.y" 
+                            [attr.r]="10"
+                            [attr.fill]="getNodeFill(node.id)"
+                            [attr.stroke]="getNodeStroke(node.id)"
+                            [attr.stroke-width]="getNodeStrokeWidth(node.id)"
+                            class="node-circle" />
+                          <text 
+                            [attr.x]="node.x" 
+                            [attr.y]="node.y - 15" 
+                            text-anchor="middle" 
+                            class="node-label">{{ node.id }}</text>
+                        </g>
+                      }
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- Legend -->
+                <div class="graph-legend">
+                  <div class="legend-title">
+                    <mat-icon>info_outline</mat-icon>
+                    Legend - Diamond Subgraph Properties
+                  </div>
+                  <div class="legend-items">
+                    @if (visualizationHighlight() === 'all') {
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-node-base-fill);"></div>
+                        <span>Neutral Node Baseline</span>
+                      </div>
+                    } @else {
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-filter-node);"></div>
+                        <span>Active Filter Nodes · {{ getHighlightLabel() }}</span>
+                      </div>
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-node-base-fill);"></div>
+                        <span>Non-Filtered Nodes</span>
+                      </div>
+                    }
+                    <div class="legend-item">
+                      <div class="legend-line" style="background: var(--viz-diamond-edge); height: 2px; width: 30px;"></div>
+                      <span>Diamond Edges (always distinct)</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-line" style="background: var(--viz-filter-edge); height: 2px; width: 30px;"></div>
+                      <span>Active Filter Edges</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+
+          } @else {
+            <mat-card class="empty-state-card">
+              <mat-card-content>
+                <div class="empty-state">
+                  <mat-icon class="empty-icon">hub</mat-icon>
+                  <h3>No Graph Data</h3>
+                  <p>Unable to generate visualization for this diamond structure</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
       <!-- Subgraph Analysis Tab -->
       @if (currentView() === 'subgraphAnalysis') {
         <div class="subgraph-analysis-content">
@@ -686,7 +902,7 @@
             <!-- Tab: Exact Inference -->
             <mat-tab>
               <ng-template mat-tab-label>
-                <mat-icon>analytics</mat-icon>
+                <mat-icon>functions</mat-icon>
                 Exact Inference
                 @if (subgraphAnalysisResult()?.reachability_result && !subgraphAnalysisResult()?.reachability_result?.error) {
                   <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
@@ -694,10 +910,9 @@
               </ng-template>
 
               <div class="analysis-tab-content">
-                <!-- Scenario + inputs + run -->
                 <div class="tab-config-section">
                   <div class="tab-config-row">
-                    @if (reachabilityGroups().length > 1) {
+                    @if (reachabilityGroups().length > 0) {
                       <mat-form-field appearance="outline" class="scenario-select-field">
                         <mat-label>Reachability Scenario</mat-label>
                         <mat-select [value]="selectedReachabilityIndex()"
@@ -707,15 +922,10 @@
                           }
                         </mat-select>
                       </mat-form-field>
-                    } @else if (reachabilityGroups().length === 1) {
-                      <div class="scenario-label">
-                        <mat-icon>analytics</mat-icon>
-                        Scenario: <strong>{{ reachabilityGroups()[0].scenarioName }} ({{ reachabilityGroups()[0].dataType }})</strong>
-                      </div>
                     } @else {
                       <div class="no-scenario-hint">
                         <mat-icon>info</mat-icon>
-                        <span>No reachability files available</span>
+                        <span>No reachability files uploaded — upload via File Manager</span>
                       </div>
                     }
                     <button mat-raised-button color="primary"
@@ -726,13 +936,12 @@
                   </div>
                 </div>
 
-                <!-- Results -->
                 @if (subgraphAnalysisResult()?.reachability_result; as reachResult) {
                   @if (!reachResult.error) {
                     <div class="tab-results-section">
                       <div class="result-tab-header">
                         <h3>Node Beliefs ({{ getBeliefEntries().length }} nodes)</h3>
-                        <span class="computation-time">{{ reachResult.computation_time.toFixed(3) }}s</span>
+                        <span class="computation-time">{{ reachResult.computation_time.toFixed(3) || '?' }}s</span>
                       </div>
                       <div class="belief-table-container">
                         <table mat-table [dataSource]="getBeliefEntries()" class="belief-table">

@@ -9,7 +9,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { AnalysisStateService } from '../shared/services/analysis-state.service';
 import { NetworkBackendService } from '../shared/services/network-backend.service';
-import { NetworkSessionService } from '../shared/services/network-session.service';
+import { NetworkSessionService, SessionData } from '../shared/services/network-session.service';
+import { FileManagerService } from '../shared/services/file-manager.service';
 
 @Component({
   selector: 'app-home',
@@ -31,10 +32,11 @@ export class HomeComponent implements OnInit {
   private analysisState = inject(AnalysisStateService);
   private networkBackend = inject(NetworkBackendService);
   private sessionService = inject(NetworkSessionService);
+  private fileManager = inject(FileManagerService);
 
   protected backendHealthy = false;
   protected hasSavedSessions = false;
-  protected recentSessions: any[] = [];
+  protected recentSessions: SessionData[] = [];
 
   protected features = [
     {
@@ -124,51 +126,110 @@ export class HomeComponent implements OnInit {
   }
 
   loadSession(sessionId: string): void {
-    const session = this.sessionService.loadSession(sessionId);
-    if (session) {
-      // Restore analysis state
-      if (session.networkData) {
-        this.analysisState.setNetworkData(session.networkData);
+    this.sessionService.loadSession(sessionId).subscribe(session => {
+      if (!session) {
+        this.snackBar.open('Failed to load session', 'Close', { duration: 3000 });
+        return;
       }
-      if (session.analysisResults) {
-        this.analysisState.setAnalysisResults(session.analysisResults);
+
+      // IMPORTANT: Restore fileManagerState FIRST before clearing anything
+      if (session.fileManagerState) {
+        console.log('📁 Restoring file manager state with scenarios...');
+        console.log('📊 FileManagerState exists:', !!session.fileManagerState);
+        console.log('📊 FileManagerState contents:', session.fileManagerState);
+        console.log('📊 Analysis groups:', session.fileManagerState.analysisGroups);
+        if (session.fileManagerState.analysisGroups) {
+          console.log('📊 Reachability scenarios:', session.fileManagerState.analysisGroups.reachability?.length ?? 0);
+          console.log('📊 Capacity scenarios:', session.fileManagerState.analysisGroups.capacity?.length ?? 0);
+          console.log('📊 CPM scenarios:', session.fileManagerState.analysisGroups.cpm?.length ?? 0);
+        }
+        this.fileManager.restoreFileManagerState(session.fileManagerState);
+      } else {
+        console.warn('⚠️ No fileManagerState in session - scenarios will be empty!');
+        console.warn('  Session object keys:', Object.keys(session));
+        console.warn('  Session:', session);
       }
+
+      this.analysisState.clearState();
+
       if (session.networkPath) {
         this.analysisState.setCurrentNetworkPath(session.networkPath);
       }
 
-      this.snackBar.open('Session loaded successfully', 'Close', { duration: 3000 });
-      
-      // Navigate to appropriate page based on session state
-      if (session.analysisResults) {
-        this.router.navigate(['/visualization']);
-      } else if (session.networkData) {
-        this.router.navigate(['/visualization']);
-      } else {
-        this.router.navigate(['/upload']);
+      if (session.parsedData) {
+        this.analysisState.setParsedData(session.parsedData);
       }
-    } else {
-      this.snackBar.open('Failed to load session', 'Close', { duration: 3000 });
-    }
+
+      if (session.analysisResults) {
+        this.analysisState.setAnalysisResults(session.analysisResults);
+      }
+
+      if (session.networkData) {
+        this.analysisState.setNetworkData(session.networkData);
+        
+        // Enable tabs after restoring network data
+        this.analysisState.enableVisualizationTabs();
+        if (session.parsedData) {
+          this.analysisState.enableAnalysisTabsAfterVisualization();
+        }
+        
+        this.snackBar.open('Session loaded successfully', 'Close', { duration: 3000 });
+        this.router.navigate(['/visualization']);
+        return;
+      }
+
+      if (session.networkPath) {
+        this.analysisState.loadNetworkStructure(session.networkPath).subscribe({
+          next: () => {
+            // Enable tabs after network structure loads
+            this.analysisState.enableVisualizationTabs();
+            if (session.parsedData) {
+              this.analysisState.enableAnalysisTabsAfterVisualization();
+            }
+            
+            this.snackBar.open('Session loaded successfully', 'Close', { duration: 3000 });
+            this.router.navigate(['/visualization']);
+          },
+          error: () => {
+            this.snackBar.open('Session loaded, but failed to restore network structure', 'Close', { duration: 5000 });
+            this.router.navigate(['/upload']);
+          }
+        });
+        return;
+      }
+
+      this.snackBar.open('Session loaded, but no network was found', 'Close', { duration: 4000 });
+      this.router.navigate(['/upload']);
+    });
   }
 
   deleteSession(sessionId: string): void {
-    this.sessionService.deleteSession(sessionId);
-    this.loadRecentSessions();
-    this.snackBar.open('Session deleted', 'Close', { duration: 3000 });
+    this.sessionService.deleteSession(sessionId).subscribe(success => {
+      if (!success) {
+        this.snackBar.open('Failed to delete session', 'Close', { duration: 3000 });
+        return;
+      }
+      this.loadRecentSessions();
+      this.snackBar.open('Session deleted', 'Close', { duration: 3000 });
+    });
   }
 
   private loadRecentSessions(): void {
-    this.recentSessions = this.sessionService.getAllSessions()
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 5);
-    this.hasSavedSessions = this.recentSessions.length > 0;
+    this.sessionService.getAllSessions().subscribe(sessions => {
+      this.recentSessions = sessions
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 5);
+      this.hasSavedSessions = this.recentSessions.length > 0;
+    });
   }
 
-  getSessionDisplayName(networkPath: string): string {
-    if (!networkPath) return 'Unknown Network';
-    const parts = networkPath.split('/');
-    return parts[parts.length - 1] || 'Network Analysis';
+  getSessionDisplayName(session: SessionData): string {
+    if (session.networkName && session.networkName.trim()) return session.networkName;
+    if (session.networkPath) {
+      const parts = session.networkPath.split('/');
+      return parts[parts.length - 1] || 'Network Analysis';
+    }
+    return 'Unknown Network';
   }
 
   formatDate(timestamp: number): string {
