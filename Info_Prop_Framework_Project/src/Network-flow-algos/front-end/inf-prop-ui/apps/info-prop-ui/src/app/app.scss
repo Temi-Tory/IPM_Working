@@ -175,6 +175,25 @@
           font-weight: 600;
         }
       }
+
+      &.available:not(.completed) {
+        opacity: 1;
+
+        .mat-icon {
+          color: var(--tertiary);
+          opacity: 1;
+        }
+
+        .nav-title {
+          color: var(--tertiary);
+          font-weight: 600;
+          opacity: 1;
+        }
+
+        .nav-subtitle {
+          opacity: 0.9;
+        }
+      }
       
       .mat-icon {
         color: var(--on-surface-variant);
@@ -215,7 +234,6 @@
           
           &.available {
             color: var(--tertiary);
-            animation: pulse 2s infinite;
           }
           
           &.pending {

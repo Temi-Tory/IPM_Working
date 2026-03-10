@@ -63,6 +63,7 @@
       <a mat-list-item
          routerLink="/visualization"
          [class.completed]="analysisState.networkStructureTab().completed"
+        [class.available]="analysisState.networkStructureTab().enabled && !analysisState.networkStructureTab().completed"
          [class.disabled]="!analysisState.networkStructureTab().enabled"
          [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Network Visualization - Interactive graph visualization' : ''"
@@ -77,7 +78,7 @@
           @if (analysisState.networkStructureTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.networkStructureTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -87,6 +88,7 @@
       <a mat-list-item
          routerLink="/structure"
          [class.completed]="analysisState.networkStructureTab().completed"
+        [class.available]="analysisState.networkStructureTab().enabled && !analysisState.networkStructureTab().completed"
          [class.disabled]="!analysisState.networkStructureTab().enabled"
          [attr.tabindex]="!analysisState.networkStructureTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Network Structure - Graph topology & analysis' : ''"
@@ -101,7 +103,7 @@
           @if (analysisState.networkStructureTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.networkStructureTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -112,6 +114,7 @@
          routerLink="/diamonds"
          [class.disabled]="!analysisState.diamondAnalysisTab().enabled"
          [class.completed]="analysisState.diamondAnalysisTab().completed"
+        [class.available]="analysisState.diamondAnalysisTab().enabled && !analysisState.diamondAnalysisTab().completed"
          [attr.tabindex]="!analysisState.diamondAnalysisTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Diamond Analysis - Structural optimization patterns' : ''"
          matTooltipPosition="right"
@@ -125,7 +128,7 @@
           @if (analysisState.diamondAnalysisTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.diamondAnalysisTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -136,6 +139,7 @@
          routerLink="/exact-inference"
          [class.disabled]="!analysisState.exactInferenceTab().enabled"
          [class.completed]="analysisState.exactInferenceTab().completed"
+        [class.available]="analysisState.exactInferenceTab().enabled && !analysisState.exactInferenceTab().completed"
          [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Exact Inference - Belief propagation analysis' : ''"
          matTooltipPosition="right"
@@ -149,7 +153,7 @@
           @if (analysisState.exactInferenceTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.exactInferenceTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -160,6 +164,7 @@
          routerLink="/capacity-analysis"
          [class.disabled]="!analysisState.capacityAnalysisTab().enabled"
          [class.completed]="analysisState.capacityAnalysisTab().completed"
+        [class.available]="analysisState.capacityAnalysisTab().enabled && !analysisState.capacityAnalysisTab().completed"
          [attr.tabindex]="!analysisState.capacityAnalysisTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Capacity Analysis - Flow analysis & bottleneck detection' : ''"
          matTooltipPosition="right"
@@ -173,7 +178,7 @@
           @if (analysisState.capacityAnalysisTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.capacityAnalysisTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -185,6 +190,7 @@
          routerLink="/time-analysis"
          [class.disabled]="!analysisState.criticalPathTab().enabled"
          [class.completed]="analysisState.criticalPathTab().completed"
+        [class.available]="analysisState.criticalPathTab().enabled && !analysisState.criticalPathTab().completed"
          [attr.tabindex]="!analysisState.criticalPathTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Time Analysis - Schedule optimization & timing' : ''"
          matTooltipPosition="right"
@@ -198,7 +204,7 @@
           @if (analysisState.criticalPathTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.criticalPathTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
@@ -209,6 +215,7 @@
          routerLink="/cost-analysis"
          [class.disabled]="!analysisState.criticalPathTab().enabled"
          [class.completed]="analysisState.criticalPathTab().completed"
+        [class.available]="analysisState.criticalPathTab().enabled && !analysisState.criticalPathTab().completed"
          [attr.tabindex]="!analysisState.criticalPathTab().enabled ? -1 : 0"
          [matTooltip]="isSidenavCollapsed ? 'Cost Analysis - Resource allocation & cost optimization' : ''"
          matTooltipPosition="right"
@@ -222,36 +229,39 @@
           @if (analysisState.criticalPathTab().completed) {
             <mat-icon class="status-icon completed">check_circle</mat-icon>
           } @else if (analysisState.criticalPathTab().enabled) {
-            <mat-icon class="status-icon completed">check_circle</mat-icon>
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
           } @else {
             <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
           }
         </div>
       </a>
 
-      @if (analysisState.systemProfileTab().enabled) {
-        <mat-divider></mat-divider>
+      <mat-divider></mat-divider>
 
-        <a mat-list-item
-           routerLink="/system-profile"
-           [class.completed]="analysisState.systemProfileTab().completed"
-           [matTooltip]="isSidenavCollapsed ? 'System Profile - Cross-scenario executive dashboard' : ''"
-           matTooltipPosition="right"
-           matTooltipClass="sidenav-tooltip">
-          <mat-icon matListItemIcon>dashboard</mat-icon>
-          <div matListItemTitle>
-            <div class="nav-title">System Profile</div>
-            <div class="nav-subtitle">Cross-scenario overview</div>
-          </div>
-          <div class="nav-status">
-            @if (analysisState.systemProfileTab().completed) {
-              <mat-icon class="status-icon completed">check_circle</mat-icon>
-            } @else {
-              <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
-            }
-          </div>
-        </a>
-      }
+      <a mat-list-item
+         routerLink="/system-profile"
+         [class.disabled]="!analysisState.systemProfileTab().enabled"
+         [class.completed]="analysisState.systemProfileTab().completed"
+         [class.available]="analysisState.systemProfileTab().enabled && !analysisState.systemProfileTab().completed"
+         [attr.tabindex]="!analysisState.systemProfileTab().enabled ? -1 : 0"
+         [matTooltip]="isSidenavCollapsed ? 'System Profile - Cross-scenario executive dashboard' : ''"
+         matTooltipPosition="right"
+         matTooltipClass="sidenav-tooltip">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <div matListItemTitle>
+          <div class="nav-title">System Profile</div>
+          <div class="nav-subtitle">Cross-scenario overview</div>
+        </div>
+        <div class="nav-status">
+          @if (analysisState.systemProfileTab().completed) {
+            <mat-icon class="status-icon completed">check_circle</mat-icon>
+          } @else if (analysisState.systemProfileTab().enabled) {
+            <mat-icon class="status-icon available">check_circle_outline</mat-icon>
+          } @else {
+            <mat-icon class="status-icon pending">radio_button_unchecked</mat-icon>
+          }
+        </div>
+      </a>
 
       <mat-divider></mat-divider>
 
