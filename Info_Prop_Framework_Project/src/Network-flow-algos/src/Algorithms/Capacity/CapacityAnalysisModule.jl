@@ -37,8 +37,7 @@ export NetworkTopology, CapacityAnalysisOptions,
 
 # Export core analysis functions
 export analyze_capacity_deterministic, validate_capacity_result, 
-    quick_validate, print_validation_report,
-    analyze_capacity_uncertain, analyze_capacity_uncertain_validated
+    quick_validate, print_validation_report
 
 """
 High-level API: Analyze network capacity (deterministic)
@@ -211,7 +210,6 @@ function quick_capacity_check(
     )
     
     options = CapacityAnalysisOptions(
-        compute_all_min_cuts = false,
         enumerate_critical_paths = false,
         compute_upgrade_priorities = false,
         include_classical_comparison = false,

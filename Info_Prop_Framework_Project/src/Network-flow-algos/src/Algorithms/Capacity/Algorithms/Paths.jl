@@ -178,8 +178,16 @@ function analyze_path(
         end
     end
     
-    # Estimate flow through this path (use minimum edge flow)
+    # Estimate flow through this path
+    # Use minimum of node flows along path (flow is limited by most-constrained node)
+    # This is more accurate than minimum edge flow for shared-edge scenarios
     path_flow = Inf
+    for node in path
+        node_flow = get(node_flows, node, Inf)
+        path_flow = min(path_flow, node_flow)
+    end
+    
+    # Also check edge capacities and flows to verify
     for i in 1:(length(path)-1)
         edge = (path[i], path[i+1])
         flow = get(edge_flows, edge, 0.0)
@@ -239,12 +247,19 @@ Identify single points of failure (SPOFs)
 
 A component is a SPOF if its removal disconnects sources from targets
 For DAGs, we can use reachability analysis
+
+WARNING: If source_nodes or target_nodes is empty, returns empty list (no SPOFs possible)
 """
 function identify_single_points_of_failure(
     topology::NetworkTopology,
     source_nodes::Set{Int64},
     target_nodes::Set{Int64}
 )
+    # Guard against degenerate cases
+    if isempty(source_nodes) || isempty(target_nodes)
+        return Union{Int64, Tuple{Int64,Int64}}[]
+    end
+    
     spofs = Union{Int64, Tuple{Int64,Int64}}[]
     
     # Get all nodes and edges
@@ -281,7 +296,9 @@ function identify_single_points_of_failure(
 end
 
 """
-Check if removing a node disconnects sources from targets
+Check if removing a node disconnects ANY source-target pair
+
+A node is a SPOF if there exists at least one source-target pair that becomes unreachable
 """
 function is_spof_node(
     node::Int64,
@@ -301,7 +318,8 @@ function is_spof_node(
         end
     end
     
-    # Check if any target is still reachable from any source
+    # Check if ALL source-target pairs are still connected
+    all_pairs_connected = true
     for source in source_nodes
         if source == node
             continue
@@ -310,17 +328,20 @@ function is_spof_node(
             if target == node
                 continue
             end
-            if is_reachable(source, target, modified_outgoing)
-                return false  # Still connected, not a SPOF
+            # If ANY pair becomes unreachable, this node is a SPOF
+            if !is_reachable(source, target, modified_outgoing)
+                return true  # Found disconnected pair - this IS a SPOF
             end
         end
     end
     
-    return true  # Disconnected, this is a SPOF
+    return false  # All pairs still connected, not a SPOF
 end
 
 """
-Check if removing an edge disconnects sources from targets
+Check if removing an edge disconnects ANY source-target pair
+
+An edge is a SPOF if there exists at least one source-target pair that becomes unreachable
 """
 function is_spof_edge(
     edge::Tuple{Int64,Int64},
@@ -342,16 +363,16 @@ function is_spof_edge(
         end
     end
     
-    # Check if any target is still reachable from any source
+    # Check if ANY source-target pair becomes unreachable
     for source in source_nodes
         for target in target_nodes
-            if is_reachable(source, target, modified_outgoing)
-                return false  # Still connected, not a SPOF
+            if !is_reachable(source, target, modified_outgoing)
+                return true  # Found disconnected pair - this IS a SPOF
             end
         end
     end
     
-    return true  # Disconnected, this is a SPOF
+    return false  # All pairs still connected, not a SPOF
 end
 
 """

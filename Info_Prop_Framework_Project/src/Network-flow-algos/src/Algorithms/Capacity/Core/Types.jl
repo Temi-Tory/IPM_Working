@@ -45,7 +45,6 @@ struct CapacityAnalysisOptions
     algorithm::Symbol  # :ford_fulkerson_dag, :edmonds_karp, :dinic
     
     # Analysis scope
-    compute_all_min_cuts::Bool
     enumerate_critical_paths::Bool
     max_paths_to_return::Int
     compute_upgrade_priorities::Bool
@@ -70,7 +69,6 @@ struct CapacityAnalysisOptions
     # Default constructor
     function CapacityAnalysisOptions(;
         algorithm::Symbol = :ford_fulkerson_dag,
-        compute_all_min_cuts::Bool = false,
         enumerate_critical_paths::Bool = true,
         max_paths_to_return::Int = 10,
         compute_upgrade_priorities::Bool = true,
@@ -82,7 +80,7 @@ struct CapacityAnalysisOptions
         max_iterations::Int = 100000,
         verbosity::Symbol = :standard
     )
-        new(algorithm, compute_all_min_cuts, enumerate_critical_paths,
+        new(algorithm, enumerate_critical_paths,
             max_paths_to_return, compute_upgrade_priorities,
             include_classical_comparison, target_demands, edge_costs,
             target_values, tolerance, max_iterations, verbosity)
@@ -247,6 +245,20 @@ end
 
 """
 Results for interval capacity analysis (exact bounds)
+
+Fields:
+- `guaranteed_min_flow`: Lower bound - achieved when all uncertain parameters take infimum values
+- `possible_max_flow`: Upper bound - achieved when all uncertain parameters take supremum values
+- `expected_flow`: Midpoint heuristic = (guaranteed_min + possible_max) / 2
+  * Note: This is arithmetic mean of bounds, NOT a statistical expectation
+  * Assumes uniform distribution over the uncertainty range
+  * More accurate expectation requires probability distribution over parameters
+- `uncertainty_range`: Width of the interval = possible_max - guaranteed_min
+- `robust_bottlenecks`: Components that constrain flow in all scenarios
+- `potential_bottlenecks`: Components that may constrain flow in some scenarios
+- `worst_case_scenario`: Full analysis at infimum (lower bound)
+- `best_case_scenario`: Full analysis at supremum (upper bound)
+- `components_most_uncertain`: Ranked list of components by interval width (most uncertainty first)
 """
 struct IntervalCapacityResult
     guaranteed_min_flow::Float64

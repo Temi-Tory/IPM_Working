@@ -343,5 +343,54 @@ function print_validation_report(report::ValidationReport)
     println("=" ^ 60)
 end
 
+"""
+Print interval validation report in human-readable format
+
+Displays validation for both worst-case and best-case scenarios
+"""
+function print_validation_report(report::IntervalValidationReport)
+    println("=" ^ 60)
+    println("INTERVAL CAPACITY ANALYSIS VALIDATION REPORT")
+    println("=" ^ 60)
+    
+    status = report.all_checks_passed ? "✓ PASSED" : "✗ FAILED"
+    println("Overall Status: $status")
+    println()
+    
+    println("Bounds Consistency:")
+    if report.bounds_consistent
+        println("  ✓ Interval bounds are consistent")
+    else
+        println("  ✗ Interval bounds inconsistent or invalid")
+    end
+    println()
+    
+    println("WORST-CASE SCENARIO VALIDATION:")
+    println("-" ^ 60)
+    print_validation_report(report.worst_case_validation)
+    
+    println("BEST-CASE SCENARIO VALIDATION:")
+    println("-" ^ 60)
+    print_validation_report(report.best_case_validation)
+    
+    if !isempty(report.warnings)
+        println("Warnings:")
+        for warning in report.warnings
+            println("  ⚠ $warning")
+        end
+        println()
+    end
+    
+    if !isempty(report.errors)
+        println("Errors:")
+        for error in report.errors
+            println("  ✗ $error")
+        end
+        println()
+    end
+    
+    println("=" ^ 60)
+end
+
 # Export functions
 export validate_capacity_result, quick_validate, print_validation_report

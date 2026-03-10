@@ -13,10 +13,16 @@ Compute sensitivity analysis for all edges and nodes
 Calculates marginal values: ∂(max_flow)/∂(capacity)
 This tells us how much increasing capacity at each component would improve max flow
 
+# Arguments
+- All standard topology/flow/capacity arguments
+- `delta_capacity`: Step size for finite-difference approximation (default: 1.0)
+  - If > 0, uses numerical finite-difference (expensive but accurate)
+  - If 0 or negative, uses fast heuristic (default)
+
 # Returns
-- edge_marginal_values: Dict mapping edges to marginal value
+- edge_marginal_values: Dict mapping edges to marginal value (0.0 to 1.0)
 - node_marginal_values: Dict mapping nodes to marginal value
-- investment_efficiency: Combined dict with all marginal values
+- investment_efficiency: Combined dict with marginal_value * utilization for each component
 """
 function compute_sensitivity_analysis(
     topology::NetworkTopology,
@@ -30,65 +36,118 @@ function compute_sensitivity_analysis(
     min_cut_nodes::Set{Int64},
     current_max_flow::Float64;
     tolerance::Float64 = 1e-10,
-    delta_capacity::Float64 = 1.0
+    delta_capacity::Float64 = 1.0,
+    use_numerical_marginals::Bool = false,
+    compute_max_flow_function = nothing
 )
     edge_marginal_values = Dict{Tuple{Int64,Int64}, Float64}()
     node_marginal_values = Dict{Int64, Float64}()
     
-    # Edge sensitivity
-    for (edge, capacity) in edge_capacities
-        if isinf(capacity)
-            edge_marginal_values[edge] = 0.0
-            continue
+    if use_numerical_marginals && compute_max_flow_function !== nothing && delta_capacity > 0.0
+        # Use accurate numerical finite-difference method
+        
+        # Edge sensitivity
+        for (edge, capacity) in edge_capacities
+            if isinf(capacity)
+                edge_marginal_values[edge] = 0.0
+                continue
+            end
+            
+            marginal_value = compute_numerical_marginal_value(
+                edge,
+                topology,
+                edge_capacities,
+                node_capacities,
+                source_rates,
+                target_nodes,
+                current_max_flow,
+                compute_max_flow_function = compute_max_flow_function,
+                delta = delta_capacity,
+                tolerance = tolerance
+            )
+            edge_marginal_values[edge] = marginal_value
         end
         
-        flow = get(edge_flows, edge, 0.0)
-        utilization = capacity > 0.0 ? flow / capacity : 0.0
+        # Node sensitivity
+        for (node, capacity) in node_capacities
+            if isinf(capacity)
+                node_marginal_values[node] = 0.0
+                continue
+            end
+            
+            marginal_value = compute_numerical_marginal_value(
+                node,
+                topology,
+                edge_capacities,
+                node_capacities,
+                source_rates,
+                target_nodes,
+                current_max_flow,
+                compute_max_flow_function = compute_max_flow_function,
+                delta = delta_capacity,
+                tolerance = tolerance
+            )
+            node_marginal_values[node] = marginal_value
+        end
+    else
+        # Use fast heuristic approximation
         
-        # Marginal value approximation
-        if edge in min_cut_edges
-            # Critical edge - increasing capacity directly helps
-            marginal_value = 1.0
-        elseif utilization > 0.95
-            # Near-saturated - likely to help if min-cut shifts
-            marginal_value = 0.5
-        else
-            # Has spare capacity - won't help immediately
-            marginal_value = 0.0
+        # Edge sensitivity
+        for (edge, capacity) in edge_capacities
+            if isinf(capacity)
+                edge_marginal_values[edge] = 0.0
+                continue
+            end
+            
+            flow = get(edge_flows, edge, 0.0)
+            utilization = capacity > 0.0 ? flow / capacity : 0.0
+            
+            # Marginal value approximation
+            if edge in min_cut_edges
+                # Critical edge - increasing capacity directly helps
+                marginal_value = 1.0
+            elseif utilization > 0.95
+                # Near-saturated - likely to help if min-cut shifts
+                marginal_value = 0.5
+            else
+                # Has spare capacity - won't help immediately
+                marginal_value = 0.0
+            end
+            
+            edge_marginal_values[edge] = marginal_value
         end
         
-        edge_marginal_values[edge] = marginal_value
-    end
-    
-    # Node sensitivity
-    for (node, capacity) in node_capacities
-        if isinf(capacity)
-            node_marginal_values[node] = 0.0
-            continue
+        # Node sensitivity
+        for (node, capacity) in node_capacities
+            if isinf(capacity)
+                node_marginal_values[node] = 0.0
+                continue
+            end
+            
+            flow = get(node_flows, node, 0.0)
+            utilization = capacity > 0.0 ? flow / capacity : 0.0
+            
+            # Marginal value approximation
+            if node in min_cut_nodes
+                # Critical node - increasing capacity directly helps
+                marginal_value = 1.0
+            elseif utilization > 0.95
+                # Near-saturated
+                marginal_value = 0.5
+            else
+                # Has spare capacity
+                marginal_value = 0.0
+            end
+            
+            node_marginal_values[node] = marginal_value
         end
-        
-        flow = get(node_flows, node, 0.0)
-        utilization = capacity > 0.0 ? flow / capacity : 0.0
-        
-        # Marginal value approximation
-        if node in min_cut_nodes
-            # Critical node - increasing capacity directly helps
-            marginal_value = 1.0
-        elseif utilization > 0.95
-            # Near-saturated
-            marginal_value = 0.5
-        else
-            # Has spare capacity
-            marginal_value = 0.0
-        end
-        
-        node_marginal_values[node] = marginal_value
     end
     
     # Combined investment efficiency map
-    investment_efficiency = Dict{Union{Int64, Tuple{Int64,Int64}}, Float64}()
-    merge!(investment_efficiency, edge_marginal_values)
-    merge!(investment_efficiency, node_marginal_values)
+    investment_efficiency = compute_investment_efficiency(
+        edge_flows, node_flows, edge_capacities, node_capacities,
+        edge_marginal_values, node_marginal_values
+    )
     
     return edge_marginal_values, node_marginal_values, investment_efficiency
 end
