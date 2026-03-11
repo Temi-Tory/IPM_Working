@@ -54,9 +54,14 @@ function analyze_capacity_deterministic(
     source_rates = problem.source_rates
     target_nodes = problem.target_nodes
     
-    # Step 1: Compute maximum flow
+    # Step 1: Compute maximum flow (+ exact min-cut for primary algorithm)
+    min_cut_edges = Set{Tuple{Int64,Int64}}()
+    min_cut_nodes = Set{Int64}()
+    min_cut_capacity = 0.0
+
     if options.algorithm == :ford_fulkerson_dag
-        node_flows, edge_flows, total_max_flow, converged, iterations = compute_max_flow_iterative(
+        node_flows, edge_flows, total_max_flow,
+        min_cut_edges, min_cut_nodes, min_cut_capacity, _ = compute_max_flow_and_min_cut_dag(
             topology.iteration_sets,
             topology.outgoing_index,
             topology.incoming_index,
@@ -65,9 +70,10 @@ function analyze_capacity_deterministic(
             edge_capacities,
             source_rates,
             target_nodes,
-            tolerance = options.tolerance,
-            max_iterations = options.max_iterations
+            tolerance = options.tolerance
         )
+        converged = true
+        iterations = 1
     else
         # Default to single-pass
         node_flows, edge_flows, total_max_flow = compute_max_flow_dag(
@@ -83,6 +89,12 @@ function analyze_capacity_deterministic(
         )
         converged = true
         iterations = 1
+
+        # Fallback min-cut extraction for non-primary algorithms
+        min_cut_edges, min_cut_nodes, min_cut_capacity, _ = identify_min_cut(
+            edge_flows, node_flows, edge_capacities, node_capacities, target_nodes,
+            tolerance = options.tolerance
+        )
     end
     
     # Step 2: Calculate target flows
@@ -90,13 +102,7 @@ function analyze_capacity_deterministic(
         target => get(node_flows, target, 0.0) for target in target_nodes
     )
     
-    # Step 3: Identify min-cut
-    min_cut_edges, min_cut_nodes, min_cut_capacity, _ = identify_min_cut(
-        edge_flows, node_flows, edge_capacities, node_capacities, target_nodes,
-        tolerance = options.tolerance
-    )
-    
-    # Step 4: Enhanced bottleneck analysis (Phase 3)
+    # Step 3: Enhanced bottleneck analysis (Phase 3)
     bottlenecks = analyze_bottlenecks(
         edge_flows, node_flows,
         edge_capacities, node_capacities,
@@ -105,7 +111,7 @@ function analyze_capacity_deterministic(
         tolerance = options.tolerance
     )
     
-    # Step 5: Calculate network utilization
+    # Step 4: Calculate network utilization
     total_edge_capacity = sum(c for (e, c) in edge_capacities if !isinf(c))
     total_node_capacity = sum(c for (n, c) in node_capacities if !isinf(c))
     total_capacity = total_edge_capacity + total_node_capacity
@@ -117,7 +123,7 @@ function analyze_capacity_deterministic(
         0.0
     end
     
-    # Step 6: Optional analyses (Phase 3)
+    # Step 5: Optional analyses (Phase 3)
     upgrade_priorities = nothing
     critical_paths = nothing
     comparative_analysis = nothing

@@ -32,120 +32,102 @@ function identify_min_cut(
     target_nodes::Set{Int64};
     tolerance::Float64 = 1e-10
 )
-    # Build adjacency list for residual graph
-    # Residual edges exist where flow < capacity (have available capacity)
-    residual_outgoing = Dict{Int64, Set{Int64}}()
-    
-    for (edge, flow) in edge_flows
-        src, dst = edge
-        cap = get(edge_capacities, edge, Inf)
-        # Include edge if it has available capacity
-        if !isinf(cap) && flow < cap - tolerance
-            if !haskey(residual_outgoing, src)
-                residual_outgoing[src] = Set{Int64}()
-            end
-            push!(residual_outgoing[src], dst)
-        end
+    # Build node universe
+    all_nodes = Set{Int64}()
+    for (u, v) in keys(edge_capacities)
+        push!(all_nodes, u)
+        push!(all_nodes, v)
     end
-    
-    # Also add nodes without flowing edges
-    for (edge, cap) in edge_capacities
-        if !isinf(cap)
-            src, dst = edge
-            flow = get(edge_flows, edge, 0.0)
-            if flow < tolerance  # Very little flow
-                if !haskey(residual_outgoing, src)
-                    residual_outgoing[src] = Set{Int64}()
-                end
-                push!(residual_outgoing[src], dst)
+    for n in keys(node_flows)
+        push!(all_nodes, n)
+    end
+    for n in keys(node_capacities)
+        push!(all_nodes, n)
+    end
+
+    # Infer source candidates from edge-capacity in-degree (fallback to positive-flow nodes)
+    in_degree = Dict{Int64, Int}(n => 0 for n in all_nodes)
+    for (u, v) in keys(edge_capacities)
+        in_degree[v] = get(in_degree, v, 0) + 1
+        in_degree[u] = get(in_degree, u, 0)
+    end
+    source_candidates = Set{Int64}(n for n in all_nodes if get(in_degree, n, 0) == 0)
+    if isempty(source_candidates)
+        for (n, f) in node_flows
+            if f > tolerance
+                push!(source_candidates, n)
             end
         end
     end
-    
-    # Find source-side set using BFS on residual graph
-    # Start from all source nodes and follow unsaturated edges
+    if isempty(source_candidates) && !isempty(all_nodes)
+        push!(source_candidates, first(all_nodes))
+    end
+
+    # Residual adjacency on original graph with reverse arcs
+    residual_outgoing = Dict{Int64, Set{Int64}}(n => Set{Int64}() for n in all_nodes)
+    for ((u, v), cap) in edge_capacities
+        f = get(edge_flows, (u, v), 0.0)
+        cap_eff = isinf(cap) ? Inf : max(0.0, cap)
+
+        # Forward residual
+        if isinf(cap_eff) || (cap_eff - f > tolerance)
+            push!(residual_outgoing[u], v)
+        end
+
+        # Reverse residual
+        if f > tolerance
+            push!(residual_outgoing[v], u)
+        end
+    end
+
+    # BFS to compute source-side reachable set in residual graph
     source_side = Set{Int64}()
     queue = Int64[]
-    
-    # Get all source nodes from node_flows (those with no incoming edges or injecting flow)
-    all_nodes = keys(node_flows)
-    source_candidates = Int64[]
-    
-    for node in all_nodes
-        # A node is "source-like" if it has outgoing edges in residual graph
-        # or has infinite capacity (unconstrained)
-        in_degree = 0
-        # Count how many edges come in
-        for (src, dst) in keys(edge_flows)
-            if dst == node
-                in_degree += 1
-            end
-        end
-        if in_degree == 0
-            push!(source_candidates, node)
-        end
+    for s in source_candidates
+        push!(source_side, s)
+        push!(queue, s)
     end
-    
-    # BFS from source candidates
-    for start_node in source_candidates
-        queue = [start_node]
-        push!(source_side, start_node)
-        
-        while !isempty(queue)
-            node = popfirst!(queue)
-            neighbors = get(residual_outgoing, node, Set{Int64}())
-            
-            for neighbor in neighbors
-                if !(neighbor in source_side)
-                    push!(source_side, neighbor)
-                    push!(queue, neighbor)
-                end
+
+    front = 1
+    while front <= length(queue)
+        node = queue[front]
+        front += 1
+        for nbr in get(residual_outgoing, node, Set{Int64}())
+            if !(nbr in source_side)
+                push!(source_side, nbr)
+                push!(queue, nbr)
             end
         end
     end
-    
-    # If BFS found nothing, use saturated components as fallback
-    if isempty(source_side)
-        for node in keys(node_flows)
-            push!(source_side, node)
-        end
-    end
-    
-    # Find min-cut: edges from source_side to outside
+
+    # Extract cut sets and capacity from source-side boundary
     min_cut_edges = Set{Tuple{Int64,Int64}}()
     min_cut_nodes = Set{Int64}()
     min_cut_capacity = 0.0
-    
-    for (edge, flow) in edge_flows
-        src, dst = edge
-        if src in source_side && !(dst in source_side)
-            # This edge goes from reachable to unreachable - it's in the cut
-            push!(min_cut_edges, edge)
-            cap = get(edge_capacities, edge, Inf)
+
+    for ((u, v), cap) in edge_capacities
+        if u in source_side && !(v in source_side)
+            push!(min_cut_edges, (u, v))
             if !isinf(cap)
-                min_cut_capacity += cap
+                min_cut_capacity += max(0.0, cap)
             end
         end
     end
-    
-    # Saturated nodes in the source-side can also constrain the cut
-    for node in source_side
-        if !(node in target_nodes)  # Target nodes don't block outflow themselves
-            flow = get(node_flows, node, 0.0)
-            cap = get(node_capacities, node, Inf)
-            if !isinf(cap) && abs(flow - cap) < tolerance
-                # This node is saturated and in the source-side
-                push!(min_cut_nodes, node)
-            end
+
+    for n in source_side
+        if n in target_nodes
+            continue
+        end
+        cap_n = get(node_capacities, n, Inf)
+        if isinf(cap_n)
+            continue
+        end
+        f_n = get(node_flows, n, 0.0)
+        if f_n >= cap_n - tolerance
+            push!(min_cut_nodes, n)
+            min_cut_capacity += max(0.0, cap_n)
         end
     end
-    
-    # Calculate total actual flow for the cut
-    total_flow = sum(get(node_flows, target, 0.0) for target in target_nodes)
-    
-    # By max-flow min-cut theorem, the min-cut capacity should equal the max flow
-    # Recalculate more accurately
-    min_cut_capacity = total_flow
     
     # Determine bottleneck type
     edge_cut_capacity = isempty(min_cut_edges) ? Inf : sum(
@@ -157,6 +139,8 @@ function identify_min_cut(
         if !isinf(get(node_capacities, node, Inf))
     )
     
+    total_flow = sum(get(node_flows, target, 0.0) for target in target_nodes)
+
     bottleneck_type = if total_flow < tolerance
         :source_limited
     elseif isempty(min_cut_edges) && isempty(min_cut_nodes)
