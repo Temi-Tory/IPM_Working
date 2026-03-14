@@ -14,6 +14,7 @@ module InputProcessingModule
            complement_value, subtract_values, prod_values, divide_values,
            # File I/O functions
            read_graph_to_dict, 
+            read_edge_capacities_from_json, read_capacities_input,
            # Generic functions (auto-detect type)
            read_node_priors_from_json, read_edge_probabilities_from_json,
            # Type-specific functions (guaranteed return types)
@@ -495,6 +496,87 @@ module InputProcessingModule
             throw(ArgumentError("Unknown probability type: $(data["type"])"))
         end
     end
+
+    """
+        parse_capacity_value(data::Any)::Float64
+
+        Parse capacity values from JSON. Supports finite numeric values and infinite
+        values represented as "Inf", "+Inf", "Infinity", "+Infinity", or "∞".
+    """
+    function parse_capacity_value(data::Any)::Float64
+        value = if isa(data, Real)
+            Float64(data)
+        elseif isa(data, String)
+            token = lowercase(strip(data))
+            if token in ("inf", "+inf", "infinity", "+infinity", "∞")
+                Inf
+            else
+                try
+                    parse(Float64, token)
+                catch
+                    throw(ArgumentError("Invalid capacity value string: '$data'"))
+                end
+            end
+        else
+            throw(ArgumentError("Unsupported capacity type: $(typeof(data))"))
+        end
+
+        if isnan(value)
+            throw(ArgumentError("Capacity cannot be NaN"))
+        end
+        if value < 0.0
+            throw(ArgumentError("Capacity must be non-negative"))
+        end
+
+        return value
+    end
+
+    """
+        read_edge_capacities_from_json(filename::String)
+
+        Read capacity inputs from JSON using schema:
+
+        {
+            "edges": [
+                {"source": 1, "destination": 2, "capacity": 10.0},
+                {"source": 2, "destination": 3, "capacity": "Inf"}
+            ]
+        }
+
+        Returns Dict{Tuple{Int64, Int64}, Float64}.
+    """
+    function read_edge_capacities_from_json(filename::String)::Dict{Tuple{Int64, Int64}, Float64}
+        isfile(filename) || throw(SystemError("File not found: $filename"))
+
+        data = JSON.parsefile(filename)
+        haskey(data, "edges") || throw(ArgumentError("JSON file must contain 'edges' key"))
+        isa(data["edges"], AbstractVector) || throw(ArgumentError("'edges' must be an array"))
+
+        capacities = Dict{Tuple{Int64, Int64}, Float64}()
+
+        for (i, edge_data) in enumerate(data["edges"])
+            isa(edge_data, Dict) || throw(ArgumentError("Invalid edge entry at index $i: expected object"))
+            haskey(edge_data, "source") || throw(ArgumentError("Missing 'source' in edges[$i]"))
+            haskey(edge_data, "destination") || throw(ArgumentError("Missing 'destination' in edges[$i]"))
+            haskey(edge_data, "capacity") || throw(ArgumentError("Missing 'capacity' in edges[$i]"))
+
+            source = Int64(edge_data["source"])
+            target = Int64(edge_data["destination"])
+            source == target && throw(ArgumentError("Self-loop detected at node $source (edges[$i])"))
+
+            capacities[(source, target)] = parse_capacity_value(edge_data["capacity"])
+        end
+
+        isempty(capacities) && throw(ArgumentError("No edges found in 'edges' array"))
+        return capacities
+    end
+
+    """
+        read_capacities_input(filename::String)
+
+        Alias for capacity input parsing entry point.
+    """
+    read_capacities_input(filename::String) = read_edge_capacities_from_json(filename)
 
     """
         create_parametric_pbox(data::Dict)
