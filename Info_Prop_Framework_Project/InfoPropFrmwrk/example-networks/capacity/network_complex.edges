@@ -1,0 +1,33 @@
+source,destination
+1,4
+1,5
+2,5
+2,6
+3,6
+3,7
+4,8
+5,8
+6,8
+5,9
+6,9
+7,9
+8,10
+8,11
+9,10
+9,11
+10,12
+11,12
+10,13
+10,14
+11,14
+12,13
+12,14
+
+# Network topology:
+# Sources: 1, 2, 3
+# Sinks: 13, 14
+# Bottleneck zones: zone A (to node 8), zone B (to node 9), then cross-coupled late-stage mixing.
+# Fork nodes: 1, 2, 3, 8, 9, 10, 12
+# Join nodes: 5, 6, 8, 9, 10, 11, 12
+# Parallel path groups: multiple parallel routes from each source set to sinks through {8,9}->{10,11}->{12,13,14}.
+# Designed behavior: nontrivial min-cut lattice, meaningful k=2 failures, and distributed sensitivity (not single-edge dominance).

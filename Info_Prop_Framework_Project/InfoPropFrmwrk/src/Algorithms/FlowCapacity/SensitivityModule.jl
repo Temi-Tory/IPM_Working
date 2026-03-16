@@ -7,6 +7,14 @@ else
 end
 using .FlowModule
 
+include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
+
 export SensitivityResult,
        critical_edge_ranking,
        marginal_capacity_values,
@@ -14,14 +22,9 @@ export SensitivityResult,
        analyze_sensitivity
 
 struct SensitivityResult
-    critical_edges::Vector{NamedTuple}
+    critical_edges::Vector{CriticalEdgeRecord}
     marginal_capacity::Dict{Tuple{Int64,Int64},Float64}
     birnbaum::Dict{Tuple{Int64,Int64},Float64}
-end
-
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Sensitivity analysis is undefined for an unbounded baseline max flow result."))
-    nothing
 end
 
 function _solve_with_algorithm(
@@ -83,7 +86,8 @@ function _backward_reachable_residual(
     incoming_index::Dict{Int64,Set{Int64}},
     capacities::Dict{Tuple{Int64,Int64},Float64},
     flow::Dict{Tuple{Int64,Int64},Float64},
-    tol::Float64
+    tol::Float64;
+    finite_caps_only::Bool=false
 )::Set{Int64}
     reachable = Set{Int64}([sink])
     queue = Int64[sink]
@@ -107,6 +111,9 @@ function _backward_reachable_residual(
         # Case 2 (backward residual): original edge (v,w) has f(v,w)>0,
         # yielding residual edge w->v, so reverse traversal steps v->w.
         for w in get(outgoing_index, v, Set{Int64}())
+            if finite_caps_only && !isfinite(get(capacities, (v, w), Inf))
+                continue
+            end
             residual = get(flow, (v, w), 0.0)
             if residual > tol && !(w in reachable)
                 push!(reachable, w)
@@ -134,7 +141,15 @@ function _edges_in_some_mincut(
     all_nodes = union(Set(first.(edgelist)), Set(last.(edgelist)))
     all_aug_nodes = union(Set(keys(aug_out)), Set(keys(aug_in)), all_nodes, Set([super_source, super_sink]))
     aug_flow = flow_result.augmented_flow
-    can_reach_sink = _backward_reachable_residual(super_sink, aug_out, aug_in, aug_caps, aug_flow, tol)
+    can_reach_sink = _backward_reachable_residual(
+        super_sink,
+        aug_out,
+        aug_in,
+        aug_caps,
+        aug_flow,
+        tol;
+        finite_caps_only=true
+    )
     S_star = flow_result.mincut_S
     S_double_star = setdiff(all_aug_nodes, can_reach_sink)
 
@@ -184,12 +199,12 @@ function _critical_edge_ranking_from_cache(
     edges::Vector{Tuple{Int64,Int64}},
     zero_cache::Dict{Tuple{Int64,Int64},FlowSolveResult},
     baseline::Float64
-)::Vector{NamedTuple}
-    rankings = NamedTuple[]
+)::Vector{CriticalEdgeRecord}
+    rankings = CriticalEdgeRecord[]
     for edge in edges
         rerun = zero_cache[edge]
         drop = baseline - rerun.max_flow
-        push!(rankings, (edge=edge, baseline_flow=baseline, perturbed_flow=rerun.max_flow, drop=drop))
+        push!(rankings, CriticalEdgeRecord(edge, baseline, rerun.max_flow, drop))
     end
     sort!(rankings; by=x -> (-x.drop, x.edge))
     return rankings
@@ -257,7 +272,7 @@ function critical_edge_ranking(
     flow_result::FlowSolveResult;
     algorithm::Symbol=:dinic,
     tol::Float64=1e-10
-)::Vector{NamedTuple}
+)::Vector{CriticalEdgeRecord}
     _require_bounded_baseline(flow_result)
     baseline = flow_result.max_flow
     zero_cache = _zero_capacity_reruns(

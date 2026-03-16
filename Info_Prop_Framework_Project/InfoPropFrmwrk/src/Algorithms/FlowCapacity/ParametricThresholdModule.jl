@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 export DegradationThreshold,
        UpgradeThreshold,
@@ -45,11 +51,6 @@ struct ParametricThresholdResult
     degradation_thresholds::Vector{DegradationThreshold}
     target_flow::Float64
     baseline_flow::Float64
-end
-
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Parametric threshold analysis is undefined for an unbounded baseline max flow result."))
-    nothing
 end
 
 function _validate_target_edge(
@@ -614,7 +615,7 @@ function find_all_degradation_thresholds(
 )::Vector{DegradationThreshold}
     edge_set = Set(edgelist)
     candidates = if candidate_edges === nothing
-        copy(edgelist)
+        [e for e in edgelist if isfinite(capacities[e])]
     else
         converted = Vector{Tuple{Int64,Int64}}(candidate_edges)
         for edge in converted
@@ -622,6 +623,8 @@ function find_all_degradation_thresholds(
         end
         converted
     end
+
+    isempty(candidates) && throw(ArgumentError("No finite-capacity candidate edges available for degradation threshold analysis."))
 
     results = DegradationThreshold[]
     for edge in candidates

@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 include("NodeCapacitatedFlowModule.jl")
 using .NodeCapacitatedFlowModule
@@ -53,16 +59,12 @@ struct GlobalConnectivityResult
     global_min_cut::GlobalMinCutResult
 end
 
-function _graph_nodes(edgelist::Vector{Tuple{Int64,Int64}})::Set{Int64}
-    return union(Set(first.(edgelist)), Set(last.(edgelist)))
-end
-
 function _require_valid_inputs(
     edgelist::Vector{Tuple{Int64,Int64}},
     source_nodes::Vector{Int64},
     sink_nodes::Vector{Int64}
 )::Set{Int64}
-    all_nodes = _graph_nodes(edgelist)
+    all_nodes = _graph_nodes_set(edgelist)
     length(all_nodes) >= 2 || throw(ArgumentError("Global connectivity requires at least 2 nodes."))
     !isempty(source_nodes) || throw(ArgumentError("source_nodes must be non-empty."))
     !isempty(sink_nodes) || throw(ArgumentError("sink_nodes must be non-empty."))

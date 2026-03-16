@@ -4,6 +4,8 @@ include("FlowModule.jl")
 using .FlowModule
 
 include("_CapacityShared.jl")
+include("CapacityTypes.jl")
+using .CapacityTypes
 
 include("SensitivityModule.jl")
 using .SensitivityModule
@@ -43,6 +45,16 @@ export FlowSolveResult,
        validate_flow_conservation,
        validate_maxflow_mincut,
        validate_exactness
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Re-exports: CapacityTypes
+# ─────────────────────────────────────────────────────────────────────────────
+export CriticalEdgeRecord,
+       SingleEdgeFailureRecord,
+       KEdgeFailureRecord,
+       DegradationScenarioRecord,
+       PathFlowContribution,
+       BottleneckRecord
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Re-exports: SensitivityModule

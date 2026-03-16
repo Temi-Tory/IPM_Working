@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 export StructuralResult,
        identify_spof_edges,
@@ -23,19 +29,10 @@ struct StructuralResult
     spof_edges::Vector{Tuple{Int64,Int64}}
     spof_nodes::Vector{Int64}
     paths::Vector{Vector{Int64}}
-    path_flow_contributions::Vector{NamedTuple}
-    bottleneck_ranking::Vector{NamedTuple}
+    path_flow_contributions::Vector{PathFlowContribution}
+    bottleneck_ranking::Vector{BottleneckRecord}
     node_positions::Dict{Int64,Symbol}
     edge_redundancy::Dict{Tuple{Int64,Int64},Int64}
-end
-
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Structural analysis is undefined for an unbounded baseline max flow result."))
-    nothing
-end
-
-function _graph_nodes(edgelist::Vector{Tuple{Int64,Int64}})::Set{Int64}
-    return union(Set(first.(edgelist)), Set(last.(edgelist)))
 end
 
 function _forward_reachable(
@@ -170,14 +167,15 @@ function identify_spof_edges(
 )::Vector{Tuple{Int64,Int64}}
     _require_bounded_baseline(flow_result)
 
-    original_nodes = _graph_nodes(edgelist)
+    original_nodes = _graph_nodes_set(edgelist)
     can_reach_sink = _backward_reachable_residual(
         flow_result.super_sink,
         flow_result.augmented_outgoing,
         flow_result.augmented_incoming,
         flow_result.augmented_capacities,
         flow_result.augmented_flow,
-        tol
+        tol;
+        finite_caps_only=true
     )
 
     S_star = flow_result.mincut_S
@@ -185,7 +183,9 @@ function identify_spof_edges(
 
     spof_edges = Tuple{Int64,Int64}[]
     for (u, v) in edgelist
-        if (u in S_star) && (v in T_double_star)
+        residual = get(flow_result.residual_capacity, (u, v), Inf)
+        saturated = residual <= tol
+        if saturated && (u in S_star) && (v in T_double_star)
             push!(spof_edges, (u, v))
         end
     end
@@ -207,7 +207,7 @@ function identify_spof_nodes(
     source_nodes::Vector{Int64},
     sink_nodes::Vector{Int64}
 )::Vector{Int64}
-    graph_nodes = _graph_nodes(edgelist)
+    graph_nodes = _graph_nodes_set(edgelist)
     source_set = Set(source_nodes)
     sink_set = Set(sink_nodes)
 
@@ -291,9 +291,9 @@ function path_flow_contributions(
     paths::Vector{Vector{Int64}},
     flow_result::FlowSolveResult;
     tol::Float64=1e-10
-)::Vector{NamedTuple}
+)::Vector{PathFlowContribution}
     _require_bounded_baseline(flow_result)
-    contributions = NamedTuple[]
+    contributions = PathFlowContribution[]
 
     for path in paths
         length(path) >= 2 || throw(ArgumentError("Each path must contain at least two nodes."))
@@ -317,11 +317,7 @@ function path_flow_contributions(
         sort!(bottleneck_edges)
         bottleneck_edge = first(bottleneck_edges)
 
-        push!(contributions, (
-            path=copy(path),
-            flow_contribution=min_flow,
-            bottleneck_edge=bottleneck_edge
-        ))
+        push!(contributions, PathFlowContribution(copy(path), min_flow, bottleneck_edge))
     end
 
     sort!(contributions; by=x -> (-x.flow_contribution, Tuple(x.path)))
@@ -338,36 +334,30 @@ function bottleneck_ranking(
     edgelist::Vector{Tuple{Int64,Int64}},
     capacities::Dict{Tuple{Int64,Int64},Float64},
     flow_result::FlowSolveResult
-)::Vector{NamedTuple}
+)::Vector{BottleneckRecord}
     _require_bounded_baseline(flow_result)
 
-    ranking = NamedTuple[]
+    ranking = BottleneckRecord[]
     for edge in edgelist
         u, v = edge
         if (u in flow_result.mincut_S) && (v in flow_result.mincut_T)
             cap = capacities[edge]
             flow_value = get(flow_result.flow, edge, 0.0)
             residual = get(flow_result.residual_capacity, edge, cap - flow_value)
-            push!(ranking, (
-                edge=edge,
-                capacity=cap,
-                flow=flow_value,
-                residual_capacity=residual,
-                rank=0
-            ))
+            push!(ranking, BottleneckRecord(edge, cap, flow_value, residual, 0))
         end
     end
 
     sort!(ranking; by=x -> (x.capacity, x.edge))
 
-    ranked = NamedTuple[]
+    ranked = BottleneckRecord[]
     for (i, item) in enumerate(ranking)
-        push!(ranked, (
-            edge=item.edge,
-            capacity=item.capacity,
-            flow=item.flow,
-            residual_capacity=item.residual_capacity,
-            rank=i
+        push!(ranked, BottleneckRecord(
+            item.edge,
+            item.capacity,
+            item.flow,
+            item.residual_capacity,
+            i
         ))
     end
 
@@ -386,7 +376,7 @@ function node_topological_positions(
 )::Dict{Int64,Symbol}
     _require_bounded_baseline(flow_result)
 
-    nodes = sort!(collect(_graph_nodes(edgelist)))
+    nodes = sort!(collect(_graph_nodes_set(edgelist)))
     on_cut_nodes = Set{Int64}()
 
     for (u, v) in edgelist

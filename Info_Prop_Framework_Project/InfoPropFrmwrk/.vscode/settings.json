@@ -1,0 +1,6 @@
+{
+  "julia.environmentPath": "${workspaceFolder}",
+  "terminal.integrated.env.windows": {
+    "JULIA_PROJECT": "@."
+  }
+}

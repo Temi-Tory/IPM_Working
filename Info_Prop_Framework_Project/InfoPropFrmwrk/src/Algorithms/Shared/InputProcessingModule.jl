@@ -14,7 +14,7 @@ module InputProcessingModule
            complement_value, subtract_values, prod_values, divide_values,
            # File I/O functions
            read_graph_to_dict, 
-            read_edge_capacities_from_json, read_capacities_input,
+            read_edge_capacities_from_json, read_node_capacities_from_json, read_capacities_input,
            # Generic functions (auto-detect type)
            read_node_priors_from_json, read_edge_probabilities_from_json,
            # Type-specific functions (guaranteed return types)
@@ -267,6 +267,7 @@ module InputProcessingModule
             for i in start_line:length(lines)
                 line = strip(lines[i])
                 isempty(line) && continue
+                startswith(line, "#") && continue
                 
                 # Parse edge
                 parts = split(line, ',')
@@ -555,7 +556,7 @@ module InputProcessingModule
         capacities = Dict{Tuple{Int64, Int64}, Float64}()
 
         for (i, edge_data) in enumerate(data["edges"])
-            isa(edge_data, Dict) || throw(ArgumentError("Invalid edge entry at index $i: expected object"))
+            isa(edge_data, AbstractDict) || throw(ArgumentError("Invalid edge entry at index $i: expected object"))
             haskey(edge_data, "source") || throw(ArgumentError("Missing 'source' in edges[$i]"))
             haskey(edge_data, "destination") || throw(ArgumentError("Missing 'destination' in edges[$i]"))
             haskey(edge_data, "capacity") || throw(ArgumentError("Missing 'capacity' in edges[$i]"))
@@ -569,6 +570,63 @@ module InputProcessingModule
 
         isempty(capacities) && throw(ArgumentError("No edges found in 'edges' array"))
         return capacities
+    end
+
+    """
+        read_node_capacities_from_json(filename::String)
+            -> Dict{Int64, Float64}
+
+    Read per-node capacity constraints from a JSON file.
+
+    Schema:
+      {
+        "nodes": [
+          {"node": 5, "capacity": 4.0},
+          {"node": 6, "capacity": "Inf"}
+        ]
+      }
+
+    Node IDs must be positive integers present in the graph.
+    Capacity values must be finite, nonnegative, and non-NaN.
+    Supports "Inf" string for unconstrained nodes.
+    Returns Dict{Int64,Float64} mapping node ID to capacity.
+    Throws ArgumentError for invalid values.
+    Throws SystemError if file not found.
+    """
+    function read_node_capacities_from_json(
+        filename::String
+    )::Dict{Int64,Float64}
+        isfile(filename) || throw(SystemError(
+            "File not found: $filename"))
+
+        data = JSON.parsefile(filename)
+        haskey(data, "nodes") || throw(ArgumentError(
+            "JSON must contain 'nodes' key"))
+        isa(data["nodes"], AbstractVector) || throw(ArgumentError(
+            "'nodes' must be an array"))
+
+        node_capacities = Dict{Int64,Float64}()
+
+        for (i, entry) in enumerate(data["nodes"])
+            isa(entry, AbstractDict) || throw(ArgumentError(
+                "Invalid node entry at index $i: expected object"))
+            haskey(entry, "node") || throw(ArgumentError(
+                "Missing 'node' key in nodes[$i]"))
+            haskey(entry, "capacity") || throw(ArgumentError(
+                "Missing 'capacity' key in nodes[$i]"))
+
+            node_id = Int64(entry["node"])
+            node_id > 0 || throw(ArgumentError(
+                "Node ID must be positive, got $node_id at nodes[$i]"))
+
+            node_capacities[node_id] =
+                parse_capacity_value(entry["capacity"])
+        end
+
+        isempty(node_capacities) && throw(ArgumentError(
+            "No nodes found in 'nodes' array"))
+
+        return node_capacities
     end
 
     """

@@ -7,6 +7,14 @@ else
 end
 using .FlowModule
 
+include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
+
 export FlowPathComponent,
        FlowDecomposition,
        decompose_flow,
@@ -36,11 +44,6 @@ struct FlowDecomposition
     components::Vector{FlowPathComponent}
     total_flow::Float64
     is_unique::Bool
-end
-
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Flow decomposition is undefined for an unbounded max flow result."))
-    nothing
 end
 
 function _build_outgoing_index(edgelist::Vector{Tuple{Int64,Int64}})::Dict{Int64,Vector{Int64}}

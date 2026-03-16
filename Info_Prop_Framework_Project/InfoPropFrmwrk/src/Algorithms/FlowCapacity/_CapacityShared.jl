@@ -57,7 +57,8 @@ function _backward_reachable_residual(
     incoming_index::Dict{Int64,Set{Int64}},
     capacities::Dict{Tuple{Int64,Int64},Float64},
     flow::Dict{Tuple{Int64,Int64},Float64},
-    tol::Float64
+    tol::Float64;
+    finite_caps_only::Bool=false
 )::Set{Int64}
     reachable = Set{Int64}([sink])
     queue = Int64[sink]
@@ -76,6 +77,9 @@ function _backward_reachable_residual(
         end
 
         for w in get(outgoing_index, v, Set{Int64}())
+            if finite_caps_only && !isfinite(get(capacities, (v, w), Inf))
+                continue
+            end
             residual = get(flow, (v, w), 0.0)
             if residual > tol && !(w in reachable)
                 push!(reachable, w)
@@ -102,7 +106,15 @@ function _edges_in_some_mincut(
     all_nodes = union(Set(first.(edgelist)), Set(last.(edgelist)))
     all_aug_nodes = union(Set(keys(aug_out)), Set(keys(aug_in)), all_nodes, Set([flow_result.super_source, super_sink]))
     aug_flow = flow_result.augmented_flow
-    can_reach_sink = _backward_reachable_residual(super_sink, aug_out, aug_in, aug_caps, aug_flow, tol)
+    can_reach_sink = _backward_reachable_residual(
+        super_sink,
+        aug_out,
+        aug_in,
+        aug_caps,
+        aug_flow,
+        tol;
+        finite_caps_only=true
+    )
     S_star = flow_result.mincut_S
     S_double_star = setdiff(all_aug_nodes, can_reach_sink)
 
@@ -117,4 +129,24 @@ function _edges_in_some_mincut(
 
     sort!(candidates)
     return candidates
+end
+
+# ── Shared utility: bounded baseline guard ────────────────
+# Used identically in 8 modules. Defined once here.
+function _require_bounded_baseline(
+    flow_result::FlowSolveResult,
+    context::String="Analysis"
+)::Nothing
+    flow_result.is_unbounded && throw(ArgumentError(
+        "$context is undefined for an unbounded flow result."
+    ))
+    nothing
+end
+
+# ── Shared utility: graph node extraction ─────────────────
+# Canonical single implementation used by all modules.
+function _graph_nodes_set(
+    edgelist::Vector{Tuple{Int64,Int64}}
+)::Set{Int64}
+    return union(Set(first.(edgelist)), Set(last.(edgelist)))
 end

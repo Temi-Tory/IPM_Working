@@ -1,0 +1,25 @@
+source,destination
+1,3
+1,4
+2,3
+2,5
+3,4
+3,5
+3,6
+4,6
+4,7
+5,6
+5,7
+6,7
+7,8
+8,9
+8,10
+
+# Network topology:
+# Sources: 1, 2
+# Sinks: 9, 10
+# SPOF edge: (4, 7) — this edge is designed to be cut-critical under the structural min-cut characterization used by the framework.
+# Fork nodes: 1, 2, 3, 4, 5, 8
+# Join nodes: 3, 4, 5, 6, 7
+# Parallel paths: Example parallel routes from source 1 to sink 9 include 1-4-7-8-9 and 1-3-6-7-8-9.
+# Designed max flow: approximately 6.0 (bridge edge 7->8 is the intended limiting cut).

@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 export NodeSplitGraph,
        NodeCapacitatedFlowResult,
@@ -100,14 +106,7 @@ end
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-function _graph_nodes_ncf(edgelist::Vector{Tuple{Int64,Int64}})::Set{Int64}
-    nodes = Set{Int64}()
-    for (u, v) in edgelist
-        push!(nodes, u)
-        push!(nodes, v)
-    end
-    return nodes
-end
+_graph_nodes_ncf(edgelist::Vector{Tuple{Int64,Int64}})::Set{Int64} = _graph_nodes_set(edgelist)
 
 """
 Validate that node_capacities values are finite, nonneg, non-NaN, and that

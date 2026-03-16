@@ -108,6 +108,13 @@ This section is organized by engineering concern, not by module boundaries.
 - Use: `node_connectivity(...)`
 - Read: `NodeConnectivityResult.kappa`
 
+**Q4. Why do `lambda` and `kappa` sometimes return 0 on DAG models? Is that a bug?**
+- Usually not a bug.
+- In a directed DAG, many node pairs are not mutually reachable (the graph is not strongly connected by design).
+- Global directed connectivity scans all relevant node-pair cuts; if any directed pair has no path, the corresponding cut value is 0, so global `lambda`/`kappa` can be 0.
+- Interpretation: this is mathematically correct for global directed connectivity on DAGs.
+- For DAG reliability studies, the most meaningful resilience signal is usually source-to-sink throughput and cut structure (max-flow/min-cut, SPOFs, failure impact), not strong-connectivity-style global metrics.
+
 ### 1.8 Component Importance
 
 **Q1. Which components matter most to performance?**

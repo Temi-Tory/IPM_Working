@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 export FailureImpactResult,
        extract_min_cut_sets,
@@ -18,14 +24,9 @@ export FailureImpactResult,
 
 struct FailureImpactResult
     min_cut_edges::Vector{Tuple{Int64,Int64}}
-    single_edge_failures::Vector{NamedTuple}
-    k_edge_failures::Vector{NamedTuple}
-    degradation_results::Vector{NamedTuple}
-end
-
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Failure impact analysis is undefined for an unbounded baseline max flow result."))
-    nothing
+    single_edge_failures::Vector{SingleEdgeFailureRecord}
+    k_edge_failures::Vector{KEdgeFailureRecord}
+    degradation_results::Vector{DegradationScenarioRecord}
 end
 
 function _drop_from_baseline(
@@ -143,7 +144,7 @@ function analyze_single_edge_failures(
     flow_result::FlowSolveResult;
     algorithm::Symbol=:dinic,
     tol::Float64=1e-10
-)::Vector{NamedTuple}
+)::Vector{SingleEdgeFailureRecord}
     _require_bounded_baseline(flow_result)
     baseline_flow = flow_result.max_flow
     candidates = _edges_in_some_mincut(
@@ -155,7 +156,7 @@ function analyze_single_edge_failures(
         tol=tol
     )
 
-    results = NamedTuple[]
+    results = SingleEdgeFailureRecord[]
     for edge in candidates
         modified = _copy_capacities(capacities)
         modified[edge] = 0.0
@@ -171,13 +172,13 @@ function analyze_single_edge_failures(
             validate=true
         )
         drop, is_unbounded = _drop_from_baseline(baseline_flow, perturbed)
-        push!(results, (
-            edge=edge,
-            baseline_flow=baseline_flow,
-            perturbed_flow=perturbed.max_flow,
-            drop=drop,
-            is_critical=drop > 0.0,
-            is_unbounded=is_unbounded
+        push!(results, SingleEdgeFailureRecord(
+            edge,
+            baseline_flow,
+            perturbed.max_flow,
+            drop,
+            drop > 0.0,
+            is_unbounded
         ))
     end
 
@@ -204,11 +205,11 @@ function analyze_k_edge_failures(
     algorithm::Symbol=:dinic,
     tol::Float64=1e-10,
     combination_limit::Int=10_000
-)::Vector{NamedTuple}
+)::Vector{KEdgeFailureRecord}
     _require_bounded_baseline(flow_result)
     k < 0 && throw(ArgumentError("k must be nonnegative."))
     if k == 0
-        return NamedTuple[]
+        return KEdgeFailureRecord[]
     end
 
     candidates = _edges_in_some_mincut(
@@ -221,7 +222,7 @@ function analyze_k_edge_failures(
     )
     n = length(candidates)
     if k > n
-        return NamedTuple[]
+        return KEdgeFailureRecord[]
     end
 
     total_combinations = binomial(n, k)
@@ -230,7 +231,7 @@ function analyze_k_edge_failures(
     end
 
     baseline_flow = flow_result.max_flow
-    staged = NamedTuple[]
+    staged = KEdgeFailureRecord[]
 
     for idxs in _index_combinations(n, k)
         combo_edges = [candidates[i] for i in idxs]
@@ -252,30 +253,17 @@ function analyze_k_edge_failures(
             validate=true
         )
         drop, is_unbounded = _drop_from_baseline(baseline_flow, perturbed)
-        push!(staged, (
-            edges=combo_edges,
-            edges_key=combo_key,
-            baseline_flow=baseline_flow,
-            perturbed_flow=perturbed.max_flow,
-            drop=drop,
-            is_unbounded=is_unbounded
+        push!(staged, KEdgeFailureRecord(
+            combo_key,
+            baseline_flow,
+            perturbed.max_flow,
+            drop,
+            is_unbounded
         ))
     end
 
-    sort!(staged; by=x -> (-x.drop, x.edges_key))
-
-    results = NamedTuple[]
-    for item in staged
-        push!(results, (
-            edges=item.edges,
-            baseline_flow=item.baseline_flow,
-            perturbed_flow=item.perturbed_flow,
-            drop=item.drop,
-            is_unbounded=item.is_unbounded
-        ))
-    end
-
-    return results
+    sort!(staged; by=x -> (-x.drop, x.edges))
+    return staged
 end
 
 """
@@ -296,7 +284,7 @@ function analyze_capacity_degradation(
     algorithm::Symbol=:dinic,
     tol::Float64=1e-10,
     baseline_result::Union{Nothing,FlowSolveResult}=nothing
-)::Vector{NamedTuple}
+)::Vector{DegradationScenarioRecord}
     baseline = baseline_result === nothing ? _solve_with_algorithm(
         algorithm,
         edgelist,
@@ -311,7 +299,7 @@ function analyze_capacity_degradation(
     _require_bounded_baseline(baseline)
     baseline_flow = baseline.max_flow
 
-    results = NamedTuple[]
+    results = DegradationScenarioRecord[]
     for (idx, scenario) in enumerate(scenarios)
         scenario_capacities = _build_scenario_capacities(capacities, scenario)
         rerun = _solve_with_algorithm(
@@ -326,14 +314,14 @@ function analyze_capacity_degradation(
             validate=true
         )
         drop, is_unbounded = _drop_from_baseline(baseline_flow, rerun)
-        push!(results, (
-            scenario_id=idx,
-            scenario_capacities=scenario_capacities,
-            max_flow=rerun.max_flow,
-            sink_flow=rerun.sink_flow,
-            saturated_edges=rerun.saturated_edges,
-            drop_from_baseline=drop,
-            is_unbounded=is_unbounded
+        push!(results, DegradationScenarioRecord(
+            idx,
+            scenario_capacities,
+            rerun.max_flow,
+            rerun.sink_flow,
+            rerun.saturated_edges,
+            drop,
+            is_unbounded
         ))
     end
 
@@ -376,7 +364,7 @@ function analyze_failure_impact(
     )
 
     k_edge_failures = if k == 0
-        NamedTuple[]
+        KEdgeFailureRecord[]
     else
         analyze_k_edge_failures(
             edgelist,
@@ -394,7 +382,7 @@ function analyze_failure_impact(
     end
 
     degradation_results = if scenarios === nothing
-        NamedTuple[]
+        DegradationScenarioRecord[]
     else
         analyze_capacity_degradation(
             edgelist,

@@ -1,0 +1,20 @@
+{
+  "comment": "Capacity design uses a nontrivial bridge bottleneck at 7->8 (finite) rather than the globally smallest edge. Edge 3->4 has the smallest capacity but is not the min-cut driver. Includes one Inf edge (3->5) to exercise parser and mixed finite/infinite capacities. Several <=3 edges are expected to saturate under optimum flow, creating meaningful sensitivity/Birnbaum/threshold variation.",
+  "edges": [
+    {"source": 1, "destination": 3, "capacity": 3.0},
+    {"source": 1, "destination": 4, "capacity": 4.0},
+    {"source": 2, "destination": 3, "capacity": 2.0},
+    {"source": 2, "destination": 5, "capacity": 4.0},
+    {"source": 3, "destination": 4, "capacity": 1.0},
+    {"source": 3, "destination": 5, "capacity": "Inf"},
+    {"source": 3, "destination": 6, "capacity": 3.0},
+    {"source": 4, "destination": 6, "capacity": 2.0},
+    {"source": 4, "destination": 7, "capacity": 3.0},
+    {"source": 5, "destination": 6, "capacity": 2.0},
+    {"source": 5, "destination": 7, "capacity": 3.0},
+    {"source": 6, "destination": 7, "capacity": 3.0},
+    {"source": 7, "destination": 8, "capacity": 6.0},
+    {"source": 8, "destination": 9, "capacity": 4.0},
+    {"source": 8, "destination": 10, "capacity": 4.0}
+  ]
+}

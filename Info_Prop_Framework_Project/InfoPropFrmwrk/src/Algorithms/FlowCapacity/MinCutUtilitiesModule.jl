@@ -8,6 +8,12 @@ end
 using .FlowModule
 
 include("_CapacityShared.jl")
+if isdefined(parentmodule(@__MODULE__), :CapacityTypes)
+    const CapacityTypes = parentmodule(@__MODULE__).CapacityTypes
+else
+    include("CapacityTypes.jl")
+end
+using .CapacityTypes
 
 export MinCut,
        MinCutEnumeration,
@@ -58,15 +64,6 @@ struct MinCutAnalysis
     min_cut_capacity::Float64
 end
 
-function _require_bounded_baseline(flow_result::FlowSolveResult)::Nothing
-    flow_result.is_unbounded && throw(ArgumentError("Min-cut utilities are undefined for an unbounded flow result."))
-    nothing
-end
-
-function _graph_nodes(edgelist::Vector{Tuple{Int64,Int64}})::Set{Int64}
-    return union(Set(first.(edgelist)), Set(last.(edgelist)))
-end
-
 function _all_aug_nodes(
     flow_result::FlowSolveResult,
     original_nodes::Set{Int64}
@@ -89,7 +86,8 @@ function _can_reach_sink_residual(
         flow_result.augmented_incoming,
         flow_result.augmented_capacities,
         flow_result.augmented_flow,
-        tol
+        tol;
+        finite_caps_only=true
     )
 end
 
@@ -99,7 +97,7 @@ function _s_double_star_original(
     tol::Float64=1e-10,
     can_reach_sink::Union{Nothing,Set{Int64}}=nothing
 )::Set{Int64}
-    original_nodes = _graph_nodes(edgelist)
+    original_nodes = _graph_nodes_set(edgelist)
     reachable = can_reach_sink === nothing ? _can_reach_sink_residual(flow_result, tol) : can_reach_sink
     all_aug_nodes = _all_aug_nodes(flow_result, original_nodes)
     s_double_star = setdiff(all_aug_nodes, reachable)
@@ -112,7 +110,7 @@ function _edges_in_every_mincut_from_reach(
     can_reach_sink::Set{Int64};
     tol::Float64=1e-10
 )::Vector{Tuple{Int64,Int64}}
-    original_nodes = _graph_nodes(edgelist)
+    original_nodes = _graph_nodes_set(edgelist)
     s_star = flow_result.mincut_S
     t_double_star = setdiff(original_nodes, can_reach_sink)
 
@@ -138,7 +136,7 @@ function _enumerate_min_cuts_with_sdouble(
     cut_limit::Int=1000,
     tol::Float64=1e-10
 )::MinCutEnumeration
-    original_nodes = _graph_nodes(edgelist)
+    original_nodes = _graph_nodes_set(edgelist)
     s_star = Set{Int64}(flow_result.mincut_S)
     free_zone = setdiff(s_double_star_orig, s_star)
     sorted_free_zone = sort!(collect(free_zone))
@@ -279,7 +277,7 @@ function edges_in_some_mincut(
     tol::Float64=1e-10
 )::Vector{Tuple{Int64,Int64}}
     _require_bounded_baseline(flow_result)
-    return _edges_in_some_mincut(
+    some_edges = _edges_in_some_mincut(
         edgelist,
         outgoing_index,
         incoming_index,
@@ -287,6 +285,17 @@ function edges_in_some_mincut(
         flow_result;
         tol=tol
     )
+
+    can_reach_sink = _can_reach_sink_residual(flow_result, tol)
+    every_edges = _edges_in_every_mincut_from_reach(
+        edgelist,
+        flow_result,
+        can_reach_sink;
+        tol=tol
+    )
+
+    merged = sort!(collect(union(Set(some_edges), Set(every_edges))))
+    return merged
 end
 
 """

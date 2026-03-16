@@ -219,6 +219,12 @@ function _build_augmented_network(
 )
 	all_nodes = union(Set(first.(edgelist)), Set(last.(edgelist)))
 	min_node = isempty(all_nodes) ? Int64(0) : minimum(all_nodes)
+	min_node == typemin(Int64) && throw(ArgumentError(
+		"Cannot construct super-source/super-sink IDs via minimum(node_ids)-1 and -2: minimum node ID is typemin(Int64). Remap node IDs to a safer range."
+	))
+	min_node <= typemin(Int64) + 1 && throw(ArgumentError(
+		"Cannot construct both super-source and super-sink IDs without Int64 underflow from minimum node ID $min_node. Remap node IDs to a safer range."
+	))
 	super_source = min_node - 1
 	super_sink = min_node - 2
 

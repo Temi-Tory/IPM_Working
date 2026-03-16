@@ -1,0 +1,8 @@
+{
+  "comment": "Three constrained intermediate nodes: node 7 is binding (capacity 4.0) and intended to reduce node-capacitated max flow below baseline; node 6 is non-binding (capacity 10.0) under this network's feasible flow profile; node 8 is loose/non-binding (capacity 9.0). Node 7 lies on the SPOF bridge path and is expected in saturated_nodes.",
+  "nodes": [
+    {"node": 6, "capacity": 10.0},
+    {"node": 7, "capacity": 4.0},
+    {"node": 8, "capacity": 9.0}
+  ]
+}

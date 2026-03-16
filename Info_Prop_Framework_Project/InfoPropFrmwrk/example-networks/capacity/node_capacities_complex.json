@@ -1,0 +1,8 @@
+{
+  "comment": "Three intermediate node constraints for complex case: node 8 is binding (tight), node 11 is semi-tight, node 9 is intentionally non-binding. Intended effect: node-capacitated max-flow reduction plus non-empty saturated_nodes.",
+  "nodes": [
+    {"node": 8, "capacity": 6.0},
+    {"node": 11, "capacity": 3.0},
+    {"node": 9, "capacity": 15.0}
+  ]
+}
