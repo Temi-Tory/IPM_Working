@@ -1,0 +1,9 @@
+{
+  "comment": "Dedicated lattice-enumeration example: two equal parallel branches create a free zone with exactly four minimum cuts.",
+  "edges": [
+    {"source": 1, "destination": 2, "capacity": 5.0},
+    {"source": 1, "destination": 3, "capacity": 5.0},
+    {"source": 2, "destination": 4, "capacity": 5.0},
+    {"source": 3, "destination": 4, "capacity": 5.0}
+  ]
+}

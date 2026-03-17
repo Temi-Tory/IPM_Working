@@ -1,0 +1,12 @@
+source,destination
+1,2
+1,3
+2,4
+3,4
+
+# Network topology:
+# Source: 1
+# Sink: 4
+# Purpose: dedicated minimum-cut lattice demonstration.
+# With equal capacities on both parallel branches, nodes 2 and 3 form a free zone,
+# yielding exactly 4 minimum cuts under the lattice characterization.

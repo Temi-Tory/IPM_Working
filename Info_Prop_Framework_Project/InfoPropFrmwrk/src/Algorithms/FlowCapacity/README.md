@@ -90,6 +90,14 @@ This section is organized by engineering concern, not by module boundaries.
 - Use: `enumerate_min_cuts(...)`
 - Read: `MinCutEnumeration.total_cuts`, `MinCutEnumeration.is_complete`
 
+**Practical note on examples**
+- Multiple minimum cuts require a topology that actually induces a nonempty free zone $F = S^{**} \setminus S^*$.
+- Rich real-looking networks often still have a unique minimum cut, even when they show strong sensitivity and nontrivial multi-edge failures.
+- In the example data:
+    - `network.edges` is the small end-to-end sanity example,
+    - `network_complex.edges` is the richer analysis example,
+    - `network_lattice.edges` is the dedicated minimum-cut lattice enumeration example.
+
 **Q3. What is the smallest edge set whose failure disables max throughput?**
 - Use: `minimum_st_cut_edges(...)`, `minimum_st_cut_capacity(...)`
 - Read: cut edges and cut capacity outputs

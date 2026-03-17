@@ -477,10 +477,94 @@ run_complex_target("parametric thresholds contain only finite-capacity edges") d
 end
 
 println("  Complex targets: $(complex_targets_pass) / $(complex_targets_total)")
+println("  Note: multiple minimum cuts are demonstrated in the dedicated lattice example, not required here.")
 
 complex_ok = complex_targets_pass == complex_targets_total
 
-title("SECTION G: Final summary")
+lattice_edges_file = joinpath(network_dir, "network_lattice.edges")
+lattice_caps_file = joinpath(network_dir, "edge_capacities_lattice.json")
+
+title("SECTION G: Dedicated lattice enumeration demo")
+
+lattice_edgelist, lattice_outgoing, lattice_incoming, lattice_sources_set =
+    read_graph_to_dict(lattice_edges_file)
+lattice_source_nodes = sort!(collect(lattice_sources_set))
+lattice_all_nodes = sort!(collect(union(Set(first.(lattice_edgelist)), Set(last.(lattice_edgelist)))))
+lattice_sink_nodes = sort!([n for n in lattice_all_nodes
+    if !haskey(lattice_outgoing, n) || isempty(lattice_outgoing[n])])
+
+lattice_capacities = read_edge_capacities_from_json(lattice_caps_file)
+lattice_flow = solve_max_flow_dinic(
+    lattice_edgelist,
+    lattice_outgoing,
+    lattice_incoming,
+    lattice_capacities,
+    lattice_source_nodes,
+    lattice_sink_nodes;
+    tol=1e-10,
+    validate=true
+)
+lattice_enum = enumerate_min_cuts(
+    lattice_edgelist,
+    lattice_outgoing,
+    lattice_incoming,
+    lattice_capacities,
+    lattice_flow;
+    cut_limit=20,
+    tol=1e-10
+)
+
+println("=== LATTICE NETWORK SUMMARY ===")
+println("  Nodes: $(length(lattice_all_nodes))")
+println("  Edges: $(length(lattice_edgelist))")
+println("  max_flow: $(lattice_flow.max_flow)")
+println("  total_cuts: $(lattice_enum.total_cuts)")
+println("  is_complete: $(lattice_enum.is_complete)")
+
+lattice_pass = 0
+lattice_total = 0
+
+function run_lattice_check(pred::Function, desc::String)
+    global lattice_pass, lattice_total
+    lattice_total += 1
+    try
+        if pred()
+            println("  ✓ $desc")
+            lattice_pass += 1
+        else
+            println("  ✗ FAILED: $desc — predicate returned false")
+        end
+    catch e
+        println("  ✗ FAILED: $desc — $(e)")
+    end
+end
+
+println("=== LATTICE ENUMERATION CHECKS ===")
+run_lattice_check("lattice max_flow == 10") do
+    abs(lattice_flow.max_flow - 10.0) <= 1e-8
+end
+
+run_lattice_check("enumeration is complete") do
+    lattice_enum.is_complete
+end
+
+run_lattice_check("lattice has exactly 4 minimum cuts") do
+    lattice_enum.total_cuts == 4 && length(lattice_enum.cuts) == 4
+end
+
+run_lattice_check("all lattice cuts have capacity ~= max-flow") do
+    all(c -> abs(c.capacity - lattice_flow.max_flow) <= 1e-8, lattice_enum.cuts)
+end
+
+run_lattice_check("enumerated source-side partitions are distinct") do
+    length(Set([Tuple(sort!(collect(c.S))) for c in lattice_enum.cuts])) == 4
+end
+
+println("  Lattice checks: $(lattice_pass) / $(lattice_total)")
+
+lattice_ok = lattice_pass == lattice_total
+
+title("SECTION H: Final summary")
 println("=== TEST SUMMARY ===")
 println("  Simple network baseline max_flow: $(kit.baseline_max_flow)")
 println("  Simple invariants: $pass_count / $total_count")
@@ -488,8 +572,10 @@ println("  Standalone calls: $(standalone_pass) / 10")
 println("  Complex baseline max_flow: $(complex_kit.baseline_max_flow)")
 println("  Complex acceptance targets: $(complex_targets_pass) / $(complex_targets_total)")
 println("  Complex stretch (cuts >= 4): $(complex_lattice_stretch)")
+println("  Lattice min-cut total_cuts: $(lattice_enum.total_cuts)")
+println("  Lattice checks: $(lattice_pass) / $(lattice_total)")
 
-if base_ok && complex_ok
+if base_ok && complex_ok && lattice_ok
     println("  STATUS: ALL TESTS PASSED")
 else
     println("  STATUS: FAILURES DETECTED — see above")
