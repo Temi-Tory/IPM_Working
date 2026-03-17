@@ -573,19 +573,19 @@ Goldberg, A.V., Tarjan, R.E. (1988), *JACM* 35(4):921–940.
 Gallo, G., Grigoriadis, M.D., Tarjan, R.E. (1989), *SIAM Journal on Computing* 18(1):30–55.
 - Use for parametric max-flow structural properties and algorithmic direction.
 
-Hao, J., Orlin, J.B. (1994), *Journal of Algorithms* 17(3):424–446.
+Hao, J.X., Orlin, J.B. (1994), *Journal of Algorithms* 17(3):424–446. DOI: 10.1006/jagm.1994.1043.
 - Use for directed global min-cut algorithmic context and optimization benchmark.
 
 Ahuja, R.K., Magnanti, T.L., Orlin, J.B. (1993), *Network Flows*, Prentice Hall.
 - Use as general graduate-level theorem and algorithm reference.
 
-Birnbaum, Z.W. (1969), in *Multivariate Analysis II*, Academic Press.
+Birnbaum, Z.W. (1969), “On the Importance of Different Components in a Multicomponent System”, in *Multivariate Analysis II*, Academic Press.
 - Use for original importance-measure definition and analogy framing.
 
 Gomory, R.E., Hu, T.C. (1961), *SIAM Journal of Applied Mathematics* 9(4):551–570.
 - Use for all-pairs cut context (undirected setting) to position design choices.
 
-Picard, J.C., Queyranne, M. (1982), *Networks* 12(2):141–159.
+Picard, J.-C., Queyranne, M. (1982), “A network flow solution to some nonlinear 0–1 programming problems, with applications to graph theory”, *Networks* 12(2):141–159. DOI: 10.1002/net.3230120206.
 - Use for minimum-cut lattice structure and $S^*/S^{**}$ style characterization.
 
 ## Appendix A — Methodology Citation Snippets

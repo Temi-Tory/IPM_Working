@@ -57,8 +57,8 @@ dag_ntwrk_files\drone-network-time-optimal-k2 =# #works 0.019s
     # ============================================================================
     # Test Function (Parameterized for both versions)
 # ============================================================================
-network_name = "water"  
-data_type="Emergency Response"
+network_name = "water-highvdemo"  
+data_type="04 Mixed Bottleneck"
 function run_test(network_name, module_name, run_bp_func, data_type="float")
     println("\n" * "="^80)
     println("Testing: $module_name")
@@ -197,7 +197,7 @@ end
     # Run Test
 # ============================================================================
 
-    data_type = "float"
+#    data_type = "float"
 
     println("\n" * "🔬 TESTING OPTIMIZED IMPLEMENTATION" * "\n")
     println("Network: $network_name")
@@ -232,7 +232,7 @@ mc_results = MC_result_optimized(
         source_nodes,
         node_priors,
         edge_probabilities,
-        10_000_000
+        1_000_000
     )
 
     
