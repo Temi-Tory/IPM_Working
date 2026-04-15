@@ -1,0 +1,391 @@
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{threeparttable}
+\usepackage{placeins} 
+\usepackage{hyperref}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\onehalfspacing
+
+\begin{document}
+
+
+\section{Introduction}
+The reachability toolkit focuses on network survivability and connectivity probability. It computes the probability that at least one active source-to-sink route survives random component failures in a given DAG network.
+
+For some infrastructure reliability problems, this is a sufficient performance measure. In flow-carrying network models, however, the performance measure of the system also depends on the rate of resource flow rather than just the existence of an active path. This reachability module broadly aims to answer the network query of "is the network connected?" However, in networks that also model flow, knowing the likelihood of a signal arriving does not necessarily answer the query of "how much gets through".
+
+Consider a resource distribution network where all source-to-sink paths satisfy the reachability survival threshold. Despite the network being considered connected, deliverable throughput at target nodes can still fall well short of demand if it enters a degraded capacity state. In flow-carrying networks, computing reachability alone cannot fully distinguish between a network with reachability but low capacity and one with reachability plus plenty of spare capacity at target nodes. 
+
+Using the fixed edge capacities stored on the extracted graph object in the InputProcessing step, the network flow toolkit consists of a collection of classical max-flow-based modules intended to support analysis of deliverable throughput, bottleneck structure, and the effect of structural or parametric degradation in capacitated DAG models.
+Specifically, given a capacitated directed acyclic graph as input, the toolkit is designed to address the following analysis objectives:
+\begin{enumerate}[label=\textbf{Q\arabic*.}]
+    \item What maximum throughput can the network deliver under current capacities?
+    \item Which cut sets form the binding bottlenecks on that throughput?
+    \item Which component failures or capacity perturbations most reduce deliverable flow?
+    \item What degradation or upgrade threshold is required to maintain a target demand level?
+    \item How much edge and node redundancy exists in path-disjoint terms?
+    \item Which components are structural single points of failure?
+\end{enumerate}
+
+\section{Mathematical Model and Network Flow Semantics}
+Let
+\[
+G=(V,E)
+\]
+be a directed acyclic graph with edge-capacity function
+\[
+c:E\to\mathbb{R}_{\ge 0},
+\]
+where \(c_{uv}\) is the maximum admissible flow on edge \((u,v)\in E\). When node capacities are modeled, let
+\[
+b:V\to\mathbb{R}_{\ge 0}.
+\]
+Here \(b_v\) denotes the maximum admissible through-flow at node \(v\).
+Define the flow variable
+\[
+f:E\to\mathbb{R}_{\ge 0},
+\]
+with \(f_{uv}:=f((u,v))\) for each edge \((u,v)\in E\).
+For node \(v\), define
+\[
+\delta^+(v):=\{(v,w)\in E\}, \qquad \delta^-(v):=\{(u,v)\in E\}
+\]
+as the outgoing and incoming edge sets, respectively. For a capacitated network model \(G\) with designated source and sink nodes \(s,t\in V\), the primary objective is to compute the maximum deliverable throughput from \(s\) to \(t\), subject to edge capacities \(c_{uv}\) for \((u,v)\in E\) and, when modelled, node through-flow bounds \(b_v\) for \(v\in V\).
+
+
+First consider a base-case network: a single-source single-sink capacitated DAG, shown in Fig.~\ref{fig:toy_siso_symbolic}. Node \(s\) is the source, node \(t\) is the sink, and intermediate nodes relay flow under capacity constraints. The network performance measure must consider and quantify deliverable throughput from \(s\) to \(t\), not just \(s\)-\(t\) path existence.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.70\textwidth]{figures/flow_chapter/toy_siso_symbolic.pdf}
+\caption{Minimal single-source single-sink capacitated DAG network.}
+\label{fig:toy_siso_symbolic}
+\end{figure}
+
+For this base case, let \(f:E\to\mathbb{R}_{\ge 0}\) and \(F\in\mathbb{R}_{\ge 0}\) be decision variables, where \(F\) is the total delivered flow from \(s\) to \(t\). The optimization model is
+\[
+\max\; F
+\]
+subject to
+\begin{align}
+0 \le f_{uv} \le c_{uv}, &\qquad \forall (u,v)\in E, \label{eq:cap}\\
+\sum_{e\in\delta^-(v)} f_e - \sum_{e\in\delta^+(v)} f_e &= 0,
+\qquad \forall v\in V\setminus\{s,t\}, \label{eq:cons}\\
+\sum_{e\in\delta^+(s)} f_e - \sum_{e\in\delta^-(s)} f_e &= F, \label{eq:source}\\
+\sum_{e\in\delta^-(t)} f_e - \sum_{e\in\delta^+(t)} f_e &= F. \label{eq:sink}
+\end{align}
+
+Taking \(F^\star\) to be the optimal (maximum feasible) value of \(F\). Then if the sink node \(t\) has a required demand level \(D_t\), the flow module quantifies service adequacy through the throughput margin
+\[
+\Delta_t := F^\star - D_t,
+\]
+where \(\Delta_t\ge 0\) means that the network can meet demand with residual margin, and \(\Delta_t<0\) indicates a throughput shortfall of \(|\Delta_t|\).
+
+
+
+\subsubsection{Multi-Source Multi-Sink Reduction}
+Let the source set be \(S\subseteq V\) and the sink set be \(T\subseteq V\), with \(|S|\ge 1\) and \(|T|\ge 1\). Figure~\ref{fig:msss_reduction}a shows the original multi-source multi-sink network.
+
+By introducing a super-source \(s^\star\) and a super-sink \(t^\star\), as shown in Fig.~\ref{fig:msss_reduction}b, the reduced graph is
+\[
+V' = V\cup\{s^\star,t^\star\},
+\]
+\[
+E' = E \cup \{(s^\star,s): s\in S\} \cup \{(t,t^\star): t\in T\}.
+\]
+The connector capacities are set to non-binding values (implemented as \(\mathrm{Inf}\) in the solver):
+\[
+c_{s^\star s}=+\infty\ \forall s\in S, \qquad c_{t t^\star}=+\infty\ \forall t\in T.
+\]
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.47\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/flow_chapter/msss_original.pdf}
+\caption{Original multi-source multi-sink network.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.47\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/flow_chapter/msss_super_reduction.pdf}
+\caption{Equivalent super-source/super-sink reduction.}
+\end{subfigure}
+\caption{Graph reduction of a multi-source multi-sink capacitated DAG to an equivalent single-source single-sink max-flow problem.}
+\label{fig:msss_reduction}
+\end{figure}
+
+\begin{proposition}[Exactness of the super-terminal reduction]
+The optimal value of the multi-source multi-sink max-flow problem on \(G\) is equal to the optimal value of the single-source single-sink max-flow problem on the reduced graph \(G'=(V',E')\) with terminals \(s^\star\) and \(t^\star\).
+\end{proposition}
+
+\begin{proof}
+Let \(f\) be any feasible flow for the original multi-terminal problem with total value \(F\).
+
+We may define an augmented flow \(f'\) on \(G'\) by retaining the values of \(f\) on all original edges, setting
+\[
+f'_{s^\star s}:=\sum_{e\in\delta^+(s)} f_e - \sum_{e\in\delta^-(s)} f_e \qquad \forall s\in S,
+\]
+and
+\[
+f'_{t t^\star}:=\sum_{e\in\delta^-(t)} f_e - \sum_{e\in\delta^+(t)} f_e \qquad \forall t\in T.
+\]
+Since the connector edges are guaranteed to be non-binding, then all capacity constraints from original network remain satisfied. Naturally, flow conservation holds at every original transit node, while the net outflow from \(s^\star\) and the net inflow to \(t^\star\) are both equal to \(F\). Therefore \(f'\) is a feasible \(s^\star\)-\(t^\star\) flow of value \(F\).
+
+Conversely, let \(f'\) be any feasible \(s^\star\)-\(t^\star\) flow on \(G'\): then, restricting \(f'\) to the original edge set \(E\) gives a flow \(f\) on \(G\). Again, conservation on all nodes in \(V\setminus(S\cup T)\) is inherited directly from the reduced problem, and the super-terminal connectors account exactly for aggregate injection at the sources and aggregate withdrawal at the sinks. Therefore \(f\) is feasible for the original multi-terminal problem and has the same total value as \(f'\). Since feasible flows map in both directions without changing objective value, the two optimal values are equal.
+\end{proof}
+
+Thus, solving the reduced super-source/super-sink problem is equivalent to solving the original multi-terminal problem, which is:
+\[
+\max\; F
+\]
+subject to
+\begin{align}
+0 \le f_{uv} \le c_{uv}, &\qquad \forall (u,v)\in E, \\
+\sum_{e\in\delta^-(v)} f_e - \sum_{e\in\delta^+(v)} f_e &= 0,
+\qquad \forall v\in V\setminus(S\cup T), \label{eq:msss-transit}\\
+\sum_{s\in S}\left(\sum_{e\in\delta^+(s)} f_e - \sum_{e\in\delta^-(s)} f_e\right) &= F, \label{eq:msss-source}\\
+\sum_{t\in T}\left(\sum_{e\in\delta^-(t)} f_e - \sum_{e\in\delta^+(t)} f_e\right) &= F. \label{eq:msss-sink}
+\end{align}
+
+
+\subsubsection{Node-Capacitated Extension via Node Splitting}
+
+The Information Propagation Framework supports both node and edge network metadata. For capacity analysis, this allows for modelling explicit throughput constraints on nodes themselves.
+As shown in Figure~\ref{fig:nodecap_reduction}, this work adopts a node-splitting approach where each constrained node \(v\in V_c\) is replaced by an input node \(v^-\) and an output node \(v^+\), connected by an internal edge:
+\[
+(v^{-},v^{+}), \qquad c_{v^{-}v^{+}}=b_v.
+\]
+The original incoming edges of \(v\) are redirected to \(v^-\), and every original outgoing edge is emitted from \(v^+\).
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.47\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/flow_chapter/nodecap_original.pdf}
+\caption{Original network with edge and node capacities.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.47\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/flow_chapter/nodecap_split_equivalent.pdf}
+\caption{Equivalent node-split edge-capacitated network.}
+\end{subfigure}
+\caption{Node-splitting transformation.}
+\label{fig:nodecap_reduction}
+\end{figure}
+
+
+This extends the edge-capacitated flow model with 
+\begin{align}
+\sum_{e\in\delta^-(v)} f_e &\le b_v, \qquad \forall v\in V_c, \label{eq:nodecap-in}\\
+\sum_{e\in\delta^+(v)} f_e &\le b_v, \qquad \forall v\in V_c. \label{eq:nodecap-out}
+\end{align}
+Here \(V_c\subseteq V\) may include source and sink nodes when terminal throughput limits are part of the model.
+
+The optimization model then becomes 
+\[
+\max\; F
+\]
+subject to
+\begin{align}
+0 \le f_{uv} \le c_{uv}, &\qquad \forall (u,v)\in E, \label{eq:edgecap-both}\\
+\sum_{e\in\delta^-(v)} f_e - \sum_{e\in\delta^+(v)} f_e &= 0,
+\qquad \forall v\in V\setminus\{s,t\}, \label{eq:cons-both}\\
+\sum_{e\in\delta^-(v)} f_e &\le b_v,
+\qquad \forall v\in V_c, \label{eq:nodecap-both-in}\\
+\sum_{e\in\delta^+(v)} f_e &\le b_v,
+\qquad \forall v\in V_c, \label{eq:nodecap-both-out}\\
+\sum_{e\in\delta^+(s)} f_e - \sum_{e\in\delta^-(s)} f_e &= F, \label{eq:source-both}\\
+\sum_{e\in\delta^-(t)} f_e - \sum_{e\in\delta^+(t)} f_e &= F. \label{eq:sink-both}
+\end{align}
+
+
+\section{Available Modules}
+Where required, the flow toolkit applies the super-terminal reduction automatically during the baseline flow solve, and the node-capacitated analysis invokes node splitting internally whenever node-capacity data are supplied. Public outputs are then remapped back to the original graph and original source/sink sets, so edge flows, sink allocations, and cut-side node sets remain interpretable in the user's native network model.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/flow_chapter/flow_toolkit_workflow.pdf}
+\caption{Runtime workflow for the flow-capacity toolkit with available modules}
+\label{fig:flow_toolkit_workflow}
+\end{figure}
+
+\clearpage
+
+\section{Flow Module}
+\begin{quote}
+    \textbf{Motivating question:} \textit{``How much flow can the network sustain, and what limits it?''}
+\end{quote}
+Inspired by Julia's \texttt{Graphs.jl} and Python's \texttt{NetworkX} flow analysis packages~\cite{ref}, the flow engine supports three solver variants to compute $F^\star$ for a given capacitated network $G$, summarised in Table~\ref{tab:solver_comparison}.
+
+\begin{table}[ht]
+\centering
+\begin{threeparttable}
+\begin{tabular}{p{3cm} p{4.5cm} p{4.5cm}}
+\toprule
+\textbf{Solver} & \textbf{Complexity} & \textbf{Best Fit} \\
+\midrule
+\texttt{:edmonds\_karp} & $O(VE^2)$ & Small networks \\
+\texttt{:dinic}         & $O(V^2E)$ & Larger layered networks \\
+\texttt{:push\_relabel} & $O(V^2E)$--$O(V^3)$\tnote{a} & Dense, high fan-out networks \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\footnotesize
+\item[a] Upper bound depends on node selection strategy; this solver does not enforce a highest-label invariant.
+\end{tablenotes}
+\end{threeparttable}
+\caption{Max-flow solver comparison.}
+\label{tab:solver_comparison}
+\end{table}
+
+\subsection{Max-Flow Min-Cut Solvers}
+
+The intuition behind Ford-Folkerson's~\cite{ref} Max-Flow Min-Cut (MCMF) theorem is that given a capacitated network, the maximum permissible flow through the network is restricted by the smallest blocking bottleneck set of edges. That is, the maximum possible flow from $s \to t$ given $G$ is equal to the sum of flow across the min-cut.
+
+
+\begin{definition}[Residual Graph]
+Given a capacitated network $G=(V,E)$ with capacity function 
+$c:E\to\mathbb{R}_{\ge 0}$ and a feasible flow $f$, the residual 
+graph $G_f=(V,E_f)$ is defined over the same node set $V$ with 
+residual edge set
+\[
+E_f = \{(u,v)\in E : c_{uv} - f_{uv} > 0\} 
+      \cup \{(v,u) : (u,v)\in E,\, f_{uv} > 0\},
+\]
+where the residual capacity on each edge is given by
+\[
+r_{uv} = \begin{cases} c_{uv} - f_{uv} & (u,v)\in E 
+\quad \text{(forward residual)},\\ 
+f_{vu} & (v,u)\in E \quad \text{(backward residual).}\end{cases}
+\]
+A forward residual edge $(u,v)$ represents spare capacity on an original edge; a backward residual edge $(v,u)$ represents flow on $(u,v)$ that can be cancelled.
+An augmenting path $P$ in $G_f$ is then a directed path from 
+$s$ to $t$ along which $r_{uv}>0$ for every edge $(u,v)\in P$.
+\end{definition}
+
+The Ford-Folkerson-based solvers work by iteratively finding and pushing flow along augmenting paths and generally follow these steps:
+
+\begin{enumerate}
+\item Initialise a working residual graph with zero flow.
+\item Find an augmenting path $P$ from source to sink.
+\item Compute the residual (spare) capacity on all edges in $P$.
+\item Push as much flow as possible along $P$, the maximum of
+which is limited by the edge with the least spare capacity on $P$.
+\item Update the working graph.
+\item Repeat from step 2 until no more augmenting paths remain.
+\item Identify the min-cut from the reachable/non-reachable 
+partitioning in the final residual graph.
+\end{enumerate}
+
+As is evident from the algorithm steps described above, most of the computation
+time is spent repeating four main lookups:
+
+\begin{itemize}
+\item Capacity on any edge $u$-$v$
+\item Current flow on any edge $u$-$v$
+\item Outgoing edges from any node $u$ for graph search expansion
+and forward residual updates
+\item Incoming edges to any node $u$ for backward residual updates
+and inflow queries
+\end{itemize}
+
+The graph object from the input processing module already stores this information as
+part of the network structure and therefore does not need to be
+recomputed on every call. Both Ford-Folkerson-based solvers use this lookup structure 
+but differ at step 2 in how the augmenting path is found.
+
+\paragraph{Edmonds-Karp.} 
+The Edmonds-Karp solver uses a repeated breadth-first search (BFS) to find the shortest augmenting path in the residual graph. However, since each iteration requires an explicit path reconstruction via a stored parent map, the per-iteration overhead is higher than the Dinic variant, and the $O(VE^2)$ bound makes it poorly suited for larger and denser networks. It is therefore best reserved for smaller networks where simplicity and interpretability are preferred over performance.
+
+\paragraph{Dinic.} 
+To avoid the one-path-at-a-time limitation of the Edmonds-Karp method, the Dinic solver alternates between level graph construction via BFS and a blocking-flow depth-first search. The level graph restricts traversal to edges $u \to v$ where $\text{level}[v] = \text{level}[u] + 1$, reducing the search space to a layered subgraph per phase. Furthermore, to avoid the $O(E)$ per-path rescanning cost of naive DFS, this variant uses a pointer cursor \texttt{ptr[u]} to track each node's position in its adjacency list, permanently skipping exhausted edges. 
+
+The Dinic solver is the best fit for most hierarchical DAG networks and is the framework's default when no user-specified option is selected. However, on very dense graphs with $O(V^2)$ edges and high structural redundancy, the per-phase BFS reconstruction becomes costly, and the blocking flow DFS must still handle a larger fraction of edges despite the pointer optimisation. In these cases, the Push-Relabel solver is recommended, as it operates locally without global path searches.
+
+\subsection{Push-Relabel Solver}
+Unlike the two path-based solvers, the Push-Relabel (PR) variant does not search for augmenting paths at all. This solver works by resolving excess flow locally from an initialised pre-flow.
+Here, instead of a residual graph per phase, a merged neighbourhood list is built once over the augmented network and shared across all push and relabel operations. The algorithm proceeds as follows:
+
+\begin{enumerate}
+    \item Initialise $\text{height}[s^\star] = |V|$, push maximum admissible flow from the super-source to its neighbours, and track $\text{excess}[v]$ as inflow minus outflow at each node.
+    \item While active nodes ( $\text{excess}[u] > 0$) exist:
+    \begin{enumerate}
+        \item Attempt to push flow from $u$ to neighbour $v$ where 
+        $\text{height}[u] = \text{height}[v] + 1$.
+        \item If no valid push exists, relabel $u$ by raising its height 
+        to $\min_{v}\,\text{height}[v] + 1$ over all reachable neighbours.
+    \end{enumerate}
+    \item Terminate when no excess remains outside $s^\star$ and $t^\star$.
+    \item Compute the min-cut by traversing the final flow state from $s^\star$.
+\end{enumerate}
+
+
+
+\FloatBarrier
+\section{Network Flow Diagnostics}
+\subsection{Min-Cut Utility Module}
+\begin{quote}
+    \textbf{Motivating question:} \textit{``How constrained is the bottleneck, and in how many equivalent ways?''}
+\end{quote}
+The flow module solvers all compute the max flow $F^\star$ by constructing a representative valid min-cut $S^\star$ in the given network $G$. This output by itself neither indicates nor guarantees that $S^\star$ is the only possible min-cut set in $G$.
+
+This distinction matters in practice for some engineering decisions. Infrastructure systems are designed with robustness and redundancy in mind. In these networks it is more common to expect multiple structurally distinct $S$/$T$ partitions of $V$ that all have the same max flow $F^\star$ value.
+
+While the baseline max flow value directly addresses the first analysis objective, the utility module exploits the already-generated min-cut and residual graph to build the extended partition $S^{\star\star}$ and compute the full space of valid min-cuts. 
+
+Let $R_T \subseteq V$ be the set of nodes reachable via backward traversal from 
+$t^\star$ in $G_f$.
+
+\begin{definition}[Extended Source Partition]
+The extended source-side region is
+\[
+S^{\star\star} = V \setminus R_T,
+\]
+restricted to original graph nodes. Any node outside $R_T$ cannot reach the sink 
+under the current flow state, so absorbing it into the source partition never 
+increases cut capacity. Consequently $S^\star \subseteq S^{\star\star}$.
+\end{definition}
+
+\begin{definition}[Free Zone]
+Given the extended partition, the free zone is
+\[
+\mathcal{F} = S^{\star\star} \setminus S^\star.
+\]
+Nodes in $\mathcal{F}$ can be assigned to either side of a minimum cut without 
+affecting its capacity. Every minimum cut of $G$ under $f^\star$ takes the form 
+$S = S^\star \cup R$ for some $R \subseteq \mathcal{F}$.
+\end{definition}
+
+The free zone size $|\mathcal{F}|$ directly determines the degeneracy of the bottleneck structure. Specifically, when $|\mathcal{F}| = 0$ the minimum cut computed from the flow solver is unique and $S^\star$ is the only valid partition. For $|\mathcal{F}| > 0$ there are exactly 
+$2^{|\mathcal{F}|}$ equivalent minimum cuts, meaning the cut boundary is not pinned 
+to a single partition. 
+
+Both the extended partition $S^{\star\star}$ and free zone $\mathcal{F}$ allow for a more complete picture of the bottleneck edge structure beyond what the representative cut alone provides. Specifically, two operationally distinct edge sets follow directly from the lattice.
+
+ The set of edges appearing in at least one minimum cut is \[ E_{\text{some}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^{\star\star},\; v \notin S^\star\}, \] and the set appearing in every minimum cut is \[ E_{\text{every}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^\star,\; v \in T^{\star\star}\}, \] where $T^{\star\star} = V \setminus S^{\star\star}$, and $E_{\text{every}} \subseteq E_{\text{some}}$ holds by construction. 
+
+\subsubsection{Min-Cut Enumerator}
+Given the residual lattice, the enumerator function in this utility module iterates over subsets $R \subseteq \mathcal{F}$ in  binary counting order. Since each subset maps to a distinct minimum cut $S^\star \cup R$, every enumerated cut is guaranteed to be valid by lattice membership. The function exposes a \texttt{cut\_limit} parameter such that: if $2^{|\mathcal{F}|} \leq \texttt{cut\_limit}$ all minimum cuts are returned and \texttt{is\_complete} $=$ \texttt{true}; otherwise, the first \texttt{cut\_limit} cuts are returned with \texttt{is\_complete} $=$ \texttt{false}. This can be necessary in highly symmetric networks, where $|\mathcal{F}|$ can be large, making full enumeration intractable.
+
+
+\subsection{Structure Utility Module}
+\begin{quote}
+    \textbf{Motivating question:} \textit{``Where is the network fragile, and at what granularity?''}
+\end{quote}
+The network Diagnostics modules 
+Where the Min-Cut Utilities handles the question of 'how many valid cuts exist and which edges appear in them', the structural module focuses on describing what the network looks like and where it is fragile. The serves as another post-processing layer on the base solver output that exposes the following helper functions. 
+
+\end{document}
+
+
