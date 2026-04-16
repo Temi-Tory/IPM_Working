@@ -1,5 +1,5 @@
 # Fdb version 3
-["pdflatex"] 1775880705 "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/InfoPropFrmwrk/drafts.tex" "drafts.pdf" "drafts" 1775880705
+["pdflatex"] 1776287231 "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/InfoPropFrmwrk/drafts.tex" "drafts.pdf" "drafts" 1776287231
   "C:/Users/ohian/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1775445907 82686 2381c3433487640bf26aa76a10db7eb2 ""
   "C:/Users/ohian/AppData/Local/MiKTeX/fonts/pk/ljfour/jknappen/ec/dpi600/ecbx1200.pk" 1773766536 31952 b0da043bb52dd7656c8f3f34976da5c1 ""
   "C:/Users/ohian/AppData/Local/MiKTeX/fonts/pk/ljfour/jknappen/ec/dpi600/ecbx1440.pk" 1773766537 40136 b4c8948904d263c1ed192fb40a3ac6ab ""
@@ -125,7 +125,7 @@
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/tex/latex/threeparttable/threeparttable.sty" 1059520917 13506 a4e71a27db1a69b6fabada5beebf0844 ""
   "C:/Users/ohian/AppData/Local/Programs/MiKTeX/tex/latex/url/url.sty" 1388494052 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "c:/Users/ohian/OneDrive - University of Strathclyde/Documents/Programmming Files/Julia Files/InformationPropagation/Info_Prop_Framework_Project/InfoPropFrmwrk/drafts.tex" 1775880694 22953 762f38d9ba833e4f75df47695524e051 ""
-  "drafts.aux" 0 -1 0 "pdflatex"
+  "drafts.aux" 1776287231 34 3985256e7290058c681f74d7a3565a19 "pdflatex"
   "drafts.out" 0 -1 0 "pdflatex"
   "drafts.tex" 1775880694 22953 762f38d9ba833e4f75df47695524e051 ""
   "figures/flow_chapter/flow_toolkit_workflow.pdf" 0 -1 0 ""
