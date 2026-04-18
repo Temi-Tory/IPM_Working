@@ -1,0 +1,30 @@
+#= The diamond detection automatically identifies:
+
+Common failure points (convergent subsystems)
+Natural organizational boundaries
+Places where delays propagate through multiple paths =#
+module DiamondDecompositionModule
+
+    using ..InputProcessingModule 
+    import ProbabilityBoundsAnalysis
+    
+    # Create aliases to avoid ambiguity
+    const PBA = ProbabilityBoundsAnalysis
+    # Type aliases for convenience
+    const PBAInterval = ProbabilityBoundsAnalysis.Interval
+    const pbox = ProbabilityBoundsAnalysis.pbox
+    const Interval = InputProcessingModule.Interval
+
+    # Export all public functions and types
+    export DiamondsAtNode, Diamond, DiamondComputationData
+    export identify_and_group_diamonds
+    export create_diamond_hash_key
+    export build_unique_diamond_storage
+    export build_unique_diamond_storage_depth_first_parallel
+
+    include(joinpath(@__DIR__, "Internal", "TypesAndCache.jl"))
+    include(joinpath(@__DIR__, "Internal", "UtilityFunctions.jl"))
+
+    include(joinpath(@__DIR__, "Internal", "Pipeline.jl"))
+
+end

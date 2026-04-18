@@ -1,0 +1,637 @@
+openapi: 3.0.3
+info:
+  title: InfoProp Server API Contract
+  version: 1.0.0
+  description: |
+    Master API contract for the currently exposed InfoProp server endpoints.
+    This document is source-of-truth for frontend DTOs (request/response payloads).
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: health
+  - name: upload
+  - name: sessions
+  - name: files
+  - name: structure
+  - name: capacity
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, server]
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  server:
+                    type: string
+                    example: InfoPropServer
+
+  /upload:
+    post:
+      tags: [upload]
+      summary: Upload network and related JSON files
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+              description: One or more files including at least one .EDGES file.
+      responses:
+        '200':
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid upload request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Upload failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /sessions:
+    get:
+      tags: [sessions]
+      summary: List all upload sessions
+      responses:
+        '200':
+          description: Session list returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, sessions]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessionSummary'
+        '500':
+          description: Failed to list sessions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [sessions]
+      summary: Get full session metadata
+      responses:
+        '200':
+          description: Session retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, session]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session:
+                    $ref: '#/components/schemas/SessionMetadata'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Session operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    put:
+      tags: [sessions]
+      summary: Update selected fields of a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionUpdateRequest'
+      responses:
+        '200':
+          description: Session updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, session]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session:
+                    $ref: '#/components/schemas/SessionMetadata'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Session operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    delete:
+      tags: [sessions]
+      summary: Delete a session and its uploaded files
+      responses:
+        '200':
+          description: Session deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Session deleted
+        '500':
+          description: Session operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /files/{networkPath}/{relativeFilePath}:
+    get:
+      tags: [files]
+      summary: Load a JSON file beneath a network path
+      description: |
+        The server treats both path parameters as slash-separated and internally normalizes
+        separators. This endpoint returns raw JSON content from the target file.
+      parameters:
+        - name: networkPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Logical network path segment used by the frontend.
+        - name: relativeFilePath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relative JSON filename/path beneath networkPath.
+      responses:
+        '200':
+          description: Parsed JSON file content
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid path format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: File read failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /network-structure:
+    post:
+      tags: [structure]
+      summary: Compute structural descriptors from .EDGES graph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkStructureRequest'
+      responses:
+        '200':
+          description: Network structure analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkStructureResponse'
+        '400':
+          description: Invalid request or invalid .EDGES file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Structure analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /capacity-analysis:
+    post:
+      tags: [capacity]
+      summary: Run full CapacityAnalysisKit analyze_all pipeline
+      description: |
+        Supports two capacity JSON schemas:
+        1) Legacy schema with capacities.edges object and capacities.nodes object.
+        2) Toolkit schema with edges[] and optional nodes[] arrays.
+
+        Current limitation: input data_type must be Float64.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapacityAnalysisRequest'
+      responses:
+        '200':
+          description: Capacity analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapacityAnalysisResponse'
+        '400':
+          description: Invalid request or graph input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Capacity analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    ApiError:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+          nullable: true
+
+    UploadResponse:
+      type: object
+      required:
+        - success
+        - message
+        - network_path
+        - network_name
+        - upload_id
+        - files_count
+        - uploaded_files
+        - edges_files
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Files uploaded successfully
+        network_path:
+          type: string
+        network_name:
+          type: string
+        upload_id:
+          type: string
+        files_count:
+          type: integer
+        uploaded_files:
+          type: array
+          items:
+            type: string
+        edges_files:
+          type: array
+          items:
+            type: string
+
+    SessionSummary:
+      type: object
+      required: [session_id, upload_id, network_name, network_path, timestamp, has_analysis_results]
+      properties:
+        session_id:
+          type: string
+        upload_id:
+          type: string
+        network_name:
+          type: string
+        network_path:
+          type: string
+        timestamp:
+          type: string
+        has_analysis_results:
+          type: boolean
+
+    SessionMetadata:
+      type: object
+      additionalProperties: true
+      description: Persisted session document in temp_uploads/{session_id}/session.json.
+
+    SessionUpdateRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        network_path:
+          type: string
+        network_name:
+          type: string
+        network_data:
+          nullable: true
+        analysis_results:
+          nullable: true
+        analysis_history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        parsed_data:
+          nullable: true
+        file_manager_state:
+          nullable: true
+        fileManagerState:
+          nullable: true
+          description: Alias accepted by server and mapped to file_manager_state.
+
+    NetworkStructureRequest:
+      type: object
+      required: [networkPath]
+      properties:
+        networkPath:
+          type: string
+          description: Directory containing the .EDGES file.
+        edgesFilePath:
+          type: string
+          description: Optional explicit .EDGES file name/path under networkPath.
+
+    NetworkStructureResponse:
+      type: object
+      required: [success, message, edges_file_path, timestamp, network_structure]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        edges_file_path:
+          type: string
+        timestamp:
+          type: string
+        network_structure:
+          type: object
+          required:
+            - computation_time
+            - total_nodes
+            - total_edges
+            - nodes
+            - edges
+            - source_nodes
+            - sink_nodes
+            - fork_nodes
+            - join_nodes
+            - iteration_sets
+            - iteration_sets_count
+            - ancestors
+            - descendants
+            - outgoing_index
+            - incoming_index
+          properties:
+            computation_time:
+              type: number
+            total_nodes:
+              type: integer
+            total_edges:
+              type: integer
+            nodes:
+              type: array
+              items:
+                type: integer
+            edges:
+              type: array
+              items:
+                type: array
+                minItems: 2
+                maxItems: 2
+                items:
+                  type: integer
+            source_nodes:
+              type: array
+              items:
+                type: integer
+            sink_nodes:
+              type: array
+              items:
+                type: integer
+            fork_nodes:
+              type: array
+              items:
+                type: integer
+            join_nodes:
+              type: array
+              items:
+                type: integer
+            iteration_sets:
+              type: array
+              items:
+                type: array
+                items:
+                  type: integer
+            iteration_sets_count:
+              type: integer
+            ancestors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: integer
+            descendants:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: integer
+            outgoing_index:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: integer
+            incoming_index:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: integer
+
+    CapacityAnalysisRequest:
+      type: object
+      required: [networkPath, capacitiesPath]
+      properties:
+        networkPath:
+          type: string
+        edgesFilePath:
+          type: string
+          description: Optional explicit .EDGES file path relative to networkPath.
+        capacitiesPath:
+          type: string
+          description: Capacity JSON path relative to networkPath.
+        analysisOptions:
+          $ref: '#/components/schemas/CapacityAnalysisOptions'
+
+    CapacityAnalysisOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        algorithm:
+          type: string
+          enum: [dinic, edmonds_karp, push_relabel]
+          default: dinic
+        tol:
+          type: number
+          default: 1.0e-10
+        kFailure:
+          type: integer
+          default: 2
+        cutLimit:
+          type: integer
+          default: 1000
+        pathLimit:
+          type: integer
+          default: 10000
+        combinationLimit:
+          type: integer
+          default: 10000
+        maxDepth:
+          type: integer
+          default: 64
+        targetFlow:
+          type: number
+          nullable: true
+        degradationScenarios:
+          type: array
+          items:
+            type: number
+        includeNodeCapacities:
+          type: boolean
+          default: true
+
+    CapacityAnalysisResponse:
+      type: object
+      required:
+        - success
+        - message
+        - timestamp
+        - input
+        - computation_time
+        - capacity_result
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Capacity analysis completed with CapacityAnalysisKit
+        timestamp:
+          type: string
+        input:
+          type: object
+          required:
+            - edges_file_path
+            - capacities_path
+            - capacity_schema
+            - source_nodes
+            - sink_nodes
+            - target_nodes_from_file
+            - source_rates_from_file
+          properties:
+            edges_file_path:
+              type: string
+            capacities_path:
+              type: string
+            capacity_schema:
+              type: string
+              enum: [legacy-capacities-object, toolkit-edges-array]
+            source_nodes:
+              type: array
+              items:
+                type: integer
+            sink_nodes:
+              type: array
+              items:
+                type: integer
+            target_nodes_from_file:
+              type: array
+              items:
+                type: integer
+            source_rates_from_file:
+              type: array
+              items:
+                type: array
+                minItems: 2
+                maxItems: 2
+                items:
+                  oneOf:
+                    - type: integer
+                    - type: number
+        computation_time:
+          type: number
+        capacity_result:
+          type: object
+          additionalProperties: true
+          description: Serialized CapacityAnalysisKitResult (multi-section analysis payload).
