@@ -1,0 +1,190 @@
+digraph FlagshipBenchmark {
+  graph [rankdir=TB, splines=polyline, fontsize=11,
+         fontname="Times-Roman", nodesep=0.3, ranksep=0.6, margin=0];
+  node [shape=box, style="rounded,filled", fontsize=9,
+        fontname="Times-Roman", width=1.4, height=0.4, fixedsize=true];
+  edge [fontsize=7, fontname="Times-Roman", arrowsize=0.6, color="#444444"];
+
+  // Layer 1
+  { rank=same;
+    101 [label="origin_northwest\n(101)", fillcolor="#4C72B0", fontcolor="black"];
+    102 [label="origin_north\n(102)", fillcolor="#4C72B0", fontcolor="black"];
+    103 [label="origin_central\n(103)", fillcolor="#4C72B0", fontcolor="black"];
+    104 [label="origin_east\n(104)", fillcolor="#4C72B0", fontcolor="black"];
+    105 [label="origin_southwest\n(105)", fillcolor="#4C72B0", fontcolor="black"];
+  }
+
+  // Layer 2
+  { rank=same;
+    106 [label="hub_alpha\n(106)", fillcolor="#55A868", fontcolor="black"];
+    107 [label="hub_beta\n(107)", fillcolor="#55A868", fontcolor="black"];
+    108 [label="hub_gamma\n(108)", fillcolor="#55A868", fontcolor="black"];
+    109 [label="hub_delta\n(109)", fillcolor="#55A868", fontcolor="black"];
+    110 [label="hub_epsilon\n(110)", fillcolor="#55A868", fontcolor="black"];
+    111 [label="hub_zeta\n(111)", fillcolor="#55A868", fontcolor="black"];
+    112 [label="hub_eta\n(112)", fillcolor="#55A868", fontcolor="black"];
+    113 [label="hub_theta\n(113)", fillcolor="#55A868", fontcolor="black"];
+  }
+
+  // Layer 3
+  { rank=same;
+    114 [label="processing_A\n(114)\n[b=5.0]", fillcolor="#C44E52", fontcolor="black"];
+    115 [label="processing_B\n(115)\n[b=5.0]", fillcolor="#C44E52", fontcolor="black"];
+    116 [label="processing_C\n(116)\n[b=7.0]", fillcolor="#C44E52", fontcolor="black"];
+    117 [label="processing_D\n(117)\n[b=7.0]", fillcolor="#C44E52", fontcolor="black"];
+    118 [label="bypass_E\n(118)\n[b=3.0]", fillcolor="#DD8452", fontcolor="black"];
+    119 [label="bypass_F\n(119)\n[b=3.0]", fillcolor="#DD8452", fontcolor="black"];
+  }
+
+  // Layer 4
+  { rank=same;
+    120 [label="trunk_n1\n(120)", fillcolor="#8172B2", fontcolor="black"];
+    121 [label="trunk_n2\n(121)", fillcolor="#8172B2", fontcolor="black"];
+    122 [label="trunk_c1\n(122)", fillcolor="#8172B2", fontcolor="black"];
+    123 [label="trunk_c2\n(123)", fillcolor="#8172B2", fontcolor="black"];
+    124 [label="trunk_s1\n(124)", fillcolor="#8172B2", fontcolor="black"];
+    125 [label="trunk_s2\n(125)", fillcolor="#8172B2", fontcolor="black"];
+    126 [label="trunk_w1\n(126)", fillcolor="#8172B2", fontcolor="black"];
+    127 [label="trunk_w2\n(127)", fillcolor="#8172B2", fontcolor="black"];
+  }
+
+  // Layer 5
+  { rank=same;
+    128 [label="secondary_a\n(128)", fillcolor="#937860", fontcolor="black"];
+    129 [label="secondary_b\n(129)", fillcolor="#937860", fontcolor="black"];
+    130 [label="secondary_c\n(130)", fillcolor="#937860", fontcolor="black"];
+    131 [label="secondary_d\n(131)", fillcolor="#937860", fontcolor="black"];
+    132 [label="secondary_e\n(132)", fillcolor="#937860", fontcolor="black"];
+    133 [label="secondary_f\n(133)", fillcolor="#937860", fontcolor="black"];
+  }
+
+  // Layer 6
+  { rank=same;
+    134 [label="dispatch_gateway_west\n(134)\n[b=20.0]", fillcolor="#C44E52", fontcolor="black"];
+    135 [label="dispatch_gateway_east\n(135)\n[b=20.0]", fillcolor="#C44E52", fontcolor="black"];
+  }
+
+  // Layer 7
+  { rank=same;
+    136 [label="distribution_combiner\n(136)", fillcolor="#DA8BC3", fontcolor="black"];
+  }
+
+  // Layer 8
+  { rank=same;
+    137 [label="sink_1\n(137)", fillcolor="#B0B0B0", fontcolor="black"];
+    138 [label="sink_2\n(138)", fillcolor="#B0B0B0", fontcolor="black"];
+    139 [label="sink_3\n(139)", fillcolor="#B0B0B0", fontcolor="black"];
+    140 [label="sink_4\n(140)", fillcolor="#B0B0B0", fontcolor="black"];
+    141 [label="sink_5\n(141)", fillcolor="#B0B0B0", fontcolor="black"];
+    142 [label="sink_6\n(142)", fillcolor="#B0B0B0", fontcolor="black"];
+    143 [label="sink_7\n(143)", fillcolor="#B0B0B0", fontcolor="black"];
+  }
+
+  // Edges
+  101 -> 106 [label="16"];
+  101 -> 107 [label="14"];
+  101 -> 108 [label="12"];
+  101 -> 109 [label="10"];
+  101 -> 118 [label="2"];
+  102 -> 107 [label="16"];
+  102 -> 108 [label="14"];
+  102 -> 109 [label="12"];
+  102 -> 110 [label="10"];
+  102 -> 118 [label="2"];
+  103 -> 109 [label="16"];
+  103 -> 110 [label="14"];
+  103 -> 111 [label="12"];
+  103 -> 112 [label="10"];
+  103 -> 119 [label="2"];
+  104 -> 110 [label="16"];
+  104 -> 111 [label="14"];
+  104 -> 112 [label="12"];
+  104 -> 113 [label="10"];
+  104 -> 119 [label="2"];
+  105 -> 106 [label="12"];
+  105 -> 107 [label="10"];
+  105 -> 112 [label="14"];
+  105 -> 113 [label="16"];
+  105 -> 118 [label="2"];
+  105 -> 119 [label="2"];
+  106 -> 114 [label="6"];
+  106 -> 116 [label="6"];
+  106 -> 118 [label="4"];
+  107 -> 114 [label="6"];
+  107 -> 116 [label="6"];
+  107 -> 118 [label="4"];
+  108 -> 115 [label="6"];
+  108 -> 116 [label="4"];
+  108 -> 119 [label="4"];
+  109 -> 115 [label="6"];
+  109 -> 117 [label="6"];
+  109 -> 118 [label="4"];
+  110 -> 114 [label="4"];
+  110 -> 117 [label="6"];
+  110 -> 119 [label="4"];
+  111 -> 115 [label="4"];
+  111 -> 117 [label="4"];
+  111 -> 119 [label="4"];
+  112 -> 115 [label="6"];
+  112 -> 119 [label="4"];
+  113 -> 114 [label="4"];
+  113 -> 118 [label="4"];
+  113 -> 119 [label="6"];
+  114 -> 120 [label="6"];
+  114 -> 121 [label="4"];
+  114 -> 122 [label="2"];
+  115 -> 121 [label="2"];
+  115 -> 122 [label="6"];
+  115 -> 123 [label="4"];
+  116 -> 120 [label="8"];
+  116 -> 122 [label="8"];
+  117 -> 121 [label="8"];
+  117 -> 123 [label="8"];
+  118 -> 124 [label="4"];
+  118 -> 125 [label="4"];
+  118 -> 126 [label="2"];
+  119 -> 125 [label="2"];
+  119 -> 126 [label="4"];
+  119 -> 127 [label="4"];
+  120 -> 128 [label="8"];
+  120 -> 129 [label="6"];
+  120 -> 130 [label="4"];
+  121 -> 129 [label="8"];
+  121 -> 130 [label="6"];
+  121 -> 131 [label="4"];
+  122 -> 130 [label="8"];
+  122 -> 131 [label="6"];
+  122 -> 132 [label="4"];
+  123 -> 131 [label="8"];
+  123 -> 132 [label="6"];
+  123 -> 133 [label="4"];
+  124 -> 132 [label="4"];
+  124 -> 133 [label="4"];
+  125 -> 132 [label="2"];
+  125 -> 133 [label="4"];
+  126 -> 128 [label="4"];
+  126 -> 133 [label="4"];
+  127 -> 129 [label="4"];
+  127 -> 133 [label="4"];
+  128 -> 134 [label="4"];
+  128 -> 135 [label="1"];
+  129 -> 134 [label="3"];
+  129 -> 135 [label="3"];
+  130 -> 134 [label="2"];
+  130 -> 135 [label="4"];
+  131 -> 134 [label="4"];
+  131 -> 135 [label="2"];
+  132 -> 134 [label="3"];
+  132 -> 135 [label="3"];
+  133 -> 134 [label="1"];
+  133 -> 135 [label="4"];
+  134 -> 136 [label="17", penwidth=2.5, color="#C44E52"];
+  135 -> 136 [label="17", penwidth=2.5, color="#C44E52"];
+  136 -> 137 [label="6"];
+  136 -> 138 [label="6"];
+  136 -> 139 [label="6"];
+  136 -> 140 [label="6"];
+  136 -> 141 [label="6"];
+  136 -> 142 [label="6"];
+  136 -> 143 [label="6"];
+}

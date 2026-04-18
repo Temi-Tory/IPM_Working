@@ -14,6 +14,9 @@
 \usepackage{hyperref}
 \usepackage{array} 
 \usepackage{pdflscape} 
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{graphicx}
 \newtheorem{proposition}{Proposition}
 \newtheorem{definition}{Definition}
 \onehalfspacing
@@ -620,6 +623,14 @@ Param & \texttt{all\_degrade} & Per edge & $O(|E_c| \lg(c/\varepsilon) T_s)$ \\[
 \texttt{mincut\_S}, \texttt{mincut\_T} & Base Solver & Source- and sink-side min-cut node partitions. \\[2pt]
 \texttt{mincut\_capacity} & Base Solver & Capacity of the reported minimum cut. \\[2pt]
 \texttt{is\_unbounded} & Base Solver & Whether unbounded max-flow was detected. \\[2pt]
+\texttt{saturated\_edges} & Base Solver & Edges carrying flow at full capacity $f^\star_{uv} = c_{uv}$; forms the candidate set for sensitivity and failure impact modules. \\[2pt]
+\midrule
+\texttt{node\_cap\_max\_flow} & Node-Cap Base Solver & Maximum deliverable 
+throughput $F^\star$ under node capacity constraints. \\[2pt]
+\texttt{node\_cap\_flow\_drop} & Node-Cap Base Solver & Reduction in 
+$F^\star$ relative to the edge-only baseline. \\[2pt]
+\texttt{saturated\_nodes} & Node-Cap Base Solverr & Nodes whose through-flow 
+reaches the node capacity bound $b_v$ under the node-capacitated solve. \\[2pt]
 \midrule
 \texttt{mincut\_S\_star\_star} & Min-Cut Utility & $S^{\star\star}$: extended source partition; nodes that cannot reach the sink in the residual graph. \\[2pt]
 \texttt{free\_zone\_size} & Min-Cut Utility & $|\mathcal{F}|$: number of free-zone nodes assignable to either partition without affecting cut capacity. Exactly $2^{|\mathcal{F}|}$ equivalent minimum cuts exist. \\[2pt]
@@ -648,6 +659,167 @@ Param & \texttt{all\_degrade} & Per edge & $O(|E_c| \lg(c/\varepsilon) T_s)$ \\[
 \label{tab:flowsolveresult}
 \end{longtable}
 
+\clearpage
+
+\section{Case Study: Synthetic Benchmark Network}
+
+\subsection{Benchmark Network Design}
+To demonstrate the full range of the flow toolkit, a synthetic benchmark was generated. The network is a multi-source, multi-sink capacitated DAG with 43 nodes, 107 directed edges. The benchmark simulates a distribution system that propagates resources across geographically dispersed locations. As shown in Figure~\ref{fig:flow_bm_networks}, it is structured as an 8-layer hierarchy:
+
+\begin{itemize}
+    \item \textbf{Origin nodes} (blue): five source nodes, over-provisioned so the supply zone does not form the binding bottleneck.
+    \item \textbf{Hub nodes} (green): eight intermediate relay nodes with high fan-out capacities.
+    \item \textbf{Processing nodes} (red, node-capacitated) and \textbf{bypass nodes} (orange, node-capacitated): the processing corridor carries the bulk of flow; the bypass is a lightweight alternative with tighter node constraints.
+    \item \textbf{Trunk and secondary nodes} (purple, brown): distribute flow through a re-converging structure toward the gateway layer.
+    \item \textbf{Dispatch gateways} (light blue, node-capacitated): two gateways assigned equal edge capacity of 17 by design.
+    \item \textbf{Distribution combiner} (pink): aggregates all gateway flow before fan-out to the sinks.
+    \item \textbf{Sink nodes} (grey): seven demand nodes, each with incoming edge capacity 6.
+\end{itemize}
+Based on this layered structure, edge and node capacity assignments are chosen to ensure that binding bottlenecks emerge at specific layers under the different analysis methods. Edge capacities in Layers~1--5 are scaled by a factor of 2 relative to the gateway layer. In this way, the gateway layer governs $F^\star$ under the edge-only solution. Similarly, to compute a measurable reduction in $F^\star$, the processing node capacities are set to bind to the node-capacitated solve.
+
+To explore competing design alternatives under controlled conditions, two configurations of the same system are presented to evaluate the effect of feeder reinforcement (Figures~\ref{fig:network_a} and~\ref{fig:network_b}). 
+Both configurations of the network keep the same backbone topology, but represent different design objectives. Therefore, the comparative objective is not to maximize throughput alone, but to test whether robustness structure changes even when headline flow remains unchanged. 
+
+Config A proposes a symmetry-preserving design with balanced feeder-edge capacities and a limited direct bypass to sink 4. The capacity is set below the sink's 6-unit limit such that the bypass delivers partial rather than full service. Config B's asymmetric gateway structure is designed to produce non-trivial parametric upgrade thresholds and non-zero marginal-range values. This version has larger feeder capacities from secondary nodes into both gateways.
+ 
+Table~\ref{tab:config_comparison} summarises the key structural differences between the two. The expectation is that two designs may yield the same max-flow value while looking very different in terms of saturation pattern and min-cut landscape due to their differing feeder-capacity policies.
+
+
+
+\subsection{Results}
+From the base flow solver run, both configurations return $F^\star = 37.0$, with $\texttt{mincut\_capacity}=37.0$, which is consistent with the expected maximum feasible flow for the benchmarked system. However, when optimizing for a demand target or comparing two network design approaches, $F^\star$ alone is not always enough to inform decisions. As shown in Table~\ref{tab:config_comparison}, the two networks still differ in structure: Configuration A has 41 saturated edges versus 35 in Configuration B, and it has 4 valid min-cuts versus 1 in Configuration B. This is also reflected in free-zone size (2 in A, 0 in B). The same throughput being produced by structurally different network constraints motivates the use of the extended analysis modules in the toolkit.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, keepaspectratio]%
+        {figures/flow_chapter/flagship_network_a}
+    \caption{Configuration A: symmetric gateway design. Blue edge 
+    $132 \to 140$ is the direct bypass to \texttt{sink\_4}.}
+    \label{fig:network_a}
+\end{subfigure}
+
+\vspace{1em}
+
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, keepaspectratio]%
+        {figures/flow_chapter/flagship_network_b}
+    \caption{Configuration B: orange edges show capacity-boosted 
+    secondary-to-gateway feeders, breaking gateway symmetry.}
+    \label{fig:network_b}
+\end{subfigure}
+
+\caption{Flagship benchmark DAG (43 nodes, 107 edges, 8 layers). 
+Node colours: blue = sources, green = hubs, red = constrained nodes, 
+orange = bypass nodes, purple = trunks, brown = secondary, 
+pink = combiner, grey = sinks.}
+\label{fig:flow_bm_networks}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/sensitivity_ranking_ab}
+\caption{}
+\label{fig:flow_toolkit_workflow}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/degradation_trajectory}
+\caption{}
+\label{fig:flow_toolkit_workflow}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/sink_flow_heatmap}
+\caption{}
+\label{fig:flow_toolkit_workflow}
+\end{figure}
+
+
+\begin{table}[htbp]
+\centering
+\caption{Configuration comparison summary.}
+\label{tab:config_comparison}
+\begin{tabular}{lcc}
+\toprule
+Metric & Config A & Config B \\
+\midrule
+$F^*$                                        & 37.0           & 37.0           \\
+\texttt{saturated\_edges}                    & 41             & 35             \\
+\texttt{free\_zone\_size}                    & 2              & 0              \\
+\texttt{min\_cuts}                           & 4              & 1              \\
+\texttt{SPOF\_nodes}                         & 0              & 0              \\
+\texttt{upgrade\_ineffective} (gateway edges) & \texttt{true} & \texttt{false} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Top critical edges for Config A (non-zero deltas).}
+\label{tab:critical_edges_config_a}
+\begin{tabular}{lccc}
+\toprule
+Rank & Label & $\Delta F^*$ & \texttt{perturbed\_flow} \\
+\midrule
+1  & \texttt{dispatch\_gateway\_west}$\to$\texttt{distribution\_combiner}  & 17.0 & 20.0 \\
+2  & \texttt{dispatch\_gateway\_east}$\to$\texttt{distribution\_combiner}  & 17.0 & 20.0 \\
+3  & \texttt{secondary\_a}$\to$\texttt{dispatch\_gateway\_west}            & 4.0  & 33.0 \\
+4  & \texttt{secondary\_c}$\to$\texttt{dispatch\_gateway\_east}            & 4.0  & 33.0 \\
+5  & \texttt{secondary\_d}$\to$\texttt{dispatch\_gateway\_west}            & 4.0  & 33.0 \\
+6  & \texttt{secondary\_f}$\to$\texttt{dispatch\_gateway\_east}            & 4.0  & 33.0 \\
+7  & \texttt{secondary\_b}$\to$\texttt{dispatch\_gateway\_west}            & 3.0  & 34.0 \\
+8  & \texttt{secondary\_b}$\to$\texttt{dispatch\_gateway\_east}            & 3.0  & 34.0 \\
+9  & \texttt{secondary\_e}$\to$\texttt{dispatch\_gateway\_west}            & 3.0  & 34.0 \\
+10 & \texttt{secondary\_e}$\to$\texttt{dispatch\_gateway\_east}            & 3.0  & 34.0 \\
+11 & \texttt{secondary\_e}$\to$\texttt{sink\_4}                            & 3.0  & 34.0 \\
+12 & \texttt{secondary\_c}$\to$\texttt{dispatch\_gateway\_west}            & 2.0  & 35.0 \\
+13 & \texttt{secondary\_d}$\to$\texttt{dispatch\_gateway\_east}            & 2.0  & 35.0 \\
+14 & \texttt{secondary\_a}$\to$\texttt{dispatch\_gateway\_east}            & 1.0  & 36.0 \\
+15 & \texttt{secondary\_f}$\to$\texttt{dispatch\_gateway\_west}            & 1.0  & 36.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Min-cut enumeration for Config A.}
+\label{tab:mincut_enumeration_config_a}
+\begin{tabular}{lp{10cm}}
+\toprule
+Cut & Crossing edges \\
+\midrule
+1 & $(128\rightarrow134)$, $(128\rightarrow135)$, $(129\rightarrow134)$, $(129\rightarrow135)$, \\
+  & $(130\rightarrow134)$, $(130\rightarrow135)$, $(131\rightarrow134)$, $(131\rightarrow135)$, \\
+  & $(132\rightarrow134)$, $(132\rightarrow135)$, $(132\rightarrow140)$, $(133\rightarrow134)$, \\
+  & $(133\rightarrow135)$ \\
+\midrule
+2 & $(128\rightarrow135)$, $(129\rightarrow135)$, $(130\rightarrow135)$, $(131\rightarrow135)$, \\
+  & $(132\rightarrow135)$, $(132\rightarrow140)$, $(133\rightarrow135)$, $(134\rightarrow136)$ \\
+\midrule
+3 & $(128\rightarrow134)$, $(129\rightarrow134)$, $(130\rightarrow134)$, $(131\rightarrow134)$, \\
+  & $(132\rightarrow134)$, $(132\rightarrow140)$, $(133\rightarrow134)$, $(135\rightarrow136)$ \\
+\midrule
+4 & $(132\rightarrow140)$, $(134\rightarrow136)$, $(135\rightarrow136)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
 

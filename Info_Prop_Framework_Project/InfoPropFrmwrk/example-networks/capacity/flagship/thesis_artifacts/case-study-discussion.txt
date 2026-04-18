@@ -1,0 +1,219 @@
+
+\subsection{Comparative Results (Config A vs Config B)}
+
+The base flow solver run returns $F^\star = 37.0$, with $\texttt{mincut\_capacity} = 37.0$ for both networks, consistent with the expected maximum feasible flow for the benchmarked system. However, when optimising for a demand target or comparing two network design approaches, $F^\star$ alone is not always enough to inform decisions. As shown in Table~\ref{tab:config_comparison}, the two networks still differ in structure: Configuration A has 41 saturated edges versus 35 in Configuration B, and 4 valid minimum cuts versus 1. This is also reflected in free-zone size (2 in A, 0 in B). The same throughput under structurally different constraints motivates the use of the extended analysis modules in the toolkit.
+
+\begin{table}[htbp]
+\centering
+\caption{Configuration comparison summary.}
+\label{tab:config_comparison}
+\begin{tabular}{lcc}
+\toprule
+Metric & Config A & Config B \\
+\midrule
+$F^*$                                        & 37.0           & 37.0           \\
+\texttt{saturated\_edges}                    & 41             & 35             \\
+\texttt{free\_zone\_size}                    & 2              & 0              \\
+\texttt{min\_cuts}                           & 4              & 1              \\
+\texttt{SPOF\_nodes}                         & 0              & 0              \\
+\texttt{upgrade\_ineffective} (gateway edges) & \texttt{true} & \texttt{false} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+From a design perspective, this reflects a trade-off between structural flexibility and tighter bottleneck localisation. In Configuration A, the free-zone nodes are $\{134,135\}$, producing a wider cut lattice where $E_{\text{every}}$ and $E_{\text{some}}$ differ. The gateway edges $134 \to 136$ and $135 \to 136$ appear in $E_{\text{some}}$ but not in $E_{\text{every}}$, so neither is a universal failure mode on its own. Cut 4 has only 3 crossing edges while Cut 1 has 13, both at capacity 37 (Table~\ref{tab:mincut_enumeration_config_a}). In Configuration B, feeder-capacity reinforcement pins the cut to a unique partition: free-zone size collapses to 0 and the gateway edges move into $E_{\text{every}}$. The choice between configurations depends on the optimisation target: Configuration A offers more structural redundancy and cut diversity, while Configuration B offers tighter bottleneck localisation and actionable upgrade thresholds.
+
+\paragraph{Bypass edge and structural vulnerability.}
+
+The direct bypass edge $132 \to 140$ improves $\texttt{sink\_4}$ service with capacity 3, below the sink-side limit of 6. The same edge raises redundancy scores for all secondary-to-gateway connections from 2 to 3, improving redundancy across the gateway-feeding layer, not only the directly connected nodes.
+
+Without this edge, node 136 is the only SPOF node: every source-to-sink path passes through it and $F^\star(G \setminus \{136\}) = 0$. Adding $132 \to 140$ gives $F^\star(G \setminus \{136\}) = 3 > 0$, removing node 136 from the SPOF set, and both configurations report $\texttt{spof\_nodes} = \emptyset$. However, only $\texttt{sink\_4}$ has an alternative path, so all other flow still passes through the combiner. Running the capacity degradation module with node 136 removed confirms this: $F^\star$ drops to 3, exposing the network's continued vulnerability to combiner failure despite the absence of a formal SPOF classification.
+
+\paragraph{Node-capacitated analysis.}
+When node capacities are enabled, both configurations still return the same result: a 7-unit loss down to $\texttt{node\_cap\_max\_flow}=30.0$. The same six Layer~3 nodes $\{114,115,116,117,118,119\}$ saturate in both cases. This matters because it tells the system designer where to act: once these node limits are active, changing gateway-edge capacities does not change the outcome.
+
+The flow loss is not shared evenly across demand nodes (Figure~\ref{fig:sink_flow_heatmap}). \texttt{sink\_1} (137) falls from 4.0 to 0.0, so it loses service completely. \texttt{sink\_2} (138) falls from 6.0 to 3.0, while sinks 139--143 stay at their previous levels. Reporting total flow alone misses the main service issue.
+
+To test a direct fix, a single-node upgrade sweep was run on nodes 114--119 (Table~\ref{tab:node_upgrade_sweep}). Any one of these nodes can restore \texttt{sink\_1} to its edge-only service level with $\Delta b_v=7.0$, and this also returns total flow to $F^\star=37.0$ in both configurations. The increment is the same for all six nodes, but the final capacity targets are not: nodes 114/115 go to $b_v=12.0$, nodes 116/117 go to $b_v=14.0$, and nodes 118/119 go to $b_v=10.0$. In practice, that means the choice should be made by delivery constraints such as cost, installation effort, and access, not by throughput effect.
+
+\begin{table}[htbp]
+\centering
+\caption{Node-upgrade sweep (Configurations A and B give identical results): minimum single-node capacity increase required to restore \texttt{sink\_1} service under the node-capacitated solve.}
+\label{tab:node_upgrade_sweep}
+\begin{tabular}{lccc}
+\toprule
+Node & Current $b_v$ & Required $\Delta b_v$ & New $b_v$ \\
+\midrule
+114 (\texttt{processing\_A}) & 5.0 & 7.0 & 12.0 \\
+115 (\texttt{processing\_B}) & 5.0 & 7.0 & 12.0 \\
+116 (\texttt{processing\_C}) & 7.0 & 7.0 & 14.0 \\
+117 (\texttt{processing\_D}) & 7.0 & 7.0 & 14.0 \\
+118 (\texttt{bypass\_E})     & 3.0 & 7.0 & 10.0 \\
+119 (\texttt{bypass\_F})     & 3.0 & 7.0 & 10.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Flow decomposition results.}
+
+Flow decomposition shows that both configurations achieve the same total throughput ($F^\star=37.0$) with very similar route-level allocation. Configuration A decomposes into 27 components and Configuration B into 25, so the difference is small and does not change the main delivery pattern. In both cases, the largest single component carries 3.0 units on a path bottlenecked at $(114\to120)$, and most remaining components are paths carrying 2.0 or 1.0 units distributed across the processing and bypass corridors.
+
+This supports the earlier structural findings. The A/B edge-capacity changes alter which secondary-to-gateway edges appear as local path bottlenecks, but they do not create a different high-level flow-allocation picture. The dominant route family still passes through the same Layer 3 processing/bypass region and then through the combiner to sinks, with the direct bypass to sink 4 contributing only partial service. At decomposition level, the two designs differ in local edge pressure more than in overall route usage.
+
+\paragraph{Sensitivity analysis.}
+
+Sensitivity ranking shows a clear tiered pattern in Configuration A (Figure~\ref{fig:sensitivity_ranking_ab}; Table~\ref{tab:critical_edges_config_a}). The two gateway-to-combiner edges $(134\to136)$ and $(135\to136)$ rank first and second with $\Delta^\star=17.0$ each, reducing flow from $F^\star=37.0$ to 20.0 when removed (about 46\%). The next tier contains four feeder edges with $\Delta^\star=4.0$ and perturbed flow 33.0: $(128\to134)$, $(130\to135)$, $(131\to134)$, and $(133\to135)$. A third tier of five edges has $\Delta^\star=3.0$ and perturbed flow 34.0, including the direct bypass edge $(132\to140)$; this places the bypass in the same sensitivity tier as several secondary-to-gateway feeders. The remaining non-zero edges have $\Delta^\star\in\{1.0,2.0\}$ with perturbed flow 35.0 or 36.0. In total, 15 edges have non-zero single-edge impact in Configuration A.
+
+Configuration B is much more concentrated: only three edges have non-zero impact, $(134\to136)$, $(135\to136)$, and $(132\to140)$, while all other evaluated edges give $\Delta^\star=0$. This means the feeder-capacity reinforcement in B absorbs any single feeder-edge loss through rerouting, so feeder removals no longer reduce $F^\star$ individually. The non-zero set therefore collapses from 15 edges in A to 3 in B.
+
+\paragraph{Failure impact.}
+The two-edge failure ranking confirms that the dominant pair is simultaneous loss of $(134\to136)$ and $(135\to136)$, with drop 34.0 and perturbed flow 3.0. This is substantially larger than the next group (drop 21.0), and it aligns with the single-edge sensitivity ordering in Table~\ref{tab:critical_edges_config_a}. In Configuration B, the same gateway-pair dominance remains, while the non-zero failure set is more concentrated because feeder reinforcement absorbs most single-edge feeder losses through rerouting.
+
+\paragraph{Degradation trajectory.}
+The degradation trajectories are identical for Configurations A and B at all tested scale factors. The solved values are: $\alpha=1.0 \rightarrow 37.0$, $\alpha=0.9 \rightarrow 33.3$, $\alpha=0.8 \rightarrow 29.6$, $\alpha=0.7 \rightarrow 25.9$, $\alpha=0.6 \rightarrow 22.2$, and $\alpha=0.5 \rightarrow 18.5$. These points follow the linear relation
+\[
+F^\star(\alpha)=37\alpha
+\]
+over the tested interval.
+
+Because the A/B curves coincide point-for-point (Figure~\ref{fig:degradation_trajectory}), uniform scaling does not distinguish between the two design choices. This means the feeder-capacity differences that separate A and B under single-edge sensitivity do not produce different global response under proportional network-wide degradation.
+
+\paragraph{Parametric thresholds.}
+Parametric thresholds separate edge criticality from edge upgradeability. In Configuration A, the gateway edges $(134\to136)$ and $(135\to136)$ are upgrade-ineffective (\texttt{required\_capacity} $=\infty$, \texttt{ineffective}=\texttt{true}) even though they are high-impact in sensitivity ranking. In Configuration B, the same gateway edges become upgrade-effective with \texttt{required\_capacity}=18.0 and \texttt{required\_increase}=1.0. Degradation thresholds remain at 17.0 with zero margin in both configurations, so any capacity loss below current levels immediately reduces $F^\star$.
+
+This difference is explained by upstream supply. In Configuration A, supply into each gateway is already capped at the current gateway-edge capacity, so increasing gateway-edge capacity alone cannot raise throughput. In Configuration B, feeder reinforcement creates upstream headroom, so gateway-edge upgrades can increase $F^\star$.
+
+For the bypass edge $(132\to140)$, $\mathcal{B}_{uv}$ increases from 10.0 (A) to 16.0 (B), and the edge is upgrade-effective in both configurations with \texttt{required\_increase}=1.0 (\texttt{required\_capacity}=4.0). The main A/B contrast therefore remains at the gateway edges, not at bypass upgrade feasibility.
+
+\begin{table}[htbp]
+\centering
+\caption{Parametric threshold and marginal range comparison 
+for key edges.}
+\label{tab:parametric_comparison}
+\begin{tabular}{lcccc}
+\toprule
+Edge & \multicolumn{2}{c}{Config A} & \multicolumn{2}{c}{Config B} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Upgrade & $\mathcal{B}_{uv}$ & Upgrade & $\mathcal{B}_{uv}$ \\
+\midrule
+$134\to136$ & ineffective & 17.0 & $+1.0$ & 23.0 \\
+$135\to136$ & ineffective & 17.0 & $+1.0$ & 23.0 \\
+$132\to140$ & $+1.0$      & 10.0 & $+1.0$ & 16.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, keepaspectratio]%
+        {figures/flow_chapter/flagship_network_a}
+    \caption{Configuration A: symmetric gateway design. Blue edge 
+    $132 \to 140$ is the direct bypass to \texttt{sink\_4}.}
+    \label{fig:network_a}
+\end{subfigure}
+
+\vspace{1em}
+
+\begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth, keepaspectratio]%
+        {figures/flow_chapter/flagship_network_b}
+    \caption{Configuration B: orange edges show capacity-boosted 
+    secondary-to-gateway feeders, breaking gateway symmetry.}
+    \label{fig:network_b}
+\end{subfigure}
+
+\caption{Flagship benchmark DAG (43 nodes, 107 edges, 8 layers). 
+Node colours: blue = sources, green = hubs, red = constrained nodes, 
+orange = bypass nodes, purple = trunks, brown = secondary, 
+pink = combiner, grey = sinks.}
+\label{fig:flow_bm_networks}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/sensitivity_ranking_ab}
+\caption{Sensitivity ranking for non-zero $\Delta F^\star$ values in Configurations A and B.}
+\label{fig:sensitivity_ranking_ab}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/degradation_trajectory}
+\caption{Degradation trajectory $F^\star(\alpha)$ for Configurations A and B under uniform capacity scaling.}
+\label{fig:degradation_trajectory}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[
+  width=0.72\textheight,
+  height=0.8\textwidth,
+  keepaspectratio
+]{figures/flow_chapter/sink_flow_heatmap}
+\caption{Sink-flow comparison for edge-only and node-capacitated solves across Configurations A and B.}
+\label{fig:sink_flow_heatmap}
+\end{figure}
+
+
+\begin{table}[htbp]
+\centering
+\caption{Top critical edges for Config A (non-zero deltas).}
+\label{tab:critical_edges_config_a}
+\begin{tabular}{lccc}
+\toprule
+Rank & Label & $\Delta F^*$ & \texttt{perturbed\_flow} \\
+\midrule
+1  & \texttt{dispatch\_gateway\_west}$\to$\texttt{distribution\_combiner}  & 17.0 & 20.0 \\
+2  & \texttt{dispatch\_gateway\_east}$\to$\texttt{distribution\_combiner}  & 17.0 & 20.0 \\
+3  & \texttt{secondary\_a}$\to$\texttt{dispatch\_gateway\_west}            & 4.0  & 33.0 \\
+4  & \texttt{secondary\_c}$\to$\texttt{dispatch\_gateway\_east}            & 4.0  & 33.0 \\
+5  & \texttt{secondary\_d}$\to$\texttt{dispatch\_gateway\_west}            & 4.0  & 33.0 \\
+6  & \texttt{secondary\_f}$\to$\texttt{dispatch\_gateway\_east}            & 4.0  & 33.0 \\
+7  & \texttt{secondary\_b}$\to$\texttt{dispatch\_gateway\_west}            & 3.0  & 34.0 \\
+8  & \texttt{secondary\_b}$\to$\texttt{dispatch\_gateway\_east}            & 3.0  & 34.0 \\
+9  & \texttt{secondary\_e}$\to$\texttt{dispatch\_gateway\_west}            & 3.0  & 34.0 \\
+10 & \texttt{secondary\_e}$\to$\texttt{dispatch\_gateway\_east}            & 3.0  & 34.0 \\
+11 & \texttt{secondary\_e}$\to$\texttt{sink\_4}                            & 3.0  & 34.0 \\
+12 & \texttt{secondary\_c}$\to$\texttt{dispatch\_gateway\_west}            & 2.0  & 35.0 \\
+13 & \texttt{secondary\_d}$\to$\texttt{dispatch\_gateway\_east}            & 2.0  & 35.0 \\
+14 & \texttt{secondary\_a}$\to$\texttt{dispatch\_gateway\_east}            & 1.0  & 36.0 \\
+15 & \texttt{secondary\_f}$\to$\texttt{dispatch\_gateway\_west}            & 1.0  & 36.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Min-cut enumeration for Config A.}
+\label{tab:mincut_enumeration_config_a}
+\begin{tabular}{lp{10cm}}
+\toprule
+Cut & Crossing edges \\
+\midrule
+1 & $(128\rightarrow134)$, $(128\rightarrow135)$, $(129\rightarrow134)$, $(129\rightarrow135)$, \\
+  & $(130\rightarrow134)$, $(130\rightarrow135)$, $(131\rightarrow134)$, $(131\rightarrow135)$, \\
+  & $(132\rightarrow134)$, $(132\rightarrow135)$, $(132\rightarrow140)$, $(133\rightarrow134)$, \\
+  & $(133\rightarrow135)$ \\
+\midrule
+2 & $(128\rightarrow135)$, $(129\rightarrow135)$, $(130\rightarrow135)$, $(131\rightarrow135)$, \\
+  & $(132\rightarrow135)$, $(132\rightarrow140)$, $(133\rightarrow135)$, $(134\rightarrow136)$ \\
+\midrule
+3 & $(128\rightarrow134)$, $(129\rightarrow134)$, $(130\rightarrow134)$, $(131\rightarrow134)$, \\
+  & $(132\rightarrow134)$, $(132\rightarrow140)$, $(133\rightarrow134)$, $(135\rightarrow136)$ \\
+\midrule
+4 & $(132\rightarrow140)$, $(134\rightarrow136)$, $(135\rightarrow136)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
