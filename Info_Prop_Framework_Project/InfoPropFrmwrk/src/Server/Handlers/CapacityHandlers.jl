@@ -351,7 +351,8 @@ function handle_capacity_analysis(req::HTTP.Request)
 
         response = Dict(
             "success" => true,
-            "message" => "Capacity analysis completed with CapacityAnalysisKit",
+            "message" => "Flow analysis completed with CapacityAnalysisKit",
+            "endpoint" => "flow-analysis",
             "timestamp" => Dates.now(),
             "input" => Dict(
                 "edges_file_path" => resolved_edges_path,
@@ -373,6 +374,7 @@ function handle_capacity_analysis(req::HTTP.Request)
 end
 
 function register!(router::HTTP.Router)
+    HTTP.register!(router, "POST", "/flow-analysis", handle_capacity_analysis)
     HTTP.register!(router, "POST", "/capacity-analysis", handle_capacity_analysis)
 end
 
