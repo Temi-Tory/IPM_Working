@@ -6,6 +6,9 @@ using .InputProcessingModule
 include(joinpath(@__DIR__, "Shared", "GraphValidationModule.jl"))
 using .GraphValidationModule
 
+include(joinpath(@__DIR__, "Shared", "GraphTraversalModule.jl"))
+using .GraphTraversalModule
+
 include(joinpath(@__DIR__, "DiamondDecomposition", "DiamondDecompositionModule.jl"))
 using .DiamondDecompositionModule
 

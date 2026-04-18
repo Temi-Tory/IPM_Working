@@ -4,6 +4,7 @@ export collect_edges,
        validate_non_source_nodes_have_incoming,
        validate_source_nodes_have_no_incoming,
        missing_edge_values,
+    missing_values_for_edgelist,
        validate_index_consistency
 
 function collect_edges(outgoing_index::Dict{Int64, Set{Int64}})::Set{Tuple{Int64, Int64}}
@@ -46,6 +47,13 @@ function missing_edge_values(
 ) where {T}
     edges = collect_edges(outgoing_index)
     return setdiff(edges, keys(edge_values))
+end
+
+function missing_values_for_edgelist(
+    edgelist::Vector{Tuple{Int64, Int64}},
+    edge_values::Dict{Tuple{Int64, Int64}, T}
+) where {T}
+    return [edge for edge in edgelist if !haskey(edge_values, edge)]
 end
 
 function validate_index_consistency(

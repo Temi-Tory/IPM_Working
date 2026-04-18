@@ -66,31 +66,7 @@ end
 
 # Optimized function to find all reachable nodes from multiple sources
 function find_all_reachable(graph::Dict{Int64, Set{Int64}}, sources::Set{Int64})
-    reachable = Set{Int64}()
-    queue = Int64[]
-    
-    # Start BFS from all active source nodes
-    for source in sources
-        if !in(source, reachable)
-            push!(reachable, source)
-            push!(queue, source)
-        end
-    end
-    
-    while !isempty(queue)
-        node = popfirst!(queue)
-        
-        if haskey(graph, node)
-            for neighbor in graph[node]
-                if neighbor ∉ reachable
-                    push!(reachable, neighbor)
-                    push!(queue, neighbor)
-                end
-            end
-        end
-    end
-    
-    return reachable
+    return reachable_from_sources(graph, sources)
 end
 
 #= 

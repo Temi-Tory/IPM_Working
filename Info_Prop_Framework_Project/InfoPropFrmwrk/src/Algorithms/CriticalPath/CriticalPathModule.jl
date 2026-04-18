@@ -10,6 +10,7 @@ edge_costs::Dict{Tuple{Int64,Int64}, Float64}      # Transition costs
  =#
 module CriticalPathModule
     using ..DiamondDecompositionModule
+    using ..GraphValidationModule
     using ..InputProcessingModule
 
     export CriticalPathParameters, CriticalPathResult, ExtendedCriticalPathResult,
@@ -25,6 +26,7 @@ module CriticalPathModule
 
 
     include(joinpath(@__DIR__, "Internal", "TypesAndOperators.jl"))
+    include(joinpath(@__DIR__, "Internal", "ValidationAndDiagnostics.jl"))
     include(joinpath(@__DIR__, "Internal", "AlgorithmsAndUtilities.jl"))
 
 end

@@ -5,7 +5,7 @@ This folder contains the algorithmic modules exposed through the framework facad
 ## Architecture
 
 - `Shared/`
-  - Input parsing, graph indexing, uncertainty helper operations, and shared graph-validation utilities used across modules.
+  - Input parsing, graph indexing, uncertainty helper operations, and shared graph-validation/traversal utilities used across modules.
 - `DiamondDecomposition/`
   - Structural detection and precomputation of diamond subgraphs.
 - `ProbabilityPropagation/`
@@ -23,11 +23,12 @@ This folder contains the algorithmic modules exposed through the framework facad
 
 1. `InputProcessingModule`
 2. `GraphValidationModule`
-3. `DiamondDecompositionModule`
-4. `CriticalPathModule`
-5. `ProbabilityPropagationModule`
-6. `MonteCarloOptimizedModule`
-7. `CapacityAnalysisKit`
+3. `GraphTraversalModule`
+4. `DiamondDecompositionModule`
+5. `CriticalPathModule`
+6. `ProbabilityPropagationModule`
+7. `MonteCarloOptimizedModule`
+8. `CapacityAnalysisKit`
 
 This ordering is intentional and should be preserved when adding new modules.
 

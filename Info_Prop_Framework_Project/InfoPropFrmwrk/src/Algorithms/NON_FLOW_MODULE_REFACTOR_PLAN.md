@@ -60,6 +60,14 @@ Status update:
 Shared helper progress:
 - Completed: Diamond typed default value helpers now delegate to `InputProcessingModule` shared helpers, with a preserved module-specific pbox `one_value` override.
 - Completed: graph topology/edge consistency checks extracted to `Shared/GraphValidationModule.jl` and integrated into `ProbabilityPropagation` validation.
+- Completed: edgelist-based edge-value validation extracted to shared helper and integrated into `CriticalPath.validate_time_parameters`.
+- Completed: BFS reachability traversal extracted to `Shared/GraphTraversalModule.jl` and integrated into Monte Carlo via delegation.
+
+CriticalPath internal abstraction progress:
+- Completed: validation and diagnostics functions extracted from `Internal/AlgorithmsAndUtilities.jl` into `Internal/ValidationAndDiagnostics.jl`.
+- Completed: deep split of both remaining monolithic internals:
+  - `TypesAndOperators.jl` converted to include wrapper over `TimeTypes`, `MathOperators`, and `ModelTypes`.
+  - `AlgorithmsAndUtilities.jl` converted to include wrapper over `CoreAlgorithms`, `SpecializedAnalyses`, `PathAndSlackUtilities`, and `Guidelines`.
 
 ## Guardrails
 
