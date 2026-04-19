@@ -1,0 +1,91 @@
+<div class="documentation-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+  <!-- Sidebar Navigation -->
+  <aside class="doc-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title-row">
+        @if (!isSidebarCollapsed()) {
+          <span class="sidebar-title">Documentation</span>
+        }
+        <button mat-icon-button class="collapse-btn" (click)="toggleSidebar()"
+                [matTooltip]="isSidebarCollapsed() ? 'Expand' : 'Collapse'">
+          <mat-icon>{{ isSidebarCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
+      </div>
+      @if (!isSidebarCollapsed() && toc()) {
+        <div class="sidebar-meta">
+          v{{ toc()!.version }} &middot; Updated {{ toc()!.lastUpdated }}
+        </div>
+      }
+    </div>
+
+    @if (isLoadingToc()) {
+      <div class="sidebar-loading">
+        <mat-spinner diameter="24"></mat-spinner>
+      </div>
+    } @else if (toc()) {
+      <nav class="sidebar-nav">
+        <!-- User-facing sections -->
+        @for (section of userSections(); track section.id) {
+          <button class="nav-item"
+                  [class.active]="activeSectionId() === section.id"
+                  (click)="navigateToSection(section.id)"
+                  [matTooltip]="isSidebarCollapsed() ? section.title : ''"
+                  matTooltipPosition="right">
+            <mat-icon class="nav-icon">{{ section.icon }}</mat-icon>
+            @if (!isSidebarCollapsed()) {
+              <span class="nav-label">{{ section.title }}</span>
+            }
+          </button>
+        }
+
+        <!-- Developer section divider -->
+        @if (developerSections().length > 0) {
+          <div class="nav-divider">
+            <mat-divider></mat-divider>
+            @if (!isSidebarCollapsed()) {
+              <span class="divider-label">Developer</span>
+            }
+          </div>
+
+          @for (section of developerSections(); track section.id) {
+            <button class="nav-item"
+                    [class.active]="activeSectionId() === section.id"
+                    (click)="navigateToSection(section.id)"
+                    [matTooltip]="isSidebarCollapsed() ? section.title : ''"
+                    matTooltipPosition="right">
+              <mat-icon class="nav-icon">{{ section.icon }}</mat-icon>
+              @if (!isSidebarCollapsed()) {
+                <span class="nav-label">{{ section.title }}</span>
+              }
+            </button>
+          }
+        }
+      </nav>
+    }
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="doc-content-area">
+    @if (isLoadingContent()) {
+      <div class="content-loading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <span class="loading-text">Loading documentation...</span>
+      </div>
+    } @else if (error()) {
+      <div class="content-error">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <p>{{ error() }}</p>
+        <button mat-flat-button (click)="navigateToSection(activeSectionId())">
+          Retry
+        </button>
+      </div>
+    } @else if (renderedContent()) {
+      <article class="markdown-body" [innerHTML]="renderedContent()"></article>
+    } @else {
+      <div class="content-empty">
+        <mat-icon class="empty-icon">menu_book</mat-icon>
+        <p>Select a section from the sidebar to get started.</p>
+      </div>
+    }
+  </main>
+</div>

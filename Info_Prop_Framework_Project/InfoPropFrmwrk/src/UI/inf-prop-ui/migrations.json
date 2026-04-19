@@ -1,0 +1,10 @@
+{
+  "nx-console": {
+    "initialGitRef": {
+      "ref": "03f0818aaec50630aa1fb3f827eda638909ff371",
+      "subject": "vcb"
+    },
+    "targetVersion": "21.4.1",
+    "confirmedPackageUpdates": true
+  }
+}

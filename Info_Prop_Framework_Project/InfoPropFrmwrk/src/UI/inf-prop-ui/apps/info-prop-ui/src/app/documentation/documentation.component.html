@@ -1,0 +1,57 @@
+<div class="documentation-container">
+  @if (status() === 'loading') {
+    <div class="loading-state">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading documentation...</p>
+    </div>
+  }
+
+  @if (status() === 'error') {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Documentation Unavailable</h3>
+      <p>{{ errorMessage() }}</p>
+      <button mat-raised-button color="primary" (click)="loadDocumentation()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  @if (status() === 'loaded') {
+    <!-- Sidebar Table of Contents -->
+    @if (hasToc()) {
+      <nav class="doc-sidebar" [class.collapsed]="sidebarCollapsed()">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Contents</span>
+          <button mat-icon-button (click)="toggleSidebar()" class="collapse-btn"
+            [matTooltip]="sidebarCollapsed() ? 'Expand contents' : 'Collapse contents'">
+            <mat-icon>{{ sidebarCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+          </button>
+        </div>
+        @if (!sidebarCollapsed()) {
+          <ul class="toc-list">
+            @for (entry of tocEntries(); track entry.id) {
+              <li class="toc-item"
+                  [class.toc-h1]="entry.level === 1"
+                  [class.toc-h2]="entry.level === 2"
+                  [class.toc-h3]="entry.level === 3"
+                  [class.active]="activeHeadingId() === entry.id">
+                <a (click)="scrollToSection(entry.id)">{{ entry.text }}</a>
+              </li>
+            }
+          </ul>
+        }
+      </nav>
+    }
+
+    <!-- Main Content -->
+    <div class="doc-content" [class.sidebar-collapsed]="sidebarCollapsed() || !hasToc()">
+      <div class="doc-rendered markdown-body" [innerHTML]="renderedHtml()"></div>
+
+      <button mat-fab class="back-to-top" (click)="scrollToTop()" matTooltip="Back to top">
+        <mat-icon>arrow_upward</mat-icon>
+      </button>
+    </div>
+  }
+</div>

@@ -6,6 +6,8 @@ from __future__ import annotations
 import csv
 import math
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -226,7 +228,6 @@ def plot_degradation(path: Path, a_data: dict, b_data: dict):
     ax.plot(ax_vals_b, fl_vals_b, marker="s", linewidth=2.0, linestyle="--", label="Config B")
     ax.set_xlabel("degradation factor alpha")
     ax.set_ylabel("max flow F*")
-    ax.set_title("Degradation trajectory")
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False)
     fig.tight_layout()
@@ -243,7 +244,6 @@ def plot_sensitivity(path: Path, a_data: dict, b_data: dict):
     labels_a = [e["edge"] for e in non_zero_a]
     drops_a = [e["drop"] for e in non_zero_a]
     bars_a = axes[0].bar(labels_a, drops_a, color="#4C72B0")
-    axes[0].set_title("Config A")
     axes[0].set_xlabel("edge")
     axes[0].set_ylabel("delta F*")
     axes[0].grid(axis="y", alpha=0.25)
@@ -253,13 +253,11 @@ def plot_sensitivity(path: Path, a_data: dict, b_data: dict):
     labels_b = [e["edge"] for e in non_zero_b]
     drops_b = [e["drop"] for e in non_zero_b]
     bars_b = axes[1].bar(labels_b, drops_b, color="#DD8452")
-    axes[1].set_title("Config B")
     axes[1].set_xlabel("edge")
     axes[1].grid(axis="y", alpha=0.25)
     axes[1].bar_label(bars_b, fmt="%.1f", padding=2, fontsize=8)
     plt.setp(axes[1].get_xticklabels(), rotation=45, ha="right")
 
-    fig.suptitle("Sensitivity ranking (non-zero deltas)")
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)
@@ -287,7 +285,6 @@ def plot_sink_flow_heatmap(path: Path, a_data: dict, b_data: dict):
     ax.set_yticklabels([str(s) for s in sink_ids])
     ax.set_xlabel("scenario")
     ax.set_ylabel("sink")
-    ax.set_title("Sink flow comparison heatmap")
 
     for i in range(len(sink_ids)):
         for j in range(len(col_labels)):
@@ -300,6 +297,209 @@ def plot_sink_flow_heatmap(path: Path, a_data: dict, b_data: dict):
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)
+
+
+def parse_node_names_from_dot(path: Path) -> dict[int, str]:
+    names: dict[int, str] = {}
+    pattern = re.compile(r'^\s*(\d+)\s*\[label="([^\\"]+)')
+    with path.open("r", encoding="utf-8") as f:
+        for raw in f:
+            m = pattern.match(raw.rstrip("\n"))
+            if m:
+                nid = int(m.group(1))
+                names[nid] = m.group(2)
+    return names
+
+
+def short_edge_label(edge: str) -> str:
+    return edge.replace("(", "").replace(")", "")
+
+
+def build_sensitivity_overlay_dot(base_dot: Path, out_dot: Path, critical_edges: list[dict]):
+    drop_by_edge = {
+        tuple(int(x) for x in re.findall(r"\d+", e["edge"])): float(e["drop"]) for e in critical_edges if e["drop"] > 0
+    }
+    if not drop_by_edge:
+        out_dot.write_text(base_dot.read_text(encoding="utf-8"), encoding="utf-8")
+        return
+
+    max_drop = max(drop_by_edge.values())
+    edge_line_pattern = re.compile(r"^(\s*)(\d+)\s*->\s*(\d+)\s*\[(.*)\];\s*$")
+
+    lines_out: list[str] = []
+    with base_dot.open("r", encoding="utf-8") as f:
+        for raw in f:
+            line = raw.rstrip("\n")
+            m = edge_line_pattern.match(line)
+            if not m:
+                lines_out.append(line)
+                continue
+
+            indent, u_str, v_str, attrs = m.groups()
+            u = int(u_str)
+            v = int(v_str)
+            edge = (u, v)
+
+            # Split topological context from critical-edge emphasis.
+            if edge in drop_by_edge:
+                drop = drop_by_edge[edge]
+                norm = drop / max_drop if max_drop > 0 else 0.0
+                penwidth = 1.2 + 5.0 * norm
+                red = 180 + int(70 * norm)
+                green = 70 - int(45 * norm)
+                blue = 70 - int(45 * norm)
+                color = f"#{red:02X}{max(green, 20):02X}{max(blue, 20):02X}"
+                attrs = attrs + f', penwidth={penwidth:.2f}, color="{color}", fontcolor="#8A1F1F", xlabel="Δ={drop:.1f}"'
+            else:
+                attrs = attrs + ', color="#C9CDD2", fontcolor="#999999"'
+
+            lines_out.append(f"{indent}{u} -> {v} [{attrs}];")
+
+    out_dot.write_text("\n".join(lines_out) + "\n", encoding="utf-8")
+
+
+def render_dot(dot_path: Path, pdf_path: Path) -> tuple[bool, str]:
+    dot_exe = shutil.which("dot")
+    if dot_exe is None:
+        return False, "Graphviz 'dot' executable not found; wrote DOT source only."
+
+    try:
+        subprocess.run([dot_exe, "-Tpdf", str(dot_path), "-o", str(pdf_path)], check=True)
+        return True, "Rendered PDF from DOT overlay."
+    except subprocess.CalledProcessError as ex:
+        return False, f"Failed to render overlay with dot: {ex}"
+
+
+def plot_sensitivity_two_panel(path: Path, a_data: dict, b_data: dict, overlay_png_path: Path | None):
+    non_zero_a = [x for x in a_data["critical_edges"] if x["drop"] > 0]
+    non_zero_b = [x for x in b_data["critical_edges"] if x["drop"] > 0]
+
+    by_edge_a = {e["edge"]: e for e in non_zero_a}
+    by_edge_b = {e["edge"]: e for e in non_zero_b}
+    union_edges = sorted(set(by_edge_a.keys()) | set(by_edge_b.keys()), key=lambda e: max(by_edge_a.get(e, {"drop": 0.0})["drop"], by_edge_b.get(e, {"drop": 0.0})["drop"]), reverse=True)
+
+    labels = [short_edge_label(e) for e in union_edges]
+    vals_a = [by_edge_a.get(e, {"drop": 0.0})["drop"] for e in union_edges]
+    vals_b = [by_edge_b.get(e, {"drop": 0.0})["drop"] for e in union_edges]
+    y = list(range(len(union_edges)))
+
+    fig, axes = plt.subplots(1, 2, figsize=(14.5, 7.5), dpi=160, gridspec_kw={"width_ratios": [1.2, 1.0]})
+
+    if overlay_png_path and overlay_png_path.exists():
+        img = plt.imread(str(overlay_png_path))
+        axes[0].imshow(img)
+        axes[0].axis("off")
+    else:
+        axes[0].text(
+            0.5,
+            0.5,
+            "Overlay image unavailable\n(install Graphviz 'dot' to render)",
+            ha="center",
+            va="center",
+            fontsize=12,
+        )
+        axes[0].set_xticks([])
+        axes[0].set_yticks([])
+
+    bars = axes[1].barh(y, vals_a, color="#4C72B0", alpha=0.9, label="Config A")
+    axes[1].scatter(vals_b, y, marker="D", s=44, color="#DD8452", label="Config B", zorder=3)
+    axes[1].set_yticks(y)
+    axes[1].set_yticklabels(labels, fontsize=9)
+    axes[1].invert_yaxis()
+    axes[1].set_xlabel("ΔF*")
+    axes[1].grid(axis="x", alpha=0.25)
+    axes[1].legend(frameon=False, loc="lower right")
+    axes[1].bar_label(bars, fmt="%.1f", padding=2, fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def plot_sensitivity_bars_only(path: Path, a_data: dict, b_data: dict):
+    non_zero_a = [x for x in a_data["critical_edges"] if x["drop"] > 0]
+    non_zero_b = [x for x in b_data["critical_edges"] if x["drop"] > 0]
+
+    by_edge_a = {e["edge"]: e for e in non_zero_a}
+    by_edge_b = {e["edge"]: e for e in non_zero_b}
+    union_edges = sorted(
+        set(by_edge_a.keys()) | set(by_edge_b.keys()),
+        key=lambda e: max(by_edge_a.get(e, {"drop": 0.0})["drop"], by_edge_b.get(e, {"drop": 0.0})["drop"]),
+        reverse=True,
+    )
+
+    labels = [short_edge_label(e) for e in union_edges]
+    vals_a = [by_edge_a.get(e, {"drop": 0.0})["drop"] for e in union_edges]
+    vals_b = [by_edge_b.get(e, {"drop": 0.0})["drop"] for e in union_edges]
+    y = list(range(len(union_edges)))
+
+    fig, ax = plt.subplots(figsize=(7.8, 5.8), dpi=160)
+    bars = ax.barh(y, vals_a, color="#4C72B0", alpha=0.9, label="Config A")
+    ax.scatter(vals_b, y, marker="D", s=44, color="#DD8452", label="Config B", zorder=3)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("ΔF*")
+    ax.grid(axis="x", alpha=0.25)
+    ax.legend(frameon=False, loc="lower right")
+    ax.bar_label(bars, fmt="%.1f", padding=2, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def build_appendix_critical_rows(data: dict) -> list[list[str]]:
+    non_zero = [x for x in data["critical_edges"] if x["drop"] > 0]
+    return [
+        [
+            str(i + 1),
+            e["label"],
+            f"{e['drop']:.1f}",
+            f"{e['perturbed_flow']:.1f}",
+        ]
+        for i, e in enumerate(non_zero)
+    ]
+
+
+def write_appendix_sensitivity_tables(path: Path, rows_a: list[list[str]], rows_b: list[list[str]]):
+    lines: list[str] = []
+    lines.append("% Auto-generated appendix LaTeX tables for sensitivity")
+    lines.append("% Requires: \\usepackage{booktabs}")
+    lines.append("")
+
+    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"\centering")
+    lines.append(r"\caption{Full ranked single-edge sensitivity results for Configuration A (all non-zero $\Delta F^*$ edges).}")
+    lines.append(r"\label{tab:critical_edges_config_a_appendix}")
+    lines.append(r"\begin{tabular}{lccc}")
+    lines.append(r"\toprule")
+    lines.append(r"Rank & Label & $\Delta F^*$ & \texttt{perturbed\_flow} \\")
+    lines.append(r"\midrule")
+    for rank, label, drop, perturbed in rows_a:
+        escaped_label = label.replace("_", r"\_")
+        lines.append(f"{rank} & \\texttt{{{escaped_label}}} & {drop} & {perturbed} " + r"\\")
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\end{table}")
+    lines.append("")
+
+    lines.append(r"\begin{table}[htbp]")
+    lines.append(r"\centering")
+    lines.append(r"\caption{Full ranked single-edge sensitivity results for Configuration B (all non-zero $\Delta F^*$ edges).}")
+    lines.append(r"\label{tab:critical_edges_config_b_appendix}")
+    lines.append(r"\begin{tabular}{lccc}")
+    lines.append(r"\toprule")
+    lines.append(r"Rank & Label & $\Delta F^*$ & \texttt{perturbed\_flow} \\")
+    lines.append(r"\midrule")
+    for rank, label, drop, perturbed in rows_b:
+        escaped_label = label.replace("_", r"\_")
+        lines.append(f"{rank} & \\texttt{{{escaped_label}}} & {drop} & {perturbed} " + r"\\")
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"\end{table}")
+    lines.append("")
+
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def wrap_dot_text(text: str, width: int = 88) -> str:
@@ -413,6 +613,24 @@ def main() -> None:
     plot_sensitivity(out_dir / "sensitivity_ranking_ab.pdf", data_a, data_b)
     plot_sink_flow_heatmap(out_dir / "sink_flow_heatmap.pdf", data_a, data_b)
 
+    overlay_dot = out_dir / "critical_overlay_config_a.dot"
+    overlay_pdf = out_dir / "critical_overlay_config_a.pdf"
+    build_sensitivity_overlay_dot(repo_root / "flagship_network_a.dot", overlay_dot, data_a["critical_edges"])
+    rendered, render_note = render_dot(overlay_dot, overlay_pdf)
+    plot_sensitivity_bars_only(out_dir / "critical_bars_config_ab.pdf", data_a, data_b)
+
+    bars_a = ", ".join([f"{e['edge']}={e['drop']:.1f}" for e in data_a["critical_edges"] if e["drop"] > 0])
+    bars_b = ", ".join([f"{e['edge']}={e['drop']:.1f}" for e in data_b["critical_edges"] if e["drop"] > 0])
+    write_dot_figure_spec(
+        out_dir / "critical_bars_config_ab.dot",
+        "FigureCriticalBarsAB",
+        "Critical bars: Config A vs Config B",
+        "horizontal bar chart",
+        "delta F*",
+        "ranked edge",
+        [f"Config A bars: {bars_a}", f"Config B markers: {bars_b}"],
+    )
+
     deg_a = ", ".join([f"({alpha:.1f}, {flow:.1f})" for alpha, flow in data_a["degradation"]])
     deg_b = ", ".join([f"({alpha:.1f}, {flow:.1f})" for alpha, flow in data_b["degradation"]])
     write_dot_figure_spec(
@@ -468,6 +686,7 @@ def main() -> None:
         "Figure 1: Use flagship_network_a.pdf and flagship_network_b.pdf with caption note: Config A/B include direct edge (132->140).",
         "Figure 2: degradation_trajectory.pdf with source degradation_trajectory.dot.",
         "Figure 3: sensitivity_ranking_ab.pdf with source sensitivity_ranking_ab.dot.",
+        f"Figure 3b: critical_overlay_config_a.pdf and critical_bars_config_ab.pdf for subfigure workflow. {render_note}",
         "Figure 4: sink_flow_heatmap.pdf with source sink_flow_heatmap.dot.",
     ]
     write_markdown(out_dir / "thesis_tables_and_figures.md", markdown_tables, figure_notes)
@@ -493,6 +712,12 @@ def main() -> None:
         ),
     ]
     write_latex_tables(out_dir / "thesis_tables_latex.txt", latex_tables)
+
+    write_appendix_sensitivity_tables(
+        out_dir / "appendix_sensitivity_tables_latex.txt",
+        build_appendix_critical_rows(data_a),
+        build_appendix_critical_rows(data_b),
+    )
 
     print(f"Wrote artifacts to: {out_dir}")
 

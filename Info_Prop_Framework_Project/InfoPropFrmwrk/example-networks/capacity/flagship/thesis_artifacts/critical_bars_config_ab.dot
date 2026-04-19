@@ -1,0 +1,12 @@
+digraph FigureCriticalBarsAB {
+  graph [rankdir=TB, fontsize=11, fontname="Times-Roman", margin=0.2];
+  node [shape=box, style="rounded", fontsize=10, fontname="Times-Roman"];
+  edge [fontsize=9, fontname="Times-Roman"];
+  title [label="Critical bars: Config A vs Config B", shape=plaintext, fontsize=13];
+  meta [label="type: horizontal bar chart\nx-axis: delta F*\ny-axis: ranked edge", fillcolor="#F4F4F4", style="rounded,filled"];
+  title -> meta [arrowhead=none, color="#888888"];
+  series_1 [label="Config A bars: (134->136)=17.0, (135->136)=17.0, (128->134)=4.0, (130->135)=4.0,\n(131->134)=4.0, (133->135)=4.0, (129->134)=3.0, (129->135)=3.0, (132->134)=3.0,\n(132->135)=3.0, (132->140)=3.0, (130->134)=2.0, (131->135)=2.0, (128->135)=1.0,\n(133->134)=1.0"];
+  meta -> series_1 [arrowhead=none, color="#B0B0B0"];
+  series_2 [label="Config B markers: (134->136)=17.0, (135->136)=17.0, (132->140)=3.0"];
+  series_1 -> series_2 [arrowhead=none, color="#B0B0B0"];
+}

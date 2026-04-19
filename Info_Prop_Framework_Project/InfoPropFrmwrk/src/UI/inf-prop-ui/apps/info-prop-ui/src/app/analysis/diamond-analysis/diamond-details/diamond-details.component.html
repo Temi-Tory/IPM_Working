@@ -1,0 +1,1189 @@
+<div class="diamond-details-dashboard">
+  
+  <!-- Compact Header -->
+  <div class="dashboard-header">
+    <div class="header-content compact-header">
+      <div class="header-left">
+        @if (hierarchyPath().length > 0) {
+          <button mat-icon-button (click)="navigateBack()" matTooltip="Back to parent">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        }
+        <div class="header-titles">
+          <h1 class="page-title">
+            <mat-icon class="title-icon">diamond</mat-icon>
+            Diamond Details
+          </h1>
+          @if (diamondSummary(); as summary) {
+            <p class="page-subtitle">
+              Join {{ summary.joinNode }} ← [{{ summary.conditioningNodes.join(', ') }}]
+              · {{ summary.totalNodes }} nodes · {{ summary.totalEdges }} edges
+            </p>
+          }
+        </div>
+      </div>
+      <button mat-icon-button class="close-button" (click)="closeDialog()" matTooltip="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-icon class="loading-spinner">refresh</mat-icon>
+      <h3>Loading Diamond Details...</h3>
+      <p>Please wait while we analyze the diamond structure</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!diamondDetailsData() && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">diamond</mat-icon>
+      <h3>Diamond Not Found</h3>
+      <p>The requested diamond could not be found in the analysis results</p>
+      <button mat-raised-button color="primary" (click)="closeDialog()">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Diamond Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Main Dashboard Content -->
+  @if (diamondDetailsData(); as data) {
+    <div class="dashboard-content">
+      
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="nodes">
+            <mat-icon>grain</mat-icon>
+            Nodes ({{ data.networkSubset.nodes.length }})
+          </mat-button-toggle>
+          <mat-button-toggle value="edges">
+            <mat-icon>timeline</mat-icon>
+            Edges ({{ data.networkSubset.edges.length }})
+          </mat-button-toggle>
+          <mat-button-toggle value="subdiamonds">
+            <mat-icon>account_tree</mat-icon>
+            Sub-Diamonds ({{ data.subDiamonds.length }})
+          </mat-button-toggle>
+          <mat-button-toggle value="visualization">
+            <mat-icon>hub</mat-icon>
+            Visualization
+          </mat-button-toggle>
+          @if (hasAnySubgraphAnalysis()) {
+            <mat-button-toggle value="subgraphAnalysis">
+              <mat-icon>science</mat-icon>
+              Subgraph Analysis
+            </mat-button-toggle>
+          }
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Diamond Summary Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>diamond</mat-icon>
+                <mat-card-title>Diamond Summary</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Diamond Structure</span>
+                      <span class="metric-value">{{ summary.displayId }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Total Components</span>
+                      <span class="metric-value">{{ summary.totalNodes + summary.totalEdges }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Conditioning Nodes</span>
+                      <span class="metric-value">[{{ summary.conditioningNodes.join(', ') }}]</span>
+                    </div>
+                    @if (summary.joinNode !== undefined) {
+                      <div class="metric-row">
+                        <span class="metric-label">Join Node</span>
+                        <span class="metric-value">{{ summary.joinNode }}</span>
+                      </div>
+                    }
+                    <div class="metric-row">
+                      <span class="metric-label">Risk Score</span>
+                      <span class="metric-value risk-score" [class]="'risk-' + summary.riskLevel">
+                        {{ summary.riskScore.toFixed(2) }}
+                      </span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Network Structure Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>Network Structure</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="network-structure-grid">
+                    <div class="structure-item nodes">
+                      <div class="structure-count">{{ summary.totalNodes }}</div>
+                      <div class="structure-label">Total Nodes</div>
+                    </div>
+                    <div class="structure-item edges">
+                      <div class="structure-count">{{ summary.totalEdges }}</div>
+                      <div class="structure-label">Total Edges</div>
+                    </div>
+                    <div class="structure-item conditioning">
+                      <div class="structure-count">{{ summary.conditioningNodesCount }}</div>
+                      <div class="structure-label">Conditioning</div>
+                    </div>
+                    <div class="structure-item bridges">
+                      <div class="structure-count">{{ summary.diamondJoinEdges }}</div>
+                      <div class="structure-label">Diamond Join Edges</div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Hierarchy Information Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>device_hub</mat-icon>
+                <mat-card-title>Hierarchy Information</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Hierarchy Level</span>
+                      <span class="metric-value">{{ hierarchyPath().length + 1 }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Sub-Diamonds</span>
+                      <span class="metric-value">{{ summary.subDiamondsCount }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Is Bottleneck</span>
+                      <span class="metric-value" [class]="summary.isBottleneck ? 'risk-high' : 'risk-low'">
+                        {{ summary.isBottleneck ? 'Yes' : 'No' }}
+                      </span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label">Parent Path</span>
+                      <span class="metric-value">
+                        @if (hierarchyPath().length > 0) {
+                          {{ hierarchyPath().join(' → ') }}
+                        } @else {
+                          Root Level
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Risk Assessment Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>security</mat-icon>
+                <mat-card-title>Risk Assessment</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (diamondSummary(); as summary) {
+                  <div class="risk-assessment">
+                    <div class="risk-level-indicator" [class]="'risk-' + summary.riskLevel">
+                      <mat-icon>{{ getRiskLevelIcon(summary.riskLevel) }}</mat-icon>
+                      <span class="risk-level-text">{{ summary.riskLevel.toUpperCase() }} RISK</span>
+                    </div>
+                    <div class="risk-progress">
+                      <mat-progress-bar 
+                        mode="determinate" 
+                        [value]="summary.riskScore * 100"
+                        [color]="summary.riskLevel === 'low' ? 'primary' : summary.riskLevel === 'medium' ? 'accent' : 'warn'">
+                      </mat-progress-bar>
+                    </div>
+                    <div class="risk-description">
+                      Risk score: {{ summary.riskScore.toFixed(2) }}/1.0
+                    </div>
+                    @if (summary.isBottleneck) {
+                      <div class="risk-warning">
+                        <mat-icon>warning</mat-icon>
+                        <span>System bottleneck detected</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Diamond Insights Card -->
+          @if (diamondInsights().length > 0) {
+            <mat-card class="insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>lightbulb</mat-icon>
+                <mat-card-title>Diamond Insights</mat-card-title>
+                <mat-card-subtitle>Structural analysis and recommendations for this diamond</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="insights-list">
+                  @for (insight of diamondInsights(); track insight.message) {
+                    <div class="insight-item" [class]="'insight-' + insight.type">
+                      <mat-icon class="insight-icon">
+                        @switch (insight.type) {
+                          @case ('success') { check_circle }
+                          @case ('warning') { warning }
+                          @case ('info') { info }
+                          @case ('critical') { error }
+                          @default { help }
+                        }
+                      </mat-icon>
+                      <div class="insight-content">
+                        <div class="insight-message">{{ insight.message }}</div>
+                        <div class="insight-detail">{{ insight.detail }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Nodes Tab -->
+      @if (currentView() === 'nodes') {
+        <div class="nodes-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Nodes</mat-label>
+                  <input matInput 
+                         [value]="nodeSearchTerm()" 
+                         (input)="onNodeSearch($event)"
+                         placeholder="Enter node ID">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Node Types</mat-label>
+                  <mat-select [value]="selectedNodeTypes()" 
+                             (selectionChange)="onNodeTypeFilter($event.value)"
+                             multiple>
+                    <mat-option value="Root">Root</mat-option>
+                    <mat-option value="Leaf">Leaf</mat-option>
+                    <mat-option value="Join">Join</mat-option>
+                    <mat-option value="Fork">Fork</mat-option>
+                    <mat-option value="Source">Source</mat-option>
+                    <mat-option value="Conditioning">Conditioning</mat-option>
+                    <mat-option value="Internal">Internal</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Node Roles</mat-label>
+                  <mat-select [value]="selectedNodeRoles()" 
+                             (selectionChange)="onNodeRoleFilter($event.value)"
+                             multiple>
+                    <mat-option value="root">Root</mat-option>
+                    <mat-option value="leaf">Leaf</mat-option>
+                    <mat-option value="conditioning">Conditioning</mat-option>
+                    <mat-option value="internal">Internal</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="filter-info">
+                  Showing {{ filteredNodeDetails().length }} of {{ data.networkSubset.nodes.length }} nodes
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Nodes Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>grain</mat-icon>
+              <mat-card-title>Diamond Node Details</mat-card-title>
+              <mat-card-subtitle>Click any node to view detailed information and connections</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedNodeDetails()" class="nodes-table">
+                  
+                  <ng-container matColumnDef="node">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.nodeId)"
+                              matTooltip="Click for detailed node information">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.nodeId }}</span>
+                        @if (element.isBottleneck) {
+                          <mat-icon class="bottleneck-indicator" color="warn">priority_high</mat-icon>
+                        }
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="type-chip" [class]="'type-' + element.type.toLowerCase().replace(' + ', '-').replace(' ', '-')">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="role">
+                    <th mat-header-cell *matHeaderCellDef>Role</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="role-chip" [class]="'role-' + element.role">
+                        {{ element.role }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="inDegree">
+                    <th mat-header-cell *matHeaderCellDef>In-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value" [class]="element.inDegree === 1 ? 'critical' : ''">{{ element.inDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="outDegree">
+                    <th mat-header-cell *matHeaderCellDef>Out-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value" [class]="element.outDegree === 1 ? 'critical' : ''">{{ element.outDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="pathCount">
+                    <th mat-header-cell *matHeaderCellDef>Path Count</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="path-count">{{ element.pathCount }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="riskLevel">
+                    <th mat-header-cell *matHeaderCellDef>Risk Level</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="risk-chip" [class]="'risk-' + element.riskLevel">
+                        <mat-icon>{{ getRiskLevelIcon(element.riskLevel) }}</mat-icon>
+                        {{ element.riskLevel }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openNodeDetailsModal(element.nodeId)"
+                              matTooltip="View detailed information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="nodeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: nodeColumns;" class="node-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredNodeDetails().length"
+                  [pageSize]="nodePageSize()"
+                  [pageIndex]="nodePageIndex()"
+                  [pageSizeOptions]="[25, 50, 100, 250]"
+                  (page)="onNodePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Edges Tab -->
+      @if (currentView() === 'edges') {
+        <div class="edges-content">
+          
+          <!-- Edge Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Edges</mat-label>
+                  <input matInput 
+                         [value]="edgeSearchTerm()" 
+                         (input)="onEdgeSearch($event)"
+                         placeholder="Enter source or target node">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Edge Types</mat-label>
+                  <mat-select [value]="selectedEdgeTypes()" 
+                             (selectionChange)="onEdgeTypeFilter($event.value)"
+                             multiple>
+                    <mat-option value="diamond-internal">Diamond Internal</mat-option>
+                    <mat-option value="diamond-join">Diamond Join</mat-option>
+                    <mat-option value="conditioning">Conditioning</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="filter-info">
+                  Showing {{ filteredEdgeDetails().length }} edges
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Edges Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>timeline</mat-icon>
+              <mat-card-title>Diamond Edge Details</mat-card-title>
+              <mat-card-subtitle>Click any edge to view detailed connection information</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedEdgeDetails()" class="edges-table">
+                  
+                  <ng-container matColumnDef="source">
+                    <th mat-header-cell *matHeaderCellDef>Source</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.source)"
+                              matTooltip="Click for source node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.source }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="target">
+                    <th mat-header-cell *matHeaderCellDef>Target</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.target)"
+                              matTooltip="Click for target node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.target }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Edge Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="edge-type-chip" [class]="'edge-' + element.type">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="role">
+                    <th mat-header-cell *matHeaderCellDef>Role</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="edge-role">{{ element.role }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="pathContribution">
+                    <th mat-header-cell *matHeaderCellDef>Path Contribution</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="path-contribution">{{ element.pathContribution }}%</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="critical">
+                    <th mat-header-cell *matHeaderCellDef>Critical</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip [class]="element.isCritical ? 'critical-yes' : 'critical-no'">
+                        <mat-icon>{{ element.isCritical ? 'error' : 'check_circle' }}</mat-icon>
+                        {{ element.isCritical ? 'Yes' : 'No' }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openEdgeDetailsModal(element.source, element.target)"
+                              matTooltip="View detailed edge information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="edgeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: edgeColumns;" class="edge-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredEdgeDetails().length"
+                  [pageSize]="edgePageSize()"
+                  [pageIndex]="edgePageIndex()"
+                  [pageSizeOptions]="[50, 100, 250, 500]"
+                  (page)="onEdgePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Sub-Diamonds Tab -->
+      @if (currentView() === 'subdiamonds') {
+        <div class="subdiamonds-content">
+          
+          @if (data.subDiamonds.length > 0) {
+            <mat-card class="table-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>Sub-Diamonds</mat-card-title>
+                <mat-card-subtitle>Hierarchical drill-down into nested diamond structures</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="subdiamonds-grid">
+                  @for (subDiamond of paginatedSubDiamonds(); track subDiamond.id) {
+                    <mat-card class="subdiamond-card" (click)="navigateToSubDiamond(subDiamond.id)">
+                      <mat-card-header>
+                        <mat-icon mat-card-avatar>diamond</mat-icon>
+                        <mat-card-title>{{ subDiamond.displayId || subDiamond.id }}</mat-card-title>
+                        @if (subDiamond.riskLevel) {
+                          <mat-chip class="risk-chip" [class]="'risk-' + subDiamond.riskLevel">
+                            {{ subDiamond.riskLevel }}
+                          </mat-chip>
+                        }
+                      </mat-card-header>
+                      <mat-card-content>
+                        <div class="subdiamond-metrics">
+                          <div class="metric-item">
+                            <span class="metric-label">Nodes</span>
+                            <span class="metric-value">{{ subDiamond.nodeCount }}</span>
+                          </div>
+                          <div class="metric-item">
+                            <span class="metric-label">Type</span>
+                            <span class="metric-value">{{ subDiamond.isRoot ? 'Root' : 'Unique' }}</span>
+                          </div>
+                          <div class="metric-item">
+                            <span class="metric-label">Complexity</span>
+                            <span class="metric-value">{{ subDiamond.complexity.toFixed(0) }}</span>
+                          </div>
+                          @if (subDiamond.conditioningNodes.length > 0) {
+                            <div class="metric-item">
+                              <span class="metric-label">Conditioning</span>
+                              <span class="metric-value">[{{ subDiamond.conditioningNodes.join(', ') }}]</span>
+                            </div>
+                          }
+                        </div>
+                      </mat-card-content>
+                      <mat-card-actions>
+                        <button mat-button color="primary">
+                          <mat-icon>arrow_forward</mat-icon>
+                          Explore
+                        </button>
+                      </mat-card-actions>
+                    </mat-card>
+                  }
+                </div>
+
+                @if (data.subDiamonds.length > subDiamondPageSize()) {
+                  <mat-paginator 
+                    [length]="data.subDiamonds.length"
+                    [pageSize]="subDiamondPageSize()"
+                    [pageIndex]="subDiamondPageIndex()"
+                    [pageSizeOptions]="[12, 24, 48]"
+                    (page)="onSubDiamondPageChange($event)"
+                    showFirstLastButtons>
+                  </mat-paginator>
+                }
+              </mat-card-content>
+            </mat-card>
+          } @else {
+            <mat-card class="empty-subdiamonds-card">
+              <mat-card-content>
+                <div class="empty-subdiamonds">
+                  <mat-icon class="empty-icon">account_tree</mat-icon>
+                  <h3>No Sub-Diamonds</h3>
+                  <p>This diamond does not contain any nested sub-diamond structures</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Visualization Tab -->
+      @if (currentView() === 'visualization') {
+        <div class="visualization-content">
+          
+          @if (diamondGraphData(); as graphData) {
+            <!-- Visualization Controls -->
+            <mat-card class="controls-card">
+              <mat-card-content>
+                <div class="visualization-controls">
+                  <div class="control-group">
+                    <label class="control-label">
+                      <mat-icon>filter_center_focus</mat-icon>
+                      Graph Scope
+                    </label>
+                    <mat-button-toggle-group
+                      [value]="visualizationGraphScope()"
+                      (change)="setVisualizationGraphScope($event.value)">
+                      <mat-button-toggle value="diamond">
+                        <mat-icon>hub</mat-icon>
+                        Diamond
+                      </mat-button-toggle>
+                      <mat-button-toggle value="main">
+                        <mat-icon>account_tree</mat-icon>
+                        Main Network
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </div>
+
+                  <div class="control-group">
+                    <label class="control-label">
+                      <mat-icon>highlight</mat-icon>
+                      Highlight Mode
+                    </label>
+                    <mat-button-toggle-group 
+                      [value]="visualizationHighlight()" 
+                      class="highlight-toggle">
+                      <mat-button-toggle value="all" (click)="toggleHighlightMode('all')">
+                        <mat-icon>select_all</mat-icon>
+                        All
+                      </mat-button-toggle>
+                      <mat-button-toggle value="conditioning" (click)="toggleHighlightMode('conditioning')">
+                        <mat-icon>hub</mat-icon>
+                        Conditioning
+                      </mat-button-toggle>
+                      <mat-button-toggle value="forks" (click)="toggleHighlightMode('forks')">
+                        <mat-icon>call_split</mat-icon>
+                        Forks
+                      </mat-button-toggle>
+                      <mat-button-toggle value="sources" (click)="toggleHighlightMode('sources')">
+                        <mat-icon>source</mat-icon>
+                        Sources
+                      </mat-button-toggle>
+                      <mat-button-toggle value="joins" (click)="toggleHighlightMode('joins')">
+                        <mat-icon>join_inner</mat-icon>
+                        Joins
+                      </mat-button-toggle>
+                      <mat-button-toggle value="diamondjoin" (click)="toggleHighlightMode('diamondjoin')">
+                        <mat-icon>alt_route</mat-icon>
+                        Diamond Join
+                      </mat-button-toggle>
+                      @if (data.subDiamonds.length > 0) {
+                        <mat-button-toggle value="subdiamond" (click)="toggleHighlightMode('subdiamond')">
+                          <mat-icon>account_tree</mat-icon>
+                          Sub-Diamond
+                        </mat-button-toggle>
+                      }
+                      <mat-button-toggle value="bottlenecks" (click)="toggleHighlightMode('bottlenecks')">
+                        <mat-icon>warning</mat-icon>
+                        Bottlenecks
+                      </mat-button-toggle>
+                    </mat-button-toggle-group>
+                  </div>
+
+                  @if (visualizationHighlight() === 'subdiamond' && data.subDiamonds.length > 0) {
+                    <div class="control-group">
+                      <mat-form-field appearance="outline" class="filter-field">
+                        <mat-label>Select Sub-Diamond</mat-label>
+                        <mat-select
+                          [value]="visualizationSelectedSubDiamondId()"
+                          (selectionChange)="setVisualizationSubDiamond($event.value)">
+                          @for (subDiamond of data.subDiamonds; track subDiamond.id) {
+                            <mat-option [value]="subDiamond.id">
+                              {{ subDiamond.displayId || subDiamond.id }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  }
+
+                  <div class="control-group zoom-controls">
+                    <label class="control-label">
+                      <mat-icon>zoom_in</mat-icon>
+                      Zoom
+                    </label>
+                    <button mat-icon-button (click)="zoomOutVisualization()" matTooltip="Zoom out">
+                      <mat-icon>zoom_out</mat-icon>
+                    </button>
+                    <span class="zoom-value">{{ (visualizationZoom() * 100).toFixed(0) }}%</span>
+                    <button mat-icon-button (click)="zoomInVisualization()" matTooltip="Zoom in">
+                      <mat-icon>zoom_in</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="resetVisualizationZoom()" matTooltip="Reset view">
+                      <mat-icon>center_focus_strong</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="info-badge">
+                    <mat-icon>info</mat-icon>
+                    {{ visualizationGraphScope() === 'main' ? 'Main Network Scope' : 'Diamond Scope' }} · {{ getHighlightLabel() }} · {{ highlightedNodes().size }} / {{ graphData.nodes.length }} nodes
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Graph Visualization -->
+            <mat-card class="graph-card">
+              <mat-card-content>
+                <div class="graph-container">
+                  <svg class="diamond-graph-svg" [class.panning]="isGraphPanning()" (mousedown)="startGraphPan($event)" (mouseleave)="clearHoveredNode()" viewBox="0 0 800 600" role="img" aria-label="Diamond structure graph">
+                    <defs>
+                      <filter id="diamond-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="rgba(0,0,0,0.28)" />
+                      </filter>
+                    </defs>
+
+                    <g [attr.transform]="graphTransform()">
+                      <!-- Edges -->
+                      @for (edge of graphData.edges; track edge.source + '-' + edge.target) {
+                        <g class="graph-edge-group" [class.diamond-join-edge]="edge.isDiamondJoin" [attr.opacity]="getEdgeOpacity(edge.source, edge.target)">
+                          <path
+                            [attr.d]="getEdgePath(edge.source, edge.target)"
+                            [attr.stroke]="getEdgeStroke(edge.source, edge.target)"
+                            [attr.stroke-width]="getEdgeStrokeWidth(edge.source, edge.target)"
+                            class="graph-edge" />
+                          <polygon
+                            [attr.points]="getEdgeArrowPoints(edge.source, edge.target)"
+                            [attr.fill]="getEdgeStroke(edge.source, edge.target)"
+                            class="graph-arrow" />
+                        </g>
+                      }
+
+                      <!-- Nodes -->
+                      @for (node of graphData.nodes; track node.id) {
+                        <g class="graph-node" [class.dragging]="isNodeDragging(node.id)" [attr.opacity]="getNodeOpacity(node.id)" (mousedown)="startNodeDrag($event, node.id)" (mouseenter)="setHoveredNode(node.id)" (mouseleave)="clearHoveredNode()">
+                          <circle 
+                            [attr.cx]="node.x" 
+                            [attr.cy]="node.y" 
+                            [attr.r]="10"
+                            [attr.fill]="getNodeFill(node.id)"
+                            [attr.stroke]="getNodeStroke(node.id)"
+                            [attr.stroke-width]="getNodeStrokeWidth(node.id)"
+                            class="node-circle" />
+                          <text 
+                            [attr.x]="node.x" 
+                            [attr.y]="node.y - 15" 
+                            text-anchor="middle" 
+                            class="node-label">{{ node.id }}</text>
+                        </g>
+                      }
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- Legend -->
+                <div class="graph-legend">
+                  <div class="legend-title">
+                    <mat-icon>info_outline</mat-icon>
+                    Legend - Diamond Subgraph Properties
+                  </div>
+                  <div class="legend-items">
+                    @if (visualizationHighlight() === 'all') {
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-node-base-fill);"></div>
+                        <span>Neutral Node Baseline</span>
+                      </div>
+                    } @else {
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-filter-node);"></div>
+                        <span>Active Filter Nodes · {{ getHighlightLabel() }}</span>
+                      </div>
+                      <div class="legend-item">
+                        <div class="legend-color" style="background: var(--viz-node-base-fill);"></div>
+                        <span>Non-Filtered Nodes</span>
+                      </div>
+                    }
+                    <div class="legend-item">
+                      <div class="legend-line" style="background: var(--viz-diamond-edge); height: 2px; width: 30px;"></div>
+                      <span>Diamond Edges (always distinct)</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-line" style="background: var(--viz-filter-edge); height: 2px; width: 30px;"></div>
+                      <span>Active Filter Edges</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+
+          } @else {
+            <mat-card class="empty-state-card">
+              <mat-card-content>
+                <div class="empty-state">
+                  <mat-icon class="empty-icon">hub</mat-icon>
+                  <h3>No Graph Data</h3>
+                  <p>Unable to generate visualization for this diamond structure</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Subgraph Analysis Tab -->
+      @if (currentView() === 'subgraphAnalysis') {
+        <div class="subgraph-analysis-content">
+
+          <!-- Header bar: info + Run All -->
+          <div class="subgraph-header-bar">
+            <div class="subgraph-header-info">
+              <mat-icon>science</mat-icon>
+              <span>Run analyses on this diamond ({{ sourceNodes().length }} source nodes) as a standalone subgraph</span>
+            </div>
+            <div class="subgraph-header-actions">
+              @if (subgraphAnalysisStatus() === 'computing') {
+                <mat-icon class="loading-spinner">refresh</mat-icon>
+                <span class="computing-label">Analyzing...</span>
+              }
+              @if (subgraphAnalysisStatus() === 'error') {
+                <mat-icon color="warn">error_outline</mat-icon>
+                <span class="error-label">{{ subgraphAnalysisError() }}</span>
+              }
+              <button mat-raised-button color="primary"
+                      [disabled]="!hasAnySubgraphAnalysis() || subgraphAnalysisStatus() === 'computing'"
+                      (click)="runSubgraphAnalysis()"
+                      matTooltip="Run all available analyses">
+                <mat-icon>play_arrow</mat-icon>
+                Run All
+              </button>
+            </div>
+          </div>
+
+          <!-- Each analysis = its own tab with config + results -->
+          <mat-tab-group [selectedIndex]="subgraphTabIndex()" (selectedIndexChange)="onSubgraphTabChange($event)" class="subgraph-tabs">
+
+            <!-- Tab: Exact Inference -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>functions</mat-icon>
+                Exact Inference
+                @if (subgraphAnalysisResult()?.reachability_result && !subgraphAnalysisResult()?.reachability_result?.error) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (reachabilityGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>Reachability Scenario</mat-label>
+                        <mat-select [value]="selectedReachabilityIndex()"
+                                    (selectionChange)="onReachabilityGroupChange($event.value)">
+                          @for (group of reachabilityGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }} ({{ group.dataType }})</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No reachability files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunReachability() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('reachability')">
+                      <mat-icon>play_arrow</mat-icon> Run Exact Inference
+                    </button>
+                  </div>
+                </div>
+
+                @if (subgraphAnalysisResult()?.reachability_result; as reachResult) {
+                  @if (!reachResult.error) {
+                    <div class="tab-results-section">
+                      <div class="result-tab-header">
+                        <h3>Node Beliefs ({{ getBeliefEntries().length }} nodes)</h3>
+                        <span class="computation-time">{{ reachResult.computation_time.toFixed(3) || '?' }}s</span>
+                      </div>
+                      <div class="belief-table-container">
+                        <table mat-table [dataSource]="getBeliefEntries()" class="belief-table">
+                          <ng-container matColumnDef="node">
+                            <th mat-header-cell *matHeaderCellDef>Node</th>
+                            <td mat-cell *matCellDef="let entry">{{ entry.node }}</td>
+                          </ng-container>
+                          <ng-container matColumnDef="belief">
+                            <th mat-header-cell *matHeaderCellDef>Belief</th>
+                            <td mat-cell *matCellDef="let entry">
+                              <div class="belief-bar-container">
+                                <div class="belief-bar" [style.width.%]="entry.numericBelief * 100" [style.background]="getBeliefColor(entry.numericBelief)"></div>
+                                <span class="belief-value">{{ entry.displayBelief }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+                          <tr mat-header-row *matHeaderRowDef="['node', 'belief']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['node', 'belief'];"></tr>
+                        </table>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="result-tab-error"><mat-icon color="warn">error_outline</mat-icon><p>{{ reachResult.error }}</p></div>
+                  }
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: Capacity -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>speed</mat-icon>
+                Capacity
+                @if (subgraphAnalysisResult()?.capacity_result && !subgraphAnalysisResult()?.capacity_result?.error) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (capacityGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>Capacity Scenario</mat-label>
+                        <mat-select [value]="selectedCapacityIndex()"
+                                    (selectionChange)="onCapacityGroupChange($event.value)">
+                          @for (group of capacityGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No capacity files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCapacity() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('capacity')">
+                      <mat-icon>play_arrow</mat-icon> Run Capacity
+                    </button>
+                  </div>
+                </div>
+
+                @if (subgraphAnalysisResult()?.capacity_result; as capResult) {
+                  @if (!capResult.error) {
+                    <div class="tab-results-section">
+                      <div class="result-tab-header">
+                        <h3>Capacity Analysis ({{ getCapacityEntries().length }} nodes)</h3>
+                        <span class="computation-time">{{ capResult.computation_time.toFixed(3) }}s</span>
+                      </div>
+                      <div class="flow-table-container">
+                        <table mat-table [dataSource]="getCapacityEntries()" class="flow-table">
+                          <ng-container matColumnDef="node"><th mat-header-cell *matHeaderCellDef>Node</th><td mat-cell *matCellDef="let entry">{{ entry.node }}</td></ng-container>
+                          <ng-container matColumnDef="capacity"><th mat-header-cell *matHeaderCellDef>Capacity</th><td mat-cell *matCellDef="let entry">{{ entry.capacity.toFixed(2) }}</td></ng-container>
+                          <ng-container matColumnDef="flow"><th mat-header-cell *matHeaderCellDef>Max Flow</th><td mat-cell *matCellDef="let entry">{{ entry.flow.toFixed(2) }}</td></ng-container>
+                          <ng-container matColumnDef="utilization">
+                            <th mat-header-cell *matHeaderCellDef>Utilization</th>
+                            <td mat-cell *matCellDef="let entry">
+                              <div class="belief-bar-container">
+                                <div class="belief-bar" [style.width.%]="entry.utilization" [style.background]="getUtilizationColor(entry.utilization)"></div>
+                                <span class="belief-value">{{ entry.utilization.toFixed(1) }}%</span>
+                              </div>
+                            </td>
+                          </ng-container>
+                          <ng-container matColumnDef="spare"><th mat-header-cell *matHeaderCellDef>Spare</th><td mat-cell *matCellDef="let entry">{{ entry.spare.toFixed(2) }}</td></ng-container>
+                          <tr mat-header-row *matHeaderRowDef="['node', 'capacity', 'flow', 'utilization', 'spare']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['node', 'capacity', 'flow', 'utilization', 'spare'];"></tr>
+                        </table>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="result-tab-error"><mat-icon color="warn">error_outline</mat-icon><p>{{ capResult.error }}</p></div>
+                  }
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: CPM Time -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>timer</mat-icon>
+                CPM Time
+                @if (subgraphAnalysisResult()?.cpm_result?.time_result) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (cpmGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>CPM Scenario</mat-label>
+                        <mat-select [value]="selectedCpmIndex()"
+                                    (selectionChange)="onCpmGroupChange($event.value)">
+                          @for (group of cpmGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No CPM files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCpm() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('cpm')">
+                      <mat-icon>play_arrow</mat-icon> Run CPM
+                    </button>
+                  </div>
+                </div>
+
+                @if (subgraphAnalysisResult()?.cpm_result?.time_result; as timeResult) {
+                  <div class="tab-results-section">
+                    <div class="result-tab-header">
+                      <h3>Critical Duration: {{ getCriticalTimeDuration() }}</h3>
+                      <span class="computation-time">{{ subgraphAnalysisResult()?.cpm_result?.computation_time?.toFixed(3) || '?' }}s</span>
+                    </div>
+                    <div class="cpm-table-container">
+                      <table mat-table [dataSource]="getCpmTimeEntries()" class="cpm-time-table">
+                        <ng-container matColumnDef="node">
+                          <th mat-header-cell *matHeaderCellDef>Node</th>
+                          <td mat-cell *matCellDef="let entry" [class.critical-cell]="entry.isCritical">
+                            {{ entry.node }}
+                            @if (entry.isCritical) { <mat-icon class="critical-icon" color="warn" matTooltip="On critical path">star</mat-icon> }
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="duration"><th mat-header-cell *matHeaderCellDef matTooltip="Node processing duration">Duration</th><td mat-cell *matCellDef="let entry">{{ entry.duration.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="earlyStart"><th mat-header-cell *matHeaderCellDef matTooltip="Earliest start">ES</th><td mat-cell *matCellDef="let entry">{{ entry.earlyStart.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="earlyFinish"><th mat-header-cell *matHeaderCellDef matTooltip="Earliest finish">EF</th><td mat-cell *matCellDef="let entry">{{ entry.earlyFinish.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="lateFinish"><th mat-header-cell *matHeaderCellDef matTooltip="Latest finish">LF</th><td mat-cell *matCellDef="let entry">{{ entry.lateFinish.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="slack">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Total slack (0 = critical)">Slack</th>
+                          <td mat-cell *matCellDef="let entry">
+                            <span [style.color]="getSlackColor(entry.slack)" [style.font-weight]="entry.isCritical ? 'bold' : 'normal'">{{ entry.slack.toFixed(2) }}</span>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="['node', 'duration', 'earlyStart', 'earlyFinish', 'lateFinish', 'slack']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['node', 'duration', 'earlyStart', 'earlyFinish', 'lateFinish', 'slack'];" [class.critical-row]="row.isCritical"></tr>
+                      </table>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+            <!-- Tab: CPM Cost -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon>attach_money</mat-icon>
+                CPM Cost
+                @if (subgraphAnalysisResult()?.cpm_result?.cost_result) {
+                  <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
+                }
+              </ng-template>
+
+              <div class="analysis-tab-content">
+                <div class="tab-config-section">
+                  <div class="tab-config-row">
+                    @if (cpmGroups().length > 0) {
+                      <mat-form-field appearance="outline" class="scenario-select-field">
+                        <mat-label>CPM Scenario</mat-label>
+                        <mat-select [value]="selectedCpmIndex()"
+                                    (selectionChange)="onCpmGroupChange($event.value)">
+                          @for (group of cpmGroups(); track $index) {
+                            <mat-option [value]="$index">{{ group.scenarioName }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <div class="no-scenario-hint">
+                        <mat-icon>info</mat-icon>
+                        <span>No CPM files uploaded — upload via File Manager</span>
+                      </div>
+                    }
+                    <button mat-raised-button color="primary"
+                            [disabled]="!canRunCpm() || subgraphAnalysisStatus() === 'computing'"
+                            (click)="runSingleAnalysis('cpm')">
+                      <mat-icon>play_arrow</mat-icon> Run CPM
+                    </button>
+                  </div>
+                </div>
+
+                @if (subgraphAnalysisResult()?.cpm_result?.cost_result; as costResult) {
+                  <div class="tab-results-section">
+                    <div class="result-tab-header">
+                      <h3>Critical Cost: {{ getCriticalCostValue() }}</h3>
+                      <span class="computation-time">{{ subgraphAnalysisResult()?.cpm_result?.computation_time?.toFixed(3) || '?' }}s</span>
+                    </div>
+                    <div class="cpm-table-container">
+                      <table mat-table [dataSource]="getCpmCostEntries()" class="cpm-cost-table">
+                        <ng-container matColumnDef="node">
+                          <th mat-header-cell *matHeaderCellDef>Node</th>
+                          <td mat-cell *matCellDef="let entry" [class.critical-cell]="entry.isCritical">
+                            {{ entry.node }}
+                            @if (entry.isCritical) { <mat-icon class="critical-icon" color="warn" matTooltip="On critical path">star</mat-icon> }
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="nodeCost"><th mat-header-cell *matHeaderCellDef matTooltip="Individual node cost">Node Cost</th><td mat-cell *matCellDef="let entry">{{ entry.nodeCost.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="accumulatedCost"><th mat-header-cell *matHeaderCellDef matTooltip="Accumulated cost">Accumulated</th><td mat-cell *matCellDef="let entry">{{ entry.accumulatedCost.toFixed(2) }}</td></ng-container>
+                        <ng-container matColumnDef="slack">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Cost slack (0 = critical)">Slack</th>
+                          <td mat-cell *matCellDef="let entry">
+                            <span [style.color]="getSlackColor(entry.slack)" [style.font-weight]="entry.isCritical ? 'bold' : 'normal'">{{ entry.slack.toFixed(2) }}</span>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="['node', 'nodeCost', 'accumulatedCost', 'slack']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['node', 'nodeCost', 'accumulatedCost', 'slack'];" [class.critical-row]="row.isCritical"></tr>
+                      </table>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-tab>
+
+          </mat-tab-group>
+        </div>
+      }
+    </div>
+  }
+</div>

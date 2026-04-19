@@ -1,0 +1,404 @@
+// Documentation component - Solarized theme, respects [data-theme="dark"]
+// All colours use CSS variables from the global solarized palette
+
+.documentation-container {
+  display: flex;
+  height: calc(100vh - 64px); // Subtract toolbar height
+  overflow: hidden;
+  background: var(--background-color);
+  color: var(--text-primary);
+}
+
+// ─── Sidebar ───────────────────────────────────────────────
+.doc-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--surface-color);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: width 0.25s ease, min-width 0.25s ease;
+
+  .sidebar-collapsed & {
+    width: 56px;
+    min-width: 56px;
+  }
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+
+  .sidebar-collapsed & {
+    padding: 8px;
+  }
+}
+
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.collapse-btn {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+
+  &:hover {
+    color: var(--primary-color);
+  }
+}
+
+.sidebar-loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  font-family: inherit;
+
+  .sidebar-collapsed & {
+    padding: 10px 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  &:hover {
+    background: rgba(var(--primary-color-rgb), 0.08);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: rgba(var(--primary-color-rgb), 0.12);
+    color: var(--primary-color);
+    border-left-color: var(--primary-color);
+    font-weight: 600;
+  }
+}
+
+.nav-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-divider {
+  padding: 12px 16px 4px;
+
+  .sidebar-collapsed & {
+    padding: 12px 8px 4px;
+  }
+}
+
+.divider-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-disabled);
+  margin-top: 8px;
+}
+
+// ─── Content Area ──────────────────────────────────────────
+.doc-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+
+  @media (max-width: 768px) {
+    padding: 16px 20px;
+  }
+}
+
+.content-loading,
+.content-error,
+.content-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.error-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--error-color);
+}
+
+.empty-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: var(--text-disabled);
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+// ─── Markdown Rendered Content ─────────────────────────────
+// All markdown styling uses CSS variables for solarized theme support
+.markdown-body {
+  line-height: 1.7;
+  color: var(--text-primary);
+  //max-width: 960px;
+
+  // Headings
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary-color);
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 32px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 24px 0 8px 0;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 20px 0 8px 0;
+  }
+
+  // Paragraphs
+  p {
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+  }
+
+  // Links
+  a {
+    color: var(--primary-color);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+      color: var(--primary-color-dark);
+    }
+  }
+
+  // Emphasis
+  strong {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  em {
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  // Horizontal rules
+  hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 24px 0;
+  }
+
+  // Lists
+  ul, ol {
+    margin: 0 0 16px 0;
+    padding-left: 24px;
+
+    li {
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    ul, ol {
+      margin-top: 6px;
+      margin-bottom: 0;
+    }
+  }
+
+  // Code blocks
+  pre {
+    background: var(--surface-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    line-height: 1.5;
+
+    code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+  }
+
+  // Inline code
+  code {
+    background: var(--surface-container);
+    border: 1px solid var(--outline-variant);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12.5px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    color: var(--accent-color);
+  }
+
+  // Blockquotes
+  blockquote {
+    border-left: 4px solid var(--primary-color);
+    background: rgba(var(--primary-color-rgb), 0.06);
+    margin: 0 0 16px 0;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+
+    p {
+      margin-bottom: 0;
+      color: var(--text-secondary);
+    }
+
+    strong {
+      color: var(--primary-color);
+    }
+  }
+
+  // Tables
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 16px 0;
+    font-size: 13px;
+  }
+
+  thead {
+    th {
+      background: var(--surface-container);
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--outline-variant);
+
+      &:hover {
+        background: rgba(var(--primary-color-rgb), 0.04);
+      }
+    }
+
+    td {
+      padding: 8px 12px;
+      color: var(--text-primary);
+      vertical-align: top;
+    }
+  }
+
+  // Images
+  img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+}
+
+// ─── Dark Theme Overrides (via CSS variables, mostly automatic) ────
+// The CSS variables change automatically with [data-theme="dark"],
+// but we add a few explicit adjustments for markdown content:
+
+[data-theme="dark"] {
+  .doc-sidebar {
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .markdown-body {
+    pre {
+      border-color: var(--outline-variant);
+    }
+
+    code {
+      color: var(--warning-color); // Yellow for inline code in dark mode
+    }
+
+    blockquote {
+      background: rgba(var(--primary-color-rgb), 0.1);
+    }
+
+    thead th {
+      background: var(--surface-container-high);
+    }
+
+    tbody tr:hover {
+      background: rgba(var(--primary-color-rgb), 0.08);
+    }
+  }
+}

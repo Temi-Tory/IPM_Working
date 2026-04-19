@@ -1,0 +1,178 @@
+<div class="page-container">
+  @if (store.activeDeterministicDetail(); as detail) {
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Upgrade Priorities</mat-card-title>
+        <mat-card-subtitle>Infrastructure improvement recommendations</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-section">
+          <p><strong>Primary bottleneck:</strong> {{ detail.upgrades.primaryBottleneck }}</p>
+          <p><strong>Recommended action:</strong> {{ detail.upgrades.recommendedAction }}</p>
+        </div>
+
+        <div class="filter-controls">
+          <mat-checkbox [checked]="showAllUpgrades()" (change)="onShowAllToggle($event.checked)">
+            Show items with no immediate upgrade needed
+          </mat-checkbox>
+        </div>
+
+        <div class="section">
+          <h3>Edge Recommendations</h3>
+          <div class="table-controls">
+            <div class="search-wrapper">
+              <mat-icon>search</mat-icon>
+              <input
+                type="text"
+                placeholder="Search edge or rationale..."
+                [value]="edgeSearchTerm()"
+                (input)="onEdgeSearchChange($event)"
+              />
+            </div>
+          </div>
+          @if (filteredEdgeUpgrades().length === 0) {
+            <p class="no-data">No edges require immediate upgrades. Network edge capacity is adequate.</p>
+          } @else {
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable" (click)="onEdgeSort('edge')">
+                    Edge <mat-icon class="sort-icon">{{ getEdgeSortIcon('edge') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('priorityScore')">
+                    Priority <mat-icon class="sort-icon">{{ getEdgeSortIcon('priorityScore') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('urgency')">
+                    Urgency <mat-icon class="sort-icon">{{ getEdgeSortIcon('urgency') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('currentCapacity')">
+                    Current Cap. <mat-icon class="sort-icon">{{ getEdgeSortIcon('currentCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('recommendedCapacity')">
+                    Recommended Cap. <mat-icon class="sort-icon">{{ getEdgeSortIcon('recommendedCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('marginalValue')">
+                    Marginal Value <mat-icon class="sort-icon">{{ getEdgeSortIcon('marginalValue') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('expectedFlowIncrease')">
+                    Expected Increase <mat-icon class="sort-icon">{{ getEdgeSortIcon('expectedFlowIncrease') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onEdgeSort('rationale')">
+                    Rationale <mat-icon class="sort-icon">{{ getEdgeSortIcon('rationale') }}</mat-icon>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (edge of pagedEdgeUpgrades(); track $index) {
+                  <tr>
+                    <td>{{ asEdgeLabel(edge.edge) }}</td>
+                    <td>{{ edge.priorityScore | number: '1.2-2' }}</td>
+                    <td>
+                      <span class="urgency-pill" [ngClass]="getUrgencyClass(edge.priorityScore)">
+                        {{ getUrgencyLabel(edge.priorityScore) }}
+                      </span>
+                    </td>
+                    <td>{{ edge.currentCapacity | number: '1.3-3' }}</td>
+                    <td>{{ edge.recommendedCapacity | number: '1.3-3' }}</td>
+                    <td>{{ edge.marginalValue | number: '1.3-3' }}</td>
+                    <td>{{ edge.expectedFlowIncrease | number: '1.3-3' }}</td>
+                    <td>{{ edge.rationale }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <mat-paginator
+              [length]="sortedEdgeUpgrades().length"
+              [pageSize]="edgePageSize()"
+              [pageIndex]="edgePageIndex()"
+              [pageSizeOptions]="[10, 25, 50, 100]"
+              (page)="onEdgePageChange($event)"
+              showFirstLastButtons
+            ></mat-paginator>
+          }
+        </div>
+
+        <div class="section">
+          <h3>Node Recommendations</h3>
+          <div class="table-controls">
+            <div class="search-wrapper">
+              <mat-icon>search</mat-icon>
+              <input
+                type="text"
+                placeholder="Search node or rationale..."
+                [value]="nodeSearchTerm()"
+                (input)="onNodeSearchChange($event)"
+              />
+            </div>
+          </div>
+          @if (filteredNodeUpgrades().length === 0) {
+            <p class="no-data">No nodes require immediate upgrades. Network node capacity is adequate.</p>
+          } @else {
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable" (click)="onNodeSort('node')">
+                    Node <mat-icon class="sort-icon">{{ getNodeSortIcon('node') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('priorityScore')">
+                    Priority <mat-icon class="sort-icon">{{ getNodeSortIcon('priorityScore') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('urgency')">
+                    Urgency <mat-icon class="sort-icon">{{ getNodeSortIcon('urgency') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('currentCapacity')">
+                    Current Cap. <mat-icon class="sort-icon">{{ getNodeSortIcon('currentCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('recommendedCapacity')">
+                    Recommended Cap. <mat-icon class="sort-icon">{{ getNodeSortIcon('recommendedCapacity') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('marginalValue')">
+                    Marginal Value <mat-icon class="sort-icon">{{ getNodeSortIcon('marginalValue') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('expectedFlowIncrease')">
+                    Expected Increase <mat-icon class="sort-icon">{{ getNodeSortIcon('expectedFlowIncrease') }}</mat-icon>
+                  </th>
+                  <th class="sortable" (click)="onNodeSort('rationale')">
+                    Rationale <mat-icon class="sort-icon">{{ getNodeSortIcon('rationale') }}</mat-icon>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (node of pagedNodeUpgrades(); track node.node) {
+                  <tr>
+                    <td>{{ node.node }}</td>
+                    <td>{{ node.priorityScore | number: '1.2-2' }}</td>
+                    <td>
+                      <span class="urgency-pill" [ngClass]="getUrgencyClass(node.priorityScore)">
+                        {{ getUrgencyLabel(node.priorityScore) }}
+                      </span>
+                    </td>
+                    <td>{{ node.currentCapacity | number: '1.3-3' }}</td>
+                    <td>{{ node.recommendedCapacity | number: '1.3-3' }}</td>
+                    <td>{{ node.marginalValue | number: '1.3-3' }}</td>
+                    <td>{{ node.expectedFlowIncrease | number: '1.3-3' }}</td>
+                    <td>{{ node.rationale }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <mat-paginator
+              [length]="sortedNodeUpgrades().length"
+              [pageSize]="nodePageSize()"
+              [pageIndex]="nodePageIndex()"
+              [pageSizeOptions]="[10, 25, 50, 100]"
+              (page)="onNodePageChange($event)"
+              showFirstLastButtons
+            ></mat-paginator>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card>
+      <mat-card-content>
+        <p class="empty-state">Run an analysis to see upgrade recommendations.</p>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

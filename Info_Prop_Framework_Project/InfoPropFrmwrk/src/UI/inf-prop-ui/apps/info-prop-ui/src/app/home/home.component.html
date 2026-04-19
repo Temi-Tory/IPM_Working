@@ -1,0 +1,103 @@
+<div class="home-container">
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Information Propagation Framework</h1>
+      <p class="hero-subtitle">
+        Comprehensive network analysis platform for understanding information flow,
+        capacity constraints, and critical path optimization in complex networks.
+      </p>
+
+      <div class="action-buttons">
+        <button mat-raised-button color="primary" class="cta-button"
+          (click)="startNewAnalysis()" [disabled]="!backendHealthy">
+          <mat-icon>upload_file</mat-icon>
+          Start New Analysis
+        </button>
+
+        <button mat-outlined-button class="secondary-button"
+          (click)="loadPreviousSession()" [disabled]="!hasSavedSessions">
+          <mat-icon>history</mat-icon>
+          Load Previous Session
+        </button>
+
+        <button mat-outlined-button class="secondary-button docs-button"
+          routerLink="/docs">
+          <mat-icon>menu_book</mat-icon>
+          Documentation
+        </button>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <mat-card class="backend-status">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon [class]="backendHealthy ? 'status-healthy' : 'status-error'">
+              {{ backendHealthy ? 'check_circle' : 'error' }}
+            </mat-icon>
+            Backend Status
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="status-text">
+            {{ backendHealthy ? 'Connected and ready' : 'Backend server unavailable' }}
+          </p>
+          <button mat-button (click)="checkBackendHealth()" class="refresh-button">
+            <mat-icon>refresh</mat-icon>
+            Refresh
+          </button>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="features-section">
+    <h2>Analysis Capabilities</h2>
+
+    <div class="features-grid">
+      @for (feature of features; track feature) {
+        <mat-card class="feature-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>{{ feature.icon }}</mat-icon>
+            <mat-card-title>{{ feature.title }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>{{ feature.description }}</p>
+            <mat-chip-set>
+              @for (tag of feature.tags; track tag) {
+                <mat-chip>{{ tag }}</mat-chip>
+              }
+            </mat-chip-set>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </div>
+
+  @if (hasSavedSessions) {
+    <div class="recent-sessions-section">
+      <h2>Recent Sessions</h2>
+      <div class="sessions-list">
+        @for (session of recentSessions; track session) {
+          <mat-card class="session-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>folder</mat-icon>
+              <mat-card-title>{{ getSessionDisplayName(session) }}</mat-card-title>
+              <mat-card-subtitle>{{ formatDate(session.timestamp) }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-actions>
+              <button mat-button (click)="loadSession(session.sessionId)">
+                <mat-icon>open_in_new</mat-icon>
+                Load
+              </button>
+              <button mat-button color="warn" (click)="deleteSession(session.sessionId)">
+                <mat-icon>delete</mat-icon>
+                Delete
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        }
+      </div>
+    </div>
+  }
+</div>

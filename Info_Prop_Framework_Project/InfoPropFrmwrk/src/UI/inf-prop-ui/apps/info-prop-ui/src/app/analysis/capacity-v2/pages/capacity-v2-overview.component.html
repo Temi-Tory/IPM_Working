@@ -1,0 +1,137 @@
+<div class="overview-container">
+  @if (store.result()) {
+    <!-- Network Health Card -->
+    <mat-card class="health-card">
+      <mat-card-content>
+        <div class="health-status">
+          <mat-icon class="health-icon" [style.color]="getHealthColor()">{{ getHealthIcon() }}</mat-icon>
+          <div class="health-info">
+            <h2>Network Health: {{ getNetworkHealth() | titlecase }}</h2>
+            <p>Analysis completed {{ store.summary()?.computationTimeMs | number: '1.0-0' }}ms ago</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+      <mat-card class="metric-card" (click)="navigateTo('bottlenecks')">
+        <mat-card-content>
+          <mat-icon>warning</mat-icon>
+          <div class="value">{{ getBottleneckCount() }}</div>
+          <div class="label">Bottlenecks Found</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="metric-card" (click)="navigateTo('bottlenecks')">
+        <mat-card-content>
+          <mat-icon>route</mat-icon>
+          <div class="value">{{ (store.activeDeterministicDetail()?.criticalPaths?.singlePointsOfFailure?.length ?? 0) }}</div>
+          <div class="label">SPOF Constraints</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="metric-card" (click)="navigateTo('upgrades')">
+        <mat-card-content>
+          <mat-icon>trending_up</mat-icon>
+          <div class="value">
+            {{ (store.activeDeterministicDetail()?.upgrades?.edgePriorities?.length ?? 0) +
+               (store.activeDeterministicDetail()?.upgrades?.nodePriorities?.length ?? 0) }}
+          </div>
+          <div class="label">Upgrade Recommendations</div>
+        </mat-card-content>
+      </mat-card>
+
+      @if (store.hasIntervalResult()) {
+        <mat-card class="metric-card" (click)="navigateTo('uncertainty')">
+          <mat-card-content>
+            <mat-icon>analytics</mat-icon>
+            <div class="value">{{ store.summary()?.uncertaintyRange | number: '1.1-1' }}</div>
+            <div class="label">Uncertainty Range</div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+
+    <!-- Quick Actions -->
+    <mat-card class="actions-card">
+      <mat-card-header>
+        <mat-card-title>Quick Actions</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="action-buttons">
+          <button mat-raised-button color="primary" (click)="navigateTo('visualization')">
+            <mat-icon>hub</mat-icon>
+            View Network
+          </button>
+          <button mat-raised-button (click)="navigateTo('upgrades')">
+            <mat-icon>trending_up</mat-icon>
+            Optimization Plan
+          </button>
+          <button mat-raised-button (click)="navigateTo('flows')">
+            <mat-icon>water_drop</mat-icon>
+            Flow Details
+          </button>
+          <button mat-raised-button (click)="navigateTo('export')">
+            <mat-icon>download</mat-icon>
+            Export Report
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Network Summary -->
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>Network Summary</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Nodes</span>
+            <span class="summary-value">{{ (store.networkData()?.nodes?.length ?? 0) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Edges</span>
+            <span class="summary-value">{{ (store.networkData()?.edges?.length ?? 0) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Sources</span>
+            <span class="summary-value">{{ (store.networkData()?.source_nodes?.length ?? 0) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Sinks</span>
+            <span class="summary-value">{{ (store.networkData()?.sink_nodes?.length ?? 0) }}</span>
+          </div>
+        </div>
+
+        @if (store.activeDeterministicDetail(); as detail) {
+          <h4>Analysis Type</h4>
+          <mat-chip-set>
+            <mat-chip>{{ store.inputs().analysisType === 'interval' ? 'Interval (Robust)' : 'Deterministic' }}</mat-chip>
+            @if (detail.metadata.exactnessGuaranteed) {
+              <mat-chip color="accent">Exact Solution</mat-chip>
+            }
+          </mat-chip-set>
+
+          <h4>Primary Recommendation</h4>
+          <p class="recommendation">{{ detail.upgrades.recommendedAction }}</p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+  } @else {
+    <!-- No Results State -->
+    <mat-card class="empty-state-card">
+      <mat-card-content>
+        <mat-icon>info</mat-icon>
+        <h2>No Analysis Results Yet</h2>
+        <p>Configure your network parameters in the Inputs page and run the analysis to see comprehensive capacity metrics.</p>
+        <button mat-raised-button color="primary" (click)="navigateTo('inputs')">
+          <mat-icon>input</mat-icon>
+          Go to Inputs
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

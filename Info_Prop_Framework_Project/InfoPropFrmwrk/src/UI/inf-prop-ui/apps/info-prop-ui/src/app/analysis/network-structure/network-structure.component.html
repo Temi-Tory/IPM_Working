@@ -1,0 +1,591 @@
+<div class="network-structure-dashboard">
+  
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">account_tree</mat-icon>
+          Network Structure Analysis
+        </h1>
+        <p class="page-subtitle">Comprehensive DAG topology analysis and structural insights</p>
+      </div>
+      
+      @if (networkSummary(); as summary) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.totalNodes }}</div>
+            <div class="stat-label">Nodes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.totalEdges }}</div>
+            <div class="stat-label">Edges</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ summary.layers }}</div>
+            <div class="stat-label">Layers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ (summary.computationTime * 1000).toFixed(0) }}ms</div>
+            <div class="stat-label">Analysis Time</div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <mat-icon class="loading-spinner">refresh</mat-icon>
+      <h3>Analyzing Network Structure...</h3>
+      <p>Please wait while we process your DAG topology</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h3>Analysis Failed</h3>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryAnalysis()">
+        <mat-icon>refresh</mat-icon>
+        Retry Analysis
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!networkData() && !isLoading() && !error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">account_tree</mat-icon>
+      <h3>No Network Data</h3>
+      <p>Upload a network file to begin structural analysis</p>
+      <button mat-raised-button color="primary" routerLink="/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Network
+      </button>
+    </div>
+  }
+
+  <!-- Main Dashboard Content -->
+  @if (networkData(); as data) {
+    <div class="dashboard-content">
+      
+      <!-- View Toggle -->
+      <div class="view-controls">
+        <mat-button-toggle-group 
+          [value]="currentView()" 
+          (change)="switchView($event)"
+          class="view-toggle">
+          <mat-button-toggle value="overview">
+            <mat-icon>dashboard</mat-icon>
+            Overview
+          </mat-button-toggle>
+          <mat-button-toggle value="nodes">
+            <mat-icon>grain</mat-icon>
+            Nodes ({{ data.total_nodes }})
+          </mat-button-toggle>
+          <mat-button-toggle value="edges">
+            <mat-icon>timeline</mat-icon>
+            Edges ({{ data.total_edges }})
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <!-- Overview Tab -->
+      @if (currentView() === 'overview') {
+        <div class="overview-content">
+          
+          <!-- Summary Cards Grid -->
+          <div class="summary-grid">
+            
+            <!-- Network Summary Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>account_tree</mat-icon>
+                <mat-card-title>Network Summary</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (networkSummary(); as summary) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label">Total Components</span>
+                      <span class="metric-value">{{ summary.totalNodes + summary.totalEdges }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label"
+                            matTooltip="Percentage of actual connections vs maximum possible connections in the network. Formula: (edges / (nodes × (nodes-1))) × 100"
+                            matTooltipPosition="above">
+                        Network Density
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
+                      <span class="metric-value">{{ structuralMetrics()?.networkDensity || 0 }}%</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label"
+                            matTooltip="Average number of connections per node. Formula: (total edges × 2) / total nodes"
+                            matTooltipPosition="above">
+                        Average Degree
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
+                      <span class="metric-value">{{ structuralMetrics()?.averageDegree || 0 }}</span>
+                    </div>
+                    @if (connectivityInsights(); as insights) {
+                      <div class="metric-row">
+                        <span class="metric-label"
+                              matTooltip="Average number of edges per node. Formula: total edges / total nodes"
+                              matTooltipPosition="above">
+                          Connectivity Ratio
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
+                        <span class="metric-value">{{ insights.connectivityRatio }}</span>
+                      </div>
+                      <div class="metric-row">
+                        <span class="metric-label"
+                              matTooltip="Estimated average path length through the network. Formula: total layers / 2"
+                              matTooltipPosition="above">
+                          Avg Path Length
+                          <mat-icon class="info-icon">info_outline</mat-icon>
+                        </span>
+                        <span class="metric-value">{{ insights.avgPathLength }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Node Classification Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>category</mat-icon>
+                <mat-card-title>Node Types</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (networkSummary(); as summary) {
+                  <div class="node-types-grid">
+                    <div class="node-type-item source">
+                      <div class="type-count">{{ summary.sourceNodes }}</div>
+                      <div class="type-label">Sources</div>
+                    </div>
+                    <div class="node-type-item sink">
+                      <div class="type-count">{{ summary.sinkNodes }}</div>
+                      <div class="type-label">Sinks</div>
+                    </div>
+                    <div class="node-type-item fork">
+                      <div class="type-count">{{ summary.forkNodes }}</div>
+                      <div class="type-label">Forks</div>
+                    </div>
+                    <div class="node-type-item join">
+                      <div class="type-count">{{ summary.joinNodes }}</div>
+                      <div class="type-label">Joins</div>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Structural Metrics Card -->
+            <mat-card class="summary-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Structural Metrics</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (structuralMetrics(); as metrics) {
+                  <div class="summary-metrics">
+                    <div class="metric-row">
+                      <span class="metric-label"
+                            matTooltip="Ratio of edges to nodes in the network. Formula: total edges / total nodes"
+                            matTooltipPosition="above">
+                        Edge/Node Ratio
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
+                      <span class="metric-value">{{ metrics.edgeToNodeRatio }}</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label"
+                            matTooltip="Average number of nodes per topological layer. Formula: total nodes / total layers"
+                            matTooltipPosition="above">
+                        Layer Efficiency
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
+                      <span class="metric-value">{{ metrics.layerEfficiency }} nodes/layer</span>
+                    </div>
+                    <div class="metric-row">
+                      <span class="metric-label"
+                            matTooltip="Percentage of nodes that are sources or sinks. Formula: (sources + sinks) / total nodes × 100"
+                            matTooltipPosition="above">
+                        Boundary Nodes
+                        <mat-icon class="info-icon">info_outline</mat-icon>
+                      </span>
+                      <span class="metric-value">{{ metrics.boundaryNodeRatio }}%</span>
+                    </div>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+
+          <!-- Additional Graph Theory Insights -->
+          <div class="additional-insights">
+            <mat-card class="insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>analytics</mat-icon>
+                <mat-card-title>Graph Theory Insights</mat-card-title>
+                <mat-card-subtitle>Advanced connectivity and topology analysis</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="insights-grid">
+                  
+                  <!-- Topology Insights -->
+                  @if (topologyAnalysis(); as topology) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>account_tree</mat-icon>
+                        Network Shape: {{ topology.networkShape }}
+                      </h4>
+                      <div class="insight-metrics">
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of nodes that enable parallel processing (fork nodes). Formula: fork nodes / total nodes × 100"
+                                matTooltipPosition="above">
+                            Parallelism Index
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.parallelismIndex }}%</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of nodes that consolidate information (join nodes). Formula: join nodes / total nodes × 100"
+                                matTooltipPosition="above">
+                            Convergence Index
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.convergenceIndex }}%</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="How much the network width varies across layers. Formula: max width / min width"
+                                matTooltipPosition="above">
+                            Width Variation
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ topology.widthVariation }}x</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Reachability Insights -->
+                  @if (reachabilityAnalysis(); as reach) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>share</mat-icon>
+                        Reachability Analysis
+                      </h4>
+                      <div class="insight-metrics">
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Average number of nodes that can reach each node. Formula: sum of all ancestor counts / total nodes"
+                                matTooltipPosition="above">
+                            Avg Ancestors per Node
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.avgAncestors }}</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Average number of nodes reachable from each node. Formula: sum of all descendant counts / total nodes"
+                                matTooltipPosition="above">
+                            Avg Descendants per Node
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.avgDescendants }}</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Maximum number of nodes reachable from any single node in the network"
+                                matTooltipPosition="above">
+                            Max Node Influence
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.maxDescendants }} nodes</span>
+                        </div>
+                        <div class="metric-item">
+                          <span class="metric-label"
+                                matTooltip="Percentage of network reachable on average from any node. Formula: (avg descendants / total nodes) × 100"
+                                matTooltipPosition="above">
+                            Network Reachability
+                            <mat-icon class="info-icon">info_outline</mat-icon>
+                          </span>
+                          <span class="metric-value">{{ reach.reachabilityRatio }}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Connectivity Status -->
+                  @if (connectivityInsights(); as insights) {
+                    <div class="insight-section">
+                      <h4 class="insight-title">
+                        <mat-icon>device_hub</mat-icon>
+                        Connectivity Status
+                      </h4>
+                      <div class="status-indicators">
+                        @if (insights.isSparseDag) {
+                          <div class="status-item sparse">
+                            <mat-icon>scatter_plot</mat-icon>
+                            <span>Sparse Network - Efficient sequential processing</span>
+                          </div>
+                        }
+                        @if (insights.isWellConnected) {
+                          <div class="status-item connected">
+                            <mat-icon>hub</mat-icon>
+                            <span>Well Connected - Good information flow</span>
+                          </div>
+                        }
+                        @if (insights.hasBalancedFlow) {
+                          <div class="status-item balanced">
+                            <mat-icon>balance</mat-icon>
+                            <span>Balanced Flow - Even branching and convergence</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Network Insights Card -->
+          @if (networkInsights().length > 0) {
+            <mat-card class="insights-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>lightbulb</mat-icon>
+                <mat-card-title>Structural Insights</mat-card-title>
+                <mat-card-subtitle>Basic analysis of your network topology</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="insights-list">
+                  @for (insight of networkInsights(); track insight.message) {
+                    <div class="insight-item" [class]="'insight-' + insight.type">
+                      <mat-icon class="insight-icon">
+                        @switch (insight.type) {
+                          @case ('success') { check_circle }
+                          @case ('warning') { warning }
+                          @case ('info') { info }
+                          @default { help }
+                        }
+                      </mat-icon>
+                      <div class="insight-content">
+                        <div class="insight-message">{{ insight.message }}</div>
+                        <div class="insight-detail">{{ insight.detail }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      }
+
+      <!-- Nodes Tab -->
+      @if (currentView() === 'nodes') {
+        <div class="nodes-content">
+          
+          <!-- Filters -->
+          <mat-card class="filters-card">
+            <mat-card-content>
+              <div class="filters-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>Search Nodes</mat-label>
+                  <input matInput 
+                         [value]="nodeSearchTerm()" 
+                         (input)="onNodeSearch($event)"
+                         placeholder="Enter node ID">
+                  <mat-icon matSuffix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Node Types</mat-label>
+                  <mat-select [value]="selectedNodeTypes()" 
+                             (selectionChange)="onNodeTypeFilter($event.value)"
+                             multiple>
+                    <mat-option value="Source">Source</mat-option>
+                    <mat-option value="Sink">Sink</mat-option>
+                    <mat-option value="Fork">Fork</mat-option>
+                    <mat-option value="Join">Join</mat-option>
+                    <mat-option value="Regular">Regular</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="filter-info">
+                  Showing {{ filteredNodeDetails().length }} of {{ data.total_nodes }} nodes
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Nodes Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>grain</mat-icon>
+              <mat-card-title>Node Details</mat-card-title>
+              <mat-card-subtitle>Click any node to view detailed information</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedNodeDetails()" class="nodes-table">
+                  
+                  <ng-container matColumnDef="node">
+                    <th mat-header-cell *matHeaderCellDef>Node</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.node)"
+                              matTooltip="Click for detailed node information">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.node }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <mat-chip class="type-chip" [class]="'type-' + element.type.toLowerCase().replace(' + ', '-')">
+                        {{ element.type }}
+                      </mat-chip>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="inDegree">
+                    <th mat-header-cell *matHeaderCellDef>In-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value">{{ element.inDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="outDegree">
+                    <th mat-header-cell *matHeaderCellDef>Out-Degree</th>
+                    <td mat-cell *matCellDef="let element">
+                      <span class="degree-value">{{ element.outDegree }}</span>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openNodeDetailsModal(element.node)"
+                              matTooltip="View detailed information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="nodeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: nodeColumns;" class="node-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="filteredNodeDetails().length"
+                  [pageSize]="nodePageSize()"
+                  [pageIndex]="nodePageIndex()"
+                  [pageSizeOptions]="[25, 50, 100, 250]"
+                  (page)="onNodePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Edges Tab -->
+      @if (currentView() === 'edges') {
+        <div class="edges-content">
+          
+          <!-- Edges Table -->
+          <mat-card class="table-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>timeline</mat-icon>
+              <mat-card-title>Edge Details</mat-card-title>
+              <mat-card-subtitle>Click any edge to view detailed information</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="paginatedEdgeDetails()" class="edges-table">
+                  
+                  <ng-container matColumnDef="source">
+                    <th mat-header-cell *matHeaderCellDef>Source</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.source)"
+                              matTooltip="Click for source node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.source }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="target">
+                    <th mat-header-cell *matHeaderCellDef>Target</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="node-button" 
+                              (click)="openNodeDetailsModal(element.target)"
+                              matTooltip="Click for target node details">
+                        <mat-icon>grain</mat-icon>
+                        <span>{{ element.target }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Edge Type</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button class="edge-button" 
+                              (click)="openEdgeDetailsModal(element.source, element.target)"
+                              matTooltip="Click for detailed edge information">
+                        <mat-icon>timeline</mat-icon>
+                        <span>{{ element.type }}</span>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="actions">
+                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <td mat-cell *matCellDef="let element">
+                      <button mat-icon-button 
+                              (click)="openEdgeDetailsModal(element.source, element.target)"
+                              matTooltip="View detailed edge information">
+                        <mat-icon>info</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="edgeColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: edgeColumns;" class="edge-row"></tr>
+                </table>
+
+                <mat-paginator 
+                  [length]="edgeDetails().length"
+                  [pageSize]="edgePageSize()"
+                  [pageIndex]="edgePageIndex()"
+                  [pageSizeOptions]="[50, 100, 250, 500]"
+                  (page)="onEdgePageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      }
+    </div>
+  }
+</div>

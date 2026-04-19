@@ -1,0 +1,792 @@
+<!-- System-Wide DAG Infrastructure Analysis Dashboard -->
+<div class="diamond-hierarchy-dashboard">
+
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon class="title-icon">merge_type</mat-icon>
+          Convergence Point Analysis
+          <button mat-icon-button
+                  matTooltip="System-Wide DAG Infrastructure Analysis: Identify conditioning node dependencies and failure propagation paths in directed acyclic systems"
+                  matTooltipClass="help-tooltip"
+                  class="help-icon">
+            <mat-icon>help_outline</mat-icon>
+          </button>
+        </h1>
+        <p class="page-subtitle">
+          Identify conditioning node dependencies and failure propagation paths in directed acyclic systems
+        </p>
+      </div>
+
+      <!-- Expandable Methodology Card -->
+      <mat-expansion-panel class="methodology-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>engineering</mat-icon>
+            Diamond Detection in DAG Systems
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="methodology-content">
+          <div class="algorithm-explanation">
+            <h4>Mathematical Detection</h4>
+            <p>Algorithm identifies diamonds: <strong>Conditioning Nodes &rarr; Multiple Paths &rarr; Join Node</strong></p>
+            <ul>
+              <li><strong>Conditioning nodes:</strong> Shared fork ancestors that influence multiple paths</li>
+              <li><strong>Diamond paths:</strong> All directed paths from conditioning through intermediates to join</li>
+              <li><strong>Join nodes:</strong> Convergence points where multiple paths reconverge</li>
+            </ul>
+          </div>
+
+          <div class="engineering-significance">
+            <h4>Infrastructure Engineering Applications</h4>
+            <div class="significance-grid">
+              <div class="significance-item">
+                <mat-icon>warning</mat-icon>
+                <div class="significance-content">
+                  <strong>Common Cause Failures:</strong>
+                  <span>Conditioning nodes are hidden shared dependencies (Fukushima: backup systems shared elevation vulnerability)</span>
+                </div>
+              </div>
+              <div class="significance-item">
+                <mat-icon>merge_type</mat-icon>
+                <div class="significance-content">
+                  <strong>System Bottlenecks:</strong>
+                  <span>Join nodes are natural convergence points determining system throughput</span>
+                </div>
+              </div>
+              <div class="significance-item">
+                <mat-icon>device_hub</mat-icon>
+                <div class="significance-content">
+                  <strong>Cascade Analysis:</strong>
+                  <span>Single conditioning failure cascades through multiple paths to join node</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <button mat-raised-button color="primary" (click)="runAllScenarios()"
+                [disabled]="scenarioNames().length === 0"
+                matTooltip="Run diamond analysis on all idle/error scenarios">
+          <mat-icon>play_arrow</mat-icon>
+          Run All
+        </button>
+
+        <button mat-stroked-button [matMenuTriggerFor]="exportMenu"
+                [disabled]="completedCount() === 0">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportDiamondData()">
+            <mat-icon>description</mat-icon>
+            Export Current Scenario (JSON)
+          </button>
+          <button mat-menu-item (click)="exportAllJSON()">
+            <mat-icon>folder</mat-icon>
+            Export All Scenarios (JSON)
+          </button>
+        </mat-menu>
+
+        @if (completedCount() > 0) {
+          <span class="completed-badge">
+            {{ completedCount() }}/{{ scenarioNames().length }} computed
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Scenario Tabs -->
+    @if (scenarioNames().length > 0) {
+      <div class="scenario-tabs-container">
+        <div class="scenario-tabs">
+          @for (name of scenarioNames(); track name; let i = $index) {
+            <button class="scenario-tab"
+                    [class.active]="i === activeTabIndex()"
+                    [class.computed]="getTabStatus(name) === 'computed'"
+                    [class.computing]="getTabStatus(name) === 'computing'"
+                    [class.error]="getTabStatus(name) === 'error'"
+                    [class.idle]="getTabStatus(name) === 'idle'"
+                    (click)="onScenarioTabChange(i)">
+              <span class="tab-label">{{ getTabDisplayName(name) }}</span>
+              <span class="tab-status-icon">
+                @switch (getTabStatus(name)) {
+                  @case ('computed') { <mat-icon class="status-icon computed">check_circle</mat-icon> }
+                  @case ('computing') { <mat-spinner diameter="16"></mat-spinner> }
+                  @case ('error') { <mat-icon class="status-icon error">error</mat-icon> }
+                  @case ('idle') { <mat-icon class="status-icon idle">radio_button_unchecked</mat-icon> }
+                }
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-card class="empty-state-card">
+          <mat-card-content>
+            <div class="empty-state-content">
+              <mat-icon>merge_type</mat-icon>
+              <h3>No Scenarios Available</h3>
+              <p>Upload a network with reachability scenarios to enable diamond analysis.</p>
+              <button mat-raised-button color="primary" routerLink="/upload">
+                <mat-icon>upload_file</mat-icon>
+                Upload Network
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
+  </div>
+
+  <!-- Tab Content Area -->
+  @if (activeTab(); as tab) {
+
+    <!-- IDLE STATE -->
+    @if (tab.status === 'idle') {
+      <div class="tab-idle-state">
+        <mat-card class="idle-card">
+          <mat-card-content>
+            <div class="idle-content">
+              <mat-icon class="idle-icon">merge_type</mat-icon>
+              <h3>Ready for Diamond Analysis</h3>
+              <p>Click "Run" to analyze convergence patterns for this scenario, or "Run All" to analyze all scenarios.</p>
+              <button mat-raised-button color="primary" (click)="runScenario(scenarioNames()[activeTabIndex()])">
+                <mat-icon>play_arrow</mat-icon>
+                Run Analysis
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
+
+    <!-- COMPUTING STATE -->
+    @if (tab.status === 'computing') {
+      <div class="loading-state">
+        <mat-spinner diameter="48"></mat-spinner>
+        <h3>Analyzing Diamond Structures</h3>
+        <p>Identifying convergence patterns and risk factors for {{ tab.scenario.displayName }}...</p>
+      </div>
+    }
+
+    <!-- ERROR STATE -->
+    @if (tab.status === 'error') {
+      <div class="error-state">
+        <mat-icon class="error-icon">error</mat-icon>
+        <h3>Analysis Error</h3>
+        <p>{{ tab.error }}</p>
+        <button mat-raised-button color="primary" (click)="rerunScenario(scenarioNames()[activeTabIndex()])">
+          <mat-icon>refresh</mat-icon>
+          Retry Analysis
+        </button>
+      </div>
+    }
+
+    <!-- COMPUTED STATE -->
+    @if (tab.status === 'computed' && currentDiamondResults()) {
+
+      <!-- System-Wide Metrics Dashboard -->
+      @if (diamondSummary(); as summary) {
+        <div class="system-metrics">
+          <div class="metric-card primary"
+               matTooltip="Number of join nodes with maximal diamond structures detected">
+            <div class="metric-value">{{ getRootDiamondsCount() }}</div>
+            <div class="metric-label">Convergence Points</div>
+          </div>
+
+          <div class="metric-card hierarchy"
+               matTooltip="Complete hierarchical set including all nested sub-diamonds">
+            <div class="metric-value">{{ getUniqueDiamondsCount() }}</div>
+            <div class="metric-label">Total Diamond Structures</div>
+          </div>
+
+          <div class="metric-card vulnerability"
+               matTooltip="Diamonds with single conditioning node - hidden single points of failure">
+            <div class="metric-value">{{ getSingleConditioningCount() }}</div>
+            <div class="metric-label">Common Cause Vulnerabilities</div>
+          </div>
+
+          <div class="metric-card complexity"
+               matTooltip="Ratio showing total diamond structures to root diamonds">
+            <div class="metric-value">{{ getHierarchicalComplexity() }}</div>
+            <div class="metric-label">Structure Ratio</div>
+          </div>
+        </div>
+
+        <!-- Engineering Risk Assessment -->
+        <mat-card class="system-risk-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>assessment</mat-icon>
+            <mat-card-title>System Dependency Analysis</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="risk-indicators">
+              @if (getCriticalSharedDependencies() > 0) {
+                <div class="risk-metric critical">
+                  <mat-icon>error</mat-icon>
+                  <span class="metric-value">{{ getCriticalSharedDependencies() }}</span>
+                  <span class="metric-desc">Conditioning nodes appearing in multiple diamonds</span>
+                </div>
+              }
+              <div class="risk-metric">
+                <mat-icon>device_hub</mat-icon>
+                <span class="metric-value">{{ getBottleneckJoinNodes() }}</span>
+                <span class="metric-desc">High-traffic convergence points</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Inner Analysis Tabs -->
+      <div class="dashboard-content">
+        <mat-tab-group
+          [selectedIndex]="innerTabIndex()"
+          (selectedIndexChange)="onInnerTabChange($event)"
+          class="analysis-tabs">
+
+          <!-- Diamond Hierarchy Tab -->
+          <mat-tab label="Diamond Hierarchy">
+            <div class="tab-content hierarchy-tab">
+              @if (convergenceInsights(); as insights) {
+                <div class="convergence-section">
+                  <div class="section-header">
+                    <h2 class="section-title">Convergence Pattern Analysis</h2>
+                    <button mat-icon-button
+                            matTooltip="Pattern frequencies and risk scores calculated from diamond structure complexity"
+                            class="info-tooltip">
+                      <mat-icon>help_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="insights-grid">
+                    @for (insight of insights; track insight.patternType) {
+                      <mat-card class="insight-card" [class]="'insight-' + insight.riskLevel">
+                        <mat-card-header>
+                          <mat-icon mat-card-avatar>{{ getPatternIcon(insight.patternType) }}</mat-icon>
+                          <mat-card-title>{{ insight.patternType | titlecase }} Patterns</mat-card-title>
+                          <mat-card-subtitle>{{ insight.description }}</mat-card-subtitle>
+                        </mat-card-header>
+                        <mat-card-content>
+                          <div class="pattern-metrics">
+                            <div class="pattern-metric">
+                              <span class="metric-number">{{ formatNumber(insight.frequency) }}</span>
+                              <span class="metric-label">Occurrences</span>
+                            </div>
+                            <div class="pattern-metric">
+                              <span class="metric-number">{{ insight.averageNodeCount.toFixed(1) }}</span>
+                              <span class="metric-label">Avg Nodes</span>
+                            </div>
+                          </div>
+                          @if (insight.businessImpact) {
+                            <div class="business-impact">
+                              <mat-icon>info</mat-icon>
+                              <span>{{ insight.businessImpact }}</span>
+                            </div>
+                          }
+                        </mat-card-content>
+                      </mat-card>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </mat-tab>
+
+          <!-- System Dependencies Tab -->
+          <mat-tab label="System Dependencies">
+            <div class="tab-content system-analysis-tab">
+              <mat-card class="shared-dependencies-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>device_hub</mat-icon>
+                  <mat-card-title>Cross-Diamond Dependencies</mat-card-title>
+                  <mat-card-subtitle>Conditioning nodes that create dependencies across multiple convergence points</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="shared-conditioning-table">
+                    @if (getSharedConditioningNodes(); as sharedNodes) {
+                      @for (nodeInfo of sharedNodes; track nodeInfo.nodeId) {
+                        <div class="shared-node-item">
+                          <div class="node-header">
+                            <mat-icon>share</mat-icon>
+                            <span class="node-id">Node {{ nodeInfo.nodeId }}</span>
+                            <span class="affected-count">Affects {{ nodeInfo.affectedDiamonds.length }} diamonds</span>
+                          </div>
+                          <div class="affected-diamonds">
+                            @for (diamondId of nodeInfo.affectedDiamonds; track diamondId) {
+                              <span class="diamond-chip">{{ diamondId }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    } @else {
+                      <div class="no-shared-dependencies">
+                        <mat-icon>check_circle</mat-icon>
+                        <p>No cross-diamond dependencies detected - all convergence points are independent</p>
+                      </div>
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="convergence-patterns-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>account_tree</mat-icon>
+                  <mat-card-title>System Convergence Landscape</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="pattern-analysis">
+                    <div class="pattern-metric">
+                      <span class="metric-label">Independent Convergences:</span>
+                      <span class="metric-value">{{ getIndependentConvergences() }}</span>
+                      <span class="metric-tooltip">Join nodes with no shared conditioning dependencies</span>
+                    </div>
+                    <div class="pattern-metric">
+                      <span class="metric-label">Dependent Convergences:</span>
+                      <span class="metric-value">{{ getDependentConvergences() }}</span>
+                      <span class="metric-tooltip">Join nodes sharing conditioning node dependencies</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </mat-tab>
+
+          <!-- Diamond Patterns Tab -->
+          <mat-tab label="Diamond Patterns">
+            <div class="tab-content patterns-tab">
+
+              <!-- Filters Card -->
+              <mat-card class="filters-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>filter_list</mat-icon>
+                  <mat-card-title>Pattern Filters</mat-card-title>
+                  <mat-card-subtitle>Filter diamonds by complexity, type, and risk level</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="filters-row">
+                    <mat-form-field appearance="outline" class="filter-field">
+                      <mat-label>Min Nodes</mat-label>
+                      <input matInput type="number" min="0" [value]="minNodeCount()"
+                             (input)="setMinNodeCount($event)"
+                             [placeholder]="'Min: ' + minNodeCount()">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="filter-field">
+                      <mat-label>Max Nodes</mat-label>
+                      <input matInput type="number" min="1" [value]="maxNodeCount()"
+                             (input)="setMaxNodeCount($event)"
+                             [placeholder]="'Max: ' + maxNodeCount()">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="filter-field">
+                      <mat-label>Diamond Type</mat-label>
+                      <mat-select [value]="selectedPatternType()"
+                                  (selectionChange)="setPatternType($event.value)">
+                        <mat-option value="">All Diamonds</mat-option>
+                        <mat-option value="root">Root Diamonds Only</mat-option>
+                        <mat-option value="nested">Sub Diamonds Only</mat-option>
+                        <mat-option value="complex">Complex Diamonds</mat-option>
+                        <mat-option value="critical">High Risk Diamonds</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <button mat-raised-button color="primary" (click)="applyFilters()">
+                      <mat-icon>search</mat-icon>
+                      Apply
+                    </button>
+                    <button mat-button (click)="clearFilters()">
+                      <mat-icon>clear</mat-icon>
+                      Clear
+                    </button>
+                  </div>
+
+                  <div class="filter-info">
+                    @if (filteredDiamondPatterns(); as filtered) {
+                      <strong>Showing {{ filtered.length }} of {{ diamondPatterns().length || 0 }} diamonds</strong>
+                      @if (filtered.length !== (diamondPatterns().length || 0)) {
+                        <span class="filter-active-indicator">
+                          <mat-icon>filter_alt</mat-icon>
+                          Filters active
+                        </span>
+                      }
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <!-- Diamond Patterns Table -->
+              <mat-card class="table-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>table_view</mat-icon>
+                  <mat-card-title>Diamond Structures</mat-card-title>
+                  <mat-card-subtitle>Click any diamond to view detailed structural analysis</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="table-container">
+                    @if (filteredDiamondPatterns(); as patterns) {
+                      <table mat-table [dataSource]="dataSource" class="diamond-patterns-table" matSort>
+
+                        <ng-container matColumnDef="joinNode">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Convergence point where multiple dependency paths meet">Convergence Point</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <div class="join-node-display">
+                              <mat-icon>merge_type</mat-icon>
+                              <span class="node-id">{{ pattern.joinNode }}</span>
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="diamondType">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Root diamonds are maximal, Nested are sub-diamonds within larger structures">Diamond Type</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            @if (pattern.diamondType === 'Root') {
+                              <mat-chip color="primary" class="type-chip root-chip"><mat-icon>diamond</mat-icon> Root</mat-chip>
+                            } @else {
+                              <mat-chip color="accent" class="type-chip nested-chip"><mat-icon>category</mat-icon> Nested</mat-chip>
+                            }
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="conditioningNodes">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Shared fork ancestors that create hidden dependencies">Shared Dependencies</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <div class="conditioning-analysis">
+                              @if (pattern.conditioningNodes.length === 1) {
+                                <div class="single-conditioning critical"
+                                     (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)"
+                                     style="cursor: pointer;"
+                                     matTooltip="Single conditioning node - critical dependency point">
+                                  <mat-icon>warning</mat-icon>
+                                  <span>{{ pattern.conditioningNodes[0] }}</span>
+                                </div>
+                              } @else if (pattern.conditioningNodes.length > 1) {
+                                <div class="multiple-conditioning"
+                                     (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)"
+                                     style="cursor: pointer;">
+                                  @for (node of pattern.conditioningNodes.slice(0, 2); track node) {
+                                    <span class="conditioning-chip">{{ node }}</span>
+                                  }
+                                  @if (pattern.conditioningNodes.length > 2) {
+                                    <span class="more-indicator">+{{ pattern.conditioningNodes.length - 2 }}</span>
+                                  }
+                                </div>
+                              } @else {
+                                <span class="no-conditioning">Direct Paths</span>
+                              }
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="diamondComplexity">
+                          <th mat-header-cell *matHeaderCellDef mat-sort-header matTooltip="Size and internal structure of diamond">Diamond Complexity</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <div class="complexity-display">
+                              <span class="size-number">{{ pattern.nodeCount }}</span>
+                              <span class="size-unit">nodes</span>
+                              @if (pattern.subDiamonds && pattern.subDiamonds.length > 0) {
+                                <span class="nested-indicator">+{{ pattern.subDiamonds.length }} nested</span>
+                              }
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="cascadeRisk">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Engineering risk assessment based on structure">Cascade Risk</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <div class="risk-assessment" [class]="'risk-' + getRiskLevel(pattern)">
+                              <mat-icon>{{ getRiskIcon(pattern) }}</mat-icon>
+                              <span class="risk-text">{{ getRiskLevel(pattern) }}</span>
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="systemRole">
+                          <th mat-header-cell *matHeaderCellDef matTooltip="Role in overall network">System Role</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <span class="role-badge" [class]="getSystemRoleClass(pattern)">{{ getSystemRole(pattern) }}</span>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="actions">
+                          <th mat-header-cell *matHeaderCellDef>Actions</th>
+                          <td mat-cell *matCellDef="let pattern">
+                            <div class="action-buttons">
+                              <button mat-icon-button matTooltip="View Diamond Details"
+                                      (click)="$event.stopPropagation(); openDiamondDetailsModal(pattern)">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              @if (pattern.conditioningNodes.length > 0) {
+                                <button mat-icon-button matTooltip="View Conditioning Node Analysis"
+                                        (click)="$event.stopPropagation(); openConditioningNodeAnalysis(pattern.conditioningNodes)">
+                                  <mat-icon>psychology</mat-icon>
+                                </button>
+                              }
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                            class="diamond-row clickable-row"
+                            (click)="openDiamondDetailsModal(row)"
+                            matTooltip="Click to view diamond details"></tr>
+                      </table>
+
+                      <mat-paginator
+                        [pageSizeOptions]="[5, 10, 25, 50]"
+                        [pageSize]="10"
+                        [showFirstLastButtons]="true"
+                        [length]="dataSource.data.length">
+                      </mat-paginator>
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </mat-tab>
+
+          <!-- System Insights Tab -->
+          <mat-tab label="System Insights">
+            <div class="tab-content system-insights-tab">
+
+              <mat-card class="system-insights-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>assessment</mat-icon>
+                  <mat-card-title>Infrastructure Analysis Results</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="insights-list">
+                    @if (hasCommonCauseVulnerabilities()) {
+                      <div class="insight-item critical">
+                        <mat-icon>error</mat-icon>
+                        <div class="insight-content">
+                          <h4>Common Cause Vulnerabilities Detected</h4>
+                          <p>{{ getSingleConditioningCount() }} convergence points depend on single conditioning nodes. System vulnerable to cascading failures.</p>
+                        </div>
+                      </div>
+                    }
+                    @if (hasSharedConditioningNodes()) {
+                      <div class="insight-item warning">
+                        <mat-icon>device_hub</mat-icon>
+                        <div class="insight-content">
+                          <h4>Cross-System Dependencies</h4>
+                          <p>{{ getCriticalSharedDependencies() }} conditioning nodes affect multiple convergence points. Consider isolation strategies.</p>
+                        </div>
+                      </div>
+                    }
+                    @if (getSystemHealth() === 'good') {
+                      <div class="insight-item success">
+                        <mat-icon>check_circle</mat-icon>
+                        <div class="insight-content">
+                          <h4>Well-Balanced System Structure</h4>
+                          <p>System shows good redundancy patterns with {{ getIndependentConvergences() }} independent convergence points.</p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="optimization-insights-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>tune</mat-icon>
+                  <mat-card-title>System Optimization Opportunities</mat-card-title>
+                  <mat-card-subtitle>Infrastructure improvement recommendations based on diamond analysis</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (getOptimizationInsights(); as insights) {
+                    <div class="optimization-grid">
+                      @for (insight of insights; track insight.id) {
+                        <div class="optimization-card" [class]="'priority-' + insight.priority">
+                          <div class="optimization-header">
+                            <mat-icon>{{ getOptimizationIcon(insight.type) }}</mat-icon>
+                            <div class="optimization-info">
+                              <h4>{{ insight.title }}</h4>
+                              <p class="optimization-desc">{{ insight.description }}</p>
+                            </div>
+                            <span class="priority-badge" [class]="'priority-' + insight.priority">{{ insight.priority }}</span>
+                          </div>
+                          <div class="optimization-interpretation">
+                            <p>{{ insight.interpretation }}</p>
+                          </div>
+                          <div class="recommendations">
+                            <h5>Recommendations:</h5>
+                            <ul>
+                              @for (rec of insight.recommendations; track rec) {
+                                <li>{{ rec }}</li>
+                              }
+                            </ul>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="no-optimizations">
+                      <mat-icon>check_circle</mat-icon>
+                      <p>System structure appears well-optimized - no critical improvements needed</p>
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="pattern-distribution-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar>donut_small</mat-icon>
+                  <mat-card-title>Diamond Distribution</mat-card-title>
+                  <mat-card-subtitle>Breakdown of diamond structures by size and complexity</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (diamondSummary(); as summary) {
+                    <div class="distribution-metrics">
+                      <div class="distribution-row">
+                        <span class="dist-label">Total Patterns:</span>
+                        <span class="dist-value">{{ formatNumber(summary.totalDiamonds) }}</span>
+                      </div>
+                      <div class="distribution-row">
+                        <span class="dist-label">Average Size:</span>
+                        <span class="dist-value">{{ summary.averageComplexity.toFixed(1) }} nodes</span>
+                      </div>
+                      <div class="distribution-row">
+                        <span class="dist-label">Node Participation:</span>
+                        <span class="dist-value">{{ formatPercentage((coverageMetrics() || {}).percentage || 0) }}</span>
+                      </div>
+                    </div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </mat-tab>
+
+        </mat-tab-group>
+      </div>
+    }
+  }
+</div>
+
+<style>
+.scenario-tabs-container {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.scenario-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--divider-color, #e0e0e0);
+  padding-bottom: 0;
+}
+
+.scenario-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary, #666);
+}
+
+.scenario-tab:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+.scenario-tab.active {
+  border-bottom-color: var(--primary-color, #1976d2);
+  color: var(--primary-color, #1976d2);
+  background: var(--primary-color-light, rgba(25, 118, 210, 0.08));
+}
+
+.scenario-tab.computed .status-icon.computed {
+  color: #4caf50;
+}
+
+.scenario-tab.error .status-icon.error {
+  color: #f44336;
+}
+
+.scenario-tab.idle .status-icon.idle {
+  color: #9e9e9e;
+}
+
+.tab-status-icon {
+  display: flex;
+  align-items: center;
+}
+
+.status-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.completed-badge {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  background: var(--surface-background, #f5f5f5);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+.tab-idle-state {
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.idle-card {
+  max-width: 500px;
+  text-align: center;
+}
+
+.idle-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.idle-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--text-secondary, #999);
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable-row:hover {
+  background-color: var(--primary-color-light) !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+</style>
