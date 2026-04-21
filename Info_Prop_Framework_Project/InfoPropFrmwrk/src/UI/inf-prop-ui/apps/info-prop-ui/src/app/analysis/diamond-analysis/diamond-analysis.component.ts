@@ -103,6 +103,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private activatedRoute = inject(ActivatedRoute);
+  private isDestroyed = false;
 
   @ViewChild(MatPaginator) set paginatorRef(paginator: MatPaginator) {
     if (paginator && this.dataSource) {
@@ -291,17 +292,9 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   ngOnDestroy(): void {
+    this.isDestroyed = true;
     this.saveActiveTabUIState();
-    this.analysisStateService.saveViewState(
-      DiamondAnalysisComponent.VIEW_KEY,
-      this.scenarioTabs(),
-      this.activeTabIndex(),
-      {
-        selectedPatternType: this.selectedPatternType(),
-        innerTabIndex: this.innerTabIndex(),
-        comparisonMode: this.comparisonMode()
-      }
-    );
+    this.persistViewState();
   }
 
   ngAfterViewInit(): void {
@@ -423,11 +416,15 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       this.scenarioResults.set(scenarioName, response.diamond_analysis);
       this.pushToCentralizedState();
       this.updateFilterRanges();
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Diamond analysis failed';
       this.updateTabState(scenarioName, { status: 'error', error: msg });
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -508,6 +505,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
     if (existing) {
       current.set(name, { ...existing, ...update });
       this.scenarioTabs.set(current);
+      this.persistViewState();
     }
   }
 
@@ -526,6 +524,19 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex())] || '',
       availableScenarios: this.availableScenarios
     });
+  }
+
+  private persistViewState(): void {
+    this.analysisStateService.saveViewState(
+      DiamondAnalysisComponent.VIEW_KEY,
+      this.scenarioTabs(),
+      this.activeTabIndex(),
+      {
+        selectedPatternType: this.selectedPatternType(),
+        innerTabIndex: this.innerTabIndex(),
+        comparisonMode: this.comparisonMode()
+      }
+    );
   }
 
   // ─── Tab helpers (for template access) ────────────────────────────────────

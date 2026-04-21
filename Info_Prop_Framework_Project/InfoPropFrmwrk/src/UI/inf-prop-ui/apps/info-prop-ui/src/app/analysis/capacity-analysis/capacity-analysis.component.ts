@@ -171,6 +171,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private isDestroyed = false;
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -598,12 +599,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
   }
 
   ngOnDestroy(): void {
-    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
-    for (const [name, tab] of this.scenarioTabs()) {
-      if (tab.status === 'computing') {
-        this.updateTabState(name, { status: 'idle' });
-      }
-    }
+    this.isDestroyed = true;
     // Save current tab's UI state before persisting
     const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
@@ -616,6 +612,21 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
         sortDirection: this.activeSortDirection()
       });
     }
+    this.persistViewState();
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    this.analysisStateService.setMultiScenarioCapacityResults({
+      scenarios: new Map(this.scenarioResults) as Map<string, CapacityScenario>,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
+  }
+
+  private persistViewState(): void {
     this.analysisStateService.saveViewState(
       CapacityAnalysisComponent.VIEW_KEY,
       this.scenarioTabs(),
@@ -633,17 +644,6 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
         compareScenarioName: this.compareScenarioName()
       }
     );
-  }
-
-  // ─── Push results to centralized state (for System Profile) ──────────────
-
-  private pushToCentralizedState(): void {
-    if (this.scenarioResults.size === 0) return;
-    this.analysisStateService.setMultiScenarioCapacityResults({
-      scenarios: new Map(this.scenarioResults) as Map<string, CapacityScenario>,
-      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
-      availableScenarios: this.availableScenarios
-    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -778,11 +778,15 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
 
       this.scenarioResults.set(scenarioName, raw);
       this.pushToCentralizedState();
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Capacity analysis failed';
       this.updateTabState(scenarioName, { status: 'error', error: msg });
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -937,6 +941,7 @@ export class CapacityAnalysisComponent implements OnInit, OnDestroy, ScenarioAwa
     if (tab) {
       tabs.set(name, { ...tab, ...updates });
       this.scenarioTabs.set(tabs);
+      this.persistViewState();
     }
   }
 

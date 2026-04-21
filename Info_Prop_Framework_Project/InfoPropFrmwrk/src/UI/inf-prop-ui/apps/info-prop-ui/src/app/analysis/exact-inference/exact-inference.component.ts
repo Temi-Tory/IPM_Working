@@ -159,6 +159,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private isDestroyed = false;
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -733,14 +734,30 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
   }
 
   ngOnDestroy(): void {
-    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
-    for (const [name, tab] of this.scenarioTabs()) {
-      if (tab.status === 'computing') {
-        this.updateTabState(name, { status: 'idle' });
-      }
-    }
+    this.isDestroyed = true;
     // Save state so navigating back restores results without re-running
     this.saveActiveTabUIState();
+    this.persistViewState();
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    // scenarioResults may contain ReachabilityScenario (fresh) or full AnalysisResponse (cache restore)
+    const normalized = new Map<string, ReachabilityScenario>();
+    for (const [name, val] of this.scenarioResults) {
+      const scenario = val?.reachability_result ? val.reachability_result : val;
+      normalized.set(name, scenario as ReachabilityScenario);
+    }
+    this.analysisStateService.setMultiScenarioReachabilityResults({
+      scenarios: normalized,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
+  }
+
+  private persistViewState(): void {
     this.analysisStateService.saveViewState(
       ExactInferenceComponent.VIEW_KEY,
       this.scenarioTabs(),
@@ -761,23 +778,6 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
         multiComparisonSortDirection: this.multiComparisonSortDirection()
       }
     );
-  }
-
-  // ─── Push results to centralized state (for System Profile) ──────────────
-
-  private pushToCentralizedState(): void {
-    if (this.scenarioResults.size === 0) return;
-    // scenarioResults may contain ReachabilityScenario (fresh) or full AnalysisResponse (cache restore)
-    const normalized = new Map<string, ReachabilityScenario>();
-    for (const [name, val] of this.scenarioResults) {
-      const scenario = val?.reachability_result ? val.reachability_result : val;
-      normalized.set(name, scenario as ReachabilityScenario);
-    }
-    this.analysisStateService.setMultiScenarioReachabilityResults({
-      scenarios: normalized,
-      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
-      availableScenarios: this.availableScenarios
-    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -911,11 +911,15 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
 
       this.scenarioResults.set(scenarioName, results.reachability_result);
       this.pushToCentralizedState();
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Inference execution failed';
       this.updateTabState(scenarioName, { status: 'error', error: msg });
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -1466,6 +1470,7 @@ export class ExactInferenceComponent implements OnInit, OnDestroy, ScenarioAware
     if (existing) {
       current.set(name, { ...existing, ...update });
       this.scenarioTabs.set(current);
+      this.persistViewState();
     }
   }
 

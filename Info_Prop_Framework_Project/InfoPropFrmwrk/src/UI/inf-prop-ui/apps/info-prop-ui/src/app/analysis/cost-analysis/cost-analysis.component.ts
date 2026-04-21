@@ -126,6 +126,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   private sessionService = inject(NetworkSessionService);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private isDestroyed = false;
 
   // ─── ScenarioAwareComponent interface ─────────────────────────────────────
   networkData: NetworkStructure | null = null;
@@ -458,12 +459,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
   }
 
   ngOnDestroy(): void {
-    // Reset any in-flight computations to idle (prevents stuck "computing" on return)
-    for (const [name, tab] of this.scenarioTabs()) {
-      if (tab.status === 'computing') {
-        this.updateTabState(name, { status: 'idle' });
-      }
-    }
+    this.isDestroyed = true;
     // Save current tab's UI state before persisting
     const currentName = this.scenarioNames()[this.activeTabIndex() - 1];
     if (currentName) {
@@ -476,6 +472,21 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
         sortDirection: this.activeSortDirection()
       });
     }
+    this.persistViewState();
+  }
+
+  // ─── Push results to centralized state (for System Profile) ──────────────
+
+  private pushToCentralizedState(): void {
+    if (this.scenarioResults.size === 0) return;
+    this.analysisStateService.setMultiScenarioCpmResults({
+      scenarios: new Map(this.scenarioResults) as Map<string, CpmScenario>,
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
+      availableScenarios: this.availableScenarios
+    });
+  }
+
+  private persistViewState(): void {
     this.analysisStateService.saveViewState(
       CostAnalysisComponent.VIEW_KEY,
       this.scenarioTabs(),
@@ -492,17 +503,6 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
         compareScenarioName: this.compareScenarioName()
       }
     );
-  }
-
-  // ─── Push results to centralized state (for System Profile) ──────────────
-
-  private pushToCentralizedState(): void {
-    if (this.scenarioResults.size === 0) return;
-    this.analysisStateService.setMultiScenarioCpmResults({
-      scenarios: new Map(this.scenarioResults) as Map<string, CpmScenario>,
-      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex() - 1)] || '',
-      availableScenarios: this.availableScenarios
-    });
   }
 
   // ─── ScenarioAwareComponent implementation ────────────────────────────────
@@ -639,11 +639,15 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
 
       this.scenarioResults.set(scenarioName, raw);
       this.pushToCentralizedState();
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Cost analysis failed';
       this.updateTabState(scenarioName, { status: 'error', error: msg });
-      this.cdr.detectChanges();
+      if (!this.isDestroyed) {
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -724,6 +728,7 @@ export class CostAnalysisComponent implements OnInit, OnDestroy, ScenarioAwareCo
     if (tab) {
       tabs.set(name, { ...tab, ...updates });
       this.scenarioTabs.set(tabs);
+      this.persistViewState();
     }
   }
 
