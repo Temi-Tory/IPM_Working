@@ -369,7 +369,7 @@ function handle_capacity_analysis(req::HTTP.Request)
 
         return HTTP.Response(200, headers, JSON.json(response))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Capacity analysis failed")))
+        return ServerCommon.error_response(req, e, "Capacity analysis failed"; headers=headers)
     end
 end
 

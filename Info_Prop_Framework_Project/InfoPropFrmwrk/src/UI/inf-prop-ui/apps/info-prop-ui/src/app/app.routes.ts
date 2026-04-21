@@ -8,7 +8,8 @@ export const appRoutes: Route[] = [
   { path: 'visualization', loadComponent: () => import('./analysis/network-visualization/network-visualization.component').then(m => m.NetworkVisualizationComponent) },
   { path: 'structure', loadComponent: () => import('./analysis/network-structure/network-structure.component').then(m => m.NetworkStructureComponent) },
   { path: 'diamonds', loadComponent: () => import('./analysis/diamond-analysis/diamond-analysis.component').then(m => m.DiamondAnalysisComponent) },
-  { path: 'exact-inference', loadComponent: () => import('./analysis/exact-inference/exact-inference.component').then(m => m.ExactInferenceComponent) },
+  { path: 'exact-inference', redirectTo: '/probability-propagation', pathMatch: 'full' },
+  { path: 'probability-propagation', loadComponent: () => import('./analysis/exact-inference/exact-inference.component').then(m => m.ExactInferenceComponent) },
   // Capacity, Time, and Cost Analysis components
   { 
     path: 'capacity-analysis', 

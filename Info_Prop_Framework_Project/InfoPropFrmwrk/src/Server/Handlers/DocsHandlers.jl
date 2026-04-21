@@ -34,7 +34,7 @@ function handle_docs_request(req::HTTP.Request)
 
         return HTTP.Response(200, headers, read(full_path, String))
     catch e
-        return HTTP.Response(500, headers, "Failed to serve documentation: $(string(e))")
+        return ServerCommon.error_response(req, e, "Failed to serve documentation"; headers=ServerCommon.cors_headers_json(; methods="GET, OPTIONS"))
     end
 end
 
@@ -50,7 +50,7 @@ function handle_docs_list(req::HTTP.Request)
         files = sort!(filter(f -> endswith(lowercase(f), ".md"), readdir(docs_dir)))
         return HTTP.Response(200, headers, JSON.json(Dict("files" => files)))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Failed to list docs")))
+        return ServerCommon.error_response(req, e, "Failed to list docs"; headers=headers)
     end
 end
 

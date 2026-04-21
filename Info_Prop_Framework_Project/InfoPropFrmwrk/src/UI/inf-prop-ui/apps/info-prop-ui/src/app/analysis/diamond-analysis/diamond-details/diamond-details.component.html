@@ -899,11 +899,11 @@
           <!-- Each analysis = its own tab with config + results -->
           <mat-tab-group [selectedIndex]="subgraphTabIndex()" (selectedIndexChange)="onSubgraphTabChange($event)" class="subgraph-tabs">
 
-            <!-- Tab: Exact Inference -->
+            <!-- Tab: Probability Propagation -->
             <mat-tab>
               <ng-template mat-tab-label>
                 <mat-icon>functions</mat-icon>
-                Exact Inference
+                Probability Propagation
                 @if (subgraphAnalysisResult()?.reachability_result && !subgraphAnalysisResult()?.reachability_result?.error) {
                   <mat-icon class="tab-status-icon computed">check_circle</mat-icon>
                 }
@@ -931,7 +931,7 @@
                     <button mat-raised-button color="primary"
                             [disabled]="!canRunReachability() || subgraphAnalysisStatus() === 'computing'"
                             (click)="runSingleAnalysis('reachability')">
-                      <mat-icon>play_arrow</mat-icon> Run Exact Inference
+                      <mat-icon>play_arrow</mat-icon> Run Probability Propagation
                     </button>
                   </div>
                 </div>

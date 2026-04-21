@@ -2,6 +2,8 @@ module AnalysisCommon
 
 using ..ServerCommon
 using ..InfoPropFramework
+using Serialization
+using SHA
 
 export convert_values,
        serialize_root_diamonds,
@@ -14,6 +16,9 @@ export convert_values,
        parse_node_values,
        parse_edge_values,
        find_or_build_diamond
+
+const DIAMOND_ANALYSIS_CACHE = Dict{String, Any}()
+const DIAMOND_ANALYSIS_CACHE_LOCK = ReentrantLock()
 
 function pbox_to_dict(pb::pbox)
     return Dict(
@@ -175,22 +180,113 @@ function parse_edge_values(raw_dict::AbstractDict, ::Type{T}) where {T}
     return parsed
 end
 
+function _mtime_token(path::String)
+    if isempty(path)
+        return "none"
+    end
+    if isfile(path)
+        return string(stat(path).mtime)
+    end
+    return "missing"
+end
+
+function _diamond_cache_key(resolved_edges_path::String, nodepriors_full_path::String)
+    return join([
+        "edges=$(ServerCommon.normalize_path_separators(resolved_edges_path))",
+        "edges_mtime=$(_mtime_token(resolved_edges_path))",
+        "nodepriors=$(ServerCommon.normalize_path_separators(nodepriors_full_path))",
+        "nodepriors_mtime=$(_mtime_token(nodepriors_full_path))",
+    ], "|")
+end
+
+function _session_upload_id_from_network_path(network_path::String)
+    normalized = ServerCommon.normalize_path_separators(network_path)
+    segments = filter(!isempty, split(normalized, '/'))
+
+    for idx in 1:(length(segments) - 1)
+        if lowercase(segments[idx]) == lowercase(ServerCommon.UPLOAD_DIR)
+            return segments[idx + 1]
+        end
+    end
+
+    return nothing
+end
+
+function _diamond_persist_path(network_path::String, cache_key::String)
+    upload_id = _session_upload_id_from_network_path(network_path)
+    upload_id === nothing && return nothing
+
+    session_dir = joinpath(ServerCommon.UPLOAD_DIR, String(upload_id))
+    isdir(session_dir) || return nothing
+
+    persist_dir = joinpath(session_dir, "diamond_cache")
+    mkpath(persist_dir)
+    key_hash = bytes2hex(sha1(cache_key))
+    return joinpath(persist_dir, "$(key_hash).bin")
+end
+
+function _persist_diamond_payload(path::String, payload)
+    try
+        open(path, "w") do io
+            serialize(io, payload)
+        end
+    catch e
+        println(stderr, "[diamond-cache] failed to persist payload at $(path): $(e)")
+    end
+end
+
+function _load_persisted_diamond_payload(path::String)
+    isfile(path) || return nothing
+
+    try
+        return open(path, "r") do io
+            deserialize(io)
+        end
+    catch e
+        println(stderr, "[diamond-cache] failed to load payload from $(path): $(e)")
+        return nothing
+    end
+end
+
 function find_or_build_diamond(network_path::String, edges_file_path::String, nodepriors_path::String)
     resolved_edges_path, is_valid, message = resolve_edges_path_or_error(network_path, edges_file_path)
     is_valid || throw(ArgumentError("Invalid network file: $(message)"))
 
+    full_nodepriors_path = isempty(nodepriors_path) ? "" : ServerCommon.safe_joinpath(network_path, nodepriors_path)
+    cache_key = _diamond_cache_key(resolved_edges_path, full_nodepriors_path)
+    persist_path = _diamond_persist_path(network_path, cache_key)
+
+    lock(DIAMOND_ANALYSIS_CACHE_LOCK) do
+        if haskey(DIAMOND_ANALYSIS_CACHE, cache_key)
+            cached = DIAMOND_ANALYSIS_CACHE[cache_key]
+            return merge(cached, (cache_hit=true, cache_source="memory"))
+        end
+    end
+
+    if persist_path !== nothing
+        persisted_payload = _load_persisted_diamond_payload(persist_path)
+        if persisted_payload !== nothing
+            normalized_payload = merge(persisted_payload, (cache_hit=false, cache_source="session_persisted"))
+            lock(DIAMOND_ANALYSIS_CACHE_LOCK) do
+                DIAMOND_ANALYSIS_CACHE[cache_key] = normalized_payload
+            end
+            return merge(normalized_payload, (cache_hit=true, cache_source="session_persisted"))
+        end
+    end
+
     edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(resolved_edges_path)
     all_nodes = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
+    sink_nodes = sort!([n for n in all_nodes if !haskey(outgoing_index, n) || isempty(outgoing_index[n])])
     fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
     iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
     node_priors = if isempty(nodepriors_path)
         default_node_priors(all_nodes)
     else
-        full_nodepriors_path = ServerCommon.safe_joinpath(network_path, nodepriors_path)
         isfile(full_nodepriors_path) ? read_node_priors_from_json(full_nodepriors_path) : default_node_priors(all_nodes)
     end
 
+    started = time()
     root_diamonds = identify_and_group_diamonds(
         join_nodes,
         incoming_index,
@@ -211,10 +307,37 @@ function find_or_build_diamond(network_path::String, edges_file_path::String, no
         iteration_sets,
     )
 
-    return (
+    payload = (
         resolved_edges_path=resolved_edges_path,
+        edgelist=edgelist,
+        outgoing_index=outgoing_index,
+        incoming_index=incoming_index,
+        source_nodes=source_nodes,
+        sink_nodes=sink_nodes,
+        all_nodes=all_nodes,
+        fork_nodes=fork_nodes,
+        join_nodes=join_nodes,
+        iteration_sets=iteration_sets,
+        ancestors=ancestors,
+        descendants=descendants,
+        node_priors=node_priors,
+        root_diamonds=root_diamonds,
         unique_diamonds=unique_diamonds,
+        computation_time=time() - started,
+        cache_key=cache_key,
+        cache_hit=false,
+        cache_source="computed",
     )
+
+    lock(DIAMOND_ANALYSIS_CACHE_LOCK) do
+        DIAMOND_ANALYSIS_CACHE[cache_key] = payload
+    end
+
+    if persist_path !== nothing
+        _persist_diamond_payload(persist_path, payload)
+    end
+
+    return payload
 end
 
 end # module AnalysisCommon

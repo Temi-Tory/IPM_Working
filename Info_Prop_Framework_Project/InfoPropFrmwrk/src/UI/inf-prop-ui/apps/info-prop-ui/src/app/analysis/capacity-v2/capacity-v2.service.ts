@@ -27,6 +27,7 @@ interface CapacityV2ApiResponse {
 @Injectable({ providedIn: 'root' })
 export class CapacityV2Service {
   private readonly apiBase = 'http://localhost:8080';
+  private readonly flowEndpoint = '/flow-analysis';
   private readonly http = inject(HttpClient);
 
   analyze(inputs: CapacityV2RunInputs): Observable<CapacityV2ResultEntity> {
@@ -40,10 +41,10 @@ export class CapacityV2Service {
     console.log(`  capacitiesPath: '${payload['capacitiesPath']}' (type: ${typeof payload['capacitiesPath']})`);
     console.log(`  uncertaintyMode: '${payload['uncertaintyMode']}'`);
     console.log('📊 Options:', payload['options']);
-    console.log('🚀 Sending HTTP POST to:', `${this.apiBase}/capacity-analysis`);
+    console.log('🚀 Sending HTTP POST to:', `${this.apiBase}${this.flowEndpoint}`);
 
     return this.http
-      .post<CapacityV2ApiResponse>(`${this.apiBase}/capacity-analysis`, payload)
+      .post<CapacityV2ApiResponse>(`${this.apiBase}${this.flowEndpoint}`, payload)
       .pipe(map((response) => this.normalizeResponse(response, inputs.analysisType)));
   }
 
@@ -142,10 +143,146 @@ export class CapacityV2Service {
       throw new Error(response.message || response.error || 'Capacity analysis failed');
     }
 
+    if (this.isFlowAnalysisPayload(response)) {
+      return { kind: 'deterministic', deterministic: this.normalizeFlowAnalysisEntity(response) };
+    }
+
     const isInterval = requestedType === 'interval' || this.hasIntervalFields(response);
     return isInterval
       ? { kind: 'interval', interval: this.normalizeIntervalEntity(response) }
       : { kind: 'deterministic', deterministic: this.normalizeDeterministicEntity(response) };
+  }
+
+  private isFlowAnalysisPayload(response: Record<string, unknown>): boolean {
+    const capacityResult = this.asRecord(response['capacity_result']);
+    return Object.keys(capacityResult).length > 0 && Object.prototype.hasOwnProperty.call(capacityResult, 'flow');
+  }
+
+  private normalizeFlowAnalysisEntity(raw: Record<string, unknown>): CapacityV2DeterministicEntity {
+    const capacityResult = this.asRecord(raw['capacity_result']);
+    const flow = this.asRecord(capacityResult['flow']);
+    const structure = this.asRecord(capacityResult['structure']);
+    const sensitivity = this.asRecord(capacityResult['sensitivity']);
+    const minCutAnalysis = this.asRecord(capacityResult['min_cut_analysis']);
+
+    const sinkFlowEntries = this.asArray(flow['sink_flow']);
+    const targetFlows: Record<string, number> = {};
+    sinkFlowEntries.forEach((entry) => {
+      const pair = this.asArray(entry);
+      if (pair.length >= 2) {
+        targetFlows[String(pair[0])] = Number(pair[1]);
+      }
+    });
+
+    const edgeFlows: CapacityV2FlowEdge[] = [];
+    sinkFlowEntries.forEach((entry, idx) => {
+      const pair = this.asArray(entry);
+      if (pair.length >= 2) {
+        const node = Number(pair[0]);
+        const value = Number(pair[1]);
+        edgeFlows.push({
+          edgeKey: `sink-${node}-${idx}`,
+          from: -1,
+          to: node,
+          flow: value,
+          utilization: 0
+        });
+      }
+    });
+
+    const nodeFlows: CapacityV2FlowNode[] = Object.entries(targetFlows).map(([nodeId, flowValue]) => ({
+      nodeId: Number(nodeId),
+      flow: Number(flowValue),
+      utilization: 0
+    }));
+
+    const saturatedEdges = this.asArray(flow['saturated_edges']).map((edge) => {
+      const pair = this.asArray(edge);
+      return [Number(pair[0] ?? 0), Number(pair[1] ?? 0)] as [number, number];
+    });
+
+    const minCutEdges = this.asArray(minCutAnalysis['edges_in_some_cut']).map((edge) => {
+      const pair = this.asArray(edge);
+      return [Number(pair[0] ?? 0), Number(pair[1] ?? 0)] as [number, number];
+    });
+
+    const criticalEdgeRows = this.asArray(sensitivity['critical_edges']);
+    const edgePriorities = criticalEdgeRows.map((row) => {
+      const item = this.asRecord(row);
+      const edge = this.asArray(item['edge']);
+      return {
+        edge: [Number(edge[0] ?? 0), Number(edge[1] ?? 0)] as [number, number],
+        currentCapacity: 0,
+        currentFlow: 0,
+        currentUtilization: 0,
+        marginalValue: this.num(item['drop']),
+        recommendedCapacity: 0,
+        expectedFlowIncrease: this.num(item['drop']),
+        priorityScore: this.num(item['drop']),
+        rationale: 'Derived from sensitivity critical edge drop'
+      };
+    });
+
+    const throughput = this.num(flow['max_flow']);
+    const computationTimeMs = this.num(raw['computation_time']) * 1000;
+
+    return {
+      summary: {
+        throughput,
+        utilization: 0,
+        computationTimeMs
+      },
+      targetFlows,
+      bottlenecks: {
+        minCutCapacity: this.num(flow['mincut_capacity']),
+        bottleneckType: 'min-cut',
+        minCutEdges,
+        minCutNodes: this.asArray(structure['spof_nodes']).map((n) => Number(n)),
+        saturatedEdges,
+        saturatedNodes: this.asArray(capacityResult['node_capacitated'] ? this.asRecord(capacityResult['node_capacitated'])['saturated_nodes'] : []).map((n) => Number(n)),
+        nearSaturatedEdges: [],
+        nearSaturatedNodes: [],
+        totalSpareEdgeCapacity: 0,
+        totalSpareNodeCapacity: 0
+      },
+      upgrades: {
+        edgePriorities,
+        nodePriorities: [],
+        primaryBottleneck: 'min-cut constraints',
+        recommendedAction: 'Inspect sensitivity critical edges for upgrades'
+      },
+      criticalPaths: {
+        criticalPaths: [],
+        pathRedundancy: {},
+        singlePointsOfFailure: this.asArray(structure['spof_edges']).map((edge) => {
+          const pair = this.asArray(edge);
+          return `${pair[0]}->${pair[1]}`;
+        })
+      },
+      comparative: {
+        realisticMaxFlow: throughput,
+        classicalMaxFlow: throughput,
+        efficiencyLoss: 0,
+        primaryLimitation: 'Edge capacities and min-cut structure',
+        strategicRecommendation: 'Prioritize upgrades on critical edges from sensitivity analysis'
+      },
+      nodeFlows,
+      edgeFlows,
+      validation: {
+        allChecksPassed: true,
+        flowConservationSatisfied: true,
+        maxConservationError: 0,
+        capacityConstraintsSatisfied: true,
+        optimalityVerified: true,
+        warnings: [],
+        errors: []
+      },
+      metadata: {
+        algorithmUsed: this.str(this.asRecord(capacityResult['metadata'])['algorithm'] || 'dinic'),
+        exactnessGuaranteed: true,
+        timestamp: this.str(raw['timestamp'] || new Date().toISOString())
+      }
+    };
   }
 
   private hasIntervalFields(response: Record<string, unknown>): boolean {

@@ -21,44 +21,11 @@ function handle_diamond_analysis(req::HTTP.Request)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Network path required")))
         end
 
-        resolved_edges_path, is_valid, message = resolve_edges_path_or_error(network_path, edges_file_path)
-        if !is_valid
-            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Invalid network file: $(message)")))
-        end
-
-        edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(resolved_edges_path)
-        all_nodes = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
-        fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
-        iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
-
-        node_priors = if isempty(nodepriors_path)
-            default_node_priors(all_nodes)
-        else
-            full_nodepriors_path = ServerCommon.safe_joinpath(network_path, nodepriors_path)
-            isfile(full_nodepriors_path) ? read_node_priors_from_json(full_nodepriors_path) : default_node_priors(all_nodes)
-        end
-
-        started = time()
-        root_diamonds = identify_and_group_diamonds(
-            join_nodes,
-            incoming_index,
-            ancestors,
-            descendants,
-            source_nodes,
-            fork_nodes,
-            edgelist,
-            node_priors,
-            iteration_sets,
-        )
-
-        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-            root_diamonds,
-            node_priors,
-            ancestors,
-            descendants,
-            iteration_sets,
-        )
-        elapsed = time() - started
+        diamond_payload = find_or_build_diamond(network_path, edges_file_path, nodepriors_path)
+        resolved_edges_path = diamond_payload.resolved_edges_path
+        root_diamonds = diamond_payload.root_diamonds
+        unique_diamonds = diamond_payload.unique_diamonds
+        elapsed = diamond_payload.computation_time
 
         result = Dict(
             "success" => true,
@@ -68,6 +35,7 @@ function handle_diamond_analysis(req::HTTP.Request)
             "timestamp" => Dates.now(),
             "diamond_analysis" => Dict(
                 "computation_time" => elapsed,
+                "cache_hit" => diamond_payload.cache_hit,
                 "root_diamonds_count" => length(root_diamonds),
                 "unique_diamonds_count" => length(unique_diamonds),
                 "join_nodes_with_diamonds" => sort!(collect(keys(root_diamonds))),
@@ -78,7 +46,7 @@ function handle_diamond_analysis(req::HTTP.Request)
 
         return HTTP.Response(200, headers, JSON.json(result))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Diamond analysis failed")))
+        return ServerCommon.error_response(req, e, "Diamond analysis failed"; headers=headers)
     end
 end
 
@@ -230,11 +198,25 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
                 node_costs = Dict(k => v for (k, v) in node_costs_all if k in sub_nodes)
                 edge_costs = Dict(k => v for (k, v) in edge_costs_all if k in sub_edges)
 
-                time_params = CriticalPathParameters(node_durations, edge_delays, initial, max_combination, additive_propagation, additive_propagation)
+                time_params = CriticalPathParameters(
+                    node_durations,
+                    edge_delays,
+                    initial,
+                    CriticalPathModule.max_combination,
+                    CriticalPathModule.additive_propagation,
+                    CriticalPathModule.additive_propagation,
+                )
                 time_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, time_params)
                 time_extended = backward_pass_analysis(time_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, time_params)
 
-                cost_params = CriticalPathParameters(node_costs, edge_costs, initial, max_combination, additive_propagation, additive_propagation)
+                cost_params = CriticalPathParameters(
+                    node_costs,
+                    edge_costs,
+                    initial,
+                    CriticalPathModule.max_combination,
+                    CriticalPathModule.additive_propagation,
+                    CriticalPathModule.additive_propagation,
+                )
                 cost_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, cost_params)
                 cost_extended = backward_pass_analysis(cost_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, cost_params)
 
@@ -261,7 +243,7 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
 
         return HTTP.Response(200, headers, JSON.json(result_data))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Diamond subgraph analysis failed")))
+        return ServerCommon.error_response(req, e, "Diamond subgraph analysis failed"; headers=headers)
     end
 end
 

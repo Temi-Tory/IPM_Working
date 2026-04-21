@@ -196,7 +196,7 @@ export class HotspotAlertsComponent {
     switch (route) {
       case '/capacity-analysis': return 'Capacity Analysis';
       case '/time-analysis': return 'Time Analysis';
-      case '/exact-inference': return 'Exact Inference';
+      case '/probability-propagation': return 'Probability Propagation';
       case '/diamonds': return 'Diamond Analysis';
       case '/cost-analysis': return 'Cost Analysis';
       default: return 'detail view';

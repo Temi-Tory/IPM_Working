@@ -61,7 +61,7 @@ function handle_network_structure(req::HTTP.Request)
 
         return HTTP.Response(200, headers, JSON.json(result))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Network structure analysis failed")))
+        return ServerCommon.error_response(req, e, "Network structure analysis failed"; headers=headers)
     end
 end
 

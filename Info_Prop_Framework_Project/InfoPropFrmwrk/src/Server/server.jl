@@ -37,7 +37,8 @@ function handle_cors(req::HTTP.Request)
     headers = [
         "Access-Control-Allow-Origin" => "*",
         "Access-Control-Allow-Methods" => "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization, X-Request-ID, X-Client-Request-ID",
+        "Access-Control-Expose-Headers" => "X-Request-ID",
     ]
 
     if req.method == "OPTIONS"
@@ -45,6 +46,17 @@ function handle_cors(req::HTTP.Request)
     end
 
     return nothing
+end
+
+function serve_request(router::HTTP.Router, req::HTTP.Request)
+    cors_response = handle_cors(req)
+    cors_response !== nothing && return cors_response
+
+    try
+        return router(req)
+    catch e
+        return ServerCommon.error_response(req, e, "Unhandled server error")
+    end
 end
 
 function register_routes!(router::HTTP.Router)
@@ -84,7 +96,7 @@ function start_server(host::AbstractString="0.0.0.0", port::Integer=ServerCommon
     register_routes!(router)
 
     println("Starting modular InfoProp server on $(host):$(port)")
-    HTTP.serve(router, String(host), Int(port))
+    HTTP.serve(req -> serve_request(router, req), String(host), Int(port))
 end
 
 export start_server, register_routes!

@@ -15,6 +15,7 @@ import {
 })
 export class CapacityAnalysisService {
   private readonly API_BASE = 'http://localhost:8080';
+  private readonly FLOW_ENDPOINT = '/flow-analysis';
 
   private http: HttpClient = inject(HttpClient);
 
@@ -42,12 +43,13 @@ export class CapacityAnalysisService {
     console.log(`  networkPath: '${request.networkPath}' (type: ${typeof request.networkPath})`);
     console.log(`  edgesFilePath: '${request.edgesFilePath}' (type: ${typeof request.edgesFilePath})`);
     console.log(`  capacitiesPath: '${request.capacitiesPath}' (type: ${typeof request.capacitiesPath})`);
-    console.log('🚀 Sending HTTP POST to:', `${this.API_BASE}/capacity-analysis`);
+    console.log('🚀 Sending HTTP POST to:', `${this.API_BASE}${this.FLOW_ENDPOINT}`);
     
     return this.http.post<CapacityAnalysisResponse>(
-      `${this.API_BASE}/capacity-analysis`,
+      `${this.API_BASE}${this.FLOW_ENDPOINT}`,
       request
     ).pipe(
+      map(response => this.normalizeCapacityResponse(response)),
       tap(response => {
         console.log('⚡ Capacity analysis response:', response.success ? 'SUCCESS' : 'FAILED');
         if (!response.success) {
@@ -65,6 +67,70 @@ export class CapacityAnalysisService {
         }
       })
     );
+  }
+
+  private normalizeCapacityResponse(response: CapacityAnalysisResponse): CapacityAnalysisResponse {
+    const asAny = response as unknown as Record<string, unknown>;
+    const capacityResult = asAny['capacity_result'];
+    if (!capacityResult || typeof capacityResult !== 'object') {
+      return response;
+    }
+
+    const capacityRecord = capacityResult as Record<string, unknown>;
+
+    if (capacityRecord['raw_capacity_result']) {
+      return response;
+    }
+
+    const flow = (capacityRecord['flow'] as Record<string, unknown> | undefined) ?? {};
+    const sinkFlow = Array.isArray(flow['sink_flow']) ? (flow['sink_flow'] as unknown[]) : [];
+    const targetFlows = Object.fromEntries(
+      sinkFlow.map((pair) => {
+        const tuple = Array.isArray(pair) ? pair : [];
+        return [String(tuple[0] ?? ''), Number(tuple[1] ?? 0)];
+      })
+    );
+    const totalTargetOutput = Object.values(targetFlows).reduce((sum: number, v) => sum + Number(v || 0), 0);
+
+    const failureImpact = (capacityRecord['failure_impact'] as Record<string, unknown> | undefined) ?? {};
+    const minCutEdges = Array.isArray(failureImpact['min_cut_edges']) ? failureImpact['min_cut_edges'] : [];
+    const inputRecord = (asAny['input'] as Record<string, unknown> | undefined) ?? {};
+    const activeSources = Array.isArray(inputRecord['source_nodes']) ? inputRecord['source_nodes'].map((v) => Number(v)) : [];
+    const targetNodes = Array.isArray(inputRecord['sink_nodes']) ? inputRecord['sink_nodes'].map((v) => Number(v)) : [];
+
+    const normalized = {
+      computation_time: Number(asAny['computation_time']) || 0,
+      network_utilization: 0,
+      total_source_input: totalTargetOutput,
+      total_target_output: totalTargetOutput,
+      target_flows: targetFlows,
+      active_sources: activeSources,
+      target_nodes: targetNodes,
+      node_capacities_count: 0,
+      edge_capacities_count: 0,
+      input_files: {
+        capacities_path: String(inputRecord['capacities_path'] ?? '')
+      },
+      raw_capacity_result: {
+        node_max_flows: targetFlows,
+        node_capacities: {},
+        edge_capacities: {},
+        source_rates: {},
+        bottlenecks: {
+          min_cut_edges: minCutEdges
+        },
+        critical_paths: {},
+        network_utilization: 0,
+        analysis_type: 'capacity-analysis-kit',
+        computation_time: Number(asAny['computation_time']) || 0,
+        convergence_info: {}
+      }
+    };
+
+    return {
+      ...response,
+      capacity_result: normalized as unknown as CapacityScenario
+    };
   }
 
   // **NEW: Multi-scenario capacity analysis**

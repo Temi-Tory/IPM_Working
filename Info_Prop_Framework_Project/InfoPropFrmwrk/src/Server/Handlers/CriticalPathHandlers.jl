@@ -52,9 +52,9 @@ function handle_critical_path_analysis(req::HTTP.Request)
             node_durations,
             edge_delays,
             initial,
-            max_combination,
-            additive_propagation,
-            additive_propagation,
+            CriticalPathModule.max_combination,
+            CriticalPathModule.additive_propagation,
+            CriticalPathModule.additive_propagation,
         )
         time_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, time_params)
         time_extended = backward_pass_analysis(time_result, iteration_sets, outgoing_index, time_params)
@@ -63,9 +63,9 @@ function handle_critical_path_analysis(req::HTTP.Request)
             node_costs,
             edge_costs,
             initial,
-            max_combination,
-            additive_propagation,
-            additive_propagation,
+            CriticalPathModule.max_combination,
+            CriticalPathModule.additive_propagation,
+            CriticalPathModule.additive_propagation,
         )
         cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
         cost_extended = backward_pass_analysis(cost_result, iteration_sets, outgoing_index, cost_params)
@@ -114,7 +114,7 @@ function handle_critical_path_analysis(req::HTTP.Request)
             "critical_path_result" => payload,
         )))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Critical path analysis failed")))
+        return ServerCommon.error_response(req, e, "Critical path analysis failed"; headers=headers)
     end
 end
 

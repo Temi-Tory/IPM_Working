@@ -15,6 +15,7 @@ import {
 })
 export class CpmAnalysisService {
   private readonly API_BASE = 'http://localhost:8080';
+  private readonly CRITICAL_PATH_ENDPOINT = '/critical-path-analysis';
 
   private http: HttpClient = inject(HttpClient);
 
@@ -50,9 +51,10 @@ export class CpmAnalysisService {
     }
 
     return this.http.post<CpmAnalysisResponse>(
-      `${this.API_BASE}/cpm-analysis`,
+      `${this.API_BASE}${this.CRITICAL_PATH_ENDPOINT}`,
       request
     ).pipe(
+      map(response => this.normalizeCpmResponse(response)),
       tap(response => {
         // Only cache if response has actual data
         if (response.success && response.cpm_result) {
@@ -60,6 +62,31 @@ export class CpmAnalysisService {
         }
       })
     );
+  }
+
+  private normalizeCpmResponse(response: CpmAnalysisResponse): CpmAnalysisResponse {
+    const asAny = response as unknown as Record<string, any>;
+    if (asAny['cpm_result']) {
+      return response;
+    }
+
+    const critical = asAny['critical_path_result'] ?? {};
+    const normalized: CpmAnalysisResponse = {
+      ...response,
+      cpm_result: {
+        computation_time: Number(critical['computation_time']) || 0,
+        time_result: critical['time_result'] ?? { critical_value: 0, critical_nodes: [], node_values: {} },
+        cost_result: critical['cost_result'] ?? { critical_value: 0, critical_nodes: [], node_values: {} },
+        input_data: critical['input_data'],
+        node_durations_count: Number(critical['node_durations_count']) || 0,
+        edge_delays_count: Number(critical['edge_delays_count']) || 0,
+        node_costs_count: Number(critical['node_costs_count']) || 0,
+        edge_costs_count: Number(critical['edge_costs_count']) || 0,
+        input_files: critical['input_files'] ?? { cpm_path: asAny['cpm_path'] ?? '' }
+      }
+    };
+
+    return normalized;
   }
 
   clearCache(): void {

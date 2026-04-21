@@ -15,25 +15,34 @@ function handle_upload(req::HTTP.Request)
         upload_path = ServerCommon.normalize_path_separators(upload_path_raw)
         mkpath(upload_path_raw)
 
-        content_type = HTTP.header(req, "Content-Type")
-        if !startswith(content_type, "multipart/form-data")
+        content_type = something(HTTP.header(req, "Content-Type"), "")
+        if isempty(content_type)
+            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Missing Content-Type header")))
+        end
+
+        if !startswith(lowercase(content_type), "multipart/form-data")
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Expected multipart/form-data")))
         end
 
-        boundary_match = match(r"boundary=([^;]+)", content_type)
+        boundary_match = match(r"boundary=\"?([^\";]+)\"?", content_type)
         if boundary_match === nothing
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Missing boundary in multipart data")))
         end
 
-        boundary = String(boundary_match.captures[1])
-        body_str = String(req.body)
+        boundary = strip(String(boundary_match.captures[1]))
+        body_str = try
+            String(req.body)
+        catch
+            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Upload payload encoding is invalid")))
+        end
+
         uploaded_files = ServerCommon.parse_multipart_data(body_str, boundary, upload_path)
 
         if isempty(uploaded_files)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "No files uploaded")))
         end
 
-        edges_files = filter(f -> endswith(f, ".EDGES"), uploaded_files)
+        edges_files = filter(f -> endswith(lowercase(f), ".edges"), uploaded_files)
 
         network_path = upload_path
         if !isempty(edges_files)
@@ -72,7 +81,7 @@ function handle_upload(req::HTTP.Request)
 
         return HTTP.Response(200, headers, JSON.json(response_data))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Upload failed due to server error")))
+        return ServerCommon.error_response(req, e, "Upload failed due to server error"; headers=headers)
     end
 end
 
@@ -105,7 +114,7 @@ function handle_sessions_list(req::HTTP.Request)
         sort!(sessions, by = s -> get(s, "timestamp", ""), rev = true)
         return HTTP.Response(200, headers, JSON.json(Dict("success" => true, "sessions" => sessions)))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Failed to list sessions")))
+        return ServerCommon.error_response(req, e, "Failed to list sessions"; headers=headers)
     end
 end
 
@@ -160,7 +169,7 @@ function handle_session_item(req::HTTP.Request)
 
         return HTTP.Response(405, headers, JSON.json(Dict("success" => false, "message" => "Method not allowed")))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Session operation failed")))
+        return ServerCommon.error_response(req, e, "Session operation failed"; headers=headers)
     end
 end
 
@@ -186,7 +195,7 @@ function handle_file_request(req::HTTP.Request)
         file_content = JSON.parsefile(full_file_path)
         return HTTP.Response(200, headers, JSON.json(file_content))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Failed to serve file")))
+        return ServerCommon.error_response(req, e, "Failed to serve file"; headers=headers)
     end
 end
 

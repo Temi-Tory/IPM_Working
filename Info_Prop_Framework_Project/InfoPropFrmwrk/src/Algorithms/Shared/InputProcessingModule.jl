@@ -444,7 +444,7 @@ module InputProcessingModule
         end
         
         # Handle Dict (complex types)
-        if !isa(data, Dict)
+        if !isa(data, AbstractDict)
             throw(ArgumentError("Invalid probability data format: $(typeof(data))"))
         end
         
@@ -641,7 +641,7 @@ module InputProcessingModule
 
         Create parametric pbox using PBA constructors: normal(mean, std), uniform(a, b), etc.
     """
-    function create_parametric_pbox(data::Dict)
+    function create_parametric_pbox(data::AbstractDict)
         shape = data["shape"]
         params = data["params"]
         
@@ -719,7 +719,7 @@ module InputProcessingModule
 
         Create parametric pbox with interval parameters: normal(interval(0,1), 1)
     """
-    function create_parametric_interval_pbox(data::Dict)
+    function create_parametric_interval_pbox(data::AbstractDict)
         shape = data["shape"]
         params = data["params"]  # Array of parameter specifications
         
@@ -774,7 +774,7 @@ module InputProcessingModule
 
         Create envelope pbox: env(d1, d2, ...)
     """
-    function create_envelope_pbox(data::Dict)
+    function create_envelope_pbox(data::AbstractDict)
         components = data["components"]
         
         try
@@ -807,7 +807,7 @@ module InputProcessingModule
 
         Create distribution-free pbox: meanVar(ml, mh, vl, vh), etc.
     """
-    function create_distribution_free_pbox(data::Dict)
+    function create_distribution_free_pbox(data::AbstractDict)
         method = data["method"]
         params = data["params"]
         
@@ -870,7 +870,7 @@ module InputProcessingModule
     """
     function deserialize_pbox_value(data::Any)::pbox
         # Handle Dict (pbox types only)
-        if !isa(data, Dict)
+        if !isa(data, AbstractDict)
             throw(ArgumentError("pbox deserializer requires Dict format, got $(typeof(data))"))
         end
         

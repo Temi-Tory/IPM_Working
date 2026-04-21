@@ -81,8 +81,8 @@ export class NavigationService {
     },
     {
       id: 'exact-inference',
-      route: '/exact-inference',
-      title: 'Exact Inference',
+      route: '/probability-propagation',
+      title: 'Probability Propagation',
       subtitle: 'Belief propagation analysis',
       icon: 'psychology',
       requiredData: 'networkData',

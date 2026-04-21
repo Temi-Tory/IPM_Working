@@ -258,12 +258,22 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
     const cached = this.analysisStateService.restoreViewState(DiamondAnalysisComponent.VIEW_KEY);
     if (cached && cached.tabs.size > 0) {
       this.scenarioTabs.set(cached.tabs as Map<string, DiamondScenarioTabState>);
+      this.availableScenarios = Array.from(cached.tabs.values()).map((tab) => ({
+        name: tab.scenario.name,
+        dataType: tab.scenario.dataType,
+        path: tab.scenario.nodePriorsFile?.path || '',
+        displayName: tab.scenario.displayName,
+        analysisType: 'reachability' as const,
+        description: ''
+      }));
       this.activeTabIndex.set(cached.activeTabIndex);
       if (cached.uiState) {
         this.selectedPatternType.set(cached.uiState.selectedPatternType || '');
         this.innerTabIndex.set(cached.uiState.innerTabIndex || 0);
         this.comparisonMode.set(cached.uiState.comparisonMode || false);
       }
+      this.syncResultsFromTabs();
+      this.pushToCentralizedState();
       this.restoreActiveTabUIState();
       this.updateFilterRanges();
     } else {
@@ -364,6 +374,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
     }
     this.scenarioTabs.set(tabs);
     this.scenarioResults.clear();
+    this.pushToCentralizedState();
     this.analysisStateService.clearViewState(DiamondAnalysisComponent.VIEW_KEY);
   }
 
@@ -410,7 +421,7 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       });
 
       this.scenarioResults.set(scenarioName, response.diamond_analysis);
-      this.analysisStateService.markTabCompleted('diamonds');
+      this.pushToCentralizedState();
       this.updateFilterRanges();
       this.cdr.detectChanges();
     } catch (error) {
@@ -498,6 +509,23 @@ export class DiamondAnalysisComponent implements OnInit, OnDestroy, AfterViewIni
       current.set(name, { ...existing, ...update });
       this.scenarioTabs.set(current);
     }
+  }
+
+  private syncResultsFromTabs(): void {
+    this.scenarioResults.clear();
+    for (const [scenarioName, tab] of this.scenarioTabs().entries()) {
+      if (tab.status === 'computed' && tab.diamondResult) {
+        this.scenarioResults.set(scenarioName, tab.diamondResult);
+      }
+    }
+  }
+
+  private pushToCentralizedState(): void {
+    this.analysisStateService.setMultiScenarioDiamondResults({
+      scenarios: new Map(this.scenarioResults),
+      currentScenario: this.currentScenario || this.scenarioNames()[Math.max(0, this.activeTabIndex())] || '',
+      availableScenarios: this.availableScenarios
+    });
   }
 
   // ─── Tab helpers (for template access) ────────────────────────────────────

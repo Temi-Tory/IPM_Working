@@ -12,13 +12,79 @@ function cors_headers_json(; methods::String="GET, POST, PUT, DELETE, OPTIONS")
     return [
         "Access-Control-Allow-Origin" => "*",
         "Access-Control-Allow-Methods" => methods,
-        "Access-Control-Allow-Headers" => "Content-Type, Authorization",
+        "Access-Control-Allow-Headers" => "Content-Type, Authorization, X-Request-ID, X-Client-Request-ID",
+        "Access-Control-Expose-Headers" => "X-Request-ID",
         "Content-Type" => "application/json",
     ]
 end
 
 function json_response(status::Int, body)
     return HTTP.Response(status, cors_headers_json(), JSON.json(body))
+end
+
+function request_id(req::HTTP.Request)
+    client_request_id = something(HTTP.header(req, "X-Client-Request-ID"), "")
+    request_header_id = something(HTTP.header(req, "X-Request-ID"), "")
+    selected_id = !isempty(client_request_id) ? client_request_id : request_header_id
+    return isempty(selected_id) ? string(uuid4()) : String(selected_id)
+end
+
+function with_request_id_header(headers, request_id::AbstractString)
+    response_headers = copy(headers)
+    push!(response_headers, "X-Request-ID" => String(request_id))
+    return response_headers
+end
+
+function exception_message(err)
+    return sprint(io -> showerror(io, err))
+end
+
+function stacktrace_frames(bt; max_frames::Int=25)
+    frames = stacktrace(bt)
+    if isempty(frames)
+        return Any[]
+    end
+
+    limit = min(length(frames), max_frames)
+    return [
+        Dict(
+            "file" => String(frame.file),
+            "line" => Int(frame.line),
+            "func" => string(frame.func),
+            "inlined" => Bool(frame.inlined),
+            "from_c" => Bool(frame.from_c),
+        )
+        for frame in frames[1:limit]
+    ]
+end
+
+function error_payload(req::HTTP.Request, err, message::AbstractString; status::Int=500, request_id::AbstractString=request_id(req), bt=catch_backtrace())
+    return Dict(
+        "success" => false,
+        "message" => String(message),
+        "error" => exception_message(err),
+        "request_id" => String(request_id),
+        "debug" => Dict(
+            "request_id" => String(request_id),
+            "timestamp" => string(Dates.now()),
+            "status" => status,
+            "method" => String(req.method),
+            "target" => String(req.target),
+            "exception_type" => string(typeof(err)),
+            "exception_message" => exception_message(err),
+            "stacktrace" => stacktrace_frames(bt),
+        ),
+    )
+end
+
+function error_response(req::HTTP.Request, err, message::AbstractString; status::Int=500, headers=cors_headers_json(), bt=catch_backtrace())
+    req_id = request_id(req)
+    println(stderr, "[$(req_id)] $(req.method) $(req.target) -> $(status) $(message)")
+    showerror(stderr, err, bt)
+    println(stderr)
+
+    body = error_payload(req, err, message; status=status, request_id=req_id, bt=bt)
+    return HTTP.Response(status, with_request_id_header(headers, req_id), JSON.json(body))
 end
 
 function normalize_path_separators(path::String)
@@ -52,7 +118,7 @@ end
 function derive_network_name(uploaded_files::Vector{String}, edges_files::Vector{String}, network_path::String)
     if !isempty(edges_files)
         edges_name = basename(edges_files[1])
-        return replace(edges_name, r"\.EDGES$" => "", count=1)
+        return replace(edges_name, r"(?i)\.edges$" => "", count=1)
     end
 
     if !isempty(uploaded_files)
@@ -79,7 +145,7 @@ function read_session_metadata(upload_id::AbstractString)
     end
 end
 
-function write_session_metadata(upload_id::AbstractString, metadata::Dict)
+function write_session_metadata(upload_id::AbstractString, metadata::AbstractDict)
     meta_path = session_file_path(upload_id)
     open(meta_path, "w") do io
         write(io, JSON.json(metadata))
@@ -93,9 +159,10 @@ function validate_network_file(edges_file_path::String)
     return true, "Valid .EDGES file"
 end
 
-function parse_multipart_data(body_str::String, boundary::String, upload_path::String)
+function parse_multipart_data(body_str::AbstractString, boundary::AbstractString, upload_path::AbstractString)
     uploaded_files = String[]
-    parts = split(body_str, "--" * boundary)
+    boundary_str = String(boundary)
+    parts = split(String(body_str), "--" * boundary_str)
 
     for part in parts
         part = strip(part)
@@ -115,13 +182,20 @@ function parse_multipart_data(body_str::String, boundary::String, upload_path::S
         filename_match = match(r"filename=\"([^\"]+)\"", headers)
         filename_match === nothing && continue
 
-        filename = filename_match.captures[1]
+        filename = String(filename_match.captures[1])
+        filename = normalize_path_separators(filename)
+        filename = replace(filename, r"^[A-Za-z]:/+" => "")
+        filename = replace(filename, r"^/+" => "")
+        filename = replace(filename, ".." => "")
+        isempty(strip(filename)) && continue
+
         isempty(strip(content)) && continue
         content = rstrip(content, ['\r', '\n', '-'])
 
-        file_path = safe_joinpath(upload_path, filename)
+        upload_path_str = String(upload_path)
+        file_path = safe_joinpath(upload_path_str, filename)
         file_dir = dirname(file_path)
-        if file_dir != upload_path
+        if file_dir != upload_path_str
             mkpath(file_dir)
         end
 
@@ -138,7 +212,7 @@ end
 function resolve_edges_file_path(network_path::String, edges_file_path::String)
     if isempty(edges_file_path)
         if isdir(network_path)
-            edges_files = filter(f -> endswith(f, ".EDGES"), readdir(network_path))
+            edges_files = filter(f -> endswith(lowercase(f), ".edges"), readdir(network_path))
             if !isempty(edges_files)
                 return safe_joinpath(network_path, edges_files[1])
             end

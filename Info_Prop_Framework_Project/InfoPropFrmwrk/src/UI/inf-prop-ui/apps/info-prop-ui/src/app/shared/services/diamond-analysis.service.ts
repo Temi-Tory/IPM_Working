@@ -161,6 +161,7 @@ export class DiamondAnalysisService {
       `${this.API_BASE}/diamond-subgraph-analysis`,
       request
     ).pipe(
+      map(response => this.normalizeDiamondSubgraphResponse(response)),
       tap(response => {
         if (response.success) {
           this.subgraphAnalysisCache.set(cacheKey, response);
@@ -171,6 +172,41 @@ export class DiamondAnalysisService {
         throw error;
       })
     );
+  }
+
+  private normalizeDiamondSubgraphResponse(response: DiamondSubgraphAnalysisResponse): DiamondSubgraphAnalysisResponse {
+    const asAny = response as unknown as Record<string, any>;
+    if (asAny['capacity_result']) {
+      return response;
+    }
+
+    const flowResult = asAny['flow_result'];
+    if (!flowResult) {
+      return response;
+    }
+
+    const sinkFlowEntries: [string, number][] = Array.isArray(flowResult?.flow?.sink_flow)
+      ? flowResult.flow.sink_flow.map((pair: any[]) => [String(pair?.[0] ?? ''), Number(pair?.[1] ?? 0)])
+      : [];
+
+    const nodeMaxFlows = Object.fromEntries(sinkFlowEntries);
+
+    const normalizedCapacity = {
+      node_max_flows: nodeMaxFlows,
+      bottlenecks: {
+        min_cut_edges: flowResult?.failure_impact?.min_cut_edges ?? [],
+        spof_nodes: flowResult?.structure?.spof_nodes ?? []
+      },
+      network_utilization: 0,
+      computation_time: Number(asAny['computation_time']) || 0,
+      node_capacities: {},
+      source_rates_used: {}
+    };
+
+    return {
+      ...response,
+      capacity_result: normalizedCapacity
+    } as DiamondSubgraphAnalysisResponse;
   }
 
   getSubgraphCachedResult(diamondHash: string, analyses: string[]): DiamondSubgraphAnalysisResponse | null {

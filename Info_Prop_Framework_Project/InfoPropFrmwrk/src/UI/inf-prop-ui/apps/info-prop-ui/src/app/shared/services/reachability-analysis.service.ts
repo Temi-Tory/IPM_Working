@@ -15,6 +15,7 @@ import {
 })
 export class ReachabilityAnalysisService {
   private readonly API_BASE = 'http://localhost:8080';
+  private readonly PROBABILITY_ENDPOINT = '/probability-propagation';
 
   private http: HttpClient = inject(HttpClient);
 
@@ -43,12 +44,13 @@ export class ReachabilityAnalysisService {
     console.log(`  edgesFilePath: '${request.edgesFilePath}' (type: ${typeof request.edgesFilePath})`);
     console.log(`  nodepriorsPath: '${request.nodepriorsPath}' (type: ${typeof request.nodepriorsPath})`);
     console.log(`  linkprobsPath: '${request.linkprobsPath}' (type: ${typeof request.linkprobsPath})`);
-    console.log('🚀 Sending HTTP POST to:', `${this.API_BASE}/reachability-analysis`);
+    console.log('🚀 Sending HTTP POST to:', `${this.API_BASE}${this.PROBABILITY_ENDPOINT}`);
     
     return this.http.post<ReachabilityAnalysisResponse>(
-      `${this.API_BASE}/reachability-analysis`,
+      `${this.API_BASE}${this.PROBABILITY_ENDPOINT}`,
       request
     ).pipe(
+      map(response => this.normalizeReachabilityResponse(response)),
       tap(response => {
         console.log('🔗 Reachability analysis response:', response.success ? 'SUCCESS' : 'FAILED');
         if (!response.success) {
@@ -64,6 +66,35 @@ export class ReachabilityAnalysisService {
         }
       })
     );
+  }
+
+  private normalizeReachabilityResponse(response: ReachabilityAnalysisResponse): ReachabilityAnalysisResponse {
+    const asAny = response as unknown as Record<string, any>;
+
+    if (asAny['reachability_result']) {
+      return response;
+    }
+
+    const probabilityResult = asAny['probability_result'] ?? {};
+    const scenarioComputationTime =
+      Number(probabilityResult['scenario_computation_time']) ||
+      Number(probabilityResult?.exact_inference?.computation_time) ||
+      0;
+
+    const normalized: ReachabilityAnalysisResponse = {
+      ...response,
+      reachability_result: {
+        diamond_analysis: probabilityResult['diamond_analysis'],
+        exact_inference: probabilityResult['exact_inference'],
+        scenario_computation_time: scenarioComputationTime,
+        input_files: {
+          nodepriors_path: asAny['nodepriors_path'] ?? '',
+          linkprobs_path: asAny['linkprobs_path'] ?? ''
+        }
+      }
+    };
+
+    return normalized;
   }
 
   // **NEW: Multi-scenario reachability analysis**

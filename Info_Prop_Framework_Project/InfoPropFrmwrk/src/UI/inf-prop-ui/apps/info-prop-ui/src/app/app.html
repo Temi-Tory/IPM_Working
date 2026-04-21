@@ -136,17 +136,17 @@
       </a>
       
       <a mat-list-item
-         routerLink="/exact-inference"
+        routerLink="/probability-propagation"
          [class.disabled]="!analysisState.exactInferenceTab().enabled"
          [class.completed]="analysisState.exactInferenceTab().completed"
         [class.available]="analysisState.exactInferenceTab().enabled && !analysisState.exactInferenceTab().completed"
          [attr.tabindex]="!analysisState.exactInferenceTab().enabled ? -1 : 0"
-         [matTooltip]="isSidenavCollapsed ? 'Exact Inference - Belief propagation analysis' : ''"
+         [matTooltip]="isSidenavCollapsed ? 'Probability Propagation - Belief propagation analysis' : ''"
          matTooltipPosition="right"
          matTooltipClass="sidenav-tooltip">
         <mat-icon matListItemIcon>psychology</mat-icon>
         <div matListItemTitle>
-          <div class="nav-title">Exact Inference</div>
+          <div class="nav-title">Probability Propagation</div>
           <div class="nav-subtitle">Belief propagation analysis</div>
         </div>
         <div class="nav-status">

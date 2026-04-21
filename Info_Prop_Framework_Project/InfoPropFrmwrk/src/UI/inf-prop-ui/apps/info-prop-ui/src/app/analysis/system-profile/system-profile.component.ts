@@ -131,7 +131,7 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
       options.push({
         key: 'reachability-low-belief',
         label: 'Low Belief / High Uncertainty',
-        description: 'Lowest-belief nodes from exact inference belief outputs'
+        description: 'Lowest-belief nodes from probability propagation belief outputs'
       });
     }
 
@@ -295,7 +295,7 @@ export class SystemProfileComponent implements OnInit, OnDestroy {
     const routeMap: Record<string, string> = {
       capacity: '/capacity-analysis',
       cpm: '/time-analysis',
-      reachability: '/exact-inference',
+      reachability: '/probability-propagation',
       diamond: '/diamonds'
     };
     const route = routeMap[event.source] || '/structure';

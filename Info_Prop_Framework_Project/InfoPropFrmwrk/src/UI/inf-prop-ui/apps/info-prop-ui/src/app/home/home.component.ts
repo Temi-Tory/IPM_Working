@@ -53,7 +53,7 @@ export class HomeComponent implements OnInit {
     },
     {
       icon: 'psychology',
-      title: 'Exact Inference',
+      title: 'Probability Propagation',
       description: 'Perform precise belief propagation with multiple scenario support.',
       tags: ['Belief Propagation', 'Multi-Scenario', 'Statistical Analysis']
     },
@@ -152,6 +152,10 @@ export class HomeComponent implements OnInit {
 
       this.analysisState.clearState();
 
+      // Rebuild tab enablement directly from restored file groups.
+      this.analysisState.updateTabStatesFromFileManager();
+      this.analysisState.extractScenariosFromFileManager();
+
       if (session.networkPath) {
         this.analysisState.setCurrentNetworkPath(session.networkPath);
       }
@@ -172,6 +176,7 @@ export class HomeComponent implements OnInit {
         if (session.parsedData) {
           this.analysisState.enableAnalysisTabsAfterVisualization();
         }
+        this.analysisState.updateTabStatesFromFileManager();
         
         this.snackBar.open('Session loaded successfully', 'Close', { duration: 3000 });
         this.router.navigate(['/visualization']);
@@ -186,6 +191,7 @@ export class HomeComponent implements OnInit {
             if (session.parsedData) {
               this.analysisState.enableAnalysisTabsAfterVisualization();
             }
+            this.analysisState.updateTabStatesFromFileManager();
             
             this.snackBar.open('Session loaded successfully', 'Close', { duration: 3000 });
             this.router.navigate(['/visualization']);

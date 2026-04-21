@@ -367,11 +367,7 @@ export class AnalysisStateService {
         this.markTabCompleted('critical-path');
       }
       
-      // System profile is completed when we have any analysis results
-      if (analysisData) {
-        console.log('✅ Marking system-profile as completed');
-        this.markTabCompleted('system-profile');
-      }
+      this.updateSystemProfileCompletionState();
     }
   }
 
@@ -408,6 +404,7 @@ export class AnalysisStateService {
         break;
       case 'flow':
         this.flowAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
+        this.capacityAnalysisTabSignal.update(tab => ({ ...tab, completed: true }));
         console.log('✅ Flow analysis tab marked as completed');
         break;
       case 'critical-path':
@@ -418,6 +415,10 @@ export class AnalysisStateService {
         this.systemProfileTabSignal.update(tab => ({ ...tab, completed: true }));
         console.log('✅ System profile tab marked as completed');
         break;
+    }
+
+    if (tabName !== 'system-profile') {
+      this.updateSystemProfileCompletionState();
     }
   }
 
@@ -845,6 +846,7 @@ export class AnalysisStateService {
 
     if (groups.capacity.some(g => g.canRunAnalysis)) {
       this.flowAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
+      this.capacityAnalysisTabSignal.update(tab => ({ ...tab, enabled: true }));
     }
 
     if (groups.cpm.some(g => g.canRunAnalysis)) {
@@ -860,6 +862,8 @@ export class AnalysisStateService {
     if (hasAnyAnalysis) {
       this.systemProfileTabSignal.update(tab => ({ ...tab, enabled: true }));
     }
+
+    this.updateSystemProfileCompletionState();
   }
 
   /**
@@ -1028,6 +1032,7 @@ export class AnalysisStateService {
     this.diamondAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.exactInferenceTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.flowAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
+    this.capacityAnalysisTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.criticalPathTabSignal.set({ enabled: false, completed: false, hasData: false });
     this.systemProfileTabSignal.set({ enabled: false, completed: false, hasData: false });
     
@@ -1042,6 +1047,8 @@ export class AnalysisStateService {
   setMultiScenarioReachabilityResults(results: MultiScenarioReachabilityResults): void {
     this.multiScenarioReachabilityResultsSignal.set(results);
     this.updateGlobalScenario(results.currentScenario);
+    this.setTabCompletionByScenarioCoverage(this.exactInferenceTabSignal, results.scenarios, results.availableScenarios);
+    this.updateSystemProfileCompletionState();
     console.log('✅ Multi-scenario reachability results set:', {
       scenarios: results.scenarios.size,
       current: results.currentScenario
@@ -1054,6 +1061,8 @@ export class AnalysisStateService {
   setMultiScenarioDiamondResults(results: MultiScenarioDiamondResults): void {
     this.multiScenarioDiamondResultsSignal.set(results);
     this.updateGlobalScenario(results.currentScenario);
+    this.setTabCompletionByScenarioCoverage(this.diamondAnalysisTabSignal, results.scenarios, results.availableScenarios);
+    this.updateSystemProfileCompletionState();
     console.log('✅ Multi-scenario diamond results set:', {
       scenarios: results.scenarios.size,
       current: results.currentScenario
@@ -1066,6 +1075,10 @@ export class AnalysisStateService {
   setMultiScenarioCapacityResults(results: MultiScenarioCapacityResults): void {
     this.multiScenarioCapacityResultsSignal.set(results);
     this.updateGlobalScenario(results.currentScenario);
+    const isComplete = this.isCompleteForAvailableScenarios(results.scenarios, results.availableScenarios);
+    this.flowAnalysisTabSignal.update(tab => ({ ...tab, completed: isComplete }));
+    this.capacityAnalysisTabSignal.update(tab => ({ ...tab, completed: isComplete }));
+    this.updateSystemProfileCompletionState();
     console.log('✅ Multi-scenario capacity results set:', {
       scenarios: results.scenarios.size,
       current: results.currentScenario
@@ -1078,6 +1091,8 @@ export class AnalysisStateService {
   setMultiScenarioCpmResults(results: MultiScenarioCpmResults): void {
     this.multiScenarioCpmResultsSignal.set(results);
     this.updateGlobalScenario(results.currentScenario);
+    this.setTabCompletionByScenarioCoverage(this.criticalPathTabSignal, results.scenarios, results.availableScenarios);
+    this.updateSystemProfileCompletionState();
     console.log('✅ Multi-scenario CPM results set:', {
       scenarios: results.scenarios.size,
       current: results.currentScenario
@@ -1133,6 +1148,45 @@ export class AnalysisStateService {
     if (!this.globalCurrentScenario() && scenarioName) {
       this.globalCurrentScenarioSignal.set(scenarioName);
     }
+  }
+
+  private setTabCompletionByScenarioCoverage(
+    tabSignal: { update: (updater: (value: TabState) => TabState) => void },
+    scenarios: Map<string, unknown>,
+    availableScenarios: ScenarioInfo[]
+  ): void {
+    const isComplete = this.isCompleteForAvailableScenarios(scenarios, availableScenarios);
+    tabSignal.update(tab => ({ ...tab, completed: isComplete }));
+  }
+
+  private isCompleteForAvailableScenarios(
+    scenarios: Map<string, unknown>,
+    availableScenarios: ScenarioInfo[]
+  ): boolean {
+    if (!availableScenarios || availableScenarios.length === 0) {
+      return false;
+    }
+
+    return availableScenarios.every(scenario => scenarios.has(scenario.name));
+  }
+
+  private updateSystemProfileCompletionState(): void {
+    const analysisTabs = [
+      this.diamondAnalysisTabSignal(),
+      this.exactInferenceTabSignal(),
+      this.capacityAnalysisTabSignal(),
+      this.criticalPathTabSignal()
+    ];
+
+    const enabledAnalyses = analysisTabs.filter(tab => tab.enabled);
+    const hasEnabledAnalyses = enabledAnalyses.length > 0;
+    const allEnabledAnalysesCompleted = hasEnabledAnalyses && enabledAnalyses.every(tab => tab.completed);
+
+    this.systemProfileTabSignal.update(tab => ({
+      ...tab,
+      hasData: hasEnabledAnalyses,
+      completed: allEnabledAnalysesCompleted
+    }));
   }
 
   private syncScenarioAcrossAnalyses(scenarioName: string): void {

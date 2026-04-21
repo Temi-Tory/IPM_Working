@@ -130,7 +130,7 @@ export class SystemProfileService {
       }
     };
 
-    // Reachability scenarios (from Exact Inference / Diamond Analysis views)
+    // Reachability scenarios (from Probability Propagation / Diamond Analysis views)
     const reachabilityResults = this.analysisStateService.multiScenarioReachabilityResults();
     if (reachabilityResults) {
       for (const [scenarioName, scenario] of reachabilityResults.scenarios) {
@@ -413,7 +413,7 @@ export class SystemProfileService {
           scenario: row.scenario,
           value: belief.toFixed(3),
           message: `Low mean sink reachability (${belief.toFixed(3)})`,
-          drilldownRoute: '/exact-inference',
+          drilldownRoute: '/probability-propagation',
           drilldownParams: { scenario: row.scenario }
         });
       }

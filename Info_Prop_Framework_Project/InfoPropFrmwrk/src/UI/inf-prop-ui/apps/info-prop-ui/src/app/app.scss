@@ -180,12 +180,12 @@
         opacity: 1;
 
         .mat-icon {
-          color: var(--tertiary);
+          color: var(--secondary);
           opacity: 1;
         }
 
         .nav-title {
-          color: var(--tertiary);
+          color: var(--secondary);
           font-weight: 600;
           opacity: 1;
         }
@@ -233,7 +233,7 @@
           }
           
           &.available {
-            color: var(--tertiary);
+            color: var(--secondary);
           }
           
           &.pending {

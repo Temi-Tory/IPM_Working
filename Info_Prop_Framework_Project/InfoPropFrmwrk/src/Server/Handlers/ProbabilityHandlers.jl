@@ -7,7 +7,7 @@ using ..ServerCommon
 using ..InfoPropFramework
 using ..AnalysisCommon
 
-function probability_payload(request_data::Dict{String, Any})
+function probability_payload(request_data::AbstractDict)
     network_path = get(request_data, "networkPath", "")
     edges_file_path = get(request_data, "edgesFilePath", "")
     nodepriors_path = get(request_data, "nodepriorsPath", "")
@@ -19,42 +19,26 @@ function probability_payload(request_data::Dict{String, Any})
     isempty(nodepriors_path) && throw(ArgumentError("nodepriorsPath required"))
     isempty(linkprobs_path) && throw(ArgumentError("linkprobsPath required"))
 
-    resolved_edges_path, is_valid, message = resolve_edges_path_or_error(network_path, edges_file_path)
-    is_valid || throw(ArgumentError("Invalid network file: $(message)"))
+    diamond_payload = find_or_build_diamond(network_path, edges_file_path, nodepriors_path)
+    resolved_edges_path = diamond_payload.resolved_edges_path
 
-    full_nodepriors_path = ServerCommon.safe_joinpath(network_path, nodepriors_path)
     full_linkprobs_path = ServerCommon.safe_joinpath(network_path, linkprobs_path)
-    isfile(full_nodepriors_path) || throw(ArgumentError("nodepriors file not found: $(full_nodepriors_path)"))
     isfile(full_linkprobs_path) || throw(ArgumentError("linkprobs file not found: $(full_linkprobs_path)"))
 
-    edgelist, outgoing_index, incoming_index, source_nodes = read_graph_to_dict(resolved_edges_path)
-    all_nodes = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
-    sink_nodes = sort!([n for n in all_nodes if !haskey(outgoing_index, n) || isempty(outgoing_index[n])])
-    fork_nodes, join_nodes = identify_fork_and_join_nodes(outgoing_index, incoming_index)
-    iteration_sets, ancestors, descendants = find_iteration_sets(edgelist, outgoing_index, incoming_index)
-
-    node_priors = read_node_priors_from_json(full_nodepriors_path)
+    edgelist = diamond_payload.edgelist
+    outgoing_index = diamond_payload.outgoing_index
+    incoming_index = diamond_payload.incoming_index
+    source_nodes = diamond_payload.source_nodes
+    sink_nodes = diamond_payload.sink_nodes
+    fork_nodes = diamond_payload.fork_nodes
+    join_nodes = diamond_payload.join_nodes
+    iteration_sets = diamond_payload.iteration_sets
+    ancestors = diamond_payload.ancestors
+    descendants = diamond_payload.descendants
+    node_priors = diamond_payload.node_priors
     link_probabilities = read_edge_probabilities_from_json(full_linkprobs_path)
-
-    root_diamonds = identify_and_group_diamonds(
-        join_nodes,
-        incoming_index,
-        ancestors,
-        descendants,
-        source_nodes,
-        fork_nodes,
-        edgelist,
-        node_priors,
-        iteration_sets,
-    )
-
-    unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-        root_diamonds,
-        node_priors,
-        ancestors,
-        descendants,
-        iteration_sets,
-    )
+    root_diamonds = diamond_payload.root_diamonds
+    unique_diamonds = diamond_payload.unique_diamonds
 
     result_data = Dict{String, Any}()
 
@@ -127,6 +111,9 @@ function probability_payload(request_data::Dict{String, Any})
         "linkprobs_path" => linkprobs_path,
         "source_nodes" => sort!(collect(source_nodes)),
         "sink_nodes" => sink_nodes,
+        "diamond_cache_hit" => diamond_payload.cache_hit,
+        "diamond_cache_status" => diamond_payload.cache_hit ? "used" : "created",
+        "diamond_cache_source" => String(diamond_payload.cache_source),
         "result" => convert_values(result_data),
     )
 end
@@ -149,10 +136,13 @@ function handle_probability_like(req::HTTP.Request; endpoint_name::String)
             "linkprobs_path" => payload["linkprobs_path"],
             "source_nodes" => payload["source_nodes"],
             "sink_nodes" => payload["sink_nodes"],
+            "diamond_cache_hit" => payload["diamond_cache_hit"],
+            "diamond_cache_status" => payload["diamond_cache_status"],
+            "diamond_cache_source" => payload["diamond_cache_source"],
             "probability_result" => payload["result"],
         )))
     catch e
-        return HTTP.Response(500, headers, JSON.json(Dict("success" => false, "error" => string(e), "message" => "Probability propagation analysis failed")))
+        return ServerCommon.error_response(req, e, "Probability propagation analysis failed"; headers=headers)
     end
 end
 
