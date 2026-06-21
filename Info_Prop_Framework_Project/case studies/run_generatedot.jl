@@ -148,6 +148,14 @@ function layout_params(n_nodes::Int, n_layers::Int, max_layer_width::Int)
             fontsize=fontsize, arrowsize=arrowsize, penwidth=penwidth)
 end
 
+# Munin-specific overrides — manually tuned to match desired output
+const MUNIN_PARAMS = (
+    base_width = 0.89,
+    fontsize   = 12,
+    arrowsize  = 2.9,
+    penwidth   = 3.89,
+)
+
 # ============================================================================
 # DOT writer
 # ============================================================================
@@ -155,7 +163,8 @@ end
 function write_dot(name::String, dot_path::String,
                    edges, all_nodes, outgoing, incoming, layers;
                    use_rank_groups::Bool = true,
-                   forced_size::Union{String,Nothing} = nothing)
+                   forced_size::Union{String,Nothing} = nothing,
+                   munin_overrides::Bool = false)
 
     # Layer groups
     layer_groups = Dict{Int,Vector{Int}}()
@@ -167,6 +176,14 @@ function write_dot(name::String, dot_path::String,
     n_nodes        = length(all_nodes)
 
     p = layout_params(n_nodes, n_layers, max_layer_width)
+    if munin_overrides
+        p = (nodesep    = p.nodesep,
+             ranksep    = p.ranksep,
+             base_width = MUNIN_PARAMS.base_width,
+             fontsize   = MUNIN_PARAMS.fontsize,
+             arrowsize  = MUNIN_PARAMS.arrowsize,
+             penwidth   = MUNIN_PARAMS.penwidth)
+    end
     widths, degrees = node_widths(all_nodes, outgoing, incoming, p.base_width)
 
     source_set = Set(n for n in all_nodes if !haskey(incoming, n) || isempty(incoming[n]))
@@ -290,10 +307,11 @@ function process_network(name::String, base_dir::String = @__DIR__)
 
     dp = dot_output_path(name, base_dir)
     use_ranks   = (name != "munin-dag")
-    force_size  = (name == "munin-dag") ? "40,25!" : nothing
+    force_size  = (name == "munin-dag") ? "60,35!" : nothing
     write_dot(name, dp, edges, all_nodes, outgoing, incoming, layers;
               use_rank_groups = use_ranks,
-              forced_size     = force_size)
+              forced_size     = force_size,
+              munin_overrides = (name == "munin-dag"))
 
     println("  Written : $(basename(dp))")
     println("  Stats   : $(length(all_nodes)) nodes, $(length(edges)) edges, " *
