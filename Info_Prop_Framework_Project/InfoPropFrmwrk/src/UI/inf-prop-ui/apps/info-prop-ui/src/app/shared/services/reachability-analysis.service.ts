@@ -107,7 +107,6 @@ export class ReachabilityAnalysisService {
       
       const request: ReachabilityAnalysisRequest = {
         networkPath,
-        edgesFilePath: `${networkPath}/${this.extractNetworkName(networkPath)}.EDGES`,
         nodepriorsPath: scenario.path,
         linkprobsPath: linkprobsPath,
         includeExactInference: true,

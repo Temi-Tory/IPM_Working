@@ -1,0 +1,100 @@
+digraph "pareto-point-4-low-resilience-minimal" {
+    // Layout
+    rankdir    = TB;
+    splines    = line;
+    nodesep    = 0.16;
+    ranksep    = 1.00;
+
+    // Default node style
+    node [
+        shape     = circle,
+        style     = filled,
+        fillcolor = "#aaaaaa",
+        fontcolor = "#ffffff",
+        fontname  = "Helvetica-Bold",
+        fontsize  = 11,
+        width     = 0.45,
+        height    = 0.45,
+        fixedsize = false
+    ];
+
+    // Default edge style
+    edge [
+        arrowsize = 2.0,
+        penwidth  = 2.2
+    ];
+
+    // Node declarations (colour + degree-proportional size)
+    1 [fillcolor="#859900", width=0.79, height=0.79];
+    6 [fillcolor="#859900", width=0.79, height=0.79];
+    10 [fillcolor="#859900", width=0.79, height=0.79];
+    15 [fillcolor="#859900", width=1.12, height=1.12];
+    18 [fillcolor="#859900", width=0.96, height=0.96];
+    20 [fillcolor="#859900", width=0.79, height=0.79];
+    22 [fillcolor="#859900", width=0.79, height=0.79];
+    28 [fillcolor="#859900", width=0.79, height=0.79];
+    59 [fillcolor="#aaaaaa", width=1.12, height=1.12];
+    61 [fillcolor="#aaaaaa", width=0.96, height=0.96];
+    87 [fillcolor="#aaaaaa", width=0.96, height=0.96];
+    91 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    93 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    102 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    109 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    113 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    122 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    128 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    134 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    138 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    140 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    162 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    163 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    175 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    178 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    204 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    212 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    217 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    219 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    226 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    228 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    233 [fillcolor="#aaaaaa", width=0.96, height=0.96];
+    244 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    246 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    272 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+    273 [fillcolor="#aaaaaa", width=0.62, height=0.62];
+
+    // Layer rank groups (longest-path layering)
+    { rank=same; 1; 6; 10; 15; 18; 20; 22; 28 }
+    { rank=same; 59; 61; 87; 91; 93; 102; 109; 113; 122; 128; 134; 138; 140; 162; 163; 175; 178; 204; 212 }
+    { rank=same; 217; 219; 233; 244; 246; 272; 273 }
+    { rank=same; 226; 228 }
+
+    // Edges
+    1 -> 91;
+    1 -> 93;
+    6 -> 102;
+    6 -> 109;
+    10 -> 113;
+    10 -> 122;
+    15 -> 61;
+    15 -> 87;
+    15 -> 128;
+    15 -> 134;
+    18 -> 59;
+    18 -> 138;
+    18 -> 140;
+    20 -> 162;
+    20 -> 163;
+    22 -> 175;
+    22 -> 178;
+    28 -> 204;
+    28 -> 212;
+    59 -> 217;
+    59 -> 219;
+    59 -> 233;
+    61 -> 244;
+    61 -> 246;
+    87 -> 272;
+    87 -> 273;
+    233 -> 226;
+    233 -> 228;
+}

@@ -44,8 +44,9 @@
           <div class="guide-tips">
             <h5>💡 Key Points:</h5>
             <ul>
-              <li><strong>One edges file</strong> - All scenarios share the same network structure (.EDGES file in root)
+              <li><strong>Edge source is flexible</strong> - Use one shared root .EDGES file, or provide per-scenario .EDGES files
               </li>
+              <li><strong>Inference fallback</strong> - If no .EDGES file is supplied, backend can infer edges from supported analysis inputs</li>
               <li><strong>Scenario consistency</strong> - Within each reachability scenario, nodepriors and linkprobs
                 must use the same data type</li>
               <li><strong>Automatic detection</strong> - System automatically detects data type from JSON "data_type"
@@ -61,7 +62,7 @@
             <h5>📋 Real Example from Your Files:</h5>
             <pre class="folder-structure">
 📁 grid-graph/
-├── 📄 grid-graph.EDGES                         ← Shared network structure
+├── 📄 grid-graph.EDGES                         ← Optional shared network structure
 ├── 📁 main scenario - dt/                      ← Float scenario
 │   ├── 📄 grid-graph-nodepriors.json          ← "data_type": "Float64"
 │   └── 📄 grid-graph-linkprobabilities.json   ← "data_type": "Float64"
@@ -72,7 +73,8 @@
 │   ├── 📄 grid-graph-nodepriors.json          ← "data_type": "pbox"
 │   └── 📄 grid-graph-linkprobabilities.json   ← "data_type": "pbox"
 ├── 📁 system overall capacity/                 ← Capacity analysis
-│   └── 📄 grid-graph-capacities.json          ← Flow capacity data
+│   ├── 📄 grid-graph-capacities.json          ← Flow capacity data
+│   └── 📄 grid-graph.EDGES                    ← Optional scenario-specific edges
 └── 📁 cpm/                                     ← Critical Path Method
     └── 📄 grid-graph-cpm-inputs.json          ← Time and cost analysis
               </pre>
@@ -180,7 +182,7 @@
             }
           </div>
           } @else {
-          <p class="no-files">No network structure files detected. Upload .edges files.</p>
+          <p class="no-files">No network structure files detected. Upload .edges files to use structure/viz tabs, or run analyses with inferable scenario inputs.</p>
           }
         </mat-expansion-panel>
 

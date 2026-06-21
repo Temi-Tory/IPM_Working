@@ -109,8 +109,20 @@ function serialize_unique_diamonds(unique_diamonds)
     return out
 end
 
-function resolve_edges_path_or_error(network_path::String, edges_file_path::String)
-    resolved_edges_path = ServerCommon.resolve_edges_file_path(network_path, edges_file_path)
+function resolve_edges_path_or_error(
+    network_path::String,
+    edges_file_path::String;
+    capacities_path::String="",
+    linkprobs_path::String="",
+    cpm_path::String="",
+)
+    resolved_edges_path = ServerCommon.resolve_edges_file_path(
+        network_path,
+        edges_file_path;
+        capacities_path=capacities_path,
+        linkprobs_path=linkprobs_path,
+        cpm_path=cpm_path,
+    )
     is_valid, message = ServerCommon.validate_network_file(resolved_edges_path)
     return resolved_edges_path, is_valid, message
 end
@@ -248,11 +260,24 @@ function _load_persisted_diamond_payload(path::String)
     end
 end
 
-function find_or_build_diamond(network_path::String, edges_file_path::String, nodepriors_path::String)
-    resolved_edges_path, is_valid, message = resolve_edges_path_or_error(network_path, edges_file_path)
+function find_or_build_diamond(
+    network_path::String,
+    edges_file_path::String,
+    nodepriors_path::String;
+    linkprobs_path::String="",
+    capacities_path::String="",
+    cpm_path::String="",
+)
+    resolved_edges_path, is_valid, message = resolve_edges_path_or_error(
+        network_path,
+        edges_file_path;
+        linkprobs_path=linkprobs_path,
+        capacities_path=capacities_path,
+        cpm_path=cpm_path,
+    )
     is_valid || throw(ArgumentError("Invalid network file: $(message)"))
 
-    full_nodepriors_path = isempty(nodepriors_path) ? "" : ServerCommon.safe_joinpath(network_path, nodepriors_path)
+    full_nodepriors_path = isempty(nodepriors_path) ? "" : ServerCommon.resolve_network_file_path(network_path, nodepriors_path)
     cache_key = _diamond_cache_key(resolved_edges_path, full_nodepriors_path)
     persist_path = _diamond_persist_path(network_path, cache_key)
 

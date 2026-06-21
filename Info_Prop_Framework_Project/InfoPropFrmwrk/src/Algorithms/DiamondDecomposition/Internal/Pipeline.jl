@@ -943,7 +943,11 @@ end
                     sub_node_priors[node] = one_value(T)
                 end
             elseif node ∉ diamond.conditioning_nodes
-                sub_node_priors[node] = non_fixed_value(T)  # Will be replaced with belief_dict in actual usage
+                # Use actual prior so filter_irrelevant_sources can correctly exclude
+                # always-active sources (e.g. network sources with prior=1.0) from being
+                # selected as conditioning nodes in nested sub-diamond discovery.
+                # The propagation phase overwrites this with belief_dict anyway.
+                sub_node_priors[node] = node_priors[node]
             elseif node ∈ diamond.conditioning_nodes
                 sub_node_priors[node] = one_value(T)
             end

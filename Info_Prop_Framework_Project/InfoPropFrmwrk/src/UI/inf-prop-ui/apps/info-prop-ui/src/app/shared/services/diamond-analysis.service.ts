@@ -75,7 +75,6 @@ export class DiamondAnalysisService {
     const analysisRequests = scenarios.map(scenario => {
       const request: DiamondAnalysisRequest = {
         networkPath,
-        edgesFilePath: `${this.extractNetworkName(networkPath)}.EDGES`,
         nodepriorsPath: scenario.path // **FIXED: Use scenario-specific node priors**
       };
 

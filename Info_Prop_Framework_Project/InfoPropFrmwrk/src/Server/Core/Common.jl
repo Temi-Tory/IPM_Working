@@ -4,6 +4,7 @@ using HTTP
 using JSON
 using Dates
 using UUIDs
+using SHA
 
 const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
@@ -101,6 +102,49 @@ function safe_joinpath(base_path::String, relative_path::String)
     normalized_base = normalize_path_separators(base_path)
     normalized_relative = normalize_path_separators(relative_path)
     return replace(joinpath(normalized_base, normalized_relative), "\\" => "/")
+end
+
+function _is_absolute_path(path::String)
+    normalized = normalize_path_separators(path)
+    isempty(normalized) && return false
+    return occursin(r"^[A-Za-z]:/", normalized) || startswith(normalized, "//")
+end
+
+function _session_root_for_network_path(network_path::String)
+    normalized = normalize_path_separators(network_path)
+    segments = filter(!isempty, split(normalized, '/'))
+
+    for idx in 1:(length(segments) - 1)
+        if lowercase(segments[idx]) == lowercase(UPLOAD_DIR)
+            return join(segments[1:idx+1], "/")
+        end
+    end
+
+    return ""
+end
+
+function resolve_network_file_path(network_path::String, file_path::String)
+    normalized_input = normalize_path_separators(file_path)
+    isempty(normalized_input) && return ""
+
+    if _is_absolute_path(normalized_input) || startswith(lowercase(normalized_input), lowercase(UPLOAD_DIR) * "/")
+        return normalized_input
+    end
+
+    direct_candidate = safe_joinpath(network_path, normalized_input)
+    if isfile(direct_candidate) || isdir(direct_candidate)
+        return direct_candidate
+    end
+
+    session_root = _session_root_for_network_path(network_path)
+    if !isempty(session_root)
+        session_candidate = safe_joinpath(session_root, normalized_input)
+        if isfile(session_candidate) || isdir(session_candidate)
+            return session_candidate
+        end
+    end
+
+    return direct_candidate
 end
 
 function setup_server()
@@ -210,17 +254,162 @@ function parse_multipart_data(body_str::AbstractString, boundary::AbstractString
 end
 
 function resolve_edges_file_path(network_path::String, edges_file_path::String)
-    if isempty(edges_file_path)
-        if isdir(network_path)
-            edges_files = filter(f -> endswith(lowercase(f), ".edges"), readdir(network_path))
-            if !isempty(edges_files)
-                return safe_joinpath(network_path, edges_files[1])
-            end
+    return resolve_edges_file_path(network_path, edges_file_path; capacities_path="", linkprobs_path="", cpm_path="")
+end
+
+function _parse_edge_tuple_key(raw::AbstractString)
+    edge_match = match(r"\(\s*(\d+)\s*,\s*(\d+)\s*\)", String(raw))
+    edge_match === nothing && return nothing
+    return (parse(Int64, edge_match.captures[1]), parse(Int64, edge_match.captures[2]))
+end
+
+function _collect_edges_from_capacity_payload(data::AbstractDict)
+    edges = Set{Tuple{Int64,Int64}}()
+
+    if haskey(data, "edges") && isa(data["edges"], AbstractVector)
+        for edge_data in data["edges"]
+            isa(edge_data, AbstractDict) || continue
+            haskey(edge_data, "source") || continue
+            haskey(edge_data, "destination") || continue
+            push!(edges, (Int64(edge_data["source"]), Int64(edge_data["destination"])))
         end
-        return ""
     end
 
-    return safe_joinpath(network_path, edges_file_path)
+    capacities = get(data, "capacities", nothing)
+    if capacities !== nothing && isa(capacities, AbstractDict)
+        edge_caps = get(capacities, "edges", nothing)
+        if edge_caps !== nothing && isa(edge_caps, AbstractDict)
+            for edge_key in keys(edge_caps)
+                parsed = _parse_edge_tuple_key(String(edge_key))
+                parsed === nothing || push!(edges, parsed)
+            end
+        end
+    end
+
+    return edges
+end
+
+function _collect_edges_from_probability_payload(data::AbstractDict)
+    edges = Set{Tuple{Int64,Int64}}()
+    links = get(data, "links", nothing)
+    if links === nothing || !isa(links, AbstractDict)
+        return edges
+    end
+
+    for edge_key in keys(links)
+        parsed = _parse_edge_tuple_key(String(edge_key))
+        parsed === nothing || push!(edges, parsed)
+    end
+
+    return edges
+end
+
+function _collect_edges_from_cpm_payload(data::AbstractDict)
+    edges = Set{Tuple{Int64,Int64}}()
+
+    for section_name in ("time_analysis", "cost_analysis")
+        section = get(data, section_name, nothing)
+        section === nothing && continue
+        isa(section, AbstractDict) || continue
+
+        for edge_field in ("edge_delays", "edge_costs")
+            edge_map = get(section, edge_field, nothing)
+            edge_map === nothing && continue
+            isa(edge_map, AbstractDict) || continue
+            for edge_key in keys(edge_map)
+                parsed = _parse_edge_tuple_key(String(edge_key))
+                parsed === nothing || push!(edges, parsed)
+            end
+        end
+    end
+
+    return edges
+end
+
+function _write_inferred_edges_file(network_path::String, source_path::String, edges::Set{Tuple{Int64,Int64}})
+    isempty(edges) && return ""
+
+    inferred_dir = safe_joinpath(network_path, ".inferred")
+    mkpath(inferred_dir)
+
+    fingerprint = bytes2hex(sha1(source_path))[1:12]
+    source_name = splitext(basename(source_path))[1]
+    filename = "inferred-$(source_name)-$(fingerprint).EDGES"
+    output_path = safe_joinpath(inferred_dir, filename)
+
+    open(output_path, "w") do io
+        write(io, "source,destination\n")
+        for (u, v) in sort!(collect(edges))
+            write(io, "$(u),$(v)\n")
+        end
+    end
+
+    return output_path
+end
+
+function _infer_edges_file_path(network_path::String; capacities_path::String="", linkprobs_path::String="", cpm_path::String="")
+    candidates = [
+        ("capacity", capacities_path),
+        ("probability", linkprobs_path),
+        ("cpm", cpm_path),
+    ]
+
+    for (kind, input_path) in candidates
+        isempty(input_path) && continue
+        full_path = resolve_network_file_path(network_path, input_path)
+        isfile(full_path) || continue
+
+        data = JSON.parsefile(full_path)
+        edges = if kind == "capacity"
+            _collect_edges_from_capacity_payload(data)
+        elseif kind == "probability"
+            _collect_edges_from_probability_payload(data)
+        else
+            _collect_edges_from_cpm_payload(data)
+        end
+
+        inferred_path = _write_inferred_edges_file(network_path, full_path, edges)
+        !isempty(inferred_path) && return inferred_path
+    end
+
+    return ""
+end
+
+function resolve_edges_file_path(
+    network_path::String,
+    edges_file_path::String;
+    capacities_path::String="",
+    linkprobs_path::String="",
+    cpm_path::String="",
+)
+    if !isempty(edges_file_path)
+        resolved_direct_path = resolve_network_file_path(network_path, edges_file_path)
+        isfile(resolved_direct_path) && return resolved_direct_path
+
+        parent_candidates = String[]
+        for analysis_input_path in (capacities_path, linkprobs_path, cpm_path)
+            isempty(analysis_input_path) && continue
+            resolved_analysis_path = resolve_network_file_path(network_path, analysis_input_path)
+            isfile(resolved_analysis_path) || continue
+            push!(parent_candidates, dirname(resolved_analysis_path))
+        end
+
+        for parent_dir in parent_candidates
+            parent_candidate = resolve_network_file_path(parent_dir, edges_file_path)
+            isfile(parent_candidate) && return parent_candidate
+        end
+
+        return resolved_direct_path
+    end
+
+    if isdir(network_path)
+        edges_files = filter(f -> endswith(lowercase(f), ".edges"), readdir(network_path))
+        if !isempty(edges_files)
+            return safe_joinpath(network_path, sort(edges_files)[1])
+        end
+    end
+
+    return _infer_edges_file_path(network_path; capacities_path=capacities_path, linkprobs_path=linkprobs_path, cpm_path=cpm_path)
 end
 
 end # module ServerCommon

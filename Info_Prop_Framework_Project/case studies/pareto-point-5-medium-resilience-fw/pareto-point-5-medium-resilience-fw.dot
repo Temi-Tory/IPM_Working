@@ -1,0 +1,354 @@
+digraph "pareto-point-5-medium-resilience-fw" {
+    // Layout
+    rankdir    = TB;
+    splines    = line;
+    nodesep    = 0.13;
+    ranksep    = 0.25;
+
+    // Default node style
+    node [
+        shape     = circle,
+        style     = filled,
+        fillcolor = "#aaaaaa",
+        fontcolor = "#ffffff",
+        fontname  = "Helvetica-Bold",
+        fontsize  = 10,
+        width     = 0.35,
+        height    = 0.35,
+        fixedsize = false
+    ];
+
+    // Default edge style
+    edge [
+        arrowsize = 1.8,
+        penwidth  = 1.8
+    ];
+
+    // Node declarations (colour + degree-proportional size)
+    1 [fillcolor="#859900", width=0.39, height=0.39];
+    2 [fillcolor="#aaaaaa", width=0.75, height=0.75];
+    6 [fillcolor="#859900", width=0.39, height=0.39];
+    10 [fillcolor="#859900", width=0.37, height=0.37];
+    15 [fillcolor="#859900", width=0.39, height=0.39];
+    16 [fillcolor="#268bd2", width=0.77, height=0.77];
+    18 [fillcolor="#859900", width=0.39, height=0.39];
+    20 [fillcolor="#859900", width=0.39, height=0.39];
+    21 [fillcolor="#268bd2", width=0.88, height=0.88];
+    22 [fillcolor="#859900", width=0.39, height=0.39];
+    23 [fillcolor="#268bd2", width=0.75, height=0.75];
+    28 [fillcolor="#859900", width=0.39, height=0.39];
+    29 [fillcolor="#268bd2", width=0.75, height=0.75];
+    30 [fillcolor="#268bd2", width=0.73, height=0.73];
+    31 [fillcolor="#268bd2", width=0.71, height=0.71];
+    32 [fillcolor="#268bd2", width=0.73, height=0.73];
+    33 [fillcolor="#268bd2", width=0.69, height=0.69];
+    34 [fillcolor="#268bd2", width=0.73, height=0.73];
+    59 [fillcolor="#859900", width=0.39, height=0.39];
+    61 [fillcolor="#859900", width=0.39, height=0.39];
+    62 [fillcolor="#268bd2", width=0.88, height=0.88];
+    63 [fillcolor="#859900", width=0.37, height=0.37];
+    64 [fillcolor="#268bd2", width=0.75, height=0.75];
+    65 [fillcolor="#268bd2", width=0.67, height=0.67];
+    68 [fillcolor="#859900", width=0.37, height=0.37];
+    69 [fillcolor="#268bd2", width=0.63, height=0.63];
+    76 [fillcolor="#859900", width=0.39, height=0.39];
+    79 [fillcolor="#859900", width=0.37, height=0.37];
+    80 [fillcolor="#268bd2", width=0.69, height=0.69];
+    81 [fillcolor="#268bd2", width=0.71, height=0.71];
+    82 [fillcolor="#268bd2", width=0.69, height=0.69];
+    85 [fillcolor="#859900", width=0.39, height=0.39];
+    87 [fillcolor="#859900", width=0.39, height=0.39];
+    90 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    93 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    94 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    96 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    97 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    100 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    102 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    122 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    134 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    135 [fillcolor="#859900", width=0.39, height=0.39];
+    136 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    140 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    145 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    146 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    148 [fillcolor="#859900", width=0.39, height=0.39];
+    156 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    161 [fillcolor="#859900", width=0.39, height=0.39];
+    162 [fillcolor="#268bd2", width=0.39, height=0.39];
+    165 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    172 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    173 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    175 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    178 [fillcolor="#268bd2", width=0.39, height=0.39];
+    193 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    195 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    198 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    199 [fillcolor="#268bd2", width=0.39, height=0.39];
+    200 [fillcolor="#268bd2", width=0.39, height=0.39];
+    201 [fillcolor="#268bd2", width=0.39, height=0.39];
+    202 [fillcolor="#268bd2", width=0.39, height=0.39];
+    204 [fillcolor="#268bd2", width=0.39, height=0.39];
+    205 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    208 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    212 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    214 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    216 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    217 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    228 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    229 [fillcolor="#859900", width=0.39, height=0.39];
+    233 [fillcolor="#859900", width=0.39, height=0.39];
+    234 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    236 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    240 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    241 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    244 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    245 [fillcolor="#859900", width=0.39, height=0.39];
+    256 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    262 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    265 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    267 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    268 [fillcolor="#859900", width=0.39, height=0.39];
+    273 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    284 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    286 [fillcolor="#aaaaaa", width=0.37, height=0.37];
+    288 [fillcolor="#268bd2", width=0.41, height=0.41];
+    289 [fillcolor="#268bd2", width=0.39, height=0.39];
+
+    // Layer rank groups (longest-path layering)
+    { rank=same; 1; 6; 10; 15; 18; 20; 22; 28; 59; 61; 63; 68; 76; 79; 85; 87; 135; 148; 161; 229; 233; 245; 268 }
+    { rank=same; 2; 93; 102; 122; 134; 136; 140; 145; 162; 165; 217; 228; 234; 241; 244; 265; 273; 284 }
+    { rank=same; 16; 94; 96; 97 }
+    { rank=same; 21; 262; 267; 286 }
+    { rank=same; 23; 146; 156; 172 }
+    { rank=same; 29; 173; 175; 178 }
+    { rank=same; 30; 204; 205; 212 }
+    { rank=same; 31 }
+    { rank=same; 32; 193; 195 }
+    { rank=same; 33; 90; 100; 199 }
+    { rank=same; 34; 214 }
+    { rank=same; 62; 198; 208; 216 }
+    { rank=same; 64; 236; 240; 256 }
+    { rank=same; 65; 200; 201; 202 }
+    { rank=same; 69 }
+    { rank=same; 80 }
+    { rank=same; 81 }
+    { rank=same; 82 }
+    { rank=same; 288; 289 }
+
+    // Edges
+    1 -> 2;
+    1 -> 93;
+    2 -> 16;
+    2 -> 21;
+    2 -> 23;
+    2 -> 29;
+    2 -> 30;
+    2 -> 31;
+    2 -> 32;
+    2 -> 33;
+    2 -> 34;
+    2 -> 62;
+    2 -> 64;
+    2 -> 65;
+    2 -> 69;
+    2 -> 80;
+    2 -> 81;
+    2 -> 82;
+    2 -> 94;
+    2 -> 96;
+    2 -> 97;
+    6 -> 62;
+    6 -> 102;
+    10 -> 122;
+    15 -> 62;
+    15 -> 134;
+    16 -> 21;
+    16 -> 23;
+    16 -> 29;
+    16 -> 30;
+    16 -> 31;
+    16 -> 32;
+    16 -> 33;
+    16 -> 34;
+    16 -> 62;
+    16 -> 64;
+    16 -> 65;
+    16 -> 69;
+    16 -> 80;
+    16 -> 81;
+    16 -> 82;
+    16 -> 262;
+    16 -> 267;
+    16 -> 286;
+    18 -> 62;
+    18 -> 140;
+    20 -> 21;
+    20 -> 162;
+    21 -> 23;
+    21 -> 29;
+    21 -> 30;
+    21 -> 31;
+    21 -> 32;
+    21 -> 33;
+    21 -> 34;
+    21 -> 62;
+    21 -> 64;
+    21 -> 65;
+    21 -> 69;
+    21 -> 80;
+    21 -> 81;
+    21 -> 82;
+    21 -> 146;
+    21 -> 156;
+    21 -> 172;
+    22 -> 23;
+    22 -> 178;
+    23 -> 29;
+    23 -> 30;
+    23 -> 31;
+    23 -> 32;
+    23 -> 33;
+    23 -> 34;
+    23 -> 62;
+    23 -> 64;
+    23 -> 65;
+    23 -> 69;
+    23 -> 80;
+    23 -> 81;
+    23 -> 82;
+    23 -> 173;
+    23 -> 175;
+    23 -> 178;
+    28 -> 29;
+    28 -> 204;
+    29 -> 30;
+    29 -> 31;
+    29 -> 32;
+    29 -> 33;
+    29 -> 34;
+    29 -> 62;
+    29 -> 64;
+    29 -> 65;
+    29 -> 69;
+    29 -> 80;
+    29 -> 81;
+    29 -> 82;
+    29 -> 204;
+    29 -> 205;
+    29 -> 212;
+    30 -> 31;
+    30 -> 32;
+    30 -> 33;
+    30 -> 34;
+    30 -> 62;
+    30 -> 64;
+    30 -> 65;
+    30 -> 69;
+    30 -> 80;
+    30 -> 81;
+    30 -> 82;
+    30 -> 200;
+    30 -> 201;
+    30 -> 202;
+    31 -> 32;
+    31 -> 33;
+    31 -> 34;
+    31 -> 62;
+    31 -> 64;
+    31 -> 65;
+    31 -> 80;
+    31 -> 81;
+    31 -> 82;
+    31 -> 193;
+    31 -> 195;
+    31 -> 199;
+    32 -> 33;
+    32 -> 34;
+    32 -> 62;
+    32 -> 64;
+    32 -> 65;
+    32 -> 69;
+    32 -> 80;
+    32 -> 81;
+    32 -> 82;
+    32 -> 90;
+    32 -> 100;
+    32 -> 199;
+    33 -> 34;
+    33 -> 62;
+    33 -> 64;
+    33 -> 65;
+    33 -> 80;
+    33 -> 81;
+    33 -> 82;
+    33 -> 214;
+    33 -> 288;
+    34 -> 62;
+    34 -> 64;
+    34 -> 65;
+    34 -> 69;
+    34 -> 80;
+    34 -> 81;
+    34 -> 82;
+    34 -> 198;
+    34 -> 208;
+    34 -> 216;
+    59 -> 21;
+    59 -> 217;
+    61 -> 62;
+    61 -> 244;
+    62 -> 64;
+    62 -> 65;
+    62 -> 69;
+    62 -> 80;
+    62 -> 81;
+    62 -> 82;
+    62 -> 236;
+    62 -> 240;
+    62 -> 256;
+    63 -> 64;
+    64 -> 65;
+    64 -> 69;
+    64 -> 80;
+    64 -> 81;
+    64 -> 82;
+    64 -> 200;
+    64 -> 201;
+    64 -> 202;
+    65 -> 69;
+    65 -> 80;
+    65 -> 81;
+    65 -> 82;
+    68 -> 69;
+    69 -> 80;
+    69 -> 81;
+    76 -> 16;
+    76 -> 265;
+    79 -> 80;
+    80 -> 81;
+    80 -> 82;
+    81 -> 82;
+    81 -> 288;
+    81 -> 289;
+    82 -> 288;
+    82 -> 289;
+    85 -> 21;
+    85 -> 145;
+    87 -> 16;
+    87 -> 273;
+    135 -> 62;
+    135 -> 136;
+    148 -> 21;
+    148 -> 165;
+    161 -> 21;
+    161 -> 162;
+    229 -> 21;
+    229 -> 234;
+    233 -> 21;
+    233 -> 228;
+    245 -> 62;
+    245 -> 241;
+    268 -> 62;
+    268 -> 284;
+}

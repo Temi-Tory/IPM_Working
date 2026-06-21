@@ -1,0 +1,54 @@
+{
+  "intent": "Find the minimum possible release timeline and which tasks cannot slip without delaying it",
+  "description": "Water distribution network CPM inputs. Node durations reflect treatment stage processing times (minutes). Edge delays reflect pipeline transit times between stages. CBODD nodes (biological treatment, 9 min) are the rate-limiting stages. Check valve nodes (CKNI, CKND, CKNN) are fast (3 min). Edge delays to treatment nodes are longer (3 min) than to valve/outlet nodes (1-1.5 min), reflecting longer pipeline runs to treatment facilities.",
+  "network_type": "critical_path",
+  "data_type": "Float64",
+  "node_type_durations": {
+    "C_NI (chlorination inlet)": 6,
+    "CKNI (check valve inlet)": 3,
+    "CBODD (biological treatment daytime)": 9,
+    "CKND (check valve distribution)": 3,
+    "CNOD (connection outlet daytime)": 5,
+    "CBODN (biological treatment night)": 8,
+    "CKNN (check valve night)": 3,
+    "CNON (connection outlet night)": 4
+  },
+  "time_analysis": {
+    "analysis_type": "longest_path_time",
+    "combination_function": "max_combination",
+    "propagation_function": "additive_propagation",
+    "initial_time": 0,
+    "node_durations": {
+      "1": 6,  "2": 3,  "3": 9,  "4": 3,  "5": 5,  "6": 8,  "7": 3,  "8": 4,
+      "9": 6,  "10": 3, "11": 9, "12": 3, "13": 5, "14": 8, "15": 3, "16": 4,
+      "17": 6, "18": 3, "19": 9, "20": 3, "21": 5, "22": 8, "23": 3, "24": 4,
+      "25": 6, "26": 3, "27": 9, "28": 3, "29": 5, "30": 8, "31": 3, "32": 4
+    },
+    "edge_delays": {
+      "(1,9)":  2.0, "(1,11)": 3.0,
+      "(2,10)": 1.0, "(2,11)": 3.0, "(2,12)": 1.0,
+      "(3,11)": 3.0, "(3,13)": 1.5, "(3,14)": 2.5,
+      "(4,12)": 1.0, "(4,15)": 1.0,
+      "(5,11)": 3.0, "(5,13)": 1.5, "(5,16)": 1.5,
+      "(6,11)": 3.0, "(6,14)": 2.5, "(6,16)": 1.5,
+      "(7,12)": 1.0, "(7,15)": 1.0, "(7,16)": 1.5,
+      "(8,13)": 1.5, "(8,14)": 2.5, "(8,16)": 1.5,
+      "(9,17)":  2.0, "(9,19)":  3.0,
+      "(10,18)": 1.0, "(10,19)": 3.0, "(10,20)": 1.0,
+      "(11,19)": 3.0, "(11,21)": 1.5, "(11,22)": 2.5,
+      "(12,20)": 1.0, "(12,23)": 1.0,
+      "(13,19)": 3.0, "(13,21)": 1.5, "(13,24)": 1.5,
+      "(14,19)": 3.0, "(14,22)": 2.5, "(14,24)": 1.5,
+      "(15,20)": 1.0, "(15,23)": 1.0, "(15,24)": 1.5,
+      "(16,21)": 1.5, "(16,22)": 2.5, "(16,24)": 1.5,
+      "(17,25)": 2.0, "(17,27)": 3.0,
+      "(18,26)": 1.0, "(18,27)": 3.0, "(18,28)": 1.0,
+      "(19,27)": 3.0, "(19,29)": 1.5, "(19,30)": 2.5,
+      "(20,28)": 1.0, "(20,31)": 1.0,
+      "(21,27)": 3.0, "(21,29)": 1.5, "(21,32)": 1.5,
+      "(22,27)": 3.0, "(22,30)": 2.5, "(22,32)": 1.5,
+      "(23,28)": 1.0, "(23,31)": 1.0, "(23,32)": 1.5,
+      "(24,29)": 1.5, "(24,30)": 2.5, "(24,32)": 1.5
+    }
+  }
+}

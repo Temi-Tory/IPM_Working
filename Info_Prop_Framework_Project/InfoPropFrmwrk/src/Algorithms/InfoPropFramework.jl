@@ -18,8 +18,6 @@ using .CriticalPathModule
 include(joinpath(@__DIR__, "ProbabilityPropagation", "ProbabilityPropagationModule.jl"))
 using .ProbabilityPropagationModule
 
-include(joinpath(@__DIR__, "MonteCarlo", "MonteCarloOptimizedModule.jl"))
-using .MonteCarloOptimizedModule
 
 include(joinpath(@__DIR__, "FlowCapacity", "CapacityAnalysisKit.jl"))
 using .CapacityAnalysisKit
@@ -72,10 +70,6 @@ export
     DiamondCacheEntry,
     CacheKey,
     make_cache_key,
-    # Monte Carlo toolkit
-    MonteCarloOptimizedModule,
-    MC_result_optimized,
-    find_all_reachable,
     # Flow-capacity toolkit
     CapacityAnalysisKit,
     CapacityAnalysisKitResult,

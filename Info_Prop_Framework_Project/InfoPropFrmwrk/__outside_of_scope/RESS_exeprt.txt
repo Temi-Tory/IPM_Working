@@ -1,0 +1,881 @@
+
+\documentclass[preprint,12pt]{elsarticle}
+
+
+\section{Network Model }
+A process system is modelled as a directed acyclic graph $G = (V, E)$ where $V$ denotes the set of nodes (components) and $E \subseteq V \times V$ represents the set of directed edges (dependencies). Let $S \subseteq V$ denote the sets of source and  $T \subseteq V$ the sink nodes.
+Throughout the paper we use $\text{Pa}(v)$ and $\text{Ch}(v)$ to represent the set of parent nodes and child nodes of $v$, respectively.
+
+\subsection{Component States and Probabilistic Model}
+
+Each node $v \in V$ is associated with a binary random variable $X_v \in \{0,1\}$, where $X_v = 1$ indicates that node $v$ is operational. Similarly, each directed edge $(u,v) \in E$ is associated with a binary random variable $X_{uv} \in \{0,1\}$ representing successful transmission from $u$ to $v$.
+
+We define:
+\begin{itemize}
+\item $R(v) = P(X_v = 1)$: intrinsic reliability of node $v$
+\item $P(u,v) = P(X_{uv} = 1)$: transmission probability of edge $(u,v)$
+\end{itemize}
+
+A directed path $\pi(s,v) = (s = v_0, v_1, \ldots, v_k = v)$ is said to be \emph{viable} if all nodes and edges along the path are operational, i.e.
+\[
+X_{v_0} X_{v_1} \cdots X_{v_k} \cdot X_{v_0 v_1} \cdots X_{v_{k-1} v_k} = 1.
+\]
+
+\begin{definition}[Viable Path]
+A path $\pi(s,v)$ from source $s \in S$ to node $v \in V$ is viable if all nodes and edges along the path are functional.
+\end{definition}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.3]{images/simpleDag.png}
+  \caption{A Multi-Source Directed Acyclic Graph.}
+  \label{fig:dag_rbd}
+\end{figure}
+
+\subsection{Definition of Diamond Structures}
+
+We formalise reconvergent dependency patterns through the notion of a diamond subgraph.
+
+\begin{definition}[Diamond Structure]
+A diamond structure is a subgraph $D \subseteq G$ characterised by:
+\begin{itemize}
+    \item a set of fork nodes $F \subseteq V$, where each $f \in F$ has at least two outgoing paths,
+    \item a join node $j \in V$ with at least two incoming paths,
+    \item at least two distinct directed paths from nodes in $F$ to $j$,
+    \item at least one shared upstream node or edge among these paths.
+\end{itemize}
+\end{definition}
+
+In such structures, the paths from fork nodes to the join node are not independent because they share common components. The simplest case is a \emph{single-fork diamond}, where all reconvergent paths originate from a single fork node.
+
+\subsection{Reliability Objective}
+
+The reliability problem is formally stated as computing the probability that there is at least one viable path from any source node to each target node in the network. The reachability probability of a node $v \in V$ is defined as the probability that at least one viable path exists from any source node to $v$:
+\begin{equation}
+b(v) = P\left( \bigcup_{s \in S} \bigcup_{\pi \in \Pi(s,v)} 
+\{\pi \text{ is viable}\} \right),
+\end{equation}
+where $\Pi(s,v)$ denotes the set of all directed paths from $s$ to $v$.
+
+The quantity $b(v)$ represents the probability that node $v$ successfully receives flow from at least one source and is referred to as the 
+\emph{node reliability} (or belief) at $v$.
+
+
+\subsection{Model Assumptions}
+
+\begin{assumption}[Graph Structure]
+The network $G$ is a directed acyclic graph (i.e. $G$ contains no directed cycles), and every node $v \notin S$ is reachable from at least one source node.
+\end{assumption}
+
+\begin{assumption}[Component Independence]
+Node states $\{X_v\}$ and edge states $\{X_{uv}\}$ are mutually independent. Node and edge states are also independent of each other.
+\end{assumption}
+
+\begin{assumption}[Binary Operation]
+All nodes and edges have binary states (operational or failed).
+\end{assumption}
+
+Dependencies between paths arise solely from shared nodes or edges. In particular, signals arriving at a node from different parents are independent only if the corresponding upstream paths do not share common components. 
+
+This formulation is equivalent to a network reliability problem with node and edge failures, where the objective is to compute source-to-node reachability probabilities.
+
+\section{The Information Propagation Algorithm}\label{sec:IPA}
+
+The Information Propagation Algorithm (IPA) computes source-to-node reliability in a directed acyclic graph by propagating reachability probabilities from upstream nodes to downstream nodes in topological order. For each node $v \in V$, the objective is to compute
+\begin{equation}
+b(v) = P(\text{at least one viable path from any source to } v),
+\end{equation}
+where $b(v)$ denotes the reliability of node $v$.
+
+\subsection{Signal Propagation Formulation}
+
+Let $v$ be a non-source node with parent set
+\[
+\text{Pa}(v) = \{p_1, p_2, \ldots, p_k\}.
+\]
+For each parent $p_i \in \text{Pa}(v)$, define the incoming signal event
+\[
+A_i = \{\text{a viable signal reaches } v \text{ through parent } p_i\}.
+\]
+The corresponding signal probability is
+\begin{equation}
+S_i = P(A_i) = b(p_i)\,P(p_i,v),
+\end{equation}
+that is, the probability that a viable path reaches $p_i$ and is successfully transmitted through edge $(p_i,v)$.
+
+Since node $v$ must itself be operational in order to receive and transmit flow, its reliability is
+\begin{equation}
+b(v) = R(v)\,P\left(\bigcup_{i=1}^{k} A_i\right).
+\label{eq:general_belief_update}
+\end{equation}
+
+For a source node $v_s \in S$, reliability is simply its intrinsic reliability:
+\begin{equation}
+b(v_s) = R(v_s).
+\label{eq:source_update}
+\end{equation}
+
+\subsection{Topological Evaluation Strategy}
+
+Because the network is acyclic, node reliabilities can be evaluated in topological order. Let
+\[
+L = \{L_1, L_2, \ldots, L_K\}
+\]
+denote a layering of the graph such that every edge goes from an earlier layer to a later one. Then, for any node $v \in L_i$, all parent nodes $p \in \text{Pa}(v)$ belong to layers $L_j$ with $j < i$.
+
+This property allows IPA to evaluate all node reliabilities in a single forward pass:
+\begin{itemize}
+    \item source nodes are initialised using \eqref{eq:source_update};
+    \item each non-source node is processed once all parent reliabilities are available;
+    \item the local update depends on whether the incoming parent signals are independent or dependent.
+\end{itemize}
+
+No iterative convergence procedure is required.
+
+\subsubsection{Independent Parent Signals}
+
+If the incoming signal events $\{A_i\}_{i=1}^{k}$ are mutually independent, then the probability that node $v$ receives at least one signal is
+\begin{equation}
+P\left(\bigcup_{i=1}^{k} A_i\right)
+= 1 - \prod_{i=1}^{k}(1-S_i).
+\label{eq:independent_union}
+\end{equation}
+Substituting \eqref{eq:independent_union} into \eqref{eq:general_belief_update} gives
+\begin{equation}
+b(v) = R(v)\left[1-\prod_{p \in \text{Pa}(v)}\left(1-b(p)P(p,v)\right)\right].
+\label{eq:independent_update}
+\end{equation}
+
+Equation \eqref{eq:independent_update} is exact when the upstream paths associated with the incoming parent signals do not share common nodes or edges. Two important special cases are shown in Figures~\ref{fig:chain} and~\ref{fig:indepmulti}.
+
+For a node with a single parent $p$, the update reduces to the chained-path case
+\begin{equation}
+b(v) = R(v)\,b(p)\,P(p,v).
+\label{eq:single_parent_update}
+\end{equation}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.35]{images/chain.png}
+  \caption{Single-path structure: chained signal propagation.}
+  \label{fig:chain}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.35]{images/indepmulti.png}
+  \caption{Multiple independent parent signals: parallel signal propagation.}
+  \label{fig:indepmulti}
+\end{figure}
+
+\subsubsection{Reconvergent Structures and Independence Breakdown}
+
+The update rule in \eqref{eq:independent_update} is no longer exact when the incoming signal events are dependent. In directed acyclic graphs, this occurs in \emph{reconvergent structures}, where multiple upstream paths share common components before merging at a downstream node.
+
+Let $v$ be a join node receiving signals from parents $\{p_1,p_2\}$. If the upstream paths leading to $p_1$ and $p_2$ share a common ancestor $f$, then the events $A_1$ and $A_2$ are dependent. In that case, applying the independence-based rule
+\begin{equation}
+P(A_1 \cup A_2) = 1-(1-S_1)(1-S_2)
+\label{eq:wrong_indep_formula}
+\end{equation}
+overestimates the true probability of signal reception, because it ignores the correlation induced by the shared upstream components.
+
+IPA resolves this problem by identifying such reconvergent structures and conditioning on the shared upstream variables that induce the dependency.
+
+\subsubsection{Diamond Structures and Conditional Decomposition}
+
+The fundamental dependency-inducing pattern considered by IPA is a \emph{diamond structure}: a reconvergent fork--join subgraph in which multiple paths diverge from one or more shared upstream nodes and reconverge at a join node.
+
+Consider a single-fork diamond with fork node $f$ and join node $j$. Let
+\[
+J = \{\text{a signal reaches } j\}, \qquad
+F = \{\text{fork node } f \text{ is operational}\}.
+\]
+By the law of total probability,
+\begin{equation}
+P(J) = P(J \mid F)P(F) + P(J \mid \bar{F})P(\bar{F}).
+\label{eq:diamond_ltp}
+\end{equation}
+
+Conditioning on the state of the fork restores independence among the downstream paths:
+\begin{itemize}
+    \item if $F=1$, the fork is active and the paths downstream of $f$ become conditionally independent;
+    \item if $F=0$, no signal can propagate through paths originating from $f$.
+\end{itemize}
+
+Thus, if the diamond contains $k$ downstream paths from $f$ to $j$, then
+\begin{equation}
+P(J \mid F) = 1-\prod_{i=1}^{k}\left(1-S_i^{(F)}\right),
+\label{eq:diamond_conditional_update}
+\end{equation}
+where $S_i^{(F)}$ denotes the probability that path $i$ transmits a signal to $j$ given that the fork is active.
+
+For a simple induced diamond with no alternative upstream routes to the join node,
+\begin{equation}
+P(J \mid \bar{F}) = 0.
+\label{eq:diamond_no_alternative}
+\end{equation}
+
+\subsubsection{Generalisation to Multiple Conditioning Nodes}
+
+More complex reconvergent structures may involve several shared upstream nodes
+\[
+\mathcal{C} = \{c_1,c_2,\ldots,c_m\}.
+\]
+In that case, the join-node signal probability is computed by enumerating all conditioning states:
+\begin{equation}
+P(J) = \sum_{s \in \{0,1\}^{m}} P(J \mid s)\,P(s),
+\label{eq:multi_conditioning}
+\end{equation}
+where $s=(s_1,\ldots,s_m)$ is a binary assignment to the conditioning nodes and
+\begin{equation}
+P(s)=\prod_{i=1}^{m}[b(c_i)]^{s_i}[1-b(c_i)]^{1-s_i}.
+\label{eq:state_probability}
+\end{equation}
+
+For each conditioning state $s$, the remaining incoming paths to the join node become conditionally independent, so the local update can again be evaluated using the independent-signal formula.
+
+\subsection{Simple Example}
+
+To illustrate the effect of reconvergent dependencies and the correctness of the conditioning approach, consider the simple diamond in Figure~\ref{fig:numerical-diamond}. The subgraph consists of a single fork--join pair connected by two intermediate paths. All non-source nodes have intrinsic reliability $0.9$, and all edges have transmission probability $0.9$.
+
+\begin{figure}[htbp]
+\centering
+  \includegraphics[scale=0.17]{images/numerical-diamond.png}
+\caption{A simple diamond subgraph between fork node $f$ and join node $j$.}
+\label{fig:numerical-diamond}
+\end{figure}
+
+\subsubsection{Solution by Path Enumeration (Correct but Expensive)}
+
+We enumerate the relevant fork/intermediate-node states:
+\begin{align*}
+P_1 &= 0.81 \times 0.81 \times 0.81 = 0.531441 
+    && \text{(fork active, both intermediates work)}, \\
+P_2 &= 0.81 \times 0.81 \times 0.19 = 0.124659
+    && \text{(fork active, only first intermediate works)}, \\
+P_3 &= 0.81 \times 0.19 \times 0.81 = 0.124659
+    && \text{(fork active, only second intermediate works)}, \\
+P_4 &= 0.81 \times 0.19 \times 0.19 = 0.029241
+    && \text{(fork active, both intermediates fail)}, \\
+P_5 &= 0.19
+    && \text{(fork inactive, no signal possible)}.
+\end{align*}
+
+The signal-reception probabilities at the join node are
+\[
+P(\text{signal}) =
+\begin{cases}
+0.99, & \text{if both paths send signals}, \\
+0.9,  & \text{if only one path sends a signal}, \\
+0,    & \text{if no path sends a signal}.
+\end{cases}
+\]
+
+Hence,
+\begin{align*}
+P(\text{signal})
+&= P_1 \times 0.99 + P_2 \times 0.9 + P_3 \times 0.9 \\
+&= 0.531441 \times 0.99 + 0.124659 \times 0.9 + 0.124659 \times 0.9 \\
+&= 0.75051279.
+\end{align*}
+The resulting reliability at the join node is
+\[
+b(j)=R(j)\,P(\text{signal})=0.9 \times 0.75051279 = 0.675461511.
+\]
+
+\subsubsection{Solution by Independent Update (Incorrect)}
+
+Using the independent-parent update yields
+\begin{align*}
+b(f) &= R(s)\,P(s,f)\,R(f) = 1.0 \times 0.9 \times 0.9 = 0.81, \\
+b(p_1)=b(p_2) &= b(f)\,P(f,p)\,R(p) = 0.81 \times 0.9 \times 0.9 = 0.6561.
+\end{align*}
+Thus,
+\[
+S_1 = S_2 = b(p_i)\,P(p_i,j) = 0.6561 \times 0.9 = 0.59049.
+\]
+Treating the two incoming signals as independent gives
+\begin{align*}
+P(\text{signal}) &= 1-(1-0.59049)^2 = 0.83227, \\
+b(j) &= 0.9 \times 0.83227 = 0.749043,
+\end{align*}
+which overestimates the correct value.
+
+\subsubsection{Solution by Diamond Conditioning (Correct and Efficient)}
+
+Conditioning on the fork state, we have
+\[
+b(f)=0.81.
+\]
+If the fork is active, each downstream path has conditional transmission probability
+\[
+P(f,p)\,R(p)\,P(p,j)=0.9 \times 0.9 \times 0.9 = 0.729.
+\]
+Therefore,
+\begin{align*}
+P(\text{signal}\mid F=1) &= 1-(1-0.729)^2 = 0.926559, \\
+P(\text{signal}\mid F=0) &= 0.
+\end{align*}
+Using \eqref{eq:diamond_ltp},
+\begin{align*}
+P(\text{signal})
+&= P(\text{signal}\mid F=1)P(F=1) + P(\text{signal}\mid F=0)P(F=0) \\
+&= 0.926559 \times 0.81 + 0 \times 0.19 \\
+&= 0.75051279.
+\end{align*}
+Hence,
+\[
+b(j)=0.9 \times 0.75051279 = 0.675461511,
+\]
+which matches the exact path-enumeration result.
+
+This example shows the central idea behind IPA: the dependence induced by a reconvergent structure can be handled exactly by conditioning only on the shared upstream variables that generate the dependence.
+
+\subsection{IPA Workflow and algorithm}
+
+The Information Propagation Algorithm computes node reliability in a single forward pass over the DAG. For each node, the algorithm:
+\begin{itemize}
+    \item computes incoming signal probabilities from its parent nodes;
+    \item applies the closed-form independent update when the parent signals are independent;
+    \item detects reconvergent structures when dependencies are present;
+    \item resolves those dependencies through conditional enumeration on shared upstream nodes.
+\end{itemize}
+
+This formulation localises exact dependency handling to the subgraphs that require it, while retaining simple closed-form updates elsewhere.
+
+Algorithm~\ref{alg:ipa} summarises the overall IPA procedure.
+
+\begin{algorithm}[h]
+\caption{Information Propagation Algorithm (IPA)}
+\label{alg:ipa}
+\begin{algorithmic}[1]
+\STATE Compute a topological ordering of $G$
+\FOR{each node $v \in V$ in topological order}
+    \IF{$v \in S$}
+        \STATE $b(v) \gets R(v)$
+    \ELSE
+        \STATE Compute $S_i = b(p_i)\,P(p_i,v)$ for all $p_i \in \text{Pa}(v)$
+        \IF{incoming parent signals are independent}
+            \STATE $b(v) \gets R(v)\left[1-\prod_i (1-S_i)\right]$
+        \ELSE
+            \STATE Identify reconvergent (diamond) structures affecting $v$
+            \STATE Resolve dependencies by conditional enumeration
+            \STATE Compute $b(v)$ from the conditioned signal probabilities
+        \ENDIF
+    \ENDIF
+\ENDFOR
+\RETURN $\{b(v)\}_{v \in V}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Computational Characteristics}
+
+For nodes with independent parent signals, the update cost is $O(|\text{Pa}(v)|)$, so the total computational cost is linear in the number of edges for tree-structured networks.
+
+For nodes involved in reconvergent structures, additional cost arises from conditional enumeration over shared upstream components. If a diamond requires conditioning on $c$ shared upstream variables, the local cost scales as $O(2^c)$ rather than with the total number of full path combinations. The practical efficiency of IPA therefore depends primarily on the number and nesting depth of such dependency-inducing structures.
+
+The next section introduces a progressive decomposition strategy that reduces repeated conditioning by replacing resolved diamond subgraphs with statistically equivalent supernodes.
+
+
+\section{Progressive Decomposition of Diamond Structures}
+Progressive decomposition is the mechanism that makes IPA practical on many non-trivial DAGs with reconvergent structure. It preserves exactness by replacing resolved diamonds with conditionally equivalent supernodes, and it improves efficiency by preventing the same dependencies from being conditioned on repeatedly.
+
+While conditional decomposition resolves dependencies locally, real process networks rarely contain only isolated diamonds. In practical directed acyclic graphs, reconvergent structures often overlap or nest within one another, so that the output of one diamond becomes part of a larger downstream reconvergent structure. In such cases, repeatedly conditioning on the same upstream variables can lead to severe computational redundancy.
+
+IPA addresses this issue through \emph{progressive diamond decomposition}. Once a diamond subgraph has been solved, it is replaced by a statistically equivalent \emph{supernode} that preserves its exact conditional behaviour while simplifying the remaining graph. This reduces repeated conditioning over already-resolved substructures and allows nested reconvergent patterns to be handled incrementally.
+
+Consider a nested reconvergent network in which an inner diamond appears as part of a path in a larger outer diamond. Without decomposition, the inner structure would need to be re-evaluated each time the outer diamond is conditioned on a new upstream state. If the outer and inner diamonds contain multiple conditioning variables, the resulting enumeration cost grows multiplicatively.
+
+More generally, for a network with $L$ nested dependency levels, a direct conditional evaluation may require
+\begin{align}
+b(j) = R(j)
+\sum_{s_1 \in \{0,1\}^{m_1}}
+\sum_{s_2 \in \{0,1\}^{m_2}}
+\cdots
+\sum_{s_L \in \{0,1\}^{m_L}}
+P(s_1)P(s_2\mid s_1)\cdots P(s_L\mid s_1,\ldots,s_{L-1})
+\,\phi(s_1,\ldots,s_L),
+\label{eq:nested_direct_enum}
+\end{align}
+where $m_\ell$ is the number of conditioning nodes introduced at nesting level $\ell$, and $\phi(\cdot)$ is the resulting signal probability at the join node. This cost grows exponentially with both the number of conditioning variables and the depth of nesting.
+
+The purpose of progressive decomposition is to avoid this repeated re-evaluation by solving inner diamonds once, storing their exact conditional behaviour, and reusing that information whenever the reduced network is evaluated further downstream.
+
+\subsection{Supernode Representation}
+
+Let $D$ be a diamond subgraph with fork-side conditioning set
+\[
+\mathcal{C}_D = \{c_1,\ldots,c_m\}
+\]
+and join node $j_D$. Solving the diamond yields the exact conditional signal probability at the join node for every configuration of the conditioning variables:
+\begin{equation}
+\psi_D(s) = P(J_D \mid s),
+\qquad s \in \{0,1\}^{m},
+\label{eq:supernode_conditional_map}
+\end{equation}
+where $J_D$ denotes the event that a signal reaches the join node of the diamond and $s$ is a binary state assignment to $\mathcal{C}_D$.
+
+The resolved diamond is then replaced by a supernode that stores the map
+\[
+s \mapsto \psi_D(s).
+\]
+This supernode acts as a statistically equivalent component in the reduced graph: whenever the conditioning state $s$ is encountered in a larger downstream computation, the contribution of the original diamond is recovered exactly through \eqref{eq:supernode_conditional_map}, without re-solving the full subgraph.
+
+%The key observation enabling decomposition is that once a diamond has been conditioned on the variables responsible for its internal dependencies, its downstream behaviour is fully characterised by its conditional signal map. This gives rise to the following invariance property.
+
+\begin{lemma}[Conditional Invariance of a Resolved Diamond]
+Let $D_{\mathrm{in}}$ be a diamond subgraph embedded within a larger DAG, and let $\mathcal{C}_{\mathrm{in}}$ be the conditioning variables required to resolve all dependencies internal to $D_{\mathrm{in}}$. Then the conditional signal probability
+\begin{equation}
+    \psi_{D_{\mathrm{in}}}(s) = P(J_{\mathrm{in}} \mid s),
+\qquad s \in \{0,1\}^{|\mathcal{C}_{\mathrm{in}}|},
+\end{equation}
+depends only on the internal structure of $D_{\mathrm{in}}$ and the state assignment $s$, and is invariant to any outer conditioning context that does not alter the internal topology or component probabilities of $D_{\mathrm{in}}$.
+\end{lemma}
+
+\begin{proof}
+By construction, all statistical dependencies internal to $D_{\mathrm{in}}$ are removed once the variables in $\mathcal{C}_{\mathrm{in}}$ are fixed. For any fixed state $s$, the remaining signal probability at the join node is determined solely by the nodes, edges, and path structure contained within $D_{\mathrm{in}}$. Any outer conditioning context may affect the probability with which a state $s$ occurs, but it does not change the value of $P(J_{\mathrm{in}} \mid s)$ itself, provided the internal structure and local probabilities of $D_{\mathrm{in}}$ remain unchanged.
+\end{proof}
+
+This immediately justifies replacement by a supernode.
+
+\begin{lemma}[Supernode Equivalence]
+Let $D$ be a resolved diamond with conditional signal map $\psi_D(s)$. Replacing $D$ by a supernode storing $\psi_D(s)$ preserves the exact source-to-node reliability of every downstream node in the reduced graph.
+\end{lemma}
+
+\begin{proof}
+For any downstream computation, the contribution of $D$ enters only through the probability that its join node receives a signal under a given conditioning state. By Lemma 1, this contribution is exactly $\psi_D(s)$ for each state $s$. Replacing the original diamond by a supernode that returns the same value $\psi_D(s)$ under the same conditioning state therefore leaves all downstream reliability calculations unchanged.
+\end{proof}
+
+\subsection{Progressive Decomposition Procedure}
+
+IPA applies diamond decomposition progressively during topological evaluation. When the algorithm reaches a join node involved in a reconvergent structure, it:
+\begin{enumerate}
+    \item identifies the associated diamond subgraph,
+    \item determines the conditioning variables required to resolve its internal dependencies,
+    \item computes the conditional signal map of the join node,
+    \item replaces the entire resolved diamond by a supernode in the reduced graph.
+\end{enumerate}
+
+This procedure transforms the original DAG into a progressively simpler equivalent DAG. Inner diamonds are resolved first, so that larger outer diamonds can treat them as supernodes rather than re-evaluating their internal paths.
+
+Figure~\ref{fig:progressive_decomposition} illustrates the decomposition of a nested reconvergent network.
+
+\begin{figure}[p]
+\centering
+\begin{subfigure}[b]{0.21\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/Original Network.png}
+    \caption{Original network}
+    \label{fig:original}
+\end{subfigure}
+\quad
+\begin{subfigure}[b]{0.21\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/Diamond D1.png}
+    \caption{Diamond $D_1$: $1 \rightarrow 6$}
+    \label{fig:d1_identify}
+\end{subfigure}
+\quad
+\begin{subfigure}[b]{0.21\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/D1 supernode.png}
+    \caption{After $D_1$ replacement}
+    \label{fig:d1_replace}
+\end{subfigure}
+\quad
+\begin{subfigure}[b]{0.21\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/Diamonds D2 and D3.png}
+    \caption{Diamonds $D_2$: $7 \rightarrow 11$, $D_3$: $14 \rightarrow 12$}
+    \label{fig:d2_d3_identify}
+\end{subfigure}
+
+\smallskip
+
+\hspace*{\fill}
+\begin{subfigure}[b]{0.25\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/D2 and D3 supernode.png}
+    \caption{After $D_2$ and $D_3$ replacement}
+    \label{fig:d2_d3_replace}
+\end{subfigure}
+\hspace*{\fill}
+\begin{subfigure}[b]{0.25\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/Diamond D4.png}
+    \caption{Final diamond $D_4$: $1 \rightarrow 16$}
+    \label{fig:d4_identify}
+\end{subfigure}
+\hspace*{\fill}
+\begin{subfigure}[b]{0.25\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/decomp_network/D4 supernode.png}
+    \caption{Final decomposition}
+    \label{fig:final}
+\end{subfigure}
+\hspace*{\fill}
+
+\caption{Progressive diamond decomposition in a nested reconvergent network.}
+\label{fig:progressive_decomposition}
+\end{figure}
+
+The topological order ensures that the inner diamond $D_1$ is detected and resolved before downstream join nodes are processed. Once replaced by a supernode, the reduced graph contains fewer explicit dependency-inducing paths. The same procedure is then applied to $D_2$ and $D_3$, after which the final outer diamond $D_4$ can be evaluated using the already-resolved supernodes. In this way, dependencies are handled locally and only once.
+
+\subsection{Computational Effect of Decomposition and complexity comparison}
+
+The benefit of decomposition is not that it removes the exponential nature of exact inference in all cases, but that it prevents repeated enumeration over the same resolved substructures. Without decomposition, nested diamonds may require repeated multi-level conditioning as in \eqref{eq:nested_direct_enum}. With decomposition, the effective cost is reduced to the accumulation of local conditioning costs over the diamonds that must be resolved.
+
+At a high level, if a nested network contains diamonds $D_1,\ldots,D_M$ with conditioning-set sizes $c_1,\ldots,c_M$, then progressive decomposition avoids repeated multiplicative re-enumeration and replaces it with a sum of local conditional evaluations of order
+\begin{equation}
+O\!\left(\sum_{i=1}^{M} 2^{c_i}\right),
+\label{eq:decomp_complexity}
+\end{equation}
+provided that previously resolved diamonds can be reused through their stored conditional maps.
+
+This should be interpreted as an \emph{effective} complexity reduction relative to repeated nested conditioning, not as a universal worst-case bound for all graph topologies. In highly entangled reconvergent networks with many contextual entry points, reuse may be limited and the practical cost may still grow rapidly.
+
+% ADD HERE SOME DETAILS ABOUT THE ALGORITHM TO DETECT AND STORE DIAMONDS
+
+Table~\ref{tab:complexity_comparison} summarises the qualitative effect of progressive decomposition on different update types.
+
+\begin{table}[ht]
+\caption{Qualitative complexity comparison for node updates with and without progressive decomposition}
+\label{tab:complexity_comparison}
+\centering
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Update Type} & \textbf{Without Decomposition} & \textbf{With Decomposition} \\
+\midrule
+Single parent update & $O(1)$ & $O(1)$ \\
+Independent multi-parent update & $O(|\mathrm{Pa}(v)|)$ & $O(|\mathrm{Pa}(v)|)$ \\
+Single diamond with $c$ conditioning nodes & $O(2^c \cdot d)$ & $O(2^c)$ \\
+Nested diamonds & repeated nested conditioning & accumulated local conditioning \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\textwidth}
+\footnotesize
+Here $d$ denotes the size of the diamond subgraph, and $c$ denotes the number of conditioning variables required to resolve its internal dependencies.
+\end{minipage}
+\end{table}
+
+The remaining computational bottleneck of the approach is governed not simply by network size, but by the number, size, and nesting depth of dependency-inducing diamond structures as explored empirically in the case studies that follow.
+
+
+\section{Implementation in Julia}
+
+IPA is implemented in Julia as both part of the \texttt{InfoPropFramework.jl} package and the standalone \texttt{InformationPropagationAnalysis.jl}. In both cases, the algorithm’s functions are exposed in \texttt{ProbabilityPropagationModule}. The module validates network input contracts, then propagates node beliefs from source-to-sink  in topological order, following Section~\ref{sec:IPA} and Algorithm~\ref{alg:ipa}.
+The propagation flow is type-parametric:
+\[
+T <: \mathrm{Union}\{\texttt{Float64}, \texttt{Interval}, \texttt{pbox}\}.
+\]
+
+
+One core engine is shared across all three probability representations, with type-specific arithmetic dispatch through common helpers (addition, multiplication, complement, subtraction, and product/sum operations).
+
+For multi-parent updates, inclusion--exclusion is evaluated in product form,
+\[
+1 - \prod_i (1 - p_i),
+\]
+which is equivalent to the alternating-sum form under independence but is numerically more stable, especially for interval-valued inputs.
+
+At diamond join nodes, beliefs are computed by enumerating states of the identified diamond-conditioning set. Each state defines a conditioned subproblem on the corresponding diamond subgraph, and the join belief is recovered by weighted state aggregation. For interval inputs, aggregation uses corner-state evaluation of conditioning bounds, then encloses the result in an interval envelope.
+
+Resolved diamonds (supernodes) are cached as conditional state-to-belief maps and reused as drop-in equivalents in downstream updates. The cache key includes both the diamond subgraph structure and the current prior-state context inside that subgraph. Supernode reuse is therefore structure-aware and state-aware: when the same diamond subgraph is evaluated under different contextual priors, it is treated as a different cache state. This is most important in nested diamonds, where outer-context beliefs can change the local conditional map even when the internal edge set is unchanged.
+
+To keep \texttt{pbox} propagation logic aligned with the deterministic and interval cases, the module inherits arithmetic helpers from \texttt{ProbabilityBoundsAnalysis.jl}~\cite{gray_probabilityboundsanalysis}, which provides independent convolution operators to compute pbox envelope propagation under path dependencies.
+
+
+
+\clearpage  % Forces all pending floats to be placed
+\section{Case Studies}
+This section evaluates IPA in two complementary settings. The first case study uses a benchmark directed grid network to assess numerical accuracy and computational performance against published results for the directed Probability Propagation Method (dPrPm)~\cite{tong_probability_2019}. The second applies IPA to a set of directed acyclic graphs derived from Pareto-optimal drone logistics networks in order to examine how reconvergent structure and diamond nesting affect the practical tractability of exact reliability analysis in realistic infrastructure systems.
+
+\subsection{Benchmark Validation on a Grid Network}
+
+\subsubsection{Benchmark setup}
+Both the proposed Information Propagation Algorithm (IPA) and Tong and Tien's directed Probability Propagation Method (dPrPm)~\cite{tong_probability_2019} acompute node reliability in directed acyclic networks by propagating local probability information from upstream to downstream nodes.. Both methods exploit the acyclic structure of the graph to ensure that upstream dependencies are processed before downstream updates.
+
+The two methods differ in how dependencies are represented and resolved. dPrPm propagates both marginal and pairwise probabilities and uses local approximations to account for dependent interactions. Specifically, when multiple predecessors influence a node, the update rules explicitly rely on approximating a three-node joint distribution for every new edge introduced. These rules are fundamental when the incoming messages are combined in an intermediate structure, where the new link addition affects nodes that have already received some information, requiring a more nuanced treatment of shared dependencies. Although effective, this approach requires storing both marginal and pairwise probabilities throughout the network, which can become memory-intensive in large or dense networks.
+
+IPA takes a fundamentally different view of network dependencies by identifies reconvergent dependency patterns as diamond structures and resolves them through conditional decomposition.. Rather than tracking pairwise relationships, it identifies and decomposes these structures into statistically equivalent supernodes.  As a result, IPA avoids maintaining or updating pairwise dependencies at complex intersection points, since the relevant structure is captured inherently in the decomposition.
+
+To provide a direct benchmark, IPA is applied to the same 16-node directed grid network studied in~\cite{tong_probability_2019}, shown in Figure~\ref{fig:grid_network}. This benchmark is useful because it contains multiple reconvergent structures while remaining small enough for exact verification by explicit path-based computation. Following~\cite{tong_probability_2019}, all source nodes are assigned prior reliability 1.0 and all directed edges are assigned transmission probability $R_l = 0.9$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\linewidth, height=8cm]{images/grid_graph.png}
+\caption{16-node directed grid network~\cite{tong_probability_2019}. Source nodes 1, 3, and 13 are coloured in grey.}
+\label{fig:grid_network}
+\end{figure}
+
+\subsubsection{Accuracy results}
+
+Table~\ref{tab:resultcomparison_grid} compares the node reliabilities obtained using IPA with exact values and with the lower and upper bounds reported for dPrPm in~\cite{tong_probability_2019}. IPA reproduces the exact values up to floating-point precision. By contrast, dPrPm provides tight lower and upper bounds that coincide with the exact values for many nodes in this benchmark.
+
+\begin{table}[!ht]
+\centering
+\caption{Comparison of node reliability computed for the grid network ($R_l = 0.9$).}
+\label{tab:resultcomparison_grid}
+\adjustbox{width=\textwidth,center}{
+\small
+\begin{tabular}{c c c c c c c c c}
+\toprule
+\textbf{Node} & \textbf{Exact} & \textbf{IPA} & \textbf{Abs. Error} & \textbf{Error (\%)} & \textbf{dPrPm (Lower)$^\dagger$} & \textbf{dPrPm (Upper)$^\dagger$} & \textbf{Gap$^\dagger$} & \textbf{dPrPm Error (\%)$^\dagger$} \\
+\midrule
+1  & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
+2  & 0.99000 & 0.99000 & 0.00000 & 0.00000 & 0.99000 & 0.99000 & 0.00000 & 0.00000 \\
+3  & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
+4  & 0.98015 & 0.98015 & \num{8.88e-16} & \num{9.06e-14} & 0.98015 & 0.98015 & 0.00000 & 0.00000 \\
+5  & 0.90000 & 0.90000 & 0.00000 & 0.00000 & 0.90000 & 0.90000 & 0.00000 & 0.00000 \\
+6  & 0.99510 & 0.99510 & \num{9.99e-16} & \num{1.00e-13} & 0.99510 & 0.99510 & 0.00000 & 0.00000 \\
+7  & 0.98956 & 0.98956 & \num{4.44e-16} & \num{4.49e-14} & 0.98956 & 0.98956 & 0.00000 & 0.00000 \\
+8  & 0.89060 & 0.89060 & \num{5.55e-16} & \num{6.23e-14} & 0.89060 & 0.89060 & 0.00000 & 0.00000 \\
+9  & 0.98100 & 0.98100 & 0.00000 & 0.00000 & 0.98100 & 0.98100 & 0.00000 & 0.00000 \\
+10 & 0.88290 & 0.88290 & \num{1.11e-16} & \num{1.26e-14} & 0.88290 & 0.88290 & 0.00000 & 0.00000 \\
+11 & 0.97734 & 0.97734 & \num{2.44e-15} & \num{2.50e-13} & 0.97734 & 0.97734 & 0.00000 & 0.00000 \\
+12 & 0.97457 & 0.97457 & \num{2.66e-15} & \num{2.73e-13} & 0.97457 & 0.97457 & 0.00000 & 0.00000 \\
+13 & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
+14 & 0.97946 & 0.97946 & \num{2.22e-16} & \num{2.27e-14} & 0.97946 & 0.97946 & 0.00000 & 0.00000 \\
+15 & 0.98498 & 0.98498 & \num{1.22e-15} & \num{1.24e-13} & 0.98498 & 0.98498 & 0.00000 & 0.00000 \\
+16 & 0.98539 & 0.98539 & \num{1.49e-11} & \num{1.51e-9} & 0.98506 & 0.98558 & 0.00052 & $-0.00532$ \\
+\bottomrule
+\end{tabular}
+}
+\vspace{1mm}
+\raggedright
+\footnotesize{$^\dagger$Values reported from~\cite{tong_probability_2019}.}
+\end{table}
+
+Table~\ref{tab:computation_comparison_grid} compares the runtime of IPA with the runtime reported for dPrPm in~\cite{tong_probability_2019}. IPA completes the analysis of the benchmark grid network in \SI{2.378}{\milli\second}. Tong and Tien~\cite{tong_probability_2019} reported a runtime of \SI{0.32}{\second} for dPrPm on the same benchmark. Although this is not a controlled implementation-level comparison, it suggests that IPA can provide substantial computational savings while retaining exactness. Only IPA memory usage was profiled in the present implementation; comparable memory data for dPrPm were not available from the source study.
+
+
+The benchmark study therefore supports two conclusions. First, IPA reproduces the exact node reliabilities for a nontrivial reconvergent DAG. Second, it does so with a very low runtime on this class of network, consistent with the intended use of the method for repeated reliability evaluation in acyclic process systems.
+
+
+\begin{table}[ht]
+\caption{Computational performance on the benchmark grid network.}
+\label{tab:computation_comparison_grid}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & \textbf{Runtime} & \textbf{Memory} \\
+\midrule
+IPA & \SI{2.378}{\milli\second} & \SI{4.94}{\mega\byte} \\
+dPrPm \textsuperscript{a} & \SI{0.32}{\second} & N/A\textsuperscript{a} \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\textwidth}
+\footnotesize
+\textsuperscript{a}Results from~\cite{tong_probability_2019} - Comparable memory profiling data not available
+\end{minipage}
+\end{table}
+
+
+\clearpage  % Forces all pending floats to be placed
+
+\subsection{Application to Drone Medical Delivery Networks}
+
+\subsubsection{DAG construction from the multiplex logistics network}
+
+
+To evaluate IPA on a realistic infrastructure network, the algorithm is applied to drone logistics network designs from Jones et al.~\cite{jones_drone_2025}, who developed a multi-objective optimisation framework for NHS Scotland medical delivery networks. Their work generates Pareto-optimal network configurations by trading off delivery time, capital cost, and network resilience under random node failures.
+
+The original logistics network is represented as a multiplex graph with two transportation layers corresponding to two drone types:
+\begin{itemize}
+    \item \textbf{VTOL layer:} short-range vertical take-off and landing drones with an operational range of 70\,km, capable of serving any feasible location pair within range;
+    \item \textbf{fixed-wing layer:} long-range drones with an operational range of 700\,km, restricted to airport-to-airport routes because they require runway infrastructure.
+\end{itemize}
+Each layer is modelled as a symmetric distance matrix indicating the feasible travel distance between node pairs. 
+
+To apply IPA, each Pareto-optimal configuration is transformed into a directed acyclic dependency graph. This DAG is not intended to reproduce the full bidirectional routing behaviour of the original logistics network. Instead, it represents the supply-chain dependency structure through which medical supplies propagate from origin hubs to downstream facilities. 
+Nodes are assigned to four functional levels:
+\begin{itemize}
+    \item Level 0 (Sources): Major hub hospitals that originate supply distribution
+    \item Level 1 (Relays): Airports and minor hubs providing intermediate connectivity
+    \item Level 2 (Bridges): Charging stations enabling extended-range delivery
+    \item Level 3 (Sinks): Receiver hospitals consuming delivered supplies
+\end{itemize}
+
+Edges are directed from lower levels to higher levels. For nodes within the same level, edges are directed from lower to higher node identifiers in order to preserve connectivity while avoiding cycles. Although the original network matrix encodes bidirectional flight feasibility, the derived DAG representation captures the dependency logic relevant for source-to-node reliability analysis, i.e., downstream nodes depend on upstream nodes for supply access.
+
+The two transportation layers are merged by taking the maximum transmission probability where both drone types can serve the same edge. Edge transmission probabilities are derived from distance using an exponential decay law, so that shorter flights have higher success probabilities. Node prior probabilities represent the operational availability of physical facilities and are assigned according to infrastructure type. Major hub hospitals are assigned prior reliability 1.0 as fully reliable supply origins.
+
+From a planning perspective, this DAG transformation enables the exact computation of downstream access reliability while also revealing the structural conditions under which exact inference remains computationally feasible across alternative network designs.
+
+Six Pareto-optimal configurations are analysed. These span a wide range of graph sizes and reconvergent dependency structures. Table~\ref{tab:pareto_structure} summarises the basic structural characteristics of the resulting DAGs.
+
+\begin{table}[ht]
+\caption{Structural characteristics of Pareto-optimal drone network DAGs}
+\label{tab:pareto_structure}
+\centering
+\adjustbox{max width=\textwidth}{
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Network} & \textbf{Nodes} & \textbf{Edges} & \textbf{Sources} & \textbf{Sinks} & \textbf{Joins} & \textbf{DiamJoins} \\
+\midrule
+PP1-HighRes-FW    & 145 & 327 & 23 &  99 & 50 & 24 \\
+PP2-HighRes-VTOL  & 171 & 280 & 12 & 131 & 70 & 52 \\
+PP3-MedRes-Sparse &  98 & 223 & 23 &  58 & 25 & 19 \\
+PP4-LowRes-Min    &  39 &  28 &  8 &  24 &  0 &  0 \\
+PP5-MedRes-FW     &  89 & 214 & 23 &  49 & 25 & 21 \\
+PP6-Balanced      &  98 & 261 &  6 &  59 & 34 & 32 \\
+\bottomrule
+\end{tabular}}
+\begin{minipage}{\textwidth}
+\footnotesize
+Joins = nodes with multiple parents. DiamJoins = join nodes that are diamond join points (reconvergent paths from shared ancestors).
+\end{minipage}
+\end{table}
+
+To characterise the reconvergent complexity more directly, Table~\ref{tab:diamond_complexity} reports the number of identified diamonds, the number of diamond join nodes, the ratio of diamonds to diamond joins (D/DJ), and the maximum observed nesting depth.
+
+The main computation cost of the algorithmic flow comes form the complexity of diamond decomposition and super-node creation and reuse rate.  
+Table~\ref{tab:diamond_complexity} compares the diamond structure characteristics between all six networks. 
+
+\begin{table}[ht]
+\caption{Diamond-structure complexity metrics for the derived drone network DAGs.}
+\label{tab:diamond_complexity}
+\centering
+\adjustbox{max width=\textwidth}{
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Network} & \textbf{Diamonds} & \textbf{DiamJoins} & \textbf{D/DJ} & \textbf{MaxDepth} \\
+\midrule
+PP4-LowRes-Min    &   0 &  0 &  ---  &  0 \\
+PP2-HighRes-VTOL  & 219 & 52 &  4.2  &  9 \\
+PP6-Balanced      & 203 & 32 &  6.3  & 12 \\
+PP3-MedRes-Sparse & 165 & 19 &  8.7  & 16 \\
+PP5-MedRes-FW     & 177 & 21 &  8.4  & 16 \\
+PP1-HighRes-FW    & 277 & 24 & 11.5  & 18 \\
+\bottomrule
+\end{tabular}}
+\begin{minipage}{\textwidth}
+\footnotesize
+D/DJ = diamonds per diamond join, indicating the average concentration of nested diamonds around each reconvergent join node. MaxDepth = maximum observed nesting depth of diamond structures.
+\end{minipage}
+\end{table}
+
+
+The diamonds-per-diamond-join ratio (D/DJ) indicates how many diamonds are concentrated at each diamond join point on average. A higher D/DJ suggests that individual join nodes participate in more nested diamond structures. PP1 has the highest D/DJ (11.5), consistent with its deep nesting structure. PP2 has the lowest D/DJ (4.2) among networks with diamonds, reflecting its wide, shallow topology with many diamond joins but less nesting per join.
+
+The D/DJ ratio correlates with nesting depth across these configurations: higher D/DJ networks tend to have deeper nesting. However, the relationship is nondeterministic: PP3 and PP5 have similar D/DJ ratios (8.7 and 8.4) and identical maximum depth (16) but different computation times (281s vs 256s), showing that other structural factors also affect performance.
+
+
+
+\subsubsection{Effect of diamond structure on runtime}
+
+The dominant computational cost in IPA arises from the decomposition of reconvergent structures, the construction of supernodes, and the extent to which resolved supernodes can be reused across downstream conditioning contexts. In the absence of progressive decomposition, the cost of evaluating nested diamonds grows exponentially with the number of conditioning variables and increases further with the size of the nested subgraphs.
+
+Three structural factors were observed to strongly influence runtime in the six derived networks:
+\begin{enumerate}
+    \item \textbf{Diamond nesting depth.} Deeply nested diamonds require repeated layers of conditional evaluation and are the strongest driver of computational growth.
+    \item \textbf{Conditioning-set size.} Diamonds with many shared upstream nodes require more conditioning states.
+    \item \textbf{Contextual entry points.} When a resolved diamond receives additional context-dependent inputs from outer conditioning states, reuse of its supernode representation becomes less effective.
+\end{enumerate}
+
+
+Table~\ref{tab:complexity_spectrum} summarises the observed relationship between nesting depth and practical applicability given the structure of the drone network.
+
+\begin{table}[ht]
+\caption{Empirical tractability spectrum for exact reliability analysis with IPA on the derived drone network DAGs.}
+\label{tab:complexity_spectrum}
+\centering
+\adjustbox{max width=\textwidth}{
+\begin{tabular}{lll}
+\toprule
+\textbf{Nesting Depth} & \textbf{Computation Time} & \textbf{Practical Use} \\
+\midrule
+0 (tree)   & $<$0.1s   & Real-time analysis \\
+9--12      & $<$1s     & Interactive analysis \\
+16         & $\sim$5 min & Batch processing \\
+18+        & Intractable & Beyond practical exact analysis  \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+This table should be interpreted as an empirical summary of the present dataset rather than as a universal complexity law. Nevertheless, it provides a useful practical guideline: in these networks, the transition from interactive to impractical runtime is relatively sharp once nesting depth exceeds approximately 12--16 levels.
+
+
+\subsubsection{Pareto Network Results}
+
+Table~\ref{tab:pareto_timing} compares IPA runtime for each network configuration, ordered by computation time.
+
+\begin{table}[ht]
+\caption{IPA runtime across Pareto-optimal drone network configurations.}
+\label{tab:pareto_timing}
+\centering
+\adjustbox{max width=\textwidth}{
+\begin{tabular}{lrrrl}
+\toprule
+\textbf{Network} & \textbf{MaxDepth} & \textbf{D/DJ} & \textbf{Time} & \textbf{Category} \\
+\midrule
+PP4-LowRes-Min    &  0 & --- &    0.02s & Tree structure \\
+PP6-Balanced      & 12 & 6.3 &    0.02s & Shallow nesting \\
+PP2-HighRes-VTOL  &  9 & 4.2 &    0.31s & Shallow nesting \\
+PP5-MedRes-FW     & 16 & 8.4 &     256s & Deep nesting \\
+PP3-MedRes-Sparse & 16 & 8.7 &     281s & Deep nesting \\
+PP1-HighRes-FW    & 18 & 11.5 &  $>$600s & Beyond practical range  \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The results show that runtime is governed primarily by reconvergent nesting depth rather than by graph size alone.  For example, PP2 has 171 nodes and 219 diamonds but completes in 0.31 seconds as a result of its  shallower nesting (depth 9). Comparing this to PP3 which  has fewer nodes (98) and fewer diamonds (165) but still requires 281 seconds because of deep nesting (depth 16). On the extreme case, PP1 with nesting depth 18  falls beyond the practical range for interactive exact analysis. 
+Comparing compuataional costs, it is clear that the transition between tractable and intractable  occurs sharply. Networks with nesting depth $\leq$12 complete in under one second regardless of diamond count. The two larger networks with depth 16 take a lot more time and by depth 18, the run time starts to exceed practical limits. These results support the central claim of the paper: the principal determinant of tractability in exact DAG reliability analysis is not the raw number of nodes or edges, but the arrangement and nesting depth of dependency-inducing reconvergent structures.
+
+\subsubsection{Summary of the case-study findings}
+
+The two case studies support three main conclusions. First, IPA reproduces exact node reliabilities on a benchmark reconvergent DAG and compares favourably with the published dPrPm results. Second, IPA remains computationally efficient on realistic infrastructure DAGs when reconvergent structures are shallow or moderately nested. Third, the practical limit of exact analysis is controlled primarily by the depth and reuse characteristics of nested diamond structures rather than by overall network size alone.
+
+These observations motivate the use of IPA as an exact reliability analysis tool for a broad class of acyclic process systems, while also clarifying the structural regimes in which approximation methods may still be required.
+
+
+\subsection{Limitations and Future Work}
+IPA provides exact source-to-node reliability values for directed acyclic graphs by resolving reconvergent dependencies through conditional decomposition. Its main limitation is therefore not approximation error, but computational tractability in the presence of deeply nested dependency structures.
+
+For tree-structured networks and for DAGs with shallow or moderately nested diamonds, the algorithm remains efficient because most node updates are local and independent, and only a limited number of reconvergent subgraphs require conditional evaluation. However, when reconvergent structures become deeply nested, the number of conditioning states grows exponentially. In such cases, progressive decomposition reduces repeated evaluation but cannot eliminate the intrinsic complexity of exact inference.
+
+The case studies show that three factors are particularly important:
+\begin{enumerate}
+    \item \textbf{Nesting depth.} Deeply nested diamonds generate repeated conditional branching and are the dominant driver of computational cost.
+    \item \textbf{Conditioning-set size.} Diamonds with many shared upstream variables require a larger number of conditional states to be evaluated.
+    \item \textbf{Context-sensitive reuse.} When the effective input state of a resolved diamond varies across outer conditioning contexts, the reuse of stored supernode maps becomes less effective.
+\end{enumerate}
+
+
+
+The current decomposition framework naturally identifies the specific subgraphs responsible for computational intractability. Rather than approximating the entire network, future work could apply approximation selectively to deeply nested diamonds while maintaining exact computation elsewhere. This would localise approximation error to the structurally difficult parts of the graph and preserve exactness on the remaining network.
+In the present implementation, diamonds are resolved progressively during evaluation. A useful extension would be to perform a more global preprocessing step to identify the full reconvergent structure of the graph in advance and optimise the order in which diamonds are decomposed. This may reduce repeated work and improve tractability in dense dependency networks.
+
+\section{Conclusions}
+This paper has presented the 
+An exact reliability analysis method for directed acyclic process networks with reconvergent dependency structures named Information Propagation Algorithm (IPA) has been proposed. 
+The method computes source-to-node reliability by propagating local reachability probabilities in topological order and resolves dependent incoming signals through conditional decomposition of fork--join diamond structures. Once resolved, these structures are replaced by statistically equivalent supernodes, allowing the graph to be progressively simplified while preserving exactness. This reduces the complexity from $O(2^{\sum c_i} \times \prod d_i)$ without decomposition to $O(\sum 2^{c_i})$ with decomposition for subsequent belief updates on the same diamond structure.
+
+The proposed method is therefore not only an exact message-passing formulation for DAG reliability, but a structured way of resolving reconvergent dependencies without resorting to global path enumeration. IPA provides an exact and efficient tool for a broad class of acyclic process systems, while also identifying the structural regimes in which approximation methods will still be necessary.
+
+
+Two case studies were presented to validate IPA's effectiveness and accuracy. The comparison against the dPrPm, another message passing algorithm for signal propagation in DAGs, shows a speed-up in the calculation larger than two order of magnitude  while computed the same result as exact path enumeration. 
+The second case study applied IPA to six Pareto-optimal drone logistics network configurations spanning a range of diamond complexity with up to 277 diamonds and a nesting depth of 18. The drone-network case study indicates that networks with moderate numbers of nodes and edges may remain highly tractable if reconvergent structures are shallow (depth $\leq$12), whereas significantly smaller networks may already become impractical for exact analysis if reconvergent dependencies are deeply nested (depth $\geq$18).
+
+Overall, the results suggest that exact reliability analysis in large DAGs is feasible whenever dependency-inducing substructures remain sufficiently localised. This makes IPA particularly relevant for infrastructure design, performance assessment, and decision-support problems in systems that can be represented as multi-source acyclic process networks.
+
+Although the IPA is currently formulated for binary node and edge states in directed acyclic graphs the approach can be generalised to handle cases with multi-state components, temporally varying reliabilities, and explicitly modelled common-cause failures beyond structural path sharing.
+Future research directions may include developing optimization algorithms that pre-decompose the full network before belief propagation as well as further parallelization opportunities beyond topological layer processing, particularly during diamond decomposition when nested diamonds are not interconnected. 
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+
+\section*{Data and Software Availability}
+
+The implementation of the Information Propagation Algorithm (IPA), together with the benchmark datasets and scripts required to reproduce the case studies, is available at:
+
+\url{https://github.com/Temi-Tory/InformationPropagationAnalysis.jl}. 
+
+\end{document}
+
+\endinput
+%%
+%% End of file `elsarticle-template-num.tex'.
+    

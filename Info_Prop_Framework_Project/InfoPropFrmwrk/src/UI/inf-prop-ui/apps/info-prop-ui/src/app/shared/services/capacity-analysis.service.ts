@@ -140,7 +140,6 @@ export class CapacityAnalysisService {
     const analysisRequests = scenarios.map(scenario => {
       const request: CapacityAnalysisRequest = {
         networkPath,
-        edgesFilePath: `${this.extractNetworkName(networkPath)}.EDGES`,
         capacitiesPath: scenario.path
       };
 

@@ -1,0 +1,272 @@
+if !isdefined(Main, :InfoPropFramework)
+    include(joinpath(@__DIR__, "..", "InfoPropFrmwrk", "src", "Algorithms", "InfoPropFramework.jl"))
+    using .InfoPropFramework
+end
+using Statistics, Printf, Dates
+
+# ============================================================================
+# TeeStream — writes to both console and log file simultaneously
+# redirect_stdout doesn't accept custom IO on this Julia version,
+# so we pass the TeeStream explicitly as an io parameter throughout.
+# ============================================================================
+
+if !isdefined(Main, :TeeStream)
+    struct TeeStream <: IO
+        console::IO
+        file::IO
+    end
+    Base.write(t::TeeStream, b::UInt8)         = (write(t.console, b); write(t.file, b); 1)
+    Base.write(t::TeeStream, b::Vector{UInt8}) = (write(t.console, b); write(t.file, b); length(b))
+    Base.flush(t::TeeStream)                   = (flush(t.console); flush(t.file))
+end
+
+# ============================================================================
+# Networks
+# ============================================================================
+
+const CASE_STUDY_DIR = @__DIR__
+
+const NETWORKS = [
+    "munin-dag",
+    "metro_directed_dag_for_ipm",
+    "pareto-point-1-high-resilience-fw",
+    "pareto-point-2-high-resilience-vtol",
+    "pareto-point-3-medium-resilience-sparse",
+    "pareto-point-4-low-resilience-minimal",
+    "pareto-point-5-medium-resilience-fw",     # WARNING: legacy benchmarks showed ~256s
+    "pareto-point-6-balanced",
+]
+
+function network_paths(name)
+    base      = joinpath(CASE_STUDY_DIR, name)
+    json_stem = replace(name, "_" => "-")   # metro_directed_dag_for_ipm → metro-directed-dag-for-ipm
+    return (
+        edges  = joinpath(base, name * ".EDGES"),
+        priors = joinpath(base, "float", json_stem * "-nodepriors.json"),
+        links  = joinpath(base, "float", json_stem * "-linkprobabilities.json"),
+    )
+end
+
+# ============================================================================
+# Diamond nesting depth (BFS from root diamonds)
+# ============================================================================
+
+function compute_nesting_depths(unique_diamonds)
+    isempty(unique_diamonds) && return (0, 0.0, Int[])
+    all_depths = Int[]
+    for (hash, d) in unique_diamonds
+        d.is_rootDiamond || continue
+        queue = [(hash, 1)]
+        while !isempty(queue)
+            curr_hash, depth = popfirst!(queue)
+            push!(all_depths, depth)
+            if haskey(unique_diamonds, curr_hash)
+                for (_, sub_d) in unique_diamonds[curr_hash].sub_diamond_structures
+                    sub_hash = create_diamond_hash_key(sub_d.diamond)
+                    push!(queue, (sub_hash, depth + 1))
+                end
+            end
+        end
+    end
+    isempty(all_depths) && return (0, 0.0, Int[])
+    return (maximum(all_depths), mean(all_depths), all_depths)
+end
+
+# ============================================================================
+# Conditioning-set size distribution
+# ============================================================================
+
+function conditioning_set_stats(unique_diamonds)
+    sizes = [length(d.diamond.conditioning_nodes) for d in values(unique_diamonds)]
+    isempty(sizes) && return (0, 0.0, 0)
+    return (minimum(sizes), median(sizes), maximum(sizes))
+end
+
+# ============================================================================
+# Per-network analysis
+# ============================================================================
+
+function analyze_network(name, io::IO)
+    paths = network_paths(name)
+
+    println(io, "\n" * "=" ^ 70)
+    println(io, "Network: $name")
+    println(io, "=" ^ 70)
+
+    # --- Load ---
+    t_load = @elapsed begin
+        edgelist, outgoing_index, incoming_index, source_nodes_vec =
+            read_graph_to_dict(paths.edges)
+        node_priors        = read_node_priors_from_json(paths.priors)
+        link_probabilities = read_edge_probabilities_from_json(paths.links)
+    end
+    source_nodes = Set(source_nodes_vec)
+    all_nodes    = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
+    sink_nodes   = [n for n in all_nodes
+                    if !haskey(outgoing_index, n) || isempty(outgoing_index[n])]
+
+    println(io, "Load time         : $(round(t_load*1000, digits=2)) ms")
+
+    # --- Structure ---
+    t_struct = @elapsed begin
+        fork_nodes, join_nodes =
+            identify_fork_and_join_nodes(outgoing_index, incoming_index)
+        iteration_sets, ancestors, descendants =
+            find_iteration_sets(edgelist, outgoing_index, incoming_index)
+    end
+    println(io, "Structure time    : $(round(t_struct*1000, digits=2)) ms")
+
+    # --- Diamond decomposition ---
+    t_decomp = @elapsed begin
+        root_diamonds = identify_and_group_diamonds(
+            join_nodes, incoming_index, ancestors, descendants,
+            source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
+        )
+        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
+            root_diamonds, node_priors, ancestors, descendants, iteration_sets
+        )
+    end
+    println(io, "Decomposition time: $(round(t_decomp, digits=3)) s")
+
+    # --- Belief propagation ---
+    t_prop = @elapsed begin
+        beliefs = update_beliefs_iterative(
+            edgelist, iteration_sets, outgoing_index, incoming_index,
+            source_nodes, node_priors, link_probabilities,
+            descendants, ancestors,
+            root_diamonds, join_nodes, fork_nodes,
+            unique_diamonds
+        )
+    end
+    println(io, "Propagation time  : $(round(t_prop, digits=3)) s")
+    println(io, "Total time        : $(round(t_decomp + t_prop, digits=3)) s")
+
+    # --- Structural metrics ---
+    n_nodes       = length(all_nodes)
+    n_edges       = length(edgelist)
+    n_sources     = length(source_nodes)
+    n_sinks       = length(sink_nodes)
+    n_forks       = length(fork_nodes)
+    n_joins       = length(join_nodes)
+    n_diam_joins  = length(root_diamonds)
+    n_unique_diam = length(unique_diamonds)
+    dj_ratio      = n_diam_joins > 0 ? round(n_unique_diam / n_diam_joins, digits=2) : 0.0
+    max_depth, avg_depth, _ = compute_nesting_depths(unique_diamonds)
+    cond_min, cond_med, cond_max = conditioning_set_stats(unique_diamonds)
+
+    # --- Source priors ---
+    println(io, "\nSource node priors:")
+    for s in sort(collect(source_nodes))
+        println(io, "  Node $s: R(v) = $(node_priors[s])")
+    end
+
+    # --- Node beliefs ---
+    println(io, "\nNode beliefs b(v):")
+    println(io, "  $(rpad("Node",6)) $(rpad("b(v)",14)) Type")
+    println(io, "  " * "-"^36)
+    for n in all_nodes
+        b = get(beliefs, n, nothing)
+        b === nothing && continue
+        tag = n in source_nodes ? "source" :
+              n in sink_nodes   ? "sink"   : ""
+        println(io, "  $(rpad(string(n),6)) $(rpad(string(round(b, digits=6)),14)) $tag")
+    end
+
+    # --- Sink reachabilities ---
+    println(io, "\nSink reachability:")
+    for n in sink_nodes
+        b = get(beliefs, n, nothing)
+        b === nothing && continue
+        println(io, "  Node $n: b(v) = $(round(b, digits=6))")
+    end
+
+    return (
+        name          = name,
+        n_nodes       = n_nodes,
+        n_edges       = n_edges,
+        n_sources     = n_sources,
+        n_sinks       = n_sinks,
+        n_forks       = n_forks,
+        n_joins       = n_joins,
+        n_diam_joins  = n_diam_joins,
+        n_unique_diam = n_unique_diam,
+        dj_ratio      = dj_ratio,
+        max_depth     = max_depth,
+        avg_depth     = round(avg_depth, digits=1),
+        cond_min      = cond_min,
+        cond_med      = cond_med,
+        cond_max      = cond_max,
+        t_decomp      = t_decomp,
+        t_prop        = t_prop,
+        t_total       = t_decomp + t_prop,
+        beliefs       = beliefs,
+    )
+end
+
+# ============================================================================
+# Print summary tables
+# ============================================================================
+
+function print_summary(results, io::IO)
+    println(io, "\n\n" * "=" ^ 110)
+    println(io, "MULTI-NETWORK COMPARISON TABLE")
+    println(io, "=" ^ 110)
+    println(io)
+    @printf(io, "%-38s | %4s | %4s | %3s | %3s | %4s | %4s | %4s | %4s | %5s | %5s | %5s | %8s | %8s\n",
+            "Network", "V", "E", "S", "Sk", "Fork", "Join", "DJ", "UD", "D/DJ", "MaxD", "AvgD", "Decomp(s)", "Prop(s)")
+    println(io, "-" ^ 110)
+    for r in results
+        short = length(r.name) > 38 ? r.name[1:35]*"..." : r.name
+        @printf(io, "%-38s | %4d | %4d | %3d | %3d | %4d | %4d | %4d | %4d | %5.2f | %5d | %5.1f | %8.3f | %8.3f\n",
+                short, r.n_nodes, r.n_edges, r.n_sources, r.n_sinks,
+                r.n_forks, r.n_joins, r.n_diam_joins, r.n_unique_diam,
+                r.dj_ratio, r.max_depth, r.avg_depth,
+                r.t_decomp, r.t_prop)
+    end
+    println(io)
+    println(io, "Columns: V=nodes, E=edges, S=sources, Sk=sinks, DJ=diamond-join nodes,")
+    println(io, "         UD=unique diamonds, D/DJ=unique diamonds per diamond-join,")
+    println(io, "         MaxD=max nesting depth, AvgD=avg nesting depth")
+
+    println(io, "\n" * "=" ^ 70)
+    println(io, "CONDITIONING-SET SIZE |C| DISTRIBUTION")
+    println(io, "=" ^ 70)
+    @printf(io, "%-38s | %5s | %6s | %5s\n", "Network", "Min|C|", "Med|C|", "Max|C|")
+    println(io, "-" ^ 70)
+    for r in results
+        short = length(r.name) > 38 ? r.name[1:35]*"..." : r.name
+        @printf(io, "%-38s | %5d | %6.1f | %5d\n",
+                short, r.cond_min, r.cond_med, r.cond_max)
+    end
+    println(io)
+    println(io, "Max |C| drives worst-case cost: O(2^|C|) per diamond join.")
+end
+
+# ============================================================================
+# Run — wrapped in main() to avoid Julia 1.12 world-age issues with closures
+# ============================================================================
+
+function main()
+    log_path = joinpath(CASE_STUDY_DIR, "ipa_casestudy_$(Dates.format(Dates.now(), "yyyymmdd_HHMMSS")).log")
+    println("Output will also be written to: $log_path")
+
+    open(log_path, "w") do log_file
+        io = TeeStream(stdout, log_file)
+
+        println(io, "IPA Case Study — Raw Data Capture")
+        println(io, "Generated : $(Dates.format(Dates.now(), "yyyy-mm-dd HH:MM:SS"))")
+        println(io, "Networks  : $(join(NETWORKS, ", "))")
+
+        results = []
+        for name in NETWORKS
+            push!(results, analyze_network(name, io))
+        end
+
+        print_summary(results, io)
+        return results
+    end
+
+    println("\nDone. Log saved to: $log_path")
+end
+
+results = main()

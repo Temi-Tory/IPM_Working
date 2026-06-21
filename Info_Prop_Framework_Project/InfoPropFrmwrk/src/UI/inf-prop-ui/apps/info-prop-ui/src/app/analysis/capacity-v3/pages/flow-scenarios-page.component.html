@@ -1,0 +1,43 @@
+<section class="scenario-layout">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Save Current Draft</mat-card-title>
+      <mat-card-subtitle>Create ad-hoc scenarios from edited inputs</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="save-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Draft name</mat-label>
+        <input matInput [ngModel]="draftName()" (ngModelChange)="draftName.set($event)" placeholder="e.g. feeder-reduction-20pct" />
+      </mat-form-field>
+
+      <mat-checkbox [ngModel]="persistToSession()" (ngModelChange)="persistToSession.set($event)">
+        Persist in current session metadata
+      </mat-checkbox>
+
+      <button mat-raised-button color="primary" (click)="save()" [disabled]="!draftName().trim()">Save draft</button>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Draft Library</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (store.drafts().length === 0) {
+        <p>No drafts saved yet.</p>
+      } @else {
+        <div class="draft-grid">
+          @for (draft of store.drafts(); track draft.id) {
+            <div class="draft-item">
+              <strong>{{ draft.name }}</strong>
+              <span>From: {{ draft.sourceScenario }}</span>
+              <span>{{ draft.createdAt | date: 'medium' }}</span>
+              <span>Node edits: {{ countKeys(draft.nodeOverrides) }}</span>
+              <span>Edge edits: {{ countKeys(draft.edgeOverrides) }}</span>
+            </div>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</section>

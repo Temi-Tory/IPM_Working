@@ -100,7 +100,6 @@ export class CpmAnalysisService {
     const analysisRequests = scenarios.map(scenario => {
       const request: CpmAnalysisRequest = {
         networkPath,
-        edgesFilePath: `${this.extractNetworkName(networkPath)}.EDGES`,
         cpmPath: scenario.path
       };
 

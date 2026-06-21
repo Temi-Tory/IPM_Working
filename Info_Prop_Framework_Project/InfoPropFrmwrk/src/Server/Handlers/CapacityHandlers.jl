@@ -284,13 +284,17 @@ function handle_capacity_analysis(req::HTTP.Request)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "networkPath and capacitiesPath are required")))
         end
 
-        resolved_edges_path = ServerCommon.resolve_edges_file_path(network_path, edges_file_path)
+        resolved_edges_path = ServerCommon.resolve_edges_file_path(
+            network_path,
+            edges_file_path;
+            capacities_path=capacities_path,
+        )
         is_valid, message = ServerCommon.validate_network_file(resolved_edges_path)
         if !is_valid
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Invalid network file: $(message)")))
         end
 
-        full_capacities_path = ServerCommon.safe_joinpath(network_path, capacities_path)
+        full_capacities_path = ServerCommon.resolve_network_file_path(network_path, capacities_path)
         parsed_capacity = parse_capacity_input_file(full_capacities_path)
 
         edgelist, outgoing_index, incoming_index, source_nodes_set = read_graph_to_dict(resolved_edges_path)

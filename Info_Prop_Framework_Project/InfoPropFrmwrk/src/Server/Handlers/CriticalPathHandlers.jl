@@ -20,12 +20,16 @@ function handle_critical_path_analysis(req::HTTP.Request)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "networkPath and cpmPath are required")))
         end
 
-        resolved_edges_path, is_valid, message = resolve_edges_path_or_error(network_path, edges_file_path)
+        resolved_edges_path, is_valid, message = resolve_edges_path_or_error(
+            network_path,
+            edges_file_path;
+            cpm_path=cpm_path,
+        )
         if !is_valid
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Invalid network file: $(message)")))
         end
 
-        full_cpm_path = ServerCommon.safe_joinpath(network_path, cpm_path)
+        full_cpm_path = ServerCommon.resolve_network_file_path(network_path, cpm_path)
         if !isfile(full_cpm_path)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "CPM file not found")))
         end

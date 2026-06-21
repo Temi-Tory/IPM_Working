@@ -1,0 +1,191 @@
+<section class="config-grid">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Run Options</mat-card-title>
+      <mat-card-subtitle>Solver and limits tuned for domain experts</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content class="options-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Algorithm</mat-label>
+        <mat-select [ngModel]="store.options().algorithm" (ngModelChange)="store.setOptionPatch({ algorithm: $event })">
+          <mat-option value="dinic">Dinic (default)</mat-option>
+          <mat-option value="edmonds_karp">Edmonds-Karp</mat-option>
+          <mat-option value="push_relabel">Push-Relabel</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tolerance</mat-label>
+        <input matInput type="number" [ngModel]="store.options().tol" (ngModelChange)="setNumberOption('tol', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>k failure</mat-label>
+        <input matInput type="number" [ngModel]="store.options().kFailure" (ngModelChange)="setNumberOption('kFailure', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Cut limit</mat-label>
+        <input matInput type="number" [ngModel]="store.options().cutLimit" (ngModelChange)="setNumberOption('cutLimit', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Path limit</mat-label>
+        <input matInput type="number" [ngModel]="store.options().pathLimit" (ngModelChange)="setNumberOption('pathLimit', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Combination limit</mat-label>
+        <input matInput type="number" [ngModel]="store.options().combinationLimit" (ngModelChange)="setNumberOption('combinationLimit', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Max depth</mat-label>
+        <input matInput type="number" [ngModel]="store.options().maxDepth" (ngModelChange)="setNumberOption('maxDepth', $event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Target flow (optional)</mat-label>
+        <input matInput type="number" [ngModel]="store.options().targetFlow" (ngModelChange)="setNumberOption('targetFlow', $event)" />
+      </mat-form-field>
+
+      <mat-slide-toggle
+        [ngModel]="store.options().includeNodeCapacities"
+        (ngModelChange)="store.setOptionPatch({ includeNodeCapacities: $event })">
+        Include node capacities
+      </mat-slide-toggle>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Node Capacities</mat-card-title>
+      <mat-card-subtitle>Filter and bulk-edit selected rows</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-tools">
+        <mat-form-field appearance="outline">
+          <mat-label>Filter nodes</mat-label>
+          <input matInput [ngModel]="''" (ngModelChange)="store.setFilter('node', $event)" />
+        </mat-form-field>
+        <button mat-stroked-button (click)="store.selectVisible('node', true)">Select visible</button>
+        <button mat-stroked-button (click)="store.selectVisible('node', false)">Clear visible</button>
+      </div>
+
+      <div class="batch-bar">
+        <mat-form-field appearance="outline">
+          <mat-label>Mode</mat-label>
+          <mat-select [ngModel]="nodeBatchMode()" (ngModelChange)="nodeBatchMode.set($event)">
+            <mat-option value="set">Set</mat-option>
+            <mat-option value="scale">Scale</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Value</mat-label>
+          <input matInput type="number" [ngModel]="nodeBatchValue()" (ngModelChange)="nodeBatchValue.set(+$event)" />
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="runBatch('node')">Apply to selected</button>
+      </div>
+
+      <div class="rows-grid">
+        @for (row of store.filteredNodeRows().slice(0, 500); track row.key) {
+          <div class="row-item">
+            <label>
+              <input type="checkbox" [checked]="row.selected" (change)="store.toggleRow('node', row.key)" />
+              <span>{{ row.key }}</span>
+            </label>
+            <input type="number" [ngModel]="row.value" (ngModelChange)="store.updateRowValue('node', row.key, +$event)" />
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Edge Capacities</mat-card-title>
+      <mat-card-subtitle>Handles large edge sets with filter-first editing</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-tools">
+        <mat-form-field appearance="outline">
+          <mat-label>Filter edges</mat-label>
+          <input matInput [ngModel]="''" (ngModelChange)="store.setFilter('edge', $event)" />
+        </mat-form-field>
+        <button mat-stroked-button (click)="store.selectVisible('edge', true)">Select visible</button>
+        <button mat-stroked-button (click)="store.selectVisible('edge', false)">Clear visible</button>
+      </div>
+
+      <div class="batch-bar">
+        <mat-form-field appearance="outline">
+          <mat-label>Mode</mat-label>
+          <mat-select [ngModel]="edgeBatchMode()" (ngModelChange)="edgeBatchMode.set($event)">
+            <mat-option value="set">Set</mat-option>
+            <mat-option value="scale">Scale</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Value</mat-label>
+          <input matInput type="number" [ngModel]="edgeBatchValue()" (ngModelChange)="edgeBatchValue.set(+$event)" />
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="runBatch('edge')">Apply to selected</button>
+      </div>
+
+      <div class="rows-grid">
+        @for (row of store.filteredEdgeRows().slice(0, 1200); track row.key) {
+          <div class="row-item">
+            <label>
+              <input type="checkbox" [checked]="row.selected" (change)="store.toggleRow('edge', row.key)" />
+              <span>{{ row.key }}</span>
+            </label>
+            <input type="number" [ngModel]="row.value" (ngModelChange)="store.updateRowValue('edge', row.key, +$event)" />
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Source Rates</mat-card-title>
+      <mat-card-subtitle>Batch tune injection rates for what-if studies</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-tools">
+        <mat-form-field appearance="outline">
+          <mat-label>Filter sources</mat-label>
+          <input matInput [ngModel]="''" (ngModelChange)="store.setFilter('source', $event)" />
+        </mat-form-field>
+        <button mat-stroked-button (click)="store.selectVisible('source', true)">Select visible</button>
+        <button mat-stroked-button (click)="store.selectVisible('source', false)">Clear visible</button>
+      </div>
+
+      <div class="batch-bar">
+        <mat-form-field appearance="outline">
+          <mat-label>Mode</mat-label>
+          <mat-select [ngModel]="sourceBatchMode()" (ngModelChange)="sourceBatchMode.set($event)">
+            <mat-option value="set">Set</mat-option>
+            <mat-option value="scale">Scale</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Value</mat-label>
+          <input matInput type="number" [ngModel]="sourceBatchValue()" (ngModelChange)="sourceBatchValue.set(+$event)" />
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="runBatch('source')">Apply to selected</button>
+      </div>
+
+      <div class="rows-grid compact">
+        @for (row of store.filteredSourceRows(); track row.key) {
+          <div class="row-item">
+            <label>
+              <input type="checkbox" [checked]="row.selected" (change)="store.toggleRow('source', row.key)" />
+              <span>{{ row.key }}</span>
+            </label>
+            <input type="number" [ngModel]="row.value" (ngModelChange)="store.updateRowValue('source', row.key, +$event)" />
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</section>

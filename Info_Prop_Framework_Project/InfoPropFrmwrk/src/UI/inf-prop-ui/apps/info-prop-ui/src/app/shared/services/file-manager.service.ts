@@ -323,9 +323,21 @@ export class FileManagerService {
     // Create analysis groups
     networkGroups.forEach((analysisGroups, baseNetworkPath) => {
       const fullNetworkPath = networkPathToFullPath.get(baseNetworkPath) || baseNetworkPath;
-      // Find the shared edges file for this network path
+      // Shared network-level edge file remains a fallback when a scenario does not provide one.
       const networkFiles = analysisGroups.get('network') || [];
       const sharedEdgesFile = networkFiles.find(f => f.dataType === 'edges') || undefined;
+      const scenarioEdgeFiles = files.filter(
+        f => f.dataType === 'edges' && this.extractNetworkPath(f.path) === baseNetworkPath
+      );
+
+      const resolveScenarioEdgeFile = (scenarioName?: string): CategorizedFile | undefined => {
+        if (!scenarioName || scenarioName === 'default') {
+          return sharedEdgesFile;
+        }
+
+        const scenarioScoped = scenarioEdgeFiles.find(f => this.extractScenarioName(f.path) === scenarioName);
+        return scenarioScoped || sharedEdgesFile;
+      };
       
       console.log(`🔍 Network path: ${baseNetworkPath}, Full path: ${fullNetworkPath}, Shared edges file:`, sharedEdgesFile?.name);
       
@@ -334,15 +346,18 @@ export class FileManagerService {
           const keyParts = analysisKey.split('-');
           const dataType = keyParts[1] as DataType;
           const scenarioName = keyParts.slice(2).join('-'); // Rejoin in case scenario name has dashes
-          const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, sharedEdgesFile, scenarioName);
+          const groupEdgesFile = groupFiles.find(f => f.dataType === 'edges') || resolveScenarioEdgeFile(scenarioName);
+          const group = this.createReachabilityGroup(fullNetworkPath, groupFiles, dataType, groupEdgesFile, scenarioName);
           newGroups.reachability.push(group);
         } else if (analysisKey.startsWith('capacity')) {
           const scenarioName = analysisKey === 'capacity' ? undefined : analysisKey.substring('capacity-'.length);
-          const group = this.createCapacityGroup(fullNetworkPath, groupFiles, sharedEdgesFile, scenarioName);
+          const groupEdgesFile = groupFiles.find(f => f.dataType === 'edges') || resolveScenarioEdgeFile(scenarioName);
+          const group = this.createCapacityGroup(fullNetworkPath, groupFiles, groupEdgesFile, scenarioName);
           newGroups.capacity.push(group);
         } else if (analysisKey.startsWith('cpm')) {
           const scenarioName = analysisKey === 'cpm' ? undefined : analysisKey.substring('cpm-'.length);
-          const group = this.createCpmGroup(fullNetworkPath, groupFiles, sharedEdgesFile, scenarioName);
+          const groupEdgesFile = groupFiles.find(f => f.dataType === 'edges') || resolveScenarioEdgeFile(scenarioName);
+          const group = this.createCpmGroup(fullNetworkPath, groupFiles, groupEdgesFile, scenarioName);
           newGroups.cpm.push(group);
         } else if (analysisKey === 'network') {
           newGroups.network = this.createNetworkGroup(fullNetworkPath, groupFiles);
@@ -686,7 +701,7 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      canRunAnalysis: missingFiles.length === 0,
       // **FIXED: Preserve original scenario names instead of converting to generic type names**
       scenarioName: (scenarioName && scenarioName !== 'default')
         ? scenarioName // Keep original meaningful names like "Breakdown 214 (interval)"
@@ -708,7 +723,7 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      canRunAnalysis: missingFiles.length === 0,
       // **FIXED: Preserve original scenario names**
       scenarioName: (scenarioName && scenarioName !== 'default')
         ? scenarioName // Keep original meaningful names
@@ -746,7 +761,7 @@ export class FileManagerService {
       files,
       isComplete: missingFiles.length === 0,
       missingFiles,
-      canRunAnalysis: missingFiles.length === 0 && !!sharedEdgesFile,
+      canRunAnalysis: missingFiles.length === 0,
       // **FIXED: Preserve original scenario names**
       scenarioName: (scenarioName && scenarioName !== 'default')
         ? scenarioName // Keep original meaningful names

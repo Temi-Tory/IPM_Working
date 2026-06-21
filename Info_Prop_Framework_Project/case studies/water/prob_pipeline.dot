@@ -1,0 +1,47 @@
+digraph Prob {
+    rankdir=TB
+    graph [splines=false, nodesep=0.9, ranksep=0.9, bgcolor="white", fontname="Helvetica"]
+    node [fontname="Helvetica", fontsize=13, style="filled,rounded", shape=box, margin="0.3,0.2"]
+    edge [penwidth=2.0, color="#444444", arrowsize=0.9]
+
+    Model [
+        label="Shared Network Model",
+        fillcolor="#6B8CAE", fontcolor="white", width=2.8, penwidth=3
+    ]
+    Priors [
+        label="Node Priors  R(v)",
+        fillcolor="#C49A6C", fontcolor="white", width=2.0
+    ]
+    EdgeProb [
+        label="Edge Probabilities  P(u,v)",
+        fillcolor="#C49A6C", fontcolor="white", width=2.0
+    ]
+    Diamond [
+        label="Diamond Decomposition\nfork/join detection · subgraph caching",
+        fillcolor="#ffffff", fontcolor="#1A3A6B",
+        color="#1A3A6B", penwidth=1.9,
+        style="dashed,rounded", width=2.8
+    ]
+
+    Prop [
+        label="Exact Belief Propagation",
+        fillcolor="#1A3A6B", fontcolor="white", width=5.5, fontsize=14
+    ]
+
+    Fixed  [label="Fixed Probability", fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    Interv [label="Intervals",         fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    Pbox   [label="P-boxes",           fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+
+    { rank=same; Model; Priors; EdgeProb; Diamond }
+    { rank=same; Fixed; Interv; Pbox }
+
+    Model    -> Prop
+    Priors   -> Prop
+    EdgeProb -> Prop
+    Diamond  -> Prop [style=dashed, color="#1A3A6B"]
+    Model    -> Diamond [style=dashed, color="#1A3A6B"]
+
+    Prop -> Fixed
+    Prop -> Interv
+    Prop -> Pbox
+}

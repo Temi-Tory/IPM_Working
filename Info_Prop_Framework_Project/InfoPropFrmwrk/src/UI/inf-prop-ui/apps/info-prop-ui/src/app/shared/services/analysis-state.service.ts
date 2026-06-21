@@ -486,7 +486,6 @@ export class AnalysisStateService {
             const firstCapacityScenario = request.capacityScenarios[0];
             const capacityPromise = this.capacityAnalysisService.analyzeCapacity({
               networkPath: request.networkPath,
-              edgesFilePath: `${request.networkPath}/${request.networkPath}.EDGES`,
               capacitiesPath: firstCapacityScenario.capacities_path
             }).toPromise();
             analysisPromises.push(capacityPromise);
@@ -498,7 +497,6 @@ export class AnalysisStateService {
             const firstCpmScenario = request.cpmScenarios[0];
             const cpmPromise = this.cpmAnalysisService.analyzeCpm({
               networkPath: request.networkPath,
-              edgesFilePath: `${request.networkPath}/${request.networkPath}.EDGES`,
               cpmPath: firstCpmScenario.cpm_path
             }).toPromise();
             analysisPromises.push(cpmPromise);
@@ -910,11 +908,9 @@ export class AnalysisStateService {
       });
     }
 
-    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
-
     return this.reachabilityAnalysisService.analyzeReachability({
       networkPath: group.networkPath,
-      edgesFilePath,
+      edgesFilePath: group.edgesFile?.path,
       nodepriorsPath: group.nodePriorsFile.path,
       linkprobsPath: group.linkProbabilitiesFile.path
     }).pipe(
@@ -944,11 +940,9 @@ export class AnalysisStateService {
       });
     }
 
-    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
-
     return this.capacityAnalysisService.analyzeCapacity({
       networkPath: group.networkPath,
-      edgesFilePath,
+      edgesFilePath: group.edgesFile?.path,
       capacitiesPath: group.capacitiesFile.path
     }).pipe(
       tap(response => {
@@ -977,11 +971,9 @@ export class AnalysisStateService {
       });
     }
 
-    const edgesFilePath = group.edgesFile?.path || `${group.networkPath}/${group.networkPath}.EDGES`;
-
     return this.cpmAnalysisService.analyzeCpm({
       networkPath: group.networkPath,
-      edgesFilePath,
+      edgesFilePath: group.edgesFile?.path,
       cpmPath: group.cpmInputsFile.path
     }).pipe(
       tap(response => {

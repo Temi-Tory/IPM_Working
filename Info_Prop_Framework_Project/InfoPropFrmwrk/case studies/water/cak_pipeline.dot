@@ -1,0 +1,55 @@
+digraph CAK {
+    rankdir=TB
+    graph [splines=false, nodesep=0.9, ranksep=0.9, bgcolor="white", fontname="Helvetica"]
+    node [fontname="Helvetica", fontsize=13, style="filled,rounded", shape=box, margin="0.3,0.2"]
+    edge [penwidth=2.0, color="#444444", arrowsize=0.9]
+
+    Model [
+        label="Shared Network Model",
+        fillcolor="#6B8CAE", fontcolor="white", width=2.8, penwidth=3
+    ]
+
+    Caps [
+        label="Capacity Inputs\nedge capacities · node capacities",
+        fillcolor="#C49A6C", fontcolor="white", width=2.8
+    ]
+
+    Algo [
+        label="Solver Choice\nDinic · Edmonds-Karp · Push-Relabel",
+        fillcolor="#ffffff", fontcolor="#1A3A6B",
+        color="#1A3A6B", penwidth=1.9,
+        style="dashed,rounded", width=2.8
+    ]
+
+    Flow [
+        label="Baseline Max-Flow Solve",
+        fillcolor="#1A3A6B", fontcolor="white", width=5.5, fontsize=14
+    ]
+
+    Sen    [label="Sensitivity",           fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    Fail   [label="Failure Impact",        fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    Struct [label="Structural Diagnostics",fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    MinCut [label="Min-Cut Utilities",     fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+    Param  [label="Parametric Thresholds", fillcolor="#6B9E7A", fontcolor="white", width=1.9]
+
+    NodeCap [
+        label="Node-Capacitated Flow",
+        fillcolor="#ffffff", fontcolor="#1A3A6B",
+        color="#1A3A6B", penwidth=1.9,
+        style="dashed,rounded", width=1.9
+    ]
+
+    { rank=same; Model; Caps; Algo }
+    { rank=same; Sen; Fail; Struct; MinCut; Param; NodeCap }
+
+    Model -> Flow
+    Caps  -> Flow
+    Algo  -> Flow [style=dashed, color="#1A3A6B"]
+
+    Flow -> Sen
+    Flow -> Fail
+    Flow -> Struct
+    Flow -> MinCut
+    Flow -> Param
+    Flow -> NodeCap [style=dashed, color="#1A3A6B"]
+}

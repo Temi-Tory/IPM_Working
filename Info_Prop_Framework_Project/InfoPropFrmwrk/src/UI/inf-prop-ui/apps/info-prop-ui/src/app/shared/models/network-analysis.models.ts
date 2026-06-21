@@ -607,7 +607,7 @@ export interface DiamondAnalysisResponse {
 
 export interface ReachabilityAnalysisRequest {
   networkPath: string;
-  edgesFilePath: string;
+  edgesFilePath?: string;
   nodepriorsPath: string;
   linkprobsPath: string;
   includeExactInference?: boolean;
@@ -624,7 +624,7 @@ export interface ReachabilityAnalysisResponse {
 
 export interface CapacityAnalysisRequest {
   networkPath: string;
-  edgesFilePath: string;
+  edgesFilePath?: string;
   capacitiesPath: string;
 }
 
@@ -638,7 +638,7 @@ export interface CapacityAnalysisResponse {
 
 export interface CpmAnalysisRequest {
   networkPath: string;
-  edgesFilePath: string;
+  edgesFilePath?: string;
   cpmPath: string;
 }
 

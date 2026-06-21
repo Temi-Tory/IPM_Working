@@ -70,7 +70,14 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
         end
 
         diamond_hash = parse(UInt64, diamond_hash_str)
-        payload = find_or_build_diamond(network_path, edges_file_path, nodepriors_path)
+        payload = find_or_build_diamond(
+            network_path,
+            edges_file_path,
+            nodepriors_path;
+            linkprobs_path=linkprobs_path,
+            capacities_path=capacities_path,
+            cpm_path=cpm_path,
+        )
         unique_diamonds = payload.unique_diamonds
 
         if !haskey(unique_diamonds, diamond_hash)
@@ -93,7 +100,7 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
         )
 
         if "reachability" in analyses && !isempty(linkprobs_path)
-            full_linkprobs_path = ServerCommon.safe_joinpath(network_path, linkprobs_path)
+            full_linkprobs_path = ServerCommon.resolve_network_file_path(network_path, linkprobs_path)
             if isfile(full_linkprobs_path)
                 edge_probabilities_all = read_edge_probabilities_from_json(full_linkprobs_path)
                 node_priors = copy(diamond_data.sub_node_priors)
@@ -142,7 +149,7 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
         end
 
         if ("flow" in analyses || "capacity" in analyses) && !isempty(capacities_path)
-            full_capacities_path = ServerCommon.safe_joinpath(network_path, capacities_path)
+            full_capacities_path = ServerCommon.resolve_network_file_path(network_path, capacities_path)
             if isfile(full_capacities_path)
                 parsed_capacity = CapacityHandlers.parse_capacity_input_file(full_capacities_path)
                 sub_edge_set = Set(diamond_data.diamond.edgelist)
@@ -176,7 +183,7 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
         end
 
         if "cpm" in analyses && !isempty(cpm_path)
-            full_cpm_path = ServerCommon.safe_joinpath(network_path, cpm_path)
+            full_cpm_path = ServerCommon.resolve_network_file_path(network_path, cpm_path)
             if isfile(full_cpm_path)
                 cpm_data = JSON.parsefile(full_cpm_path)
                 time_analysis = cpm_data["time_analysis"]

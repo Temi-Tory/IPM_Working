@@ -19,10 +19,15 @@ function probability_payload(request_data::AbstractDict)
     isempty(nodepriors_path) && throw(ArgumentError("nodepriorsPath required"))
     isempty(linkprobs_path) && throw(ArgumentError("linkprobsPath required"))
 
-    diamond_payload = find_or_build_diamond(network_path, edges_file_path, nodepriors_path)
+    diamond_payload = find_or_build_diamond(
+        network_path,
+        edges_file_path,
+        nodepriors_path;
+        linkprobs_path=linkprobs_path,
+    )
     resolved_edges_path = diamond_payload.resolved_edges_path
 
-    full_linkprobs_path = ServerCommon.safe_joinpath(network_path, linkprobs_path)
+    full_linkprobs_path = ServerCommon.resolve_network_file_path(network_path, linkprobs_path)
     isfile(full_linkprobs_path) || throw(ArgumentError("linkprobs file not found: $(full_linkprobs_path)"))
 
     edgelist = diamond_payload.edgelist
