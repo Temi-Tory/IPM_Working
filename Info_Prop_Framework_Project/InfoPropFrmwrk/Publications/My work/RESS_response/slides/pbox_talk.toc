@@ -1,0 +1,4 @@
+\beamer@sectionintoc {1}{The recursion}{2}{0}{1}
+\beamer@sectionintoc {2}{The type ladder}{6}{0}{2}
+\beamer@sectionintoc {3}{The p-box dilemma}{8}{0}{3}
+\beamer@sectionintoc {4}{So what}{12}{0}{4}

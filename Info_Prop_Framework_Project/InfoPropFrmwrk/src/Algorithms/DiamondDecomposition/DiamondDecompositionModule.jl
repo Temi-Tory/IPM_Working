@@ -17,14 +17,14 @@ module DiamondDecompositionModule
 
     # Export all public functions and types
     export DiamondsAtNode, Diamond, DiamondComputationData
-    export identify_and_group_diamonds
     export create_diamond_hash_key
-    export build_unique_diamond_storage
-    export build_unique_diamond_storage_depth_first_parallel
+    export new_identify   # correct-by-construction identification (factorized); the ONLY producer now.
+    # RETIRED (buggy hybrid-reuse + completeness loop): identify_and_group_diamonds,
+    # build_unique_diamond_storage[_depth_first_parallel] from Pipeline*.jl. Replaced by new_identify,
+    # which emits root_diamonds + unique_diamonds together. See ROADMAP.md / PIPELINE_REWRITE_STATUS.md.
 
     include(joinpath(@__DIR__, "Internal", "TypesAndCache.jl"))
     include(joinpath(@__DIR__, "Internal", "UtilityFunctions.jl"))
-
-    include(joinpath(@__DIR__, "Internal", "Pipeline.jl"))
+    include(joinpath(@__DIR__, "Internal", "NewIdentify.jl"))
 
 end

@@ -1,0 +1,12 @@
+digraph D {
+  rankdir=TB; node [shape=circle];
+  5 [style=filled, fillcolor="#ff9999", label="5\ncond"];
+  7;
+  8;
+  9 [style=filled, fillcolor="#99ccff", shape=doublecircle, label="9\njoin"];
+  5 -> 7;
+  5 -> 8;
+  5 -> 9;
+  7 -> 8;
+  8 -> 9;
+}

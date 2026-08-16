@@ -84,12 +84,10 @@ function load_and_run_ipa(name, base)
             identify_fork_and_join_nodes(outgoing_index, incoming_index)
         iteration_sets, ancestors, descendants =
             find_iteration_sets(edgelist, outgoing_index, incoming_index)
-        root_diamonds = identify_and_group_diamonds(
-            join_nodes, incoming_index, ancestors, descendants,
-            source_nodes, fork_nodes, edgelist, node_priors, iteration_sets
-        )
-        unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-            root_diamonds, node_priors, ancestors, descendants, iteration_sets
+        root_diamonds, unique_diamonds = new_identify(
+            edgelist, node_priors, link_probabilities,
+            Set{Int64}(source_nodes), Set{Int64}(fork_nodes), Set{Int64}(join_nodes),
+            ancestors, descendants, iteration_sets
         )
         ipa_beliefs = update_beliefs_iterative(
             edgelist, iteration_sets, outgoing_index, incoming_index,

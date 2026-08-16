@@ -58,7 +58,8 @@ module ProbabilityPropagationModule
     import ..InputProcessingModule: Interval, pbox, PBA,
            zero_value, one_value, non_fixed_value,
            is_valid_probability, add_values, multiply_values,
-           complement_value, subtract_values, sum_values, prod_values
+           complement_value, subtract_values, sum_values, prod_values,
+           pbox_conditional_combine, PBOX_COND_BLEND
 
     # Export main functions
     export update_beliefs_iterative, validate_network_data,

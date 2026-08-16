@@ -4,8 +4,10 @@ zero_value(::Type{T}) where {T} = InputProcessingModule.zero_value(T)
 one_value(::Type{T}) where {T} = InputProcessingModule.one_value(T)
 non_fixed_value(::Type{T}) where {T} = InputProcessingModule.non_fixed_value(T)
 
-# Preserve module-specific historical behavior for pbox certainty upper bound.
-one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.1))
+# one_value(pbox) MUST be a clean point mass at 1 (interval(1,1)). A previous [1.0, 1.1] "certainty upper
+# bound" makes one_value a p-box with mean up to 1.1 > 1, so a conditioned join (whose prior is set to
+# one_value) can produce belief mass ABOVE 1 -> unsound. Match InputProcessingModule's interval(1,1).
+one_value(::Type{pbox}) = PBA.makepbox(PBA.interval(1.0, 1.0))
 
 """
 Create a unique hash key for a diamond based on edgelist and conditioning_nodes

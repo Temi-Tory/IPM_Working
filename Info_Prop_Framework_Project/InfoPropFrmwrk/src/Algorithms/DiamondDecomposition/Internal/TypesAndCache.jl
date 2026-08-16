@@ -52,8 +52,11 @@ struct DiamondComputationData{T}
     sub_iteration_sets::Vector{Set{Int64}}
     sub_node_priors::Dict{Int64, T}
     is_rootDiamond::Bool
-    # Ready-to-use inner diamonds for recursive calls
-    sub_diamond_structures::Dict{Int64, DiamondsAtNode}
+    # Ready-to-use inner diamonds for recursive calls. Vector per join: one DiamondsAtNode per
+    # INDEPENDENT conditioning group (parents with disjoint un-conditioned ancestry). Independent groups
+    # combine by inclusion-exclusion at the join (see update_beliefs_iterative), which factorizes the OR
+    # and avoids joint 2^(cutset) conditioning. Degenerate case = a 1-element vector (no factorization).
+    sub_diamond_structures::Dict{Int64, Vector{DiamondsAtNode}}
     diamond::Diamond
 
 end

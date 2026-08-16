@@ -1,3 +1,10 @@
+# Is a contextual belief pinned to 0 or 1 (so conditioning on it is a no-op)? Used by the zero-weight
+# conditioning skip in updateDiamondJoin. pbox: support ⊆[0,1] with mean bounds ml==mh==0 or ==1 ⇒ a
+# point mass at 0 or 1.
+_pinned01(b::Float64)  = (b == 0.0 || b == 1.0)
+_pinned01(b::Interval) = (b.lower == 0.0 && b.upper == 0.0) || (b.lower == 1.0 && b.upper == 1.0)
+_pinned01(b::pbox)     = (b.ml == 0.0 && b.mh == 0.0) || (b.ml == 1.0 && b.mh == 1.0)
+
 """
     updateDiamondJoin(...) -> T
 
@@ -46,6 +53,18 @@ function updateDiamondJoin(
         sub_link_probability[edge] = link_probability[edge]
     end
 
+    # Zero-weight conditioning skip (EXACT; results identical): a conditioning node whose contextual
+    # belief is already pinned to 0/1 by an OUTER conditioning has only one non-zero state, so enumerating
+    # it doubles work for nothing. Treat it as an ordinary fixed source (Case 2 gives it its 0/1 belief)
+    # and drop it from the enumeration. This is what lets the producer condition on every valid shared
+    # fork (incl. ones already fixed upstream) without a 2^|cond| blow-up. Works for all three T:
+    #   Float64  : b == 0 or 1
+    #   Interval : degenerate [0,0] or [1,1]
+    #   pbox     : point mass at 0 or 1  (support ⊆[0,1] with mean bounds ml==mh==0 or ==1 ⇒ point mass)
+    # The dropped state carries weight complement(pinned)=0 exactly, so the skip changes no result.
+    # (_pinned01 defined at module scope, above.)
+    active_conditioning_nodes = Set(n for n in conditioning_nodes if !_pinned01(belief_dict[n]))
+
     # Build sub_node_priors with contextual beliefs
     sub_node_priors = Dict{Int64, T}()
 
@@ -57,24 +76,30 @@ function updateDiamondJoin(
                 sub_node_priors[node] = one_value(T)
             end
 
-        # Case 2: Fresh sources that are NOT conditioning nodes
-        # Use contextual belief from outer computation
-        elseif node ∉ conditioning_nodes
+        # Case 2: Fresh sources that are NOT (active) conditioning nodes — use contextual belief. This now
+        # also covers conditioning nodes already pinned to 0/1 upstream (belief_dict is their fixed value).
+        elseif node ∉ active_conditioning_nodes
             sub_node_priors[node] = belief_dict[node]
 
-        # Case 3: Conditioning nodes - will be set to 0 or 1 per state
-        elseif node ∈ conditioning_nodes
+        # Case 3: Active conditioning nodes - will be set to 0 or 1 per state
+        elseif node ∈ active_conditioning_nodes
             sub_node_priors[node] = one_value(T)
         end
     end
 
-    conditioning_nodes_list = collect(unique(conditioning_nodes))
+    conditioning_nodes_list = collect(unique(active_conditioning_nodes))
 
     # Phase 1: Compute R(s) = join belief for each conditioning state
     num_states = 2^length(conditioning_nodes_list)
     join_results = Vector{T}(undef, num_states)
 
-    use_parallel = num_states >= 2 && Threads.nthreads() > 1
+    # Per-state enumeration runs SERIALLY. The Threads.@spawn path below is disabled: it has (1) a data
+    # race — concurrent writes to the shared diamond_cache Dict under auto threads ("Multiple concurrent
+    # writes to Dict detected!"), and (2) spawned tasks use a small stack that overflows on deep nesting.
+    # Factorization keeps the conditioning set (and hence num_states = 2^|active cond|) small, so serial
+    # is fast (sub-second on the corpus) and, unlike the parallel path, correct and deterministic under
+    # any -t. Re-enabling would require a thread-safe cache and larger task stacks. See ROADMAP.md.
+    use_parallel = false
 
     if use_parallel
         tasks = Vector{Task}(undef, num_states)
@@ -217,8 +242,24 @@ function updateDiamondJoin(
         end
 
         return Interval(min_lo, max_hi)
+    elseif T <: pbox
+        # p-box conditioning is a CONVEX COMBINATION, not a convolution. The old flat convIndep weighted
+        # sum (kept below for Float64) treats it as a sum of independent RVs -> over-wide, mass>1, UNSOUND.
+        # Combine ONE conditioning node at a time (nested 2-way): belief = W*A + (1-W)*B with W = node's
+        # contextual belief, via the sound cvxP operator pbox_conditional_combine. m nested 2-way combos
+        # reproduce the 2^m total-probability mixture. (Matches the validated reference; see
+        # validation/rc_pbox_cvx.jl + memory pbox-conditioning-unsound.) m=0 -> the single join_results[1].
+        m = length(conditioning_nodes_list)
+        function _combine(i::Int, base_idx::Int)
+            i > m && return join_results[base_idx + 1]
+            bit = 1 << (i - 1)
+            up   = _combine(i + 1, base_idx | bit)   # node i reachable
+            down = _combine(i + 1, base_idx)          # node i not reachable
+            return pbox_conditional_combine(belief_dict[conditioning_nodes_list[i]], up, down)
+        end
+        return _combine(1, 0)
     else
-        # Float64/pbox: weighted sum
+        # Float64: exact weighted sum (scalar total probability)
         final_belief = zero_value(T)
         for state_idx in 0:(num_states - 1)
             state_probability = one_value(T)

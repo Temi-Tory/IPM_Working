@@ -16,7 +16,7 @@ function update_beliefs_iterative(
     link_probability::Dict{Tuple{Int64,Int64},T},
     descendants::Dict{Int64, Set{Int64}},
     ancestors::Dict{Int64, Set{Int64}},
-    diamond_structures::Dict{Int64, DiamondsAtNode},
+    diamond_structures::Dict{Int64, Vector{DiamondsAtNode}},
     join_nodes::Set{Int64},
     fork_nodes::Set{Int64},
     computation_lookup::Dict{UInt64, DiamondComputationData{T}},
@@ -36,40 +36,47 @@ function update_beliefs_iterative(
             # Collect all sources of belief for this node
             all_beliefs = T[]
 
-            # Process diamond structures if they exist
+            # Process diamond structures if they exist. Each join may carry SEVERAL independent
+            # conditioning groups; each contributes one belief that is inclusion-exclusion-combined below
+            # (independent groups => 1 - prod(1 - b_g), the factorized OR).
             if haskey(diamond_structures, node)
-                structure = diamond_structures[node]
+                for structure in diamond_structures[node]
 
-                # Calculate beliefs from diamond groups
-                diamond_beliefs = calculate_diamond_groups_belief(
-                    structure,
-                    belief_dict,
-                    link_probability,
-                    node_priors,
-                    ancestors,
-                    descendants,
-                    iteration_sets,
-                    computation_lookup,
-                    cache
-                )
-
-                push!(all_beliefs, diamond_beliefs)
-
-                # Handle non-diamond parents within the structure
-                if !isempty(structure.non_diamond_parents)
-                    non_diamond_beliefs = calculate_regular_belief(
-                        structure.non_diamond_parents,
-                        node,
+                    # Calculate beliefs from this diamond group
+                    diamond_beliefs = calculate_diamond_groups_belief(
+                        structure,
                         belief_dict,
-                        link_probability
+                        link_probability,
+                        node_priors,
+                        ancestors,
+                        descendants,
+                        iteration_sets,
+                        computation_lookup,
+                        cache
                     )
 
-                    # For simple tree paths, just take the sum
-                    if !(node in join_nodes) || length(intersect(ancestors[node], source_nodes)) <= 1
-                        push!(all_beliefs, sum_values(non_diamond_beliefs))
-                    else
-                        # For join nodes with multiple paths, use inclusion-exclusion
-                        append!(all_beliefs, non_diamond_beliefs)
+                    push!(all_beliefs, diamond_beliefs)
+
+                    # Handle non-diamond parents within the structure
+                    if !isempty(structure.non_diamond_parents)
+                        non_diamond_beliefs = calculate_regular_belief(
+                            structure.non_diamond_parents,
+                            node,
+                            belief_dict,
+                            link_probability
+                        )
+
+                        # SUM only a genuine single tree path; otherwise the independent non-diamond
+                        # parents must combine by inclusion-exclusion, NOT sum (matches the regular-parent
+                        # branch below). Using `&&` here: sum iff (not a join) AND (<=1 source ancestor).
+                        # With `||` this wrongly summed independent parents at a join with one source
+                        # ancestor — visible only once factorization emits multiple non-diamond parents.
+                        if !(node in join_nodes) && length(intersect(ancestors[node], source_nodes)) <= 1
+                            push!(all_beliefs, sum_values(non_diamond_beliefs))
+                        else
+                            # Join node / multiple source paths: independent parents -> inclusion-exclusion
+                            append!(all_beliefs, non_diamond_beliefs)
+                        end
                     end
                 end
             else

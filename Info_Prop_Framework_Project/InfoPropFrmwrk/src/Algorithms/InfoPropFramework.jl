@@ -48,10 +48,8 @@ export
     Diamond,
     DiamondsAtNode,
     DiamondComputationData,
-    identify_and_group_diamonds,
+    new_identify,
     create_diamond_hash_key,
-    build_unique_diamond_storage,
-    build_unique_diamond_storage_depth_first_parallel,
     # Critical path toolkit
     CriticalPathModule,
     CriticalPathParameters,

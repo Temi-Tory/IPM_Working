@@ -12,6 +12,7 @@ module InputProcessingModule
            zero_value, one_value, non_fixed_value, is_valid_probability,
            add_values, multiply_values, min_values, max_values, sum_values,
            complement_value, subtract_values, prod_values, divide_values,
+           pbox_conditional_combine, PBOX_COND_BLEND,
            # File I/O functions
            read_graph_to_dict, 
             read_edge_capacities_from_json, read_node_capacities_from_json, read_capacities_input,
@@ -117,6 +118,49 @@ module InputProcessingModule
         return Interval(minimum(quotients), maximum(quotients))
     end
     divide_values(a::pbox, b::pbox) = PBA.convIndep(a, b, op = /)
+
+    # ---- Conditioning recombination (diamond total-probability step) ----------------------------------
+    # belief = W*A + (1-W)*B for ONE conditioning node (weight W = its contextual belief) is a CONVEX
+    # COMBINATION, NOT a convolution. Float64: exact scalar. pbox: the OLD convIndep weighted-sum treated
+    # this as a convolution -> over-wide, mass>1, UNSOUND. Correct operator (cvxP): integrate over W's own
+    # distribution (mixture over its discretisation levels), blend the two branches with a POSITIVE-
+    # DEPENDENCE bound env(convIndep,convPerfect) (branches are monotone-increasing => positively
+    # dependent), and envelope over W's imprecision (u/d). Validated sound vs Monte Carlo across the corpus
+    # (validation/rc_pbox_cvx.jl, cvx_sound.jl: 20/20). Set PBOX_COND_BLEND[]=:frechet for the guaranteed-
+    # sound (but conservative) convFrechet branch blend. Interval uses corner enumeration in
+    # updateDiamondJoin (exact), so it is NOT routed through here.
+    const PBOX_COND_BLEND = Ref(:positive)   # :positive (cvxP, tight) | :frechet (cvxF, guaranteed-sound)
+    _pbox_branch_blend(x::pbox, y::pbox) = PBOX_COND_BLEND[] == :frechet ?
+        PBA.convFrechet(x, y, op = +) :
+        PBA.env(PBA.convIndep(x, y, op = +), PBA.convPerfect(x, y, op = +))
+    # belief is a PROBABILITY (in [0,1] by construction); PBA's quantile arithmetic uses plain Float64
+    # (no directed rounding) so ULP-level leakage past 0/1 is possible. imp() with the [0,1] box is a SOUND
+    # projection (true belief in [0,1] always) that can only tighten, never widen, the result. Built fresh
+    # per call (not module-level) so its discretisation always matches the CURRENT PBA.setSteps() level —
+    # a cached const captured the step count active at module load time, mismatching later setSteps calls.
+    #
+    # GUARDED, not silent: a clamp that swallows an excursion of ANY size would risk masking a REAL
+    # conditioning bug (the old convIndep-as-convolution bug leaked mass by up to 0.34 -- see
+    # pbox-conditioning-unsound memory) behind an innocuous-looking "SOUND, [0,1]" result. Genuine Float64
+    # rounding leakage from ~steps sequential ops is of order steps*eps (<<1e-9 even at steps=800); an
+    # excursion above EXCURSION_TOL is therefore a correctness bug in the operator, not FP noise, and must
+    # fail loudly instead of being trimmed away.
+    const EXCURSION_TOL = 1e-6
+    function pbox_conditional_combine(W::pbox, A::pbox, B::pbox)
+        n = length(W.u); ps = fill(1.0 / n, n)
+        Mu = PBA.mixture([_pbox_branch_blend(W.u[i] * A, (1.0 - W.u[i]) * B) for i in 1:n], ps)
+        Md = PBA.mixture([_pbox_branch_blend(W.d[i] * A, (1.0 - W.d[i]) * B) for i in 1:n], ps)
+        raw = PBA.env(Mu, Md)
+        excursion = max(maximum(raw.u), maximum(raw.d)) - 1.0
+        excursion = max(excursion, -min(minimum(raw.u), minimum(raw.d)))
+        excursion > EXCURSION_TOL && error(
+            "pbox_conditional_combine: [0,1] excursion of $excursion exceeds the FP-noise tolerance " *
+            "($EXCURSION_TOL) -- this indicates a REAL soundness bug in the conditioning operator " *
+            "(cf. the pre-cvxP convIndep bug, which leaked up to 0.34), not floating-point rounding. " *
+            "Refusing to silently clamp it away; investigate before trusting this result.")
+        return PBA.imp(raw, PBA.makepbox(PBA.interval(0.0, 1.0)))
+    end
+    pbox_conditional_combine(W::Float64, A::Float64, B::Float64) = W * A + (1.0 - W) * B
 
     # Sum of vector
     sum_values(values::Vector{Float64}) = sum(values)
