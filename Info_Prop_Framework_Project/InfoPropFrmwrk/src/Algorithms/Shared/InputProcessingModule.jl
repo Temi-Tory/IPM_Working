@@ -146,6 +146,23 @@ module InputProcessingModule
     # excursion above EXCURSION_TOL is therefore a correctness bug in the operator, not FP noise, and must
     # fail loudly instead of being trimmed away.
     const EXCURSION_TOL = 1e-6
+
+    # Unit-box [0,1] clamp target, cached KEYED BY the operand's discretisation length (== steps
+    # at its construction). Rebuilding per call was the safe-but-slow fix for the original
+    # module-load-const DimensionMismatch bug; keying by length keeps correctness under any
+    # later setSteps() while removing per-combine construction cost. Exactness-identical: the
+    # cached box has the same u=zeros/d=ones content makepbox(interval(0,1)) produces at that
+    # steps count. (User-approved performance repair, 2026-08-16.)
+    const _UNIT_BOX_N = Ref(0)
+    const _UNIT_BOX = Ref{Any}(nothing)
+    function _unit_box(n::Int)
+        _UNIT_BOX_N[] == n && return _UNIT_BOX[]::pbox
+        ub = PBA.makepbox(PBA.interval(0.0, 1.0))
+        length(ub.u) == n || (ub = PBA.pbox(fill(0.0, n), fill(1.0, n)))
+        _UNIT_BOX_N[] = n; _UNIT_BOX[] = ub
+        ub
+    end
+
     function pbox_conditional_combine(W::pbox, A::pbox, B::pbox)
         n = length(W.u); ps = fill(1.0 / n, n)
         Mu = PBA.mixture([_pbox_branch_blend(W.u[i] * A, (1.0 - W.u[i]) * B) for i in 1:n], ps)
@@ -158,7 +175,7 @@ module InputProcessingModule
             "($EXCURSION_TOL) -- this indicates a REAL soundness bug in the conditioning operator " *
             "(cf. the pre-cvxP convIndep bug, which leaked up to 0.34), not floating-point rounding. " *
             "Refusing to silently clamp it away; investigate before trusting this result.")
-        return PBA.imp(raw, PBA.makepbox(PBA.interval(0.0, 1.0)))
+        return PBA.imp(raw, _unit_box(length(raw.u)))
     end
     pbox_conditional_combine(W::Float64, A::Float64, B::Float64) = W * A + (1.0 - W) * B
 

@@ -1,0 +1,20 @@
+digraph NodeCapSplit {
+  graph [rankdir=LR, splines=line, fontsize=14, fontname="Times-Roman"];
+  node  [shape=box, style=rounded, fontsize=12, fontname="Times-Roman", width=0.55, height=0.38, fixedsize=true];
+  edge  [fontsize=11, fontname="Times-Roman"];
+
+  s    [label="s",     shape=doublecircle, width=0.45, height=0.45];
+  uin  [label=<u<SUP>-</SUP>>];
+  uout [label=<u<SUP>+</SUP>>];
+  vin  [label=<v<SUP>-</SUP>>];
+  vout [label=<v<SUP>+</SUP>>];
+  t    [label="t",     shape=doublecircle, width=0.45, height=0.45];
+
+  s    -> uin  [label=<c<SUB>su</SUB>>];
+  s    -> vin  [label=<c<SUB>sv</SUB>>];
+  uin  -> uout [label=<b<SUB>u</SUB>>, penwidth=2];
+  vin  -> vout [label=<b<SUB>v</SUB>>, penwidth=2];
+  uout -> vin  [label=<c<SUB>uv</SUB>>];
+  uout -> t    [label=<c<SUB>ut</SUB>>];
+  vout -> t    [label=<c<SUB>vt</SUB>>];
+}

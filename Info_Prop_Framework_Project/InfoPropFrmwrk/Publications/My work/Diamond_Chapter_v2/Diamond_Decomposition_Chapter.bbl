@@ -1,0 +1,453 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{ouyang2014interdependent}{article}{}
+      \name{author}{1}{}{%
+        {{hash=f44aa511f9d556de294025103d6a7e22}{%
+           family={Ouyang},
+           familyi={O\bibinitperiod},
+           given={Min},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{f44aa511f9d556de294025103d6a7e22}
+      \strng{fullhash}{f44aa511f9d556de294025103d6a7e22}
+      \strng{bibnamehash}{f44aa511f9d556de294025103d6a7e22}
+      \strng{authorbibnamehash}{f44aa511f9d556de294025103d6a7e22}
+      \strng{authornamehash}{f44aa511f9d556de294025103d6a7e22}
+      \strng{authorfullhash}{f44aa511f9d556de294025103d6a7e22}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Reliability Engineering \& System Safety}
+      \field{title}{Review on Modeling and Simulation of Interdependent Critical Infrastructure Systems}
+      \field{volume}{121}
+      \field{year}{2014}
+      \field{pages}{43\bibrangedash 60}
+      \range{pages}{18}
+      \verb{doi}
+      \verb 10.1016/j.ress.2013.06.040
+      \endverb
+    \endentry
+    \entry{buldyrev2010cascade}{article}{}
+      \name{author}{5}{}{%
+        {{hash=bef1eaaad80422d923c69f8a0a492540}{%
+           family={Buldyrev},
+           familyi={B\bibinitperiod},
+           given={Sergey\bibnamedelima V.},
+           giveni={S\bibinitperiod\bibinitdelim V\bibinitperiod}}}%
+        {{hash=38d8a10e7aed4906f83fe546552c2420}{%
+           family={Parshani},
+           familyi={P\bibinitperiod},
+           given={Roni},
+           giveni={R\bibinitperiod}}}%
+        {{hash=3b6c3a1f082f20186580cd2c9d95b752}{%
+           family={Paul},
+           familyi={P\bibinitperiod},
+           given={Gerald},
+           giveni={G\bibinitperiod}}}%
+        {{hash=5f5c56c0c8f34aa567709e10df5afd57}{%
+           family={Stanley},
+           familyi={S\bibinitperiod},
+           given={H.\bibnamedelimi Eugene},
+           giveni={H\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=742d135a5dd9af879149ba57bf45774c}{%
+           family={Havlin},
+           familyi={H\bibinitperiod},
+           given={Shlomo},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{33fb8ac17de3e8d708f2bdf2a7ec5dc3}
+      \strng{fullhash}{41daff8987c2bc6b77f75181121825a9}
+      \strng{bibnamehash}{41daff8987c2bc6b77f75181121825a9}
+      \strng{authorbibnamehash}{41daff8987c2bc6b77f75181121825a9}
+      \strng{authornamehash}{33fb8ac17de3e8d708f2bdf2a7ec5dc3}
+      \strng{authorfullhash}{41daff8987c2bc6b77f75181121825a9}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nature}
+      \field{number}{7291}
+      \field{title}{Catastrophic Cascade of Failures in Interdependent Networks}
+      \field{volume}{464}
+      \field{year}{2010}
+      \field{pages}{1025\bibrangedash 1028}
+      \range{pages}{4}
+      \verb{doi}
+      \verb 10.1038/nature08932
+      \endverb
+    \endentry
+    \entry{perez2018sixty}{article}{}
+      \name{author}{1}{}{%
+        {{hash=876aad4da6468ec8495476dc5b4cc0f4}{%
+           family={Pérez-Rosés},
+           familyi={P\bibinithyphendelim R\bibinitperiod},
+           given={Hebert},
+           giveni={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \strng{fullhash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \strng{bibnamehash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \strng{authorbibnamehash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \strng{authornamehash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \strng{authorfullhash}{876aad4da6468ec8495476dc5b4cc0f4}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Mathematics in Computer Science}
+      \field{title}{Sixty Years of Network Reliability}
+      \field{volume}{12}
+      \field{year}{2018}
+      \field{pages}{275\bibrangedash 293}
+      \range{pages}{19}
+      \verb{doi}
+      \verb 10.1007/s11786-018-0345-5
+      \endverb
+    \endentry
+    \entry{satyanarayana1985linear}{article}{}
+      \name{author}{2}{}{%
+        {{hash=2730f903e3182be70717fc5a1af52edd}{%
+           family={Satyanarayana},
+           familyi={S\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=d1a5718a8dd20edcf8330e13929ba31f}{%
+           family={Wood},
+           familyi={W\bibinitperiod},
+           given={R.\bibnamedelimi Kevin},
+           giveni={R\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \strng{fullhash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \strng{bibnamehash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \strng{authorbibnamehash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \strng{authornamehash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \strng{authorfullhash}{96e61cd0ebd7220f0091ea30b9f5846a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SIAM Journal on Computing}
+      \field{number}{4}
+      \field{title}{A Linear-Time Algorithm for Computing {K}-Terminal Reliability in Series-Parallel Networks}
+      \field{volume}{14}
+      \field{year}{1985}
+      \field{pages}{818\bibrangedash 832}
+      \range{pages}{15}
+      \verb{doi}
+      \verb 10.1137/0214057
+      \endverb
+    \endentry
+    \entry{moore1956reliable}{article}{}
+      \name{author}{2}{}{%
+        {{hash=9c7ebbec7873d3ce02deafc86595df0c}{%
+           family={Moore},
+           familyi={M\bibinitperiod},
+           given={Edward\bibnamedelima F.},
+           giveni={E\bibinitperiod\bibinitdelim F\bibinitperiod}}}%
+        {{hash=536c91678d1dde76c9acd47047556291}{%
+           family={Shannon},
+           familyi={S\bibinitperiod},
+           given={Claude\bibnamedelima E.},
+           giveni={C\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{1110bdfac0eefb867f6c7764479edc8c}
+      \strng{fullhash}{1110bdfac0eefb867f6c7764479edc8c}
+      \strng{bibnamehash}{1110bdfac0eefb867f6c7764479edc8c}
+      \strng{authorbibnamehash}{1110bdfac0eefb867f6c7764479edc8c}
+      \strng{authornamehash}{1110bdfac0eefb867f6c7764479edc8c}
+      \strng{authorfullhash}{1110bdfac0eefb867f6c7764479edc8c}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of the Franklin Institute}
+      \field{number}{3}
+      \field{title}{Reliable Circuits Using Less Reliable Relays}
+      \field{volume}{262}
+      \field{year}{1956}
+      \field{pages}{191\bibrangedash 208}
+      \range{pages}{18}
+      \verb{doi}
+      \verb 10.1016/0016-0032(56)90559-2
+      \endverb
+    \endentry
+    \entry{satyanarayana1983factoring}{article}{}
+      \name{author}{2}{}{%
+        {{hash=2730f903e3182be70717fc5a1af52edd}{%
+           family={Satyanarayana},
+           familyi={S\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=e37994487ee1a116bbee2fbfb1afa107}{%
+           family={Chang},
+           familyi={C\bibinitperiod},
+           given={Mark\bibnamedelima K.},
+           giveni={M\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \strng{fullhash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \strng{bibnamehash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \strng{authorbibnamehash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \strng{authornamehash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \strng{authorfullhash}{5f0832e7a4fcbd63fafcee50c52fcec9}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Networks}
+      \field{number}{1}
+      \field{title}{Network Reliability and the Factoring Theorem}
+      \field{volume}{13}
+      \field{year}{1983}
+      \field{pages}{107\bibrangedash 120}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1002/net.3230130107
+      \endverb
+    \endentry
+    \entry{page1988practical}{article}{}
+      \name{author}{2}{}{%
+        {{hash=817c46b88047cca5a42a4b849bfb2611}{%
+           family={Page},
+           familyi={P\bibinitperiod},
+           given={Lavon\bibnamedelima B.},
+           giveni={L\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+        {{hash=c287925811b9a221ae77323606f33970}{%
+           family={Perry},
+           familyi={P\bibinitperiod},
+           given={Jo\bibnamedelima Ellen},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \strng{fullhash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \strng{bibnamehash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \strng{authorbibnamehash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \strng{authornamehash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \strng{authorfullhash}{4f8b87ed3b11066b9c1fd3811e77137d}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Reliability}
+      \field{number}{3}
+      \field{title}{A Practical Implementation of the Factoring Theorem for Network Reliability}
+      \field{volume}{37}
+      \field{year}{1988}
+      \field{pages}{259\bibrangedash 267}
+      \range{pages}{9}
+      \verb{doi}
+      \verb 10.1109/24.3752
+      \endverb
+    \endentry
+    \entry{wood1985polygon}{article}{}
+      \name{author}{1}{}{%
+        {{hash=d1a5718a8dd20edcf8330e13929ba31f}{%
+           family={Wood},
+           familyi={W\bibinitperiod},
+           given={R.\bibnamedelimi Kevin},
+           giveni={R\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \strng{fullhash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \strng{bibnamehash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \strng{authorbibnamehash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \strng{authornamehash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \strng{authorfullhash}{d1a5718a8dd20edcf8330e13929ba31f}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Networks}
+      \field{number}{2}
+      \field{title}{A Factoring Algorithm Using Polygon-to-Chain Reductions for Computing {K}-Terminal Network Reliability}
+      \field{volume}{15}
+      \field{year}{1985}
+      \field{pages}{173\bibrangedash 190}
+      \range{pages}{18}
+      \verb{doi}
+      \verb 10.1002/net.3230150204
+      \endverb
+    \endentry
+    \entry{robertson1986graphminors}{article}{}
+      \name{author}{2}{}{%
+        {{hash=30004d929a781bee1262997e1b576502}{%
+           family={Robertson},
+           familyi={R\bibinitperiod},
+           given={Neil},
+           giveni={N\bibinitperiod}}}%
+        {{hash=2d2668107e1de5f5784767dc833df7f7}{%
+           family={Seymour},
+           familyi={S\bibinitperiod},
+           given={Paul\bibnamedelima D.},
+           giveni={P\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+      }
+      \strng{namehash}{536f8147f0d83a2e7bf8c7776598e028}
+      \strng{fullhash}{536f8147f0d83a2e7bf8c7776598e028}
+      \strng{bibnamehash}{536f8147f0d83a2e7bf8c7776598e028}
+      \strng{authorbibnamehash}{536f8147f0d83a2e7bf8c7776598e028}
+      \strng{authornamehash}{536f8147f0d83a2e7bf8c7776598e028}
+      \strng{authorfullhash}{536f8147f0d83a2e7bf8c7776598e028}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Algorithms}
+      \field{number}{3}
+      \field{title}{Graph Minors. {II}. {A}lgorithmic Aspects of Tree-Width}
+      \field{volume}{7}
+      \field{year}{1986}
+      \field{pages}{309\bibrangedash 322}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1016/0196-6774(86)90023-4
+      \endverb
+    \endentry
+    \entry{goharshady2020treewidth}{article}{}
+      \name{author}{2}{}{%
+        {{hash=d15a107d965e1a7a8fc2b499e04e5ff7}{%
+           family={Goharshady},
+           familyi={G\bibinitperiod},
+           given={Amir\bibnamedelima Kafshdar},
+           giveni={A\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=e730461a09b085fc8fd5fa0628f1e70f}{%
+           family={Mohammadi},
+           familyi={M\bibinitperiod},
+           given={Fatemeh},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{40cb32d398032731c0db36f56c41f8c0}
+      \strng{fullhash}{40cb32d398032731c0db36f56c41f8c0}
+      \strng{bibnamehash}{40cb32d398032731c0db36f56c41f8c0}
+      \strng{authorbibnamehash}{40cb32d398032731c0db36f56c41f8c0}
+      \strng{authornamehash}{40cb32d398032731c0db36f56c41f8c0}
+      \strng{authorfullhash}{40cb32d398032731c0db36f56c41f8c0}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Reliability Engineering \& System Safety}
+      \field{title}{An Efficient Algorithm for Computing Network Reliability in Small Treewidth}
+      \field{volume}{193}
+      \field{year}{2020}
+      \field{pages}{106665}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1016/j.ress.2019.106665
+      \endverb
+    \endentry
+    \entry{bryant1986graph}{article}{}
+      \name{author}{1}{}{%
+        {{hash=733e32bf9035c50457c549c4ca2d1a72}{%
+           family={Bryant},
+           familyi={B\bibinitperiod},
+           given={Randal\bibnamedelima E.},
+           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{fullhash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{bibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authorbibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authornamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authorfullhash}{733e32bf9035c50457c549c4ca2d1a72}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Computers}
+      \field{number}{8}
+      \field{title}{Graph-Based Algorithms for {B}oolean Function Manipulation}
+      \field{volume}{C-35}
+      \field{year}{1986}
+      \field{pages}{677\bibrangedash 691}
+      \range{pages}{15}
+      \verb{doi}
+      \verb 10.1109/TC.1986.1676819
+      \endverb
+    \endentry
+    \entry{ershov1958programming}{article}{}
+      \name{author}{1}{}{%
+        {{hash=a4052f4aea24c29a409020aa2a1b37a2}{%
+           family={Ershov},
+           familyi={E\bibinitperiod},
+           given={Andrei\bibnamedelima P.},
+           giveni={A\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+      }
+      \strng{namehash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \strng{fullhash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \strng{bibnamehash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \strng{authorbibnamehash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \strng{authornamehash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \strng{authorfullhash}{a4052f4aea24c29a409020aa2a1b37a2}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Communications of the ACM}
+      \field{note}{The origin of the hash-consing technique}
+      \field{number}{8}
+      \field{title}{On Programming of Arithmetic Operations}
+      \field{volume}{1}
+      \field{year}{1958}
+      \field{pages}{3\bibrangedash 6}
+      \range{pages}{4}
+      \verb{doi}
+      \verb 10.1145/368892.368907
+      \endverb
+    \endentry
+    \entry{filliatre2006hashconsing}{inproceedings}{}
+      \name{author}{2}{}{%
+        {{hash=2c230e16a783180460c73d50c70781e7}{%
+           family={Filliâtre},
+           familyi={F\bibinitperiod},
+           given={Jean-Christophe},
+           giveni={J\bibinithyphendelim C\bibinitperiod}}}%
+        {{hash=03404ca4745770d1ff700eb97ff6dda1}{%
+           family={Conchon},
+           familyi={C\bibinitperiod},
+           given={Sylvain},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{12e515bb5349285a41c51a3c1154c5c3}
+      \strng{fullhash}{12e515bb5349285a41c51a3c1154c5c3}
+      \strng{bibnamehash}{12e515bb5349285a41c51a3c1154c5c3}
+      \strng{authorbibnamehash}{12e515bb5349285a41c51a3c1154c5c3}
+      \strng{authornamehash}{12e515bb5349285a41c51a3c1154c5c3}
+      \strng{authorfullhash}{12e515bb5349285a41c51a3c1154c5c3}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the ACM SIGPLAN Workshop on ML}
+      \field{title}{Type-Safe Modular Hash-Consing}
+      \field{year}{2006}
+      \field{pages}{12\bibrangedash 19}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1145/1159876.1159880
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

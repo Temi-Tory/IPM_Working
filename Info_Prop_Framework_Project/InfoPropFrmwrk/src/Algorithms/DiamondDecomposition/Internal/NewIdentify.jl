@@ -74,12 +74,29 @@ function new_identify(edgelist::Vector{Tuple{Int64,Int64}}, node_priors::Dict{In
     # (prior 0, never reachable) or a certain SOURCE (prior 1, always reachable). A prior-1 NON-source
     # fork still has UNCERTAIN reachability (via its edges) and MUST remain conditionable — excluding it
     # (the old prior∈{0,1} test) drops all diamonds when every node prior is 1.0 (e.g. the grid benchmark)
-    # and yields wrong reliabilities. (Float64-guarded; pbox/Interval never excluded.)
+    # and yields wrong reliabilities.
+    #
+    # Type-generic over Float64/Interval/pbox (2026-08-17 fix; was Float64-only, so Interval/pbox NEVER
+    # got this exclusion even for genuinely certain sources -- confirmed to inflate diamond count/maxcond
+    # substantially on real inputs, e.g. drone concentrated-minimal K=8: 687 diamonds/maxcond=10 measured
+    # with pbox priors vs 284/maxcond=9 with Float64-midpoint priors on the IDENTICAL network. Safe by
+    # construction, not just empirically: excluding an already-degenerate node from conditioning cannot
+    # change the result (Lemma 1, conditional invariance -- P(R_A=c) is 1 for exactly one state and 0 for
+    # the rest when A is degenerate, so the total-probability sum collapses to a single term whether or
+    # not A is enumerated; conditioning on it is redundant work, never a different answer). Exactness-gate
+    # this before trusting it in the manuscript: rerun the corpus and confirm belief VALUES are unchanged
+    # (only diamond count/maxcond/timing should move) -- see MASTER_FINDINGS.md corrections ledger row 11.
+    _is_zero_val(v::Float64) = v == 0.0
+    _is_zero_val(v::Interval) = v.lower == 0.0 && v.upper == 0.0
+    _is_zero_val(v::pbox) = v.ml == 0.0 && v.mh == 0.0
+    _is_one_val(v::Float64) = v == 1.0
+    _is_one_val(v::Interval) = v.lower == 1.0 && v.upper == 1.0
+    _is_one_val(v::pbox) = v.ml == 1.0 && v.mh == 1.0
     is_det(n) = begin
         v = get(node_priors, n, nothing)
-        v isa Float64 || return false
-        v == 0.0 && return true
-        (v == 1.0 && n in source_nodes) && return true
+        v === nothing && return false
+        _is_zero_val(v) && return true
+        (_is_one_val(v) && n in source_nodes) && return true
         false
     end
 

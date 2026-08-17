@@ -10,6 +10,15 @@ struct DiamondCacheEntry{T}
     state_beliefs::Dict{Int64,T}
 end
 
+# Opt-in lean cache mode. Default OFF = legacy behavior byte-identical (including the server's
+# cache serialization in Handlers/AnalysisCommon.jl). When ON, updateDiamondJoin stores each entry
+# as (edgelist, empty priors, Dict(join_node => belief)) instead of two full per-subgraph dicts —
+# ~100x smaller per entry, results EXACT: the compute path reads cached entries only at
+# [join_node], and the rare same-key/different-join collision is handled by a get()-miss guard
+# that recomputes and merges (see updateDiamondJoin). Motivation: interval-mode context explosion
+# (link-bnlearn: 2.05M entries = 24GB OOM with full entries vs 2,982 entries in Float64).
+const LEAN_DIAMOND_CACHE = Ref(false)
+
 """
     CacheKey
 

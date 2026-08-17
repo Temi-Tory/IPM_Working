@@ -1,11 +1,33 @@
-# Corpus inventory (2026-08-16)
+# Corpus inventory (2026-08-16, corrected 2026-08-17)
 
 Full audit of every network with ACTUAL recorded IPA results, cross-referenced against
-`dag_ntwrk_files/` (85 directories total) so "exists as a file" is separated from "has results."
-~60 of the 85 directories (central_scotland_*, edinburgh_area, national_*, HB0_local_*,
-most drone-network-* variants beyond the 3 official ones, pareto-point-1..6, scaled-power-network-*x,
-etc.) are leftover generated files from earlier project phases with **zero references** in any
-results CSV or notes file — not part of the reported corpus, not counted below.
+`dag_ntwrk_files/` so "exists as a file" is separated from "has results." ~60 directories
+(central_scotland_*, edinburgh_area, national_*, HB0_local_*, most drone-network-* variants beyond
+the 3 official ones, pareto-point-1..6, scaled-power-network-*x, etc.) are leftover generated files
+from earlier project phases with **zero references** in any results CSV or notes file — not part of
+the reported corpus, not counted below.
+
+> **CORRECTIONS (2026-08-16/17, `validation/fresh_20260816/` campaign)** — every open item this
+> document originally flagged was independently re-verified under a "fresh-or-it-didn't-happen"
+> policy. Authoritative record: `validation/fresh_20260816/MASTER_FINDINGS.md` (full findings + a
+> 11-row corrections ledger). Headline corrections affecting this document specifically:
+> - Directory count was **90, not 85** (two non-orphan surprises found: `drone-network-full`,
+>   289n/6166e; `mlgw-gas-network`, since adopted as real infrastructure — see below).
+> - `paper_data.csv` **IS** the literal 129-graph list (this doc's "no single file lists all 129"
+>   caveat was wrong) — assembled by `validation/make_merged.jl`.
+> - **The stale "p-box times out on grid/KarlNetwork" claim (§4 below, and `PBOX_ANALYSIS.md`) is
+>   DISPROVEN** — grid confirmed fine repeatedly; KarlNetwork freshly re-tested, completes steps=50
+>   in 546s, and has been **promoted into the p-box evidence corpus**.
+> - **p-box soundness sweep is 50 configs (16/16, 20/20, 4/4, 10/10), not the ~14 this doc found** —
+>   the missing sweep (`corpus_cvx.jl`) was located and re-verified fresh. See §6.
+> - **Net3 (EPANET water distribution benchmark) added this session** (2026-08-17, separate from the
+>   campaign) — 97 nodes/119 edges, 51 diamonds, maxcond=5, comfortably tractable. See §4a.
+> - A **real bug was found in the drone p-box cost model** itself (`is_det` in `NewIdentify.jl`
+>   excludes prior-1.0 sources from conditioning only for Float64-typed priors, never for pbox/
+>   Interval) — the campaign's K=6..16 cost predictions (§7 below) were measured on an
+>   easier-than-real version of the problem and are systematic underestimates. See §7.
+> Treat every number below as superseded wherever this banner's points contradict it; sections not
+> mentioned here were not specifically re-checked this pass.
 
 ## Top-line summary
 

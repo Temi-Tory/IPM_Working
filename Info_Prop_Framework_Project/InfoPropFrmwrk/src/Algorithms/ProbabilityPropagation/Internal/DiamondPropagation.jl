@@ -178,9 +178,18 @@ function updateDiamondJoin(
 
             cache_key = make_cache_key(diamond.edgelist, local_sub_node_priors)
 
-            if haskey(diamond_cache, cache_key)
-                cached_entry = diamond_cache[cache_key]
-                state_beliefs = cached_entry.state_beliefs
+            # Lean-aware lookup. A LEAN entry holds only its own diamond's join belief, so a key
+            # hit must be re-validated for THIS join_node: the same (edgelist, priors) key can in
+            # principle arise from a different-join diamond (e.g. all-ones priors make the forced
+            # join prior indistinguishable). get() treats that as a miss and the recomputed belief
+            # is MERGED into the existing entry so both joins hit next time. Under legacy (full)
+            # entries the guard never fires (a full dict covers every subgraph node incl. the
+            # join), so default-OFF behavior and cache contents are identical to before.
+            local join_belief
+            cached_entry = get(diamond_cache, cache_key, nothing)
+            jb = cached_entry === nothing ? nothing : get(cached_entry.state_beliefs, join_node, nothing)
+            if jb !== nothing
+                join_belief = jb
             else
                 state_beliefs = update_beliefs_iterative(
                     diamond.edgelist,
@@ -198,10 +207,17 @@ function updateDiamondJoin(
                     computation_lookup,
                     diamond_cache
                 )
-                diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, local_sub_node_priors, state_beliefs)
+                join_belief = state_beliefs[join_node]
+                if cached_entry !== nothing
+                    cached_entry.state_beliefs[join_node] = join_belief
+                elseif LEAN_DIAMOND_CACHE[]
+                    diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, Dict{Int64,T}(), Dict{Int64,T}(join_node => join_belief))
+                else
+                    diamond_cache[cache_key] = DiamondCacheEntry(diamond.edgelist, local_sub_node_priors, state_beliefs)
+                end
             end
 
-            join_results[state_idx + 1] = state_beliefs[join_node]
+            join_results[state_idx + 1] = join_belief
         end
     end
 

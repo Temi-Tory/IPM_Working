@@ -113,6 +113,26 @@ graphs); correctness does not require it (full enumeration is correct, just 2^|c
   steps=200 → 0.0212 at steps=800 (~∝ 1/steps). So the looseness is discretisation accumulation, NOT a
   fundamental dependency over-widening (else more steps wouldn't help). Default steps = 200.
 
+## STATUS UPDATE (2026-08-17) — retiring the stale "grid/KarlNetwork p-box timed out" claim (line ~100)
+
+That line was already half-superseded within this same document (see THIRD, above: grid became
+TRACTABLE at 237s once the zero-weight skip was generalised to p-box) but was never edited to say so,
+and KarlNetwork was never retested after that fix — so the original sentence has been silently wrong
+for both networks, in different ways, for some time:
+- **grid**: confirmed fine repeatedly in the 2026-07/08 sessions (steps=50 AND steps=200, many
+  scenarios/operators, seconds not a timeout) — the THIRD section's own 237s result already showed
+  this; the line 100 sentence just never got corrected to match.
+- **KarlNetwork**: freshly re-tested 2026-08-16/17 (`validation/fresh_20260816/karl_pbox_test.log`) —
+  **completes steps=50 in 546s**. Also stale, now corrected. KarlNetwork has since been promoted into
+  the p-box evidence corpus on the strength of this result.
+Do not cite "p-box times out on grid/KarlNetwork" anywhere else this may have propagated (checked:
+`notes/pbox_operator_and_soundness.md`, `PAPER_GUIDE.md`, `notes/CORPUS_INVENTORY.md` — corrected
+alongside this file).
+Separately, a fresh faithful re-measurement of the steps-scaling curve (`timing_imprecise.jl` had an
+inputs-per-leg bug — fixed 2026-08-17, see the script) found the true cost exponent is closer to
+**O(steps^2.8)**, not O(steps^2) as stated at line 120/126 below — steps=800 is impractical (extrapolates
+to hours per graph). Treat "O(steps^2)" in this document as an early, uncorrected estimate.
+
 ## FINAL p-box conclusion (defensible claims)
 1. IPA p-box reliability is **SOUND (rigorous)** at all tested depths; NAIVE (no conditioning) is UNSOUND
    (0.12–0.42). Conditioning is what makes p-box propagation correct (all ops assume independence).
