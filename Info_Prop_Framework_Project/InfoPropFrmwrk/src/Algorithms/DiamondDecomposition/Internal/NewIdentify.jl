@@ -61,7 +61,8 @@ function new_identify(edgelist::Vector{Tuple{Int64,Int64}}, node_priors::Dict{In
                       link_probs::Dict{Tuple{Int64,Int64},T}, source_nodes::Set{Int64},
                       fork_nodes::Set{Int64}, join_nodes::Set{Int64},
                       ancestors::Dict{Int64,Set{Int64}}, descendants::Dict{Int64,Set{Int64}},
-                      iteration_sets::Vector{Set{Int64}}) where {T}
+                      iteration_sets::Vector{Set{Int64}};
+                      is_det_override::Union{Nothing,Function} = nothing) where {T}
 
     incoming = Dict{Int64,Set{Int64}}()
     for (u,v) in edgelist; push!(get!(incoming,v,Set{Int64}()), u); end
@@ -92,13 +93,18 @@ function new_identify(edgelist::Vector{Tuple{Int64,Int64}}, node_priors::Dict{In
     _is_one_val(v::Float64) = v == 1.0
     _is_one_val(v::Interval) = v.lower == 1.0 && v.upper == 1.0
     _is_one_val(v::pbox) = v.ml == 1.0 && v.mh == 1.0
-    is_det(n) = begin
+    default_is_det(n) = begin
         v = get(node_priors, n, nothing)
         v === nothing && return false
         _is_zero_val(v) && return true
         (_is_one_val(v) && n in source_nodes) && return true
         false
     end
+    # is_det_override swaps the settledness predicate (the module's single value-consulting
+    # rule) for consumers with different value semantics, e.g. interval CPM excluding
+    # zero-width durations. The recursion is untouched; with no override, behaviour is
+    # identical to before this keyword existed.
+    is_det(n) = is_det_override === nothing ? default_is_det(n) : Bool(is_det_override(n))
 
     # un-conditioned influence set of a parent p given E (p + its ancestors, minus conditioned nodes)
     infl(p, E) = begin
