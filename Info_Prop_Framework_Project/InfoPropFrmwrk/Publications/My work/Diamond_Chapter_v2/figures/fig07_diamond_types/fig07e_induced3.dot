@@ -1,0 +1,13 @@
+// Induced diamonds panel (b): three paths from the single fork — induced does not mean two paths.
+digraph induced3 {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [label="s"];
+  f [label="f", penwidth=3];
+  a [label="a"]; b [label="b"]; c [label="c"];
+  j [label="j", style=filled, fillcolor=gray85];
+  s -> f;
+  f -> a; f -> b; f -> c;
+  a -> j; b -> j; c -> j;
+}

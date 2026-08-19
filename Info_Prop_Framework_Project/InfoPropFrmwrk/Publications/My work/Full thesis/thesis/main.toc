@@ -1,0 +1,107 @@
+\babel@toc {british}{}\relax 
+\contentsline {chapter}{Declaration of Authenticity and Author's Rights}{2}{chapter*.1}%
+\contentsline {chapter}{Abstract}{3}{chapter*.2}%
+\contentsline {chapter}{Acknowledgements}{5}{chapter*.3}%
+\contentsline {chapter}{Nomenclature}{14}{chapter*.8}%
+\contentsline {chapter}{\numberline {1}Introduction}{15}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Literature Review}{16}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Complex Processes as Directed Acyclic Graphs}{17}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Introduction}{18}{section.3.1}%
+\contentsline {section}{\numberline {3.2}From Process to Graph}{18}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Node Roles}{19}{section.3.3}%
+\contentsline {section}{\numberline {3.4}The Formal Object}{20}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Information on the Network}{21}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Assumptions and Limits}{22}{section.3.6}%
+\contentsline {section}{\numberline {3.7}Three Questions}{22}{section.3.7}%
+\contentsline {chapter}{\numberline {4}Input Processing Module}{23}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Introduction}{24}{section.4.1}%
+\contentsline {section}{\numberline {4.2}File Parsers}{25}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Network File Parser}{25}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}MetaData Parser}{26}{subsection.4.2.2}%
+\contentsline {subsubsection}{Schema Conventions and Type Dispatch}{26}{section*.13}%
+\contentsline {section}{\numberline {4.3}IPF's Graph Object}{28}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Topological Sorting in DAGs}{28}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Extended Network Properties}{29}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}The Unified Graph Object}{31}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Why not Julia's Native Graph Object?}{31}{subsection.4.3.4}%
+\contentsline {chapter}{\numberline {5} Sub-graph Decomposition: Diamond Processing Module}{35}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Introduction}{36}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Decomposition in Complex Networks}{36}{subsection.5.1.1}%
+\contentsline {section}{\numberline {5.2}Preliminaries and Definitions}{37}{section.5.2}%
+\contentsline {section}{\numberline {5.3}A Configurable Target Subgraph}{38}{section.5.3}%
+\contentsline {section}{\numberline {5.4}The Identification Algorithm}{39}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Conditioning only where correlation exists}{39}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Independence partitioning}{40}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Fork selection}{40}{subsection.5.4.3}%
+\contentsline {subsection}{\numberline {5.4.4}The recursive loop}{40}{subsection.5.4.4}%
+\contentsline {subsection}{\numberline {5.4.5}Edge construction and isolation}{41}{subsection.5.4.5}%
+\contentsline {subsection}{\numberline {5.4.6}Context-aware identity}{41}{subsection.5.4.6}%
+\contentsline {subsection}{\numberline {5.4.7}The exclusion predicate \texttt {is\_det}}{42}{subsection.5.4.7}%
+\contentsline {section}{\numberline {5.5}Structural Correctness}{43}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Representation and Reuse}{46}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Diamonds as graph objects}{46}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Deduplication by hash-consing}{47}{subsection.5.6.2}%
+\contentsline {section}{\numberline {5.7}Worked Examples}{48}{section.5.7}%
+\contentsline {subsection}{\numberline {5.7.1}The atomic diamond}{48}{subsection.5.7.1}%
+\contentsline {subsection}{\numberline {5.7.2}A nested decomposition}{48}{subsection.5.7.2}%
+\contentsline {section}{\numberline {5.8}Summary}{51}{section.5.8}%
+\contentsline {chapter}{\numberline {6} Information As Probabilities: Probability Propagation Toolkit}{52}{chapter.6}%
+\contentsline {chapter}{\numberline {7} Information As Resources: Capacity Flow Toolkit}{53}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Introduction}{54}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Mathematical Model and Network Flow Semantics}{55}{section.7.2}%
+\contentsline {subsubsection}{Multi-Source Multi-Sink Reduction}{56}{section*.24}%
+\contentsline {subsubsection}{Node-Capacitated Extension via Node Splitting}{58}{section*.26}%
+\contentsline {section}{\numberline {7.3}Available Modules}{60}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Base Flow Module}{61}{section.7.4}%
+\contentsline {subsection}{\numberline {7.4.1}Max-Flow Min-Cut Solvers}{61}{subsection.7.4.1}%
+\contentsline {paragraph}{Edmonds-Karp.}{62}{section*.31}%
+\contentsline {paragraph}{Dinic.}{62}{section*.32}%
+\contentsline {subsection}{\numberline {7.4.2}Push-Relabel Solver}{63}{subsection.7.4.2}%
+\contentsline {section}{\numberline {7.5}Network Flow Diagnostics}{63}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}Min-Cut Utility Module}{63}{subsection.7.5.1}%
+\contentsline {subsubsection}{Min-Cut Enumerator}{65}{section*.33}%
+\contentsline {subsection}{\numberline {7.5.2}Structure Utility Module}{65}{subsection.7.5.2}%
+\contentsline {paragraph}{Flow Decomposition.}{65}{section*.34}%
+\contentsline {paragraph}{Structural Single Point of Failure Nodes.}{66}{section*.35}%
+\contentsline {subsection}{\numberline {7.5.3}Flow Sensitivity Module}{66}{subsection.7.5.3}%
+\contentsline {paragraph}{Critical Edge Ranking.}{67}{section*.36}%
+\contentsline {paragraph}{Marginal Capacity Values.}{67}{section*.37}%
+\contentsline {paragraph}{Marginal Range.}{67}{section*.38}%
+\contentsline {subsection}{\numberline {7.5.4}Failure Impact Module}{68}{subsection.7.5.4}%
+\contentsline {paragraph}{Single and Combined Edge Failures.}{68}{section*.39}%
+\contentsline {paragraph}{Capacity Degradation Scenarios.}{68}{section*.40}%
+\contentsline {subsection}{\numberline {7.5.5}Parametric Threshold Module}{69}{subsection.7.5.5}%
+\contentsline {paragraph}{Degradation Threshold.}{69}{section*.41}%
+\contentsline {paragraph}{Upgrade Threshold.}{70}{section*.42}%
+\contentsline {section}{\numberline {7.6}Exactness, Validation, and Scope}{70}{section.7.6}%
+\contentsline {subsection}{\numberline {7.6.1}Post-solve validation}{70}{subsection.7.6.1}%
+\contentsline {subsection}{\numberline {7.6.2}Scope of results}{71}{subsection.7.6.2}%
+\contentsline {subsection}{\numberline {7.6.3}Computational Complexity}{71}{subsection.7.6.3}%
+\contentsline {section}{\numberline {7.7}Network Flow Output Structure}{72}{section.7.7}%
+\contentsline {section}{\numberline {7.8}Case Study: Synthetic Benchmark Network}{75}{section.7.8}%
+\contentsline {subsection}{\numberline {7.8.1}Benchmark Network Design}{75}{subsection.7.8.1}%
+\contentsline {subsection}{\numberline {7.8.2}Comparative Results (Config A vs Config B)}{76}{subsection.7.8.2}%
+\contentsline {paragraph}{Bypass edge and structural vulnerability.}{77}{section*.44}%
+\contentsline {paragraph}{Node-capacitated analysis.}{77}{section*.45}%
+\contentsline {paragraph}{Flow decomposition results.}{77}{section*.47}%
+\contentsline {paragraph}{Sensitivity analysis.}{78}{section*.48}%
+\contentsline {paragraph}{Failure impact.}{80}{section*.50}%
+\contentsline {paragraph}{Degradation trajectory.}{80}{section*.51}%
+\contentsline {paragraph}{Parametric thresholds.}{80}{section*.52}%
+\contentsline {chapter}{Appendices}{87}{section*.60}%
+\contentsline {chapter}{\numberline {8} Information As Schedule and Cost: Critical Path Toolkit}{89}{appendix.8}%
+\contentsline {section}{\numberline {8.1}Introduction}{90}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Scheduling Analysis on Networks}{90}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Analysis Modes}{91}{section.8.3}%
+\contentsline {section}{\numberline {8.4}The Two Kernels}{92}{section.8.4}%
+\contentsline {section}{\numberline {8.5}Interval Analysis}{93}{section.8.5}%
+\contentsline {section}{\numberline {8.6}Exact Interval Floats: the Domination Split}{94}{section.8.6}%
+\contentsline {section}{\numberline {8.7}Case Studies}{97}{section.8.7}%
+\contentsline {subsection}{\numberline {8.7.1}One network, four questions}{97}{subsection.8.7.1}%
+\contentsline {subsection}{\numberline {8.7.2}The most reliable route}{99}{subsection.8.7.2}%
+\contentsline {subsection}{\numberline {8.7.3}The boundary}{101}{subsection.8.7.3}%
+\contentsline {section}{\numberline {8.8}Genericity}{102}{section.8.8}%
+\contentsline {section}{\numberline {8.9}Summary}{103}{section.8.9}%
+\contentsline {chapter}{\numberline {9} Package Implementation in Julia }{104}{appendix.9}%
+\contentsline {chapter}{\numberline {10} The No-Code Web Interface }{105}{appendix.10}%
+\contentsline {chapter}{\numberline {11}An End-to-End Framework Application: An Integrated Case Study }{106}{appendix.11}%

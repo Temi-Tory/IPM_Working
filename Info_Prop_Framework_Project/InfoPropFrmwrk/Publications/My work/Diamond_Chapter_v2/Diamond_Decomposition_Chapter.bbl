@@ -356,35 +356,6 @@
       \verb 10.1016/j.ress.2019.106665
       \endverb
     \endentry
-    \entry{bryant1986graph}{article}{}
-      \name{author}{1}{}{%
-        {{hash=733e32bf9035c50457c549c4ca2d1a72}{%
-           family={Bryant},
-           familyi={B\bibinitperiod},
-           given={Randal\bibnamedelima E.},
-           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
-      }
-      \strng{namehash}{733e32bf9035c50457c549c4ca2d1a72}
-      \strng{fullhash}{733e32bf9035c50457c549c4ca2d1a72}
-      \strng{bibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
-      \strng{authorbibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
-      \strng{authornamehash}{733e32bf9035c50457c549c4ca2d1a72}
-      \strng{authorfullhash}{733e32bf9035c50457c549c4ca2d1a72}
-      \field{sortinit}{8}
-      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{IEEE Transactions on Computers}
-      \field{number}{8}
-      \field{title}{Graph-Based Algorithms for {B}oolean Function Manipulation}
-      \field{volume}{C-35}
-      \field{year}{1986}
-      \field{pages}{677\bibrangedash 691}
-      \range{pages}{15}
-      \verb{doi}
-      \verb 10.1109/TC.1986.1676819
-      \endverb
-    \endentry
     \entry{ershov1958programming}{article}{}
       \name{author}{1}{}{%
         {{hash=a4052f4aea24c29a409020aa2a1b37a2}{%
@@ -399,8 +370,8 @@
       \strng{authorbibnamehash}{a4052f4aea24c29a409020aa2a1b37a2}
       \strng{authornamehash}{a4052f4aea24c29a409020aa2a1b37a2}
       \strng{authorfullhash}{a4052f4aea24c29a409020aa2a1b37a2}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{journaltitle}{Communications of the ACM}
@@ -434,8 +405,8 @@
       \strng{authorbibnamehash}{12e515bb5349285a41c51a3c1154c5c3}
       \strng{authornamehash}{12e515bb5349285a41c51a3c1154c5c3}
       \strng{authorfullhash}{12e515bb5349285a41c51a3c1154c5c3}
-      \field{sortinit}{9}
-      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{booktitle}{Proceedings of the ACM SIGPLAN Workshop on ML}
@@ -445,6 +416,35 @@
       \range{pages}{8}
       \verb{doi}
       \verb 10.1145/1159876.1159880
+      \endverb
+    \endentry
+    \entry{bryant1986graph}{article}{}
+      \name{author}{1}{}{%
+        {{hash=733e32bf9035c50457c549c4ca2d1a72}{%
+           family={Bryant},
+           familyi={B\bibinitperiod},
+           given={Randal\bibnamedelima E.},
+           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{fullhash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{bibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authorbibnamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authornamehash}{733e32bf9035c50457c549c4ca2d1a72}
+      \strng{authorfullhash}{733e32bf9035c50457c549c4ca2d1a72}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Computers}
+      \field{number}{8}
+      \field{title}{Graph-Based Algorithms for {B}oolean Function Manipulation}
+      \field{volume}{C-35}
+      \field{year}{1986}
+      \field{pages}{677\bibrangedash 691}
+      \range{pages}{15}
+      \verb{doi}
+      \verb 10.1109/TC.1986.1676819
       \endverb
     \endentry
   \enddatalist

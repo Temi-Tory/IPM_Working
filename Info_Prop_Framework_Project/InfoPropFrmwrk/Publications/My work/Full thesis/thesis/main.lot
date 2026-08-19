@@ -1,0 +1,29 @@
+\babel@toc {british}{}\relax 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Notation established by the network model.}}{21}{table.caption.12}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{\ignorespaces Input Processing Contracts by Analysis Class}}{28}{table.caption.14}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Components of the Unified Graph Object}}{32}{table.caption.15}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Field correspondence between the unified graph object of Chapter~\ref {ch:input-module} and \texttt {DiamondComputationData}}}{47}{table.caption.17}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{\ignorespaces Max-flow solver comparison.}}{61}{table.caption.29}%
+\contentsline {table}{\numberline {7.2}{\ignorespaces Per-task computational complexity for the flow capacity toolkit. $T_s$ denotes the cost of a single max-flow solve under the chosen algorithm.}}{72}{table.7.2}%
+\contentsline {table}{\numberline {7.3}{\ignorespaces Unified output schema for network flow capacity analysis across all modules.}}{74}{table.7.3}%
+\contentsline {table}{\numberline {7.4}{\ignorespaces Configuration comparison summary.}}{76}{table.caption.43}%
+\contentsline {table}{\numberline {7.5}{\ignorespaces Node-upgrade sweep (Configurations A and B give identical results): minimum single-node capacity increase required to restore \texttt {sink\_1} service under the node-capacitated solve.}}{78}{table.caption.46}%
+\contentsline {table}{\numberline {7.6}{\ignorespaces Parametric threshold and marginal range comparison for key edges.}}{81}{table.caption.53}%
+\contentsline {table}{\numberline {7.7}{\ignorespaces Min-cut enumeration for Config A.}}{81}{table.caption.58}%
+\contentsline {table}{\numberline {8}{\ignorespaces Full ranked single-edge sensitivity results for Configuration A (all non-zero $\Delta F^*$ edges).}}{88}{table.caption.61}%
+\contentsline {table}{\numberline {9}{\ignorespaces Full ranked single-edge sensitivity results for Configuration B (all non-zero $\Delta F^*$ edges).}}{88}{table.caption.62}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {8.1}{\ignorespaces The shipped modes. Every row carries a defined backward semantics; the margin column names what the backward pass reports.}}{91}{table.caption.63}%
+\contentsline {table}{\numberline {8.2}{\ignorespaces LongestPath on the water network: completion 45 along the critical chain, with the near-critical pair at slack 1.5.}}{98}{table.caption.68}%
+\contentsline {table}{\numberline {8.3}{\ignorespaces Accumulation on the water network under a budget of 528 units at outlet 27 (current total 480). Allowance is headroom divided by path multiplicity.}}{99}{table.caption.69}%
+\contentsline {table}{\numberline {8.4}{\ignorespaces The five best-served destinations by single-route success. At the other end of the scale, 104 of the 323 destinations fall below 0.5 on even their best route.}}{101}{table.caption.71}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

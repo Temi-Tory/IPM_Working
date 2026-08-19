@@ -1,0 +1,17 @@
+// Induced diamonds panel (c): still induced, with external edges into the join (u) and an
+// intermediate node (w). Bold = the diamond.
+digraph induced_ext {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [label="s"];
+  f [label="f", penwidth=3];
+  a [label="a"]; b [label="b"]; c [label="c"];
+  u [label="u"]; w [label="w"];
+  j [label="j", style=filled, fillcolor=gray85];
+  s -> f [penwidth=2.6];
+  f -> a [penwidth=2.6]; f -> b [penwidth=2.6]; f -> c [penwidth=2.6];
+  a -> j [penwidth=2.6]; b -> j [penwidth=2.6]; c -> j [penwidth=2.6];
+  w -> b;
+  u -> j;
+}

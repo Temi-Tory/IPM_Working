@@ -1,0 +1,20 @@
+// Duration classes relative to node v: dominated shaded, incomparable unfilled,
+// bypass double-bordered. Edges: s->u, u->v, v->b, b->t, u->t (the bypass), s->c, c->t.
+digraph bypass {
+  rankdir=TB; nodesep=0.9; ranksep=0.7;
+  node [shape=circle, style=filled, fillcolor=white, fontname="Helvetica", fontsize=18, penwidth=1.4, width=0.6];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [peripheries=2];
+  u [peripheries=2];
+  c [fillcolor=white];
+  v [fillcolor=gray85, penwidth=2.6];
+  b [fillcolor=gray85];
+  t [fillcolor=white, peripheries=2];
+  s -> u;
+  s -> c;
+  u -> v;
+  v -> b;
+  b -> t;
+  u -> t;
+  c -> t;
+}

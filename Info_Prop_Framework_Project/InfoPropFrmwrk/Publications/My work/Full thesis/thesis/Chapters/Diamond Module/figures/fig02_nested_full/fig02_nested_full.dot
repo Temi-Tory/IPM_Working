@@ -1,0 +1,15 @@
+// Fig — nested example, frame 1: full network. Forks 1,3 bold; joins 6,8 shaded.
+digraph nested_full {
+  rankdir=TB; nodesep=0.65; ranksep=0.5;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.58, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  1 [penwidth=3];
+  3 [penwidth=3];
+  6 [style=filled, fillcolor=gray85];
+  8 [style=filled, fillcolor=gray85];
+  1 -> 2; 1 -> 3;
+  3 -> 4; 3 -> 5;
+  4 -> 6; 5 -> 6;
+  6 -> 7;
+  2 -> 8; 7 -> 8;
+}

@@ -1,0 +1,333 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{kelley1959critical}{inproceedings}{}
+      \name{author}{2}{}{%
+        {{hash=2e3dfd4a58baba50cc3afc67f00fa21d}{%
+           family={Kelley},
+           familyi={K\bibinitperiod},
+           given={James\bibnamedelima E.},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=268c4c187a0b009f314f32c9388da512}{%
+           family={Walker},
+           familyi={W\bibinitperiod},
+           given={Morgan\bibnamedelima R.},
+           giveni={M\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boston, MA}%
+      }
+      \strng{namehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{fullhash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{bibnamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authorbibnamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authornamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authorfullhash}{0ecff717aa146f5ad12e994b555744e7}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the Eastern Joint {IRE-AIEE-ACM} Computer Conference}
+      \field{title}{Critical-Path Planning and Scheduling}
+      \field{year}{1959}
+      \field{pages}{160\bibrangedash 173}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1145/1460299.1460318
+      \endverb
+    \endentry
+    \entry{malcolm1959pert}{article}{}
+      \name{author}{4}{}{%
+        {{hash=85bd15c1acd5010c0124899f999c18fa}{%
+           family={Malcolm},
+           familyi={M\bibinitperiod},
+           given={Donald\bibnamedelima G.},
+           giveni={D\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=38ee0df06ffe09040ca69e0d87d9cad7}{%
+           family={Roseboom},
+           familyi={R\bibinitperiod},
+           given={John\bibnamedelima H.},
+           giveni={J\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=e70d8cdc69dde6bd8b8b478544b80b30}{%
+           family={Clark},
+           familyi={C\bibinitperiod},
+           given={Charles\bibnamedelima E.},
+           giveni={C\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=a41ebe2ea06bdef0025f58dd94f729e8}{%
+           family={Fazar},
+           familyi={F\bibinitperiod},
+           given={Willard},
+           giveni={W\bibinitperiod}}}%
+      }
+      \strng{namehash}{e891163cdbfa2d238c1fdf848898b032}
+      \strng{fullhash}{de79e3aab0ec4f35700a5e3a29808604}
+      \strng{bibnamehash}{de79e3aab0ec4f35700a5e3a29808604}
+      \strng{authorbibnamehash}{de79e3aab0ec4f35700a5e3a29808604}
+      \strng{authornamehash}{e891163cdbfa2d238c1fdf848898b032}
+      \strng{authorfullhash}{de79e3aab0ec4f35700a5e3a29808604}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Operations Research}
+      \field{number}{5}
+      \field{title}{Application of a Technique for Research and Development Program Evaluation}
+      \field{volume}{7}
+      \field{year}{1959}
+      \field{pages}{646\bibrangedash 669}
+      \range{pages}{24}
+      \verb{doi}
+      \verb 10.1287/opre.7.5.646
+      \endverb
+    \endentry
+    \entry{chanas2002complexity}{article}{}
+      \name{author}{2}{}{%
+        {{hash=319b4430d47b0f2fddc3a36e5f6b7a50}{%
+           family={Chanas},
+           familyi={C\bibinitperiod},
+           given={Stefan},
+           giveni={S\bibinitperiod}}}%
+        {{hash=bb0f2786fac4951192b7335093516324}{%
+           family={Zieliński},
+           familyi={Z\bibinitperiod},
+           given={Pawe{ł}},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{fullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{bibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorbibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authornamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorfullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \field{extraname}{1}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{European Journal of Operational Research}
+      \field{number}{3}
+      \field{title}{The Computational Complexity of the Criticality Problems in a Network with Interval Activity Times}
+      \field{volume}{136}
+      \field{year}{2002}
+      \field{pages}{541\bibrangedash 550}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1016/S0377-2217(01)00048-0
+      \endverb
+    \endentry
+    \entry{chanas2003planar}{article}{}
+      \name{author}{2}{}{%
+        {{hash=319b4430d47b0f2fddc3a36e5f6b7a50}{%
+           family={Chanas},
+           familyi={C\bibinitperiod},
+           given={Stefan},
+           giveni={S\bibinitperiod}}}%
+        {{hash=bb0f2786fac4951192b7335093516324}{%
+           family={Zieliński},
+           familyi={Z\bibinitperiod},
+           given={Pawe{ł}},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{fullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{bibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorbibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authornamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorfullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \field{extraname}{2}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Operations Research Letters}
+      \field{number}{1}
+      \field{title}{On the Hardness of Evaluating Criticality of Activities in a Planar Network with Duration Intervals}
+      \field{volume}{31}
+      \field{year}{2003}
+      \field{pages}{53\bibrangedash 59}
+      \range{pages}{7}
+    \endentry
+    \entry{dubois2005floats}{article}{}
+      \name{author}{3}{}{%
+        {{hash=0b9fac725102ee602ca938500ffa91d0}{%
+           family={Dubois},
+           familyi={D\bibinitperiod},
+           given={Didier},
+           giveni={D\bibinitperiod}}}%
+        {{hash=b91aecd06058e03db854906f3015e748}{%
+           family={Fargier},
+           familyi={F\bibinitperiod},
+           given={Hélène},
+           giveni={H\bibinitperiod}}}%
+        {{hash=8e22445e3602bde706ba74641c88e261}{%
+           family={Fortin},
+           familyi={F\bibinitperiod},
+           given={Jérôme},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{d25608bf25a060d117c910f13d2924a2}
+      \strng{fullhash}{d256f664c79291cb6382eda40be60d8d}
+      \strng{bibnamehash}{d256f664c79291cb6382eda40be60d8d}
+      \strng{authorbibnamehash}{d256f664c79291cb6382eda40be60d8d}
+      \strng{authornamehash}{d25608bf25a060d117c910f13d2924a2}
+      \strng{authorfullhash}{d256f664c79291cb6382eda40be60d8d}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Intelligent Manufacturing}
+      \field{title}{Computational Methods for Determining the Latest Starting Times and Floats of Tasks in Interval-Valued Activity Networks}
+      \field{volume}{16}
+      \field{year}{2005}
+      \field{pages}{407\bibrangedash 421}
+      \range{pages}{15}
+      \verb{doi}
+      \verb 10.1007/s10845-005-1654-5
+      \endverb
+    \endentry
+    \entry{fortin2010criticality}{article}{}
+      \name{author}{4}{}{%
+        {{hash=8e22445e3602bde706ba74641c88e261}{%
+           family={Fortin},
+           familyi={F\bibinitperiod},
+           given={Jérôme},
+           giveni={J\bibinitperiod}}}%
+        {{hash=bb0f2786fac4951192b7335093516324}{%
+           family={Zieliński},
+           familyi={Z\bibinitperiod},
+           given={Pawe{ł}},
+           giveni={P\bibinitperiod}}}%
+        {{hash=0b9fac725102ee602ca938500ffa91d0}{%
+           family={Dubois},
+           familyi={D\bibinitperiod},
+           given={Didier},
+           giveni={D\bibinitperiod}}}%
+        {{hash=b91aecd06058e03db854906f3015e748}{%
+           family={Fargier},
+           familyi={F\bibinitperiod},
+           given={Hélène},
+           giveni={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{3c6671d16ffcf6f01a067898bd2eb341}
+      \strng{fullhash}{95f9abd04a7a0ba298b5f9178d0e4afe}
+      \strng{bibnamehash}{95f9abd04a7a0ba298b5f9178d0e4afe}
+      \strng{authorbibnamehash}{95f9abd04a7a0ba298b5f9178d0e4afe}
+      \strng{authornamehash}{3c6671d16ffcf6f01a067898bd2eb341}
+      \strng{authorfullhash}{95f9abd04a7a0ba298b5f9178d0e4afe}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Scheduling}
+      \field{title}{Criticality Analysis of Activity Networks under Interval Uncertainty}
+      \field{volume}{13}
+      \field{year}{2010}
+      \field{pages}{609\bibrangedash 627}
+      \range{pages}{19}
+      \verb{doi}
+      \verb 10.1007/s10951-010-0163-3
+      \endverb
+    \endentry
+    \entry{baccelli1992sync}{book}{}
+      \name{author}{4}{}{%
+        {{hash=1c61aef459f5b3298a766791d85d86b1}{%
+           family={Baccelli},
+           familyi={B\bibinitperiod},
+           given={François},
+           giveni={F\bibinitperiod}}}%
+        {{hash=4c75006ec69e52b30b6e289837c02248}{%
+           family={Cohen},
+           familyi={C\bibinitperiod},
+           given={Guy},
+           giveni={G\bibinitperiod}}}%
+        {{hash=6a882281493dc524311ad3a6928e540e}{%
+           family={Olsder},
+           familyi={O\bibinitperiod},
+           given={Geert\bibnamedelima Jan},
+           giveni={G\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=35e0a09105ea505a5f4ba8e19f6ea461}{%
+           family={Quadrat},
+           familyi={Q\bibinitperiod},
+           given={Jean-Pierre},
+           giveni={J\bibinithyphendelim P\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Chichester}%
+      }
+      \list{publisher}{1}{%
+        {John Wiley \& Sons}%
+      }
+      \strng{namehash}{6ddffe333b49f846fd41b8c655e07ae3}
+      \strng{fullhash}{a175db81c3bf6ce113990dbb808049f2}
+      \strng{bibnamehash}{a175db81c3bf6ce113990dbb808049f2}
+      \strng{authorbibnamehash}{a175db81c3bf6ce113990dbb808049f2}
+      \strng{authornamehash}{6ddffe333b49f846fd41b8c655e07ae3}
+      \strng{authorfullhash}{a175db81c3bf6ce113990dbb808049f2}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Synchronization and Linearity: An Algebra for Discrete Event Systems}
+      \field{year}{1992}
+    \endentry
+    \entry{valdes1982seriesparallel}{article}{}
+      \name{author}{3}{}{%
+        {{hash=e73f56e98b719a9b2e651ea413b9ef86}{%
+           family={Valdes},
+           familyi={V\bibinitperiod},
+           given={Jacobo},
+           giveni={J\bibinitperiod}}}%
+        {{hash=5db7b92ac36b92505a52cbe66bcce4d6}{%
+           family={Tarjan},
+           familyi={T\bibinitperiod},
+           given={Robert\bibnamedelima E.},
+           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=14a06eb44bc79240ed58ee22b049b234}{%
+           family={Lawler},
+           familyi={L\bibinitperiod},
+           given={Eugene\bibnamedelima L.},
+           giveni={E\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+      }
+      \strng{namehash}{56227b42345fb6453dc39c30ee1585d1}
+      \strng{fullhash}{21b6e99f4f679c90e2193ffc270a75f2}
+      \strng{bibnamehash}{21b6e99f4f679c90e2193ffc270a75f2}
+      \strng{authorbibnamehash}{21b6e99f4f679c90e2193ffc270a75f2}
+      \strng{authornamehash}{56227b42345fb6453dc39c30ee1585d1}
+      \strng{authorfullhash}{21b6e99f4f679c90e2193ffc270a75f2}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SIAM Journal on Computing}
+      \field{number}{2}
+      \field{title}{The Recognition of Series Parallel Digraphs}
+      \field{volume}{11}
+      \field{year}{1982}
+      \field{pages}{298\bibrangedash 313}
+      \range{pages}{16}
+      \verb{doi}
+      \verb 10.1137/0211023
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

@@ -1,0 +1,15 @@
+// Diamond shapes panel (b): a parent outside the pattern entering the join (bold = the diamond).
+digraph outside {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [label="s"];
+  f [label="f", penwidth=3];
+  a [label="a"]; b [label="b"];
+  u [label="u"];
+  j [label="j", style=filled, fillcolor=gray85];
+  s -> f [penwidth=2.6];
+  f -> a [penwidth=2.6]; f -> b [penwidth=2.6];
+  a -> j [penwidth=2.6]; b -> j [penwidth=2.6];
+  u -> j;
+}

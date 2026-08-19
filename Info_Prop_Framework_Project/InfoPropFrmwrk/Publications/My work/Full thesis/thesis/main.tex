@@ -21,7 +21,18 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{algorithm}
-\usepackage{algorithmic}
+\usepackage{algpseudocode}
+% Uppercase aliases so chapters written against the old algorithmic package still build
+\newcommand{\STATE}{\State}
+\newcommand{\COMMENT}[1]{\Comment{#1}}
+\newcommand{\RETURN}{\State \textbf{return} }
+\newcommand{\IF}[1]{\If{#1}}
+\newcommand{\ELSE}{\Else}
+\newcommand{\ENDIF}{\EndIf}
+\newcommand{\FOR}[1]{\For{#1}}
+\newcommand{\ENDFOR}{\EndFor}
+\newcommand{\WHILE}[1]{\While{#1}}
+\newcommand{\ENDWHILE}{\EndWhile}
 \usepackage{enumitem}
 \usepackage{threeparttable}
 \usepackage{placeins}
@@ -33,7 +44,7 @@
 
 \usepackage{graphicx}
 
-\graphicspath{{Chapters/Flow Toolkit/figures/}}
+\graphicspath{{Chapters/Flow Toolkit/figures/}{Chapters/Network Model/figures/}{Chapters/Diamond Module/figures/}{Chapters/CPM module/figures/}}
 % TikZ for diagrams (ADDED)
 \usepackage{tikz}
 \usetikzlibrary{positioning, shapes, arrows.meta, calc, backgrounds, fit}
@@ -267,13 +278,23 @@ The framework is implemented as an open-source Julia package with a codebase des
 
 \chapter{Introduction}
 \chapter{Literature Review}
-\chapter{ System Information Model: Input Processing Module}
+\chapter{Complex Processes as Directed Acyclic Graphs}
+\label{ch:system-model}
+\include{Chapters/Network Model/Complex_Processes_Chapter}
+\chapter{Input Processing Module}
+\label{ch:input-module}
  \include{Chapters/Input Module/Input Module Chapter}
 \chapter{ Sub-graph Decomposition: Diamond Processing Module}
+\label{ch:diamond-module}
+\include{Chapters/Diamond Module/Diamond_Decomposition_Chapter}
 \chapter{ Information As Probabilities: Probability Propagation Toolkit}
+\label{ch:probability-toolkit}
 \chapter{ Information As Resources: Capacity Flow Toolkit}
+\label{ch:capacity-toolkit}
     \include{Chapters/Flow Toolkit/Flow Capacity Chapter}
 \chapter{ Information As Schedule and Cost: Critical Path Toolkit}
+\label{ch:critical-path}
+\include{Chapters/CPM module/Critical_Path_Chapter}
 \chapter{ Package Implementation in Julia }
 \chapter{ The No-Code Web Interface }
 \chapter{An End-to-End Framework Application: An Integrated Case Study }

@@ -2358,9 +2358,9 @@
     <bcf:citekey order="5">wood1985polygon</bcf:citekey>
     <bcf:citekey order="6">robertson1986graphminors</bcf:citekey>
     <bcf:citekey order="7">goharshady2020treewidth</bcf:citekey>
-    <bcf:citekey order="8">bryant1986graph</bcf:citekey>
-    <bcf:citekey order="9">ershov1958programming</bcf:citekey>
-    <bcf:citekey order="9">filliatre2006hashconsing</bcf:citekey>
+    <bcf:citekey order="8">ershov1958programming</bcf:citekey>
+    <bcf:citekey order="8">filliatre2006hashconsing</bcf:citekey>
+    <bcf:citekey order="9">bryant1986graph</bcf:citekey>
     <bcf:citekey order="10">ouyang2014interdependent</bcf:citekey>
     <bcf:citekey order="11">buldyrev2010cascade</bcf:citekey>
     <bcf:citekey order="12">perez2018sixty</bcf:citekey>
@@ -2371,9 +2371,9 @@
     <bcf:citekey order="17">wood1985polygon</bcf:citekey>
     <bcf:citekey order="18">robertson1986graphminors</bcf:citekey>
     <bcf:citekey order="19">goharshady2020treewidth</bcf:citekey>
-    <bcf:citekey order="20">bryant1986graph</bcf:citekey>
-    <bcf:citekey order="21">ershov1958programming</bcf:citekey>
-    <bcf:citekey order="22">filliatre2006hashconsing</bcf:citekey>
+    <bcf:citekey order="20">ershov1958programming</bcf:citekey>
+    <bcf:citekey order="21">filliatre2006hashconsing</bcf:citekey>
+    <bcf:citekey order="22">bryant1986graph</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

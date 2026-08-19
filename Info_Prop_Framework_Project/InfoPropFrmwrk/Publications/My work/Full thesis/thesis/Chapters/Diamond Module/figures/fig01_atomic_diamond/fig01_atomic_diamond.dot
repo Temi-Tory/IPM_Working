@@ -1,0 +1,14 @@
+// Fig — the atomic diamond: fork f, two internally disjoint paths, join j.
+digraph atomic {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [label="s"];
+  f [label="f", penwidth=3];
+  a [label="a"]; b [label="b"];
+  j [label="j", style=filled, fillcolor=gray85];
+  s -> f;
+  f -> a [label="  α", fontsize=16, fontname="Helvetica-Oblique"];
+  f -> b [label="  β", fontsize=16, fontname="Helvetica-Oblique"];
+  a -> j; b -> j;
+}
