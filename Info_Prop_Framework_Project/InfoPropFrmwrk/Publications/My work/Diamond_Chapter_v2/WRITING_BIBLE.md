@@ -84,6 +84,16 @@ occurrence. The recurring failure shapes, all cut during revision:
   rather than proved" cop-outs. Proofs are complete chains or explicit hand-offs, nothing in
   between. One sentence may point forward to the owning chapter, nothing more.
 
+- A chapter whose contribution displaces existing methods opens by surveying them (for the
+  propagation chapter: BDDs and conditioning/inference methods especially). "No lit review"
+  bans review-chapter padding, not positioning (Temi, 2026-08-19, probability chapter round 1).
+- Worked examples cover the machinery's full reach in one developed example (nested diamonds,
+  supernodes, non-influencing parents together), not the minimal case. A draft that reads
+  "summarised" needs each section developed into proper discussion, not compressed further.
+- Analysis chapters carry their own applied case study with the domain interpretation (input
+  provenance, discussion of what the results mean), and cost sections are complexity analysis
+  proper, not a cost summary. (Same round.)
+
 ## Examples and figures
 
 - One concrete example, developed, in the domain (distribution systems, process lines). No

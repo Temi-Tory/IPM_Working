@@ -46,7 +46,7 @@
 
 The Critical Path Toolkit consumes the unified graph object of
 Chapter~\ref{ch:input-module} directly and involves no decomposition. Every
-analysis in it is a pair of linear-time passes over the layered iteration
+analysis in it is built from linear-time passes over the layered iteration
 sets, so the Network Decomposition Module of Chapter~\ref{ch:diamond-module}
 is bypassed entirely.
 
@@ -59,8 +59,7 @@ concerns room, asking how far an individual component can move before that
 extremal answer changes. The first is settled by a forward pass. The second
 is where the analysis actually lives, because room is what criticality,
 bottlenecks and priorities are made of, and it exists only where the
-arithmetic of the quantity can be run backwards. This chapter develops that
-backward reading and its price under uncertainty.
+arithmetic of the quantity can be run backwards.
 
 \section{Scheduling Analysis on Networks}
 \label{sec:cpm-grounding}
@@ -98,9 +97,7 @@ forward recursion exists for any pair of operations, but a backward one is a
 property the pair either has or lacks, and an analysis that reports slack
 without checking has manufactured a number. Uncertainty sharpens the same
 discipline from another side, because the interval results above draw their
-line between easy and hard exactly where monotonicity is lost, and the
-structure that loses it turns out to be the reconvergence that
-Chapter~\ref{ch:diamond-module} measures for probability.
+line between easy and hard exactly where monotonicity is lost.
 
 \section{Analysis Modes}
 \label{sec:cpm-modes}
@@ -320,8 +317,9 @@ lower bound cannot decrease it by Lemma~\ref{lem:cpm-dominated}, so some
 optimal corner has the pinned pattern and lies within the enumerated set.
 \end{proof}
 
-The cost is $\sum_v 2^{|H_v|}$ crisp propagations against $2^k$ for
-exhaustive enumeration of all $k$ interval durations, and the exponent has
+The cost is $2\sum_v 2^{|H_v|}$ crisp propagations, one maximising and one
+minimising sweep per node, against $2^k$ for exhaustive enumeration of all
+$k$ interval durations, and the exponent has
 moved from the size of the problem to the reconvergent width around each
 node. One exhaustive sweep serves every node simultaneously, so the
 implementation runs whichever of the two is cheaper and is never worse than
@@ -331,47 +329,21 @@ where the hardness sits: in networks whose bypass sets are large.
 
 The bypass set is a reconvergence measure, and this is where the toolkit
 touches the structural theme of Chapter~\ref{ch:diamond-module} without ever
-calling its module. A bypass node is precisely an N-shaped pattern in the
-reachability order, and the orders of two-terminal series--parallel networks
-are exactly the N-free orders \cite{valdes1982seriesparallel}.
-
-\begin{proposition}[Series--parallel case]
-\label{prop:cpm-sp}
-In a two-terminal series--parallel network every pair of nodes on a common
-path is in the dominated relation and every other pair is incomparable, so
-$H_v$ is empty for every $v$, and the split computes exact interval floats in
-two crisp runs per node.
-\end{proposition}
-
-This recovers the known polynomiality of interval criticality on
-series--parallel networks as a special case, and it makes the kinship with
-probability precise. The conditioning sets of Chapter~\ref{ch:diamond-module}
-and the bypass sets of this chapter vanish on exactly the same class of
-structures and grow with the same phenomenon. Reconvergence is the price of
-exactness in both analyses. The two objects are not the same, they index
-reconvergence per join and per node respectively, and neither computation
-uses the other. Whether the diamond spans can accelerate the split by sharing
-corner evaluations between nodes with overlapping bypass sets is an open
-engineering question.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.32\linewidth]{fig03_npattern/fig03_npattern.pdf}
-  \caption{The N pattern that places $u$ in a bypass set: $u$ reaches $v$
-  and also reaches a sink around it. Series--parallel orders contain no such
-  pattern.}
-  \label{fig:cpm-npattern}
-\end{figure}
+calling its module. Both analyses pay for routes that divide and meet again,
+the decomposition module per join through the nodes it must fix, the split
+per node through $H_v$. The two sets index reconvergence at different
+granularities, neither contains the other in general, and neither computation
+uses the other.
 
 \section{Case Studies}
 \label{sec:cpm-cases}
 
 Every number in this section is produced by the toolkit and certified
-against an independent computation. The certification corpus contains ten
+against an independent computation. The certification corpus contains nine
 networks. On the seven where full path enumeration is affordable, forward
 values, through-values, margins and critical sets of every mode agree with a
-brute-force path oracle to within $10^{-15}$, and on the remaining three the
-results pass invariant and sampling checks. Interval results are certified
+brute-force path oracle to within $3 \times 10^{-14}$, and on the remaining
+two the results pass invariant and sampling checks. Interval results are certified
 against exhaustive corner enumeration driven by the same path oracle, and
 the domination split agrees with exhaustive enumeration everywhere both can
 run.
@@ -382,12 +354,14 @@ run.
 The wastewater treatment network of 32 nodes and 66 edges shows how much
 one set of inputs can say. Its stage processing times and pipeline delays
 fix the minimum release timeline at 45 units, carried by the chain
-$3 \to 11 \to 19 \to 27$ with a second chain only 1.5 units behind
-(Table~\ref{tab:cpm-water-longest}). Read for the opposite extreme, the
+$3 \to 11 \to 19 \to 27$ with a second chain $6 \to 14 \to 22 \to 30$ only
+1.5 units behind (Table~\ref{tab:cpm-water-longest}). Stage 6 alone carries
+slack 1 rather than 1.5, since its edge onto stage 11 lets it feed the
+critical chain as well. Read for the opposite extreme, the
 same inputs put the fastest achievable delivery at 15 units, and not along
 one route. The twelve margin-zero stages and the eighteen tight
-dependencies between them form a system of tied routes drawing on all
-three sources, sharing no stage with the critical chain, and the nearest
+dependencies between them form a system of tied routes drawing on three
+of the eight sources, sharing no stage with the critical chain, and the nearest
 alternative stage sits 1.5 units behind the tie
 (Figure~\ref{fig:cpm-chains}). The two extremal readings of one network
 differ not only in which stages they select but in the shape of what they
@@ -407,7 +381,7 @@ select, a single thread against a redundant lattice.
 \begin{table}[htbp]
 \centering
 \caption{LongestPath on the water network: completion 45 along the critical
-chain, with the near-critical pair at slack 1.5.}
+chain, with the second chain behind it.}
 \label{tab:cpm-water-longest}
 \small
 \renewcommand{\arraystretch}{1.15}
@@ -420,7 +394,9 @@ Node & Completion & Slack \\
 11 & 21.0 & 0 \\
 3 & 9.0 & 0 \\
 30 & 43.5 & 1.5 \\
+22 & 31.5 & 1.5 \\
 14 & 19.5 & 1.5 \\
+6 & 8.0 & 1.0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -454,6 +430,7 @@ Node & Contribution & Multiplicity & Allowance \\
 5 & 35 & 7 & $+6.9$ \\
 1 & 30 & 5 & $+9.6$ \\
 11 & 27 & 3 & $+16$ \\
+8 & 24 & 6 & $+8$ \\
 14 & 16 & 2 & $+24$ \\
 \bottomrule
 \end{tabular}
@@ -463,8 +440,7 @@ Uncertainty then tests how much of the deterministic story survives. With
 every one of the 32 stage durations widened to $\pm 20$ percent, exhaustive corner enumeration would
 require $2^{32}$ propagations, roughly $4.3 \times 10^{9}$. The domination
 split required $2{,}269{,}328$, a factor of $1{,}892$ fewer, with the largest
-bypass set holding 18 of the 32 durations, and completed in 135 seconds on
-commodity hardware. The answer changes how the deterministic result must be
+bypass set holding 18 of the 32 durations. The answer changes how the deterministic result must be
 read. Under full uncertainty no stage is necessarily critical, and exactly
 nine of the 32 are possibly critical. The single deterministic critical
 chain dissolves into a nine-candidate set (Figure~\ref{fig:cpm-floats}),
@@ -557,11 +533,11 @@ by hand.
 Dense mesh reconvergence is where the split's advantage disappears. On a
 five-by-five grid DAG with all 25 durations interval-valued, the bypass sets
 hold up to 23 of the 25 durations and the split would need more propagations
-than one shared exhaustive sweep, which the implementation therefore uses
-instead. The hardness results guarantee that some regime behaves this way,
-and it is the same regime in which the probability toolkit's conditioning
-sets explode. Reconvergence density is the shared price axis of both
-chapters, and mapping the boundary is part of the result rather than a
+than one shared exhaustive sweep, so the never-worse rule abandons the split
+there and the instance stands at the exhaustive boundary itself. The hardness
+results guarantee that some regime behaves this way, and it is the same
+regime in which the sets of nodes the probability toolkit must fix and
+enumerate explode. Mapping the boundary is part of the result rather than a
 qualification of it. Timings are reported only as measured. The water
 analyses run in 53 microseconds per pass for the additive modes and 7 for
 accumulation, the drone network in 1.8 milliseconds, and the exhaustive
@@ -587,11 +563,7 @@ only the line-by-line derivation. Interval-valued delays reduce to interval
 durations by subdividing their edges. Further out, neighbouring nodes have
 overlapping bypass sets and therefore overlapping corner evaluations, an
 economy of the kind the hash-consed store of Chapter~\ref{ch:diamond-module}
-already practises for diamonds, and the exclusion predicate of that
-chapter's identification algorithm has in fact run with a zero-width
-interval definition during the development of the split, so the
-decomposition module's extension surface is known to support value
-semantics other than probability.
+already practises for diamonds.
 
 \section{Summary}
 \label{sec:cpm-summary}
@@ -609,10 +581,8 @@ are exact through the domination split, whose correctness rests on three
 short proofs and whose cost grows with the reconvergent width around each
 node rather than with the number of uncertain inputs. That width stayed
 small enough on a real network to solve a 32-duration instance beyond the
-reach of exhaustive enumeration, it does not stay small on dense meshes,
-and it vanishes exactly on the series--parallel structures where the
-decomposition module of Chapter~\ref{ch:diamond-module} would also find
-nothing to decompose. Every number reported in this chapter is certified
+reach of exhaustive enumeration, and it does not stay small on dense
+meshes. Every number reported in this chapter is certified
 against an independent oracle, an exhaustive enumeration or a sampling
 attack.
 

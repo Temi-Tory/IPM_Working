@@ -2348,22 +2348,28 @@
     <bcf:datasource type="file" datatype="bibtex" glob="false">references.bib</bcf:datasource>
   </bcf:bibdata>
   <bcf:section number="0">
-    <bcf:citekey order="1">kelley1959critical</bcf:citekey>
-    <bcf:citekey order="2">malcolm1959pert</bcf:citekey>
-    <bcf:citekey order="3">chanas2002complexity</bcf:citekey>
-    <bcf:citekey order="4">chanas2003planar</bcf:citekey>
-    <bcf:citekey order="5">dubois2005floats</bcf:citekey>
-    <bcf:citekey order="6">fortin2010criticality</bcf:citekey>
-    <bcf:citekey order="7">baccelli1992sync</bcf:citekey>
-    <bcf:citekey order="8">baccelli1992sync</bcf:citekey>
-    <bcf:citekey order="9">chanas2002complexity</bcf:citekey>
-    <bcf:citekey order="10">kelley1959critical</bcf:citekey>
-    <bcf:citekey order="11">malcolm1959pert</bcf:citekey>
-    <bcf:citekey order="12">chanas2002complexity</bcf:citekey>
-    <bcf:citekey order="13">chanas2003planar</bcf:citekey>
-    <bcf:citekey order="14">dubois2005floats</bcf:citekey>
-    <bcf:citekey order="15">fortin2010criticality</bcf:citekey>
-    <bcf:citekey order="16">baccelli1992sync</bcf:citekey>
+    <bcf:citekey order="1">hannay2009scientists</bcf:citekey>
+    <bcf:citekey order="1">prabhu2011survey</bcf:citekey>
+    <bcf:citekey order="2">bastian2009gephi</bcf:citekey>
+    <bcf:citekey order="3">shannon2003cytoscape</bcf:citekey>
+    <bcf:citekey order="4">opencossan2018</bcf:citekey>
+    <bcf:citekey order="5">ferson2019pbar</bcf:citekey>
+    <bcf:citekey order="6">gray2021pbajulia</bcf:citekey>
+    <bcf:citekey order="7">gray2022pba</bcf:citekey>
+    <bcf:citekey order="8">hashizume2013analysis</bcf:citekey>
+    <bcf:citekey order="9">kleppmann2019local</bcf:citekey>
+    <bcf:citekey order="10">hashizume2013analysis</bcf:citekey>
+    <bcf:citekey order="11">kleppmann2019local</bcf:citekey>
+    <bcf:citekey order="12">hannay2009scientists</bcf:citekey>
+    <bcf:citekey order="13">prabhu2011survey</bcf:citekey>
+    <bcf:citekey order="14">bastian2009gephi</bcf:citekey>
+    <bcf:citekey order="15">shannon2003cytoscape</bcf:citekey>
+    <bcf:citekey order="16">opencossan2018</bcf:citekey>
+    <bcf:citekey order="17">ferson2019pbar</bcf:citekey>
+    <bcf:citekey order="18">gray2021pbajulia</bcf:citekey>
+    <bcf:citekey order="19">gray2022pba</bcf:citekey>
+    <bcf:citekey order="20">hashizume2013analysis</bcf:citekey>
+    <bcf:citekey order="21">kleppmann2019local</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="none">

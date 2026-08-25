@@ -288,45 +288,6 @@
       \field{title}{Synchronization and Linearity: An Algebra for Discrete Event Systems}
       \field{year}{1992}
     \endentry
-    \entry{valdes1982seriesparallel}{article}{}
-      \name{author}{3}{}{%
-        {{hash=e73f56e98b719a9b2e651ea413b9ef86}{%
-           family={Valdes},
-           familyi={V\bibinitperiod},
-           given={Jacobo},
-           giveni={J\bibinitperiod}}}%
-        {{hash=5db7b92ac36b92505a52cbe66bcce4d6}{%
-           family={Tarjan},
-           familyi={T\bibinitperiod},
-           given={Robert\bibnamedelima E.},
-           giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
-        {{hash=14a06eb44bc79240ed58ee22b049b234}{%
-           family={Lawler},
-           familyi={L\bibinitperiod},
-           given={Eugene\bibnamedelima L.},
-           giveni={E\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
-      }
-      \strng{namehash}{56227b42345fb6453dc39c30ee1585d1}
-      \strng{fullhash}{21b6e99f4f679c90e2193ffc270a75f2}
-      \strng{bibnamehash}{21b6e99f4f679c90e2193ffc270a75f2}
-      \strng{authorbibnamehash}{21b6e99f4f679c90e2193ffc270a75f2}
-      \strng{authornamehash}{56227b42345fb6453dc39c30ee1585d1}
-      \strng{authorfullhash}{21b6e99f4f679c90e2193ffc270a75f2}
-      \field{sortinit}{1}
-      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
-      \field{labelnamesource}{author}
-      \field{labeltitlesource}{title}
-      \field{journaltitle}{SIAM Journal on Computing}
-      \field{number}{2}
-      \field{title}{The Recognition of Series Parallel Digraphs}
-      \field{volume}{11}
-      \field{year}{1982}
-      \field{pages}{298\bibrangedash 313}
-      \range{pages}{16}
-      \verb{doi}
-      \verb 10.1137/0211023
-      \endverb
-    \endentry
   \enddatalist
 \endrefsection
 \endinput

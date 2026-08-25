@@ -1,0 +1,18 @@
+// Fig — the guided analysis pipeline of the interface. Each step unlocks when its
+// prerequisite data exists.
+digraph pipeline {
+  rankdir=LR; nodesep=0.35; ranksep=0.45;
+  node [shape=box, style=rounded, fontname="Helvetica", fontsize=16, penwidth=1.4, margin="0.16,0.11"];
+  edge [penwidth=1.3, arrowsize=0.85];
+
+  upload [label="load\nnetwork"];
+  visual [label="visualise"];
+  structure [label="inspect\nstructure"];
+  diamonds [label="explore\ndiamonds"];
+  propagate [label="propagate\nprobabilities"];
+  flowstep [label="assess\nflow"];
+  schedule [label="schedule\nand cost"];
+  profile [label="compare\nscenarios"];
+
+  upload -> visual -> structure -> diamonds -> propagate -> flowstep -> schedule -> profile;
+}

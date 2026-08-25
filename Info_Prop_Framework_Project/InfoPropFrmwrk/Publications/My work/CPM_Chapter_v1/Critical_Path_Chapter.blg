@@ -1,15 +1,15 @@
 [0] Config.pm:307> INFO - This is Biber 2.17
 [0] Config.pm:310> INFO - Logfile is 'Critical_Path_Chapter.blg'
-[293] biber-MSWIN64:340> INFO - === 
-[406] Biber.pm:418> INFO - Reading 'Critical_Path_Chapter.bcf'
-[559] Biber.pm:972> INFO - Found 8 citekeys in bib section 0
-[579] Biber.pm:4383> INFO - Processing section 0
-[615] Biber.pm:4574> INFO - Looking for bibtex file 'references.bib' for section 0
-[694] bibtex.pm:1713> INFO - LaTeX decoding ...
-[722] bibtex.pm:1518> INFO - Found BibTeX data source 'references.bib'
-[856] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[856] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
-[856] Biber.pm:4203> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-US'
-[856] Biber.pm:4209> INFO - No sort tailoring available for locale 'en-US'
-[863] bbl.pm:654> INFO - Writing 'Critical_Path_Chapter.bbl' with encoding 'UTF-8'
-[869] bbl.pm:757> INFO - Output to Critical_Path_Chapter.bbl
+[237] biber-MSWIN64:340> INFO - === 
+[318] Biber.pm:418> INFO - Reading 'Critical_Path_Chapter.bcf'
+[478] Biber.pm:972> INFO - Found 7 citekeys in bib section 0
+[498] Biber.pm:4383> INFO - Processing section 0
+[512] Biber.pm:4574> INFO - Looking for bibtex file 'references.bib' for section 0
+[592] bibtex.pm:1713> INFO - LaTeX decoding ...
+[613] bibtex.pm:1518> INFO - Found BibTeX data source 'references.bib'
+[776] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[776] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[776] Biber.pm:4203> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-US'
+[776] Biber.pm:4209> INFO - No sort tailoring available for locale 'en-US'
+[786] bbl.pm:654> INFO - Writing 'Critical_Path_Chapter.bbl' with encoding 'UTF-8'
+[796] bbl.pm:757> INFO - Output to Critical_Path_Chapter.bbl

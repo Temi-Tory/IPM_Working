@@ -1,0 +1,15 @@
+[0] Config.pm:307> INFO - This is Biber 2.17
+[0] Config.pm:310> INFO - Logfile is 'Probability_Propagation_Chapter.blg'
+[265] biber-MSWIN64:340> INFO - === 
+[312] Biber.pm:418> INFO - Reading 'Probability_Propagation_Chapter.bcf'
+[458] Biber.pm:972> INFO - Found 16 citekeys in bib section 0
+[476] Biber.pm:4383> INFO - Processing section 0
+[490] Biber.pm:4574> INFO - Looking for bibtex file 'references.bib' for section 0
+[560] bibtex.pm:1713> INFO - LaTeX decoding ...
+[588] bibtex.pm:1518> INFO - Found BibTeX data source 'references.bib'
+[725] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[725] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[725] Biber.pm:4203> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-US'
+[725] Biber.pm:4209> INFO - No sort tailoring available for locale 'en-US'
+[752] bbl.pm:654> INFO - Writing 'Probability_Propagation_Chapter.bbl' with encoding 'UTF-8'
+[767] bbl.pm:757> INFO - Output to Probability_Propagation_Chapter.bbl

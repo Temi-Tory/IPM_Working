@@ -1,0 +1,559 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{hannay2009scientists}{inproceedings}{}
+      \name{author}{6}{}{%
+        {{hash=248c6f771313e465afc231ec54f1ce29}{%
+           family={Hannay},
+           familyi={H\bibinitperiod},
+           given={Jo\bibnamedelima Erskine},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=80e48c2e6c872c3fc5c9913438ad6a1c}{%
+           family={MacLeod},
+           familyi={M\bibinitperiod},
+           given={Carolyn},
+           giveni={C\bibinitperiod}}}%
+        {{hash=c6042b430db1130a557f871eb20b7fb8}{%
+           family={Singer},
+           familyi={S\bibinitperiod},
+           given={Janice},
+           giveni={J\bibinitperiod}}}%
+        {{hash=b1ba9610a18cb091d0a9602e75b8476f}{%
+           family={Langtangen},
+           familyi={L\bibinitperiod},
+           given={Hans\bibnamedelima Petter},
+           giveni={H\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=461b55d62275a35340d9ea5908ba9e01}{%
+           family={Pfahl},
+           familyi={P\bibinitperiod},
+           given={Dietmar},
+           giveni={D\bibinitperiod}}}%
+        {{hash=fda30198609a1ab29a82b93d4e8f347b}{%
+           family={Wilson},
+           familyi={W\bibinitperiod},
+           given={Greg},
+           giveni={G\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{263ba220642325aafd40602e8bb08e02}
+      \strng{fullhash}{a7ce90fe09161378a0d1e4d6c1a3900b}
+      \strng{bibnamehash}{a7ce90fe09161378a0d1e4d6c1a3900b}
+      \strng{authorbibnamehash}{a7ce90fe09161378a0d1e4d6c1a3900b}
+      \strng{authornamehash}{263ba220642325aafd40602e8bb08e02}
+      \strng{authorfullhash}{a7ce90fe09161378a0d1e4d6c1a3900b}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 2009 {ICSE} Workshop on Software Engineering for Computational Science and Engineering}
+      \field{title}{How Do Scientists Develop and Use Scientific Software?}
+      \field{year}{2009}
+      \field{pages}{1\bibrangedash 8}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1109/SECSE.2009.5069155
+      \endverb
+    \endentry
+    \entry{prabhu2011survey}{inproceedings}{}
+      \name{author}{14}{}{%
+        {{hash=54e742f652b646a3c9961d6e6b44eacb}{%
+           family={Prabhu},
+           familyi={P\bibinitperiod},
+           given={Prakash},
+           giveni={P\bibinitperiod}}}%
+        {{hash=db68efc0ec731c0f7fc7f6b74a2f7bb1}{%
+           family={Jablin},
+           familyi={J\bibinitperiod},
+           given={Thomas\bibnamedelima B.},
+           giveni={T\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+        {{hash=aa83e7ed8eef7bdcf152db4ea588f144}{%
+           family={Raman},
+           familyi={R\bibinitperiod},
+           given={Arun},
+           giveni={A\bibinitperiod}}}%
+        {{hash=dcdf69a1733da173c54c1c5716e88b98}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Yun},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=0d25fbb745587e77d98dbb30e4fd3af3}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Jialu},
+           giveni={J\bibinitperiod}}}%
+        {{hash=3cb63fcee6ba084d4c0e3c618ef591c1}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={Hanjun},
+           giveni={H\bibinitperiod}}}%
+        {{hash=b8d5e2b4ee81f36b5b7ee004936fcb8a}{%
+           family={Johnson},
+           familyi={J\bibinitperiod},
+           given={Nick\bibnamedelima P.},
+           giveni={N\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=8cfebbe54197d0a6e7c196b6fe8cf3a3}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={Feng},
+           giveni={F\bibinitperiod}}}%
+        {{hash=b1b3bf3c6e30933106f8b56dd01f1eca}{%
+           family={Ghosh},
+           familyi={G\bibinitperiod},
+           given={Soumyadeep},
+           giveni={S\bibinitperiod}}}%
+        {{hash=cd511dd4e18dbd6dc214e82224bf8400}{%
+           family={Beard},
+           familyi={B\bibinitperiod},
+           given={Stephen},
+           giveni={S\bibinitperiod}}}%
+        {{hash=2cc48781b186754ab84823d73de0278d}{%
+           family={Oh},
+           familyi={O\bibinitperiod},
+           given={Taewook},
+           giveni={T\bibinitperiod}}}%
+        {{hash=6bd04eed2f720be1be58b1b6cb993532}{%
+           family={Zoufaly},
+           familyi={Z\bibinitperiod},
+           given={Matthew},
+           giveni={M\bibinitperiod}}}%
+        {{hash=f6ebee077ea6f2c8f67f01d541cad379}{%
+           family={Walker},
+           familyi={W\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=b90c1f13b6979cc3d46203dc233166ba}{%
+           family={August},
+           familyi={A\bibinitperiod},
+           given={David\bibnamedelima I.},
+           giveni={D\bibinitperiod\bibinitdelim I\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{0202aad118e97c173fc3635903a85d80}
+      \strng{fullhash}{e540aa38e4bb73034ee43c61f8f5fe00}
+      \strng{bibnamehash}{0202aad118e97c173fc3635903a85d80}
+      \strng{authorbibnamehash}{0202aad118e97c173fc3635903a85d80}
+      \strng{authornamehash}{0202aad118e97c173fc3635903a85d80}
+      \strng{authorfullhash}{e540aa38e4bb73034ee43c61f8f5fe00}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 2011 International Conference for High Performance Computing, Networking, Storage and Analysis}
+      \field{series}{SC '11}
+      \field{title}{A Survey of the Practice of Computational Science}
+      \field{year}{2011}
+      \field{pages}{1\bibrangedash 12}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1145/2063348.2063374
+      \endverb
+    \endentry
+    \entry{bastian2009gephi}{inproceedings}{}
+      \name{author}{3}{}{%
+        {{hash=f9fab3924b8ea32748aeedb59e2b3b58}{%
+           family={Bastian},
+           familyi={B\bibinitperiod},
+           given={Mathieu},
+           giveni={M\bibinitperiod}}}%
+        {{hash=8c2f33265854ee844e14d715f00e7dd5}{%
+           family={Heymann},
+           familyi={H\bibinitperiod},
+           given={Sebastien},
+           giveni={S\bibinitperiod}}}%
+        {{hash=1d8d87da63f7c5df6ac60ebe226f1ce0}{%
+           family={Jacomy},
+           familyi={J\bibinitperiod},
+           given={Mathieu},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{c6a28e84697108255acbd99a4fec10a5}
+      \strng{fullhash}{f46d750ffa7633791c477f06717fa430}
+      \strng{bibnamehash}{f46d750ffa7633791c477f06717fa430}
+      \strng{authorbibnamehash}{f46d750ffa7633791c477f06717fa430}
+      \strng{authornamehash}{c6a28e84697108255acbd99a4fec10a5}
+      \strng{authorfullhash}{f46d750ffa7633791c477f06717fa430}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the International {AAAI} Conference on Web and Social Media}
+      \field{title}{Gephi: An Open Source Software for Exploring and Manipulating Networks}
+      \field{volume}{3}
+      \field{year}{2009}
+      \field{pages}{361\bibrangedash 362}
+      \range{pages}{2}
+      \verb{doi}
+      \verb 10.1609/icwsm.v3i1.13937
+      \endverb
+    \endentry
+    \entry{shannon2003cytoscape}{article}{}
+      \name{author}{9}{}{%
+        {{hash=bee2847e8605301154232e4adb9df65d}{%
+           family={Shannon},
+           familyi={S\bibinitperiod},
+           given={Paul},
+           giveni={P\bibinitperiod}}}%
+        {{hash=6b7d679429569aa8607e385927ce1660}{%
+           family={Markiel},
+           familyi={M\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod}}}%
+        {{hash=ac05ac04a19956334e8a75417e0b5d23}{%
+           family={Ozier},
+           familyi={O\bibinitperiod},
+           given={Owen},
+           giveni={O\bibinitperiod}}}%
+        {{hash=3d189dbcfb4bc8c2043e6a9f6363474e}{%
+           family={Baliga},
+           familyi={B\bibinitperiod},
+           given={Nitin\bibnamedelima S.},
+           giveni={N\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=4d88071948fc150b8aae68f0e7e871c6}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Jonathan\bibnamedelima T.},
+           giveni={J\bibinitperiod\bibinitdelim T\bibinitperiod}}}%
+        {{hash=86066638fba5b4dc33bcee0bcba473cf}{%
+           family={Ramage},
+           familyi={R\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=d77bb8e93b71bd484ef916359caf5d05}{%
+           family={Amin},
+           familyi={A\bibinitperiod},
+           given={Nada},
+           giveni={N\bibinitperiod}}}%
+        {{hash=94b9990773c9d109e63156d79525ac23}{%
+           family={Schwikowski},
+           familyi={S\bibinitperiod},
+           given={Benno},
+           giveni={B\bibinitperiod}}}%
+        {{hash=a254a95c2343f55d44f87bb01073e5fa}{%
+           family={Ideker},
+           familyi={I\bibinitperiod},
+           given={Trey},
+           giveni={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{af41099d30c4e400bca3feb042862ad4}
+      \strng{fullhash}{8c258678ef3ea5b7524182efb0128cf6}
+      \strng{bibnamehash}{af41099d30c4e400bca3feb042862ad4}
+      \strng{authorbibnamehash}{af41099d30c4e400bca3feb042862ad4}
+      \strng{authornamehash}{af41099d30c4e400bca3feb042862ad4}
+      \strng{authorfullhash}{8c258678ef3ea5b7524182efb0128cf6}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Genome Research}
+      \field{number}{11}
+      \field{title}{Cytoscape: A Software Environment for Integrated Models of Biomolecular Interaction Networks}
+      \field{volume}{13}
+      \field{year}{2003}
+      \field{pages}{2498\bibrangedash 2504}
+      \range{pages}{7}
+      \verb{doi}
+      \verb 10.1101/gr.1239303
+      \endverb
+    \endentry
+    \entry{opencossan2018}{inproceedings}{}
+      \name{author}{6}{}{%
+        {{hash=ab45e3ff8af1829967acd7b7a98c2672}{%
+           family={Patelli},
+           familyi={P\bibinitperiod},
+           given={Edoardo},
+           giveni={E\bibinitperiod}}}%
+        {{hash=b1363bf338b1d0fa4e21b68fed2cfd7a}{%
+           family={George-Williams},
+           familyi={G\bibinithyphendelim W\bibinitperiod},
+           given={Hindolo},
+           giveni={H\bibinitperiod}}}%
+        {{hash=668e847f496aa5f4ac018f30239e90e2}{%
+           family={Sadeghi},
+           familyi={S\bibinitperiod},
+           given={Jonathan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=b4682e395d24b4f3803f73da8e0ada62}{%
+           family={Rocchetta},
+           familyi={R\bibinitperiod},
+           given={Roberto},
+           giveni={R\bibinitperiod}}}%
+        {{hash=5d96692eca2421d3f5b00060d2870a76}{%
+           family={Broggi},
+           familyi={B\bibinitperiod},
+           given={Matteo},
+           giveni={M\bibinitperiod}}}%
+        {{hash=63c696996ff5aa832e83a0ed37f91096}{%
+           family={Angelis},
+           familyi={A\bibinitperiod},
+           given={Marco},
+           giveni={M\bibinitperiod},
+           prefix={de},
+           prefixi={d\bibinitperiod}}}%
+      }
+      \name{editor}{3}{}{%
+        {{hash=870f10ed1ddf0db7529967991fef57f3}{%
+           family={Beck},
+           familyi={B\bibinitperiod},
+           given={André\bibnamedelima T.},
+           giveni={A\bibinitperiod\bibinitdelim T\bibinitperiod}}}%
+        {{hash=7139aca224cd697de261647c6ddd5792}{%
+           family={Souza},
+           familyi={S\bibinitperiod},
+           given={Gilberto\bibnamedelimb F.\bibnamedelimi M.},
+           giveni={G\bibinitperiod\bibinitdelim F\bibinitperiod\bibinitdelim M\bibinitperiod},
+           prefix={de},
+           prefixi={d\bibinitperiod}}}%
+        {{hash=02602ad66894b10acdbcaccbbf3b36aa}{%
+           family={Trindade},
+           familyi={T\bibinitperiod},
+           given={Marcelo\bibnamedelima A.},
+           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \strng{namehash}{5b50c37e81d9a21f596ad24cda513dae}
+      \strng{fullhash}{c9f9e0eae15b077e2cf9a30fad90845e}
+      \strng{bibnamehash}{c9f9e0eae15b077e2cf9a30fad90845e}
+      \strng{authorbibnamehash}{c9f9e0eae15b077e2cf9a30fad90845e}
+      \strng{authornamehash}{5b50c37e81d9a21f596ad24cda513dae}
+      \strng{authorfullhash}{c9f9e0eae15b077e2cf9a30fad90845e}
+      \strng{editorbibnamehash}{274b5ac3744383f82097c3ce1bf1b9cc}
+      \strng{editornamehash}{3a66cba1f1b984a1edf1d4d5c6b6bfa6}
+      \strng{editorfullhash}{274b5ac3744383f82097c3ce1bf1b9cc}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the Joint {ICVRAM} {ISUMA} {UNCERTAINTIES} Conference}
+      \field{title}{{OpenCossan} 2.0: An Efficient Computational Toolbox for Risk, Reliability and Resilience Analysis}
+      \field{year}{2018}
+    \endentry
+    \entry{ferson2019pbar}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=6ceb625d7853d563342273f3091a5e33}{%
+           family={Ferson},
+           familyi={F\bibinitperiod},
+           given={Scott},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{6ceb625d7853d563342273f3091a5e33}
+      \strng{fullhash}{6ceb625d7853d563342273f3091a5e33}
+      \strng{bibnamehash}{6ceb625d7853d563342273f3091a5e33}
+      \strng{authorbibnamehash}{6ceb625d7853d563342273f3091a5e33}
+      \strng{authornamehash}{6ceb625d7853d563342273f3091a5e33}
+      \strng{authorfullhash}{6ceb625d7853d563342273f3091a5e33}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://github.com/ScottFerson/pba.r}}
+      \field{title}{pba.r: Probability Bounds Analysis in {R}}
+      \field{year}{2019}
+    \endentry
+    \entry{gray2021pbajulia}{misc}{}
+      \name{author}{3}{}{%
+        {{hash=c53af321ec346c496095ab64b8eff34d}{%
+           family={Gray},
+           familyi={G\bibinitperiod},
+           given={Ander},
+           giveni={A\bibinitperiod}}}%
+        {{hash=6ceb625d7853d563342273f3091a5e33}{%
+           family={Ferson},
+           familyi={F\bibinitperiod},
+           given={Scott},
+           giveni={S\bibinitperiod}}}%
+        {{hash=ab45e3ff8af1829967acd7b7a98c2672}{%
+           family={Patelli},
+           familyi={P\bibinitperiod},
+           given={Edoardo},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{706f08a8b71e15932471ed2f5318218e}
+      \strng{fullhash}{c8d49b1c4c63eb3555713b027de07a3f}
+      \strng{bibnamehash}{c8d49b1c4c63eb3555713b027de07a3f}
+      \strng{authorbibnamehash}{c8d49b1c4c63eb3555713b027de07a3f}
+      \strng{authornamehash}{706f08a8b71e15932471ed2f5318218e}
+      \strng{authorfullhash}{c8d49b1c4c63eb3555713b027de07a3f}
+      \field{extraname}{1}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{Proceedings of JuliaCon}
+      \field{title}{{ProbabilityBoundsAnalysis.jl}: Arithmetic with Sets of Distributions}
+      \field{year}{2021}
+      \verb{urlraw}
+      \verb https://github.com/Institute-for-Risk-and-Uncertainty/ProbabilityBoundsAnalysis.jl
+      \endverb
+      \verb{url}
+      \verb https://github.com/Institute-for-Risk-and-Uncertainty/ProbabilityBoundsAnalysis.jl
+      \endverb
+    \endentry
+    \entry{gray2022pba}{article}{}
+      \name{author}{5}{}{%
+        {{hash=eb0a30e1d5839a8754dd316b8cdd5c5d}{%
+           family={Gray},
+           familyi={G\bibinitperiod},
+           given={Nicholas},
+           giveni={N\bibinitperiod}}}%
+        {{hash=6ceb625d7853d563342273f3091a5e33}{%
+           family={Ferson},
+           familyi={F\bibinitperiod},
+           given={Scott},
+           giveni={S\bibinitperiod}}}%
+        {{hash=139942238cf2feed81a212d7fd2e656d}{%
+           family={De\bibnamedelima Angelis},
+           familyi={D\bibinitperiod\bibinitdelim A\bibinitperiod},
+           given={Marco},
+           giveni={M\bibinitperiod}}}%
+        {{hash=c53af321ec346c496095ab64b8eff34d}{%
+           family={Gray},
+           familyi={G\bibinitperiod},
+           given={Ander},
+           giveni={A\bibinitperiod}}}%
+        {{hash=66518e4f4f483c9eb94332fc6c42cee8}{%
+           family={Baumont\bibnamedelimb de\bibnamedelima Oliveira},
+           familyi={B\bibinitperiod\bibinitdelim d\bibinitperiod\bibinitdelim O\bibinitperiod},
+           given={Francis},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{eece41079fc0d9b897d4bf6bf908a39d}
+      \strng{fullhash}{e366d0f676a34d8256adef25262284c7}
+      \strng{bibnamehash}{e366d0f676a34d8256adef25262284c7}
+      \strng{authorbibnamehash}{e366d0f676a34d8256adef25262284c7}
+      \strng{authornamehash}{eece41079fc0d9b897d4bf6bf908a39d}
+      \strng{authorfullhash}{e366d0f676a34d8256adef25262284c7}
+      \field{extraname}{2}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Software Impacts}
+      \field{title}{Probability Bounds Analysis for {P}ython}
+      \field{volume}{12}
+      \field{year}{2022}
+      \field{pages}{100246}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1016/j.simpa.2022.100246
+      \endverb
+    \endentry
+    \entry{hashizume2013analysis}{article}{}
+      \name{author}{4}{}{%
+        {{hash=4e9b8d765f3b25c807b3727075b5e7a2}{%
+           family={Hashizume},
+           familyi={H\bibinitperiod},
+           given={Keiko},
+           giveni={K\bibinitperiod}}}%
+        {{hash=f71378684b6acbbd7951d781e5dad96c}{%
+           family={Rosado},
+           familyi={R\bibinitperiod},
+           given={David\bibnamedelima G.},
+           giveni={D\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=81115e716b0cb5f5b6606d1f2cbdc276}{%
+           family={Fernández-Medina},
+           familyi={F\bibinithyphendelim M\bibinitperiod},
+           given={Eduardo},
+           giveni={E\bibinitperiod}}}%
+        {{hash=64ac4edd20557c2440be8896122cce4c}{%
+           family={Fernández},
+           familyi={F\bibinitperiod},
+           given={Eduardo\bibnamedelima B.},
+           giveni={E\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+      }
+      \strng{namehash}{361c1b42ad47db6e14d3713669a02591}
+      \strng{fullhash}{f63b57093580de43fd3c24eefcb33e5f}
+      \strng{bibnamehash}{f63b57093580de43fd3c24eefcb33e5f}
+      \strng{authorbibnamehash}{f63b57093580de43fd3c24eefcb33e5f}
+      \strng{authornamehash}{361c1b42ad47db6e14d3713669a02591}
+      \strng{authorfullhash}{f63b57093580de43fd3c24eefcb33e5f}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Internet Services and Applications}
+      \field{number}{1}
+      \field{title}{An Analysis of Security Issues for Cloud Computing}
+      \field{volume}{4}
+      \field{year}{2013}
+      \field{pages}{1\bibrangedash 13}
+      \range{pages}{13}
+      \verb{doi}
+      \verb 10.1186/1869-0238-4-5
+      \endverb
+    \endentry
+    \entry{kleppmann2019local}{inproceedings}{}
+      \name{author}{4}{}{%
+        {{hash=34b8d5b1d29d175527a6642f3ec8a76d}{%
+           family={Kleppmann},
+           familyi={K\bibinitperiod},
+           given={Martin},
+           giveni={M\bibinitperiod}}}%
+        {{hash=78c94d63299ff16130ed37a90dc97dcd}{%
+           family={Wiggins},
+           familyi={W\bibinitperiod},
+           given={Adam},
+           giveni={A\bibinitperiod}}}%
+        {{hash=08be746e5ba7584220bcbba879dcd1a8}{%
+           family={Hardenberg},
+           familyi={H\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod},
+           prefix={van},
+           prefixi={v\bibinitperiod}}}%
+        {{hash=f5993cfac255bd2b5bb68477efc3e861}{%
+           family={McGranaghan},
+           familyi={M\bibinitperiod},
+           given={Mark},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{190bc155ebad979b359619e3af909d01}
+      \strng{fullhash}{f478c18f14ce2a2878a72bae33c2bed3}
+      \strng{bibnamehash}{f478c18f14ce2a2878a72bae33c2bed3}
+      \strng{authorbibnamehash}{f478c18f14ce2a2878a72bae33c2bed3}
+      \strng{authornamehash}{190bc155ebad979b359619e3af909d01}
+      \strng{authorfullhash}{f478c18f14ce2a2878a72bae33c2bed3}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 2019 ACM SIGPLAN International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software}
+      \field{series}{Onward! 2019}
+      \field{title}{Local-First Software: You Own Your Data, in Spite of the Cloud}
+      \field{year}{2019}
+      \field{pages}{154\bibrangedash 178}
+      \range{pages}{25}
+      \verb{doi}
+      \verb 10.1145/3359591.3359737
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
