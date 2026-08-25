@@ -14,8 +14,9 @@ The chapter follows the thesis convention (`\ifdefined\maindoc` scaffold, starts
    main.tex when those chapters land (or the two sentences referencing them adjusted).
 3. **Bibliography**: the 10 entries here are carried over from the ESREL paper's verified
    References.bib (opencossan2018 and gray2021pbajulia keys renamed for consistency; fields
-   preserved). None collide with the merged thesis bib; append them to the repo-root
-   `MERGE_INTO_THESIS_BIB.bib` when integrating.
+   preserved). Already appended to the repo-root `MERGE_INTO_THESIS_BIB.bib` (2026-08-19) — that
+   file now holds 52 entries, no duplicate keys, and its contents ARE the thesis-root
+   references.bib for Overleaf integration.
 4. The `\screenshotplaceholder` macro renders framed placeholders for the two screenshot
    figures; it is defined in the chapter file and safe under `\maindoc`.
 
