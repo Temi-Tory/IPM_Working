@@ -1,0 +1,13 @@
+// Diamond shapes panel (d): two diamonds interconnected through one shared fork g.
+digraph shared {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  g [label="g", penwidth=3];
+  x [label="x"]; y [label="y"]; z [label="z"];
+  j1 [label=<j<SUB>1</SUB>>, style=filled, fillcolor=gray85];
+  j2 [label=<j<SUB>2</SUB>>, style=filled, fillcolor=gray85];
+  g -> x; g -> y; g -> z;
+  x -> j1; y -> j1;
+  y -> j2; z -> j2;
+}

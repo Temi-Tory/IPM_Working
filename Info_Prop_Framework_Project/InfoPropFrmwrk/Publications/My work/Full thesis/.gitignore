@@ -1,0 +1,20 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.loa
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+_build.log
+
+# Keep main.pdf tracked deliberately (comment the next line to ignore it)
+# main.pdf

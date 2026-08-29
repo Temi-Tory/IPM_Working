@@ -1,0 +1,38 @@
+// Fig — the local-first architecture: browser front end and Julia analysis service on one machine.
+digraph architecture {
+  rankdir=LR; nodesep=0.45; ranksep=0.8;
+  fontname="Helvetica"; fontsize=16;
+  node [shape=box, style=rounded, fontname="Helvetica", fontsize=16, penwidth=1.4, margin="0.18,0.12"];
+  edge [penwidth=1.3, arrowsize=0.85, fontname="Helvetica", fontsize=14];
+
+  subgraph cluster_machine {
+    label="the user's machine"; labeljust=l; penwidth=1.2; margin=14;
+
+    fe [label="front end\n(browser)"];
+
+    subgraph cluster_service {
+      label="analysis service"; labeljust=l; penwidth=1.0; margin=10;
+      api [label="analysis\nendpoints"];
+      sessions [label="session\nfiles", shape=folder, style=""];
+      store [label="decomposition\nstore", shape=folder, style=""];
+    }
+
+    subgraph cluster_framework {
+      label="framework"; labeljust=l; penwidth=1.0; margin=10;
+      input [label="input\nprocessing"];
+      decomp [label="decomposition"];
+      prop [label="propagation"];
+      flow [label="flow"];
+      cpm [label="critical\npath"];
+    }
+  }
+
+  fe -> api [dir=both, label="HTTP on localhost"];
+  api -> sessions [dir=both];
+  api -> store [dir=both];
+  api -> input;
+  api -> decomp;
+  api -> prop;
+  api -> flow;
+  api -> cpm;
+}

@@ -1,0 +1,50 @@
+
+
+\ifdefined\maindoc
+% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage[toc,page]{appendix}
+\onehalfspacing
+\begin{document}
+\title{Appendix: Case-Study Network Specifications}
+\fi
+
+% ---------------------------------------------------------------------------
+% CONTENT NOTE (delete once populated)
+%
+% This appendix holds the canonical, machine-checkable definition of every
+% network used as a case study anywhere in the thesis, so each chapter can
+% cite one authoritative source instead of re-describing a network in prose.
+%
+% Expected content, one section per network:
+%   - a short identifier and which chapter(s) use it
+%     (e.g. the flagship 43-node/107-edge flow benchmark, the 8-node nested
+%      diamond network, the water accumulation schedule, the medical drone
+%      network, the RESS multi-level reliability network, the grid 5x5 mesh)
+%   - node list: id, human-readable label, role (source / sink / junction / ...)
+%   - edge list: (u, v) pairs
+%   - the analysis inputs actually used: edge/node capacities for the flow
+%     runs, activity durations for the CPM runs, component and handover
+%     probabilities (point / interval / p-box) for the reliability runs
+%   - provenance: the .EDGES / .json file the numbers come from, and the
+%     validation script that regenerates any derived figures
+%
+% Keep this to data and provenance. Interpretation stays in the chapters.
+% ---------------------------------------------------------------------------
+
+\emph{Appendix in preparation.} See the content note in the source file for the intended
+structure. Cross-reference target: \texttt{app:network-specs}.

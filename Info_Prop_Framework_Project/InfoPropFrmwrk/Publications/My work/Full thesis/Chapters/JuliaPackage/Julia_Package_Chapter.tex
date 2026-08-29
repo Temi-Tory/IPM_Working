@@ -1,0 +1,36 @@
+
+
+\ifdefined\maindoc
+% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
+\onehalfspacing
+\graphicspath{{figures/}}
+\begin{document}
+\title{Package Implementation in Julia}
+\fi
+
+\emph{Chapter in preparation.} This chapter packages the modules of
+Chapters~\ref{ch:input-module} to~\ref{ch:critical-path} as an installable Julia package:
+the public API, the type design that carries point, interval and probability-box values
+through one propagation, the test and validation harness, and the reproducibility story.
+
+\ifdefined\maindoc
+% do nothing
+\else
+\printbibliography
+\end{document}
+\fi

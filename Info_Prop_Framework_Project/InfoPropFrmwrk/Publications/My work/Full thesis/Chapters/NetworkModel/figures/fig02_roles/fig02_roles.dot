@@ -1,0 +1,21 @@
+// Node roles: double borders = source and sink, bold outline = fork, shaded = join.
+// The fork's redundant pair reconverges at the join alongside an independent supply.
+digraph roles {
+  rankdir=TB; nodesep=0.7; ranksep=0.65;
+  node [shape=circle, style=filled, fillcolor=white, fontname="Helvetica", fontsize=17, penwidth=1.4, width=0.55];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s1 [peripheries=2];
+  s2 [peripheries=2];
+  f  [penwidth=2.8];
+  a; b; c;
+  j  [fillcolor=gray85, penwidth=2.2];
+  t  [peripheries=2];
+  s1 -> f;
+  f -> a;
+  f -> b;
+  a -> j;
+  b -> j;
+  s2 -> c;
+  c -> j;
+  j -> t;
+}

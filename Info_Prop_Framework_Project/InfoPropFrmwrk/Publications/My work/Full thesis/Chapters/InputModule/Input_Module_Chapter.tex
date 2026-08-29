@@ -1,0 +1,269 @@
+
+
+\ifdefined\maindoc
+% Do nothing (we are inside main.tex)
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{threeparttable}
+\usepackage{placeins} 
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{array} 
+\usepackage{pdflscape} 
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{algpseudocode}
+\usepackage[toc,page]{appendix}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\onehalfspacing
+\begin{document}
+\title{Input Processing Module}
+\fi
+
+
+\section{Introduction}
+
+When it comes to adopting a tool like IPF, the first consideration will always be about dataset format and model compatibility. Understanding complex civil infrastructures often requires measuring multiple different metrics and objectives. The same system or process might get a different type of treatment across different teams within the same project.
+
+Attribute-level information often gets split across silos of project objectives. Each silo usually only maintains the network parameters and behaviours specific to the operations concerned . Within the same infrastructure, one workflow may track fault/health signals while another tracks project related costs. For example, a fault detection objective is unlikely to track cost impact metrics or environmental load.
+
+This could be because of scope restriction or lack of access to that additional data. Beyond scope of analysis, the stage of the system's lifecycle might affect the kind of data available, as planning and design needs evolve alongside the tools used as the system matures.
+
+The actual tools used across infrastructure operations often implement different schemas and export conventions which may introduce more formatting inconsistencies. Sometimes the dataset has been purpose built to fit a specific tool or standard. Despite this, from a purely structural perspective, the network model is simply a collection of edges describing some topology, process, or flow of activities. Regardless of variation in source format, any DAG-based system model can generally be reduced to a node list and an edge list, in which nodes represent point features such as sources, junctions, assets, or demand points, and edges represent the relationships between these assets. This is consistent with widely used infrastructure data formats, such as GraphML, EPANET .inp, and MATPOWER .m, which all reduce to node and edge records beneath their respective schemas.
+
+However, when system characteristics and behaviours come into play, the structure is not so clear-cut. The relationships may carry information about the system's behaviour or analysis touchpoints such as resource capacity. This work takes a split perspective of network structure vs analysis inputs as different layers of the same network model. The initial dataset may combine these, but the goal of this one-time preprocessing step is to parse different formats into what the framework needs irrespective of source schema.
+
+The Input Processing Module is the interface between heterogeneous raw inputs that describe the system's characteristics and the standardised network model used throughout the framework. This module is therefore necessarily the sole mandatory entry point, without which no downstream algorithm can be validly invoked. This is implemented as a two-part transformation: parsing different raw input file format, and constructing the standardised graph object the framework operates on.
+
+\section{File Parsers}
+\subsection{Network File Parser}
+
+Nodes in the physical system typically have descriptive identifiers that reflect their role in the network ($\mathrm{Pump\_A}$, $\mathrm{Substation\_North}$). However, integers are more efficient in terms of memory footprint while allowing faster indexing during the repeated lookups and set operations performed throughout the framework.
+
+
+The network parser exposes a reader function that expects a .Edges or .CSV network structure file containing either an integer-keyed edge list or an adjacency matrix. Although these integers are not required to be contiguous, the user is responsible for mapping their domain-specific identifiers to unique integers before parsing the network into the framework.
+
+The module uses a staged detection flow to automatically detect file types when called. Given file path, the reader function always prefers detection via file extension. This allows for .edges files to immediately trigger the edge list reader. On the other hand, a .csv file is ambiguous since it could contain either an adjacency matrix or a column-formatted edge list. In this case, the next detection stage is lightweight content sniffing that scans headers for common source-destination keywords that indicate an edge list.
+
+If no matching header with expected descriptors is present, the next stage scans the file content for the integer-delimiter-integer pattern that usually indicates an edge list. The last edge list indicator checks the shape of the table itself where a two-column Nx2 shape is treated as an edge list, otherwise the file defaults to adjacency matrix parsing.
+
+When an adjacency matrix is detected instead, the reader first streams the table row by row to build an effective edge list. As the edges are streamed in from either file type, self-loops are rejected immediately and cycle-forming edges are detected during ingestion, since both violate the acyclicity expectation of the target DAG model.
+
+To keep the ingestion process linear in the number of edges, the reader function builds both the incoming and outgoing index directions in place in order to avoid a second pass that would otherwise be needed to construct the reverse adjacency. During the stream, for every valid edge discovered, both nodes and their directional relationships are recorded in the same pass. Once the stream completes, the parser returns the framework's minimal graph object.
+
+\subsection{MetaData Parser}
+
+Given a validated base graph object, the framework supports both node-level and edge-level information depending on the algorithm invoked. The analysis-specific input files are expected to hold the network parameters that drive each downstream algorithm. Three classes of propagation characteristics are supported: critical path, flow capacity, and probabilistic information. The sources of this information are usually decoupled from network modelling. Instead they tend to be observed externally and managed separately (such as manufacturer specs and historic data).
+
+In large networks, embedding these behavioral properties into the network structure leads to a bloated file that can be harder to maintain. For multi-metric evaluation on the same network, the user would be forced to maintain duplicate topology files per analysis variant even when the network structure does not change.
+
+To this end, regardless of analysis type, all algorithm inputs are required as .JSON files. JSON is a human-readable, platform-agnostic format that maps naturally to the key-value shape for describing component attributes. Where flat formats like CSV have a rigid tabular shape that makes them a good fit for describing the graph, JSON's flexibility allows for a more expressive representation of system characteristics. Intervals, p-boxes, and other nested data types can be easily described by data owners without the need to invent column conventions or force fit flattened values on inherently nested properties. Since it also requires no specialist tools to construct or edit, as long as the user understands the node and edges mapping, then no special understanding of graph theory or modelling tools is required to contribute values.
+
+\subsubsection{Schema Conventions and Type Dispatch}
+
+Although metadata labels are useful for documentation and reporting, the parser’s execution is driven by parseable values, key shape, and algebraic compatibility with the specified analysis type. To determine the appropriate parser for different algorithm’s inputs, any JSON file must declare a data\_type (scalar, interval, p-box) as well as an analysis\_type (flow capacity, critical path, probability).
+
+Irrespective of the analysis types, the rest of the schema contract is simple: values must be mappable to valid node identifiers and edge identifiers from the parsed DAG, and values must be parseable into the declared type domain. This convention aims to ensure that uncertainty deserialisation is concentrated in one place rather than spread across multiple readers, while keeping the JSON interface flexible to different naming conventions.
+
+\textbf{Critical Path} inputs describe node and edge weights in terms of critical-path style propagation. Since the framework is deliberately unit-agnostic for this analysis class, the weights may represent durations, costs, risk scores, environmental impact, or any other accumulative quantity, as long as the interpretation is consistent within a single run. The parser does not discriminate by unit-specific labels such as hours or risk points; it is instead driven by runtime operator functions. In addition to the node-value and edge-value maps, the input expects three operator functions to be specified: a combination function, a propagation function, and a node function, which are discussed further in the critical path methodology chapter. These operators are what define the analysis semantics at runtime and may be left unspecified, in which case the framework applies classical critical-path defaults.
+
+\textbf{Flow Capacity} inputs describe throughput constraints across the network. Edge and node capacities may be supplied in the same JSON file or split across separate files; the parser infers the value mapping based on key structure. Edge capacities are the main requirement, with optional node capacities. Unlike the other two analysis classes, capacity in this work is not uncertainty-polymorphic and only handles fixed values. To model unconstrained capacities, the metadata reader supports standard infinity tokens including Inf, +Inf, Infinity, and $\infty$. Given this, numeric soundness of capacity inputs is validated upfront, with non-negative and non-NaN constraints enforced at parse time and any malformed or invalid input rejected early.
+
+\textbf{Probabilistic Inputs} describe uncertainty attached to nodes and edges, typically for reliability and probability propagation. Node priors capture component-level uncertainty and edge probabilities capture link-level transmission or failure likelihoods. All probability values, whether scalar, interval, or p-box, must remain within [0,1]; the framework rejects values outside this range at parse time. This is the most expressive of the three analysis classes, supporting all three data types. When a non-scalar data type is specified, the values contained must match the expected shape. For instance, an interval is expected as either a delimited tuple or nested properties keyed by upper and lower bounds. P-boxes, in contrast, must follow a tagged serialization contract and declare a construction\_type. The p-box representation, including the construction type, is expected to mirror the constructor families supported by ProbabilityBoundsAnalysis.jl.
+
+\begin{table}[htbp]
+\centering
+\caption{Input Processing Contracts by Analysis Class}
+\label{tab:input-processing-contracts}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.18\textwidth}|p{0.28\textwidth}|p{0.17\textwidth}|p{0.30\textwidth}|}
+\hline
+\textbf{Layer / Class} & \textbf{Contract Shape} & \textbf{Value Domain} & \textbf{Validation / Dispatch} \\
+\hline
+Network topology
+& Edge list or adjacency matrix over integer node IDs
+& Integer node IDs; directed edges
+& Format auto-detected; self-loops and cycles rejected at parse \\
+\hline
+Probability propagation
+& Node map and edge map keyed to DAG identifiers
+& Float64, Interval, pbox
+& Values within [0,1]; key shape separates node and edge maps; \texttt{data\_type} drives deserialisation \\
+\hline
+Flow capacity
+& Edge capacity map (required), node capacity map (optional)
+& Float64 only
+& Non-negative, non-NaN enforced at parse; Inf tokens accepted (Inf, +Inf, $\infty$) \\
+\hline
+Critical path
+& Node-value and edge-value maps
+& Float64, Interval
+& Unit-agnostic; semantics set by runtime operators (combination, propagation, node); classical defaults applied if unspecified \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{IPF's Graph Object}
+\subsection{Topological Sorting in DAGs}
+For the directed acyclic graph $G = (V, E)$, the topological sort $T$ is a linear ordering of nodes where every node appears exactly once, and for every edge $u \rightarrow v$, node $u$ must appear before $v$. This order can equivalently be expressed in layered sets such that each layer groups nodes that are at the same depth from the source nodes and do not have dependencies within the group. 
+
+\begin{theorem}[IPF's Convergence Guarantee]
+Given a DAG $G = (V, E)$, an information propagation algorithm will always converge in exactly $|L|$ iterations, where $L$ is the topologically sorted layers of $G$.
+\end{theorem}
+
+\begin{proof}
+We prove by induction on the number of nodes $|V| = n$ that for any DAG $G = (V, E)$ there exists a valid topological sort $T$ and an equivalent layered topological sort $L' = \{L_1, L_2, \ldots, L_k\}$.
+
+\begin{itemize}
+    \item \textit{Base case:} If $G$ contains only one node, then the topological sorting $T$ is simply the node itself, and $L$ contains a single set containing the node. Thus, $|L| = 1$ and the single layer contains only this source node.
+    \item \textit{Inductive Assumption:} Assume that for any DAG $G$ with $n-1$ nodes, there exists a valid topological sort $T$ of $G$ and a layered sort $L = \{L_1, \ldots,  L_{k-1}\}$.
+    \item \textit{Inductive Step:} 
+    \begin{itemize}
+        \item First subset: Since $G$ is a DAG, at least one source node must exist. We group all the source nodes as $L_1$.         
+        \item Reduction: Removing the nodes in $L_1$ and all their outgoing edges from $G$ transforms $G$ into the  reduced graph $G'$. 
+        \item Reintegration: By the inductive assumption, $G'$ has a valid layered topological sort $L' = \{L_2, L_3, \ldots, L_k\}$. Therefore, prepending $L_1$ gives $L = \{L_1, L_2, \ldots, L_k\}$, which must be a valid layered topological sort of $G$.
+        \item Next subset: With $L_1$ removed, a new set of nodes becomes the sources in the reduced graph $G'$, forming the next layer $L_2$ in the ordered collection.
+        \item Further Reduction: Removing the nodes in $L_2$ and their outgoing edges further reduces  $G'$. Repeating this process until no nodes remain results in an ordered collection of subsets of nodes $\{L_1, L_2, \ldots, L_k\}$ where each set  $L_i$ is the set of source nodes identified in each iteration and \textit{k} is the number of reductions required until $G'$ has no nodes. 
+    \end{itemize}
+\end{itemize}
+
+From this construction, for any node $v \in L_i$, all parents $p \in \text{Pa}(v)$ must lie in earlier layers $L_j$ with $j < i$. That is, when processing layer $L_i$, all parent dependencies are already resolved, so each node is processed exactly once without revisiting. Therefore an algorithm on a DAG that processes nodes in this order is guaranteed to converge in exactly $|L|$ iterations.
+\end{proof}
+
+This guarantee matters specifically because every analysis in this framework is an exact analytical method without iterative convergence loops. Given this, declaring a fixed processing order once allows for reuse across the framework. Furthermore, because nodes within the same processing layer share no dependencies, the layers provide a natural parallelisation boundary for any algorithm that supports it.  
+
+\subsection{Extended Network Properties}
+The graph builder extends the parsed minimal object into IPF's complete graph object. Beyond the iteration sets just established, downstream methods also rely on cheap ancestry and reachability lookups, which the neighbourhood dictionaries alone do not provide. In large networks, computing these additional properties can be expensive, so the builder constructs them once during the same topological traversal.
+
+In this work, the iteration sets $L$ of $G$ are considered one such property and are defined within the unified graph object. The input module computes this property of the network by implementing a depth-partitioned variant of Kahn's algorithm as shown in Algorithm \ref{alg:find-iteration-sets}. 
+
+\begin{algorithm}[h]
+\caption{FindIterationSetsWithClosure}
+\label{alg:find-iteration-sets}
+\begin{algorithmic}[1]
+\Require Directed acyclic graph (acyclicity validated upstream by parser) as edge list $E$, outgoing index $\mathrm{Out}$, incoming index $\mathrm{In}$
+\Ensure $\textit{iteration\_sets}$, $\mathrm{ancestors}$, $\mathrm{descendants}$
+\If{$E = \varnothing$}
+    \State \Return $\langle \ \rangle,\ \varnothing,\ \varnothing$
+\EndIf
+\State compute $\mathrm{in\_degree}[v]$ for every node $v$
+\State initialise $\mathrm{ancestors}[x] \gets \{x\}$ and $\mathrm{descendants}[x] \gets \varnothing$ for every node $x$
+\State enqueue all source nodes (those with $\mathrm{in\_degree} = 0$) into queue $Q$
+\State $\textit{iteration\_sets} \gets \langle \ \rangle$
+\While{$Q$ not empty}
+    \State $\ell \gets |Q|$ \Comment{snapshot queue size = one topological level}
+    \State $\textit{current\_set} \gets \varnothing$
+    \For{$i = 1$ to $\ell$}
+        \State $x \gets$ dequeue$(Q)$
+        \State add $x$ to $\textit{current\_set}$
+        \ForAll{$y \in \mathrm{Out}[x]$}
+            \State $\mathrm{ancestors}[y] \gets \mathrm{ancestors}[y] \cup \mathrm{ancestors}[x]$
+            \State propagate $y$ as a descendant of every node in $\mathrm{ancestors}[x]$
+            \State $\mathrm{in\_degree}[y] \gets \mathrm{in\_degree}[y] - 1$
+            \If{$\mathrm{in\_degree}[y] = 0$}
+                \State enqueue $y$ into $Q$
+            \EndIf
+        \EndFor
+    \EndFor
+    \State append $\textit{current\_set}$ to $\textit{iteration\_sets}$
+\EndWhile
+\State \Return $\textit{iteration\_sets},\ \mathrm{ancestors},\ \mathrm{descendants}$
+\end{algorithmic}
+\end{algorithm}
+
+While layering itself is $\mathcal{O}(|V|+|E|)$, tracking the full ancestor and descendant closure within the same pass introduces additional set-propagation cost that depends on the graph's transitive density.
+This is a deliberate space-for-time trade-off, justified by the type of set operations the framework performs repeatedly. In the worst case, each node's closure could contain every other node, giving  $\mathcal{O}(n^2)$ total space. 
+
+In return, any reachability query reduces to a single set membership test in $\mathcal{O}(1)$, rather than incurring an on-demand $\mathcal{O}(|V|+|E|)$ traversal per query.
+
+Since both sets are populated within the same Kahn's pass, space is the only additional cost incurred beyond the topological sort itself.
+
+
+\subsection{The Unified Graph Object}
+The framework's unified graph object is a named tuple asembled at the end of input processing, combining the validated outputs of the parser and the graph builder into a single canonical representation. This object is the handoff point from input processing to analysis. For any downstream algorithm (probability propagation, capacity analysis, critical path, diamond decomposition)  to be invoked, all arguments can be derived from this tuple. 
+The components of the unified object are split between the shared graph specific fields and the optional analysis-input fields. This is to allow for the same instance of a network to be evaluated under different scenarios even for the same analysis type. 
+
+As shown in Table \ref{tab:graph-object-components}, the data structure choices throughout reflect the operations the framework actually performs at runtime.
+
+Adjacency indices like the \texttt{outgoing\_index} and \texttt{incoming\_index} are stored as \texttt{Dict\{Int64, Set\{Int64\}\}} because unlike Vectors, Julia's dictionary type gives O(1) average-case lookup without requiring contiguous integer node identifiers. On the other hand, the Set-typed values used in fields like \texttt{fork\_nodes} and \texttt{join\_nodes} were chosen to efficiently handle order-insensitive properties that need membership, union, and cardinality operations performed on them.
+
+Tuples are stack-allocated and immutable in Julia so the \texttt{Tuple\{Int64,Int64\}} edge list carries no per-edge heap allocation. Additionally, tuples in Julia are hashed by value so the same \texttt{(source, target)} pair maps directly to its entry in any edge-keyed dictionary without auxiliary indexing needed. Iteration sets are stored as \texttt{Vector\{Set\{Int64\}\}}, since the outer vector position ensures the sets are ordered, but internally each set holds its level members in a container with no positional ordering.
+
+\begin{table}[htbp]
+\centering
+\caption{Components of the Unified Graph Object}
+\label{tab:graph-object-components}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|l|l|p{0.38\textwidth}|}
+\hline
+\textbf{Component} & \textbf{Type} & \textbf{Role} \\
+\hline
+\multicolumn{3}{|l|}{\textit{Base graph --- built once, shared across all analyses}} \\
+\hline
+\texttt{edgelist} & \texttt{Vector\{Tuple\{Int64,Int64\}\}} & Ordered edge sequence; input to Kahn's in-degree counting \\
+\texttt{outgoing\_index} & \texttt{Dict\{Int64, Set\{Int64\}\}} & Forward adjacency: node $\to$ children \\
+\texttt{incoming\_index} & \texttt{Dict\{Int64, Set\{Int64\}\}} & Reverse adjacency: node $\to$ parents \\
+\texttt{source\_nodes} & \texttt{Set\{Int64\}} & Nodes with no incoming edges; DAG roots \\
+\texttt{sink\_nodes} & \texttt{Set\{Int64\}} & Nodes with no outgoing edges; DAG leaves \\
+\texttt{all\_nodes} & \texttt{Vector\{Int64\}} & Sorted list of all nodes in the graph \\
+\texttt{fork\_nodes} & \texttt{Set\{Int64\}} & Nodes with fan-out $> 1$ \\
+\texttt{join\_nodes} & \texttt{Set\{Int64\}} & Nodes with fan-in $> 1$ \\
+\texttt{iteration\_sets} & \texttt{Vector\{Set\{Int64\}\}} & Kahn BFS levels; dependency-safe processing order \\
+\texttt{ancestors} & \texttt{Dict\{Int64, Set\{Int64\}\}} & Transitive upward closure (includes self) \\
+\texttt{descendants} & \texttt{Dict\{Int64, Set\{Int64\}\}} & Transitive downward closure \\
+\hline
+\multicolumn{3}{|l|}{\textit{Analysis inputs --- loaded per invocation, optional}} \\
+\hline
+\texttt{node\_priors} & \texttt{Dict\{Int64, T\}} & Prior value per node; $T \in \{\texttt{Float64},\, \texttt{Interval},\, \texttt{pbox}\}$ \\
+\texttt{edge\_probabilities} & \texttt{Dict\{Tuple\{Int64,Int64\}, T\}} & Conditional probability per edge \\
+\texttt{edge\_capacities} & \texttt{Dict\{Tuple\{Int64,Int64\}, Float64\}} & Flow capacity per edge \\
+\texttt{node\_capacities} & \texttt{Dict\{Int64, Float64\}} & Flow capacity per node \\
+\texttt{node\_values} & \texttt{Dict\{Int64, T\}} & CPM node-level weight; $T \in \{\texttt{Float64},\, \texttt{Interval}\}$ \\
+\texttt{edge\_values} & \texttt{Dict\{Tuple\{Int64,Int64\}, T\}} & CPM edge-level weight \\
+\hline
+\end{tabular}
+\end{table}
+\subsection{Why not Julia's Native Graph Object?}
+
+The Julia language natively supports graph modelling and operations through the Graphs.jl package. Component-level information can be attached through complementary packages such as MetaGraphs.jl and NamedGraphs.jl, all of which are widely used and well-maintained.
+
+At instantiation, IPF immediately validates input data directly from a file path. The input processing module's parser was designed to automatically handle file variation beyond extension type such as excluding header rows and comment lines.
+
+By contrast, building a digraph in Graphs.jl with the same input would need to strip these manually because it can only be constructed from a Julia typed matrix or an edge iterator. Since Graphs.jl does not have a DAG specific constructor, the acyclicity check is no longer guaranteed by the parser and will have to be performed separately.
+
+Although both approaches require an integer-keyed node set, without companion packages such as NamedGraphs.jl, Graphs.jl enforces a contiguous integer vertex set where our module does not.
+
+Moreover, the iteration sets in the custom object are grouped by topological depth, unlike Graphs.jl's flat ordering. While the flat order is technically a valid topological sort, it does not expose the level structure required for independent operations within a layer which would force all propagation sequences within the framework to always be sequential even when they can be parallelised.
+
+IPF's custom object defines node classifications such as source, sink, fork, and join nodes directly. While Graphs.jl exposes degree information, these roles would have to be inferred every time they are needed. Similarly, since Graphs.jl does not expose a precomputed transitive closure, any reachability query would require a fresh traversal each time.
+
+These derived properties can technically be added on top of a base SimpleGraph by extending it with MetaGraphs.jl, attaching iteration sets, closure dictionaries, and node classifications as graph-level properties. This is workable but stretches the package beyond its intended use, since MetaGraphs.jl was designed for node-level and edge-level attributes rather than whole-graph structural products. Either way, the framework still needs to compute these properties itself before storing them anywhere.
+
+Additionally, MetaGraphs.jl stores properties in Symbol-keyed dictionaries with loosely typed values, which is intentional for flexibility but introduces type instability and triggers dynamic dispatch on every access. Because the input module is purpose-built for this framework, it can enforce strict typing throughout, which gives Julia's compiler more concrete information than a generic metadata dictionary. In the lookup-heavy set operations performed repeatedly during propagation, the custom structure's concrete field types let the compiler resolve these operations statically.
+
+The motivation behind the custom object is the runtime contract: every downstream algorithm receives a validated DAG with iteration sets, closure, and node roles already computed and attached, accessed through one consistent interface. Building this contract requires the same custom logic regardless of whether the base layer is a SimpleGraph or a purpose-built object. Thus, using the packages would only redistribute that work into adapter code wrapping the package objects.
+
+The framework's single canonical object also avoids the consistency risk of maintaining derived structures separately from the topology they describe.
+
+Finally, as a general-purpose graph library, Graphs.jl ships with algorithms and utilities the framework does not use, which adds load-time and maintenance cost without operational benefit. More broadly, fewer external dependencies mean less installation friction and a smaller maintenance surface for users adopting the framework.
+
+\ifdefined\maindoc
+% do nothing
+\else
+\end{document}
+\fi

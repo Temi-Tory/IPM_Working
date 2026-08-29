@@ -1,0 +1,34 @@
+
+
+\ifdefined\maindoc
+% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
+\onehalfspacing
+\graphicspath{{figures/}}
+\begin{document}
+\title{Conclusions}
+\fi
+
+\emph{Chapter in preparation.} What the framework establishes, where exact analysis ends and
+why, and the work the three problem statements of Chapter~\ref{ch:system-model} leave open.
+
+\ifdefined\maindoc
+% do nothing
+\else
+\printbibliography
+\end{document}
+\fi

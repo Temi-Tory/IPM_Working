@@ -1,0 +1,15 @@
+// Non-induced diamonds panel (c): a self-influencing diamond (parent p is itself the fork of the
+// inner pattern at j2), nested inside the outer diamond at j1.
+digraph selfinfl {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  f1 [label=<f<SUB>1</SUB>>, penwidth=3];
+  p [label="p", penwidth=3];
+  x [label="x"]; d [label="d"];
+  j2 [label=<j<SUB>2</SUB>>, style=filled, fillcolor=gray85];
+  j1 [label=<j<SUB>1</SUB>>, style=filled, fillcolor=gray85];
+  f1 -> p; f1 -> d;
+  p -> x; p -> j2; x -> j2;
+  j2 -> j1; d -> j1;
+}

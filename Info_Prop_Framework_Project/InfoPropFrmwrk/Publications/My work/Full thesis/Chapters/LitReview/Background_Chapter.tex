@@ -1,0 +1,332 @@
+
+
+\ifdefined\maindoc
+% Do nothing (we are inside main.tex)
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
+\setcounter{biburllcpenalty}{7000}
+\setcounter{biburlucpenalty}{8000}
+\setcounter{biburlnumpenalty}{9000}
+\onehalfspacing
+\graphicspath{{figures/}}
+\begin{document}
+\title{Background}
+\fi
+
+Infrastructure and process networks are routinely analysed for three separate properties:
+whether the system keeps functioning when a component fails, how much it can carry, and when a
+dependent sequence of activities finishes. A water distribution network, a power grid, a plant
+process line and a construction schedule are frequently the same kind of directed dependency
+structure examined three different ways, and the three literatures built around these
+properties, reliability computation, capacity and flow analysis, and project scheduling,
+developed largely apart from one another, each with its own vocabulary and its own notion of
+what counts as an exact answer.
+
+All three properties reduce to a computation over the same kind of object, a directed graph
+whose nodes and edges can fail, vary, or take time to traverse. Reliability computation returns
+the probability that at least one path still delivers supply from source to demand once every
+component is subject to failure. Flow analysis returns the greatest throughput the network
+delivers given the maximum capacity each edge and node sustains, and where it bottlenecks.
+Scheduling returns the earliest completion time of a dependent sequence of activities and which
+of them carry no room to slip. Three different quantities, a probability, a capacity and a
+duration, computed over structures the three literatures largely built their own methods for
+without citing one another's.
+
+\section{The Methodological Landscape}
+\label{sec:bg-landscape}
+
+A reliability block diagram arranges components in series, parallel, and $k$-out-of-$n$ groups
+whose system reliability has a closed form \cite{billinton1992network}, and fault and event trees
+widen the reachable logic by building the failure mechanism explicitly as a tree of gates
+\cite{xing2008fault}, both efficient exactly as far as the failure logic reduces to a tree or a
+series-parallel structure. Path and cut-set decomposition reaches arbitrary topologies exactly by
+splitting the network into subproblems \cite{liu2012improved,kim2013network}, at a combinatorial
+cost that grows with the same redundancy that makes the analysis worth doing, and Monte Carlo
+simulation escapes structure entirely in exchange for exactness, at a sample cost that grows
+demanding when failures are rare \cite{fishman1986comparison}. Binary decision diagrams compile
+the same Boolean structure into a canonical form on which reliability is a single traversal
+\cite{bryant1986graph,rauzy1993new}, and cutset conditioning and the junction-tree algorithm reach
+the same computation from probabilistic inference instead, treating reachability as marginal
+inference on a directed graphical model \cite{pearl1988probabilistic,lauritzen1988local}. Every
+one of these methods consumes a point-valued component probability.
+
+Series-parallel reduction collapses independent stretches pair by pair
+\cite{satyanarayana1985linear}, factoring conditions on a single component to split the graph
+into independent cases \cite{satyanarayana1983factoring}, and polygon-to-chain transformation
+widens what can be collapsed in one step beyond a plain series or parallel pair
+\cite{wood1985polygon}. Treewidth-bounded tree decomposition generalises the same idea to graphs
+no sequence of series-parallel reductions can fully collapse, bounding the cost of exact
+computation by a structural width of the graph rather than its raw size
+\cite{goharshady2020treewidth}, and the hash-consed representations binary decision diagrams also
+depend on store a repeated substructure once rather than rebuilding it
+\cite{filliatre2006hashconsing}.
+
+A dependent sequence of activities poses a structurally similar problem under a different
+algebra. The critical path method computes the longest path through a project network and the
+float every other activity carries, a computation whose float calculus dates to the late 1950s
+\cite{kelley1959critical}.
+
+Flow along capacitated edges is the fourth reading, and in its deterministic form it is the
+oldest of the four, dating to the max-flow-min-cut results of the 1950s \cite{ford1956}. What
+deterministic flow analysis does not address is what happens once the capacities themselves are
+uncertain.
+
+\section{Uncertainty in Network Analysis}
+\label{sec:bg-uncertainty}
+
+A component's failure probability, an edge's capacity, and an activity's duration are rarely
+known exactly. Each is typically estimated from sparse failure data, elicited from expert
+judgement, or quoted as a manufacturer's tolerance, and representing that further layer of
+not-knowing is itself a choice with several competing answers.
+
+Fuzzy set theory represents such a quantity as a possibility distribution rather than a
+probability distribution, assigning each possible value a graded degree of membership rather
+than a frequency \cite{zadeh1965fuzzy}. Dempster-Shafer evidence theory assigns belief mass to
+sets of possible values directly, combining evidence from independent sources without requiring
+a single probability assignment over individual outcomes \cite{shafer1976mathematical}. Imprecise
+probability represents the same not-knowing as a bounded set of probability distributions rather
+than one distribution or one possibility function: an interval bounds an unknown probability
+between two fixed values, and a probability box bounds an entire unknown distribution between two
+fixed ones \cite{ferson2003constructing,williamson1990probabilistic}.
+
+Reliability computation's exact methods, from reliability block diagrams through junction trees,
+consume a single point-valued probability throughout; the imprecise-probability treatment above
+is the direct answer to that limitation.
+
+Flow under uncertainty takes forms that do not coincide with each other. Robust optimisation
+treats an uncertain capacity adversarially rather than probabilistically: a capacity is drawn
+from an uncertainty set rather than assigned a distribution, and the network is evaluated
+against its worst case within that set. The approach has its own complexity landscape, the
+robust maximum-flow problem is solvable in polynomial time, while the corresponding robust
+minimum-cut problem is NP-hard \cite{bertsimas2013robust}. No probability measure enters this
+formulation at any point. The stochastic-flow network reliability problem, founded by Doulliez
+and Jamoulle, holds capacities as point-valued random variables instead and asks for the
+probability that the network can deliver a stated demand: each arc's capacity is a discrete
+random variable, and network reliability comes from decomposing the space of feasible capacity
+configurations \cite{doulliez1972transportation}. The method family that follows, state-space
+decomposition, boundary-point enumeration, and sum-of-disjoint-products techniques for combining
+them, mirrors path and cut-set reliability computation closely enough that the same formalism
+travels into project scheduling directly: an activity's duration and cost stand in for an arc's
+capacity states, precisely the modelling move behind the exact multi-state project reliability
+method discussed in Section~\ref{sec:bg-frameworks} \cite{huang2020exact}.
+
+Duration uncertainty in scheduling followed a similar split. PERT replaced each fixed duration
+with a three-point estimate and a distributional assumption almost as soon as the critical path
+method itself appeared \cite{malcolm1959pert}. An interval rather than a distribution over each
+duration is harder still: deciding whether an activity is possibly critical is NP-complete in
+general \cite{chanas2002complexity}.
+
+Across reliability, flow, and schedule, the same handful of representations recur, point-valued
+distributions, robust or adversarial bounds, and imprecise probability, but no single
+representation is used consistently across all three; each domain settled on its own answer
+largely independently of the other two.
+
+\section{Multi-Analysis Methods for Complex Infrastructure}
+\label{sec:bg-frameworks}
+
+Reasoning about a complex infrastructure system rarely stops at one question, and running more
+than one kind of analysis against a single shared network representation is an established
+pattern in engineering software, not unique to any one discipline. \texttt{pandapower}, an
+open-source power-system analysis tool, runs power flow, optimal power flow, state estimation,
+topological graph search, and short-circuit calculation against one explicit graph of buses,
+lines and transformers, a diversity of analysis paradigm matched by commercial power-system
+suites such as DIgSILENT PowerFactory and PSS/E \cite{thurner2018pandapower}. The {ArcGIS}
+Utility Network models power, gas, and water networks as an explicit graph of features connected
+through topology, and runs eight distinct trace types, connectivity, isolation, subnetwork
+discovery, loop detection among them, against that one shared topology
+\cite{esri_utilitynetwork}. Neither tool's analyses are this thesis's reachability reliability,
+capacitated flow, or activity scheduling, and neither propagates interval or probability-box
+uncertainty.
+
+Whether an existing tool or method combines reachability reliability, capacitated flow, and
+activity scheduling specifically, on one network representation, is a narrower question. The
+search for it turned up three distinct partial answers among tools and methods, plus one
+comparable piece of doctoral research, and none of the four meets it fully.
+
+Commercial reliability software has, in practice, already paired reliability with flow. Several
+of the reliability block diagram and fault tree suites still in active use, ReliaSoft's
+BlockSim, Isograph's Availability Workbench, and ITEM Software's ITEM ToolKit among them, bundle
+a throughput or process-flow module alongside their core reliability engine, modelling
+multi-flow-type capacity, bottlenecks and resource allocation on the same diagrams their
+reliability analyses use \cite{reliasoft2024blocksim,isograph2024availability,itemsoftware2024toolkit}.
+None of their public documentation describes a project-scheduling or critical-path module, and
+all three represent component life and failure with classical distributions, fitted from data or
+specified by the analyst, rather than intervals or probability boxes.
+
+Open-source infrastructure simulation platforms have, from the opposite direction, paired flow
+with something schedule-shaped. InfraRisk integrates power-flow, water-hydraulic and
+traffic-flow simulators for interdependent power, water and road networks under its own banner
+of resilience analysis, and its recovery module sequences repair-crew actions with real start
+and end times computed from travel time and repair duration, either by heuristic prioritisation
+or by model-predictive-control optimisation \cite{balakrishnan2022infrarisk}. That sequencing is
+a logistics schedule rather than a precedence-network critical-path computation, since it
+optimises the order and timing of repair actions against a performance-loss metric rather than
+the float of a fixed activity network. Its reliability side is likewise not a source-to-node
+reachability computation. The hazard module derives point component-failure probabilities from
+exposure and intensity to drive Monte-Carlo-style disaster scenarios, and the platform reports
+its results as simulated performance loss rather than an exact reliability figure.
+
+A third direction pairs reliability with schedule directly, inside project-network reliability
+itself. Modelling a project's activities as the arcs of a multi-state network and asking for the
+probability that the project completes within both a time and a budget constraint is an
+established line of work. Huang, Huang and Lin's decomposition method computes this exact
+project reliability, splitting the space of feasible completion-time and budget combinations
+into subsets via a project's upper and lower boundary points and evaluating each by
+inclusion-exclusion, an approach the authors validate against full enumeration on a real
+thirteen-activity manufacturing project \cite{huang2020exact}. The method returns a project
+reliability of 0.906 for one tested time-budget pair on that project and traces how the figure
+moves as the constraints are relaxed. It has no notion of a physical arc capacity carrying a
+transportable flow, activity duration and cost standing in its place instead, and every input is
+a discrete state with a fixed probability rather than an interval or a probability box.
+
+Doctoral research comes closer than any commercial or open-source tool to combining two of the
+three. Tong's Georgia Tech dissertation develops new methods for infrastructure flow networks
+and investigates their reliability in terms of both connectivity and flow capacity together,
+using a probability propagation method published the same year and belonging to the same
+message-passing lineage surveyed in Section~\ref{sec:bg-landscape} \cite{tong2021infrastructure}.
+Schedule and critical-path analysis are absent from it, and the probability treatment throughout
+is point-valued rather than interval- or probability-box-based.
+
+No candidate combines all three analyses on one network, and the four above do not even pair the
+same two twice: reliability and flow are paired in commercial software with no schedule
+dimension, flow and a form of scheduling are paired in open-source simulation platforms with no
+formal reliability computation, reliability and schedule are paired in project-network theory
+with no true flow network, and reliability and flow are paired again, this time exactly, in
+Tong's dissertation, still without schedule. Every one of the four, without exception, represents
+its uncertain inputs precisely or adversarially, never as an interval or a probability box, and
+neither \texttt{pandapower} nor the {ArcGIS} Utility Network above changes that picture: both run
+several kinds of analysis on one network, but neither runs this thesis's specific three, and
+neither propagates imprecision either.
+
+\section{Availability of Engineering Analysis Software}
+\label{sec:bg-delivery}
+
+In engineering analysis, three patterns of software availability recur, browser-delivered
+simulation-as-a-service, licensed desktop installation, and web-based {GIS}, and none of them
+has been adopted by the no-code and low-code business-software movement.
+
+The no-code and low-code software category defines itself around business application
+development throughout its own literature. A systematic review of 383 definitions across 306
+publications from 2014 to 2025 characterises no-code platforms as visual, drag-and-drop
+environments that let a non-programmer build software without writing code, and low-code
+platforms as the same idea with a professional-developer audience layered on top
+\cite{abendroth2026democratization}. Mapping the identified platforms onto ten functional system
+classes, the same review names enterprise-resource-planning extensions, customer-relationship
+platforms, multi-experience development platforms, business-process automation and management
+suites, robotic process automation, document management systems, and integration-platform hubs
+as the categories the low-code and no-code movement actually occupies, illustrated with named
+commercial examples such as Mendix, Salesforce, UiPath, Bizagi and Zapier. Engineering or
+scientific analysis, reliability, flow, structural or otherwise, does not appear among them.
+
+In engineering analysis, browser-delivered simulation-as-a-service is one established
+alternative. SimScale, launched in 2013, runs computational fluid dynamics, finite element,
+thermal and electromagnetic analysis entirely in the browser with no local installation
+\cite{simscale}, though its computation runs in the vendor's cloud rather than on the user's own
+machine. The licensed desktop {GUI} reliability suite is a second, older pattern: the same
+commercial software named in Section~\ref{sec:bg-frameworks} solves the no-programming half of
+the delivery problem as a local install rather than a browser application, the reverse
+trade-off from SimScale's.
+
+Some web-based {GIS} platforms exist specifically for hazard and infrastructure risk assessment.
+A {PRISMA}-based systematic review of this literature, screening 1{,}775 articles and admitting
+65, organises the field around themes including visualisation and user-interface design and
+decision-support systems \cite{daud2024webgis}. Repetto et al.'s platform is a concrete member of
+it. It delivers wind-monitoring, forecasting and statistical risk mapping for ports, motorways,
+rail lines and industrial plants exposed to wind. Its interface is web-based {GIS} built on free
+and open geospatial software, run by port authorities and operators who never touch the
+underlying numerical wind and wave models themselves \cite{repetto2018windgis}. Most platforms
+in this category focus on monitoring and forecasting rather than a structural reliability or
+component-failure computation.
+
+Local-first software keeps the usability of the modern web while storing and computing its data
+on the user's own machine rather than a remote server \cite{kleppmann2019local}, an architecture
+that matters most in exactly the industries whose proprietary system models cannot leave the
+premises.
+
+SimScale is browser-based but not local; the desktop suites are local but not browser-based; the
+web-{GIS} platforms are browser-based but run on a remote server. No tool found in this search
+combines browser delivery, no programming, and local computation and data all at once.
+
+\section{Julia as a Language for Network Modelling and Analysis}
+\label{sec:bg-language}
+
+{MATLAB} has offered built-in graph and network functions since the mid-2010s: shortest-path,
+maximum-flow, centrality, connected-component and spanning-tree computations all operate on its
+native \texttt{graph} and \texttt{digraph} classes \cite{mathworks_graphalgorithms}. R's
+equivalent general-purpose graph package is igraph, used for shortest paths, centrality,
+community detection and flow computation over one shared graph object \cite{csardi2006igraph},
+and R additionally carries a package purpose-built for structural reliability specifically,
+computing system and survival signatures over a network's topology \cite{aslett_reliabilitytheory},
+the kind of dedicated reliability tooling neither {MATLAB}'s built-in functions nor Python's
+ecosystem, below, provide natively. Rust's graph ecosystem is newer and smaller, centred on
+\texttt{petgraph}, a general-purpose graph data-structure library with the same shortest-path,
+spanning-tree and traversal algorithms as the languages above \cite{petgraph}.
+
+Python's equivalent general-purpose graph package is NetworkX, whose own canonical paper
+presents it as covering simple graphs, directed graphs, and graphs with parallel edges, over a
+single native numeric type \cite{hagberg2008networkx}. No single Python package purpose-built for
+network reliability computation, in the reliability block diagram, path-set, or decision-diagram
+sense this literature uses the term, was found in this search, the way R's
+\texttt{ReliabilityTheory} package is; the closest candidate, \texttt{pgmpy}, is a general
+Bayesian-network and probabilistic-graphical-model toolkit with belief propagation and structure
+learning built in, useful machinery for the same class of problem but not a package built to
+solve it directly. This is a gap in packaged tooling specifically, not in published research:
+network reliability analysis is itself an actively reviewed field with applications across
+communications, transportation, and electrical and gas distribution \cite{gaur2021literature},
+and that research draws on whichever language a given group already works in without converging
+on one shared package the way NetworkX did for general graph algorithms.
+
+Julia's own graph ecosystem, centred on \texttt{Graphs.jl} and its satellite packages for
+weighted graphs, property graphs and bindings to established external libraries, occupies the
+equivalent general-purpose position to NetworkX, igraph and \texttt{petgraph}, though no single
+paper describes that ecosystem the way Hagberg, Schult and Swart's paper describes NetworkX.
+None of the packages named above, in any of the five languages, carries a native notion of an
+interval- or probability-box-valued edge or node, which is not a limitation any of them sets out
+to address, since none is built for propagating uncertain quantities across a network in the
+first place.
+
+Multiple dispatch, choosing which method of a generic function to run from the runtime types of
+every argument rather than just the first, is presented in the canonical Julia paper as the
+mechanism that lets one generic function definition serve arbitrarily many numeric and
+non-numeric types without its author anticipating any of them in advance
+\cite{bezanson2017julia}. The same paper grounds Julia's central design claim, that a dynamic
+language need not trade its ease of use for the performance a statically compiled one gets, in
+the same type system and dispatch mechanism. This is the mechanism this framework's own
+propagation step leans on to specialise correctly whether the value flowing through it is a
+float, an interval, or a probability box, without the author of the propagation step anticipating
+any of the three in advance.
+
+\section{Summary}
+\label{sec:bg-summary}
+
+Reliability, flow, and schedule analysis grew as three separate literatures, each with its own
+exact methods and its own way of representing what it does not know precisely about its inputs.
+Running several kinds of analysis against one shared network object is not itself a new idea in
+engineering software, but no tool, method, or doctoral thesis found in this search combines
+reachability reliability, capacitated flow, and activity scheduling on one network
+representation, with any of them propagating imprecision natively across the combination. No
+engineering-analysis tool found in this search delivers that combination through an interface
+that asks its user for files and clicks rather than code, either. This thesis's own framework is
+built to close that gap. It computes all three analyses from one network model, propagates
+interval uncertainty natively through each and probability-box uncertainty through reliability
+specifically, and reaches its user through a local, no-code interface rather than a script.
+
+\ifdefined\maindoc
+% do nothing
+\else
+\printbibliography
+\end{document}
+\fi

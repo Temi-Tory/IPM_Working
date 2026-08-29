@@ -1,0 +1,13 @@
+// Diamond shapes panel (a): the induced diamond — one fork, two internally disjoint paths, a join.
+digraph induced {
+  rankdir=TB; nodesep=0.7; ranksep=0.55;
+  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
+  edge [penwidth=1.4, arrowsize=0.9];
+  s [label="s"];
+  f [label="f", penwidth=3];
+  a [label="a"]; b [label="b"];
+  j [label="j", style=filled, fillcolor=gray85];
+  s -> f;
+  f -> a; f -> b;
+  a -> j; b -> j;
+}

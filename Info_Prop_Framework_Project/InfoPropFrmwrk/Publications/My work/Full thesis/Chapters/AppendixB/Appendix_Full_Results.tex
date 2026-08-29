@@ -1,0 +1,48 @@
+
+
+\ifdefined\maindoc
+% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage[toc,page]{appendix}
+\onehalfspacing
+\begin{document}
+\title{Appendix: Full Numerical Results}
+\fi
+
+% ---------------------------------------------------------------------------
+% CONTENT NOTE (delete once populated)
+%
+% This appendix holds the complete result tables that back up claims made in
+% the toolkit chapters but are too long to sit in the narrative. Each chapter
+% shows the synthesis (top-N rankings, comparison tables, summary figures) in
+% its body and points here for the full listing.
+%
+% Expected content, grouped by owning chapter:
+%   - Probability: per-node belief tables for the worked networks, the
+%     oracle-vs-IPA agreement table across the verification corpus, the
+%     p-box / interval bound tables, timing tables
+%   - Flow: full single-edge and multi-edge sensitivity rankings, complete
+%     min-cut enumerations, node-upgrade sweeps, degradation trajectories
+%   - Critical Path: full float / slack tables, interval-bound tables, the
+%     domination-split corner-count tables, oracle comparison tables
+%
+% Every table names the validation artifact and script it was generated from
+% (the wall-time rule applies: run-count ratios in print, not raw timings).
+% ---------------------------------------------------------------------------
+
+\emph{Appendix in preparation.} See the content note in the source file for the intended
+structure. Cross-reference target: \texttt{app:full-results}.

@@ -1,0 +1,36 @@
+
+
+\ifdefined\maindoc
+% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+\else
+\documentclass[12pt]{report}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
+\onehalfspacing
+\graphicspath{{figures/}}
+\begin{document}
+\title{An End-to-End Framework Application: An Integrated Case Study}
+\fi
+
+\emph{Chapter in preparation.} One network, carried end to end through the finished no-code
+interface of Chapter~\ref{ch:front-end}: upload and structure, decomposition, all three
+toolkits under their native uncertainty forms, and cross-scenario comparison, shown through
+interface captures.
+
+\ifdefined\maindoc
+% do nothing
+\else
+\printbibliography
+\end{document}
+\fi

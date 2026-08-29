@@ -1,0 +1,368 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+% Package imports
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[british]{babel}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow} 
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+% Uppercase aliases so chapters written against the old algorithmic package still build
+\newcommand{\STATE}{\State}
+\newcommand{\COMMENT}[1]{\Comment{#1}}
+\newcommand{\RETURN}{\State \textbf{return} }
+\newcommand{\IF}[1]{\If{#1}}
+\newcommand{\ELSE}{\Else}
+\newcommand{\ENDIF}{\EndIf}
+\newcommand{\FOR}[1]{\For{#1}}
+\newcommand{\ENDFOR}{\EndFor}
+\newcommand{\WHILE}[1]{\While{#1}}
+\newcommand{\ENDWHILE}{\EndWhile}
+\usepackage{enumitem}
+\usepackage{threeparttable}
+\usepackage{placeins}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{pdflscape}
+\usepackage{makecell}
+\usepackage[toc,page]{appendix}
+
+\usepackage{graphicx}
+
+% One central list (\graphicspath replaces, it does not append). Each chapter references its
+% figures as fig0N_name/fig0N_name.pdf; the subfolder names are unique across chapters.
+\graphicspath{%
+  {Chapters/Introduction/figures/}%
+  {Chapters/LitReview/figures/}%
+  {Chapters/NetworkModel/figures/}%
+  {Chapters/InputModule/figures/}%
+  {Chapters/DiamondModule/figures/}%
+  {Chapters/Probability/figures/}%
+  {Chapters/FlowToolkit/figures/}%
+  {Chapters/CPM/figures/}%
+  {Chapters/JuliaPackage/figures/}%
+  {Chapters/FrontEnd/figures/}%
+  {Chapters/CaseStudy/figures/}%
+  {Chapters/Conclusions/figures/}%
+  {Chapters/AppendixA/figures/}%
+  {Chapters/AppendixB/figures/}%
+}
+
+% TikZ for diagrams (ADDED)
+\usepackage{tikz}
+\usetikzlibrary{positioning, shapes, arrows.meta, calc, backgrounds, fit}
+
+% Page geometry
+\geometry{
+    a4paper,
+    left=40mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm
+}
+
+% Line spacing
+\onehalfspacing
+
+% Headers and footers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\leftmark}
+\fancyhead[RO]{\rightmark}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Bibliography resource
+\addbibresource{references.bib}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    bookmarksnumbered=true,
+    pdfstartview=FitH
+}
+
+% Listings setup for code
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red}
+}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METADATA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
+
+\newcommand{\authorname}{[Temitope Ohiani]}
+
+\newcommand{\degree}{Doctor of Philosophy}
+
+\newcommand{\department}{Department of Civil Engineering}
+
+\newcommand{\university}{University of Strathclyde}
+
+\newcommand{\faculty}{Faculty of Engineering}
+
+\newcommand{\submissiondate}{[Month Year]}
+
+\newcommand{\supervisor}{[Edoardo Pattelli]}
+
+\newcommand{\cosupervisor}{[Caroline Pyke]} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DOCUMENT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\maindoc{}
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TITLE PAGE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+    \begin{center}
+        
+        \vspace*{1cm}
+        
+        \Huge
+        \textbf{\thesistitle}
+        
+        \vspace{1.5cm}
+        
+        \Large
+        by
+        
+        \vspace{0.5cm}
+        
+        \textbf{\authorname}
+        
+        \vspace{2cm}
+        
+        \large
+        A thesis presented in partial fulfilment of the requirements for the degree of
+        
+        \vspace{0.5cm}
+        
+        \textbf{\degree}
+        
+        \vspace{1.5cm}
+        
+        \department \\
+        \university
+        
+        \vspace{1cm}
+        
+        \submissiondate
+        
+        \vfill
+        
+        \normalsize
+        Supervised by: \supervisor \\
+        \ifx\cosupervisor\empty
+        \else
+        Co-supervised by: \cosupervisor
+        \fi
+        
+    \end{center}
+\end{titlepage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DECLARATION OF AUTHENTICITY
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter*{Declaration of Authenticity and Author's Rights}
+\addcontentsline{toc}{chapter}{Declaration of Authenticity and Author's Rights}
+
+This thesis is the result of the author's original research. It has been composed by the author and has not been previously submitted for examination which has led to the award of a degree.
+
+The copyright of this thesis belongs to the author under the terms of the United Kingdom Copyright Acts as qualified by University of Strathclyde Regulation 3.50. Due acknowledgement must always be made of the use of any material contained in, or derived from, this thesis.
+
+\vspace{2cm}
+
+\noindent
+Signed: \rule{5cm}{0.4pt}
+
+\vspace{0.5cm}
+
+\noindent
+Date: \rule{5cm}{0.4pt}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ABSTRACT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ACKNOWLEDGEMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+[Your acknowledgements text here. Typically includes thanks to:
+- Supervisors
+- Funding bodies (EPSRC, industrial sponsors, etc.)
+- Industry collaborators at Sellafield/NDA
+- Research group colleagues
+- Family and friends
+- Technical support staff]
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TABLE OF CONTENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents
+\listoffigures
+\listoftables
+\listofalgorithms
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NOMENCLATURE (Optional)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter*{Nomenclature}
+\addcontentsline{toc}{chapter}{Nomenclature}
+
+\section*{Abbreviations}
+\begin{tabular}{ll}
+    IPA     & Information Propagation Algorithm \\
+    IPA     & Information Propagation Framework \\
+    DAG     & Directed Acyclic Graph \\
+    MC-MC   & Min-Cut Max-Flow \\
+    DFS     & Depth First Search \\
+    BFS     & Breath First Search \\
+    BP      & Belief Propagation \\
+    CPM     & Critical Path Method \\
+    MC      & Monte Carlo \\
+    NDA     & Nuclear Decommissioning Authority \\
+    p-box   & Probability Box \\
+\end{tabular}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CHAPTERS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Each chapter body lives in Chapters/<dir>/<file>.tex and begins at \section; the
+% \chapter line and its \label live here. The bodies carry an \ifdefined\maindoc guard
+% (set by \def\maindoc{} above) so the same file also compiles standalone in its folder.
+% Fast single-chapter builds: uncomment \includeonly (numbering and cross-refs are kept).
+% \includeonly{Chapters/DiamondModule/Diamond_Decomposition_Chapter}
+
+\chapter{Introduction}
+\label{ch:main-intro}
+\include{Chapters/Introduction/Introduction_Chapter}
+
+\chapter{Existing Works}
+\label{ch:lit-review}
+\include{Chapters/LitReview/Background_Chapter}
+
+\chapter{Complex Processes as Directed Acyclic Graphs}
+\label{ch:system-model}
+\include{Chapters/NetworkModel/Complex_Processes_Chapter}
+
+\chapter{Input Processing Module}
+\label{ch:input-module}
+\include{Chapters/InputModule/Input_Module_Chapter}
+
+\chapter{Sub-graph Decomposition: Diamond Processing Module}
+\label{ch:diamond-module}
+\include{Chapters/DiamondModule/Diamond_Decomposition_Chapter}
+
+\chapter{Information As Probabilities: Probability Propagation Toolkit}
+\label{ch:probability-toolkit}
+\include{Chapters/Probability/Probability_Propagation_Chapter}
+
+\chapter{Information As Resources: Capacity Flow Toolkit}
+\label{ch:capacity-toolkit}
+\include{Chapters/FlowToolkit/Flow_Capacity_Chapter}
+
+\chapter{Information As Schedule and Cost: Critical Path Toolkit}
+\label{ch:critical-path}
+\include{Chapters/CPM/Critical_Path_Chapter}
+
+\chapter{Package Implementation in Julia}
+\label{ch:julia-package}
+\include{Chapters/JuliaPackage/Julia_Package_Chapter}
+
+\chapter{The No-Code Web Interface}
+\label{ch:front-end}
+\include{Chapters/FrontEnd/Front_End_Chapter}
+
+\chapter{An End-to-End Framework Application: An Integrated Case Study}
+\label{ch:integrated-case-study}
+\include{Chapters/CaseStudy/Integrated_Case_Study_Chapter}
+
+\chapter{Conclusions}
+\label{ch:conclusions}
+\include{Chapters/Conclusions/Conclusions_Chapter}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDICES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Thesis-wide appendices, organised by purpose not by chapter. Each \chapter
+% inside the environment is lettered ("Appendix A", ...). Chapters carry the
+% synthesis in their body and point here for full data via \ref{app:...}.
+
+\begin{appendices}
+
+\chapter{Case-Study Network Specifications}
+\label{app:network-specs}
+\include{Chapters/AppendixA/Appendix_Network_Specs}
+
+\chapter{Full Numerical Results}
+\label{app:full-results}
+\include{Chapters/AppendixB/Appendix_Full_Results}
+
+\end{appendices}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BIBLIOGRAPHY
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\printbibliography[heading=bibintoc]
+
+
+\end{document}

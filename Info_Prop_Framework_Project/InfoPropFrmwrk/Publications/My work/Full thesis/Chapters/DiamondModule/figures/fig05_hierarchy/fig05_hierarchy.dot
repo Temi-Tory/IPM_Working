@@ -1,0 +1,15 @@
+// Fig frame 4: the emitted hierarchy; the inner diamond is one hash-consed entry shared by
+// both enclosing maximal diamonds.
+digraph hierarchy {
+  rankdir=TB; nodesep=1.0; ranksep=0.8;
+  node [shape=box, style="rounded,filled", fillcolor=white, fontname="Helvetica", fontsize=16, margin="0.25,0.16", penwidth=1.4];
+  edge [fontname="Helvetica", fontsize=14, penwidth=1.4, arrowsize=0.9];
+  R  [shape=plaintext, style="", label=<<B>maximal diamonds</B>>, fontsize=17];
+  D1 [label=<<B>D<SUB>1</SUB></B> at join 8<BR/>C = {1}<BR/><I>nine edges</I>>];
+  D2 [label=<<B>D<SUB>2</SUB></B> at join 6<BR/>C = {1}<BR/><I>five edges</I>>];
+  D3 [label=<<B>D<SUB>3</SUB></B> at join 6<BR/>C = {3}<BR/>(3,4) (3,5) (4,6) (5,6)>, peripheries=2, fillcolor=gray92];
+  R -> D1 [style=dotted, arrowhead=none];
+  R -> D2 [style=dotted, arrowhead=none];
+  D1 -> D3 [label=" nested at join 6"];
+  D2 -> D3 [label=" nested at join 6"];
+}
