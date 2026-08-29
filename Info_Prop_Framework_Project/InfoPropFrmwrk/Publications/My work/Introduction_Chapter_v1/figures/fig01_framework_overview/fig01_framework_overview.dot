@@ -1,0 +1,29 @@
+digraph framework_overview {
+  rankdir=TB;
+  splines=ortho;
+  node [shape=box, style="rounded,filled", fillcolor="#f2f2f2", fontname="Helvetica", fontsize=11, margin="0.15,0.08"];
+  edge [fontname="Helvetica", fontsize=9];
+
+  network [label="Complex process\n(directed graph)"];
+  decomposition [label="Decomposition\n(reconvergent structure\nresolved once)"];
+  propagation [label="Propagation algorithms\n(Julia multiple dispatch)"];
+
+  reliability [label="Reliability\nFloat64 / Interval / p-box"];
+  flow [label="Flow\nFloat64 only", style="rounded,filled,dashed", fillcolor="#ffffff"];
+  schedule [label="Schedule\nFloat64 / Interval", style="rounded,filled,dashed", fillcolor="#ffffff"];
+
+  package [label="Julia package\n(General registry)"];
+  interface [label="No-code local interface"];
+
+  network -> decomposition;
+  decomposition -> propagation;
+  propagation -> reliability;
+  propagation -> flow;
+  propagation -> schedule;
+  reliability -> package;
+  flow -> package;
+  schedule -> package;
+  package -> interface;
+
+  { rank=same; reliability; flow; schedule; }
+}
