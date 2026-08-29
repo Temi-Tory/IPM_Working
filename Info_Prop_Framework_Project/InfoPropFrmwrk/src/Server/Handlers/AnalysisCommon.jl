@@ -5,9 +5,14 @@ using ..InfoPropFramework
 using Serialization
 using SHA
 
+# CriticalPathV2 members are reached through the submodule (not re-exported by
+# InfoPropFramework — see its export list note).
+const CPV2 = InfoPropFramework.CriticalPathV2Module
+
 export convert_values,
        serialize_root_diamonds,
        serialize_unique_diamonds,
+       serialize_diamonds_at_node,
        resolve_edges_path_or_error,
        default_node_priors,
        cache_payload,
@@ -15,7 +20,10 @@ export convert_values,
        parse_edge_key,
        parse_node_values,
        parse_edge_values,
-       find_or_build_diamond
+       find_or_build_diamond,
+       resolve_cpm_mode,
+       run_cpm_v2,
+       cpm_v2_mode_name
 
 const DIAMOND_ANALYSIS_CACHE = Dict{String, Any}()
 const DIAMOND_ANALYSIS_CACHE_LOCK = ReentrantLock()
@@ -53,20 +61,33 @@ function convert_values(obj)
     return obj
 end
 
-function serialize_root_diamonds(root_diamonds::Dict{Int64, DiamondsAtNode})
+"""
+    serialize_diamonds_at_node(data::DiamondsAtNode) -> Dict
+
+Serialise one conditioning group at a join. `new_identify` can emit SEVERAL of these per
+join (one per independent parent group), so callers wrap the results in an array keyed by
+join node — see `serialize_root_diamonds` / `serialize_unique_diamonds`.
+"""
+function serialize_diamonds_at_node(data::DiamondsAtNode)
+    return Dict(
+        "join_node" => data.join_node,
+        "diamond" => Dict(
+            "conditioning_nodes" => sort!(collect(data.diamond.conditioning_nodes)),
+            "relevant_nodes" => sort!(collect(data.diamond.relevant_nodes)),
+            "edgelist" => [[e[1], e[2]] for e in sort!(collect(data.diamond.edgelist))],
+            "edge_count" => length(data.diamond.edgelist),
+            "node_count" => length(data.diamond.relevant_nodes),
+        ),
+        "non_diamond_parents" => sort!(collect(data.non_diamond_parents)),
+    )
+end
+
+# root_diamonds is Dict{Int64, Vector{DiamondsAtNode}} (array-per-join). Each join maps to a
+# JSON array of conditioning-group objects; a plain (non-factorised) join is a 1-element array.
+function serialize_root_diamonds(root_diamonds::Dict{Int64, Vector{DiamondsAtNode}})
     out = Dict{String, Any}()
-    for (join_node, data) in root_diamonds
-        out[string(join_node)] = Dict(
-            "join_node" => data.join_node,
-            "diamond" => Dict(
-                "conditioning_nodes" => sort!(collect(data.diamond.conditioning_nodes)),
-                "relevant_nodes" => sort!(collect(data.diamond.relevant_nodes)),
-                "edgelist" => [[e[1], e[2]] for e in sort!(collect(data.diamond.edgelist))],
-                "edge_count" => length(data.diamond.edgelist),
-                "node_count" => length(data.diamond.relevant_nodes),
-            ),
-            "non_diamond_parents" => sort!(collect(data.non_diamond_parents)),
-        )
+    for (join_node, groups) in root_diamonds
+        out[string(join_node)] = Any[serialize_diamonds_at_node(g) for g in groups]
     end
     return out
 end
@@ -74,19 +95,10 @@ end
 function serialize_unique_diamonds(unique_diamonds)
     out = Dict{String, Any}()
     for (diamond_hash, data) in unique_diamonds
+        # sub_diamond_structures is Dict{Int64, Vector{DiamondsAtNode}} (array-per-inner-join)
         sub_diamonds = Dict{String, Any}()
-        for (join_node, sub_data) in data.sub_diamond_structures
-            sub_diamonds[string(join_node)] = Dict(
-                "join_node" => sub_data.join_node,
-                "diamond" => Dict(
-                    "conditioning_nodes" => sort!(collect(sub_data.diamond.conditioning_nodes)),
-                    "relevant_nodes" => sort!(collect(sub_data.diamond.relevant_nodes)),
-                    "edgelist" => [[e[1], e[2]] for e in sort!(collect(sub_data.diamond.edgelist))],
-                    "edge_count" => length(sub_data.diamond.edgelist),
-                    "node_count" => length(sub_data.diamond.relevant_nodes),
-                ),
-                "non_diamond_parents" => sort!(collect(sub_data.non_diamond_parents)),
-            )
+        for (join_node, groups) in data.sub_diamond_structures
+            sub_diamonds[string(join_node)] = Any[serialize_diamonds_at_node(g) for g in groups]
         end
 
         out[string(diamond_hash)] = Dict(
@@ -190,6 +202,234 @@ function parse_edge_values(raw_dict::AbstractDict, ::Type{T}) where {T}
         parsed[parse_edge_key(String(k))] = parse_time_value(v, T)
     end
     return parsed
+end
+
+# ============================================================================
+# CriticalPathV2 wiring (mode-based rebuild — the validated schedule/cost toolkit)
+#
+# V2 is mode-based: LongestPath (max/+), ShortestPath (min/+), MaxScaling (max/x),
+# Accumulation (sum/+). Value types are Float64 and Interval only (NO probability-box
+# for schedule). Interval is a computation SCHEME, not an operator overload:
+#   - forward quantities: exact corner-pair bounds
+#   - margins/criticality: exact via domination split / corner enumeration where
+#     tractable (method :exact_domination_split / :exact_corners_exhaustive), else a
+#     sound conservative enclosure (method :conservative_enclosure).
+# The classical schedule quantities (early_start / late_finish / late_start) are
+# populated for additive Float64 modes only; the interval scheme does not compute them.
+# ============================================================================
+
+cpm_v2_mode_name(m::CPV2.AnalysisMode) = String(m.name)
+cpm_v2_mode_name(m::Symbol) = String(m)
+
+"""
+    resolve_cpm_mode(cpm_section, explicit_mode) -> AnalysisMode | :accumulation
+
+Pick the V2 analysis mode. An explicit request-body `mode` wins; otherwise the mode is
+derived from the CPM input file's own declared `combination_function` /
+`propagation_function` (contract-carried), defaulting to LongestPath (classical CPM).
+"""
+function resolve_cpm_mode(cpm_section::AbstractDict, explicit_mode)
+    if explicit_mode !== nothing && !isempty(strip(String(explicit_mode)))
+        key = lowercase(strip(String(explicit_mode)))
+        key in ("longest_path", "longest", "cpm", "longest_path_time") && return CPV2.LONGEST_PATH
+        key in ("shortest_path", "shortest") && return CPV2.SHORTEST_PATH
+        key in ("max_scaling", "scaling") && return CPV2.MAX_SCALING
+        key in ("accumulation", "sum", "load", "total_project_cost") && return :accumulation
+        throw(ArgumentError("unknown CPM mode: $(explicit_mode)"))
+    end
+    comb = lowercase(String(get(cpm_section, "combination_function", "max_combination")))
+    prop = lowercase(String(get(cpm_section, "propagation_function", "additive_propagation")))
+    comb == "min_combination" && return CPV2.SHORTEST_PATH
+    comb == "sum_combination" && return :accumulation
+    (comb == "max_combination" && occursin("multiplicative", prop)) && return CPV2.MAX_SCALING
+    return CPV2.LONGEST_PATH
+end
+
+_v2_to_interval(v::AbstractDict) = begin
+    lo = Float64(v["lower"]); hi = Float64(v["upper"])
+    CPV2.ValueInterval(min(lo, hi), max(lo, hi))
+end
+_v2_to_interval(v) = (x = Float64(v); CPV2.ValueInterval(x, x))
+
+function _v2_node_values(raw::AbstractDict, value_type::Symbol, restrict)
+    if value_type == :interval
+        d = Dict{Int64, CPV2.ValueInterval}()
+        for (k, v) in raw
+            n = parse(Int64, String(k))
+            (restrict === nothing || n in restrict) || continue
+            d[n] = _v2_to_interval(v)
+        end
+        return d
+    end
+    d = Dict{Int64, Float64}()
+    for (k, v) in raw
+        n = parse(Int64, String(k))
+        (restrict === nothing || n in restrict) || continue
+        d[n] = Float64(v)
+    end
+    return d
+end
+
+function _v2_edge_values(raw::AbstractDict, value_type::Symbol, restrict)
+    if value_type == :interval
+        d = Dict{Tuple{Int64,Int64}, CPV2.ValueInterval}()
+        for (k, v) in raw
+            e = parse_edge_key(String(k))
+            (restrict === nothing || e in restrict) || continue
+            d[e] = _v2_to_interval(v)
+        end
+        return d
+    end
+    d = Dict{Tuple{Int64,Int64}, Float64}()
+    for (k, v) in raw
+        e = parse_edge_key(String(k))
+        (restrict === nothing || e in restrict) || continue
+        d[e] = Float64(v)
+    end
+    return d
+end
+
+_v2_iv(x::CPV2.ValueInterval) = Dict("type" => "interval", "lower" => x.lo, "upper" => x.hi)
+
+function _serialize_pathresult_v2(r::CPV2.PathResult)
+    critical_set = Set(r.critical)
+    d = Dict{String, Any}(
+        "kind" => "path",
+        "mode" => String(r.mode),
+        "method" => String(r.method),
+        "margin_name" => String(r.margin_name),
+        "value_type" => "Float64",
+        "project_value" => r.project_value,
+        "forward" => Dict(string(k) => v for (k, v) in r.forward),
+        "reverse_completion" => Dict(string(k) => v for (k, v) in r.reverse_completion),
+        "through" => Dict(string(k) => v for (k, v) in r.through),
+        "margin" => Dict(string(k) => v for (k, v) in r.margin),
+        "critical" => r.critical,
+        "schedule_available" => !isempty(r.early_start),
+    )
+    if !isempty(r.early_start)
+        d["early_start"] = Dict(string(k) => v for (k, v) in r.early_start)
+        d["late_finish"] = Dict(string(k) => v for (k, v) in r.late_finish)
+        d["late_start"] = Dict(string(k) => v for (k, v) in r.late_start)
+        thr = r.project_value * 0.1
+        d["near_critical_nodes"] = sort!([k for (k, v) in r.margin
+                                          if !(k in critical_set) && v > 0 && v < thr])
+    end
+    return d
+end
+
+function _serialize_interval_pathresult_v2(r::CPV2.IntervalPathResult, method_note::String)
+    return Dict{String, Any}(
+        "kind" => "path",
+        "mode" => String(r.mode),
+        "method" => String(r.method),
+        "method_note" => method_note,
+        "margin_name" => String(r.margin_name),
+        "value_type" => "Interval",
+        "project_value" => _v2_iv(r.project_value),
+        "forward" => Dict(string(k) => _v2_iv(v) for (k, v) in r.forward),
+        "through" => Dict(string(k) => _v2_iv(v) for (k, v) in r.through),
+        "margin" => Dict(string(k) => _v2_iv(v) for (k, v) in r.margin),
+        "necessarily_critical" => r.necessarily_critical,
+        "possibly_critical" => r.possibly_critical,
+        "corner_count" => r.corner_count,
+        "schedule_available" => false,
+    )
+end
+
+function _serialize_accumulation_v2(r::CPV2.AccumulationResult)
+    d = Dict{String, Any}(
+        "kind" => "accumulation",
+        "mode" => String(r.mode),
+        "method" => String(r.method),
+        "margin_name" => "allowance",
+        "value_type" => "Float64",
+        "forward" => Dict(string(k) => v for (k, v) in r.forward),
+        "target" => r.target,
+        "total" => r.total,
+        "multiplicity" => Dict(string(k) => v for (k, v) in r.multiplicity),
+        "sensitivity" => Dict(string(k) => v for (k, v) in r.sensitivity),
+        "contribution" => Dict(string(k) => v for (k, v) in r.contribution),
+        "ranking" => r.ranking,
+    )
+    isempty(r.allowance) || (d["allowance"] = Dict(string(k) => v for (k, v) in r.allowance))
+    return d
+end
+
+# Pick the tightest interval scheme that is affordable, always with tier-1 as the floor.
+# kvar (count of non-degenerate inputs) gates the exact drivers: interval_analyze_exact's
+# internal 2^k corner cap overflows Int64 for kvar >= 64, so the exhaustive route is gated
+# here rather than trusted to self-refuse.
+function _interval_path_result(iteration_sets, outgoing_index, incoming_index, source_nodes,
+                               nv, ev, mode; atol::Float64)
+    kvar = count(!CPV2.is_degenerate, values(nv)) + count(!CPV2.is_degenerate, values(ev))
+
+    # exact via the domination split (LONGEST_PATH, crisp edges only). It auto-falls back
+    # to the shared exhaustive sweep when that is cheaper and throws when both blow up.
+    if mode === CPV2.LONGEST_PATH && kvar <= 60
+        try
+            return CPV2.interval_analyze_split(iteration_sets, outgoing_index, incoming_index,
+                                               source_nodes, nv, ev; mode=mode, atol=atol,
+                                               max_runs=2_000_000), ""
+        catch e
+            e isa ArgumentError || rethrow()
+        end
+    end
+
+    # exact via full corner enumeration — only when the corner count is genuinely small.
+    if 0 < kvar <= 18
+        try
+            return CPV2.interval_analyze_exact(iteration_sets, outgoing_index, incoming_index,
+                                               source_nodes, nv, ev; mode=mode, atol=atol,
+                                               max_corners=(1 << 20)), ""
+        catch e
+            e isa ArgumentError || rethrow()
+        end
+    end
+
+    note = kvar == 0 ? "" :
+        "exact interval floats are intractable for this instance ($(kvar) interval inputs with reconvergence — NP-hard in general); returning a sound conservative enclosure"
+    return CPV2.interval_analyze(iteration_sets, outgoing_index, incoming_index, source_nodes,
+                                 nv, ev; mode=mode, atol=atol), note
+end
+
+"""
+    run_cpm_v2(iteration_sets, outgoing_index, incoming_index, source_nodes,
+               raw_node_values, raw_edge_values; value_type, mode, initial,
+               restrict_nodes, restrict_edges, atol) -> Dict
+
+Run one CriticalPathV2 pass and return a JSON-ready result Dict. `value_type` is
+`:float64` or `:interval`; `mode` is an `AnalysisMode` or `:accumulation`. `raw_*` are the
+CPM input file's own `node_durations`/`edge_delays` (or cost) maps, string-keyed. The
+`restrict_*` sets, when given, keep only entries inside a diamond subgraph.
+"""
+function run_cpm_v2(iteration_sets, outgoing_index, incoming_index, source_nodes,
+                    raw_node_values::AbstractDict, raw_edge_values::AbstractDict;
+                    value_type::Symbol, mode, initial=0.0,
+                    restrict_nodes=nothing, restrict_edges=nothing,
+                    atol::Float64=1e-6)
+    nv = _v2_node_values(raw_node_values, value_type, restrict_nodes)
+    ev = _v2_edge_values(raw_edge_values, value_type, restrict_edges)
+
+    if value_type == :float64
+        if mode === :accumulation
+            res = CPV2.accumulation_analysis(iteration_sets, outgoing_index, incoming_index,
+                                        source_nodes, nv, ev; initial=Float64(initial))
+            return _serialize_accumulation_v2(res)
+        end
+        res = CPV2.analyze(iteration_sets, outgoing_index, incoming_index,
+                                           source_nodes, nv, ev;
+                                           mode=mode, initial=Float64(initial), atol=atol)
+        return _serialize_pathresult_v2(res)
+    elseif value_type == :interval
+        mode === :accumulation &&
+            throw(ArgumentError("CriticalPathV2 has no interval Accumulation scheme; use Float64 for accumulation or a path mode for interval"))
+        res, note = _interval_path_result(iteration_sets, outgoing_index, incoming_index,
+                                          source_nodes, nv, ev, mode; atol=atol)
+        return _serialize_interval_pathresult_v2(res, note)
+    else
+        throw(ArgumentError("unsupported CPM value_type: $(value_type) (expected :float64 or :interval)"))
+    end
 end
 
 function _mtime_token(path::String)
@@ -312,21 +552,21 @@ function find_or_build_diamond(
     end
 
     started = time()
-    root_diamonds = identify_and_group_diamonds(
-        join_nodes,
-        incoming_index,
-        ancestors,
-        descendants,
-        source_nodes,
-        fork_nodes,
+    # new_identify is the module's current correct-by-construction producer. It emits BOTH
+    # objects update_beliefs_iterative consumes, in the array-per-join factorised shape:
+    #   root_diamonds   :: Dict{Int64, Vector{DiamondsAtNode}}
+    #   unique_diamonds :: Dict{UInt64, DiamondComputationData{T}}
+    # (replaces the retired identify_and_group_diamonds +
+    #  build_unique_diamond_storage_depth_first_parallel from the unloaded Pipeline*.jl files).
+    # link_probs is accepted for signature symmetry only and is unused by identification.
+    empty_link_probs = Dict{Tuple{Int64,Int64}, valtype(node_priors)}()
+    root_diamonds, unique_diamonds = new_identify(
         edgelist,
         node_priors,
-        iteration_sets,
-    )
-
-    unique_diamonds = build_unique_diamond_storage_depth_first_parallel(
-        root_diamonds,
-        node_priors,
+        empty_link_probs,
+        source_nodes,
+        fork_nodes,
+        join_nodes,
         ancestors,
         descendants,
         iteration_sets,

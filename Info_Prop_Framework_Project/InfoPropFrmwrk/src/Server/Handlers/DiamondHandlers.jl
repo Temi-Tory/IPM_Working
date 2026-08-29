@@ -187,63 +187,50 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
             if isfile(full_cpm_path)
                 cpm_data = JSON.parsefile(full_cpm_path)
                 time_analysis = cpm_data["time_analysis"]
-                cost_analysis = cpm_data["cost_analysis"]
-                cpm_data_type = String(get(cpm_data, "data_type", "Float64"))
+                cost_analysis = get(cpm_data, "cost_analysis", nothing)
+                value_type = lowercase(String(get(cpm_data, "data_type", "Float64"))) == "interval" ? :interval : :float64
 
-                T = lowercase(cpm_data_type) == "interval" ? Interval : Float64
-                initial = T == Interval ? Interval(0.0, 0.0) : 0.0
-
-                node_durations_all = parse_node_values(time_analysis["node_durations"], T)
-                edge_delays_all = parse_edge_values(time_analysis["edge_delays"], T)
-                node_costs_all = parse_node_values(cost_analysis["node_costs"], T)
-                edge_costs_all = parse_edge_values(cost_analysis["edge_costs"], T)
-
-                sub_nodes = Set(keys(diamond_data.sub_incoming_index))
+                # Restrict the CPM inputs to this diamond's subgraph. The V2 engine then runs
+                # on the diamond's own sub_* structure exactly as update_beliefs_iterative does.
                 sub_edges = Set(diamond_data.diamond.edgelist)
-                node_durations = Dict(k => v for (k, v) in node_durations_all if k in sub_nodes)
-                edge_delays = Dict(k => v for (k, v) in edge_delays_all if k in sub_edges)
-                node_costs = Dict(k => v for (k, v) in node_costs_all if k in sub_nodes)
-                edge_costs = Dict(k => v for (k, v) in edge_costs_all if k in sub_edges)
+                sub_nodes = Set{Int64}()
+                for (u, v) in sub_edges
+                    push!(sub_nodes, u, v)
+                end
 
-                time_params = CriticalPathParameters(
-                    node_durations,
-                    edge_delays,
-                    initial,
-                    CriticalPathModule.max_combination,
-                    CriticalPathModule.additive_propagation,
-                    CriticalPathModule.additive_propagation,
+                cpm_mode_req = get(request_data, "cpmMode", nothing)
+                time_mode = resolve_cpm_mode(time_analysis, cpm_mode_req)
+
+                time_result = run_cpm_v2(
+                    diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index,
+                    diamond_data.sub_incoming_index, diamond_data.sub_sources,
+                    time_analysis["node_durations"], get(time_analysis, "edge_delays", Dict{String,Any}());
+                    value_type=value_type, mode=time_mode,
+                    initial=get(time_analysis, "initial_time", 0.0),
+                    restrict_nodes=sub_nodes, restrict_edges=sub_edges,
                 )
-                time_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, time_params)
-                time_extended = backward_pass_analysis(time_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, time_params)
 
-                cost_params = CriticalPathParameters(
-                    node_costs,
-                    edge_costs,
-                    initial,
-                    CriticalPathModule.max_combination,
-                    CriticalPathModule.additive_propagation,
-                    CriticalPathModule.additive_propagation,
-                )
-                cost_result = critical_path_analysis(diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, diamond_data.sub_incoming_index, diamond_data.sub_sources, cost_params)
-                cost_extended = backward_pass_analysis(cost_result, diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index, cost_params)
+                cost_mode = nothing
+                cost_result = nothing
+                if cost_analysis !== nothing
+                    cost_mode = resolve_cpm_mode(cost_analysis, get(request_data, "cpmCostMode", cpm_mode_req))
+                    cost_result = run_cpm_v2(
+                        diamond_data.sub_iteration_sets, diamond_data.sub_outgoing_index,
+                        diamond_data.sub_incoming_index, diamond_data.sub_sources,
+                        cost_analysis["node_costs"], get(cost_analysis, "edge_costs", Dict{String,Any}());
+                        value_type=value_type, mode=cost_mode,
+                        initial=get(cost_analysis, "initial_cost", 0.0),
+                        restrict_nodes=sub_nodes, restrict_edges=sub_edges,
+                    )
+                end
 
-                result_data["cpm_result"] = Dict(
-                    "time_result" => Dict(
-                        "critical_value" => convert_values(time_result.critical_value),
-                        "critical_nodes" => sort!(collect(time_result.critical_nodes)),
-                        "node_values" => convert_values(Dict(string(k) => v for (k, v) in time_result.node_values)),
-                        "early_start" => convert_values(Dict(string(k) => v for (k, v) in time_extended.early_start)),
-                        "late_finish" => convert_values(Dict(string(k) => v for (k, v) in time_extended.late_finish)),
-                        "total_slack" => convert_values(Dict(string(k) => v for (k, v) in time_extended.total_slack)),
-                    ),
-                    "cost_result" => Dict(
-                        "critical_value" => convert_values(cost_result.critical_value),
-                        "critical_nodes" => sort!(collect(cost_result.critical_nodes)),
-                        "node_values" => convert_values(Dict(string(k) => v for (k, v) in cost_result.node_values)),
-                        "early_start" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.early_start)),
-                        "late_finish" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.late_finish)),
-                        "total_slack" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.total_slack)),
-                    ),
+                result_data["cpm_result"] = Dict{String,Any}(
+                    "module_version" => "CriticalPathV2",
+                    "value_type" => value_type == :interval ? "Interval" : "Float64",
+                    "time_mode" => cpm_v2_mode_name(time_mode),
+                    "cost_mode" => cost_mode === nothing ? nothing : cpm_v2_mode_name(cost_mode),
+                    "time_result" => time_result,
+                    "cost_result" => cost_result,
                 )
             end
         end

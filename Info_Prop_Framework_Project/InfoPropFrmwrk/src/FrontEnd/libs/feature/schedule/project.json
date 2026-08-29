@@ -1,0 +1,39 @@
+{
+  "name": "feature-schedule",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/feature/schedule/src",
+  "prefix": "ipf",
+  "projectType": "library",
+  "tags": [
+    "scope:schedule",
+    "type:feature"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
+      "defaultConfiguration": "production",
+      "options": {
+        "project": "libs/feature/schedule/ng-package.json",
+        "tsConfig": "libs/feature/schedule/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/feature/schedule/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      }
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

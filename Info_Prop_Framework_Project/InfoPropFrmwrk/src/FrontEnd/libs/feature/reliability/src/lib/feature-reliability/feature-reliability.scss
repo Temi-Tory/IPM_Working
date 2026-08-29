@@ -1,0 +1,142 @@
+:host {
+  display: block;
+  max-width: 1100px;
+}
+
+ipf-card,
+ipf-diamond-structure,
+ipf-error-banner,
+.stat-row {
+  display: block;
+  margin-bottom: var(--spacingVerticalL, 16px);
+}
+
+h2 {
+  margin: 0 0 var(--spacingVerticalM, 12px);
+  font-size: var(--fontSizeBase400, 16px);
+  font-weight: var(--fontWeightSemibold, 600);
+  color: var(--colorNeutralForeground1);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacingHorizontalXL, 20px);
+  align-items: flex-start;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: var(--fontSizeBase200, 12px);
+  font-weight: var(--fontWeightSemibold, 600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colorNeutralForeground2);
+}
+
+.scenario-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scenario-list button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  font: inherit;
+  padding: 6px 12px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  cursor: pointer;
+}
+
+.scenario-list button.active {
+  border-color: var(--colorBrandStroke1);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+}
+
+.s-name {
+  font-size: var(--fontSizeBase300, 14px);
+  font-weight: var(--fontWeightSemibold, 600);
+}
+
+.s-type {
+  font-size: var(--fontSizeBase100, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colorNeutralForeground3);
+}
+
+.run {
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: var(--fontSizeBase300, 14px);
+  padding: 8px 16px;
+  border-radius: var(--borderRadiusMedium, 4px);
+  border: 1px solid var(--colorNeutralStroke1);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--colorBrandBackground);
+  border-color: var(--colorBrandBackground);
+  color: var(--colorNeutralForegroundOnBrand, #fff);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--colorBrandBackgroundHover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorPaletteDarkOrangeForeground1, #bc4b09);
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacingHorizontalM, 12px);
+}
+
+.aggregate-note {
+  margin: calc(-1 * var(--spacingVerticalS, 8px)) 0 var(--spacingVerticalL, 16px);
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorNeutralForeground3);
+  max-width: 72ch;
+}
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorBrandBackground);
+  color: var(--colorNeutralForegroundOnBrand, #fff);
+  text-decoration: none;
+  font-size: var(--fontSizeBase300, 14px);
+}

@@ -109,11 +109,19 @@ function probability_payload(request_data::AbstractDict)
         )
     end
 
+    value_type = if isempty(node_priors)
+        "Float64"
+    else
+        pt = typeof(first(values(node_priors)))
+        pt <: Interval ? "Interval" : (pt <: pbox ? "pbox" : "Float64")
+    end
+
     return Dict(
         "network_path" => network_path,
         "edges_file_path" => resolved_edges_path,
         "nodepriors_path" => nodepriors_path,
         "linkprobs_path" => linkprobs_path,
+        "value_type" => value_type,
         "source_nodes" => sort!(collect(source_nodes)),
         "sink_nodes" => sink_nodes,
         "diamond_cache_hit" => diamond_payload.cache_hit,
@@ -139,6 +147,7 @@ function handle_probability_like(req::HTTP.Request; endpoint_name::String)
             "edges_file_path" => payload["edges_file_path"],
             "nodepriors_path" => payload["nodepriors_path"],
             "linkprobs_path" => payload["linkprobs_path"],
+            "value_type" => payload["value_type"],
             "source_nodes" => payload["source_nodes"],
             "sink_nodes" => payload["sink_nodes"],
             "diamond_cache_hit" => payload["diamond_cache_hit"],

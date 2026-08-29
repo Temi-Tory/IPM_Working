@@ -1,0 +1,142 @@
+<ipf-page-header
+  title="Reliability"
+  [description]="
+    'Probability propagation on ' +
+    networkName() +
+    ': the belief that each node is operating and reachable from a source, given independent component failure.'
+  "
+/>
+
+@if (scenarios().length === 0) {
+  <ipf-empty-state
+    icon="reliability"
+    title="No reliability inputs on this network"
+    message="Reliability needs a node-priors and a link-probabilities file in one scenario folder. Upload a network that includes them."
+  >
+    <a slot="actions" routerLink="/upload" class="link-btn">Go to upload</a>
+  </ipf-empty-state>
+} @else {
+  <ipf-card>
+    <div class="controls">
+      @if (scenarios().length > 1) {
+        <div class="field">
+          <span class="field-label">Scenario</span>
+          <div class="scenario-list" role="group" aria-label="Reliability scenario">
+            @for (s of scenarios(); track s.name) {
+              <button
+                type="button"
+                [class.active]="selectedScenario()?.name === s.name"
+                (click)="selectScenario(s.name)"
+              >
+                <span class="s-name">{{ s.name }}</span>
+                <span class="s-type">{{ valueTypeLabel(s.hintValueType) }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="field">
+        <ipf-value-type-selector
+          [toolkit]="'reliability'"
+          [value]="activeValueType()"
+          (valueChange)="pickValueType($event)"
+          legend="Value form"
+        />
+        @if (valueTypeNote(); as note) {
+          <p class="note">{{ note }}</p>
+        }
+      </div>
+
+      <div class="run">
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="running() || !selectedScenario()"
+          (click)="run()"
+        >
+          <ipf-icon name="run" [size]="16" />
+          {{ activeResult() ? 'Re-run analysis' : 'Run analysis' }}
+        </button>
+      </div>
+    </div>
+  </ipf-card>
+
+  @if (error(); as e) {
+    <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
+  }
+
+  @if (running()) {
+    <ipf-loading-state label="Propagating beliefs across the network…" />
+  } @else if (activeResult(); as res) {
+    @if (stats(); as st) {
+      <div class="stat-row">
+        <ipf-stat-tile label="Mean belief" icon="reliability">
+          {{ st.mean | number: '1.0-4' }}
+        </ipf-stat-tile>
+        <ipf-stat-tile label="Min belief">{{ st.min | number: '1.0-4' }}</ipf-stat-tile>
+        <ipf-stat-tile label="Max belief">{{ st.max | number: '1.0-4' }}</ipf-stat-tile>
+        <ipf-stat-tile
+          label="Nodes"
+          [caption]="
+            st.numeric_count === st.total_count
+              ? 'all numeric'
+              : st.numeric_count + ' numeric of ' + st.total_count
+          "
+        >
+          {{ st.total_count }}
+        </ipf-stat-tile>
+        @if (cacheStatus(); as c) {
+          <ipf-stat-tile
+            label="Diamond cache"
+            [caption]="c.time !== undefined ? (c.time * 1000 | number: '1.0-1') + ' ms solve' : ''"
+          >
+            {{ c.hit ? 'reused' : 'built' }}
+          </ipf-stat-tile>
+        }
+      </div>
+
+      @if (activeValueType() !== 'float64') {
+        <p class="aggregate-note">
+          Mean / min / max above are numeric summaries the server computes over
+          {{ activeValueType() === 'interval' ? 'interval midpoints' : 'p-box mean midpoints' }}.
+          The per-node values below are never flattened.
+        </p>
+      }
+    }
+
+    <ipf-card>
+      <h2>Belief per node</h2>
+      <ipf-belief-table [rows]="beliefRows()" [valueType]="activeValueType()" />
+    </ipf-card>
+
+    @if (diamondAnalysis(); as diamonds) {
+      <ipf-diamond-structure [analysis]="diamonds" (inspect)="onInspect($event)" />
+    }
+  } @else {
+    <ipf-empty-state
+      icon="run"
+      title="Ready to run"
+      [message]="
+        'Scenario ' +
+        (selectedScenario()?.name ?? '') +
+        ' — run the analysis to compute belief for every node and identify the diamonds.'
+      "
+    />
+  }
+}
+
+@if (inspecting(); as target) {
+  <ipf-diamond-detail
+    [diamond]="target"
+    [valueType]="activeValueType()"
+    [isolatedResult]="isolatedResult()"
+    [isolatedBusy]="isolatedBusy()"
+    [isolatedError]="isolatedError()"
+    [promoting]="promoting()"
+    [promoteError]="promoteError()"
+    (closed)="closeDetail()"
+    (analyseIsolated)="onAnalyseIsolated($event)"
+    (promote)="onPromote($event)"
+  />
+}

@@ -1,0 +1,90 @@
+<ipf-page-header
+  title="Information Propagation Framework"
+  description="A no-code interface for the analysis package. Upload one network, then read it three ways — reliability, flow, or schedule. Everything stays on this machine."
+>
+  <a slot="actions" routerLink="/upload">
+    <fluent-button appearance="primary">
+      <ipf-icon name="upload" [size]="16" slot="start"></ipf-icon>
+      Upload a network
+    </fluent-button>
+  </a>
+</ipf-page-header>
+
+<div class="grid">
+  <ipf-card>
+    <h2 class="card-title">
+      <ipf-icon name="reliability" [size]="18"></ipf-icon> Reliability
+    </h2>
+    <p>
+      Belief per node: the probability it operates <em>and</em> is reachable from a
+      source, resolving every reconvergence exactly. Float64, interval, or
+      probability-box.
+    </p>
+  </ipf-card>
+  <ipf-card>
+    <h2 class="card-title">
+      <ipf-icon name="flow" [size]="18"></ipf-icon> Flow
+    </h2>
+    <p>
+      Maximum throughput from sources to sinks under capacity limits, with
+      min-cut, sensitivity, and failure-impact diagnostics. Float64 capacities.
+    </p>
+  </ipf-card>
+  <ipf-card>
+    <h2 class="card-title">
+      <ipf-icon name="schedule" [size]="18"></ipf-icon> Schedule
+    </h2>
+    <p>
+      Critical path for any quantity that accumulates along dependencies —
+      duration, cost — plus the float each activity carries. Float64 or interval.
+    </p>
+  </ipf-card>
+</div>
+
+<section class="recent">
+  <div class="recent-head">
+    <h2>Recent networks</h2>
+    <span class="server" [class]="serverStatus()">
+      <ipf-icon name="circle" [size]="8"></ipf-icon>
+      @switch (serverStatus()) {
+        @case ('up') { server connected }
+        @case ('down') { server unreachable }
+        @default { checking server… }
+      }
+    </span>
+  </div>
+
+  @if (sessions().length === 0) {
+    <ipf-card>
+      <p class="muted">
+        No networks uploaded yet. A session is just a folder on disk holding the
+        files you upload and a record of what has been computed.
+      </p>
+    </ipf-card>
+  } @else {
+    <ul class="session-list">
+      @for (s of sessions(); track s.session_id) {
+        <li>
+          <ipf-card interactive (click)="open(s)">
+            <div class="session">
+              <div>
+                <div class="name">{{ s.network_name }}</div>
+                <div class="meta">
+                  {{ s.timestamp | date: 'medium' }}
+                  @if (s.has_analysis_results) {
+                    · has results
+                  }
+                </div>
+              </div>
+              @if (opening() === s.session_id) {
+                <fluent-spinner size="tiny"></fluent-spinner>
+              } @else {
+                <ipf-icon name="chevron-right" [size]="16"></ipf-icon>
+              }
+            </div>
+          </ipf-card>
+        </li>
+      }
+    </ul>
+  }
+</section>

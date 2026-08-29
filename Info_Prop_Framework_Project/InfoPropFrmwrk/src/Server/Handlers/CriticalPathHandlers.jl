@@ -7,6 +7,21 @@ using ..ServerCommon
 using ..InfoPropFramework
 using ..AnalysisCommon
 
+# Schedule / Critical Path toolkit — wired to CriticalPathV2Module (mode-based, oracle-validated).
+# V1 (CriticalPathModule) is retired from this path: its interval and sum-slack outputs are
+# flagged buggy in validation/CPM_STATE_OF_UNION.md and must not be exposed.
+#
+# Modes: LongestPath (max/+, classical CPM), ShortestPath (min/+), MaxScaling (max/x),
+# Accumulation (sum/+, adjoint backward). Value types: Float64 and Interval only.
+# The mode for each of the time and cost passes is taken from the CPM input file's own
+# declared combination_function / propagation_function, or overridden by request `mode`
+# (time) / `costMode` (cost).
+
+function _empty_map(section, key)
+    v = get(section, key, nothing)
+    (v === nothing || !isa(v, AbstractDict)) ? Dict{String,Any}() : v
+end
+
 function handle_critical_path_analysis(req::HTTP.Request)
     headers = ServerCommon.cors_headers_json(; methods="GET, POST, OPTIONS")
 
@@ -15,6 +30,8 @@ function handle_critical_path_analysis(req::HTTP.Request)
         network_path = get(request_data, "networkPath", "")
         edges_file_path = get(request_data, "edgesFilePath", "")
         cpm_path = get(request_data, "cpmPath", "")
+        requested_mode = get(request_data, "mode", nothing)
+        requested_cost_mode = get(request_data, "costMode", requested_mode)
 
         if isempty(network_path) || isempty(cpm_path)
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "networkPath and cpmPath are required")))
@@ -38,73 +55,47 @@ function handle_critical_path_analysis(req::HTTP.Request)
         iteration_sets, _, _ = find_iteration_sets(edgelist, outgoing_index, incoming_index)
 
         cpm_data = JSON.parsefile(full_cpm_path)
-        time_analysis = cpm_data["time_analysis"]
-        cost_analysis = cpm_data["cost_analysis"]
-        cpm_data_type = String(get(cpm_data, "data_type", "Float64"))
+        time_analysis = get(cpm_data, "time_analysis", nothing)
+        cost_analysis = get(cpm_data, "cost_analysis", nothing)
+        cpm_data_type = lowercase(String(get(cpm_data, "data_type", "Float64")))
+        value_type = cpm_data_type == "interval" ? :interval : :float64
 
-        T = lowercase(cpm_data_type) == "interval" ? Interval : Float64
-        initial = T == Interval ? Interval(0.0, 0.0) : 0.0
-
-        node_durations = parse_node_values(time_analysis["node_durations"], T)
-        edge_delays = parse_edge_values(time_analysis["edge_delays"], T)
-        node_costs = parse_node_values(cost_analysis["node_costs"], T)
-        edge_costs = parse_edge_values(cost_analysis["edge_costs"], T)
+        if time_analysis === nothing
+            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "CPM file has no time_analysis section")))
+        end
 
         started = time()
 
-        time_params = CriticalPathParameters(
-            node_durations,
-            edge_delays,
-            initial,
-            CriticalPathModule.max_combination,
-            CriticalPathModule.additive_propagation,
-            CriticalPathModule.additive_propagation,
+        time_mode = resolve_cpm_mode(time_analysis, requested_mode)
+        time_result = run_cpm_v2(
+            iteration_sets, outgoing_index, incoming_index, source_nodes,
+            time_analysis["node_durations"], _empty_map(time_analysis, "edge_delays");
+            value_type=value_type, mode=time_mode,
+            initial=get(time_analysis, "initial_time", 0.0),
         )
-        time_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, time_params)
-        time_extended = backward_pass_analysis(time_result, iteration_sets, outgoing_index, time_params)
 
-        cost_params = CriticalPathParameters(
-            node_costs,
-            edge_costs,
-            initial,
-            CriticalPathModule.max_combination,
-            CriticalPathModule.additive_propagation,
-            CriticalPathModule.additive_propagation,
-        )
-        cost_result = critical_path_analysis(iteration_sets, outgoing_index, incoming_index, source_nodes, cost_params)
-        cost_extended = backward_pass_analysis(cost_result, iteration_sets, outgoing_index, cost_params)
+        cost_mode = nothing
+        cost_result = nothing
+        if cost_analysis !== nothing
+            cost_mode = resolve_cpm_mode(cost_analysis, requested_cost_mode)
+            cost_result = run_cpm_v2(
+                iteration_sets, outgoing_index, incoming_index, source_nodes,
+                cost_analysis["node_costs"], _empty_map(cost_analysis, "edge_costs");
+                value_type=value_type, mode=cost_mode,
+                initial=get(cost_analysis, "initial_cost", 0.0),
+            )
+        end
 
         elapsed = time() - started
 
-        near_critical_nodes = if T == Float64
-            threshold = time_result.critical_value * 0.1
-            sort!([k for (k, v) in time_extended.total_slack if v > 0 && v < threshold])
-        else
-            Int64[]
-        end
-
-        payload = Dict(
+        payload = Dict{String,Any}(
+            "module_version" => "CriticalPathV2",
+            "value_type" => value_type == :interval ? "Interval" : "Float64",
+            "time_mode" => cpm_v2_mode_name(time_mode),
+            "cost_mode" => cost_mode === nothing ? nothing : cpm_v2_mode_name(cost_mode),
             "computation_time" => elapsed,
-            "time_result" => Dict(
-                "critical_value" => convert_values(time_result.critical_value),
-                "critical_nodes" => sort!(collect(time_result.critical_nodes)),
-                "near_critical_nodes" => near_critical_nodes,
-                "near_critical_count" => length(near_critical_nodes),
-                "node_values" => convert_values(Dict(string(k) => v for (k, v) in time_result.node_values)),
-                "early_start" => convert_values(Dict(string(k) => v for (k, v) in time_extended.early_start)),
-                "late_finish" => convert_values(Dict(string(k) => v for (k, v) in time_extended.late_finish)),
-                "late_start" => convert_values(Dict(string(k) => v for (k, v) in time_extended.late_start)),
-                "total_slack" => convert_values(Dict(string(k) => v for (k, v) in time_extended.total_slack)),
-            ),
-            "cost_result" => Dict(
-                "critical_value" => convert_values(cost_result.critical_value),
-                "critical_nodes" => sort!(collect(cost_result.critical_nodes)),
-                "node_values" => convert_values(Dict(string(k) => v for (k, v) in cost_result.node_values)),
-                "early_start" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.early_start)),
-                "late_finish" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.late_finish)),
-                "late_start" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.late_start)),
-                "total_slack" => convert_values(Dict(string(k) => v for (k, v) in cost_extended.total_slack)),
-            ),
+            "time_result" => time_result,
+            "cost_result" => cost_result,
             "input_files" => Dict("cpm_path" => cpm_path),
         )
 

@@ -1,0 +1,164 @@
+<div class="overlay">
+  <button
+    type="button"
+    class="backdrop-dismiss"
+    aria-label="Close dialog"
+    (click)="closed.emit()"
+  ></button>
+  <div
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="diamond-detail-title"
+  >
+    <header>
+      <div class="title">
+        <ipf-icon name="diamond" [size]="18" />
+        <h2 id="diamond-detail-title">
+          Maximal diamond at join {{ joinNode() }}
+        </h2>
+      </div>
+      <button type="button" class="icon-btn" aria-label="Close" (click)="closed.emit()">
+        <ipf-icon name="dismiss" [size]="16" />
+      </button>
+    </header>
+
+    <div class="body">
+      <ipf-subgraph-view
+        [edgelist]="edgelist()"
+        [fixedNodes]="fixedNodes()"
+        [sourceNodes]="localSources()"
+        [joinNodes]="[joinNode()]"
+      />
+
+      <dl class="facts">
+        <div>
+          <dt>Fixed nodes</dt>
+          <dd>
+            @if (fixedNodes().length) {
+              {{ fixedNodes().join(', ') }}
+            } @else {
+              <span class="muted">none</span>
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Local sources</dt>
+          <dd>{{ localSources().join(', ') || '—' }}</dd>
+        </div>
+        <div>
+          <dt>Relevant nodes</dt>
+          <dd>{{ relevantNodes().join(', ') }}</dd>
+        </div>
+        <div>
+          <dt>Nesting</dt>
+          <dd>
+            @if (isInduced()) {
+              induced diamond — no sub-diamonds
+            } @else {
+              {{ subDiamondCount() }}
+              sub-diamond{{ subDiamondCount() === 1 ? '' : 's' }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Size</dt>
+          <dd>{{ relevantNodes().length }} nodes · {{ edgelist().length }} edges</dd>
+        </div>
+      </dl>
+
+      @if (localSources().length) {
+        <section class="overrides">
+          <h3>Local-source overrides <span class="opt">optional</span></h3>
+          @if (overridesAllowed()) {
+            <p class="hint">
+              Substitute a local source's prior probability (0–1). Left blank,
+              the source keeps its value from the parent scenario.
+            </p>
+            <div class="override-grid">
+              @for (s of localSources(); track s) {
+                <label>
+                  <span>Node {{ s }}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    inputmode="decimal"
+                    placeholder="parent value"
+                    (input)="setOverride(s, $event)"
+                  />
+                </label>
+              }
+            </div>
+          } @else {
+            <p class="hint">
+              Overrides apply to Float64 scenarios only. This diamond's values are
+              {{ valueType() === 'interval' ? 'intervals' : 'probability boxes' }};
+              it carries the parent scenario's values unchanged.
+            </p>
+          }
+        </section>
+      }
+
+      <section class="isolated">
+        <div class="isolated-head">
+          <h3>Run in isolation</h3>
+          <button
+            type="button"
+            class="btn"
+            [disabled]="isolatedBusy()"
+            (click)="onAnalyse()"
+          >
+            <ipf-icon name="run" [size]="14" />
+            Run reachability
+          </button>
+        </div>
+        <p class="hint">
+          Solves this diamond as a standalone sub-network via
+          <code>/diamond-subgraph-analysis</code>, keyed by the diamond's own
+          hash.
+        </p>
+        @if (isolatedBusy()) {
+          <ipf-loading-state label="Solving the diamond…" />
+        } @else if (isolatedError(); as err) {
+          <ipf-error-banner [message]="err" [dismissible]="false" />
+        } @else if (isolatedResult()) {
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr><th scope="col">Node</th><th scope="col">Belief</th></tr>
+              </thead>
+              <tbody>
+                @for (r of isolatedBeliefs(); track r.nodeId) {
+                  <tr>
+                    <td>{{ r.nodeId }}</td>
+                    <td><ipf-value [value]="r.belief" [showTag]="false" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+
+    <footer>
+      @if (promoteError(); as perr) {
+        <ipf-error-banner [message]="perr" [dismissible]="false" />
+      }
+      <div class="actions">
+        <button type="button" class="btn ghost" (click)="closed.emit()">Close</button>
+        <button
+          type="button"
+          class="btn primary"
+          [disabled]="promoting()"
+          (click)="onPromote()"
+        >
+          <ipf-icon name="promote" [size]="14" />
+          {{ promoting() ? 'Promoting…' : 'Analyse as new network' }}
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>

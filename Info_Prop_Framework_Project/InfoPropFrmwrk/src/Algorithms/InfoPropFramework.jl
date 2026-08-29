@@ -15,6 +15,9 @@ using .DiamondDecompositionModule
 include(joinpath(@__DIR__, "CriticalPath", "CriticalPathModule.jl"))
 using .CriticalPathModule
 
+include(joinpath(@__DIR__, "CriticalPathV2", "CriticalPathV2Module.jl"))
+# NOTE: intentionally not `using` — see the export list comment. Reached as CriticalPathV2Module.x
+
 include(joinpath(@__DIR__, "ProbabilityPropagation", "ProbabilityPropagationModule.jl"))
 using .ProbabilityPropagationModule
 
@@ -50,13 +53,19 @@ export
     DiamondComputationData,
     new_identify,
     create_diamond_hash_key,
-    # Critical path toolkit
+    # Critical path toolkit (V1 — retired from the server path, kept for reference)
     CriticalPathModule,
     CriticalPathParameters,
     CriticalPathResult,
     ExtendedCriticalPathResult,
     critical_path_analysis,
     backward_pass_analysis,
+    # Critical path toolkit V2 (mode-based, oracle-validated — the server target).
+    # Only the submodule name is re-exported (its members — analyze, LONGEST_PATH,
+    # PathResult, ValueInterval, ... — are reached as CriticalPathV2Module.x). This keeps
+    # the many validation/cpm_v2/*.jl scripts that separately `include` the V2 module from
+    # colliding on those names.
+    CriticalPathV2Module,
     # Probability propagation toolkit
     ProbabilityPropagationModule,
     update_beliefs_iterative,

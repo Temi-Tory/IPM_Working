@@ -9,9 +9,15 @@ using SHA
 const UPLOAD_DIR = "temp_uploads"
 const PORT = 8080
 
+# Local-only by design (Front-End chapter: "client and server happen to share a
+# machine, no traffic leaves the machine"). The server binds loopback and only
+# accepts cross-origin requests from the local front end. Change this if the
+# rebuilt FE is served from a different origin.
+const CORS_ALLOW_ORIGIN = get(ENV, "INFOPROP_CORS_ORIGIN", "http://localhost:4200")
+
 function cors_headers_json(; methods::String="GET, POST, PUT, DELETE, OPTIONS")
     return [
-        "Access-Control-Allow-Origin" => "*",
+        "Access-Control-Allow-Origin" => CORS_ALLOW_ORIGIN,
         "Access-Control-Allow-Methods" => methods,
         "Access-Control-Allow-Headers" => "Content-Type, Authorization, X-Request-ID, X-Client-Request-ID",
         "Access-Control-Expose-Headers" => "X-Request-ID",

@@ -1,0 +1,33 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "@inf-prop/shared/api-client": ["./libs/shared/api-client/src/index.ts"],
+      "@inf-prop/shared/data-access": [
+        "./libs/shared/data-access/src/index.ts"
+      ],
+      "@inf-prop/shared/ui": ["./libs/shared/ui/src/index.ts"],
+      "@inf-prop/feature/reliability": [
+        "./libs/feature/reliability/src/index.ts"
+      ],
+      "@inf-prop/feature/flow": ["./libs/feature/flow/src/index.ts"],
+      "@inf-prop/feature/schedule": ["./libs/feature/schedule/src/index.ts"],
+      "@inf-prop/feature/system-profile": [
+        "./libs/feature/system-profile/src/index.ts"
+      ]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

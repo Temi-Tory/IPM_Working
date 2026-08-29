@@ -1,0 +1,137 @@
+<ipf-page-header
+  title="Upload a network"
+  description="Pick a folder (or individual files). The files you upload are byte-for-byte the files the package reads — nothing is re-encoded. One upload carries the structure plus every scenario: named operating cases of the same network."
+/>
+
+@if (error(); as e) {
+  <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
+}
+
+<div class="cols">
+  <ipf-card>
+    <h2>Choose files</h2>
+    <div class="pickers">
+      <label class="picker">
+        <input
+          type="file"
+          multiple
+          webkitdirectory
+          (change)="onFiles($event)"
+          hidden
+        />
+        <fluent-button appearance="primary">
+          <ipf-icon name="folder" [size]="16" slot="start"></ipf-icon>
+          Select a folder
+        </fluent-button>
+      </label>
+      <label class="picker">
+        <input type="file" multiple (change)="onFiles($event)" hidden />
+        <fluent-button appearance="outline">
+          <ipf-icon name="document" [size]="16" slot="start"></ipf-icon>
+          Select files
+        </fluent-button>
+      </label>
+    </div>
+
+    @if (classified(); as c) {
+      <div class="summary">
+        <div class="row">
+          <span class="k">Network name</span><span class="v">{{ c.networkName }}</span>
+        </div>
+        <div class="row">
+          <span class="k">Structure file</span>
+          <span class="v">
+            @if (c.edges) {
+              {{ c.edges.file?.name || c.edges.networkRelativePath }}
+            } @else {
+              <span class="warn">
+                <ipf-icon name="warning" [size]="14"></ipf-icon>
+                none — the server will infer edges from the analysis inputs
+              </span>
+            }
+          </span>
+        </div>
+        <div class="row">
+          <span class="k">Scenarios</span>
+          <span class="v">{{ scenarioCount() }}</span>
+        </div>
+        <div class="row">
+          <span class="k">Runnable analyses</span>
+          <span class="v">
+            {{ analysisTotals().reliability }} reliability ·
+            {{ analysisTotals().flow }} flow ·
+            {{ analysisTotals().schedule }} schedule
+          </span>
+        </div>
+        @if (c.unknown.length) {
+          <div class="row">
+            <span class="k">Unrecognised</span>
+            <span class="v muted">{{ c.unknown.length }} file(s) ignored</span>
+          </div>
+        }
+      </div>
+
+      @if (c.scenarios.length) {
+        <ul class="scenarios">
+          @for (s of c.scenarios; track s.name) {
+            <li>
+              <div class="sc-name">
+                <ipf-icon name="folder" [size]="14"></ipf-icon>
+                {{ s.name }}
+                @if (s.folderValueType) {
+                  <span class="tag">{{ s.folderValueType }}</span>
+                }
+              </div>
+              <div class="sc-analyses">
+                @for (a of s.analyses; track a.kind) {
+                  <span class="chip" [class.incomplete]="!a.complete">
+                    {{ a.kind }}
+                    @if (a.kind !== 'flow') {
+                      · {{ a.valueType }}
+                    }
+                    @if (!a.complete) {
+                      (incomplete)
+                    }
+                  </span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="actions">
+        <fluent-button
+          appearance="primary"
+          [disabled]="!canUpload() ? true : null"
+          (click)="submit()"
+        >
+          @if (busy()) {
+            <fluent-spinner size="tiny" slot="start"></fluent-spinner>
+            Uploading…
+          } @else {
+            <ipf-icon name="upload" [size]="16" slot="start"></ipf-icon>
+            Upload {{ picked().length }} file(s)
+          }
+        </fluent-button>
+      </div>
+    } @else {
+      <ipf-empty-state
+        icon="upload"
+        title="No files chosen"
+        message="Select the folder that contains your .EDGES file and its scenario folders."
+      />
+    }
+  </ipf-card>
+
+  <ipf-card>
+    <h2>Expected layout</h2>
+    <pre>{{ layout }}</pre>
+    <p class="muted">
+      Folder names are flexible: <code>float / crisp / deterministic</code>,
+      <code>interval / range</code>, <code>pbox / p-box</code> — or any operating
+      case name (<code>Edge Bottleneck Demo</code>, <code>Degraded</code>). A
+      scenario folder may hold reliability, flow and schedule inputs together.
+    </p>
+  </ipf-card>
+</div>

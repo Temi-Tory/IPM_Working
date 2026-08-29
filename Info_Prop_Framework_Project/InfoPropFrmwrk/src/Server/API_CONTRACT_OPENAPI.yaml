@@ -9,6 +9,13 @@ info:
     - /capacity-analysis -> /flow-analysis (legacy alias still available)
     - /reachability-analysis -> /probability-propagation (legacy alias still available)
     - /cpm-analysis -> /critical-path-analysis (legacy alias still available)
+
+    Deliberately NOT part of this API (previously called by the retired front end, no
+    server implementation, no capability in the underlying package):
+    - /docs-list, /docs/{docPath}  (docs are served as static front-end assets)
+    - /analyze                     (retired batch route)
+    - /capacity-analysis/upgrade-scenario, /capacity-analysis/validate-upgrades
+      (interval/p-box-aware upgrade scenarios do not exist in CapacityAnalysisKit.jl)
 servers:
   - url: http://localhost:8080
     description: Local development server
@@ -18,7 +25,6 @@ tags:
   - name: upload
   - name: sessions
   - name: files
-  - name: docs
   - name: structure
   - name: flow
   - name: diamonds
@@ -190,52 +196,6 @@ paths:
         '500':
           $ref: '#/components/responses/ApiError500'
 
-  /docs-list:
-    get:
-      tags: [docs]
-      summary: List markdown files in server docs folder
-      responses:
-        '200':
-          description: Documentation file list
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [files]
-                properties:
-                  files:
-                    type: array
-                    items:
-                      type: string
-        '500':
-          $ref: '#/components/responses/ApiError500'
-
-  /docs/{docPath}:
-    get:
-      tags: [docs]
-      summary: Return markdown content for one docs file
-      parameters:
-        - name: docPath
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Markdown content
-          content:
-            text/markdown:
-              schema:
-                type: string
-        '400':
-          description: Invalid docs path
-        '403':
-          description: Path traversal blocked
-        '404':
-          description: File not found
-        '500':
-          description: Docs read failure
-
   /network-structure:
     post:
       tags: [structure]
@@ -263,6 +223,18 @@ paths:
     post:
       tags: [diamonds]
       summary: Identify root and unique diamonds in a network
+      description: |
+        Backed by DiamondDecompositionModule.new_identify (the current
+        correct-by-construction, factorised producer).
+
+        Shape note (array-per-join): diamond_analysis.raw_root_diamonds is a map
+        string(joinNode) -> ARRAY of conditioning-group objects. A single join can carry
+        more than one independent diamond (parents with disjoint un-conditioned ancestry),
+        so each value is a JSON array; a plain non-factorised join is a 1-element array.
+        Each group object is { join_node, diamond: { conditioning_nodes, relevant_nodes,
+        edgelist, edge_count, node_count }, non_diamond_parents }.
+        diamond_analysis.raw_unique_diamonds is keyed by string(UInt64 hash); each entry's
+        sub_diamond_structures is likewise string(joinNode) -> ARRAY of group objects.
       requestBody:
         required: true
         content:
@@ -318,6 +290,12 @@ paths:
         New canonical endpoint replacing /reachability-analysis.
         Response includes cache payload under:
         probability_result.exact_inference.cache
+
+        Diamonds are identified with DiamondDecompositionModule.new_identify; when
+        includeDiamondAnalysis is true the raw_root_diamonds / raw_unique_diamonds maps use
+        the array-per-join shape documented on /diamond-analysis.
+        Belief values keep their form: a number for Float64, { type: interval, lower, upper }
+        for Interval, { type: pbox, ... } for probability-box.
       requestBody:
         required: true
         content:
@@ -408,8 +386,14 @@ paths:
   /critical-path-analysis:
     post:
       tags: [critical-path]
-      summary: Run critical path time and cost analyses
-      description: New canonical endpoint replacing /cpm-analysis.
+      summary: Run schedule (time) and cost analyses via CriticalPathV2 (mode-based)
+      description: |
+        New canonical endpoint replacing /cpm-analysis. Backed by CriticalPathV2Module.
+        Mode-based: LongestPath (max/+, classical CPM, the default), ShortestPath (min/+),
+        MaxScaling (max/x), Accumulation (sum/+). Value types: Float64 and Interval only
+        (no probability-box for schedule). The time and cost passes each take their mode
+        from the CPM input file's declared combination_function / propagation_function,
+        overridable by request `mode` (time) and `costMode` (cost).
       requestBody:
         required: true
         content:
@@ -422,8 +406,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/CriticalPathResponse'
         '400':
           $ref: '#/components/responses/ApiError400'
         '500':
@@ -446,8 +429,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/CriticalPathResponse'
         '400':
           $ref: '#/components/responses/ApiError400'
         '500':
@@ -713,3 +695,192 @@ components:
           type: string
         cpmPath:
           type: string
+        mode:
+          type: string
+          description: |
+            Optional override for the TIME pass mode. One of longest_path, shortest_path,
+            max_scaling, accumulation. Defaults to the CPM file's declared operators
+            (currently always longest_path).
+          enum: [longest_path, shortest_path, max_scaling, accumulation]
+        costMode:
+          type: string
+          description: Optional override for the COST pass mode. Same values as `mode`; defaults to `mode`.
+          enum: [longest_path, shortest_path, max_scaling, accumulation]
+
+    CriticalPathResponse:
+      type: object
+      required: [success, message, endpoint, timestamp, critical_path_result]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        endpoint:
+          type: string
+          enum: [critical-path-analysis, cpm-analysis]
+        timestamp: { type: string }
+        edges_file_path: { type: string }
+        cpm_path: { type: string }
+        critical_path_result:
+          type: object
+          required: [module_version, value_type, time_mode, time_result]
+          properties:
+            module_version:
+              type: string
+              enum: [CriticalPathV2]
+            value_type:
+              type: string
+              enum: [Float64, Interval]
+            time_mode: { type: string }
+            cost_mode:
+              type: string
+              nullable: true
+              description: null when the CPM file has no cost_analysis section.
+            computation_time: { type: number }
+            time_result:
+              oneOf:
+                - $ref: '#/components/schemas/CpmPathResult'
+                - $ref: '#/components/schemas/CpmIntervalPathResult'
+                - $ref: '#/components/schemas/CpmAccumulationResult'
+            cost_result:
+              nullable: true
+              description: null when the CPM file has no cost_analysis section.
+              oneOf:
+                - $ref: '#/components/schemas/CpmPathResult'
+                - $ref: '#/components/schemas/CpmIntervalPathResult'
+                - $ref: '#/components/schemas/CpmAccumulationResult'
+            input_files:
+              type: object
+              additionalProperties: true
+
+    CpmPathResult:
+      type: object
+      description: |
+        Float64 path-mode result (LongestPath / ShortestPath / MaxScaling). Node-keyed maps
+        are string(nodeId) -> number. Schedule fields are present only for additive modes
+        (schedule_available = true); MaxScaling omits them.
+      required: [kind, mode, method, margin_name, value_type, project_value, forward, reverse_completion, through, margin, critical, schedule_available]
+      properties:
+        kind: { type: string, enum: [path] }
+        mode: { type: string, enum: [longest_path, shortest_path, max_scaling] }
+        method: { type: string, enum: [exact_scalar] }
+        margin_name:
+          type: string
+          enum: [slack, margin, ratio_slack]
+          description: slack (LongestPath), margin (ShortestPath), ratio_slack (MaxScaling)
+        value_type: { type: string, enum: [Float64] }
+        project_value: { type: number }
+        forward:
+          type: object
+          additionalProperties: { type: number }
+          description: F — best value of a path reaching the node, inclusive of the node (early finish for LongestPath).
+        reverse_completion:
+          type: object
+          additionalProperties: { type: number }
+          description: R — best value of a completion from the node to a sink, exclusive of the node.
+        through:
+          type: object
+          additionalProperties: { type: number }
+          description: best value of a complete path constrained to pass through the node.
+        margin:
+          type: object
+          additionalProperties: { type: number }
+          description: mode-named non-negative margin; node is critical iff margin ~ 0.
+        critical:
+          type: array
+          items: { type: integer }
+          description: nodes with margin ~ 0 (the critical path / optimal chain), topological order.
+        schedule_available: { type: boolean }
+        early_start:
+          type: object
+          additionalProperties: { type: number }
+        late_finish:
+          type: object
+          additionalProperties: { type: number }
+        late_start:
+          type: object
+          additionalProperties: { type: number }
+        near_critical_nodes:
+          type: array
+          items: { type: integer }
+          description: additive Float64 only — nodes with 0 < slack < 10% of project_value.
+
+    CpmIntervalPathResult:
+      type: object
+      description: |
+        Interval path-mode result. Forward quantities (forward, through, project_value) are
+        EXACT corner-pair bounds. Margins/criticality are exact where tractable
+        (method exact_domination_split or exact_corners_exhaustive) else a sound
+        conservative enclosure (method conservative_enclosure — see method_note).
+        The classical schedule quantities are NOT computed for the interval scheme
+        (schedule_available = false).
+      required: [kind, mode, method, margin_name, value_type, project_value, forward, through, margin, necessarily_critical, possibly_critical, corner_count, schedule_available]
+      properties:
+        kind: { type: string, enum: [path] }
+        mode: { type: string, enum: [longest_path, shortest_path, max_scaling] }
+        method:
+          type: string
+          enum: [exact_domination_split, exact_corners_exhaustive, conservative_enclosure]
+        method_note: { type: string }
+        margin_name: { type: string, enum: [slack, margin, ratio_slack] }
+        value_type: { type: string, enum: [Interval] }
+        project_value: { $ref: '#/components/schemas/IntervalValue' }
+        forward:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/IntervalValue' }
+        through:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/IntervalValue' }
+        margin:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/IntervalValue' }
+        necessarily_critical:
+          type: array
+          items: { type: integer }
+          description: critical in EVERY corner (certain).
+        possibly_critical:
+          type: array
+          items: { type: integer }
+          description: critical in AT LEAST ONE corner (superset; may be loose under conservative_enclosure).
+        corner_count: { type: integer }
+        schedule_available: { type: boolean, enum: [false] }
+
+    CpmAccumulationResult:
+      type: object
+      description: |
+        Sum/+ accumulation result. Backward object is the adjoint pass: multiplicity =
+        number of directed paths from the node to the target; sensitivity = d(total)/d(node);
+        contribution = node value x multiplicity. allowance present only if a budget was given.
+      required: [kind, mode, method, value_type, forward, target, total, multiplicity, sensitivity, contribution, ranking]
+      properties:
+        kind: { type: string, enum: [accumulation] }
+        mode: { type: string, enum: [accumulation] }
+        method: { type: string, enum: [exact_scalar] }
+        margin_name: { type: string, enum: [allowance] }
+        value_type: { type: string, enum: [Float64] }
+        forward:
+          type: object
+          additionalProperties: { type: number }
+        target: { type: integer }
+        total: { type: number }
+        multiplicity:
+          type: object
+          additionalProperties: { type: integer }
+        sensitivity:
+          type: object
+          additionalProperties: { type: number }
+        contribution:
+          type: object
+          additionalProperties: { type: number }
+        allowance:
+          type: object
+          additionalProperties: { type: number }
+        ranking:
+          type: array
+          items: { type: integer }
+
+    IntervalValue:
+      type: object
+      required: [type, lower, upper]
+      properties:
+        type: { type: string, enum: [interval] }
+        lower: { type: number }
+        upper: { type: number }

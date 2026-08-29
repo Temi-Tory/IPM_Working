@@ -1,0 +1,108 @@
+<div class="toolbar">
+  <label class="search">
+    <ipf-icon name="search" [size]="16" />
+    <input
+      type="search"
+      placeholder="Find node…"
+      [value]="search()"
+      (input)="onSearch($event)"
+      aria-label="Find node by id"
+    />
+  </label>
+
+  <div class="roles" role="group" aria-label="Filter by node role">
+    <button
+      type="button"
+      [class.active]="roleFilter() === 'all'"
+      (click)="setRole('all')"
+    >
+      All
+    </button>
+    @for (r of availableRoles(); track r) {
+      <button
+        type="button"
+        [class.active]="roleFilter() === r"
+        (click)="setRole(r)"
+      >
+        {{ roleLabel[r] }}
+      </button>
+    }
+  </div>
+
+  <button
+    type="button"
+    class="toggle"
+    [class.active]="diamondsOnly()"
+    (click)="toggleDiamondsOnly()"
+  >
+    <ipf-icon name="diamond" [size]="14" />
+    Diamond joins only
+  </button>
+</div>
+
+<div class="scroll">
+  <table>
+    <thead>
+      <tr>
+        <th
+          scope="col"
+          class="sortable"
+          [attr.aria-sort]="ariaSort('node')"
+          (click)="setSort('node')"
+        >
+          Node
+        </th>
+        <th scope="col">Role</th>
+        <th scope="col">Prior</th>
+        <th
+          scope="col"
+          class="sortable"
+          [attr.aria-sort]="ariaSort('belief')"
+          (click)="setSort('belief')"
+        >
+          Belief
+          @if (beliefSortsByLowerBound() && sortColumn() === 'belief') {
+            <span class="hint">by lower bound</span>
+          }
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of view(); track row.nodeId) {
+        <tr>
+          <td class="node">
+            {{ row.nodeId }}
+            @if (row.hasDiamond) {
+              <ipf-icon
+                name="diamond"
+                [size]="12"
+                label="join node carries a diamond"
+              />
+            }
+          </td>
+          <td>
+            <span class="tags">
+              @for (t of row.roleTags; track t) {
+                <span class="tag" [class]="'tag-' + t">{{ roleLabel[t] }}</span>
+              }
+            </span>
+          </td>
+          <td>
+            @if (row.prior !== undefined) {
+              <ipf-value [value]="row.prior" [showTag]="false" />
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td><ipf-value [value]="row.belief" [showTag]="false" /></td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="4" class="empty">No nodes match the current filters.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<p class="count">{{ view().length }} of {{ rows().length }} nodes</p>

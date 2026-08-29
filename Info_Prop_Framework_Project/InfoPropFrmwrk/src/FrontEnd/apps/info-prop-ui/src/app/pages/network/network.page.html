@@ -1,0 +1,89 @@
+@if (context(); as ctx) {
+  <ipf-page-header
+    [title]="ctx.networkName"
+    description="One network model, read three ways. Preprocessing (structure, and diamond identification for reliability) runs once; each analysis is a reading of this same object."
+  />
+
+  @if (loading()) {
+    <ipf-loading-state label="Computing network structure…" />
+  } @else if (structure(); as s) {
+    <div class="stats">
+      <ipf-stat-tile label="Nodes" icon="circle">{{ s.total_nodes }}</ipf-stat-tile>
+      <ipf-stat-tile label="Edges" icon="link">{{ s.total_edges }}</ipf-stat-tile>
+      <ipf-stat-tile label="Sources" caption="no incoming edge">{{ s.source_nodes.length }}</ipf-stat-tile>
+      <ipf-stat-tile label="Sinks" caption="no outgoing edge">{{ s.sink_nodes.length }}</ipf-stat-tile>
+      <ipf-stat-tile label="Forks" caption="fan-out ≥ 2">{{ s.fork_nodes.length }}</ipf-stat-tile>
+      <ipf-stat-tile label="Joins" caption="fan-in ≥ 2">{{ s.join_nodes.length }}</ipf-stat-tile>
+      <ipf-stat-tile label="Layers" caption="topological">{{ s.iteration_sets_count }}</ipf-stat-tile>
+    </div>
+
+    <div class="cols">
+      <ipf-card>
+        <h2>Layered view</h2>
+        <ipf-layered-graph [structure]="s" />
+        <div class="legend">
+          <span><i class="dot source"></i> source</span>
+          <span><i class="dot sink"></i> sink</span>
+          <span><i class="dot fork"></i> fork</span>
+          <span><i class="dot join"></i> join</span>
+        </div>
+      </ipf-card>
+
+      <ipf-card>
+        <h2>Analyses available on this network</h2>
+        <ul class="toolkit-list">
+          @for (t of toolkits(); track t.path) {
+            <li [class.disabled]="!t.enabled">
+              <ipf-icon [name]="t.icon" [size]="18" />
+              <div class="tk-body">
+                <div class="tk-name">
+                  @if (t.enabled) {
+                    <a [routerLink]="t.path">{{ t.label }}</a>
+                  } @else {
+                    <span>{{ t.label }}</span>
+                  }
+                </div>
+                <div class="tk-reason">{{ t.reason }}</div>
+              </div>
+              @if (t.enabled) {
+                <ipf-icon name="chevron-right" [size]="16" />
+              }
+            </li>
+          }
+        </ul>
+
+        @if (scenarios().length) {
+          <h3>Scenarios in this upload</h3>
+          <ul class="scenario-list">
+            @for (s of scenarios(); track s.name) {
+              <li>
+                <span class="sc-name">{{ s.name }}</span>
+                <span class="sc-kinds">
+                  @for (a of s.analyses; track a.kind) {
+                    <span class="sc-chip" [class.incomplete]="!a.complete">
+                      {{ a.kind }}@if (a.kind !== 'flow') { · {{ a.valueType }} }
+                    </span>
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="sc-note">
+            Each analysis view lets you pick which scenario to run and keeps the
+            results side by side under System profile.
+          </p>
+        }
+      </ipf-card>
+    </div>
+  } @else {
+    <ipf-error-banner
+      message="Could not compute the network structure."
+      [retryable]="true"
+      [dismissible]="false"
+      (retry)="retry()"
+    />
+  }
+} @else {
+  <ipf-page-header title="No network loaded" />
+  <p><a routerLink="/upload">Upload a network</a> to get started.</p>
+}

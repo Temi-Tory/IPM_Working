@@ -1,0 +1,61 @@
+import { Route } from '@angular/router';
+import { networkLoadedGuard } from './core/network-loaded.guard';
+
+/**
+ * Guided but not gated: a toolkit route unlocks once a network is loaded (the
+ * `networkLoadedGuard` redirects to /upload otherwise), but any unlocked route
+ * is reachable directly and the router preserves scroll / view state across
+ * navigation. The nav rail disables links that are not yet reachable rather
+ * than hiding them.
+ */
+export const appRoutes: Route[] = [
+  { path: '', pathMatch: 'full', redirectTo: 'home' },
+  {
+    path: 'home',
+    title: 'Information Propagation Framework',
+    loadComponent: () =>
+      import('./pages/home/home.page').then((m) => m.HomePage),
+  },
+  {
+    path: 'upload',
+    title: 'Upload a network',
+    loadComponent: () =>
+      import('./pages/upload/upload.page').then((m) => m.UploadPage),
+  },
+  {
+    path: 'network',
+    title: 'Network',
+    canActivate: [networkLoadedGuard],
+    loadComponent: () =>
+      import('./pages/network/network.page').then((m) => m.NetworkPage),
+  },
+  {
+    path: 'reliability',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/reliability').then(
+        (m) => m.featureReliabilityRoutes,
+      ),
+  },
+  {
+    path: 'flow',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/flow').then((m) => m.featureFlowRoutes),
+  },
+  {
+    path: 'schedule',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/schedule').then((m) => m.featureScheduleRoutes),
+  },
+  {
+    path: 'system-profile',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/system-profile').then(
+        (m) => m.featureSystemProfileRoutes,
+      ),
+  },
+  { path: '**', redirectTo: 'home' },
+];

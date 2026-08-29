@@ -1,0 +1,78 @@
+<ipf-card>
+  <div class="head">
+    <div class="title">
+      <ipf-icon name="diamond" [size]="18" />
+      <h3>Diamond structure</h3>
+    </div>
+    <div class="counts">
+      <span>
+        {{ analysis().diamondJoinNodes.length }} diamond
+        join{{ analysis().diamondJoinNodes.length === 1 ? '' : 's' }}
+      </span>
+      <span>{{ analysis().maximalDiamondCount }} maximal</span>
+      <span>{{ analysis().uniqueDiamondCount }} unique</span>
+    </div>
+  </div>
+
+  <p class="lede">
+    Diamond decomposition is a pre-processing step of this reliability analysis,
+    not a separate one. Where redundant paths reconverge at a diamond join, the
+    algorithm conditions on the diamond's fixed nodes rather than assuming
+    independence. Every diamond join carries exactly one maximal diamond — open
+    it for the identification detail, to run it in isolation, or to promote it to
+    a network of its own.
+  </p>
+
+  @if (hasDiamonds()) {
+    <ul class="diamonds">
+      @for (d of diamonds(); track d.hash) {
+        <li class="diamond">
+          <div class="d-head">
+            <span class="d-join">Diamond join {{ d.joinNode }}</span>
+            <span class="d-kind">
+              @if (d.isInduced) {
+                induced diamond
+              } @else {
+                {{ d.subDiamondCount }}
+                sub-diamond{{ d.subDiamondCount === 1 ? '' : 's' }}
+              }
+            </span>
+          </div>
+          <div class="d-body">
+            <div class="d-facts">
+              <span class="fact">
+                <span class="k">Fixed nodes</span>
+                @if (d.fixedNodes.length) {
+                  <span class="chips">
+                    @for (c of d.fixedNodes; track c) {
+                      <span class="chip">{{ c }}</span>
+                    }
+                  </span>
+                } @else {
+                  <span class="v muted">none</span>
+                }
+              </span>
+              <span class="fact">
+                <span class="k">Size</span>
+                <span class="v">{{ d.nodeCount }} nodes · {{ d.edgeCount }} edges</span>
+              </span>
+              <span class="fact">
+                <span class="k">Local sources</span>
+                <span class="v">{{ d.localSources.join(', ') || '—' }}</span>
+              </span>
+            </div>
+            <button type="button" class="inspect" (click)="open(d)">
+              <ipf-icon name="eye" [size]="14" />
+              Inspect
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="none">
+      No diamonds were identified on this network — every path to a join node is
+      independent, so the local probability calculation is already exact.
+    </p>
+  }
+</ipf-card>
