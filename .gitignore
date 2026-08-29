@@ -226,3 +226,6 @@ Info_Prop_Framework_Project/temp_uploads/7a686484-7fba-470b-a6ac-8fd0ff344485/wa
 Info_Prop_Framework_Project/temp_uploads/7a686484-7fba-470b-a6ac-8fd0ff344485/water/Winter Operations/water-cpm-inputs.json
 Info_Prop_Framework_Project/temp_uploads/7a686484-7fba-470b-a6ac-8fd0ff344485/water/Winter Operations/water-linkprobabilities.json
 Info_Prop_Framework_Project/temp_uploads/7a686484-7fba-470b-a6ac-8fd0ff344485/water/Winter Operations/water-nodepriors.json
+
+# Validation harness (large: logs, CSVs, oracle data) - kept local only
+Info_Prop_Framework_Project/validation/
