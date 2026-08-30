@@ -80,6 +80,12 @@ export class NavRailComponent {
         enabled: loaded,
         hint: 'Upload a network first',
       },
+      {
+        path: '/docs',
+        label: 'Docs',
+        icon: 'document',
+        enabled: true,
+      },
     ];
   });
 
@@ -93,6 +99,13 @@ export class NavRailComponent {
         path: '/reliability',
         label: 'Reliability',
         icon: 'reliability',
+        enabled: loaded && u.reliability,
+        hint: hint(u.reliability, 'node priors + link probabilities'),
+      },
+      {
+        path: '/diamonds',
+        label: 'Diamonds',
+        icon: 'diamond',
         enabled: loaded && u.reliability,
         hint: hint(u.reliability, 'node priors + link probabilities'),
       },

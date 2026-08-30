@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, forkJoin, switchMap, throwError } from 'rxjs';
+import { Observable, forkJoin, switchMap, tap, throwError } from 'rxjs';
 import {
   ApiClient,
   DiamondSubgraphRequest,
@@ -15,15 +15,18 @@ import {
   ScenarioMetric,
   ScenarioOverlay,
   UploadService,
+  classifyFiles,
   scenarioRunId,
 } from '@inf-prop/shared/data-access';
 import {
   ReliabilityScenarioRef,
+  conditioningWidth,
   fixedNodeUnion,
   readEmbeddedDiamondAnalysis,
   resolvedValueType,
   toReliabilityScenarios,
 } from './reliability.types';
+import { beliefBandWidth, beliefMidpoint } from './belief-rows';
 import {
   DiamondPromotionInput,
   ParentLinksFile,
@@ -69,6 +72,25 @@ export class ReliabilityService {
   run(
     scenario: ReliabilityScenarioRef,
   ): Observable<ProbabilityPropagationResponse> {
+    return this.request(scenario, true);
+  }
+
+  /**
+   * Identify diamond structure only — no belief propagation. The Diamonds tab
+   * is reachable without first running a full reliability pass: decomposition
+   * is genuinely a lighter, separate server call (`includeExactInference:
+   * false`), not a byproduct that requires the belief computation to exist.
+   */
+  identifyDiamonds(
+    scenario: ReliabilityScenarioRef,
+  ): Observable<ProbabilityPropagationResponse> {
+    return this.request(scenario, false);
+  }
+
+  private request(
+    scenario: ReliabilityScenarioRef,
+    includeExactInference: boolean,
+  ): Observable<ProbabilityPropagationResponse> {
     const ctx = this.ctx.context();
     if (!ctx) return throwError(() => new Error('No network is loaded.'));
     const request: ProbabilityPropagationRequest = {
@@ -76,7 +98,7 @@ export class ReliabilityService {
       edgesFilePath: ctx.edgesFilePath,
       nodepriorsPath: scenario.nodepriorsPath,
       linkprobsPath: scenario.linkprobsPath,
-      includeExactInference: true,
+      includeExactInference,
       includeDiamondAnalysis: true,
     };
     return this.api.post<ProbabilityPropagationResponse>(
@@ -111,9 +133,13 @@ export class ReliabilityService {
   }
 
   /**
-   * Promote a diamond to a new independent network and upload it. The caller
-   * gets the `UploadResponse` and is responsible for switching the app's network
-   * context to the new session.
+   * Promote a diamond to a new independent network, upload it, and switch the
+   * app's network context to the new session — the same "classify what we
+   * already have locally, don't re-derive it from a fallible round-trip" rule
+   * the main upload page follows. We built the `File`s ourselves, so
+   * `classifyFiles` on them is instant and 100% correct (the scenario folder is
+   * always a value-form keyword here — see `scenarioFolderFor`), unlike
+   * re-deriving via `setUploadFromPaths` + an async `/files/` guess.
    */
   promoteDiamond(
     options: DiamondPromotionOptions,
@@ -139,12 +165,32 @@ export class ReliabilityService {
           parentLinks,
           priorOverrides: options.priorOverrides,
         };
-        return this.uploads.upload(buildDiamondUploadFiles(input));
+        const files = buildDiamondUploadFiles(input);
+        return this.uploads.upload(files).pipe(
+          tap((res) => {
+            if (!res.success) return;
+            this.ctx.setContext({
+              sessionId: res.upload_id,
+              networkPath: res.network_path,
+              networkName: res.network_name,
+              edgesFilePath: res.edges_files?.[0],
+            });
+            this.ctx.setUpload(classifyFiles(files));
+          }),
+        );
       }),
     );
   }
 
-  /** Record a completed run in the cross-scenario cache (Track 4 reads these). */
+  /**
+   * Record a completed run in the cross-scenario cache (Track 4 reads these,
+   * and each toolkit's own in-page Compare tab). Metric selection follows the
+   * Probability chapter's own comparison table (§Case Study): structure and
+   * conditioning width first (the chapter's cost-governing parameter), then
+   * belief levels, then band width (its "different interventions" reading —
+   * a confidently-known 0.6 and a 0.56–0.72 band call for different
+   * responses), then cost.
+   */
   record(
     scenario: ReliabilityScenarioRef,
     res: ProbabilityPropagationResponse,
@@ -154,32 +200,67 @@ export class ReliabilityService {
     if (!ctx || !ei) return;
     const stats = ei.belief_statistics;
     const valueType: ValueType = resolvedValueType(res) ?? scenario.hintValueType;
+    const diamonds = readEmbeddedDiamondAnalysis(res);
+    const beliefs = ei.beliefs ?? {};
+    const beliefValues = Object.values(beliefs);
+    const bandWidths = beliefValues.map(beliefBandWidth);
+    const meanBand = bandWidths.length
+      ? bandWidths.reduce((a, b) => a + b, 0) / bandWidths.length
+      : 0;
+    const maxBand = bandWidths.length ? Math.max(...bandWidths) : 0;
 
     const metrics: ScenarioMetric[] = [
+      { label: 'Nodes analysed', value: stats.total_count, direction: 'neutral' },
       {
-        label: 'Mean belief',
-        value: stats.mean,
-        direction: 'higher-better',
+        label: 'Conditioning width',
+        value: diamonds ? conditioningWidth(diamonds) : 0,
+        direction: 'lower-better',
       },
+      { label: 'Mean belief', value: stats.mean, direction: 'higher-better' },
       { label: 'Min belief', value: stats.min, direction: 'higher-better' },
       { label: 'Max belief', value: stats.max, direction: 'higher-better' },
+      { label: 'Mean band width', value: meanBand, direction: 'lower-better' },
+      { label: 'Max band width', value: maxBand, direction: 'lower-better' },
       {
-        label: 'Nodes analysed',
-        value: stats.total_count,
-        direction: 'neutral',
+        label: 'Computation time',
+        value: ei.computation_time ?? 0,
+        unit: 's',
+        direction: 'lower-better',
       },
     ];
 
-    const diamonds = readEmbeddedDiamondAnalysis(res);
-    const overlays: ScenarioOverlay[] | undefined = diamonds
-      ? [
-          {
-            focus: 'diamond-fixed-nodes',
-            label: 'Diamond fixed nodes',
-            nodeIds: fixedNodeUnion(diamonds),
-          },
-        ]
-      : undefined;
+    const sinkIds = new Set(res.sink_nodes ?? []);
+    const sinkVals = Object.entries(beliefs)
+      .filter(([id]) => sinkIds.has(Number(id)))
+      .map(([, v]) => beliefMidpoint(v));
+    if (sinkVals.length) {
+      metrics.splice(3, 0, {
+        label: 'Mean belief at sinks',
+        value: sinkVals.reduce((a, b) => a + b, 0) / sinkVals.length,
+        direction: 'higher-better',
+      });
+    }
+
+    // Scope the label explicitly: this is a UNION across every diamond the
+    // decomposition actually posed — maximal AND nested — not one diamond's
+    // own conditioning set. A nested diamond can fix a node its enclosing
+    // maximal diamond never does (the Diamond chapter's own D2/D3 example),
+    // so counting only maximal diamonds here would both undercount the node
+    // set and mislabel how many diamonds contributed to it. A viewer with no
+    // other context (e.g. the System Profile network lens) must not be able
+    // to read this as "the conditioning set of a diamond" without knowing
+    // which population. "Conditioning set" is the Probability chapter's own
+    // term for the diamond's fixed nodes C, used throughout this toolkit.
+    const overlays: ScenarioOverlay[] | undefined =
+      diamonds && diamonds.uniqueDiamondCount > 0
+        ? [
+            {
+              focus: 'diamond-fixed-nodes',
+              label: `Conditioning set, union across ${diamonds.uniqueDiamondCount} diamond${diamonds.uniqueDiamondCount === 1 ? '' : 's'} (maximal + nested)`,
+              nodeIds: fixedNodeUnion(diamonds),
+            },
+          ]
+        : undefined;
 
     this.cache.record({
       id: scenarioRunId('reliability', ctx.networkPath, scenario.name, valueType),

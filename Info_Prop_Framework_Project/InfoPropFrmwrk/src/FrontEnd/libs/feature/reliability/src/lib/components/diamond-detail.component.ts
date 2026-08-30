@@ -56,6 +56,13 @@ export class DiamondDetailComponent {
   readonly diamond = input.required<MaximalDiamond>();
   readonly valueType = input.required<ValueType>();
 
+  /** this diamond's own immediate sub-diamonds, resolved by the container
+   *  (it already holds the full diamond analysis) — empty at the innermost
+   *  level, where `isInduced()` is true. */
+  readonly subDiamonds = input<MaximalDiamond[]>([]);
+  /** true when this isn't the diamond the user first opened — shows Back. */
+  readonly canGoBack = input(false);
+
   readonly isolatedResult = input<DiamondSubgraphResponse | null>(null);
   readonly isolatedBusy = input(false);
   readonly isolatedError = input<string | null>(null);
@@ -65,6 +72,10 @@ export class DiamondDetailComponent {
   readonly closed = output<void>();
   readonly promote = output<PromoteRequest>();
   readonly analyseIsolated = output<IsolatedRequest>();
+  /** open one of `subDiamonds()` in this same view */
+  readonly drillInto = output<MaximalDiamond>();
+  /** return to the diamond that was open before the last `drillInto` */
+  readonly drillBack = output<void>();
 
   /** raw text of each local-source override input, keyed by node id */
   protected readonly overrideText = signal<Record<number, string>>({});
@@ -78,6 +89,17 @@ export class DiamondDetailComponent {
     () => this.diamond().subDiamondCount,
   );
   protected readonly isInduced = computed(() => this.diamond().isInduced);
+  protected readonly identified = computed(() => this.diamond().identified);
+  protected readonly isMaximal = computed(
+    () => this.diamond().raw.is_root_diamond,
+  );
+  protected readonly title = computed(() => {
+    const at = `at join ${this.joinNode()}`;
+    if (this.isMaximal()) return `Maximal diamond ${at}`;
+    return this.identified()
+      ? `Sub-diamond ${at}`
+      : `Sub-diamond ${at} — unidentified`;
+  });
 
   protected readonly overridesAllowed = computed(
     () => this.valueType() === 'float64',
@@ -123,6 +145,14 @@ export class DiamondDetailComponent {
         ? asStringKeys
         : undefined,
     });
+  }
+
+  protected onDrillInto(sub: MaximalDiamond): void {
+    this.drillInto.emit(sub);
+  }
+
+  protected onDrillBack(): void {
+    this.drillBack.emit();
   }
 
   @HostListener('document:keydown.escape')

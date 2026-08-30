@@ -178,7 +178,11 @@ function handle_file_request(req::HTTP.Request)
 
     try
         uri = HTTP.URI(req.target)
-        path_parts = split(uri.path, "/")
+        # HTTP.jl's URI.path is percent-encoded verbatim (e.g. "%20" stays literal) —
+        # decode before splitting, or any scenario folder name with a space or other
+        # escaped character (e.g. "01 Source Limited") 404s despite existing on disk.
+        decoded_path = HTTP.unescapeuri(uri.path)
+        path_parts = split(decoded_path, "/")
 
         if length(path_parts) < 4 || path_parts[2] != "files"
             return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Invalid file path format. Expected: /files/network_path/relative_file_path")))
@@ -205,7 +209,11 @@ function register!(router::HTTP.Router)
     HTTP.register!(router, "GET", "/sessions/*", handle_session_item)
     HTTP.register!(router, "PUT", "/sessions/*", handle_session_item)
     HTTP.register!(router, "DELETE", "/sessions/*", handle_session_item)
-    HTTP.register!(router, "GET", "/files/*", handle_file_request)
+    # "*" only matches one path segment in HTTP.jl's router; a real call is
+    # always /files/<uploadDir>/<uuid>/<network>/.../<file> (several segments),
+    # so this needs the greedy "**" or it silently 404s via the router's own
+    # default handler before handle_file_request ever runs.
+    HTTP.register!(router, "GET", "/files/**", handle_file_request)
 end
 
 end # module UploadHandlers

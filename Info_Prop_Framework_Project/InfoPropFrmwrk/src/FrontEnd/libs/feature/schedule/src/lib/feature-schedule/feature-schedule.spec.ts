@@ -132,6 +132,56 @@ describe('FeatureSchedule', () => {
     http.verify();
   });
 
+  it('compares scenarios: checked by default, run selected chained, table populated', async () => {
+    const { fixture, ctx, http, cache } = await setup({ loaded: true });
+    ctx.setUploadFromPaths('KarlNetwork', [
+      'KarlNetwork/case-a/KarlNetwork-cpm-inputs.json',
+      'KarlNetwork/case-b/KarlNetwork-cpm-inputs.json',
+    ]);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const compareTab = [...el.querySelectorAll('button[role="tab"]')].find((b) =>
+      b.textContent?.includes('Compare'),
+    ) as HTMLButtonElement | undefined;
+    expect(compareTab).toBeTruthy();
+    compareTab?.click();
+    fixture.detectChanges();
+
+    const boxes = [...el.querySelectorAll('input[type="checkbox"]')] as HTMLInputElement[];
+    expect(boxes).toHaveLength(2);
+    expect(boxes.every((b) => b.checked)).toBe(true);
+
+    const runBtn = [...el.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('Run selected'),
+    ) as HTMLButtonElement | undefined;
+    expect(runBtn).toBeTruthy();
+    runBtn?.click();
+    fixture.detectChanges();
+
+    // chained, not parallel
+    const req1 = http.expectOne('http://localhost:8080/critical-path-analysis');
+    expect((req1.request.body as { cpmPath: string }).cpmPath).toBe(
+      'case-a/KarlNetwork-cpm-inputs.json',
+    );
+    req1.flush(responseWith(floatLongestPassMock));
+    fixture.detectChanges();
+
+    const req2 = http.expectOne('http://localhost:8080/critical-path-analysis');
+    expect((req2.request.body as { cpmPath: string }).cpmPath).toBe(
+      'case-b/KarlNetwork-cpm-inputs.json',
+    );
+    req2.flush(responseWith(floatLongestPassMock));
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Running');
+    expect(el.textContent).toContain('case-a');
+    expect(el.textContent).toContain('case-b');
+    expect(
+      cache.runsForToolkit('schedule').map((r) => r.scenarioName).sort(),
+    ).toEqual(['case-a', 'case-b']);
+  });
+
   it('notes when the file resolved to a different value type than pre-selected', async () => {
     const { fixture, http, text } = await setup({
       loaded: true,

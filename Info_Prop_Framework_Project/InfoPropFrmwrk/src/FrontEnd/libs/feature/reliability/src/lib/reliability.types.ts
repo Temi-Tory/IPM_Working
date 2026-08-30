@@ -1,5 +1,6 @@
 import {
   BeliefValue,
+  DiamondsAtNode,
   DiamondSubgraph,
   ProbabilityPropagationResponse,
   UniqueDiamond,
@@ -112,12 +113,29 @@ export interface EmbeddedDiamondAnalysis {
   uniqueDiamonds: Record<string, UniqueDiamond>;
 }
 
-/** A maximal diamond, resolved into the chapter's vocabulary. */
+/**
+ * One diamond, resolved into the chapter's vocabulary — a MAXIMAL diamond
+ * (`is_root_diamond: true` on the wire) when read via `maximalDiamonds()`, or
+ * one of ITS sub-diamonds when read via `subDiamondsOf()`. The two are the
+ * same shape: the chapter's self-similarity claim is that a diamond is "a
+ * unified graph object of its own" at any nesting level, and this type takes
+ * that literally — a sub-diamond opens in the exact same detail view.
+ */
 export interface MaximalDiamond {
   /** UInt64 hash string — the `unique_subgraphs` key and the
-   *  `/diamond-subgraph-analysis` identifier */
+   *  `/diamond-subgraph-analysis` identifier. A synthesised, non-wire value
+   *  when `identified` is false (see below) — never sent to the server. */
   hash: string;
-  /** the diamond join this maximal diamond reconverges at */
+  /**
+   * True when this node was matched against a `raw_unique_diamonds` entry, so
+   * it carries a REAL hash and can be analysed in isolation or promoted. A
+   * sub-diamond reached only through its parent's `sub_diamond_structures`
+   * (own geometry, no own wire entry) is still shown — fixed nodes, size,
+   * local sources — but with isolation/promotion disabled, since there is no
+   * real hash to call `/diamond-subgraph-analysis` with.
+   */
+  identified: boolean;
+  /** the diamond join this diamond reconverges at */
   joinNode: number;
   /** the set `C` of fixed nodes that isolate the pattern */
   fixedNodes: number[];
@@ -131,10 +149,31 @@ export interface MaximalDiamond {
   localSources: number[];
   localForks: number[];
   localJoins: number[];
-  /** nested sub-diamonds; 0 ⇒ this maximal diamond is itself an induced diamond */
+  /** nested sub-diamonds; 0 ⇒ this diamond is itself an induced diamond (or,
+   *  when `!identified`, unknown — treated as a leaf) */
   subDiamondCount: number;
   isInduced: boolean;
   raw: UniqueDiamond;
+}
+
+function buildDiamondNode(hash: string, u: UniqueDiamond): MaximalDiamond {
+  const subs = subDiamondCount(u);
+  return {
+    hash,
+    identified: true,
+    joinNode: diamondJoinNode(u.diamond),
+    fixedNodes: u.diamond.conditioning_nodes ?? [],
+    relevantNodes: u.diamond.relevant_nodes ?? [],
+    edgelist: u.diamond.edgelist ?? [],
+    nodeCount: u.diamond.node_count ?? u.diamond.relevant_nodes?.length ?? 0,
+    edgeCount: u.diamond.edge_count ?? u.diamond.edgelist?.length ?? 0,
+    localSources: u.sub_sources ?? [],
+    localForks: u.sub_fork_nodes ?? [],
+    localJoins: u.sub_join_nodes ?? [],
+    subDiamondCount: subs,
+    isInduced: subs === 0,
+    raw: u,
+  };
 }
 
 export function readEmbeddedDiamondAnalysis(
@@ -199,32 +238,124 @@ export function maximalDiamonds(
   const out: MaximalDiamond[] = [];
   for (const [key, u] of Object.entries(analysis.uniqueDiamonds)) {
     if (!u.is_root_diamond || !u.diamond) continue;
-    const subs = subDiamondCount(u);
-    out.push({
-      hash: u.diamond_hash || key,
-      joinNode: diamondJoinNode(u.diamond),
-      fixedNodes: u.diamond.conditioning_nodes ?? [],
-      relevantNodes: u.diamond.relevant_nodes ?? [],
-      edgelist: u.diamond.edgelist ?? [],
-      nodeCount: u.diamond.node_count ?? u.diamond.relevant_nodes?.length ?? 0,
-      edgeCount: u.diamond.edge_count ?? u.diamond.edgelist?.length ?? 0,
-      localSources: u.sub_sources ?? [],
-      localForks: u.sub_fork_nodes ?? [],
-      localJoins: u.sub_join_nodes ?? [],
-      subDiamondCount: subs,
-      isInduced: subs === 0,
-      raw: u,
-    });
+    out.push(buildDiamondNode(u.diamond_hash || key, u));
   }
   return out.sort((a, b) => a.joinNode - b.joinNode);
 }
 
-/** Every fixed node named across every maximal diamond, de-duplicated. */
+/**
+ * Every fixed node named across every diamond actually posed — maximal AND
+ * nested, de-duplicated. A maximal-only union would undercount: the Diamond
+ * chapter's own worked example stores a maximal diamond $D_2$ at a join with
+ * $C=\{1\}$ whose nested $D_3$, posed inside it, carries its own DIFFERENT
+ * conditioning set $C=\{3\}$ — a node the enclosing maximal diamond never
+ * fixes. The Probability chapter conditions on exactly those nodes at every
+ * level the recursion poses a diamond, so the network's true "which nodes did
+ * the algorithm have to fix anywhere" set is the union over every entry in
+ * `raw_unique_diamonds`, not just the ones with `is_root_diamond: true` — the
+ * same scope `conditioningWidth` already uses for the width parameter.
+ */
 export function fixedNodeUnion(analysis: EmbeddedDiamondAnalysis): number[] {
   const set = new Set<number>();
   for (const u of Object.values(analysis.uniqueDiamonds)) {
-    if (!u.is_root_diamond) continue;
     for (const n of u.diamond?.conditioning_nodes ?? []) set.add(n);
   }
   return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * The largest conditioning set the network forces — the SINGLE parameter the
+ * Probability chapter identifies as governing cost ("no closed-form cost in
+ * the node count exists... the algorithm's position among the exact methods
+ * is fixed by [the width]"). Measured over EVERY diamond actually posed —
+ * maximal and nested alike, since a nested diamond's own conditioning set can
+ * be smaller (rarely larger) than its parent's and the recursion pays for
+ * each individually. 0 on a network with no reconvergence at all.
+ */
+export function conditioningWidth(analysis: EmbeddedDiamondAnalysis): number {
+  let max = 0;
+  for (const u of Object.values(analysis.uniqueDiamonds)) {
+    const n = u.diamond?.conditioning_nodes?.length ?? 0;
+    if (n > max) max = n;
+  }
+  return max;
+}
+
+function sameNodes(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort((x, y) => x - y);
+  const sb = [...b].sort((x, y) => x - y);
+  return sa.every((v, i) => v === sb[i]);
+}
+
+/** A sub-diamond found only through a parent's `sub_diamond_structures` —
+ *  its own geometry is known, but it has no `raw_unique_diamonds` entry of
+ *  its own, so it can't be analysed in isolation or promoted, and whether IT
+ *  nests further is unknown (treated as a leaf). */
+function partialDiamondNode(entry: DiamondsAtNode, index: number): MaximalDiamond {
+  const d = entry.diamond;
+  const raw: UniqueDiamond = {
+    diamond_hash: '',
+    is_root_diamond: false,
+    sub_sources: [],
+    sub_fork_nodes: [],
+    sub_join_nodes: [],
+    sub_iteration_sets_count: 0,
+    sub_diamond_structures: {},
+    diamond: d,
+  };
+  return {
+    hash: `unidentified:${entry.join_node}:${index}`,
+    identified: false,
+    joinNode: entry.join_node,
+    fixedNodes: d.conditioning_nodes ?? [],
+    relevantNodes: d.relevant_nodes ?? [],
+    edgelist: d.edgelist ?? [],
+    nodeCount: d.node_count ?? d.relevant_nodes?.length ?? 0,
+    edgeCount: d.edge_count ?? d.edgelist?.length ?? 0,
+    localSources: [],
+    localForks: [],
+    localJoins: [],
+    subDiamondCount: 0,
+    isInduced: true,
+    raw,
+  };
+}
+
+/**
+ * The immediate sub-diamonds of one diamond (maximal or itself a
+ * sub-diamond), read from its own `sub_diamond_structures` — one entry per
+ * nested join, possibly several per join (a join can carry more than one
+ * independent diamond from different forks; see `diamonds.ts`). Each entry is
+ * matched against the full `raw_unique_diamonds` map by join node + fixed-node
+ * set to recover its real hash and full identification detail; an entry with
+ * no match still renders (its own geometry is on the wire either way) but
+ * with `identified: false`. Drilling continues until `subDiamondCount === 0`
+ * — the innermost diamonds, per the chapter's induced-diamond definition.
+ */
+export function subDiamondsOf(
+  d: MaximalDiamond,
+  analysis: EmbeddedDiamondAnalysis,
+): MaximalDiamond[] {
+  const structures = d.raw.sub_diamond_structures ?? {};
+  const entries: DiamondsAtNode[] = [];
+  for (const list of Object.values(structures)) {
+    if (Array.isArray(list)) entries.push(...list);
+  }
+  if (!entries.length) return [];
+
+  const candidates = Object.entries(analysis.uniqueDiamonds);
+  const out: MaximalDiamond[] = entries.map((entry, i) => {
+    const match = candidates.find(([, u]) => {
+      if (!u.diamond) return false;
+      return (
+        diamondJoinNode(u.diamond) === entry.join_node &&
+        sameNodes(u.diamond.conditioning_nodes ?? [], entry.diamond.conditioning_nodes ?? [])
+      );
+    });
+    return match
+      ? buildDiamondNode(match[1].diamond_hash || match[0], match[1])
+      : partialDiamondNode(entry, i);
+  });
+  return out.sort((a, b) => a.joinNode - b.joinNode);
 }

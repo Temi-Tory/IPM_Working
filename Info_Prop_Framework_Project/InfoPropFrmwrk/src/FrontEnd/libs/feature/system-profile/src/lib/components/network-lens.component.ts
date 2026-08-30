@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   input,
   output,
   signal,
@@ -22,6 +23,12 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
  * that analysis identified (bottlenecks, critical-path nodes, diamond
  * conditioning nodes, ...). A view of results that already exist; it derives
  * nothing of its own.
+ *
+ * An optional second, "compare with" result set can be drawn alongside the
+ * first, in its own colour, with the overlap between the two called out both
+ * on the drawing (a third colour) and as a count — the comparative question
+ * the Front-End chapter names ("which design carries the risk") is usually
+ * "where do two of these agree", not just "what did one analysis find".
  */
 @Component({
   selector: 'ipf-sp-network-lens',
@@ -63,10 +70,40 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
         >
       </div>
 
+      @if (compareOptions().length > 0) {
+        <div class="compare-row">
+          <label for="sp-compare-with">Compare with</label>
+          <select
+            id="sp-compare-with"
+            [value]="compareKey() ?? ''"
+            (change)="onCompareChange($event)"
+          >
+            <option value="">— none —</option>
+            @for (opt of compareOptions(); track opt.key) {
+              <option [value]="opt.key">
+                {{ opt.overlay.label }} ({{ opt.run.scenarioName }} ·
+                {{ toolkitLabel(opt) }})
+              </option>
+            }
+          </select>
+          @if (overlap(); as ov) {
+            <span class="overlap-counts">
+              <i class="swatch hl-both"></i> {{ ov.both }} in both ·
+              <i class="swatch hl"></i> {{ ov.onlyPrimary }} only in
+              {{ ref.overlay.label }} ·
+              <i class="swatch hl2"></i> {{ ov.onlyCompare }} only in
+              {{ compareRef()!.overlay.label }}
+            </span>
+          }
+        </div>
+      }
+
       <ipf-sp-lens-graph
         [structure]="structure()!"
         [highlightNodes]="ref.overlay.nodeIds ?? []"
         [highlightEdges]="ref.overlay.edges ?? []"
+        [compareNodes]="compareRef()?.overlay?.nodeIds ?? []"
+        [compareEdges]="compareRef()?.overlay?.edges ?? []"
         [selectedNode]="selectedNode()"
         (nodeSelect)="onNode($event)"
       />
@@ -85,7 +122,7 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
           </div>
           <dl>
             <div>
-              <dt>In this result set</dt>
+              <dt>In {{ ref.overlay.label }}</dt>
               <dd>{{ nodeInSet() ? 'yes' : 'no' }}</dd>
             </div>
             @if (nodeValue(); as v) {
@@ -93,6 +130,18 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
                 <dt>{{ ref.overlay.label }} value</dt>
                 <dd><ipf-value [value]="v" [compact]="false" /></dd>
               </div>
+            }
+            @if (compareRef(); as cmp) {
+              <div>
+                <dt>In {{ cmp.overlay.label }}</dt>
+                <dd>{{ nodeInCompareSet() ? 'yes' : 'no' }}</dd>
+              </div>
+              @if (compareNodeValue(); as v) {
+                <div>
+                  <dt>{{ cmp.overlay.label }} value</dt>
+                  <dd><ipf-value [value]="v" [compact]="false" /></dd>
+                </div>
+              }
             }
           </dl>
           @if (!nodeValue()) {
@@ -105,7 +154,11 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
       }
 
       <ul class="legend">
-        <li><i class="swatch hl"></i> in the selected result set</li>
+        <li><i class="swatch hl"></i> in {{ ref.overlay.label }}</li>
+        @if (compareRef(); as cmp) {
+          <li><i class="swatch hl2"></i> in {{ cmp.overlay.label }}</li>
+          <li><i class="swatch hl-both"></i> in both</li>
+        }
         <li><i class="swatch src"></i> source</li>
         <li><i class="swatch sink"></i> sink</li>
         <li><i class="swatch fork"></i> fork</li>
@@ -156,7 +209,7 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
         align-items: baseline;
         gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: var(--spacingVerticalM, 12px);
+        margin-bottom: var(--spacingVerticalS, 8px);
       }
       .caption .label {
         font-weight: var(--fontWeightSemibold, 600);
@@ -165,6 +218,37 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
       .caption .src {
         font-size: var(--fontSizeBase200, 12px);
         color: var(--colorNeutralForeground3);
+      }
+      .compare-row {
+        display: flex;
+        align-items: center;
+        gap: var(--spacingHorizontalM, 12px);
+        flex-wrap: wrap;
+        margin-bottom: var(--spacingVerticalM, 12px);
+        padding: 8px 10px;
+        border: 1px dashed var(--colorNeutralStroke2);
+        border-radius: var(--borderRadiusMedium, 4px);
+      }
+      .compare-row label {
+        font-size: var(--fontSizeBase200, 12px);
+        color: var(--colorNeutralForeground2);
+      }
+      .compare-row select {
+        font: inherit;
+        font-size: var(--fontSizeBase200, 12px);
+        padding: 4px 6px;
+        border: 1px solid var(--colorNeutralStroke1);
+        border-radius: var(--borderRadiusMedium, 4px);
+        background: var(--colorNeutralBackground1);
+        color: var(--colorNeutralForeground1);
+        max-width: 260px;
+      }
+      .overlap-counts {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: var(--fontSizeBase200, 12px);
+        color: var(--colorNeutralForeground2);
       }
       .detail {
         margin-top: var(--spacingVerticalM, 12px);
@@ -223,6 +307,12 @@ import { OverlayRef, TOOLKIT_LABEL, collectOverlays } from '../model/profile-vie
       .swatch.hl {
         background: var(--colorBrandBackground, #0f6cbd);
       }
+      .swatch.hl2 {
+        background: var(--colorPaletteTealForeground2, #00695c);
+      }
+      .swatch.hl-both {
+        background: var(--colorPaletteRedForeground1, #b10e1c);
+      }
       .swatch.src {
         background: var(--colorPaletteGreenForeground1, #0e700e);
       }
@@ -247,6 +337,7 @@ export class NetworkLensComponent {
   readonly reloadStructure = output<void>();
 
   protected readonly selectedNode = signal<number | null>(null);
+  protected readonly compareKey = signal<string | null>(null);
 
   protected readonly overlayRefs = computed<OverlayRef[]>(() =>
     collectOverlays(this.runs()),
@@ -257,6 +348,18 @@ export class NetworkLensComponent {
     const refs = this.overlayRefs();
     if (refs.length === 0) return null;
     return refs.find((r) => r.key === key) ?? null;
+  });
+
+  /** every other result set — what "compare with" can be set to. */
+  protected readonly compareOptions = computed<OverlayRef[]>(() => {
+    const primary = this.selectedKey();
+    return this.overlayRefs().filter((r) => r.key !== primary);
+  });
+
+  protected readonly compareRef = computed<OverlayRef | null>(() => {
+    const key = this.compareKey();
+    if (!key) return null;
+    return this.overlayRefs().find((r) => r.key === key) ?? null;
   });
 
   protected readonly nodeInSet = computed<boolean>(() => {
@@ -273,11 +376,53 @@ export class NetworkLensComponent {
     return ref.overlay.nodeValues[String(node)] ?? null;
   });
 
+  protected readonly nodeInCompareSet = computed<boolean>(() => {
+    const node = this.selectedNode();
+    const ref = this.compareRef();
+    if (node === null || !ref) return false;
+    return (ref.overlay.nodeIds ?? []).includes(node);
+  });
+
+  protected readonly compareNodeValue = computed(() => {
+    const node = this.selectedNode();
+    const ref = this.compareRef();
+    if (node === null || !ref?.overlay.nodeValues) return null;
+    return ref.overlay.nodeValues[String(node)] ?? null;
+  });
+
+  /** how much the primary and compared result sets agree, by node. */
+  protected readonly overlap = computed(() => {
+    const primary = this.current();
+    const cmp = this.compareRef();
+    if (!primary || !cmp) return null;
+    const a = new Set(primary.overlay.nodeIds ?? []);
+    const b = new Set(cmp.overlay.nodeIds ?? []);
+    let both = 0;
+    for (const n of a) if (b.has(n)) both++;
+    return { both, onlyPrimary: a.size - both, onlyCompare: b.size - both };
+  });
+
+  constructor() {
+    // Comparing a result set against itself is meaningless — if the primary
+    // selection moves onto whatever "compare with" was set to, drop it rather
+    // than silently rendering an empty comparison.
+    effect(() => {
+      if (this.compareKey() !== null && this.compareKey() === this.selectedKey()) {
+        this.compareKey.set(null);
+      }
+    });
+  }
+
   protected toolkitLabel(ref: OverlayRef): string {
     return TOOLKIT_LABEL[ref.run.toolkit];
   }
 
   protected onNode(id: number): void {
     this.selectedNode.update((cur) => (cur === id ? null : id));
+  }
+
+  protected onCompareChange(ev: Event): void {
+    const value = (ev.target as HTMLSelectElement).value;
+    this.compareKey.set(value || null);
   }
 }

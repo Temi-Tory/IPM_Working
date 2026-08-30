@@ -14,7 +14,7 @@ export AnalysisMode, LONGEST_PATH, SHORTEST_PATH, MAX_SCALING,
        analyze, accumulation_analysis,
        forward_fold, reverse_fold,
        ValueInterval, IntervalPathResult, interval_analyze, interval_analyze_exact,
-       interval_analyze_split,
+       interval_analyze_split, SplitDeclined,
        width, is_degenerate
 
 include(joinpath(@__DIR__, "Internal", "Modes.jl"))

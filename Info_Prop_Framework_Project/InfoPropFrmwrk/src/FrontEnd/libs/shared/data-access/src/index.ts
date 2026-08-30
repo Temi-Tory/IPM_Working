@@ -4,4 +4,7 @@ export * from './lib/network-structure.service';
 export * from './lib/network-files.service';
 export * from './lib/network-context.service';
 export * from './lib/scenario-cache.service';
+export * from './lib/scenario-metrics';
 export * from './lib/file-convention';
+export * from './lib/session-input-files';
+export * from './lib/session-input.service';

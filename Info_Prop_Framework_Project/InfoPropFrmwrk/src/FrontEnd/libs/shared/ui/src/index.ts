@@ -9,6 +9,9 @@ export * from './lib/icon/icon.component';
 export * from './lib/icon/icon-registry';
 
 // Composed components
+export * from './lib/graph/network-graph.component';
+export * from './lib/scenario/scenario-comparison-table.component';
+export * from './lib/bulk-value-editor/bulk-value-editor.component';
 export * from './lib/components/card.component';
 export * from './lib/components/page-header.component';
 export * from './lib/components/empty-state.component';

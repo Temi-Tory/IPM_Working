@@ -1,9 +1,9 @@
-import { ToolkitKind } from '@inf-prop/shared/api-client';
+import { ToolkitKind, ValueType } from '@inf-prop/shared/api-client';
 import {
-  MetricDirection,
-  ScenarioMetric,
+  MetricColumn,
   ScenarioOverlay,
   ScenarioRun,
+  metricColumns,
 } from '@inf-prop/shared/data-access';
 
 /**
@@ -14,7 +14,13 @@ import {
  * views already computed and wrote to `ScenarioCacheService`. Every number a
  * caller renders came straight from a `ScenarioRun` — this module only decides
  * where on the page it goes.
+ *
+ * `metricColumns` / `findMetric` / `numericDelta` are the toolkit-agnostic
+ * primitives, shared with each toolkit's own in-page Compare tab — re-exported
+ * here so existing imports keep working.
  */
+export { metricColumns, findMetric, numericDelta } from '@inf-prop/shared/data-access';
+export type { MetricColumn } from '@inf-prop/shared/data-access';
 
 export const TOOLKIT_LABEL: Record<ToolkitKind, string> = {
   reliability: 'Reliability',
@@ -29,39 +35,6 @@ export const TOOLKIT_ROUTE: Record<ToolkitKind, string> = {
 };
 
 const TOOLKIT_ORDER: readonly ToolkitKind[] = ['reliability', 'flow', 'schedule'];
-
-/** A column in a per-toolkit comparison table: one distinct metric label. */
-export interface MetricColumn {
-  label: string;
-  unit: string;
-  /** the metric's own semantics, straight from the producing track — a display
-   *  hint for sort direction, never a verdict on any run's value. */
-  direction: MetricDirection;
-}
-
-/** Distinct metric labels across the given runs, in first-seen order. */
-export function metricColumns(runs: readonly ScenarioRun[]): MetricColumn[] {
-  const seen = new Map<string, MetricColumn>();
-  for (const run of runs) {
-    for (const m of run.metrics) {
-      if (!seen.has(m.label)) {
-        seen.set(m.label, {
-          label: m.label,
-          unit: m.unit ?? '',
-          direction: m.direction ?? 'neutral',
-        });
-      }
-    }
-  }
-  return [...seen.values()];
-}
-
-export function findMetric(
-  run: ScenarioRun,
-  label: string,
-): ScenarioMetric | undefined {
-  return run.metrics.find((m) => m.label === label);
-}
 
 /** One toolkit's runs plus the columns needed to lay them side by side. */
 export interface ToolkitGroup {
@@ -104,23 +77,52 @@ export function distinctToolkits(runs: readonly ScenarioRun[]): ToolkitKind[] {
   return TOOLKIT_ORDER.filter((t) => runs.some((r) => r.toolkit === t));
 }
 
-export function totalComputationMs(runs: readonly ScenarioRun[]): number {
-  return runs.reduce((sum, r) => sum + (r.computationTimeMs || 0), 0);
+/** Distinct scenario NAMES across every run, regardless of toolkit — what
+ *  "Scenarios" should count. A run count over-reports this: the same named
+ *  scenario folder commonly carries inputs for more than one toolkit (e.g.
+ *  `Degraded/` holding both a capacities file and a nodepriors/linkprobs
+ *  pair), so one scenario run under each toolkit is still one scenario. */
+export function distinctScenarioNames(runs: readonly ScenarioRun[]): string[] {
+  return [...new Set(runs.map((r) => r.scenarioName))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
+/** One scenario name's presence across the three toolkits — the most recent
+ *  run recorded for each, if that toolkit has run this scenario at all. */
+export interface ScenarioRosterRow {
+  scenarioName: string;
+  byToolkit: Partial<Record<ToolkitKind, { valueType: ValueType; ranAt: number }>>;
 }
 
 /**
- * A plain numeric difference — ONLY when both values are plain numbers. An
- * interval is never flattened to a midpoint to produce a delta; callers show
- * the raw value in that case.
+ * The network's scenarios, one row each, with which toolkits have run them —
+ * the chapter's "sets the scenarios of one network side by side" applied at
+ * the scenario-name level rather than within one toolkit's own table, which
+ * is the one thing the per-toolkit comparison tables below cannot show: that
+ * "Degraded" has been tested under Flow but never under Reliability, say.
+ * Structural only — a roster of what has been run, not a judgment of it.
  */
-export function numericDelta(
-  value: ScenarioMetric['value'],
-  baseline: ScenarioMetric['value'],
-): number | null {
-  if (typeof value === 'number' && typeof baseline === 'number') {
-    return value - baseline;
+export function scenarioRoster(runs: readonly ScenarioRun[]): ScenarioRosterRow[] {
+  const byName = new Map<string, ScenarioRosterRow>();
+  for (const run of runs) {
+    let row = byName.get(run.scenarioName);
+    if (!row) {
+      row = { scenarioName: run.scenarioName, byToolkit: {} };
+      byName.set(run.scenarioName, row);
+    }
+    const existing = row.byToolkit[run.toolkit];
+    if (!existing || run.ranAt > existing.ranAt) {
+      row.byToolkit[run.toolkit] = { valueType: run.valueType, ranAt: run.ranAt };
+    }
   }
-  return null;
+  return [...byName.values()].sort((a, b) =>
+    a.scenarioName.localeCompare(b.scenarioName),
+  );
+}
+
+export function totalComputationMs(runs: readonly ScenarioRun[]): number {
+  return runs.reduce((sum, r) => sum + (r.computationTimeMs || 0), 0);
 }
 
 /** A stable key for one overlay on one run. */
@@ -163,15 +165,4 @@ export function collectOverlays(runs: readonly ScenarioRun[]): OverlayRef[] {
       a.run.valueType.localeCompare(b.run.valueType) ||
       a.overlay.label.localeCompare(b.overlay.label),
   );
-}
-
-export function directionHint(direction: MetricDirection): string {
-  switch (direction) {
-    case 'higher-better':
-      return 'higher is better';
-    case 'lower-better':
-      return 'lower is better';
-    default:
-      return '';
-  }
 }

@@ -14,6 +14,7 @@ import {
   MOCK_PARENT_LINKS,
   MOCK_PARENT_PRIORS,
   mockFloatResponse,
+  mockIntervalResponse,
 } from './reliability.mocks';
 
 const scenario: ReliabilityScenarioRef = {
@@ -67,14 +68,53 @@ describe('ReliabilityService', () => {
     expect(run.toolkit).toBe('reliability');
     expect(run.valueType).toBe('float64');
     expect(run.metrics.map((m) => m.label)).toEqual([
+      'Nodes analysed',
+      'Conditioning width',
       'Mean belief',
+      'Mean belief at sinks',
       'Min belief',
       'Max belief',
-      'Nodes analysed',
+      'Mean band width',
+      'Max band width',
+      'Computation time',
     ]);
+    // sink node 5's belief is 0.7 on the float fixture
+    const atSinks = run.metrics.find((m) => m.label === 'Mean belief at sinks');
+    expect(atSinks?.value).toBeCloseTo(0.7, 10);
+    // the maximal diamond's own conditioning set has one node ({2})
+    expect(run.metrics.find((m) => m.label === 'Conditioning width')?.value).toBe(1);
+    // float64 has no band at all
+    expect(run.metrics.find((m) => m.label === 'Max band width')?.value).toBe(0);
+
     expect(run.overlays?.[0].focus).toBe('diamond-fixed-nodes');
-    expect(run.overlays?.[0].label).toBe('Diamond fixed nodes');
+    expect(run.overlays?.[0].label).toBe(
+      'Conditioning set, union across 1 diamond (maximal + nested)',
+    );
     expect(run.overlays?.[0].nodeIds).toEqual([2]);
+  });
+
+  it('reports a real band width for interval scenarios and omits sink belief when the network has no sinks', () => {
+    const cache = TestBed.inject(ScenarioCacheService);
+    const res = mockIntervalResponse();
+    res.sink_nodes = [];
+    svc.record(scenario, res);
+    const run = cache.runs()[0];
+    expect(run.metrics.find((m) => m.label === 'Mean belief at sinks')).toBeUndefined();
+    const maxBand = run.metrics.find((m) => m.label === 'Max band width');
+    // node 5's belief is [0.55, 0.8] on the interval fixture — the widest band
+    expect(maxBand?.value).toBeCloseTo(0.25, 10);
+  });
+
+  it('identifies diamonds without belief propagation on', () => {
+    svc.identifyDiamonds(scenario).subscribe();
+    const req = http.expectOne(
+      'http://localhost:8080/probability-propagation',
+    );
+    expect(req.request.body).toMatchObject({
+      includeExactInference: false,
+      includeDiamondAnalysis: true,
+    });
+    req.flush(mockFloatResponse());
   });
 
   it('promotes a diamond: fetches parent files then uploads three subgraph files', () => {

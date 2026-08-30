@@ -122,9 +122,54 @@ h3 {
 }
 
 .overrides,
-.isolated {
+.isolated,
+.sub-diamonds {
   border-top: 1px solid var(--colorNeutralStroke2);
   padding-top: var(--spacingVerticalM, 12px);
+}
+
+.unidentified-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground2);
+}
+
+.sub-diamonds ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-diamonds li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium, 4px);
+}
+
+.sub-join {
+  font-size: var(--fontSizeBase200, 12px);
+  font-weight: var(--fontWeightSemibold, 600);
+  color: var(--colorNeutralForeground1);
+}
+
+.sub-facts {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fontSizeBase100, 10px);
+  color: var(--colorNeutralForeground3);
+}
+
+.sub-diamonds .btn {
+  padding: 4px 10px;
+  font-size: var(--fontSizeBase200, 12px);
 }
 
 .opt {

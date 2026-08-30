@@ -1,0 +1,180 @@
+:host {
+  display: block;
+  max-width: 1180px;
+}
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--spacingHorizontalXL, 24px);
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+// --- sidebar -----------------------------------------------------------
+
+.toc {
+  position: sticky;
+  top: var(--spacingVerticalL, 16px);
+}
+
+.group-label {
+  margin: var(--spacingVerticalM, 12px) 0 var(--spacingVerticalXS, 4px);
+  font-size: var(--fontSizeBase100, 10px);
+  font-weight: var(--fontWeightSemibold, 600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--colorNeutralForeground3);
+}
+
+.group-label:first-child {
+  margin-top: 0;
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toc a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--borderRadiusMedium, 4px);
+  color: var(--colorNeutralForeground2);
+  text-decoration: none;
+  font-size: var(--fontSizeBase300, 14px);
+}
+
+.toc a:hover {
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground1);
+}
+
+.toc a.active {
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+  font-weight: var(--fontWeightSemibold, 600);
+}
+
+// --- content -------------------------------------------------------------
+
+.content {
+  min-width: 0;
+}
+
+.markdown {
+  font-size: var(--fontSizeBase300, 14px);
+  line-height: 1.65;
+  color: var(--colorNeutralForeground1);
+}
+
+// The markdown pane's own contents come in via `[innerHTML]` (raw HTML from
+// `marked`), not this component's compiled template, so Angular's emulated
+// encapsulation never stamps its scoping attribute onto them — `::ng-deep`
+// is the only way to reach in, kept scoped to `:host` so it can't leak out
+// to the rest of the app the way an unscoped `::ng-deep` would.
+:host ::ng-deep .markdown h1 {
+  font-size: var(--fontSizeBase600, 24px);
+  margin: 0 0 var(--spacingVerticalM, 12px);
+}
+
+:host ::ng-deep .markdown h2 {
+  font-size: var(--fontSizeBase500, 20px);
+  margin: var(--spacingVerticalXL, 24px) 0 var(--spacingVerticalS, 8px);
+  padding-top: var(--spacingVerticalM, 12px);
+  border-top: 1px solid var(--colorNeutralStroke2);
+}
+
+:host ::ng-deep .markdown h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+:host ::ng-deep .markdown h3 {
+  font-size: var(--fontSizeBase400, 16px);
+  margin: var(--spacingVerticalL, 16px) 0 var(--spacingVerticalXS, 4px);
+}
+
+:host ::ng-deep .markdown p {
+  margin: 0 0 var(--spacingVerticalM, 12px);
+}
+
+:host ::ng-deep .markdown ul,
+:host ::ng-deep .markdown ol {
+  margin: 0 0 var(--spacingVerticalM, 12px);
+  padding-left: 1.4em;
+}
+
+:host ::ng-deep .markdown li {
+  margin-bottom: 4px;
+}
+
+:host ::ng-deep .markdown code {
+  font-family: var(--fontFamilyMonospace, ui-monospace, monospace);
+  font-size: 0.9em;
+  background: var(--colorNeutralBackground3);
+  padding: 1px 5px;
+  border-radius: var(--borderRadiusSmall, 3px);
+}
+
+:host ::ng-deep .markdown pre {
+  background: var(--colorNeutralBackground3);
+  padding: var(--spacingVerticalM, 12px);
+  border-radius: var(--borderRadiusMedium, 4px);
+  overflow-x: auto;
+  margin: 0 0 var(--spacingVerticalM, 12px);
+}
+
+:host ::ng-deep .markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+:host ::ng-deep .markdown blockquote {
+  margin: 0 0 var(--spacingVerticalM, 12px);
+  padding: 6px 14px;
+  border-left: 3px solid var(--colorBrandStroke1);
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground2);
+}
+
+:host ::ng-deep .markdown table {
+  border-collapse: collapse;
+  margin: 0 0 var(--spacingVerticalM, 12px);
+  width: 100%;
+  font-size: var(--fontSizeBase200, 12px);
+}
+
+:host ::ng-deep .markdown th,
+:host ::ng-deep .markdown td {
+  border: 1px solid var(--colorNeutralStroke2);
+  padding: 5px 10px;
+  text-align: left;
+}
+
+:host ::ng-deep .markdown th {
+  background: var(--colorNeutralBackground2);
+  font-weight: var(--fontWeightSemibold, 600);
+}
+
+:host ::ng-deep .markdown hr {
+  border: none;
+  border-top: 1px solid var(--colorNeutralStroke2);
+  margin: var(--spacingVerticalL, 16px) 0;
+}
+
+:host ::ng-deep .markdown a {
+  color: var(--colorBrandForegroundLink);
+}

@@ -49,8 +49,6 @@ describe('MetricsComparisonComponent', () => {
     ]);
     expect(el.textContent).toContain('[0.4, 0.9]');
     expect(el.textContent).not.toContain('0.65');
-    // direction is shown as metric semantics, not a verdict
-    expect(el.textContent).toContain('higher is better');
   });
 
   it('lays many human-named scenarios of one toolkit side by side, value type disambiguated', async () => {

@@ -175,8 +175,48 @@ td.node {
   padding: var(--spacingVerticalXL, 20px);
 }
 
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacingHorizontalM, 12px);
+  margin-top: var(--spacingVerticalS, 8px);
+}
+
 .count {
-  margin: var(--spacingVerticalS, 8px) 0 0;
+  margin: 0;
   font-size: var(--fontSizeBase200, 12px);
   color: var(--colorNeutralForeground3);
+}
+
+.pager-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorNeutralForeground2);
+}
+
+.pager-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground2);
+  cursor: pointer;
+}
+
+.pager-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-of {
+  font-variant-numeric: tabular-nums;
+  min-width: 4ch;
+  text-align: center;
 }

@@ -26,6 +26,9 @@
       "@inf-prop/feature/schedule": ["./libs/feature/schedule/src/index.ts"],
       "@inf-prop/feature/system-profile": [
         "./libs/feature/system-profile/src/index.ts"
+      ],
+      "@inf-prop/feature/session-inputs": [
+        "./libs/feature/session-inputs/src/index.ts"
       ]
     }
   },

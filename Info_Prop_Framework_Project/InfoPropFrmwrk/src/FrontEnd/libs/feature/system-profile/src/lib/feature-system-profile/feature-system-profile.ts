@@ -22,9 +22,11 @@ import {
 import { MetricsComparisonComponent } from '../components/metrics-comparison.component';
 import { FlaggedSetsComponent } from '../components/flagged-sets.component';
 import { NetworkLensComponent } from '../components/network-lens.component';
+import { ScenarioRosterComponent } from '../components/scenario-roster.component';
 import {
   TOOLKIT_LABEL,
   TOOLKIT_ROUTE,
+  distinctScenarioNames,
   distinctToolkits,
   totalComputationMs,
 } from '../model/profile-view';
@@ -66,6 +68,7 @@ interface ToolkitPointer {
     MetricsComparisonComponent,
     FlaggedSetsComponent,
     NetworkLensComponent,
+    ScenarioRosterComponent,
   ],
   template: `
     <ipf-page-header
@@ -100,7 +103,12 @@ interface ToolkitPointer {
       </ipf-empty-state>
     } @else {
       <div class="stats">
-        <ipf-stat-tile label="Scenarios" icon="list">{{ runs().length }}</ipf-stat-tile>
+        <ipf-stat-tile label="Distinct scenarios" icon="list"
+          >{{ scenarioNames().length }}</ipf-stat-tile
+        >
+        <ipf-stat-tile label="Scenario runs" icon="refresh" caption="counting a re-run twice"
+          >{{ runs().length }}</ipf-stat-tile
+        >
         <ipf-stat-tile label="Toolkits covered" icon="target"
           >{{ toolkitsCovered().length }} / 3</ipf-stat-tile
         >
@@ -111,7 +119,7 @@ interface ToolkitPointer {
 
       @if (otherNetworkCount() > 0) {
         <p class="scope-note">
-          Showing the {{ runs().length }} scenario run(s) on
+          Showing {{ scenarioNames().length }} scenario(s) on
           <strong>{{ networkName() }}</strong>. {{ otherNetworkCount() }} run(s)
           on other networks are held separately — load that network to compare
           them.
@@ -119,16 +127,36 @@ interface ToolkitPointer {
       }
 
       <section class="block">
-        <h2>Scenarios side by side</h2>
+        <h2>Scenario roster</h2>
+        <p class="lead">
+          Every scenario found on this network, and which toolkits have
+          actually run it. The same scenario folder often carries inputs for
+          more than one toolkit at once — this is the one place that shows
+          coverage across all three, rather than one toolkit's own table.
+        </p>
+        <ipf-card>
+          <ipf-sp-scenario-roster [runs]="runs()" />
+        </ipf-card>
+      </section>
+
+      <section class="block">
+        <h2>Scenarios side by side, per toolkit</h2>
+        <p class="lead">
+          Each toolkit's own metrics, compared within that toolkit — the units
+          differ across toolkits, so nothing here ranks a Reliability run
+          against a Flow run; pick a baseline within a table to see deltas.
+        </p>
         <ipf-sp-metrics-comparison [runs]="runs()" />
       </section>
 
       <section class="block">
-        <h2>A result on the network</h2>
+        <h2>Result sets on the network</h2>
         <p class="lead">
-          The layered drawing of this network — along the iteration sets, node
-          roles distinguished — with one analysis's own result set on it. A view
-          of results that already exist; nothing here is computed.
+          The network, drawn by layer, with one analysis's own result set
+          highlighted on it — and, optionally, a second one compared alongside
+          it, so where two analyses agree is visible directly rather than
+          swapping between two screenshots. Nothing is computed here; this
+          only shows what those analyses already found.
         </p>
         <ipf-card>
           <ipf-sp-flagged-sets
@@ -236,6 +264,13 @@ export class FeatureSystemProfile implements OnInit {
 
   protected readonly toolkitsCovered = computed(() =>
     distinctToolkits(this.runs()),
+  );
+
+  /** distinct scenario NAMES, not run count — the "Distinct scenarios" tile
+   *  and the scope note both need this, not `runs().length`, since the same
+   *  named scenario commonly runs under more than one toolkit. */
+  protected readonly scenarioNames = computed(() =>
+    distinctScenarioNames(this.runs()),
   );
 
   protected readonly computeValue = computed(() => {

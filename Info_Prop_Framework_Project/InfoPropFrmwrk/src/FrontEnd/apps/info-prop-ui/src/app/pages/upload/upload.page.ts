@@ -67,6 +67,10 @@ export class UploadPage {
       (this.classified()?.edges != null || this.scenarioCount() > 0),
   );
 
+  /** resolves once the current `classified` signal has its real, locally-read
+   *  value types — `submit()` awaits this so it never ships a guess. */
+  private enrichment: Promise<ClassifiedUpload> | null = null;
+
   protected onFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files ? Array.from(input.files) : [];
@@ -74,21 +78,29 @@ export class UploadPage {
     this.error.set(null);
     if (!files.length) {
       this.classified.set(null);
+      this.enrichment = null;
       return;
     }
     const upload = classifyFiles(files);
     this.classified.set(upload);
-    // best-effort: read data_type from non-keyword scenario folders
-    enrichValueTypes(upload).then((enriched) =>
-      this.classified.set({ ...enriched }),
-    );
+    // reads each scenario's own data_type from the real local File — no
+    // guessing, no network round-trip. submit() waits for this to settle.
+    this.enrichment = enrichValueTypes(upload).then((enriched) => {
+      const withCopy = { ...enriched };
+      this.classified.set(withCopy);
+      return withCopy;
+    });
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     const files = this.picked();
     if (!files.length) return;
     this.busy.set(true);
     this.error.set(null);
+    // wait for the local value-type read to finish so what we hand to
+    // NetworkContextService (and thus every feature page) is never a guess
+    const enriched = await this.enrichment;
+    if (enriched) this.classified.set(enriched);
     this.uploadService.upload(files).subscribe({
       next: (res) => {
         if (!res.success) {
@@ -102,9 +114,17 @@ export class UploadPage {
           networkName: res.network_name,
           edgesFilePath: res.edges_files?.[0],
         });
-        this.ctx.setUploadFromPaths(res.network_name, res.uploaded_files ?? []);
-        this.ctx.enrichScenarioValueTypes();
+        // Use the already-classified upload directly — we had the real local
+        // File objects and `enrichValueTypes()` already read each scenario's
+        // true data_type from them. Re-deriving via setUploadFromPaths() would
+        // throw that away and re-guess from bare path strings (wrong until an
+        // async /files/ round-trip resolves, or wrong forever if it 404s).
         const c = this.classified();
+        if (c) {
+          this.ctx.setUpload(c);
+        } else {
+          this.ctx.setUploadFromPaths(res.network_name, res.uploaded_files ?? []);
+        }
         this.ctx.setInputAvailability(
           c
             ? availableInputsFrom(c)

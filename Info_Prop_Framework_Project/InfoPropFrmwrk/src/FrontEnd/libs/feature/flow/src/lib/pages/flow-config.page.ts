@@ -48,9 +48,10 @@ type NumericOptionKey =
       <ipf-empty-state
         icon="flow"
         title="No capacities file on this network"
-        message="The flow toolkit needs a *-capacities.json input. Add one to the network folder (under capacity/) and upload again."
+        message="The flow toolkit needs a *-capacities.json input. Add one to the network folder (under capacity/) and upload again, or add capacities by hand."
       >
         <a slot="actions" routerLink="/upload">Go to upload</a>
+        <a slot="actions" routerLink="/inputs/flow">Add inputs manually</a>
       </ipf-empty-state>
     } @else {
       <div class="grid">

@@ -90,3 +90,14 @@ format problem — the files were never generated.
 All files that exist in the corpus already match these shapes — the only gaps
 are the 27 empty scaffolds (need generation) and, for value forms, that most
 folders only ship `float/`.
+
+## Added since the audit (2026-08-30)
+
+`psplib-j301_1` — CPM-only, `.EDGES` at the root plus `float/` + `interval/`
+(±20% durations) scenario folders. Converted from PSPLIB's `j30` benchmark
+set (`j301_1.sm`, 32 nodes/48 edges) via `psplib_to_ipf.py`
+at the repo root — a real external benchmark, not synthetic. Run end to end
+against the live server; full results and a reproduction note are in its own
+`RESULTS.md`. Not one of the 27 empty scaffolds below — a genuinely new
+addition, useful as a citable, externally-validated CPM test case (its
+computed project value matches PSPLIB's own published MPM-Time exactly).

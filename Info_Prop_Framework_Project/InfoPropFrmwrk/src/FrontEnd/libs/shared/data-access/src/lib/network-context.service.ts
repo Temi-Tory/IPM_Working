@@ -67,6 +67,11 @@ export class NetworkContextService {
   readonly structure = this._structure.asReadonly();
   readonly inputs = this._inputs.asReadonly();
   readonly structureLoading = this._structureLoading.asReadonly();
+  /** the full classified upload — every scenario's files, by role and path.
+   *  Used where a caller needs to enumerate every existing input file (e.g.
+   *  rebuilding a session when adding a new scenario), not just query one
+   *  toolkit's view of it via `scenariosFor()`. */
+  readonly upload = this._upload.asReadonly();
 
   /** Every scenario (named operating case) the loaded network carries. */
   readonly scenarios = computed<Scenario[]>(() => this._upload()?.scenarios ?? []);

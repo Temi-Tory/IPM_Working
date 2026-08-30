@@ -50,7 +50,6 @@
   {Chapters/Introduction/figures/}%
   {Chapters/LitReview/figures/}%
   {Chapters/NetworkModel/figures/}%
-  {Chapters/InputModule/figures/}%
   {Chapters/DiamondModule/figures/}%
   {Chapters/Probability/figures/}%
   {Chapters/FlowToolkit/figures/}%
@@ -125,7 +124,7 @@
 % METADATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
+\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
 
 \newcommand{\authorname}{[Temitope Ohiani]}
 
@@ -139,9 +138,14 @@
 
 \newcommand{\submissiondate}{[Month Year]}
 
-\newcommand{\supervisor}{[Edoardo Pattelli]}
+\newcommand{\supervisor}{[Edoardo Patelli]}
 
-\newcommand{\cosupervisor}{[Caroline Pyke]} 
+\newcommand{\cosupervisor}{[Caroline Pyke]}
+
+% The integrated case study network is not yet chosen. \CaseStudyNetwork is used wherever the
+% network is named and is deliberately left UNDEFINED here, so the build fails with
+% "Undefined control sequence \CaseStudyNetwork" until the line below is uncommented.
+% \newcommand{\CaseStudyNetwork}{Net3}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DOCUMENT
@@ -267,17 +271,18 @@ Date: \rule{5cm}{0.4pt}
 
 \section*{Abbreviations}
 \begin{tabular}{ll}
-    IPA     & Information Propagation Algorithm \\
-    IPA     & Information Propagation Framework \\
+    IPF     & Information Propagation Framework \\
+    PPA     & Probability Propagation Algorithm \\
     DAG     & Directed Acyclic Graph \\
-    MC-MC   & Min-Cut Max-Flow \\
-    DFS     & Depth First Search \\
-    BFS     & Breath First Search \\
-    BP      & Belief Propagation \\
+    BDD     & Binary Decision Diagram \\
+    ROBDD   & Reduced Ordered Binary Decision Diagram \\
+    BFS     & Breadth First Search \\
     CPM     & Critical Path Method \\
+    PERT    & Program Evaluation and Review Technique \\
     MC      & Monte Carlo \\
     NDA     & Nuclear Decommissioning Authority \\
     p-box   & Probability Box \\
+    SPOF    & Single Point of Failure \\
 \end{tabular}
 
 
@@ -294,7 +299,7 @@ Date: \rule{5cm}{0.4pt}
 \label{ch:main-intro}
 \include{Chapters/Introduction/Introduction_Chapter}
 
-\chapter{Existing Works}
+\chapter{Background}
 \label{ch:lit-review}
 \include{Chapters/LitReview/Background_Chapter}
 
@@ -302,23 +307,19 @@ Date: \rule{5cm}{0.4pt}
 \label{ch:system-model}
 \include{Chapters/NetworkModel/Complex_Processes_Chapter}
 
-\chapter{Input Processing Module}
-\label{ch:input-module}
-\include{Chapters/InputModule/Input_Module_Chapter}
-
-\chapter{Sub-graph Decomposition: Diamond Processing Module}
+\chapter{Network Decomposition}
 \label{ch:diamond-module}
 \include{Chapters/DiamondModule/Diamond_Decomposition_Chapter}
 
-\chapter{Information As Probabilities: Probability Propagation Toolkit}
+\chapter{Information as Probabilities: Probability Propagation Toolkit}
 \label{ch:probability-toolkit}
 \include{Chapters/Probability/Probability_Propagation_Chapter}
 
-\chapter{Information As Resources: Capacity Flow Toolkit}
+\chapter{Information as Resources: Capacity Flow Toolkit}
 \label{ch:capacity-toolkit}
 \include{Chapters/FlowToolkit/Flow_Capacity_Chapter}
 
-\chapter{Information As Schedule and Cost: Critical Path Toolkit}
+\chapter{Information as Schedule and Cost: Critical Path Toolkit}
 \label{ch:critical-path}
 \include{Chapters/CPM/Critical_Path_Chapter}
 
@@ -330,7 +331,7 @@ Date: \rule{5cm}{0.4pt}
 \label{ch:front-end}
 \include{Chapters/FrontEnd/Front_End_Chapter}
 
-\chapter{An End-to-End Framework Application: An Integrated Case Study}
+\chapter{An End-to-End Application: An Integrated Case Study}
 \label{ch:integrated-case-study}
 \include{Chapters/CaseStudy/Integrated_Case_Study_Chapter}
 

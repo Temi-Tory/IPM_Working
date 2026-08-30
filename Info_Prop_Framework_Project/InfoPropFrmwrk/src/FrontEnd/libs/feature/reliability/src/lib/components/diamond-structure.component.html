@@ -11,21 +11,49 @@
       </span>
       <span>{{ analysis().maximalDiamondCount }} maximal</span>
       <span>{{ analysis().uniqueDiamondCount }} unique</span>
+      <span title="Largest conditioning set any diamond here forces — the parameter that governs cost.">
+        width {{ width() }}
+      </span>
     </div>
   </div>
 
   <p class="lede">
     Diamond decomposition is a pre-processing step of this reliability analysis,
     not a separate one. Where redundant paths reconverge at a diamond join, the
-    algorithm conditions on the diamond's fixed nodes rather than assuming
-    independence. Every diamond join carries exactly one maximal diamond — open
-    it for the identification detail, to run it in isolation, or to promote it to
-    a network of its own.
+    algorithm conditions on the diamond's fixed nodes — its conditioning set —
+    rather than assuming independence. Every diamond join carries exactly one
+    maximal diamond — open it for the identification detail, to run it in
+    isolation, or to promote it to a network of its own.
   </p>
 
   @if (hasDiamonds()) {
+    <div class="filters" role="group" aria-label="Filter diamonds">
+      <div class="pills">
+        <button type="button" [class.active]="nestingFilter() === 'all'" (click)="setNesting('all')">
+          All
+        </button>
+        <button type="button" [class.active]="nestingFilter() === 'induced'" (click)="setNesting('induced')">
+          Induced
+        </button>
+        <button type="button" [class.active]="nestingFilter() === 'nested'" (click)="setNesting('nested')">
+          Has sub-diamonds
+        </button>
+      </div>
+      <label class="range-field">
+        <span>Conditioning set ≥</span>
+        <input type="number" min="0" step="1" [value]="minConditioning()" (input)="onMinConditioning($event)" />
+      </label>
+      <label class="range-field">
+        <span>≤</span>
+        <input type="number" min="0" step="1" [value]="maxConditioning()" (input)="onMaxConditioning($event)" />
+      </label>
+      @if (filtersActive()) {
+        <button type="button" class="clear" (click)="clearFilters()">Clear filters</button>
+      }
+    </div>
+
     <ul class="diamonds">
-      @for (d of diamonds(); track d.hash) {
+      @for (d of pageDiamonds(); track d.hash) {
         <li class="diamond">
           <div class="d-head">
             <span class="d-join">Diamond join {{ d.joinNode }}</span>
@@ -41,7 +69,7 @@
           <div class="d-body">
             <div class="d-facts">
               <span class="fact">
-                <span class="k">Fixed nodes</span>
+                <span class="k">Conditioning set</span>
                 @if (d.fixedNodes.length) {
                   <span class="chips">
                     @for (c of d.fixedNodes; track c) {
@@ -67,8 +95,38 @@
             </button>
           </div>
         </li>
+      } @empty {
+        <li class="empty-filter">
+          No diamonds match these filters.
+          <button type="button" class="clear" (click)="clearFilters()">Clear filters</button>
+        </li>
       }
     </ul>
+
+    <div class="pager">
+      <p class="count">{{ pageRangeLabel() }} diamonds</p>
+      @if (pageCount() > 1) {
+        <div class="pager-controls">
+          <button
+            type="button"
+            (click)="goToPage(-1)"
+            [disabled]="clampedPage() === 0"
+            aria-label="Previous page"
+          >
+            <ipf-icon name="arrow-left" [size]="14" />
+          </button>
+          <span class="page-of">{{ clampedPage() + 1 }} / {{ pageCount() }}</span>
+          <button
+            type="button"
+            (click)="goToPage(1)"
+            [disabled]="clampedPage() >= pageCount() - 1"
+            aria-label="Next page"
+          >
+            <ipf-icon name="arrow-right" [size]="14" />
+          </button>
+        </div>
+      }
+    </div>
   } @else {
     <p class="none">
       No diamonds were identified on this network — every path to a join node is

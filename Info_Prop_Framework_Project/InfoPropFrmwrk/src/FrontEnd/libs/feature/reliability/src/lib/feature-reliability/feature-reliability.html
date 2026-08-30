@@ -11,44 +11,129 @@
   <ipf-empty-state
     icon="reliability"
     title="No reliability inputs on this network"
-    message="Reliability needs a node-priors and a link-probabilities file in one scenario folder. Upload a network that includes them."
+    message="Reliability needs a node-priors and a link-probabilities file in one scenario folder. Upload a network that includes them, or add them by hand."
   >
     <a slot="actions" routerLink="/upload" class="link-btn">Go to upload</a>
+    <a slot="actions" routerLink="/inputs/reliability" class="link-btn secondary">
+      Add inputs manually
+    </a>
   </ipf-empty-state>
 } @else {
-  <ipf-card>
-    <div class="controls">
-      @if (scenarios().length > 1) {
-        <div class="field">
-          <span class="field-label">Scenario</span>
-          <div class="scenario-list" role="group" aria-label="Reliability scenario">
-            @for (s of scenarios(); track s.name) {
-              <button
-                type="button"
-                [class.active]="selectedScenario()?.name === s.name"
-                (click)="selectScenario(s.name)"
-              >
-                <span class="s-name">{{ s.name }}</span>
-                <span class="s-type">{{ valueTypeLabel(s.hintValueType) }}</span>
-              </button>
-            }
-          </div>
-        </div>
+  @if (availableForms().length > 1) {
+    <div class="filter-row" role="group" aria-label="Filter scenarios by value form">
+      <span class="filter-label">Value form</span>
+      <button
+        type="button"
+        class="pill"
+        [class.active]="formFilter() === 'all'"
+        (click)="setFormFilter('all')"
+      >
+        All
+      </button>
+      @for (vt of availableForms(); track vt) {
+        <button
+          type="button"
+          class="pill"
+          [class.active]="formFilter() === vt"
+          (click)="setFormFilter(vt)"
+        >
+          <ipf-icon [name]="valueTypeIcon(vt)" [size]="13" />
+          {{ valueTypeLabel(vt) }}
+        </button>
       }
+    </div>
+  }
 
-      <div class="field">
-        <ipf-value-type-selector
-          [toolkit]="'reliability'"
-          [value]="activeValueType()"
-          (valueChange)="pickValueType($event)"
-          legend="Value form"
-        />
-        @if (valueTypeNote(); as note) {
-          <p class="note">{{ note }}</p>
+  <div class="scenario-grid" role="group" aria-label="Reliability scenario">
+    @for (s of visibleScenarios(); track s.name) {
+      <button
+        type="button"
+        class="scenario-card"
+        [class.active]="selectedScenario()?.name === s.name"
+        (click)="selectScenario(s.name)"
+      >
+        <span class="sc-name">{{ s.name }}</span>
+        <span class="sc-badge" [class]="'form-' + s.hintValueType">
+          <ipf-icon [name]="valueTypeIcon(s.hintValueType)" [size]="12" />
+          {{ valueTypeLabel(s.hintValueType) }}
+        </span>
+        @if (hasRun(s.name)) {
+          <ipf-icon name="checkmark" [size]="12" class="sc-ran" label="already run" />
         }
-      </div>
+      </button>
+    } @empty {
+      <p class="no-match">No scenario matches this value form.</p>
+    }
+  </div>
 
-      <div class="run">
+  @if (error(); as e) {
+    <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
+  }
+
+  <div class="tabs" role="tablist" aria-label="Reliability views">
+    <button
+      type="button"
+      role="tab"
+      id="tab-belief"
+      aria-controls="panel-belief"
+      [attr.aria-selected]="activeTab() === 'belief'"
+      [class.active]="activeTab() === 'belief'"
+      (click)="selectTab('belief')"
+    >
+      <ipf-icon name="table" [size]="15" />
+      Belief
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="tab-diamonds"
+      aria-controls="panel-diamonds"
+      [attr.aria-selected]="activeTab() === 'diamonds'"
+      [class.active]="activeTab() === 'diamonds'"
+      (click)="selectTab('diamonds')"
+    >
+      <ipf-icon name="diamond" [size]="15" />
+      Diamonds
+      @if (diamondAnalysis(); as d) {
+        <span class="tab-count">{{ d.maximalDiamondCount }}</span>
+      }
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="tab-visualisation"
+      aria-controls="panel-visualisation"
+      [attr.aria-selected]="activeTab() === 'visualisation'"
+      [class.active]="activeTab() === 'visualisation'"
+      (click)="selectTab('visualisation')"
+    >
+      <ipf-icon name="visualization" [size]="15" />
+      Visualisation
+    </button>
+    @if (scenarios().length > 1) {
+      <button
+        type="button"
+        role="tab"
+        id="tab-compare"
+        aria-controls="panel-compare"
+        [attr.aria-selected]="activeTab() === 'compare'"
+        [class.active]="activeTab() === 'compare'"
+        (click)="selectTab('compare')"
+      >
+        <ipf-icon name="table" [size]="15" />
+        Compare
+        <span class="tab-count">{{ comparedRuns().length }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Belief -->
+  <div id="panel-belief" role="tabpanel" aria-labelledby="tab-belief" [hidden]="activeTab() !== 'belief'">
+    <ipf-card>
+      <div class="run-row">
+        <span class="info-hint" [title]="beliefRunHint()">
+          <ipf-icon name="info" [size]="14" />
+        </span>
         <button
           type="button"
           class="btn primary"
@@ -56,73 +141,217 @@
           (click)="run()"
         >
           <ipf-icon name="run" [size]="16" />
-          {{ activeResult() ? 'Re-run analysis' : 'Run analysis' }}
+          {{ hasBeliefData() ? 'Re-run analysis' : 'Run analysis' }}
         </button>
       </div>
-    </div>
-  </ipf-card>
-
-  @if (error(); as e) {
-    <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
-  }
-
-  @if (running()) {
-    <ipf-loading-state label="Propagating beliefs across the network…" />
-  } @else if (activeResult(); as res) {
-    @if (stats(); as st) {
-      <div class="stat-row">
-        <ipf-stat-tile label="Mean belief" icon="reliability">
-          {{ st.mean | number: '1.0-4' }}
-        </ipf-stat-tile>
-        <ipf-stat-tile label="Min belief">{{ st.min | number: '1.0-4' }}</ipf-stat-tile>
-        <ipf-stat-tile label="Max belief">{{ st.max | number: '1.0-4' }}</ipf-stat-tile>
-        <ipf-stat-tile
-          label="Nodes"
-          [caption]="
-            st.numeric_count === st.total_count
-              ? 'all numeric'
-              : st.numeric_count + ' numeric of ' + st.total_count
-          "
-        >
-          {{ st.total_count }}
-        </ipf-stat-tile>
-        @if (cacheStatus(); as c) {
-          <ipf-stat-tile
-            label="Diamond cache"
-            [caption]="c.time !== undefined ? (c.time * 1000 | number: '1.0-1') + ' ms solve' : ''"
-          >
-            {{ c.hit ? 'reused' : 'built' }}
-          </ipf-stat-tile>
-        }
-      </div>
-
-      @if (activeValueType() !== 'float64') {
-        <p class="aggregate-note">
-          Mean / min / max above are numeric summaries the server computes over
-          {{ activeValueType() === 'interval' ? 'interval midpoints' : 'p-box mean midpoints' }}.
-          The per-node values below are never flattened.
-        </p>
-      }
-    }
-
-    <ipf-card>
-      <h2>Belief per node</h2>
-      <ipf-belief-table [rows]="beliefRows()" [valueType]="activeValueType()" />
     </ipf-card>
 
-    @if (diamondAnalysis(); as diamonds) {
-      <ipf-diamond-structure [analysis]="diamonds" (inspect)="onInspect($event)" />
+    @if (running()) {
+      <ipf-loading-state label="Propagating beliefs across the network…" />
+    } @else if (hasBeliefData()) {
+      @if (stats(); as st) {
+        <div class="stat-block">
+          @if (aggregateNote(); as note) {
+            <span class="info-hint agg-info" [title]="note">
+              <ipf-icon name="info" [size]="13" />
+            </span>
+          }
+          <div class="stat-row">
+            <ipf-stat-tile
+              label="Nodes"
+              [caption]="
+                st.numeric_count === st.total_count
+                  ? 'all numeric'
+                  : st.numeric_count + ' numeric of ' + st.total_count
+              "
+            >
+              {{ st.total_count }}
+            </ipf-stat-tile>
+            @if (conditioningWidthValue(); as w) {
+              <ipf-stat-tile
+                label="Conditioning width"
+                icon="diamond"
+                caption="largest diamond conditioning set"
+              >
+                {{ w }}
+              </ipf-stat-tile>
+            }
+            <ipf-stat-tile label="Mean belief" icon="reliability">
+              {{ st.mean | number: '1.0-4' }}
+            </ipf-stat-tile>
+            @if (meanBeliefAtSinks(); as mbs) {
+              <ipf-stat-tile
+                label="Mean belief at sinks"
+                icon="target"
+                [caption]="sinkBeliefRows().length + ' sink' + (sinkBeliefRows().length === 1 ? '' : 's')"
+              >
+                {{ mbs | number: '1.0-4' }}
+              </ipf-stat-tile>
+            }
+            <ipf-stat-tile
+              label="Min belief"
+              [caption]="worstBeliefRow() ? 'node ' + worstBeliefRow()!.nodeId : ''"
+            >
+              {{ st.min | number: '1.0-4' }}
+            </ipf-stat-tile>
+            <ipf-stat-tile
+              label="Max belief"
+              [caption]="bestBeliefRow() ? 'node ' + bestBeliefRow()!.nodeId : ''"
+            >
+              {{ st.max | number: '1.0-4' }}
+            </ipf-stat-tile>
+            @if (activeValueType() !== 'float64') {
+              <ipf-stat-tile label="Mean band width" icon="value-interval">
+                {{ meanBandWidth() | number: '1.0-4' }}
+              </ipf-stat-tile>
+              @if (widestBandRow(); as wb) {
+                <ipf-stat-tile label="Max band width" [caption]="'node ' + wb.nodeId">
+                  {{ beliefBandWidth(wb.belief) | number: '1.0-4' }}
+                </ipf-stat-tile>
+              }
+            }
+            @if (cacheStatus(); as c) {
+              <ipf-stat-tile
+                label="Diamond cache"
+                [caption]="c.time !== undefined ? (c.time * 1000 | number: '1.0-1') + ' ms solve' : ''"
+              >
+                {{ c.hit ? 'reused' : 'built' }}
+              </ipf-stat-tile>
+            }
+          </div>
+        </div>
+      }
+
+      <ipf-card>
+        <h2>Belief per node</h2>
+        <ipf-belief-table [rows]="beliefRows()" [valueType]="activeValueType()" />
+      </ipf-card>
+    } @else if (activeResult()) {
+      <ipf-empty-state
+        icon="table"
+        title="Diamonds identified — belief not yet computed"
+        message="This scenario's diamond structure has been identified, but full belief propagation hasn't run. Run the analysis to compute belief for every node."
+      />
+    } @else {
+      <ipf-empty-state
+        icon="run"
+        title="Ready to run"
+        [message]="
+          'Scenario ' +
+          (selectedScenario()?.name ?? '') +
+          ' — run the analysis to compute belief for every node and identify the diamonds.'
+        "
+      />
     }
-  } @else {
-    <ipf-empty-state
-      icon="run"
-      title="Ready to run"
-      [message]="
-        'Scenario ' +
-        (selectedScenario()?.name ?? '') +
-        ' — run the analysis to compute belief for every node and identify the diamonds.'
-      "
-    />
+  </div>
+
+  <!-- Diamonds -->
+  <div id="panel-diamonds" role="tabpanel" aria-labelledby="tab-diamonds" [hidden]="activeTab() !== 'diamonds'">
+    <ipf-card>
+      <div class="run-row">
+        <span class="info-hint" [title]="diamondsRunHint()">
+          <ipf-icon name="info" [size]="14" />
+        </span>
+        <button
+          type="button"
+          class="btn"
+          [disabled]="diamondsRunning() || !selectedScenario()"
+          (click)="identifyDiamonds()"
+        >
+          <ipf-icon name="diamond" [size]="16" />
+          {{ diamondAnalysis() ? 'Re-identify diamonds' : 'Identify diamonds' }}
+        </button>
+      </div>
+    </ipf-card>
+
+    @if (diamondsRunning()) {
+      <ipf-loading-state label="Decomposing the network into diamonds…" />
+    } @else if (diamondAnalysis(); as diamonds) {
+      <ipf-diamond-structure [analysis]="diamonds" (inspect)="onInspect($event)" />
+    } @else {
+      <ipf-empty-state
+        icon="diamond"
+        title="No diamond structure yet"
+        [message]="
+          'Scenario ' +
+          (selectedScenario()?.name ?? '') +
+          ' — identify diamonds, or run the full analysis, to see reconvergence structure here.'
+        "
+      />
+    }
+  </div>
+
+  <!-- Visualisation -->
+  <div
+    id="panel-visualisation"
+    role="tabpanel"
+    aria-labelledby="tab-visualisation"
+    [hidden]="activeTab() !== 'visualisation'"
+  >
+    @if (structure(); as s) {
+      <ipf-card>
+        <p class="viz-lede">
+          The network, drawn by layer.
+          @if (diamondHighlight(); as h) {
+            The ringed nodes are {{ h.label }} for this scenario's result.
+          } @else {
+            Identify diamonds or run the analysis to highlight the conditioning set here.
+          }
+        </p>
+        <ipf-network-graph [structure]="s" [highlight]="diamondHighlight()" />
+      </ipf-card>
+    } @else {
+      <ipf-loading-state label="Loading network structure…" />
+    }
+  </div>
+
+  <!-- Compare -->
+  @if (scenarios().length > 1) {
+    <div id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" [hidden]="activeTab() !== 'compare'">
+      <ipf-card>
+        <div class="compare-toolbar">
+          <div class="compare-checks" role="group" aria-label="Scenarios to compare">
+            @for (s of visibleScenarios(); track s.name) {
+              <label class="compare-check">
+                <input
+                  type="checkbox"
+                  [checked]="isCompareChecked(s.name)"
+                  (change)="toggleCompare(s.name)"
+                />
+                {{ s.name }}
+                @if (!hasRun(s.name)) {
+                  <span class="unran">not run</span>
+                }
+              </label>
+            } @empty {
+              <p class="no-match">No scenario matches this value form.</p>
+            }
+          </div>
+          <div class="compare-actions">
+            <button type="button" class="link" (click)="selectAllCompare()">All</button>
+            <button type="button" class="link" (click)="clearCompare()">None</button>
+            <button
+              type="button"
+              class="btn"
+              [disabled]="runningAll() || !pendingCompareScenarios().length"
+              (click)="runSelected()"
+            >
+              <ipf-icon name="run" [size]="16" />
+              @if (runAllProgress(); as p) {
+                Running {{ p.done + 1 }} of {{ p.total }}…
+              } @else {
+                Run selected ({{ pendingCompareScenarios().length }})
+              }
+            </button>
+          </div>
+        </div>
+      </ipf-card>
+
+      <ipf-scenario-comparison-table
+        [runs]="comparedRuns()"
+        emptyMessage="Check at least one scenario with a completed run, or run all scenarios above."
+      />
+    </div>
   }
 }
 
@@ -130,6 +359,8 @@
   <ipf-diamond-detail
     [diamond]="target"
     [valueType]="activeValueType()"
+    [subDiamonds]="inspectingSubDiamonds()"
+    [canGoBack]="canGoBackInDetail()"
     [isolatedResult]="isolatedResult()"
     [isolatedBusy]="isolatedBusy()"
     [isolatedError]="isolatedError()"
@@ -138,5 +369,7 @@
     (closed)="closeDetail()"
     (analyseIsolated)="onAnalyseIsolated($event)"
     (promote)="onPromote($event)"
+    (drillInto)="onDrillInto($event)"
+    (drillBack)="onDrillBack()"
   />
 }

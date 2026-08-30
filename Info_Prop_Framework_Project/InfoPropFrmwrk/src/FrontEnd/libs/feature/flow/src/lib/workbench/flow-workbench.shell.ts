@@ -186,6 +186,6 @@ export class FlowWorkbenchShell {
       icon: 'visualization',
       needsResult: true,
     },
-    { path: 'scenarios', label: 'Scenarios', icon: 'list', needsResult: false },
+    { path: 'scenarios', label: 'Compare', icon: 'table', needsResult: false },
   ];
 }

@@ -23,6 +23,6 @@ describe('FlowWorkbenchShell', () => {
     const links = fixture.nativeElement.querySelectorAll('nav.tabs a');
     expect(links.length).toBe(5);
     expect(fixture.nativeElement.textContent).toContain('Configure');
-    expect(fixture.nativeElement.textContent).toContain('Scenarios');
+    expect(fixture.nativeElement.textContent).toContain('Compare');
   });
 });

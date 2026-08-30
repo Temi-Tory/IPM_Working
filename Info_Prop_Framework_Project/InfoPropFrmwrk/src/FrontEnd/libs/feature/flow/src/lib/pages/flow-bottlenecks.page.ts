@@ -59,6 +59,18 @@ const TABLE_LIMIT = 20;
         >
           {{ vm.cr.min_cut_analysis.enumeration.total_cuts }}
         </ipf-stat-tile>
+        <ipf-stat-tile
+          label="Edge connectivity λ"
+          caption="global weakest link, any node pair — not just S/T"
+        >
+          {{ vm.cr.global_connectivity.edge_connectivity.lambda }}
+        </ipf-stat-tile>
+        <ipf-stat-tile
+          label="Node connectivity κ"
+          caption="global weakest link, node-wise"
+        >
+          {{ vm.cr.global_connectivity.node_connectivity.kappa }}
+        </ipf-stat-tile>
       </div>
 
       <ipf-card>
@@ -159,6 +171,36 @@ const TABLE_LIMIT = 20;
                 around it.
               </span>
             }
+          </div>
+        </ipf-card>
+
+        <ipf-card>
+          <h2>Edge redundancy</h2>
+          <p class="muted">
+            Path-disjoint redundancy per edge (Menger, unit capacity) —
+            structural, independent of any capacity assignment. Least
+            redundant first; a score of 0 means the edge has no disjoint
+            alternative.
+          </p>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Edge</th>
+                  <th class="n">Redundancy score</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of vm.redundancy.slice(0, tableLimit); track row.key) {
+                  <tr>
+                    <td>{{ row.label }}</td>
+                    <td class="n">{{ row.score }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="2" class="muted">No redundancy scores returned.</td></tr>
+                }
+              </tbody>
+            </table>
           </div>
         </ipf-card>
       </div>
@@ -479,10 +521,19 @@ export class FlowBottlenecksPage {
       birnbaum: birnbaum.get(edgeKey(row.edge)) ?? null,
     }));
 
+    const redundancy = [...cr.structure.edge_redundancy]
+      .sort((a, b) => a.score - b.score)
+      .map((row) => ({
+        key: edgeKey(row.edge),
+        label: edgeLabel(row.edge),
+        score: row.score,
+      }));
+
     return {
       cr,
       bottlenecks: cr.structure.bottleneck_ranking,
       sensitivity,
+      redundancy,
     };
   });
 

@@ -363,16 +363,24 @@ end
 function _interval_path_result(iteration_sets, outgoing_index, incoming_index, source_nodes,
                                nv, ev, mode; atol::Float64)
     kvar = count(!CPV2.is_degenerate, values(nv)) + count(!CPV2.is_degenerate, values(ev))
+    decline_note = nothing
 
     # exact via the domination split (LONGEST_PATH, crisp edges only). It auto-falls back
-    # to the shared exhaustive sweep when that is cheaper and throws when both blow up.
+    # to the shared exhaustive sweep when that is cheaper and throws `SplitDeclined` — a
+    # legitimate, expected outcome, distinct from every other exception — when both exceed
+    # the run budget. Anything else (a genuine bug) rethrows rather than being silently
+    # relabelled as "declined": a `catch ArgumentError` here would swallow real failures
+    # (e.g. a bounds-ordering bug) exactly as readily as a real budget refusal, and report
+    # both to the caller as "intractable", which is only true of one of them.
     if mode === CPV2.LONGEST_PATH && kvar <= 60
         try
             return CPV2.interval_analyze_split(iteration_sets, outgoing_index, incoming_index,
                                                source_nodes, nv, ev; mode=mode, atol=atol,
                                                max_runs=2_000_000), ""
         catch e
-            e isa ArgumentError || rethrow()
+            e isa CPV2.SplitDeclined || rethrow()
+            decline_note = "the domination split needs $(e.needed) runs against a limit of " *
+                "$(e.max_runs) (exhaustive would need 2^$(e.exhaustive_k)); returning a sound conservative enclosure"
         end
     end
 
@@ -387,7 +395,8 @@ function _interval_path_result(iteration_sets, outgoing_index, incoming_index, s
         end
     end
 
-    note = kvar == 0 ? "" :
+    note = decline_note !== nothing ? decline_note :
+        kvar == 0 ? "" :
         "exact interval floats are intractable for this instance ($(kvar) interval inputs with reconvergence — NP-hard in general); returning a sound conservative enclosure"
     return CPV2.interval_analyze(iteration_sets, outgoing_index, incoming_index, source_nodes,
                                  nv, ev; mode=mode, atol=atol), note

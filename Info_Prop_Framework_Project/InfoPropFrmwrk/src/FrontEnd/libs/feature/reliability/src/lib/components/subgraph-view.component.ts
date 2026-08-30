@@ -31,8 +31,21 @@ interface PlacedNode {
         [attr.viewBox]="'0 0 ' + g.width + ' ' + g.height"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Diamond subgraph"
+        aria-label="Diamond subgraph — edges point from cause to effect"
       >
+        <defs>
+          <marker
+            id="ipf-diamond-arrow"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M0,0 L10,5 L0,10 z" class="arrow-head" />
+          </marker>
+        </defs>
         @for (e of g.edges; track e.key) {
           <line
             [attr.x1]="e.x1"
@@ -40,6 +53,7 @@ interface PlacedNode {
             [attr.x2]="e.x2"
             [attr.y2]="e.y2"
             class="edge"
+            marker-end="url(#ipf-diamond-arrow)"
           />
         }
         @for (n of g.nodes; track n.id) {
@@ -75,9 +89,12 @@ interface PlacedNode {
         max-height: 320px;
       }
       .edge {
-        stroke: var(--colorNeutralStroke1);
-        stroke-width: 1;
-        opacity: 0.6;
+        stroke: var(--colorNeutralForeground3);
+        stroke-width: 1.25;
+        opacity: 0.8;
+      }
+      .arrow-head {
+        fill: var(--colorNeutralForeground3);
       }
       .node {
         fill: var(--colorNeutralForeground3);
@@ -178,12 +195,18 @@ export class SubgraphViewComponent {
     }
 
     const pos = new Map(placed.map((p) => [p.id, p]));
+    const NODE_R = 12;
     const laidEdges = edges
       .map(([u, v], i) => {
         const a = pos.get(u);
         const b = pos.get(v);
         if (!a || !b) return null;
-        return { key: `${u}-${v}-${i}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ex = b.x - (dx / len) * NODE_R;
+        const ey = b.y - (dy / len) * NODE_R;
+        return { key: `${u}-${v}-${i}`, x1: a.x, y1: a.y, x2: ex, y2: ey };
       })
       .filter((e): e is NonNullable<typeof e> => e !== null);
 

@@ -30,11 +30,32 @@ export const appRoutes: Route[] = [
       import('./pages/network/network.page').then((m) => m.NetworkPage),
   },
   {
+    path: 'docs',
+    pathMatch: 'full',
+    redirectTo: 'docs/overview',
+  },
+  {
+    // No `networkLoadedGuard` — the manual has to open before a network is
+    // loaded, not just after; that is the point of a manual.
+    path: 'docs/:topic',
+    title: 'Documentation',
+    loadComponent: () =>
+      import('./pages/docs/docs.page').then((m) => m.DocsPage),
+  },
+  {
     path: 'reliability',
     canActivate: [networkLoadedGuard],
     loadChildren: () =>
       import('@inf-prop/feature/reliability').then(
         (m) => m.featureReliabilityRoutes,
+      ),
+  },
+  {
+    path: 'diamonds',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/reliability').then(
+        (m) => m.featureDiamondsRoutes,
       ),
   },
   {
@@ -48,6 +69,14 @@ export const appRoutes: Route[] = [
     canActivate: [networkLoadedGuard],
     loadChildren: () =>
       import('@inf-prop/feature/schedule').then((m) => m.featureScheduleRoutes),
+  },
+  {
+    path: 'inputs',
+    canActivate: [networkLoadedGuard],
+    loadChildren: () =>
+      import('@inf-prop/feature/session-inputs').then(
+        (m) => m.featureSessionInputsRoutes,
+      ),
   },
   {
     path: 'system-profile',

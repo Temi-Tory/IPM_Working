@@ -3,10 +3,13 @@ import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Observable, catchError, concatMap, from, of, tap, throwError } from 'rxjs';
 import {
   ApiRequestError,
   CriticalPathRequest,
@@ -18,6 +21,7 @@ import {
   NetworkContextService,
   ScenarioAnalysis,
   ScenarioCacheService,
+  ScenarioRun,
   Scenario as UploadScenario,
   scenarioRunId,
 } from '@inf-prop/shared/data-access';
@@ -25,13 +29,18 @@ import {
   CardComponent,
   EmptyStateComponent,
   ErrorBannerComponent,
+  GraphHighlight,
   IconComponent,
   LoadingStateComponent,
+  NetworkGraphComponent,
   PageHeaderComponent,
+  ScenarioComparisonTableComponent,
   ValueTypeSelectorComponent,
 } from '@inf-prop/shared/ui';
 import { ScheduleAnalysisService } from '../data-access/schedule-analysis.service';
 import {
+  criticalNodeIds,
+  possiblyCriticalNodeIds,
   scenarioMetrics,
   scenarioOverlays,
 } from '../data-access/schedule-view-model';
@@ -76,6 +85,8 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
     LoadingStateComponent,
     IconComponent,
     ValueTypeSelectorComponent,
+    NetworkGraphComponent,
+    ScenarioComparisonTableComponent,
     SchedulePassView,
   ],
   template: `
@@ -96,9 +107,10 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
       <ipf-empty-state
         icon="schedule"
         title="No CPM inputs file"
-        message="This network has no CPM inputs file (a *-cpm-inputs.json in a scenario folder). Add one and re-upload to enable the schedule toolkit."
+        message="This network has no CPM inputs file (a *-cpm-inputs.json in a scenario folder). Add one and re-upload, or add durations by hand."
       >
         <a slot="actions" routerLink="/upload">Add a CPM inputs file</a>
+        <a slot="actions" routerLink="/inputs/schedule">Add inputs manually</a>
       </ipf-empty-state>
     } @else {
       <ipf-card>
@@ -228,40 +240,167 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
             [message]="mismatchMessage(mm)"
           />
         }
+      }
 
-        <div class="tabs" role="tablist">
+      <!-- the tab strip and Compare are reachable without a result — Compare
+           lets you run several scenarios before any of them has one, the same
+           way Reliability's and Flow's Compare tabs do. Time/Cost/
+           Visualisation each handle "no result yet" on their own. -->
+      <div class="tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="activeTab() === 'time'"
+          [attr.aria-selected]="activeTab() === 'time'"
+          (click)="selectTab('time')"
+        >
+          Time
+        </button>
+        @if (!result() || hasCost()) {
           <button
             type="button"
             role="tab"
-            [class.active]="activeTab() === 'time'"
-            [attr.aria-selected]="activeTab() === 'time'"
-            (click)="activeTab.set('time')"
+            [class.active]="activeTab() === 'cost'"
+            [attr.aria-selected]="activeTab() === 'cost'"
+            (click)="selectTab('cost')"
           >
-            Time
+            Cost
           </button>
-          @if (hasCost()) {
-            <button
-              type="button"
-              role="tab"
-              [class.active]="activeTab() === 'cost'"
-              [attr.aria-selected]="activeTab() === 'cost'"
-              (click)="activeTab.set('cost')"
-            >
-              Cost
-            </button>
-          } @else {
-            <span class="tab-note">No cost analysis in this CPM file</span>
-          }
-        </div>
+        } @else {
+          <span class="tab-note">No cost analysis in this CPM file</span>
+        }
+        <button
+          type="button"
+          role="tab"
+          [class.active]="activeTab() === 'visualisation'"
+          [attr.aria-selected]="activeTab() === 'visualisation'"
+          (click)="selectTab('visualisation')"
+        >
+          Visualisation
+        </button>
+        @if (scenarios().length > 1) {
+          <button
+            type="button"
+            role="tab"
+            [class.active]="activeTab() === 'compare'"
+            [attr.aria-selected]="activeTab() === 'compare'"
+            (click)="selectTab('compare')"
+          >
+            Compare
+          </button>
+        }
+      </div>
 
+      @if (activeTab() === 'time' || activeTab() === 'cost') {
         @if (activePass(); as pass) {
           <ipf-schedule-pass-view
             [pass]="pass"
             [structure]="ctx.structure()"
             [kindLabel]="activeTab() === 'time' ? 'Time' : 'Cost'"
-            [computationTime]="r.computation_time"
+            [computationTime]="result()?.computation_time ?? 0"
+          />
+        } @else {
+          <ipf-empty-state
+            icon="schedule"
+            title="No result yet"
+            [message]="
+              'Run the analysis to see the ' +
+              (activeTab() === 'time' ? 'Time' : 'Cost') +
+              ' pass for ' +
+              (selectedEntry()?.scenario?.name ?? 'this scenario') +
+              '.'
+            "
           />
         }
+      }
+
+      @if (activeTab() === 'visualisation') {
+        @if (ctx.structure(); as s) {
+          <ipf-card>
+            <p class="hint">
+              The network, drawn by layer.
+              @if (vizHighlight(); as h) {
+                The ringed nodes are {{ vizSource() === 'time' ? 'time' : 'cost' }}'s
+                necessarily critical structure
+                @if (vizPossibleCount(); as n) {
+                  — {{ n }} more node{{ n === 1 ? '' : 's' }} are possibly critical
+                  under interval uncertainty, not ringed here
+                }.
+              } @else {
+                Run the analysis to highlight the critical structure here.
+              }
+              @if (result() && hasCost()) {
+                <span class="viz-toggle">
+                  Show:
+                  <button
+                    type="button"
+                    class="link"
+                    [class.active]="vizSource() === 'time'"
+                    (click)="vizSource.set('time')"
+                  >
+                    Time
+                  </button>
+                  ·
+                  <button
+                    type="button"
+                    class="link"
+                    [class.active]="vizSource() === 'cost'"
+                    (click)="vizSource.set('cost')"
+                  >
+                    Cost
+                  </button>
+                </span>
+              }
+            </p>
+            <ipf-network-graph [structure]="s" [highlight]="vizHighlight()" />
+          </ipf-card>
+        } @else {
+          <ipf-loading-state label="Loading network structure…" />
+        }
+      }
+
+      @if (activeTab() === 'compare') {
+        <ipf-card>
+          <div class="compare-toolbar">
+            <div class="compare-checks" role="group" aria-label="Scenarios to compare">
+              @for (e of scenarios(); track e.scenario.name) {
+                <label class="compare-check">
+                  <input
+                    type="checkbox"
+                    [checked]="isCompareChecked(e.scenario.name)"
+                    (change)="toggleCompare(e.scenario.name)"
+                  />
+                  {{ e.scenario.name }}
+                  @if (!hasRun(e.scenario.name)) {
+                    <span class="unran">not run</span>
+                  }
+                </label>
+              }
+            </div>
+            <div class="compare-actions">
+              <button type="button" class="link" (click)="selectAllCompare()">All</button>
+              <button type="button" class="link" (click)="clearCompare()">None</button>
+              <button
+                type="button"
+                class="run"
+                [disabled]="runningSelected() || !pendingCompare().length"
+                (click)="runSelected()"
+              >
+                <ipf-icon name="run" [size]="16" />
+                @if (runSelectedProgress(); as p) {
+                  Running {{ p.done + 1 }} of {{ p.total }}…
+                } @else {
+                  Run selected ({{ pendingCompare().length }})
+                }
+              </button>
+            </div>
+          </div>
+        </ipf-card>
+
+        <ipf-scenario-comparison-table
+          [runs]="comparedRuns()"
+          emptyMessage="Check at least one scenario with a completed run, or run selected above."
+        />
       }
     }
   `,
@@ -389,6 +528,75 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
         color: var(--colorNeutralForeground4);
         padding-left: var(--spacingHorizontalS, 8px);
       }
+      .viz-toggle {
+        margin-left: 8px;
+      }
+      .viz-toggle .link {
+        font: inherit;
+        font-size: inherit;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--colorNeutralForeground3);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      .viz-toggle .link.active {
+        color: var(--colorBrandForeground1);
+        font-weight: var(--fontWeightSemibold, 600);
+      }
+      .compare-toolbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--spacingHorizontalXL, 20px);
+        flex-wrap: wrap;
+      }
+      .compare-checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        max-width: 60ch;
+      }
+      .compare-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: var(--fontSizeBase300, 14px);
+        color: var(--colorNeutralForeground1);
+        cursor: pointer;
+      }
+      .compare-check input {
+        cursor: pointer;
+      }
+      .unran {
+        font-size: var(--fontSizeBase100, 10px);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 1px 6px;
+        border-radius: var(--borderRadiusSmall, 3px);
+        background: var(--colorNeutralBackground3);
+        color: var(--colorNeutralForeground3);
+      }
+      .compare-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        flex: none;
+      }
+      .compare-actions .link {
+        font: inherit;
+        font-size: var(--fontSizeBase200, 12px);
+        padding: 2px;
+        border: none;
+        background: none;
+        color: var(--colorBrandForeground1);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      ipf-scenario-comparison-table {
+        display: block;
+      }
     `,
   ],
 })
@@ -408,7 +616,13 @@ export class FeatureSchedule {
   protected readonly status = signal<RunStatus>('idle');
   protected readonly error = signal<string | null>(null);
   protected readonly response = signal<CriticalPathResponse | null>(null);
-  protected readonly activeTab = signal<'time' | 'cost'>('time');
+  protected readonly activeTab = signal<
+    'time' | 'cost' | 'visualisation' | 'compare'
+  >('time');
+  /** which pass the Visualisation tab highlights — follows whichever of
+   *  Time/Cost was last viewed, so switching there shows what you were just
+   *  looking at, with an explicit toggle when both passes exist. */
+  protected readonly vizSource = signal<'time' | 'cost'>('time');
   private readonly _mismatch = signal<{
     expected: ValueType;
     actual: 'Float64' | 'Interval';
@@ -418,6 +632,34 @@ export class FeatureSchedule {
   protected readonly scenarios = computed<ScheduleScenarioEntry[]>(() =>
     this.ctx.scenariosFor('schedule'),
   );
+
+  // --- Compare tab: multi-scenario selection, run-selected -----------------
+  private readonly compareSelection = signal<Set<string>>(new Set());
+  private compareRehydrated = false;
+  protected readonly runningSelected = signal(false);
+  protected readonly runSelectedProgress = signal<{
+    done: number;
+    total: number;
+  } | null>(null);
+
+  protected readonly comparedRuns = computed<ScenarioRun[]>(() => {
+    const ctxVal = this.ctx.context();
+    if (!ctxVal) return [];
+    const names = this.compareSelection();
+    if (!names.size) return [];
+    return this.cache
+      .runsForToolkit('schedule')
+      .filter(
+        (r) => r.networkPath === ctxVal.networkPath && names.has(r.scenarioName),
+      );
+  });
+
+  protected readonly pendingCompare = computed<ScheduleScenarioEntry[]>(() => {
+    const names = this.compareSelection();
+    return this.scenarios().filter(
+      (e) => names.has(e.scenario.name) && !this.hasRun(e.scenario.name),
+    );
+  });
 
   protected readonly selectedEntry = computed<ScheduleScenarioEntry | null>(() => {
     const list = this.scenarios();
@@ -446,6 +688,35 @@ export class FeatureSchedule {
     return this.activeTab() === 'cost' ? r.cost_result : r.time_result;
   });
 
+  /** the pass the Visualisation tab reads from — `vizSource`, falling back to
+   *  time if cost was picked but the current result has none */
+  private readonly vizPass = computed(() => {
+    const r = this.result();
+    if (!r) return null;
+    return this.vizSource() === 'cost' && r.cost_result
+      ? r.cost_result
+      : r.time_result;
+  });
+
+  protected readonly vizHighlight = computed<GraphHighlight | null>(() => {
+    const pass = this.vizPass();
+    if (!pass) return null;
+    const nodeIds = criticalNodeIds(pass);
+    if (!nodeIds.length) return null;
+    return { nodeIds, label: 'the necessarily critical structure' };
+  });
+
+  /** possibly-critical count beyond the necessarily-critical set — non-null
+   *  (and worth a caption) only for interval passes, where the two differ. */
+  protected readonly vizPossibleCount = computed<number | null>(() => {
+    const pass = this.vizPass();
+    if (!pass) return null;
+    const possible = possiblyCriticalNodeIds(pass).length;
+    const necessary = criticalNodeIds(pass).length;
+    const extra = possible - necessary;
+    return extra > 0 ? extra : null;
+  });
+
   protected readonly canRun = computed(
     () => this.status() !== 'running' && this.effectiveCpmPath().length > 0,
   );
@@ -463,6 +734,15 @@ export class FeatureSchedule {
       this.selectedScenarioName.set(first.scenario.name);
       this.expectedValueType.set(hintValueType(first.analysis));
     }
+
+    effect(() => {
+      const list = this.scenarios();
+      if (!list.length || this.compareRehydrated) return;
+      untracked(() => {
+        this.compareRehydrated = true;
+        this.compareSelection.set(new Set(list.map((e) => e.scenario.name)));
+      });
+    });
   }
 
   protected onSelectScenario(event: Event): void {
@@ -488,11 +768,70 @@ export class FeatureSchedule {
     );
   }
 
+  protected selectTab(tab: 'time' | 'cost' | 'visualisation' | 'compare'): void {
+    this.activeTab.set(tab);
+    if (tab === 'time' || tab === 'cost') this.vizSource.set(tab);
+  }
+
+  protected hasRun(scenarioName: string): boolean {
+    const path = this.ctx.context()?.networkPath;
+    return this.cache
+      .runsForToolkit('schedule')
+      .some((r) => r.scenarioName === scenarioName && r.networkPath === path);
+  }
+
+  protected isCompareChecked(name: string): boolean {
+    return this.compareSelection().has(name);
+  }
+
+  protected toggleCompare(name: string): void {
+    this.compareSelection.update((set) => {
+      const next = new Set(set);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  protected selectAllCompare(): void {
+    this.compareSelection.set(new Set(this.scenarios().map((e) => e.scenario.name)));
+  }
+
+  protected clearCompare(): void {
+    this.compareSelection.set(new Set());
+  }
+
   protected mismatchMessage(mm: {
     expected: ValueType;
     actual: 'Float64' | 'Interval';
   }): string {
     return `You pre-selected ${mm.expected}, but the CPM file resolved to ${mm.actual}. Showing ${mm.actual} results — the value type is read from the file's own data_type, not the selector.`;
+  }
+
+  /** Runs one CPM file and folds a successful response into `response` + the
+   *  cross-scenario cache. Shared by `run()` (the selected/manual scenario)
+   *  and `runSelected()` (every checked-but-unrun scenario, chained). */
+  private executeRun(
+    cpmPath: string,
+    scenarioName: string,
+  ): Observable<CriticalPathResponse> {
+    const context = this.ctx.context();
+    if (!context) return throwError(() => new Error('No network is loaded.'));
+    const request: CriticalPathRequest = {
+      networkPath: context.networkPath,
+      edgesFilePath: context.edgesFilePath,
+      cpmPath,
+      mode: this.timeMode() || undefined,
+      costMode: this.costMode() || undefined,
+    };
+    return this.analysis.analyse(request).pipe(
+      tap((res) => {
+        if (!res.success) return;
+        this.response.set(res);
+        this.reconcileValueType(res);
+        this.recordScenario(res, cpmPath, scenarioName);
+      }),
+    );
   }
 
   protected run(): void {
@@ -503,36 +842,68 @@ export class FeatureSchedule {
       this.status.set('error');
       return;
     }
-
-    const request: CriticalPathRequest = {
-      networkPath: context.networkPath,
-      edgesFilePath: context.edgesFilePath,
-      cpmPath,
-      mode: this.timeMode() || undefined,
-      costMode: this.costMode() || undefined,
-    };
+    const scenarioName =
+      this.selectedEntry()?.scenario.name ?? scenarioNameFromPath(cpmPath);
 
     this.status.set('running');
     this.error.set(null);
 
-    this.analysis.analyse(request).subscribe({
+    this.executeRun(cpmPath, scenarioName).subscribe({
       next: (res) => {
         if (!res.success) {
           this.status.set('error');
           this.error.set(res.message || 'Critical path analysis failed.');
           return;
         }
-        this.response.set(res);
         this.activeTab.set('time');
-        this.reconcileValueType(res);
+        this.vizSource.set('time');
         this.status.set('done');
-        this.recordScenario(res, cpmPath);
       },
       error: (err: ApiRequestError) => {
         this.status.set('error');
         this.error.set(err.message);
       },
     });
+  }
+
+  /**
+   * Runs every checked-but-unrun scenario in the Compare tab, one at a time —
+   * chained rather than parallel, the same reasoning as Reliability's and
+   * Flow's "Run selected": nothing here has verified the Julia server handles
+   * concurrent analysis requests safely, so a sequential queue with visible
+   * progress is the safe default. A scenario that fails is recorded as an
+   * error but doesn't stop the rest of the queue.
+   */
+  protected runSelected(): void {
+    const pending = this.pendingCompare();
+    if (!pending.length) return;
+    this.runningSelected.set(true);
+    this.error.set(null);
+    this.runSelectedProgress.set({ done: 0, total: pending.length });
+    from(pending)
+      .pipe(
+        concatMap((e) => {
+          const cpmPath = e.analysis.paths.cpm;
+          if (!cpmPath) return of(null);
+          return this.executeRun(cpmPath, e.scenario.name).pipe(
+            catchError((err: ApiRequestError) => {
+              this.error.set(`${e.scenario.name}: ${err.message}`);
+              return of(null);
+            }),
+          );
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.runSelectedProgress.update((p) =>
+            p ? { ...p, done: p.done + 1 } : p,
+          );
+        },
+        complete: () => {
+          this.runningSelected.set(false);
+          this.runSelectedProgress.set(null);
+        },
+      });
   }
 
   /** Sync the selector to what the file actually was; keep a note if they differ. */
@@ -547,15 +918,17 @@ export class FeatureSchedule {
     this.expectedValueType.set(actualKey);
   }
 
-  private recordScenario(res: CriticalPathResponse, cpmPath: string): void {
+  private recordScenario(
+    res: CriticalPathResponse,
+    cpmPath: string,
+    scenarioName: string,
+  ): void {
     const context = this.ctx.context();
     if (!context) return;
 
     const r = res.critical_path_result;
     const valueType: ValueType =
       r.value_type === 'Interval' ? 'interval' : 'float64';
-    const scenarioName =
-      this.selectedEntry()?.scenario.name ?? scenarioNameFromPath(cpmPath);
 
     this.cache.record({
       id: scenarioRunId(

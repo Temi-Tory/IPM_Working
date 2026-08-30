@@ -206,6 +206,32 @@ describe('FlowWorkbenchStore', () => {
     expect(minCut?.value).toBe(7);
   });
 
+  it('runs every checked-but-unrun scenario chained, skipping already-run ones', () => {
+    store.runSelected(['case-a', 'case-b']);
+
+    // chained, not parallel: one request at a time
+    const req1 = httpMock.expectOne(FLOW_URL);
+    expect((req1.request.body as { capacitiesPath: string }).capacitiesPath).toBe(
+      'case-a/net-capacities.json',
+    );
+    req1.flush(response());
+
+    const req2 = httpMock.expectOne(FLOW_URL);
+    expect((req2.request.body as { capacitiesPath: string }).capacitiesPath).toBe(
+      'case-b/net-capacities.json',
+    );
+    req2.flush(response());
+
+    expect(store.runningSelected()).toBe(false);
+    expect(store.runSelectedProgress()).toBeNull();
+    expect(store.hasRun('case-a')).toBe(true);
+    expect(store.hasRun('case-b')).toBe(true);
+
+    // a second call with nothing pending issues no request at all
+    store.runSelected(['case-a', 'case-b']);
+    httpMock.expectNone(FLOW_URL);
+  });
+
   it('surfaces a server error without recording a run', () => {
     store.run();
     httpMock

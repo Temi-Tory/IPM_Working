@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Observable, catchError, concatMap, from, of, tap, throwError } from 'rxjs';
 import {
   ApiRequestError,
   CapacityResult,
@@ -90,6 +91,14 @@ export class FlowWorkbenchStore {
       .sort((a, b) => b.ranAt - a.ranAt);
   });
 
+  private readonly _runningSelected = signal(false);
+  private readonly _runSelectedProgress = signal<{
+    done: number;
+    total: number;
+  } | null>(null);
+  readonly runningSelected = this._runningSelected.asReadonly();
+  readonly runSelectedProgress = this._runSelectedProgress.asReadonly();
+
   constructor() {
     // A different network is loaded — drop a result that no longer applies.
     effect(() => {
@@ -121,33 +130,28 @@ export class FlowWorkbenchStore {
     }
   }
 
-  /** Run `/flow-analysis` for the selected scenario. */
-  run(): void {
-    const scenario = this.selectedScenario();
-    const context = this.ctx.context();
-    if (!scenario || !context) {
-      this._error.set('Pick a capacities scenario first.');
-      this._runState.set('error');
-      return;
-    }
+  /** Whether a scenario has a recorded run on the loaded network — drives the
+   *  Compare tab's "already run" indicator and what "Run selected" skips. */
+  hasRun(scenarioName: string): boolean {
+    return this.recordedRuns().some((r) => r.scenarioName === scenarioName);
+  }
 
+  /** Runs one scenario and folds a successful response into `result` + the
+   *  cross-scenario cache. Shared by `run()` (the selected scenario, from
+   *  Configure) and `runSelected()` (every checked-but-unrun scenario,
+   *  chained, from Compare). */
+  private executeRun(scenario: CapacityScenario): Observable<FlowAnalysisResponse> {
+    const context = this.ctx.context();
+    if (!context) return throwError(() => new Error('No network is loaded.'));
     const request: FlowAnalysisRequest = {
       networkPath: context.networkPath,
       edgesFilePath: context.edgesFilePath,
       capacitiesPath: scenario.capacitiesPath,
       analysisOptions: toAnalysisOptions(this._options()),
     };
-
-    this._runState.set('loading');
-    this._error.set(null);
-
-    this.client.analyze(request).subscribe({
-      next: (response) => {
-        if (!response.success) {
-          this._error.set(response.message || 'Flow analysis failed.');
-          this._runState.set('error');
-          return;
-        }
+    return this.client.analyze(request).pipe(
+      tap((response) => {
+        if (!response.success) return;
         const ranAt = Date.now();
         this._result.set(response);
         this._ranScenarioName.set(scenario.name);
@@ -155,12 +159,75 @@ export class FlowWorkbenchStore {
         this._runState.set('success');
         this.resultNetworkPath = context.networkPath;
         this.record(response, scenario, context, ranAt);
+      }),
+    );
+  }
+
+  /** Run `/flow-analysis` for the selected scenario. */
+  run(): void {
+    const scenario = this.selectedScenario();
+    if (!scenario) {
+      this._error.set('Pick a capacities scenario first.');
+      this._runState.set('error');
+      return;
+    }
+
+    this._runState.set('loading');
+    this._error.set(null);
+
+    this.executeRun(scenario).subscribe({
+      next: (response) => {
+        if (!response.success) {
+          this._error.set(response.message || 'Flow analysis failed.');
+          this._runState.set('error');
+        }
       },
       error: (e: ApiRequestError) => {
         this._error.set(e.message);
         this._runState.set('error');
       },
     });
+  }
+
+  /**
+   * Runs every scenario in `scenarioIds` that has no recorded run yet, one at
+   * a time — chained, not parallel, for the same reason as Reliability's
+   * "Run selected": nothing here has verified the Julia server handles
+   * concurrent analysis requests safely, so a sequential queue with visible
+   * progress is the safe default. A scenario that fails is recorded as an
+   * error but doesn't stop the rest of the queue.
+   */
+  runSelected(scenarioIds: readonly string[]): void {
+    const ids = new Set(scenarioIds);
+    const pending = this.scenarios().filter(
+      (s) => ids.has(s.id) && !this.hasRun(s.name),
+    );
+    if (!pending.length) return;
+    this._runningSelected.set(true);
+    this._error.set(null);
+    this._runSelectedProgress.set({ done: 0, total: pending.length });
+    from(pending)
+      .pipe(
+        concatMap((s) =>
+          this.executeRun(s).pipe(
+            catchError((e: ApiRequestError) => {
+              this._error.set(`${s.name}: ${e.message}`);
+              return of(null);
+            }),
+          ),
+        ),
+      )
+      .subscribe({
+        next: () => {
+          this._runSelectedProgress.update((p) =>
+            p ? { ...p, done: p.done + 1 } : p,
+          );
+        },
+        complete: () => {
+          this._runningSelected.set(false);
+          this._runSelectedProgress.set(null);
+        },
+      });
   }
 
   /** Hand the run to the cross-scenario cache — labelled real outputs only. */

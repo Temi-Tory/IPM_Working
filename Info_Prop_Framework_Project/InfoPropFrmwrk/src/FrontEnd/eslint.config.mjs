@@ -66,6 +66,7 @@ export default [
                 'scope:flow',
                 'scope:schedule',
                 'scope:system-profile',
+                'scope:session-inputs',
               ],
             },
             {
@@ -88,6 +89,13 @@ export default [
               sourceTag: 'scope:system-profile',
               onlyDependOnLibsWithTags: [
                 'scope:system-profile',
+                'scope:shared',
+              ],
+            },
+            {
+              sourceTag: 'scope:session-inputs',
+              onlyDependOnLibsWithTags: [
+                'scope:session-inputs',
                 'scope:shared',
               ],
             },

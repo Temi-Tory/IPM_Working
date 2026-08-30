@@ -1,9 +1,11 @@
 import { ScenarioRun } from '@inf-prop/shared/data-access';
 import {
   collectOverlays,
+  distinctScenarioNames,
   groupByToolkit,
   metricColumns,
   numericDelta,
+  scenarioRoster,
 } from './profile-view';
 
 function run(partial: Partial<ScenarioRun>): ScenarioRun {
@@ -57,6 +59,59 @@ describe('profile-view — mechanical reshaping only, no judgement', () => {
     expect(
       numericDelta(3, { type: 'interval', lower: 1, upper: 2 }),
     ).toBeNull();
+  });
+
+  it('counts distinct scenario NAMES, not runs — one name run under two toolkits is one scenario', () => {
+    const names = distinctScenarioNames([
+      run({ id: 'a', toolkit: 'flow', scenarioName: 'Degraded' }),
+      run({ id: 'b', toolkit: 'reliability', scenarioName: 'Degraded' }),
+      run({ id: 'c', toolkit: 'flow', scenarioName: 'Nominal' }),
+    ]);
+    expect(names).toEqual(['Degraded', 'Nominal']);
+  });
+
+  it('rosters which toolkits have run each scenario, keeping the latest run per toolkit', () => {
+    const rows = scenarioRoster([
+      run({
+        id: 'a1',
+        toolkit: 'flow',
+        scenarioName: 'Degraded',
+        valueType: 'float64',
+        ranAt: 100,
+      }),
+      run({
+        id: 'a2',
+        toolkit: 'flow',
+        scenarioName: 'Degraded',
+        valueType: 'float64',
+        ranAt: 200, // a re-run — should win over a1
+      }),
+      run({
+        id: 'b',
+        toolkit: 'reliability',
+        scenarioName: 'Degraded',
+        valueType: 'interval',
+        ranAt: 150,
+      }),
+      run({
+        id: 'c',
+        toolkit: 'flow',
+        scenarioName: 'Nominal',
+        valueType: 'float64',
+        ranAt: 50,
+      }),
+    ]);
+    expect(rows.map((r) => r.scenarioName)).toEqual(['Degraded', 'Nominal']);
+
+    const [degraded, nominal] = rows;
+    expect(degraded.byToolkit.flow).toEqual({ valueType: 'float64', ranAt: 200 });
+    expect(degraded.byToolkit.reliability).toEqual({
+      valueType: 'interval',
+      ranAt: 150,
+    });
+    expect(degraded.byToolkit.schedule).toBeUndefined();
+    expect(nominal.byToolkit.flow).toEqual({ valueType: 'float64', ranAt: 50 });
+    expect(nominal.byToolkit.reliability).toBeUndefined();
   });
 
   it('collects only overlays the runs carry — invents none', () => {

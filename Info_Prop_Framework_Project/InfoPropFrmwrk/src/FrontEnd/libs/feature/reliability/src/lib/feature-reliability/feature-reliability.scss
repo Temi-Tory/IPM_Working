@@ -6,7 +6,7 @@
 ipf-card,
 ipf-diamond-structure,
 ipf-error-banner,
-.stat-row {
+.stat-block {
   display: block;
   margin-bottom: var(--spacingVerticalL, 16px);
 }
@@ -18,68 +18,191 @@ h2 {
   color: var(--colorNeutralForeground1);
 }
 
-.controls {
+// --- value-form filter row --------------------------------------------------
+
+.filter-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacingHorizontalXL, 20px);
-  align-items: flex-start;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
+  margin-bottom: var(--spacingVerticalM, 12px);
 }
 
-.field-label {
+.filter-label {
   font-size: var(--fontSizeBase200, 12px);
   font-weight: var(--fontWeightSemibold, 600);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--colorNeutralForeground2);
+  margin-right: 4px;
 }
 
-.scenario-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.scenario-list button {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font: inherit;
-  padding: 6px 12px;
+  font-size: var(--fontSizeBase200, 12px);
+  padding: 5px 10px;
   border: 1px solid var(--colorNeutralStroke1);
-  border-radius: var(--borderRadiusMedium, 4px);
+  border-radius: var(--borderRadiusCircular, 999px);
   background: var(--colorNeutralBackground1);
-  color: var(--colorNeutralForeground1);
+  color: var(--colorNeutralForeground2);
   cursor: pointer;
 }
 
-.scenario-list button.active {
+.pill.active {
   border-color: var(--colorBrandStroke1);
   background: var(--colorBrandBackground2);
   color: var(--colorBrandForeground1);
 }
 
-.s-name {
+// --- scenario cards ----------------------------------------------------------
+
+.scenario-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--spacingVerticalL, 16px);
+}
+
+.scenario-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font: inherit;
+  padding: 10px 14px;
+  min-width: 150px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.scenario-card.active {
+  border-color: var(--colorBrandStroke1);
+  background: var(--colorBrandBackground2);
+  box-shadow: 0 0 0 1px var(--colorBrandStroke1);
+}
+
+.sc-name {
   font-size: var(--fontSizeBase300, 14px);
   font-weight: var(--fontWeightSemibold, 600);
 }
 
-.s-type {
+.sc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--fontSizeBase100, 10px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: var(--borderRadiusSmall, 3px);
+}
+
+.sc-badge.form-float64 {
+  background: var(--colorNeutralBackground3);
+  color: var(--colorNeutralForeground2);
+}
+
+.sc-badge.form-interval {
+  background: var(--colorPaletteBlueBackground2, #a9d3f2);
+  color: var(--colorPaletteBlueForeground2, #0f6cbd);
+}
+
+.sc-badge.form-pbox {
+  background: var(--colorPalettePurpleBackground2, #d0b8e6);
+  color: var(--colorPalettePurpleForeground2, #6b3fa0);
+}
+
+.sc-ran {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--colorPaletteGreenForeground2, #0e700e);
+}
+
+.no-match {
+  margin: 0;
+  font-size: var(--fontSizeBase200, 12px);
   color: var(--colorNeutralForeground3);
 }
 
-.run {
-  margin-left: auto;
-  align-self: flex-end;
+// --- tab strip -----------------------------------------------------------
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  margin-bottom: var(--spacingVerticalL, 16px);
+}
+
+.tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: var(--fontSizeBase300, 14px);
+  padding: 8px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--colorNeutralForeground3);
+  cursor: pointer;
+  transform: translateY(1px);
+}
+
+.tabs button:hover {
+  color: var(--colorNeutralForeground1);
+}
+
+.tabs button.active {
+  color: var(--colorBrandForeground1);
+  border-bottom-color: var(--colorBrandStroke1);
+  font-weight: var(--fontWeightSemibold, 600);
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: var(--borderRadiusCircular, 999px);
+  background: var(--colorNeutralBackground3);
+  color: var(--colorNeutralForeground2);
+  font-size: var(--fontSizeBase100, 10px);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabs button.active .tab-count {
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+}
+
+// --- per-tab run controls -------------------------------------------------
+
+.run-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.info-hint {
+  display: inline-flex;
+  align-items: center;
+  color: var(--colorNeutralForeground3);
+  cursor: help;
+}
+
+.info-hint:hover {
+  color: var(--colorNeutralForeground1);
 }
 
 .btn {
@@ -94,6 +217,7 @@ h2 {
   background: var(--colorNeutralBackground1);
   color: var(--colorNeutralForeground1);
   cursor: pointer;
+  flex: none;
 }
 
 .btn.primary {
@@ -111,10 +235,8 @@ h2 {
   cursor: not-allowed;
 }
 
-.note {
-  margin: 0;
-  font-size: var(--fontSizeBase200, 12px);
-  color: var(--colorPaletteDarkOrangeForeground1, #bc4b09);
+.stat-block {
+  position: relative;
 }
 
 .stat-row {
@@ -123,8 +245,78 @@ h2 {
   gap: var(--spacingHorizontalM, 12px);
 }
 
-.aggregate-note {
-  margin: calc(-1 * var(--spacingVerticalS, 8px)) 0 var(--spacingVerticalL, 16px);
+.agg-info {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
+
+// --- Compare tab -----------------------------------------------------------
+
+.compare-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacingHorizontalXL, 20px);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacingVerticalS, 8px);
+}
+
+.compare-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  max-width: 60ch;
+}
+
+.compare-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fontSizeBase300, 14px);
+  color: var(--colorNeutralForeground1);
+  cursor: pointer;
+}
+
+.compare-check input {
+  cursor: pointer;
+}
+
+.unran {
+  font-size: var(--fontSizeBase100, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: var(--borderRadiusSmall, 3px);
+  background: var(--colorNeutralBackground3);
+  color: var(--colorNeutralForeground3);
+}
+
+.compare-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.link {
+  font: inherit;
+  font-size: var(--fontSizeBase200, 12px);
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--colorBrandForeground1);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+ipf-scenario-comparison-table {
+  display: block;
+  margin-bottom: var(--spacingVerticalL, 16px);
+}
+
+.viz-lede {
+  margin: 0 0 var(--spacingVerticalM, 12px);
   font-size: var(--fontSizeBase200, 12px);
   color: var(--colorNeutralForeground3);
   max-width: 72ch;
@@ -139,4 +331,10 @@ h2 {
   color: var(--colorNeutralForegroundOnBrand, #fff);
   text-decoration: none;
   font-size: var(--fontSizeBase300, 14px);
+}
+
+.link-btn.secondary {
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  border: 1px solid var(--colorNeutralStroke1);
 }

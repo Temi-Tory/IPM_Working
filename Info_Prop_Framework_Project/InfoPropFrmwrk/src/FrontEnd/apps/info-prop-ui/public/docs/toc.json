@@ -1,0 +1,95 @@
+{
+  "title": "Information Propagation Framework — Documentation",
+  "version": "2.0.0",
+  "lastUpdated": "2026-08-30",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "icon": "info",
+      "file": "overview.md",
+      "description": "What the framework does and how the interface is organised",
+      "category": "user"
+    },
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "icon": "run",
+      "file": "getting-started.md",
+      "description": "Start the server, upload a network, run your first analysis",
+      "category": "user"
+    },
+    {
+      "id": "network-concepts",
+      "title": "Understanding Networks",
+      "icon": "structure",
+      "file": "network-concepts.md",
+      "description": "Node roles, layers, and the structure dashboard",
+      "category": "user"
+    },
+    {
+      "id": "exact-inference",
+      "title": "Reliability",
+      "icon": "reliability",
+      "file": "exact-inference.md",
+      "description": "Belief propagation, value forms, and the Compare tab",
+      "category": "user"
+    },
+    {
+      "id": "diamond-analysis",
+      "title": "Diamond Patterns",
+      "icon": "diamond",
+      "file": "diamond-analysis.md",
+      "description": "Reconvergence, conditioning sets, and isolating a diamond",
+      "category": "user"
+    },
+    {
+      "id": "capacity-analysis",
+      "title": "Flow",
+      "icon": "flow",
+      "file": "capacity-analysis.md",
+      "description": "Bottlenecks, minimum cuts, and structural connectivity",
+      "category": "user"
+    },
+    {
+      "id": "critical-path",
+      "title": "Schedule (CPM)",
+      "icon": "schedule",
+      "file": "critical-path.md",
+      "description": "Time and cost passes, critical paths, and slack",
+      "category": "user"
+    },
+    {
+      "id": "system-profile",
+      "title": "Cross-Scenario Profile",
+      "icon": "system-profile",
+      "file": "system-profile.md",
+      "description": "Comparing scenarios and result sets across toolkits",
+      "category": "user"
+    },
+    {
+      "id": "data-formats",
+      "title": "Preparing Your Data",
+      "icon": "document",
+      "file": "data-formats.md",
+      "description": "Folder layout and the JSON shape each analysis expects",
+      "category": "user"
+    },
+    {
+      "id": "glossary",
+      "title": "Glossary",
+      "icon": "list",
+      "file": "glossary.md",
+      "description": "Definitions of terms used throughout the interface",
+      "category": "user"
+    },
+    {
+      "id": "developer",
+      "title": "Developer Reference",
+      "icon": "settings",
+      "file": "developer.md",
+      "description": "Server endpoints, repository layout, module boundaries",
+      "category": "developer"
+    }
+  ]
+}

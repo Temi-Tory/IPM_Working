@@ -11,6 +11,26 @@
 # (interval delays reduce to node durations by edge subdivision — not yet implemented).
 #
 
+"""
+The split (or its internal exhaustive delegation) declining because the run
+budget is exceeded — a legitimate, expected outcome, not a bug. Kept distinct
+from every other exception `interval_analyze_split` can throw (a genuine
+usage error, or an implementation bug) so a caller's fallback can catch
+*this* specifically and report the real reason, instead of a generic
+`ArgumentError` catch silently mislabelling an unrelated failure as "the
+budget was exceeded" too.
+"""
+struct SplitDeclined <: Exception
+    needed::Int
+    max_runs::Int
+    exhaustive_k::Int
+end
+
+function Base.showerror(io::IO, e::SplitDeclined)
+    print(io, "domination split declined: needs $(e.needed) runs against a limit of ",
+          "$(e.max_runs) (exhaustive would need 2^$(e.exhaustive_k))")
+end
+
 function _closure_sets(iteration_sets, incoming_index, outgoing_index)
     anc = Dict{Int64,Set{Int64}}()
     for layer in iteration_sets, n in layer
@@ -104,8 +124,7 @@ function interval_analyze_split(
                                       node_values, edge_values; mode = mode, atol = atol,
                                       max_corners = max_runs)
     end
-    total <= max_runs ||
-        throw(ArgumentError("domination split needs $total runs (> max_runs=$max_runs) and exhaustive needs 2^$k; dense reconvergence boundary"))
+    total <= max_runs || throw(SplitDeclined(total, max_runs, k))
 
     base = interval_analyze(iteration_sets, outgoing_index, incoming_index, source_nodes,
                             node_values, edge_values; mode = mode, atol = atol)
@@ -137,6 +156,22 @@ function interval_analyze_split(
                 end
             end
         end
+        # fminus and fplus come from two INDEPENDENT corner sweeps (the
+        # dominated/incomparable coordinates are pinned oppositely in each),
+        # so — unlike a single min/max pass over one stream of values —
+        # nothing forces fminus <= fplus by construction. A node whose true
+        # margin is exactly 0 (every source node, trivially) can see the two
+        # sweeps sum a different arrangement of the same Float64 inputs and
+        # land a few ULPs apart, tripping `ValueInterval`'s strict lo<=hi
+        # check on a value that is analytically zero-width. Snap to the same
+        # `atol` the criticality classification already uses, rather than
+        # loosening `ValueInterval` itself — the constructor stays strict,
+        # which is where strictness belongs; the fix is that the value
+        # crossing the tolerance band is now honestly zero before it gets
+        # there, not that the check quietly stops looking.
+        abs(fminus) <= atol && (fminus = 0.0)
+        abs(fplus) <= atol && (fplus = 0.0)
+        (fplus < fminus && fminus - fplus < atol) && (fplus = fminus)
         fl[v] = fminus; fu[v] = fplus
     end
 

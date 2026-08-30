@@ -68,7 +68,7 @@
       </tr>
     </thead>
     <tbody>
-      @for (row of view(); track row.nodeId) {
+      @for (row of pageRows(); track row.nodeId) {
         <tr>
           <td class="node">
             {{ row.nodeId }}
@@ -105,4 +105,32 @@
   </table>
 </div>
 
-<p class="count">{{ view().length }} of {{ rows().length }} nodes</p>
+<div class="pager">
+  <p class="count">
+    {{ pageRangeLabel() }} nodes
+    @if (view().length !== rows().length) {
+      <span class="muted">(filtered from {{ rows().length }})</span>
+    }
+  </p>
+  @if (pageCount() > 1) {
+    <div class="pager-controls">
+      <button
+        type="button"
+        (click)="goToPage(-1)"
+        [disabled]="clampedPage() === 0"
+        aria-label="Previous page"
+      >
+        <ipf-icon name="arrow-left" [size]="14" />
+      </button>
+      <span class="page-of">{{ clampedPage() + 1 }} / {{ pageCount() }}</span>
+      <button
+        type="button"
+        (click)="goToPage(1)"
+        [disabled]="clampedPage() >= pageCount() - 1"
+        aria-label="Next page"
+      >
+        <ipf-icon name="arrow-right" [size]="14" />
+      </button>
+    </div>
+  }
+</div>

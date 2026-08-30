@@ -46,6 +46,9 @@ export class BeliefTableComponent {
   protected readonly sortColumn = signal<SortColumn>('node');
   protected readonly sortDir = signal<SortDir>('asc');
 
+  protected readonly pageSize = 25;
+  protected readonly page = signal(0);
+
   protected readonly roleLabel = ROLE_LABEL;
 
   protected readonly beliefSortsByLowerBound = computed(
@@ -85,7 +88,36 @@ export class BeliefTableComponent {
     return rows;
   });
 
+  protected readonly pageCount = computed(() =>
+    Math.max(1, Math.ceil(this.view().length / this.pageSize)),
+  );
+
+  /** clamps the page signal back into range whenever filtering shrinks the view */
+  protected readonly clampedPage = computed(() =>
+    Math.min(this.page(), this.pageCount() - 1),
+  );
+
+  protected readonly pageRows = computed(() => {
+    const start = this.clampedPage() * this.pageSize;
+    return this.view().slice(start, start + this.pageSize);
+  });
+
+  protected readonly pageRangeLabel = computed(() => {
+    const total = this.view().length;
+    if (total === 0) return '0 of 0';
+    const start = this.clampedPage() * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, total);
+    return `${start}–${end} of ${total}`;
+  });
+
+  protected goToPage(delta: number): void {
+    this.page.set(
+      Math.min(Math.max(this.clampedPage() + delta, 0), this.pageCount() - 1),
+    );
+  }
+
   protected setSort(col: SortColumn): void {
+    this.page.set(0);
     if (this.sortColumn() === col) {
       this.sortDir.set(this.sortDir() === 'asc' ? 'desc' : 'asc');
     } else {
@@ -96,14 +128,17 @@ export class BeliefTableComponent {
 
   protected onSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
+    this.page.set(0);
   }
 
   protected setRole(role: NodeRole | 'all'): void {
     this.roleFilter.set(role);
+    this.page.set(0);
   }
 
   protected toggleDiamondsOnly(): void {
     this.diamondsOnly.set(!this.diamondsOnly());
+    this.page.set(0);
   }
 
   protected ariaSort(col: SortColumn): 'ascending' | 'descending' | 'none' {

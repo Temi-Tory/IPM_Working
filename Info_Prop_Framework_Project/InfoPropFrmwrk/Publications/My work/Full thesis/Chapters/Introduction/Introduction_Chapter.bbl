@@ -1,0 +1,483 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{billinton1992network}{incollection}{}
+      \name{author}{2}{}{%
+        {{hash=271a24f5639214eaf38d29e66d2b81bb}{%
+           family={Billinton},
+           familyi={B\bibinitperiod},
+           given={Roy},
+           giveni={R\bibinitperiod}}}%
+        {{hash=14bb05567353d423efd95197d3d6e26a}{%
+           family={Allan},
+           familyi={A\bibinitperiod},
+           given={Ronald\bibnamedelima N.},
+           giveni={R\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boston, MA}%
+      }
+      \list{publisher}{1}{%
+        {Springer US}%
+      }
+      \strng{namehash}{e6af43a171ac246ea0c715aaa55786a4}
+      \strng{fullhash}{e6af43a171ac246ea0c715aaa55786a4}
+      \strng{bibnamehash}{e6af43a171ac246ea0c715aaa55786a4}
+      \strng{authorbibnamehash}{e6af43a171ac246ea0c715aaa55786a4}
+      \strng{authornamehash}{e6af43a171ac246ea0c715aaa55786a4}
+      \strng{authorfullhash}{e6af43a171ac246ea0c715aaa55786a4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Reliability Evaluation of Engineering Systems: Concepts and Techniques}
+      \field{title}{Network Modelling and Evaluation of Simple Systems}
+      \field{year}{1992}
+    \endentry
+    \entry{ford1956}{article}{}
+      \name{author}{2}{}{%
+        {{hash=9f4acd11117be157f30fc6def2993c08}{%
+           family={Ford},
+           familyi={F\bibinitperiod},
+           given={Lester\bibnamedelima R.},
+           giveni={L\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=999229085fe7ecb44a189d0162657de4}{%
+           family={Fulkerson},
+           familyi={F\bibinitperiod},
+           given={Delbert\bibnamedelima R.},
+           giveni={D\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \strng{namehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{fullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{bibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorbibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authornamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorfullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Canadian Journal of Mathematics}
+      \field{title}{Maximal Flow Through a Network}
+      \field{volume}{8}
+      \field{year}{1956}
+      \field{pages}{399\bibrangedash 404}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.4153/CJM-1956-045-5
+      \endverb
+    \endentry
+    \entry{kelley1959critical}{inproceedings}{}
+      \name{author}{2}{}{%
+        {{hash=2e3dfd4a58baba50cc3afc67f00fa21d}{%
+           family={Kelley},
+           familyi={K\bibinitperiod},
+           given={James\bibnamedelima E.},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=268c4c187a0b009f314f32c9388da512}{%
+           family={Walker},
+           familyi={W\bibinitperiod},
+           given={Morgan\bibnamedelima R.},
+           giveni={M\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boston, MA}%
+      }
+      \strng{namehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{fullhash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{bibnamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authorbibnamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authornamehash}{0ecff717aa146f5ad12e994b555744e7}
+      \strng{authorfullhash}{0ecff717aa146f5ad12e994b555744e7}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the Eastern Joint {IRE-AIEE-ACM} Computer Conference}
+      \field{title}{Critical-Path Planning and Scheduling}
+      \field{year}{1959}
+      \field{pages}{160\bibrangedash 173}
+      \range{pages}{14}
+      \verb{doi}
+      \verb 10.1145/1460299.1460318
+      \endverb
+    \endentry
+    \entry{ferson2003constructing}{report}{}
+      \name{author}{5}{}{%
+        {{hash=6ceb625d7853d563342273f3091a5e33}{%
+           family={Ferson},
+           familyi={F\bibinitperiod},
+           given={Scott},
+           giveni={S\bibinitperiod}}}%
+        {{hash=9466f54628c485c760439c651efbbcb2}{%
+           family={Kreinovich},
+           familyi={K\bibinitperiod},
+           given={Vladik},
+           giveni={V\bibinitperiod}}}%
+        {{hash=793c3637bb28c3ab38d0557ecc58af40}{%
+           family={Ginzburg},
+           familyi={G\bibinitperiod},
+           given={Lev},
+           giveni={L\bibinitperiod}}}%
+        {{hash=ad9c351f94961e43aa4ed3b08bd4c704}{%
+           family={Myers},
+           familyi={M\bibinitperiod},
+           given={Davis\bibnamedelima S.},
+           giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=f99fb1836435f506d1adc23f5733807d}{%
+           family={Sentz},
+           familyi={S\bibinitperiod},
+           given={Kari},
+           giveni={K\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Sandia National Laboratories}%
+      }
+      \list{location}{1}{%
+        {Albuquerque, NM}%
+      }
+      \strng{namehash}{8d692b78e550a75d53da7cde56f42c3f}
+      \strng{fullhash}{282e4dcff7a68fcce18f078657591b7c}
+      \strng{bibnamehash}{282e4dcff7a68fcce18f078657591b7c}
+      \strng{authorbibnamehash}{282e4dcff7a68fcce18f078657591b7c}
+      \strng{authornamehash}{8d692b78e550a75d53da7cde56f42c3f}
+      \strng{authorfullhash}{282e4dcff7a68fcce18f078657591b7c}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{SAND2002-4015}
+      \field{title}{Constructing Probability Boxes and {D}empster--{S}hafer Structures}
+      \field{type}{techreport}
+      \field{year}{2003}
+    \endentry
+    \entry{williamson1990probabilistic}{article}{}
+      \name{author}{2}{}{%
+        {{hash=2e35ef7841aac7d181dcf0a232a11d6d}{%
+           family={Williamson},
+           familyi={W\bibinitperiod},
+           given={Robert\bibnamedelima C.},
+           giveni={R\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=5364a94ecf44bb40ff46ee84bae8f915}{%
+           family={Downs},
+           familyi={D\bibinitperiod},
+           given={Tom},
+           giveni={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \strng{fullhash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \strng{bibnamehash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \strng{authorbibnamehash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \strng{authornamehash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \strng{authorfullhash}{a6874e9b55d5fe4077e2396d994a35c9}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{International Journal of Approximate Reasoning}
+      \field{number}{2}
+      \field{title}{Probabilistic Arithmetic {I}: Numerical Methods for Calculating Convolutions and Dependency Bounds}
+      \field{volume}{4}
+      \field{year}{1990}
+      \field{pages}{89\bibrangedash 158}
+      \range{pages}{70}
+    \endentry
+    \entry{valiant1979complexity}{article}{}
+      \name{author}{1}{}{%
+        {{hash=5f6de757ace433a38a527a005db316f1}{%
+           family={Valiant},
+           familyi={V\bibinitperiod},
+           given={Leslie\bibnamedelima G.},
+           giveni={L\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+      }
+      \strng{namehash}{5f6de757ace433a38a527a005db316f1}
+      \strng{fullhash}{5f6de757ace433a38a527a005db316f1}
+      \strng{bibnamehash}{5f6de757ace433a38a527a005db316f1}
+      \strng{authorbibnamehash}{5f6de757ace433a38a527a005db316f1}
+      \strng{authornamehash}{5f6de757ace433a38a527a005db316f1}
+      \strng{authorfullhash}{5f6de757ace433a38a527a005db316f1}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{SIAM Journal on Computing}
+      \field{number}{3}
+      \field{title}{The Complexity of Enumeration and Reliability Problems}
+      \field{volume}{8}
+      \field{year}{1979}
+      \field{pages}{410\bibrangedash 421}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1137/0208032
+      \endverb
+    \endentry
+    \entry{ball1986computational}{article}{}
+      \name{author}{1}{}{%
+        {{hash=38a0d4f1c92d95443804ee7ffe0e865f}{%
+           family={Ball},
+           familyi={B\bibinitperiod},
+           given={Michael\bibnamedelima O.},
+           giveni={M\bibinitperiod\bibinitdelim O\bibinitperiod}}}%
+      }
+      \strng{namehash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \strng{fullhash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \strng{bibnamehash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \strng{authorbibnamehash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \strng{authornamehash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \strng{authorfullhash}{38a0d4f1c92d95443804ee7ffe0e865f}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Reliability}
+      \field{number}{3}
+      \field{title}{Computational Complexity of Network Reliability Analysis: An Overview}
+      \field{volume}{R-35}
+      \field{year}{1986}
+      \field{pages}{230\bibrangedash 239}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1109/TR.1986.4335422
+      \endverb
+    \endentry
+    \entry{thurner2018pandapower}{article}{}
+      \name{author}{8}{}{%
+        {{hash=8f64e76ceac2c69ce225403575806709}{%
+           family={Thurner},
+           familyi={T\bibinitperiod},
+           given={Leon},
+           giveni={L\bibinitperiod}}}%
+        {{hash=f766edec489a246df91310babd9487ef}{%
+           family={Scheidler},
+           familyi={S\bibinitperiod},
+           given={Alexander},
+           giveni={A\bibinitperiod}}}%
+        {{hash=604c8e7d2c2966ab87d40303c25a5de0}{%
+           family={Schäfer},
+           familyi={S\bibinitperiod},
+           given={Florian},
+           giveni={F\bibinitperiod}}}%
+        {{hash=32a979e2e5c55de0770fd829135059b8}{%
+           family={Menke},
+           familyi={M\bibinitperiod},
+           given={Jan-Hendrik},
+           giveni={J\bibinithyphendelim H\bibinitperiod}}}%
+        {{hash=6bfcc347540f3eca5cfc92d34ca376b2}{%
+           family={Dollichon},
+           familyi={D\bibinitperiod},
+           given={Julian},
+           giveni={J\bibinitperiod}}}%
+        {{hash=8c3e0072b8529c2ebec2d174afabd2a5}{%
+           family={Meier},
+           familyi={M\bibinitperiod},
+           given={Friederike},
+           giveni={F\bibinitperiod}}}%
+        {{hash=1362d6154c3cf809af148ba37bc723ac}{%
+           family={Meinecke},
+           familyi={M\bibinitperiod},
+           given={Steffen},
+           giveni={S\bibinitperiod}}}%
+        {{hash=d80f7d8c34c0856e00fa15e123d2634d}{%
+           family={Braun},
+           familyi={B\bibinitperiod},
+           given={Martin},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{c1ba5cba9031e37321596c1966bf4bb9}
+      \strng{fullhash}{8347da05d045b178572eafc30fd5bbf5}
+      \strng{bibnamehash}{c1ba5cba9031e37321596c1966bf4bb9}
+      \strng{authorbibnamehash}{c1ba5cba9031e37321596c1966bf4bb9}
+      \strng{authornamehash}{c1ba5cba9031e37321596c1966bf4bb9}
+      \strng{authorfullhash}{8347da05d045b178572eafc30fd5bbf5}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Power Systems}
+      \field{number}{6}
+      \field{title}{pandapower---An Open-Source Python Tool for Convenient Modeling, Analysis, and Optimization of Electric Power Systems}
+      \field{volume}{33}
+      \field{year}{2018}
+      \field{pages}{6510\bibrangedash 6521}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1109/TPWRS.2018.2829021
+      \endverb
+    \endentry
+    \entry{huang2020exact}{article}{}
+      \name{author}{3}{}{%
+        {{hash=7f98882166406f15d81502c3a16a2854}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Ding-Hsiang},
+           giveni={D\bibinithyphendelim H\bibinitperiod}}}%
+        {{hash=043b2b7e4940d0dcd4777ec57c896def}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Cheng-Fu},
+           giveni={C\bibinithyphendelim F\bibinitperiod}}}%
+        {{hash=884f409919ee1412ecfc921b1a316fb5}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Yi-Kuei},
+           giveni={Y\bibinithyphendelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{6a6dc14175cf176661940671c5db42c7}
+      \strng{fullhash}{ea62fc28e443fec6405f246cbb6e228c}
+      \strng{bibnamehash}{ea62fc28e443fec6405f246cbb6e228c}
+      \strng{authorbibnamehash}{ea62fc28e443fec6405f246cbb6e228c}
+      \strng{authornamehash}{6a6dc14175cf176661940671c5db42c7}
+      \strng{authorfullhash}{ea62fc28e443fec6405f246cbb6e228c}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Reliability Engineering \& System Safety}
+      \field{title}{Exact Project Reliability for a Multi-State Project Network Subject to Time and Budget Constraints}
+      \field{volume}{195}
+      \field{year}{2020}
+      \field{pages}{106744}
+      \range{pages}{1}
+      \verb{doi}
+      \verb 10.1016/j.ress.2019.106744
+      \endverb
+    \endentry
+    \entry{tong2021infrastructure}{thesis}{}
+      \name{author}{1}{}{%
+        {{hash=5385a814f1590ae78edf0f05e2c1b122}{%
+           family={Tong},
+           familyi={T\bibinitperiod},
+           given={Yanjie},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \list{institution}{1}{%
+        {Georgia Institute of Technology}%
+      }
+      \strng{namehash}{5385a814f1590ae78edf0f05e2c1b122}
+      \strng{fullhash}{5385a814f1590ae78edf0f05e2c1b122}
+      \strng{bibnamehash}{5385a814f1590ae78edf0f05e2c1b122}
+      \strng{authorbibnamehash}{5385a814f1590ae78edf0f05e2c1b122}
+      \strng{authornamehash}{5385a814f1590ae78edf0f05e2c1b122}
+      \strng{authorfullhash}{5385a814f1590ae78edf0f05e2c1b122}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{New Approaches for Modeling and Reliability Assessment of Infrastructure Flow Networks}
+      \field{type}{phdthesis}
+      \field{year}{2021}
+    \endentry
+    \entry{chanas2002complexity}{article}{}
+      \name{author}{2}{}{%
+        {{hash=319b4430d47b0f2fddc3a36e5f6b7a50}{%
+           family={Chanas},
+           familyi={C\bibinitperiod},
+           given={Stefan},
+           giveni={S\bibinitperiod}}}%
+        {{hash=bb0f2786fac4951192b7335093516324}{%
+           family={Zieliński},
+           familyi={Z\bibinitperiod},
+           given={Pawe{ł}},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{fullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{bibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorbibnamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authornamehash}{ace134ae85f202ce9a9afe78afca351e}
+      \strng{authorfullhash}{ace134ae85f202ce9a9afe78afca351e}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{European Journal of Operational Research}
+      \field{number}{3}
+      \field{title}{The Computational Complexity of the Criticality Problems in a Network with Interval Activity Times}
+      \field{volume}{136}
+      \field{year}{2002}
+      \field{pages}{541\bibrangedash 550}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1016/S0377-2217(01)00048-0
+      \endverb
+    \endentry
+    \entry{jones2025conceptual}{article}{}
+      \name{author}{8}{}{%
+        {{hash=0d47db4e16f37728e919030d807803e0}{%
+           family={Jones},
+           familyi={J\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=8907890a50b7aa469ccbd427054e7e21}{%
+           family={Filippi},
+           familyi={F\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=4bdd9a38c6c17d419b28ca9290c7f47a}{%
+           family={Basu},
+           familyi={B\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=c2c7ebe7d10e94cf5b0a7e255f7df31a}{%
+           family={Parsonage},
+           familyi={P\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=781b61aff5e2928d516bd1ba4d1cc010}{%
+           family={Patelli},
+           familyi={P\bibinitperiod},
+           given={E.},
+           giveni={E\bibinitperiod}}}%
+        {{hash=292bf9b5f231b978692eeeb679916bb2}{%
+           family={Maddock},
+           familyi={M\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=9693dfdc027671243b4ba15b90e0e863}{%
+           family={Vasile},
+           familyi={V\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=ff9078419cbab41baae2fcef5ba8fbd3}{%
+           family={Fossati},
+           familyi={F\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{ab0479b3755f4d84f3fc29cff6671471}
+      \strng{fullhash}{f0decdc384dfa8b3000ac4f51e8e825c}
+      \strng{bibnamehash}{ab0479b3755f4d84f3fc29cff6671471}
+      \strng{authorbibnamehash}{ab0479b3755f4d84f3fc29cff6671471}
+      \strng{authornamehash}{ab0479b3755f4d84f3fc29cff6671471}
+      \strng{authorfullhash}{f0decdc384dfa8b3000ac4f51e8e825c}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{International Journal of Logistics Research and Applications}
+      \field{note}{Submitted}
+      \field{title}{Conceptual Design of a Medical Drone Logistics Network for {S}cotland}
+      \field{year}{2025}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

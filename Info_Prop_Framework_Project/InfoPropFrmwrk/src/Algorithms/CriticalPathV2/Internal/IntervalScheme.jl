@@ -138,6 +138,17 @@ function interval_analyze_exact(
         first_corner = false
     end
 
+    # Precautionary, not a fix for a live bug here the way the split's own
+    # snap is (see DominationSplit.jl): mlo/mhi track min/max of the SAME
+    # per-corner value stream in the SAME loop, so mlo[n] <= mhi[n] holds by
+    # construction — there is no second, independently-summed sweep for
+    # floating-point noise to diverge against. Snapping near-zero margins to
+    # exactly 0 anyway keeps this tier consistent with the split's and with
+    # the atol the criticality classification below already uses.
+    for n in keys(mlo)
+        abs(mlo[n]) <= atol && (mlo[n] = 0.0)
+        abs(mhi[n]) <= atol && (mhi[n] = 0.0)
+    end
     margin = Dict{Int64,ValueInterval}(n => ValueInterval(mlo[n], mhi[n]) for n in keys(mlo))
     necessarily = sort!([n for (n, b) in ncrit if b])
     possibly = sort!([n for (n, b) in pcrit if b])

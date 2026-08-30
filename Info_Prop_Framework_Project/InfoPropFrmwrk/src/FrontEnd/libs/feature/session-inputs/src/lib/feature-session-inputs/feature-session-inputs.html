@@ -1,0 +1,149 @@
+<ipf-page-header
+  [title]="title() + ' inputs'"
+  [description]="description()"
+/>
+
+@if (!ctx.isLoaded()) {
+  <ipf-empty-state
+    icon="upload"
+    title="No network loaded"
+    message="Upload a network first, then come back here to add inputs by hand."
+  >
+    <a slot="actions" routerLink="/upload">Upload a network</a>
+  </ipf-empty-state>
+} @else if (!ctx.structure()) {
+  <ipf-loading-state label="Loading network structure…" />
+} @else {
+  @if (error(); as e) {
+    <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
+  }
+
+  <ipf-card>
+    <label class="field">
+      <span class="lbl">Scenario name</span>
+      <input
+        class="ctl"
+        type="text"
+        [value]="scenarioName()"
+        (input)="onScenarioName($event)"
+      />
+      <span class="hint">
+        The folder this scenario is saved under. "float", "interval" or
+        "pbox" is read as the value form; any other name is a named
+        operating case (e.g. "Degraded").
+      </span>
+    </label>
+  </ipf-card>
+
+  @if (kind() === 'reliability') {
+    <ipf-card>
+      <h2>Node priors <span class="range">0–1</span></h2>
+      <ipf-bulk-value-editor
+        [items]="nodeItems()"
+        itemLabel="Node"
+        [min]="0"
+        [max]="1"
+        (changed)="onNodePriors($event)"
+      />
+    </ipf-card>
+    <ipf-card>
+      <h2>Link probabilities <span class="range">0–1</span></h2>
+      <ipf-bulk-value-editor
+        [items]="edgeItems()"
+        itemLabel="Edge"
+        [min]="0"
+        [max]="1"
+        (changed)="onLinkProbs($event)"
+      />
+    </ipf-card>
+  }
+
+  @if (kind() === 'flow') {
+    <ipf-card>
+      <h2>Edge capacities <span class="range">≥ 0</span></h2>
+      <ipf-bulk-value-editor
+        [items]="edgeItems()"
+        itemLabel="Edge"
+        [min]="0"
+        (changed)="onEdgeCapacities($event)"
+      />
+    </ipf-card>
+    <ipf-card>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="includeNodeCapacities()"
+          (change)="includeNodeCapacities.set(!includeNodeCapacities())"
+        />
+        Also set node capacities <span class="opt">optional</span>
+      </label>
+      @if (includeNodeCapacities()) {
+        <ipf-bulk-value-editor
+          [items]="nodeItems()"
+          itemLabel="Node"
+          [min]="0"
+          (changed)="onNodeCapacities($event)"
+        />
+      }
+    </ipf-card>
+  }
+
+  @if (kind() === 'schedule') {
+    <ipf-card>
+      <h2>Node durations <span class="range">≥ 0</span></h2>
+      <ipf-bulk-value-editor
+        [items]="nodeItems()"
+        itemLabel="Node"
+        [min]="0"
+        (changed)="onNodeDurations($event)"
+      />
+    </ipf-card>
+    <ipf-card>
+      <h2>Edge delays <span class="range">≥ 0 · defaults to 0</span></h2>
+      <ipf-bulk-value-editor
+        [items]="edgeItems()"
+        itemLabel="Edge"
+        [min]="0"
+        [defaultValue]="0"
+        (changed)="onEdgeDelays($event)"
+      />
+    </ipf-card>
+    <ipf-card>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [checked]="includeCost()"
+          (change)="includeCost.set(!includeCost())"
+        />
+        Also add a cost analysis <span class="opt">optional</span>
+      </label>
+      @if (includeCost()) {
+        <h3>Node costs <span class="range">≥ 0</span></h3>
+        <ipf-bulk-value-editor
+          [items]="nodeItems()"
+          itemLabel="Node"
+          [min]="0"
+          (changed)="onNodeCosts($event)"
+        />
+        <h3>Edge costs <span class="range">≥ 0 · defaults to 0</span></h3>
+        <ipf-bulk-value-editor
+          [items]="edgeItems()"
+          itemLabel="Edge"
+          [min]="0"
+          [defaultValue]="0"
+          (changed)="onEdgeCosts($event)"
+        />
+      }
+    </ipf-card>
+  }
+
+  <div class="actions">
+    <button type="button" class="btn primary" [disabled]="!canSave()" (click)="save()">
+      <ipf-icon name="save" [size]="16" />
+      {{ saving() ? 'Saving…' : 'Save and switch to this network' }}
+    </button>
+    @if (missingCount() > 0) {
+      <span class="missing">{{ missingCount() }} value{{ missingCount() === 1 ? '' : 's' }} still needed</span>
+    }
+  </div>
+}

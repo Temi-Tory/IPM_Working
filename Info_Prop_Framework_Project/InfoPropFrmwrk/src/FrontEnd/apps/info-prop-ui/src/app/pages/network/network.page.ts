@@ -11,12 +11,12 @@ import {
   ErrorBannerComponent,
   IconComponent,
   LoadingStateComponent,
+  NetworkGraphComponent,
   PageHeaderComponent,
   StatTileComponent,
 } from '@inf-prop/shared/ui';
 import { IconName } from '@inf-prop/shared/ui';
 import { NetworkContextService } from '@inf-prop/shared/data-access';
-import { LayeredGraphComponent } from './layered-graph.component';
 
 interface ToolkitLink {
   path: string;
@@ -38,7 +38,7 @@ interface ToolkitLink {
     IconComponent,
     LoadingStateComponent,
     ErrorBannerComponent,
-    LayeredGraphComponent,
+    NetworkGraphComponent,
   ],
   templateUrl: './network.page.html',
   styleUrl: './network.page.scss',

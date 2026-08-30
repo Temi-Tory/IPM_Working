@@ -1,0 +1,64 @@
+<ipf-page-header
+  title="Documentation"
+  description="How the framework, and this interface, work — in the user's own terms. Everything here explains what the app already shows; it adds no capability of its own."
+/>
+
+@if (tocError(); as e) {
+  <ipf-error-banner [message]="e" (dismiss)="tocError.set(null)" />
+} @else if (!toc()) {
+  <ipf-loading-state label="Loading the documentation index…" />
+} @else {
+  <div class="docs-layout">
+    <nav class="toc" aria-label="Documentation topics">
+      <p class="group-label">User guide</p>
+      <ul>
+        @for (s of userSections(); track s.id) {
+          <li>
+            <a
+              [routerLink]="['/docs', s.id]"
+              routerLinkActive="active"
+              [title]="s.description"
+            >
+              <ipf-icon [name]="s.icon" [size]="16" />
+              <span>{{ s.title }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+
+      @if (developerSections().length > 0) {
+        <p class="group-label">Developer reference</p>
+        <ul>
+          @for (s of developerSections(); track s.id) {
+            <li>
+              <a
+                [routerLink]="['/docs', s.id]"
+                routerLinkActive="active"
+                [title]="s.description"
+              >
+                <ipf-icon [name]="s.icon" [size]="16" />
+                <span>{{ s.title }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+
+    <div class="content">
+      @if (contentError(); as e) {
+        <ipf-error-banner [message]="e" (dismiss)="contentError.set(null)" />
+      } @else if (loadingContent()) {
+        <ipf-loading-state label="Loading…" />
+      } @else if (contentHtml(); as html) {
+        <!-- Not itself an interactive element: this delegates clicks bubbling
+             up from the real interactive elements inside the injected markdown
+             (its own <a> tags), which stay natively focusable and keyboard-
+             operable on their own — the delegation only ever intercepts a
+             click already fired by one of them. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+        <article class="markdown" [innerHTML]="html" (click)="onContentClick($event)"></article>
+      }
+    </div>
+  </div>
+}

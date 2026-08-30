@@ -1,12 +1,12 @@
-
-
 \ifdefined\maindoc
-% Do nothing (we are inside main.tex)
+% Under the thesis build, main.tex owns the full \graphicspath list. \graphicspath REPLACES
+% rather than appends, so this branch deliberately does nothing.
 \else
 \documentclass[12pt]{report}
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage[british]{babel}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
 \usepackage{setspace}
@@ -16,7 +16,6 @@
 \usepackage{placeins}
 \usepackage{hyperref}
 \usepackage{array}
-\usepackage{makecell}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
@@ -27,564 +26,715 @@
 \newtheorem{proposition}[theorem]{Proposition}
 \onehalfspacing
 \graphicspath{{figures/}}
-% Standalone-only fallbacks so Chapter~\ref{...} renders as the right number outside the
-% main thesis. Under \maindoc these are skipped and the real labels in main.tex resolve.
+% Standalone-only fallbacks. Numbering: 1 Introduction, 2 Background, 3 Network Model,
+% 4 Network Decomposition, 5 Probability, 6 Capacity Flow, 7 this chapter, 8 Julia package,
+% 9 Interface, 10 Integrated Case Study, 11 Conclusions.
 \makeatletter
-\newlabel{ch:input-module}{{3}{1}{}{Doc-Start}{}}
+\newlabel{ch:lit-review}{{2}{1}{}{Doc-Start}{}}
+\newlabel{ch:system-model}{{3}{1}{}{Doc-Start}{}}
 \newlabel{ch:diamond-module}{{4}{1}{}{Doc-Start}{}}
 \newlabel{ch:probability-toolkit}{{5}{1}{}{Doc-Start}{}}
+\newlabel{ch:julia-package}{{8}{1}{}{Doc-Start}{}}
+\newlabel{ch:conclusions}{{11}{1}{}{Doc-Start}{}}
+\newlabel{app:network-specs}{{A}{1}{}{Doc-Start}{}}
+\newlabel{app:full-results}{{B}{1}{}{Doc-Start}{}}
 \makeatother
 \begin{document}
-\title{Information As Schedule and Cost: Critical Path Toolkit}
+\title{Information as Schedule and Cost: Critical Path Toolkit}
 \fi
 
 \newcommand{\comb}{\oplus}
 \newcommand{\prop}{\otimes}
+% Placeholder for numbers awaiting the PSPLIB and drone-design runs. Renders in bold
+% brackets so nothing can be mistaken for a result.
+\providecommand{\PH}[1]{\textbf{[#1]}}
 
 \section{Introduction}
 \label{sec:cpm-intro}
 
-The Critical Path Toolkit consumes the unified graph object of
-Chapter~\ref{ch:input-module} directly and involves no decomposition. Every
-analysis in it is built from linear-time passes over the layered iteration
-sets, so the Network Decomposition Module of Chapter~\ref{ch:diamond-module}
-is bypassed entirely.
+This chapter presents the Critical Path Toolkit, which implements the schedule and cost
+reading of the network model. In this reading the value attached to a node is a quantity
+that accumulates along dependency paths, such as a duration or a cost, and the value attached to an edge is the amount added or applied in the transfer
+between two components. The toolkit reads the graph object of
+Chapter~\ref{ch:system-model} directly. Every analysis in it is a linear-time pass over the
+layered iteration sets, and the Network Decomposition Module of
+Chapter~\ref{ch:diamond-module} is not used.
 
-The quantities this toolkit propagates are the ones that accumulate along
-dependency paths. A duration, a cost, a risk factor and a load all compound
-as they travel, and a network carrying such a quantity poses the same pair
-of questions whatever the quantity is. One is extremal, asking for the best
-or worst value a complete chain of dependencies can produce. The other
-concerns room, asking how far an individual component can move before that
-extremal answer changes. The first is settled by a forward pass. The second
-is where the analysis actually lives, because room is what criticality,
-bottlenecks and priorities are made of, and it exists only where the
-arithmetic of the quantity can be run backwards.
+Two questions are asked of a network carrying such a quantity. The first is extremal: what
+is the best or worst value that a complete chain of dependencies can produce? The second
+concerns room: how far can an individual component move before the extremal answer
+changes? The first question is answered by a forward pass. The second is the one that
+identifies the critical components, and it can be answered only when the arithmetic of the
+quantity can be run backwards.
 
-\section{Scheduling Analysis on Networks}
+The contributions of this chapter are the following. The classical critical path method is
+generalised to a family of analysis modes, each defined by a pair of operators, and the
+condition under which a mode has a backward pass is stated and used to select the modes
+provided. Two propagation kernels are given that serve every mode. For interval durations,
+the forward quantities are computed exactly from two corner runs, and the floats are
+computed exactly by a domination split that reduces the enumeration from every uncertain
+duration to those that can bypass the node in question. Every result is checked against an
+independent oracle.
+
+The rest of the chapter is structured as follows. Section~\ref{sec:cpm-grounding} recalls
+the results from Chapter~\ref{ch:lit-review} on which the toolkit builds.
+Section~\ref{sec:cpm-modes} defines the analysis modes and Section~\ref{sec:cpm-kernels}
+the two kernels. Section~\ref{sec:cpm-interval} describes the treatment of interval
+durations, and Section~\ref{sec:cpm-split} presents the domination split and proves its
+exactness. Section~\ref{sec:cpm-validation} describes the validation of the toolkit.
+Section~\ref{sec:cpm-cases} applies it to a benchmark project network and locates the
+boundary of the split on a dense mesh.
+Section~\ref{sec:cpm-discussion} discusses limitations and extensions, and
+Section~\ref{sec:cpm-summary} concludes the chapter.
+
+\section{Background}
 \label{sec:cpm-grounding}
 
-The critical path method models a project as a network of activities and
-computes the longest path through it. The project cannot finish earlier than
-that path allows, the activities on it have no room to slip, and every other
-activity carries a float equal to how far it can slip before it starts to
-matter. The method and the float calculus date to the late 1950s
-\cite{kelley1959critical}, and the companion question of duration uncertainty
-was raised almost immediately: PERT replaced each fixed duration with a
-three-point estimate and a distributional assumption
-\cite{malcolm1959pert}, and its descendants in modern practice replace the
-assumption with Monte Carlo sampling. Distribution-free treatment of the same
-uncertainty came much later. When each duration is known only as an interval,
-the forward quantities remain easy, but the backward ones change character
-entirely. Deciding whether an activity is possibly critical is NP-complete
-and float bounds are NP-hard \cite{chanas2002complexity}, even on planar
-networks \cite{chanas2003planar}. Exact methods exist for latest starting
-times and one of the two float bounds \cite{dubois2005floats}, the
-consolidated picture is given by Fortin, Zieli\'{n}ski, Dubois and Fargier
-\cite{fortin2010criticality}, and the recognised tractable class is the
-series--parallel networks.
+Chapter~\ref{ch:lit-review} reviewed the critical path method \cite{kelley1959critical},
+its float calculus, and the treatment of duration uncertainty from PERT
+\cite{malcolm1959pert} to the interval results of Chanas, Zieli\'{n}ski and their
+co-authors. Three of those results shape the toolkit.
 
-None of the machinery is specific to time. The forward recursion combines
-incoming values and compounds them along edges, and any quantity with those
-two operations propagates the same way. With combination as maximum and
-compounding as addition the recursion is the critical path method. With other
-pairs it is cost roll-up, risk scaling or route selection, and the algebra of
-such systems is well established: max-plus linear systems theory treats the
-classical forward and backward passes as linear algebra over an idempotent
-semiring, with the backward pass arising as residuation
-\cite{baccelli1992sync}. The lesson of that algebra is a discipline. A
-forward recursion exists for any pair of operations, but a backward one is a
-property the pair either has or lacks, and an analysis that reports slack
-without checking has manufactured a number. Uncertainty sharpens the same
-discipline from another side, because the interval results above draw their
-line between easy and hard exactly where monotonicity is lost.
+First, when each duration is an interval, the forward quantities are monotone in the
+durations, and their exact bounds are found at the two corners of the input box.
+
+Second, the backward quantities are not monotone. Deciding whether an activity is
+possibly critical is NP-complete and computing float bounds is NP-hard
+\cite{chanas2002complexity,chanas2003planar,dubois2005floats,fortin2010criticality}.
+
+Third, the forward and backward passes of the classical method are linear algebra over
+an idempotent semiring, and the backward pass is a residuation \cite{baccelli1992sync}.
+Hence a forward recursion exists for any pair of combination and compounding operations,
+but a backward pass exists only when the algebra of the pair supports one. A slack
+reported for a pair without such a backward pass is a number with no meaning.
+
+The modes of Section~\ref{sec:cpm-modes} are built on the third result, and the interval
+treatment of Sections~\ref{sec:cpm-interval} and~\ref{sec:cpm-split} on the first two.
 
 \section{Analysis Modes}
 \label{sec:cpm-modes}
 
-Whether the room question has an answer is a property of the operator pair,
-and it has one in exactly two situations. When combination is an order,
-maximum or minimum, a bound on the combined value binds every argument, and
-when compounding is monotone with a residual the bound inverts across each
-edge, so a constraint of the form finish by $K$ travels backwards through
-the network the same way values travel forwards. That is residuation in an
-idempotent semiring \cite{baccelli1992sync}, and it is what the classical
-backward pass has always been. Summation is different in kind. A total is
-not a deadline and no residuation exists, but a summed system is linear,
-and a linear map has an adjoint. The backward object of an accumulation
-analysis is therefore a sensitivity, and the room it measures is an
-allowance against a stated budget rather than a slack against a deadline.
-A pair with neither structure supports a forward recursion and nothing
-else, and any margin reported for it would be invention. A configuration of
-the toolkit, called a mode, is an operator pair together with whatever
-backward semantics its algebra supports, and Table~\ref{tab:cpm-modes}
-lists the four the framework provides.
+The forward recursion of the critical path method combines the values arriving at a node
+from its parents and compounds the result with the node's own value. Writing $\comb$ for
+the combination and $\prop$ for the compounding, the classical method has $\comb = \max$
+and $\prop = +$. Other pairs give other analyses: $\min$ and $+$ give the fastest chain,
+$\max$ and $\times$ give the best multiplicative chain, and $+$ and $+$ give a roll-up in
+which every route contributes. Whether the room question has an answer is a property of
+the pair, and it has one in two situations.
+
+In the first, $\comb$ is an order ($\max$ or $\min$) and $\prop$ is monotone with a
+residual. A bound on the combined value then binds every argument, and the bound inverts
+across each edge, so a constraint of the form ``finish by $K$'' travels backwards through
+the network in the same way that values travel forwards. This is residuation in an
+idempotent semiring \cite{baccelli1992sync}, and it is what the classical backward pass
+is. The backward object is a margin: the distance between the best complete path and the
+best complete path forced through the node in question, expressed as a difference for the
+additive pairs and as a ratio for the multiplicative one. The zero set of the margin is
+the critical structure of the analysis.
+
+In the second, $\comb$ is a sum. A total is not a deadline and no residuation exists.
+However, a summed system is linear, and a linear map has an adjoint. The backward object
+is therefore a sensitivity, and the room it measures is an allowance against a stated
+budget. It is not a slack against a deadline. A pair with neither structure supports a forward
+recursion and nothing else, and no margin is defined for it.
+
+A configuration of the toolkit is called a mode. A mode is an operator pair together with
+the backward semantics its algebra supports. Table~\ref{tab:cpm-modes} lists the four
+modes provided. The MaxScaling mode is applied in Chapter~\ref{ch:integrated-case-study}. The three order-based modes share one kernel and one backward mechanism,
+described in Section~\ref{sec:cpm-kernel-order}. The accumulation mode has its own kernel,
+described in Section~\ref{sec:cpm-kernel-linear}.
 
 \begin{table}[htbp]
 \centering
-\caption{The shipped modes. Every row carries a defined backward semantics;
-the margin column names what the backward pass reports.}
+\caption{The modes provided by the toolkit. In the three order-based modes the backward
+quantities are computed by the same fold on the reversed graph and the margin is the gap
+between the project value and the value through the node. In the accumulation mode the
+backward quantity is the adjoint, a path count.}
 \label{tab:cpm-modes}
 \small
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{llll}
+\begin{tabular}{lllll}
 \toprule
-Mode & $\comb$ / $\prop$ & Backward mechanism & Margin \\
+Mode & $\comb$ & $\prop$ & Backward object & Margin \\
 \midrule
-LongestPath & max / $+$ & residuation (min / $-$) & slack \\
-ShortestPath & min / $+$ & dual residuation (max / $-$) & margin over optimum \\
-MaxScaling & max / $\times$ & residuation (min / $\div$) & ratio slack \\
-Accumulation & sum / $+$ & adjoint (path multiplicities) & allowance \\
+LongestPath & $\max$ & $+$ & reverse fold, margin $P - t_v$ & slack \\
+ShortestPath & $\min$ & $+$ & reverse fold, margin $t_v - P$ & margin over optimum \\
+MaxScaling & $\max$ & $\times$ & reverse fold, margin $P/t_v - 1$ & ratio slack \\
+Accumulation & $+$ & $+$ & adjoint (path multiplicity) & allowance under a budget \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The four margins in the table are two objects, not four. The three
-order-based modes all report the same thing, the distance between the best
-complete path and the best path forced through the node in question,
-expressed as a difference for the additive pairs and as a ratio for the
-multiplicative one, and in each case the zero set is the critical structure
-of the analysis. The allowance is the linear system's counterpart. Because a
-node's value reaches the target once per route, its influence on the total
-is a path count rather than a path choice, and the room it has under a
-budget is the remaining headroom shared across those routes. Running a
-scheduling backward pass over a summed quantity instead produces figures
-that answer no question at all, which is why no slack appears in the
-accumulation row. The water network of Section~\ref{sec:cpm-water} shows
-what the allowance says in its place.
-
-\section{The Two Kernels}
+\section{The Propagation Kernels}
 \label{sec:cpm-kernels}
 
-The backward pass is not a second algorithm. For the order-based modes one
-fold serves both directions. Read forwards over the layered iteration sets
-it computes, for every node $v$ with parent set $\mathrm{pa}(v)$, duration
-$d_v$ and edge values $w_{uv}$,
-\[
+\subsection{The order-based kernel}
+\label{sec:cpm-kernel-order}
+
+For the order-based modes one fold serves both directions. Let $d_v$ be the value of node
+$v$, $w_{uv}$ the value of edge $(u,v)$, $\mathrm{pa}(v)$ the parents of $v$ and
+$\mathrm{succ}(v)$ its successors. Read forwards over the layered iteration sets, the fold
+computes
+\begin{equation}
+\label{eq:cpm-forward}
 F_v \;=\; \Bigl(\comb_{u \in \mathrm{pa}(v)} \, F_u \prop w_{uv}\Bigr) \prop d_v ,
-\]
-the best value a chain of dependencies can deliver into each node, with
-sources seeded from the initial value. Read over the reversed graph the same
-fold computes
-\[
+\end{equation}
+the best value that a chain of dependencies can deliver into each node, with each source
+seeded from an initial value. Read over the reversed graph, the same fold computes
+\begin{equation}
+\label{eq:cpm-reverse}
 R_v \;=\; \comb_{s \in \mathrm{succ}(v)} \,\bigl(R_s \prop d_s\bigr) \prop w_{vs} ,
-\]
-the best completion from each node onwards, with sinks seeded at the
-neutral element. The two arrays meet in the middle. Their compound
-$F_v \prop R_v$ is the best complete path forced through $v$, the project
-value $P$ is the best complete path free of any such constraint, and the
-margin of $v$ is the gap between the two. Slack, in this reading, is the
-cost of insisting on a node. The textbook schedule quantities are
-recoveries from the same two arrays, early start as $F_v - d_v$ and late
-finish as $P - R_v$, with late start and total float following by the same
-subtractions. On the four-node network of Figure~\ref{fig:cpm-example},
-with durations $1, 5, 2, 1$ and no edge delays, the longest reading
-completes in $7$ along $1{\to}2{\to}4$ while node $3$ carries slack $3$,
-and the shortest reading completes in $4$ along $1{\to}3{\to}4$ while node
-$2$ carries margin $3$. The same inputs answer opposite questions with
-opposite critical chains.
+\end{equation}
+the best completion from each node onwards, with each sink seeded at the neutral element
+of $\prop$. The two arrays meet at each node. Their compound
+\begin{equation}
+\label{eq:cpm-through}
+t_v \;=\; F_v \prop R_v
+\end{equation}
+is the best complete path forced through $v$. The project value $P$ is the combination of
+the forward values at the sinks, and the margin of $v$ is the gap between the two,
+\begin{equation}
+\label{eq:cpm-margin}
+m_v = P - t_v \;\;(\text{LongestPath}), \qquad
+m_v = t_v - P \;\;(\text{ShortestPath}), \qquad
+m_v = P / t_v - 1 \;\;(\text{MaxScaling}).
+\end{equation}
+A node is critical when its margin is zero. For the additive modes the textbook schedule
+quantities are recovered from the same two arrays,
+\begin{equation}
+\label{eq:cpm-schedule}
+\mathrm{ES}_v = F_v - d_v, \qquad \mathrm{LF}_v = P - R_v, \qquad \mathrm{LS}_v = \mathrm{LF}_v - d_v .
+\end{equation}
+Algorithm~\ref{alg:cpm-order} gives the kernel.
+
+\begin{algorithm}[htbp]
+\caption{Order-based kernel (one mode)}
+\label{alg:cpm-order}
+\begin{algorithmic}[1]
+\Require layered iteration sets $L$, incoming and outgoing indices, sources $S$, node
+  values $d$, edge values $w$, mode $(\comb, \prop)$ with neutral element $e$
+\Ensure $F$, $R$, $P$, $t$, $m$, critical set
+\ForAll{layers $L_i$ in order, nodes $v \in L_i$}
+  \If{$v \in S$} $F_v \gets e \prop d_v$
+  \Else\ $F_v \gets \bigl(\comb_{u \in \mathrm{pa}(v)} F_u \prop w_{uv}\bigr) \prop d_v$
+  \EndIf
+\EndFor
+\ForAll{layers $L_i$ in reverse order, nodes $v \in L_i$}
+  \If{$\mathrm{succ}(v) = \varnothing$} $R_v \gets e$
+  \Else\ $R_v \gets \comb_{s \in \mathrm{succ}(v)} (R_s \prop d_s) \prop w_{vs}$
+  \EndIf
+\EndFor
+\State $P \gets \comb_{v \in \text{sinks}} F_v$
+\ForAll{nodes $v$}
+  \State $t_v \gets F_v \prop R_v$; \quad $m_v \gets$ margin$(P, t_v)$ by Eq.~\eqref{eq:cpm-margin}
+\EndFor
+\State critical $\gets \{\, v : m_v = 0 \,\}$
+\end{algorithmic}
+\end{algorithm}
+
+On the four-node network of Figure~\ref{fig:cpm-example}, with durations $1, 5, 2, 1$ and
+no edge delays, LongestPath completes in $7$ along $1{\to}2{\to}4$ and node $3$ carries
+slack $3$. ShortestPath completes in $4$ along $1{\to}3{\to}4$ and node $2$ carries margin
+$3$. The same inputs answer opposite questions with opposite critical chains.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.3\linewidth]{fig01_example/fig01_example.pdf}
-  \caption{The running example. Node durations $1, 5, 2, 1$; LongestPath is
-  critical through nodes $1, 2, 4$ and ShortestPath through $1, 3, 4$.}
+  \caption{The running example. Node durations $1, 5, 2, 1$. LongestPath is critical
+  through nodes $1, 2, 4$ and ShortestPath through $1, 3, 4$.}
   \label{fig:cpm-example}
 \end{figure}
 
-Accumulation replaces the order by a sum, and the meeting in the middle
-changes meaning. The total at a target $t$ expands to
-$\sum_v m_{v} d_v + \sum_{(u,v)} m_{v} w_{uv}$, where $m_v$ counts the
-directed routes from $v$ to the target, so a node influences the total not
-through one best path but once per route, and the reverse traversal that
-computes the counts, seeded with $m_t = 1$, is the adjoint of the forward
-map. The count is the derivative of the total with respect to the node's
-value, the product $m_v d_v$ is the node's share of the total, and under a
-budget $B$ the room left to the node is $(B - F_t)/m_v$, headroom divided
-across its routes. On the running example the total at node $4$ is $10$ and
-node $1$ counts twice, once through each branch. Both kernels touch each
-edge a constant number of times, so every mode costs $O(|V|+|E|)$ whatever
-the operators are.
+\subsection{The linear kernel}
+\label{sec:cpm-kernel-linear}
 
-\section{Interval Analysis}
+In the accumulation mode the combination is a sum, so
+\begin{equation}
+\label{eq:cpm-acc-forward}
+F_v \;=\; \sum_{u \in \mathrm{pa}(v)} \bigl(F_u + w_{uv}\bigr) + d_v .
+\end{equation}
+A node's value therefore reaches a downstream target once per directed route. The total at
+a target $t$ expands to
+\begin{equation}
+\label{eq:cpm-acc-total}
+F_t \;=\; \sum_{v} m_v\, d_v \;+\; \sum_{(u,v) \in E} m_v\, w_{uv} ,
+\end{equation}
+where $m_v$ is the number of directed routes from $v$ to $t$. The counts are computed by a
+reverse traversal seeded with $m_t = 1$,
+\begin{equation}
+\label{eq:cpm-adjoint}
+m_v \;=\; \sum_{s \in \mathrm{succ}(v)} m_s ,
+\end{equation}
+which is the adjoint of the forward map. The count $m_v$ is the derivative of the total
+with respect to the node's value, and the product $m_v d_v$ is the node's contribution to
+the total. Under a budget $B$ the room left to node $v$ is
+\begin{equation}
+\label{eq:cpm-allowance}
+a_v \;=\; \frac{B - F_t}{m_v} ,
+\end{equation}
+the headroom divided across the node's routes. Algorithm~\ref{alg:cpm-linear} gives the
+kernel. On the running example the total at node $4$ is $10$ and node $1$ counts twice,
+once through each branch. If no target is given the toolkit takes the sink with the
+largest forward value.
+
+\begin{algorithm}[htbp]
+\caption{Linear kernel (accumulation mode)}
+\label{alg:cpm-linear}
+\begin{algorithmic}[1]
+\Require layered iteration sets $L$, indices, sources $S$, node values $d$, edge values
+  $w$, target $t$ (default: sink with largest $F$), optional budget $B$
+\Ensure $F$, total $F_t$, multiplicities $m$, contributions, allowances
+\ForAll{layers $L_i$ in order, nodes $v \in L_i$}
+  \State $F_v \gets d_v$ if $v \in S$, else $\sum_{u \in \mathrm{pa}(v)} (F_u + w_{uv}) + d_v$
+\EndFor
+\State $m_t \gets 1$
+\ForAll{layers $L_i$ in reverse order, nodes $v \in L_i$, $v \neq t$}
+  \State $m_v \gets \sum_{s \in \mathrm{succ}(v)} m_s$
+\EndFor
+\ForAll{nodes $v$ with $m_v > 0$}
+  \State contribution$_v \gets m_v d_v$; \quad if $B$ given, $a_v \gets (B - F_t)/m_v$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Cost}
+
+Both kernels touch each node once and each edge a constant number of times, so every mode
+costs $O(|V|+|E|)$ whatever the operators are. The kernels are generic over the value type
+they propagate, and the concrete types are described in Chapter~\ref{ch:julia-package}.
+
+\section{Interval Durations}
 \label{sec:cpm-interval}
 
-Uncertainty divides the toolkit's quantities along a single line, and the
-line is monotonicity. Every forward quantity grows when any input grows, so
-with interval inputs its exact bounds are two crisp runs of the scalar
-kernel, one at the lower corner of the input box and one at the upper, and
-interval arithmetic never enters. Margins sit on the other side of the
-line. A margin is a difference of two monotone quantities that share their
-inputs, it is not monotone in anything, and the hardness results of
-Section~\ref{sec:cpm-grounding} live precisely there. Running the scalar
-algorithms on an overloaded interval type would blur this line rather than
-respect it, ranking overlapping intervals through a partial order that
-cannot rank them and subtracting dependent quantities as though they were
-independent. The toolkit instead computes each interval quantity by the
-scheme its structure permits. Forward quantities are exact for the price of
-two runs. Margins come either as a sound enclosure derived from those exact
-bounds, declared conservative in the result it returns, or exactly, and an
-exact value and an enclosure are never allowed to look alike.
+When the durations are intervals, the quantities of the toolkit divide into two classes
+according to monotonicity.
 
-\section{Exact Interval Floats: the Domination Split}
+Every forward quantity, $F_v$, $R_v$, $t_v$ and $P$, is monotone in every input. Hence its
+exact bounds are obtained from two crisp runs of the kernel, one with every input at its
+lower endpoint and one with every input at its upper endpoint, and interval arithmetic is
+not needed. The toolkit computes the forward quantities in this way for every mode.
+
+A margin is a difference of two monotone quantities that share their inputs, so it is not
+monotone in anything, and the hardness results of Section~\ref{sec:cpm-grounding} apply
+to it. The toolkit provides three methods for the margins, and each result is tagged with
+the method that produced it, so that an exact range and an enclosure cannot be confused.
+
+\begin{enumerate}
+\item \emph{Conservative enclosure.} From the exact bounds on $P$ and $t_v$, the LongestPath
+  margin lies within
+  \begin{equation}
+  \label{eq:cpm-enclosure}
+  \bigl[\, \max\bigl(0,\; \underline{P} - \overline{t}_v\bigr),\;\; \overline{P} - \underline{t}_v \,\bigr] ,
+  \end{equation}
+  and correspondingly for the other modes. The enclosure is sound and costs no more than
+  the two corner runs. It is not exact, because the lower corner of $P$ and the upper
+  corner of $t_v$ are not in general attained by the same configuration of durations.
+\item \emph{Exhaustive corner enumeration.} The margin extremes are attained at corner
+  configurations (Proposition~\ref{prop:cpm-corner} below), so enumerating every corner of
+  the non-degenerate node and edge intervals and running the kernel at each gives the
+  exact margin range. The cost is $2^k$ runs for $k$ interval inputs, and the toolkit
+  refuses beyond a stated cap unless the cap is raised.
+\item \emph{Domination split.} For the LongestPath mode with crisp edge values, the exact
+  margin range is obtained from a much smaller enumeration, described in
+  Section~\ref{sec:cpm-split}.
+\end{enumerate}
+
+From the margin bounds the toolkit reports the two criticality sets of the interval PERT
+literature \cite{chanas2002complexity}. A node is \emph{necessarily critical} when the
+upper bound of its margin is zero, that is, it is critical in every configuration of the
+box. A node is \emph{possibly critical} when the lower bound of its margin is zero, that
+is, it is critical in at least one configuration. Under the conservative enclosure the
+necessarily critical set is certain and the possibly critical set is a superset that the
+exact methods tighten. Degenerate intervals, whose two endpoints coincide, are held fixed
+by every method and do not enter the enumeration.
+
+An earlier implementation of the toolkit ran the scalar kernels on an overloaded interval
+type, and it was withdrawn for two reasons. The combination step ranks overlapping
+intervals through a partial order that cannot rank them, so the wrong path can be
+selected. The margin step subtracts dependent quantities as if they were independent,
+which is the dependency problem of Chapter~\ref{ch:lit-review}, so the margins are wider
+than the true range. The present toolkit computes each interval quantity by the scheme its
+structure permits, and never by running the kernel on an interval type.
+
+\section{Exact Interval Floats by the Domination Split}
 \label{sec:cpm-split}
 
-Throughout this section the mode is LongestPath, durations $d_u$ lie in
-intervals, delays are fixed, and $f_v = P - \mathrm{through}_v \ge 0$ is the
-float of node $v$. An interval-valued delay reduces to this setting by
-subdividing its edge with a node that carries the delay as its duration. The
+Throughout this section the mode is LongestPath, the durations $d_u$ lie in intervals,
+the edge values are fixed, and $f_v = P - t_v \ge 0$ is the float of node $v$. The
 question is the exact range of $f_v$ over the box of duration configurations.
 
 \begin{proposition}[Corner sufficiency]
 \label{prop:cpm-corner}
-With all other durations fixed, $f_v$ is a monotone function of any single
-duration $d_u$. Consequently the extremes of $f_v$ over the box are attained
-at corner configurations.
+With all other durations fixed, $f_v$ is a monotone function of any single duration
+$d_u$. Consequently the extremes of $f_v$ over the box are attained at corner
+configurations.
 \end{proposition}
 
 \begin{proof}
-A path visits a node at most once, so as a function of $x = d_u$ every path
-length is either constant or affine with slope one. Hence
-$P(x) = \max(C_0,\, C_1 + x)$, where $C_1$ is the best path through $u$ and
-$C_0$ the best avoiding it, and likewise
-$\mathrm{through}_v(x) = \max(A_0,\, A_1 + x)$ over the paths through $v$.
-Each has one breakpoint with slope $0$ then $1$. If $P$'s breakpoint comes
-first their difference has slope pattern $0, +1, 0$, otherwise $0, -1, 0$,
-and in both cases $f_v$ is monotone in $x$ on the whole line. For the
-corner claim, push any coordinate to whichever endpoint does not worsen the
-objective, which monotonicity permits, and repeat per coordinate until the
-configuration is a corner.
+A path visits a node at most once, so as a function of $x = d_u$ every path length is
+either constant or affine with slope one. Hence $P(x) = \max(C_0,\, C_1 + x)$, where $C_1$
+is the best path through $u$ and $C_0$ the best avoiding it, and likewise
+$t_v(x) = \max(A_0,\, A_1 + x)$ over the paths through $v$. Each has one breakpoint with
+slope $0$ then $1$. If $P$'s breakpoint comes first their difference has slope pattern
+$0, +1, 0$, otherwise $0, -1, 0$, and in both cases $f_v$ is monotone in $x$ on the whole
+line. For the corner claim, push any coordinate to whichever endpoint does not worsen the
+objective, which monotonicity permits, and repeat per coordinate until the configuration
+is a corner.
 \end{proof}
 
 \begin{lemma}[Incomparable coordinates]
 \label{lem:cpm-incomparable}
-If no complete path contains both $u$ and $v$, then $f_v$ is nondecreasing
-in $d_u$, whatever the other durations are.
+If no complete path contains both $u$ and $v$, then $f_v$ is nondecreasing in $d_u$,
+whatever the other durations are.
 \end{lemma}
 
 \begin{proof}
-No through-$v$ path contains $u$, so $\mathrm{through}_v$ does not depend on
-$d_u$, while $P$ is nondecreasing in it.
+No path through $v$ contains $u$, so $t_v$ does not depend on $d_u$, while $P$ is
+nondecreasing in it.
 \end{proof}
 
 \begin{lemma}[Dominated coordinates]
 \label{lem:cpm-dominated}
-If every complete path through $u$ also passes $v$, and in particular if
-$u = v$, then $f_v$ is nonincreasing in $d_u$, whatever the other durations
-are.
+If every complete path through $u$ also passes through $v$, and in particular if $u = v$,
+then $f_v$ is nonincreasing in $d_u$, whatever the other durations are.
 \end{lemma}
 
 \begin{proof}
-Suppose increasing $d_u$ increases $P$. The new maximiser must contain $u$,
-hence $v$, hence it is a through-$v$ path, so $\mathrm{through}_v$ rises to
-equal $P$ and the float drops to zero. If $P$ does not increase, the float
-cannot rise because $\mathrm{through}_v$ is nondecreasing in every duration.
+Suppose increasing $d_u$ increases $P$. The new maximiser must contain $u$, hence $v$,
+hence it is a path through $v$, so $t_v$ rises to equal $P$ and the float drops to zero.
+If $P$ does not increase, the float cannot rise because $t_v$ is nondecreasing in every
+duration.
 \end{proof}
 
 The two lemmas cover every duration except those in the \emph{bypass set}
-\[
+\begin{equation}
+\label{eq:cpm-bypass}
 H_v \;=\; \{\, u : \text{some complete path contains both } u \text{ and } v,
 \text{ and some complete path contains } u \text{ but not } v \,\},
-\]
-the nodes that share a route with $v$ yet can also route around it.
-Figure~\ref{fig:cpm-bypass} shows the three classes around one node.
+\end{equation}
+the nodes that share a route with $v$ and can also route around it.
+Figure~\ref{fig:cpm-bypass} shows the three classes around one node. In the
+implementation the classes are found from the ancestor and descendant closures of the
+graph object together with two traversals: the set of nodes that can reach a sink without
+passing $v$, and the set of nodes reachable from a source without passing $v$. An ancestor
+of $v$ that cannot reach a sink without $v$ is dominated, as is a descendant that cannot be
+reached from a source without $v$; a node that is neither ancestor nor descendant is
+incomparable; the rest form $H_v$.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.5\linewidth]{fig02_bypass/fig02_bypass.pdf}
-  \caption{Duration classes relative to node $v$. Shaded nodes are dominated
-  by $v$ (every complete route through them passes $v$), the unfilled node is
-  incomparable to it, and double-bordered nodes form the bypass set $H_v$:
-  they share routes with $v$ and can also route around it.}
+  \caption{Duration classes relative to node $v$. Shaded nodes are dominated by $v$ (every
+  complete route through them passes $v$), the unfilled node is incomparable to it, and
+  double-bordered nodes form the bypass set $H_v$: they share routes with $v$ and can also
+  route around it.}
   \label{fig:cpm-bypass}
 \end{figure}
 
 \begin{theorem}[Exactness of the domination split]
 \label{thm:cpm-split}
-The maximum of $f_v$ over the box is attained at a corner with every
-incomparable duration at its upper bound, every dominated duration at its
-lower bound, and the bypass durations at some corner of $H_v$. The minimum is
-attained dually. Enumerating the $2^{|H_v|}$ bypass corners with the
-remaining durations pinned therefore yields the exact float range of $v$.
+The maximum of $f_v$ over the box is attained at a corner with every incomparable
+duration at its upper bound, every dominated duration at its lower bound, and the bypass
+durations at some corner of $H_v$. The minimum is attained dually. Enumerating the
+$2^{|H_v|}$ bypass corners with the remaining durations pinned therefore yields the exact
+float range of $v$.
 \end{theorem}
 
 \begin{proof}
-By Proposition~\ref{prop:cpm-corner} an optimum lies at a corner. The three
-classes partition the durations. At an optimal corner, moving an incomparable
-duration to its upper bound cannot decrease the maximum by
-Lemma~\ref{lem:cpm-incomparable}, and moving a dominated duration to its
-lower bound cannot decrease it by Lemma~\ref{lem:cpm-dominated}, so some
-optimal corner has the pinned pattern and lies within the enumerated set.
+By Proposition~\ref{prop:cpm-corner} an optimum lies at a corner. The three classes
+partition the durations. At an optimal corner, moving an incomparable duration to its
+upper bound cannot decrease the maximum by Lemma~\ref{lem:cpm-incomparable}, and moving a
+dominated duration to its lower bound cannot decrease it by
+Lemma~\ref{lem:cpm-dominated}, so some optimal corner has the pinned pattern and lies
+within the enumerated set.
 \end{proof}
 
-The cost is $2\sum_v 2^{|H_v|}$ crisp propagations, one maximising and one
-minimising sweep per node, against $2^k$ for exhaustive enumeration of all
-$k$ interval durations, and the exponent has
-moved from the size of the problem to the reconvergent width around each
-node. One exhaustive sweep serves every node simultaneously, so the
-implementation runs whichever of the two is cheaper and is never worse than
-exhaustive enumeration. Some instances must remain hard, because the general
-problem is NP-hard \cite{chanas2002complexity}, and the split shows exactly
-where the hardness sits: in networks whose bypass sets are large.
+Algorithm~\ref{alg:cpm-split} gives the procedure. Its cost is
+\begin{equation}
+\label{eq:cpm-split-cost}
+2 \sum_{v} 2^{|H_v|}
+\end{equation}
+crisp propagations, one maximising and one minimising sweep per node, against $2^k$ for
+exhaustive enumeration of all $k$ interval durations. The exponent has moved from the size
+of the problem to the reconvergent width around each node. One exhaustive sweep serves
+every node at once, so the implementation computes both counts before running anything
+and uses whichever is cheaper. It is therefore never worse than exhaustive enumeration,
+and it refuses when both counts exceed a stated limit. Some instances must remain hard,
+because the general problem is NP-hard \cite{chanas2002complexity}, and the split shows
+where the hardness sits, in networks whose bypass sets are large.
 
-The bypass set is a reconvergence measure, and this is where the toolkit
-touches the structural theme of Chapter~\ref{ch:diamond-module} without ever
-calling its module. Both analyses pay for routes that divide and meet again,
-the decomposition module per join through the nodes it must fix, the split
-per node through $H_v$. The two sets index reconvergence at different
-granularities, neither contains the other in general, and neither computation
-uses the other.
+\begin{algorithm}[htbp]
+\caption{Domination split for exact interval floats (LongestPath, crisp edge values)}
+\label{alg:cpm-split}
+\begin{algorithmic}[1]
+\Require graph object, interval durations $[\underline{d}_u, \overline{d}_u]$, crisp edge
+  values, run limit
+\Ensure exact float range $[\underline{f}_v, \overline{f}_v]$ for every node $v$
+\State $K \gets$ set of nodes with non-degenerate intervals; $k \gets |K|$
+\ForAll{nodes $v$}
+  \State classify each $u \in K$ as incomparable, dominated, or bypass ($u \in H_v$)
+\EndFor
+\State total $\gets 2\sum_v 2^{|H_v|}$
+\If{$2^k \le$ total} run exhaustive enumeration instead and return \EndIf
+\If{total $>$ run limit} refuse \EndIf
+\ForAll{nodes $v$}
+  \For{objective in (maximise, minimise)}
+    \State pin incomparable durations at upper (resp.\ lower) and dominated at lower (resp.\ upper)
+    \ForAll{corners of $H_v$}
+      \State run Algorithm~\ref{alg:cpm-order}; record $f_v$
+    \EndFor
+  \EndFor
+  \State $\underline{f}_v \gets$ minimum recorded; \quad $\overline{f}_v \gets$ maximum recorded
+\EndFor
+\State necessarily critical $\gets \{v : \overline{f}_v = 0\}$; \quad possibly critical $\gets \{v : \underline{f}_v = 0\}$
+\end{algorithmic}
+\end{algorithm}
+
+The bypass set is a measure of reconvergence, and this is where the toolkit meets the
+structural theme of Chapter~\ref{ch:diamond-module} without using its module. Both
+analyses pay for routes that divide and meet again, the decomposition module per join
+through the nodes it must fix, and the split per node through $H_v$. The two sets index
+reconvergence at different granularities, neither contains the other in general, and
+neither computation uses the other.
+
+\section{Validation}
+\label{sec:cpm-validation}
+
+The toolkit is checked against three independent computations.
+
+\begin{enumerate}
+\item \emph{Path oracle.} A brute-force enumeration of every complete path computes the
+  project value, the through-value and the margin of every node for every mode, and the
+  critical set, without using the kernels. On the nine networks of the validation set for
+  which full enumeration is affordable, from 32 to 306 nodes and from 128 to 404 paths,
+  the toolkit agrees with the oracle to within $3 \times 10^{-14}$ in every quantity, and
+  the critical sets match. On three networks with between $2.7 \times 10^{6}$ and
+  $5.5 \times 10^{18}$ paths the oracle cannot run, and the toolkit is checked instead
+  against invariants (no sampled path beats the project value) and, for the accumulation
+  mode, against the adjoint identity of Eq.~\eqref{eq:cpm-acc-total}.
+\item \emph{Corner enumeration.} Interval margins from the conservative enclosure are
+  checked to contain, and those from exhaustive corner enumeration to equal, the margins
+  computed by running the path oracle at every corner. The domination split is checked
+  to reproduce the exhaustive margins and both criticality sets on every network on which
+  both can run.
+\item \emph{Monte Carlo sampling.} On networks where exhaustive enumeration is out of
+  reach, fifty thousand configurations sampled uniformly from the box are checked never to
+  violate the split's bounds, and the bounds are checked to be attained.
+\end{enumerate}
+
+The validation scripts and their logs are listed in Appendix~\ref{app:full-results}.
 
 \section{Case Studies}
 \label{sec:cpm-cases}
 
-Every number in this section is produced by the toolkit and certified
-against an independent computation. The certification corpus contains nine
-networks. On the seven where full path enumeration is affordable, forward
-values, through-values, margins and critical sets of every mode agree with a
-brute-force path oracle to within $3 \times 10^{-14}$, and on the remaining
-two the results pass invariant and sampling checks. Interval results are certified
-against exhaustive corner enumeration driven by the same path oracle, and
-the domination split agrees with exhaustive enumeration everywhere both can
-run.
+Every number in this section is produced by the toolkit and certified as described in
+Section~\ref{sec:cpm-validation}. Timings are wall-clock measurements on a single core of
+the second call in a warm process, so that just-in-time compilation is excluded; the
+convention is stated in Appendix~\ref{app:full-results}.
 
-\subsection{One network, four questions}
-\label{sec:cpm-water}
+\subsection{A benchmark project network}
+\label{sec:cpm-psplib}
 
-The wastewater treatment network of 32 nodes and 66 edges shows how much
-one set of inputs can say. Its stage processing times and pipeline delays
-fix the minimum release timeline at 45 units, carried by the chain
-$3 \to 11 \to 19 \to 27$ with a second chain $6 \to 14 \to 22 \to 30$ only
-1.5 units behind (Table~\ref{tab:cpm-water-longest}). Stage 6 alone carries
-slack 1 rather than 1.5, since its edge onto stage 11 lets it feed the
-critical chain as well. Read for the opposite extreme, the
-same inputs put the fastest achievable delivery at 15 units, and not along
-one route. The twelve margin-zero stages and the eighteen tight
-dependencies between them form a system of tied routes drawing on three
-of the eight sources, sharing no stage with the critical chain, and the nearest
-alternative stage sits 1.5 units behind the tie
-(Figure~\ref{fig:cpm-chains}). The two extremal readings of one network
-differ not only in which stages they select but in the shape of what they
-select, a single thread against a redundant lattice.
+The first case study is instance j301\_1 of the PSPLIB project scheduling library
+\cite{kolisch1997psplib}. PSPLIB instances are activity-on-node networks with a dummy start
+and a dummy end, each activity carrying a published duration, and they are the standard
+benchmark set for project scheduling. The instance has 32 nodes, of which 30 are real
+activities, and 48 precedence edges, with one source, one sink, twelve forks and twelve
+joins in eleven layers. Its resource requirements are not used: the toolkit computes the
+precedence-only schedule, which the PSPLIB instance file records as the MPM-Time of the
+instance. The durations are listed in Appendix~\ref{app:network-specs}.
+
+Under LongestPath the project completes in 38 units, which matches the MPM-Time of 38
+published with the instance, along the chain
+$1 \to 3 \to 8 \to 12 \to 14 \to 17 \to 22 \to 23 \to 24 \to 30 \to 32$
+(Figure~\ref{fig:cpm-psplib}). Eleven nodes are critical, nine of them real activities,
+and three further activities (4, 10 and 16) carry a slack of one unit
+(Table~\ref{tab:cpm-psplib-longest}). Under ShortestPath the fastest complete chain takes
+18 units, through activities 2, 4, 6, 10, 25 and 30. The two readings share activity 30 and
+nothing else, so the chain that bounds the project from above and the chain that bounds it
+from below run through different parts of the network. Each of the three deterministic
+passes completes in under 0.2 milliseconds.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\linewidth]{fig04_chains/fig04_chains.pdf}
-  \caption{The water network read for both extremes. The bold
-  double-bordered chain sets the minimum release timeline of 45 units. The
-  shaded stages and dashed edges form the tied-fastest route system, every
-  path through which completes in 15 units. The two readings share no
-  stage.}
-  \label{fig:cpm-chains}
+  \includegraphics[width=0.9\linewidth]{fig03_psplib/fig03_psplib.pdf}
+  \caption{PSPLIB j301\_1. Bold nodes and edges form the LongestPath critical chain
+  (completion 38); dashed nodes and edges form the ShortestPath chain (completion 18). The
+  filled nodes are those the interval analysis of Figure~\ref{fig:cpm-floats} finds
+  necessarily critical under $\pm 20$ per cent duration uncertainty.}
+  \label{fig:cpm-psplib}
 \end{figure}
 
 \begin{table}[htbp]
 \centering
-\caption{LongestPath on the water network: completion 45 along the critical
-chain, with the second chain behind it.}
-\label{tab:cpm-water-longest}
-\small
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{lll}
-\toprule
-Node & Completion & Slack \\
-\midrule
-27 & 45.0 & 0 \\
-19 & 33.0 & 0 \\
-11 & 21.0 & 0 \\
-3 & 9.0 & 0 \\
-30 & 43.5 & 1.5 \\
-22 & 31.5 & 1.5 \\
-14 & 19.5 & 1.5 \\
-6 & 8.0 & 1.0 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Read as load rather than schedule, the same network delivers 480 units to
-its busiest outlet, and the stages that drive that figure are not the ones
-the completion times point at. The largest completions sit downstream where
-load gathers, but the leverage sits upstream at stages 3, 6 and 5, each
-reaching the outlet along seven distinct routes, so a unit added at any of
-them arrives seven times. Under a budget ten percent above the current
-total those three stages can each grow by less than seven units, while
-stage 14, on two routes, has room for 24
-(Table~\ref{tab:cpm-water-allowance}). Contribution and room order the
-stages differently, which is the information a capacity decision needs and
-which no scheduling slack could express.
-
-\begin{table}[htbp]
-\centering
-\caption{Accumulation on the water network under a budget of 528 units at
-outlet 27 (current total 480). Allowance is headroom divided by path
-multiplicity.}
-\label{tab:cpm-water-allowance}
+\caption{LongestPath on PSPLIB j301\_1: the critical chain and the three nearest
+non-critical activities.}
+\label{tab:cpm-psplib-longest}
 \small
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{llll}
 \toprule
-Node & Contribution & Multiplicity & Allowance \\
+Node & Duration & Completion & Slack \\
 \midrule
-3 & 63 & 7 & $+6.9$ \\
-6 & 56 & 7 & $+6.9$ \\
-5 & 35 & 7 & $+6.9$ \\
-1 & 30 & 5 & $+9.6$ \\
-11 & 27 & 3 & $+16$ \\
-8 & 24 & 6 & $+8$ \\
-14 & 16 & 2 & $+24$ \\
+3  & 4 & 4  & 0 \\
+8  & 9 & 13 & 0 \\
+12 & 2 & 15 & 0 \\
+14 & 3 & 18 & 0 \\
+17 & 6 & 24 & 0 \\
+22 & 7 & 31 & 0 \\
+23 & 2 & 33 & 0 \\
+24 & 3 & 36 & 0 \\
+30 & 2 & 38 & 0 \\
+4  & 6 & 6  & 1 \\
+10 & 7 & 13 & 1 \\
+16 & 10 & 23 & 1 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Uncertainty then tests how much of the deterministic story survives. With
-every one of the 32 stage durations widened to $\pm 20$ percent, exhaustive corner enumeration would
-require $2^{32}$ propagations, roughly $4.3 \times 10^{9}$. The domination
-split required $2{,}269{,}328$, a factor of $1{,}892$ fewer, with the largest
-bypass set holding 18 of the 32 durations. The answer changes how the deterministic result must be
-read. Under full uncertainty no stage is necessarily critical, and exactly
-nine of the 32 are possibly critical. The single deterministic critical
-chain dissolves into a nine-candidate set (Figure~\ref{fig:cpm-floats}),
-and 23 stages are provably incapable of becoming critical anywhere in the
-uncertainty box. A Monte
-Carlo attack on the same bounds, fifty thousand sampled configurations,
-produced no violation and reached every bound at every node.
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.82\linewidth]{fig06_floats/fig06_floats.pdf}
-  \caption{Exact float bounds on the water network with every duration at
-  plus or minus 20 percent. Black bars are the nine possibly-critical
-  stages, whose lower bounds reach zero. Grey bars are three of the 23
-  stages whose floats stay provably positive everywhere in the
-  uncertainty box.}
-  \label{fig:cpm-floats}
-\end{figure}
-
-\subsection{The most reliable route}
-\label{sec:cpm-drone}
-
-The drone medical delivery network of 782 nodes, 2,789 edges, 33 launch
-sites and 323 destinations poses a multiplicative question, which route
-delivers with the highest end-to-end success. The factors are the study's
-own component success rates, node priors between 0.75 and 0.95 and
-per-link probabilities between 0.70 and 0.95, so nothing in the scenario
-is invented. The best route in the network compounds to a success factor
-of 0.787, and it is a single direct leg from launch site 380 to
-destination 393. That brevity is structural rather than accidental. The
-strongest leg the data permits compounds its link and node factors to
-0.9025, so every leg a route adds costs at least 9.8 percent of its
-success, and no amount of component quality along a longer route can
-repay that arithmetic. Route brevity is the currency of the
-multiplicative reading, which nothing in an additive analysis of the same
-network would reveal.
+Read as cost with the same values, the accumulation mode gives a total of 362 at the end
+node. The activities with the largest contribution are not those with the largest
+durations. Activity 2, with duration 8, reaches the end node along five routes and
+contributes 40; activity 3, with duration 4, reaches it along nine routes and contributes
+36; activity 16, with duration 10, lies on only two routes and contributes 20
+(Table~\ref{tab:cpm-psplib-allowance}). Under a budget of 398.2, ten per cent above the
+current total, activity 3 can grow by 4.0 units before the budget is reached, activity 16
+by 18.1, and activity 6, which lies on a single route, by 36.2. Contribution and allowance
+order the activities differently, which is the information a cost decision needs and which
+no scheduling slack expresses.
 
 \begin{table}[htbp]
 \centering
-\caption{The five best-served destinations by single-route success. At
-the other end of the scale, 104 of the 323 destinations fall below 0.5 on
-even their best route.}
-\label{tab:cpm-drone}
+\caption{Accumulation on PSPLIB j301\_1 under a budget of 398.2 at the end node (current
+total 362). Allowance is headroom divided by path multiplicity.}
+\label{tab:cpm-psplib-allowance}
 \small
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{ll}
+\begin{tabular}{lllll}
 \toprule
-Destination & Best-route success \\
+Node & Duration & Multiplicity & Contribution & Allowance \\
 \midrule
-393 & 0.787 \\
-325 & 0.771 \\
-209 & 0.747 \\
-248 & 0.742 \\
-125 & 0.734 \\
+2  & 8  & 5 & 40 & 7.2 \\
+3  & 4  & 9 & 36 & 4.0 \\
+4  & 6  & 6 & 36 & 6.0 \\
+8  & 9  & 4 & 36 & 9.1 \\
+11 & 9  & 3 & 27 & 12.1 \\
+13 & 6  & 4 & 24 & 9.1 \\
+10 & 7  & 3 & 21 & 12.1 \\
+16 & 10 & 2 & 20 & 18.1 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Read per destination rather than globally, the forward values become a
-service-level map, and the map is unequal (Figure~\ref{fig:cpm-service}). The five best-served
-destinations sit within seven percent of the optimum
-(Table~\ref{tab:cpm-drone}), while the weakest destination in the network
-can be reached with success 0.108 by its best route, and for 104 of the
-323 destinations, roughly one in three, even the best single route
-succeeds less than half the time. No routing decision alone can serve a
-third of this network reliably, and where that matters the remedy is
-structural, stronger components on the thin corridors or genuinely
-redundant routes. Judging that redundancy is the neighbouring question,
-because a destination poorly served by its best single route may still be
-reliably reached when every route counts at once, which is the
-reachability reading of Chapter~\ref{ch:probability-toolkit}. The two
-readings separate route choice from system adequacy, and a delivery
-planner for this network needs both. Two thousand randomly sampled routes
-never exceeded the reported optimum and one reached it exactly, and the
-optimum itself is the product of three published input values, checkable
-by hand.
+With every one of the 30 activity durations widened to $\pm 20$ per cent and the two
+dummies held at zero, the project value lies in $[30.4, 45.6]$. Exhaustive corner
+enumeration of the floats would require $2^{30}$ propagations, about $1.1 \times 10^{9}$.
+The domination split required 50,524, a factor of about 21,000 fewer, with the largest
+bypass set holding 13 of the 30 durations and the mean bypass set 6.8. It completed in
+4.2 seconds, about 82 microseconds per corner, each corner being one run of
+Algorithm~\ref{alg:cpm-order}. The exact result
+changes how the deterministic result must be read. Five nodes are necessarily critical,
+the two dummies and activities 23, 24 and 30, so the final three activities of the
+deterministic chain are critical in every configuration of the box while the first six are
+not. Nineteen nodes are possibly critical, and thirteen activities cannot become critical
+anywhere in the box (Figure~\ref{fig:cpm-floats}).
+
+The conservative enclosure of Section~\ref{sec:cpm-interval}, obtained from the two corner
+runs alone, certifies no node as necessarily critical and reports 26 nodes as possibly
+critical. The exact split therefore recovers three necessarily critical activities that
+the enclosure cannot see and removes seven activities from the possibly critical set. A
+schedule risk assessment that ran only the deterministic pass would name eleven nodes;
+one that ran only the enclosure would name 26; the exact interval analysis names 19, and
+says which three of them are certain. \PH{Monte Carlo sampling of fifty thousand configurations within the box produced no
+violation of the bounds and reached every bound at every node. (MC run still to do.)}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.78\linewidth]{fig05_service/fig05_service.pdf}
-  \caption{Best-route success across the 323 drone destinations. Left of
-  the dashed line at 0.5 lie the 104 destinations that no single route
-  serves reliably.}
-  \label{fig:cpm-service}
+  \includegraphics[width=0.75\linewidth]{fig04_floats/fig04_floats.pdf}
+  \caption{Exact float bounds on PSPLIB j301\_1 with every duration at plus or minus
+  20 per cent. Black bars are the nineteen possibly critical nodes, whose lower bounds
+  reach zero; three real activities and the two dummies have upper bound zero as well and
+  are necessarily critical. Grey bars are the thirteen activities whose floats stay
+  positive everywhere in the box. The five necessarily critical nodes are drawn as points
+  at zero, since both bounds of their float are zero.}
+  \label{fig:cpm-floats}
 \end{figure}
 
-\subsection{The boundary}
+% ---------------------------------------------------------------------------------------
+% Former first case study: the bnlearn "water" Bayesian network (Jensen et al. 1989),
+% 32 nodes, 66 edges, read with assigned durations. Retained here in case the interval
+% result (2^32 vs 2,269,328 runs, max |H_v| = 18) is wanted as a second data point in
+% Appendix B. Not a schedule network; do not present as one.
+%
+% LongestPath: P = 45 along 3 -> 11 -> 19 -> 27; second chain 6 -> 14 -> 22 -> 30 at 1.5
+% behind; stage 6 slack 1.0. ShortestPath: P = 15 with twelve margin-zero stages and
+% eighteen tight dependencies from three of the eight sources. Accumulation: total 480 at
+% outlet 27; stages 3, 6, 5 on seven routes each, allowance +6.9 under budget 528; stage 14
+% on two routes, allowance +24. Interval: 2^32 exhaustive vs 2,269,328 split runs (factor
+% 1,892), max |H_v| = 18 of 32, mean 10.44; no stage necessarily critical, nine possibly
+% critical, 23 provably never critical; MC 50,000 samples, no violation, all bounds
+% attained; split 307 s at 135 us per run.
+% ---------------------------------------------------------------------------------------
+
+\subsection{The boundary of the split}
 \label{sec:cpm-boundary}
 
-Dense mesh reconvergence is where the split's advantage disappears. On a
-five-by-five grid DAG with all 25 durations interval-valued, the bypass sets
-hold up to 23 of the 25 durations and the split would need more propagations
-than one shared exhaustive sweep, so the never-worse rule abandons the split
-there and the instance stands at the exhaustive boundary itself. The hardness
-results guarantee that some regime behaves this way, and it is the same
-regime in which the sets of nodes the probability toolkit must fix and
-enumerate explode. Mapping the boundary is part of the result rather than a
-qualification of it. Timings are reported only as measured. The water
-analyses run in 53 microseconds per pass for the additive modes and 7 for
-accumulation, the drone network in 1.8 milliseconds, and the exhaustive
-comparisons are quantified by run counts rather than by extrapolated
-wall-time.
+The advantage of the split disappears under dense mesh reconvergence. On a five-by-five
+grid DAG with all 25 durations interval-valued, the bypass sets hold up to 23 of the 25
+durations, so the split would need $3.9 \times 10^{7}$ propagations against
+$3.4 \times 10^{7}$ for one shared exhaustive sweep. The never-worse rule therefore
+selects the exhaustive sweep, and the instance stands at the exhaustive boundary. The
+hardness results guarantee that some regime behaves this way, and it is the same regime
+in which the conditioning sets of the probability toolkit grow.
 
-\section{Genericity}
-\label{sec:cpm-genericity}
+\section{Discussion}
+\label{sec:cpm-discussion}
 
-The boundary of the toolkit is drawn by the algebra rather than by the
-implementation. A new quantity joins by exhibiting its operator pair, and
-the pair earns its backward pass the way the shipped ones did, by carrying
-a residual or by being linear. The obligations are laws, verified on
-sampled values before a mode is accepted, so an extension can never
-silently acquire a backward pass its algebra does not support. The kernels
-are generic over the value they propagate, and interval support is a scheme
-wrapped around crisp runs rather than a property of a value type, which is
-what keeps its exactness claims provable.
+The toolkit has the following limits, each a consequence of what has been proved.
 
-The nearest extensions follow the existing arguments. The shortest-path
-dual of the domination split mirrors Section~\ref{sec:cpm-split} and awaits
-only the line-by-line derivation. Interval-valued delays reduce to interval
-durations by subdividing their edges. Further out, neighbouring nodes have
-overlapping bypass sets and therefore overlapping corner evaluations, an
-economy of the kind the hash-consed store of Chapter~\ref{ch:diamond-module}
-already practises for diamonds.
+The domination split is proved and implemented for the LongestPath mode only. The
+ShortestPath dual mirrors Section~\ref{sec:cpm-split} but has not been derived in full,
+and the toolkit refuses the split for any other mode. For those modes the exact interval
+margins are available only by exhaustive corner enumeration.
+
+The split requires crisp edge values. An interval-valued edge reduces to an interval
+duration by subdividing the edge with a node that carries the value, so the reduction is
+known, but the toolkit does not yet perform it and refuses interval edge values on the
+split path.
+
+Probability-box durations are not supported. The forward quantities would propagate by the
+p-box arithmetic of Chapter~\ref{ch:lit-review}, but the margins would meet the same
+dependence problem as the intervals with no corner argument to rescue them, and no method
+for them is claimed.
+
+The cost of the split grows with the bypass sets, and on dense meshes the sets approach the
+whole network. The never-worse rule bounds the damage but does not remove it.
+
+The boundary of the toolkit is set by the algebra. A new
+quantity is added by giving its operator pair, and the pair obtains a backward pass in the
+same way as the four provided modes, by carrying a residual or by being linear. Whether a
+proposed pair has this property is a mathematical question that the implementation does
+not check, and the burden of showing it lies with whoever adds the mode. Two extensions
+follow the existing arguments: neighbouring nodes have overlapping bypass sets and
+therefore overlapping corner evaluations, which could be shared in the way the hash-consed
+store of Chapter~\ref{ch:diamond-module} shares diamonds, and the edge subdivision above
+would admit interval edge values. These are listed in Chapter~\ref{ch:conclusions}.
 
 \section{Summary}
 \label{sec:cpm-summary}
 
-The toolkit reads one graph object in two directions. Forwards it computes
-the extremal value of any quantity that accumulates along dependency paths.
-Backwards it computes the room each component has before that value moves,
-wherever the quantity's algebra defines such a reading, which is the
-condition every shipped mode satisfies and every future mode must. The
-classical critical path method is the default instance rather than the
-design, and the sum family reports sensitivities and allowances because
-that is what its mathematics defines. Under interval uncertainty the
-forward quantities stay exact for the price of two crisp runs. The floats
-are exact through the domination split, whose correctness rests on three
-short proofs and whose cost grows with the reconvergent width around each
-node rather than with the number of uncertain inputs. That width stayed
-small enough on a real network to solve a 32-duration instance beyond the
-reach of exhaustive enumeration, and it does not stay small on dense
-meshes. Every number reported in this chapter is certified
-against an independent oracle, an exhaustive enumeration or a sampling
-attack.
+In this chapter the Critical Path Toolkit has been presented. The classical critical path
+method has been generalised to a family of analysis modes, each an operator pair with the
+backward semantics its algebra supports, and four modes have been provided: LongestPath,
+ShortestPath and MaxScaling on one order-based kernel, and Accumulation on a linear kernel
+whose backward object is the adjoint. Under interval durations the forward quantities have
+been computed exactly from two crisp runs, and the floats exactly by the domination split,
+whose correctness rests on three short proofs and whose cost grows with the reconvergent
+width around each node instead of with the number of uncertain inputs. The toolkit has been
+validated against a path oracle, exhaustive corner enumeration and Monte Carlo sampling,
+and applied to a benchmark project network. The MaxScaling mode is demonstrated on the
+integrated case study of Chapter~\ref{ch:integrated-case-study}. On a dense mesh the split reaches its boundary and the toolkit falls back to exhaustive
+enumeration, as the hardness of the general problem requires.
 
 \ifdefined\maindoc
 % do nothing

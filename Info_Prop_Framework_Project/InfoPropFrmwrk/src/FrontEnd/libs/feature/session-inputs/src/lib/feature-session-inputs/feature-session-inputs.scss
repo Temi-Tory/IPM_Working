@@ -1,0 +1,118 @@
+:host {
+  display: block;
+  max-width: 1000px;
+}
+
+ipf-card {
+  display: block;
+  margin-bottom: var(--spacingVerticalL, 16px);
+}
+
+h2 {
+  margin: 0 0 var(--spacingVerticalM, 12px);
+  font-size: var(--fontSizeBase400, 16px);
+  font-weight: var(--fontWeightSemibold, 600);
+  color: var(--colorNeutralForeground1);
+}
+
+h3 {
+  margin: var(--spacingVerticalL, 16px) 0 var(--spacingVerticalS, 8px);
+  font-size: var(--fontSizeBase300, 14px);
+  font-weight: var(--fontWeightSemibold, 600);
+  color: var(--colorNeutralForeground1);
+}
+
+.range {
+  font-size: var(--fontSizeBase100, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--fontWeightRegular, 400);
+  color: var(--colorNeutralForeground3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lbl {
+  font-size: var(--fontSizeBase200, 12px);
+  font-weight: var(--fontWeightSemibold, 600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colorNeutralForeground2);
+}
+
+.ctl {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium, 4px);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  max-width: 40ch;
+}
+
+.hint {
+  margin: 0;
+  max-width: 66ch;
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorNeutralForeground3);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fontSizeBase300, 14px);
+  color: var(--colorNeutralForeground1);
+  cursor: pointer;
+  margin-bottom: var(--spacingVerticalM, 12px);
+}
+
+.opt {
+  font-size: var(--fontSizeBase100, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--colorNeutralForeground3);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalM, 12px);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: var(--fontSizeBase300, 14px);
+  font-weight: var(--fontWeightSemibold, 600);
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--borderRadiusMedium, 4px);
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--colorBrandBackground);
+  color: var(--colorNeutralForegroundOnBrand, #fff);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--colorBrandBackgroundHover);
+}
+
+.btn:disabled {
+  background: var(--colorNeutralBackgroundDisabled);
+  color: var(--colorNeutralForegroundDisabled);
+  cursor: not-allowed;
+}
+
+.missing {
+  font-size: var(--fontSizeBase200, 12px);
+  color: var(--colorNeutralForeground3);
+}

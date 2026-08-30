@@ -94,17 +94,21 @@ function error_response(req::HTTP.Request, err, message::AbstractString; status:
     return HTTP.Response(status, with_request_id_header(headers, req_id), JSON.json(body))
 end
 
-function normalize_path_separators(path::String)
-    isempty(path) && return path
+function normalize_path_separators(path::AbstractString)
+    isempty(path) && return String(path)
     normalized = replace(path, "\\" => "/")
     normalized = replace(normalized, r"/+" => "/")
     if startswith(normalized, "/") && !startswith(normalized, "//")
         normalized = normalized[2:end]
     end
-    return normalized
+    return String(normalized)
 end
 
-function safe_joinpath(base_path::String, relative_path::String)
+# AbstractString, not String: split(...) returns SubString — a real path
+# segment pulled from a request target (e.g. path_parts[3] in
+# handle_file_request) is a SubString{String}, not a String, and the old
+# strict ::String signature threw a MethodError on every such call.
+function safe_joinpath(base_path::AbstractString, relative_path::AbstractString)
     normalized_base = normalize_path_separators(base_path)
     normalized_relative = normalize_path_separators(relative_path)
     return replace(joinpath(normalized_base, normalized_relative), "\\" => "/")

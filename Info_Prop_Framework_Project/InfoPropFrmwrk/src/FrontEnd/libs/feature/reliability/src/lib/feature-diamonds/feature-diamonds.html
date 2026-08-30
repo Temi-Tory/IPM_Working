@@ -1,0 +1,131 @@
+<ipf-page-header
+  title="Diamonds"
+  [description]="
+    'Reconvergence structure on ' +
+    networkName() +
+    ' — decomposition alone, no belief propagation required. The same pre-processing step Reliability runs before it computes belief, browsable on its own across scenarios.'
+  "
+/>
+
+@if (scenarios().length === 0) {
+  <ipf-empty-state
+    icon="diamond"
+    title="No reliability inputs on this network"
+    message="Diamond decomposition needs a node-priors and a link-probabilities file in one scenario folder — the same inputs Reliability needs. Upload a network that includes them, or add them by hand."
+  >
+    <a slot="actions" routerLink="/upload" class="link-btn">Go to upload</a>
+    <a slot="actions" routerLink="/inputs/reliability" class="link-btn secondary">
+      Add inputs manually
+    </a>
+  </ipf-empty-state>
+} @else {
+  @if (availableForms().length > 1) {
+    <div class="filter-row" role="group" aria-label="Filter scenarios by value form">
+      <span class="filter-label">Value form</span>
+      <button
+        type="button"
+        class="pill"
+        [class.active]="formFilter() === 'all'"
+        (click)="setFormFilter('all')"
+      >
+        All
+      </button>
+      @for (vt of availableForms(); track vt) {
+        <button
+          type="button"
+          class="pill"
+          [class.active]="formFilter() === vt"
+          (click)="setFormFilter(vt)"
+        >
+          <ipf-icon [name]="valueTypeIcon(vt)" [size]="13" />
+          {{ valueTypeLabel(vt) }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="scenario-grid" role="group" aria-label="Scenario">
+    @for (s of visibleScenarios(); track s.name) {
+      <button
+        type="button"
+        class="scenario-card"
+        [class.active]="selectedScenario()?.name === s.name"
+        (click)="selectScenario(s.name)"
+      >
+        <span class="sc-name">{{ s.name }}</span>
+        <span class="sc-badge" [class]="'form-' + s.hintValueType">
+          <ipf-icon [name]="valueTypeIcon(s.hintValueType)" [size]="12" />
+          {{ valueTypeLabel(s.hintValueType) }}
+        </span>
+        @if (hasRun(s.name)) {
+          <ipf-icon name="checkmark" [size]="12" class="sc-ran" label="diamonds identified" />
+        }
+      </button>
+    } @empty {
+      <p class="no-match">No scenario matches this value form.</p>
+    }
+  </div>
+
+  @if (error(); as e) {
+    <ipf-error-banner [message]="e" (dismiss)="error.set(null)" />
+  }
+
+  <ipf-card>
+    <div class="run-row">
+      <p class="run-hint">
+        @if (fromFullRun()) {
+          Showing the diamond structure from a full reliability run already
+          recorded for <strong>{{ selectedScenario()?.name }}</strong>.
+        } @else if (activeResult()) {
+          Decomposition only — no belief was computed for this identification.
+        } @else {
+          No decomposition recorded yet for <strong>{{ selectedScenario()?.name }}</strong>.
+        }
+      </p>
+      <button
+        type="button"
+        class="btn primary"
+        [disabled]="identifying() || !selectedScenario()"
+        (click)="identifyDiamonds()"
+      >
+        <ipf-icon name="diamond" [size]="16" />
+        {{ activeResult() ? 'Re-identify diamonds' : 'Identify diamonds' }}
+      </button>
+    </div>
+  </ipf-card>
+
+  @if (identifying()) {
+    <ipf-loading-state label="Decomposing the network into diamonds…" />
+  } @else if (diamondAnalysis(); as diamonds) {
+    <ipf-diamond-structure [analysis]="diamonds" (inspect)="onInspect($event)" />
+  } @else {
+    <ipf-empty-state
+      icon="diamond"
+      title="No diamond structure yet"
+      [message]="
+        'Scenario ' +
+        (selectedScenario()?.name ?? '') +
+        ' — identify diamonds, or run the full analysis from Reliability, to see reconvergence structure here.'
+      "
+    />
+  }
+}
+
+@if (inspecting(); as target) {
+  <ipf-diamond-detail
+    [diamond]="target"
+    [valueType]="activeValueType()"
+    [subDiamonds]="inspectingSubDiamonds()"
+    [canGoBack]="canGoBackInDetail()"
+    [isolatedResult]="isolatedResult()"
+    [isolatedBusy]="isolatedBusy()"
+    [isolatedError]="isolatedError()"
+    [promoting]="promoting()"
+    [promoteError]="promoteError()"
+    (closed)="closeDetail()"
+    (analyseIsolated)="onAnalyseIsolated($event)"
+    (promote)="onPromote($event)"
+    (drillInto)="onDrillInto($event)"
+    (drillBack)="onDrillBack()"
+  />
+}
