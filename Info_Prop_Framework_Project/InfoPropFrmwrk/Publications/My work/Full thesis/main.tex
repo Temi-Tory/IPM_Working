@@ -43,8 +43,6 @@
 \usepackage{makecell}
 \usepackage[toc,page]{appendix}
 
-\usepackage{graphicx}
-
 % One central list (\graphicspath replaces, it does not append). Each chapter references its
 % figures as fig0N_name/fig0N_name.pdf; the subfolder names are unique across chapters.
 \graphicspath{%
@@ -86,6 +84,7 @@
 \fancyhead[RO]{\rightmark}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
+\setlength{\headheight}{15pt}
 
 % Bibliography resource
 \addbibresource{references.bib}
@@ -125,9 +124,9 @@
 % METADATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
+\newcommand{\thesistitle}{Information Propagation Methods for Reliability, Reachability and Flow Analysis in Directed Acyclic Process Networks}
 
-\newcommand{\authorname}{[Temitope Ohiani]}
+\newcommand{\authorname}{Temitope Ohiani}
 
 \newcommand{\degree}{Doctor of Philosophy}
 
@@ -137,22 +136,22 @@
 
 \newcommand{\faculty}{Faculty of Engineering}
 
-\newcommand{\submissiondate}{[Month Year]}
+\newcommand{\submissiondate}{August 2026}
 
-\newcommand{\supervisor}{[Edoardo Patelli]}
+\newcommand{\supervisor}{Edoardo Patelli}
 
-\newcommand{\cosupervisor}{[Caroline Pyke]}
+\newcommand{\cosupervisor}{Caroline Pyke}
 
-% The integrated case study network is not yet chosen. \CaseStudyNetwork is used wherever the
-% network is named and is deliberately left UNDEFINED here, so the build fails with
-% "Undefined control sequence \CaseStudyNetwork" until the line below is uncommented.
-% \newcommand{\CaseStudyNetwork}{Net3}
+% The integrated case study network. Defined here for the full-thesis build; each chapter
+% carries a standalone-only fallback for \CaseStudyNetwork inside its \ifdefined\maindoc guard.
+\newcommand{\CaseStudyNetwork}{Net3}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % DOCUMENT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \def\maindoc{}
 \begin{document}
+\pagenumbering{roman}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TITLE PAGE
@@ -234,6 +233,46 @@ Date: \rule{5cm}{0.4pt}
 
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
+Many civil infrastructure systems are goal-oriented process systems: a resource enters at
+one end, passes through a sequence of connected stages, and is delivered at the other. Where the direction of flow is fixed and there is no feedback in normal operation, such a
+system can be modelled as a directed acyclic graph. Three of the questions an engineer asks
+of it, with what probability supply reaches a point, how much the system can deliver, and
+when a dependent sequence completes, each have a method of their own. The methods were developed
+separately, each is applied to its own model of the system, and each consumes a single
+value for every input, although the failure probabilities, capacities and durations of real
+systems are rarely known that well.
+
+This thesis develops the Information Propagation Framework (IPF), in which one directed
+acyclic graph model of a system supports reliability, capacity and schedule analysis, the
+uncertain inputs are propagated in the form they are stated in wherever the mathematics of
+the analysis permits it, and the analyses are provided as a Julia package together with a
+no-code interface that runs entirely on the user's machine. The framework rests on a graph
+object that carries the topology, a layered processing order and ancestry closures, and on
+a decomposition module that identifies every reconvergent subgraph of the network once.
+
+Three toolkits are built on that object. The Probability Propagation Toolkit computes the
+exact probability that each node operates and is reached from a source, by conditioning on
+the reconvergent structure; applied to interval inputs it returns the exact range, and to
+probability-box inputs it returns sound bounds on the distribution of every belief. Its
+exactness is validated against a decision-diagram oracle on a corpus of 129 graphs and on
+named and adversarial families, and it reproduces the published exact values of two
+benchmark networks. The Capacity Flow Toolkit answers six questions about deliverable
+throughput, from the binding cut to the most damaging failures and the thresholds at which
+service degrades, exact for point-valued capacities and validated against an external flow
+library and brute-force enumeration on twelve networks and on generated instances of a
+hundred thousand edges. The Critical Path Toolkit generalises the critical path method to a family of operator
+pairs and computes exact interval floats by a domination split that reduces the
+enumeration to the durations that can bypass each node. It is validated against a path
+oracle and exhaustive enumeration, and applied to a published project-scheduling
+benchmark. The
+framework is registered in the Julia General registry, and its interface is applied end to
+end to \CaseStudyNetwork, a real water distribution network, in the closing case study.
+
+The thesis shows that a single network model can serve three analyses without loss to any
+of them, that exact reliability with interval and probability-box inputs is practical on
+networks of moderate reconvergence, that the cost of exactness is set by the same structural
+width that governs the established exact methods, and that these analyses can be delivered
+to an engineer who does not program without the system model leaving the engineer's machine.
 
 
 
@@ -243,14 +282,46 @@ Date: \rule{5cm}{0.4pt}
 
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
+% Paste into main.tex under \chapter*{Acknowledgements} and its \addcontentsline line,
+% in the same place the existing \chapter*{Acknowledgements} heading already sits.
 
-[Your acknowledgements text here. Typically includes thanks to:
-- Supervisors
-- Funding bodies (EPSRC, industrial sponsors, etc.)
-- Industry collaborators at Sellafield/NDA
-- Research group colleagues
-- Family and friends
-- Technical support staff]
+
+This work was supported by the Nuclear Decommissioning Authority (NDA) in conjunction
+with the National Nuclear Laboratory (NNL) through the NDA Bursary Scheme (project number
+NNL/UA/118).
+
+Firstly, thanks to both of my supervisors, Edoardo Patelli and Caroline Pyke, for their moral
+support and encouragement throughout this project. Edoardo, thank you especially for
+taking a chance on me: for looking past a background in robotics and software and seeing
+the value I could bring to this work, and for nurturing that. Thank you for your
+encouragement through the many bouts of imposter syndrome, and for your confidence in my
+research, especially through the middle years of this PhD when I needed it most.
+
+Elizabeth De Braal, my mentor, gave so many last-minute meetings and so many encouraging
+words that I owe her a particular thank you.
+
+Ander Gray's work on ProbabilityBoundsAnalysis.jl, and his help with the probability-box
+propagation in this thesis, made a real difference to this work, and I am grateful to him
+for both.
+
+My research group carried me through more debugging investigations than I can count, with
+encouraging words, a ready ear, and suggestions and fixes offered freely in our group
+meetings.
+
+To my friends: thank you for your support and understanding as I worked through this
+journey, for your accommodation of it, and for the words of encouragement and the
+check-ins along the way.
+
+To my family: my mum, for always encouraging a love of learning and for being so
+wonderfully supportive of me pursuing this degree; my sister, for being the proudest
+sister I could have asked for on this journey; and the rest of my family, for your
+support throughout.
+
+Finally, to my fiancé Kameron: I would never have considered moving to Scotland, let alone
+undertaking this PhD, were it not for you. Thank you for being my partner in everything,
+through the many sleepless and stressful nights, for the celebrations and the gifts to
+cheer me up along the way, and for being willing to put life plans on hold so that I
+could have the time I needed to finish this work.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -272,18 +343,39 @@ Date: \rule{5cm}{0.4pt}
 
 \section*{Abbreviations}
 \begin{tabular}{ll}
-    IPF     & Information Propagation Framework \\
-    PPA     & Probability Propagation Algorithm \\
-    DAG     & Directed Acyclic Graph \\
+    API     & Application Programming Interface \\
     BDD     & Binary Decision Diagram \\
-    ROBDD   & Reduced Ordered Binary Decision Diagram \\
-    BFS     & Breadth First Search \\
+    BFS     & Breadth-First Search \\
     CPM     & Critical Path Method \\
-    PERT    & Program Evaluation and Review Technique \\
+    DAG     & Directed Acyclic Graph \\
+    DFS     & Depth-First Search \\
+    DIMACS  & DIMACS implementation challenge (maximum-flow benchmark series) \\
+    DOI     & Digital Object Identifier \\
+    EPANET  & Water distribution system modelling software (US EPA) \\
+    GIS     & Geographic Information System \\
+    HTTP    & Hypertext Transfer Protocol \\
+    IPF     & Information Propagation Framework \\
+    JSON    & JavaScript Object Notation \\
     MC      & Monte Carlo \\
+    MPM     & Metra Potential Method \\
     NDA     & Nuclear Decommissioning Authority \\
+    NP      & Nondeterministic Polynomial time (as in NP-hard, NP-complete) \\
+    OpenAPI & Machine-readable REST interface description format \\
+    PERT    & Program Evaluation and Review Technique \\
     p-box   & Probability Box \\
+    PPA     & Probability Propagation Algorithm \\
+    PSPLIB  & Project Scheduling Problem Library \\
+    RTS     & Reliability Test System (IEEE) \\
     SPOF    & Single Point of Failure \\
+    WNTR    & Water Network Tool for Resilience \\
+\end{tabular}
+
+\vspace{0.5cm}
+
+\section*{Units}
+\begin{tabular}{ll}
+    MW      & megawatt \\
+    MVA     & megavolt-ampere \\
 \end{tabular}
 
 
@@ -296,6 +388,8 @@ Date: \rule{5cm}{0.4pt}
 % Fast single-chapter builds: uncomment \includeonly (numbering and cross-refs are kept).
 % \includeonly{Chapters/DiamondModule/Diamond_Decomposition_Chapter}
 
+\clearpage
+\pagenumbering{arabic}
 \chapter{Introduction}
 \label{ch:main-intro}
 \include{Chapters/Introduction/Introduction_Chapter}

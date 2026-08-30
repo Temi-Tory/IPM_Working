@@ -88,7 +88,7 @@ keeps more of the network's real loop structure, and the deeper nesting follows 
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig01_network.png}
+  \includegraphics[width=\linewidth]{fig01_network.png}
   \caption{The network page after upload: 97 nodes, 119 edges, 3 sources, 18 sinks, 35 forks,
   23 joins and 28 layers, with the four scenario folders and the analyses each supports.}
   \label{fig:e2e-network}
@@ -166,7 +166,7 @@ after its first computation.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig02_belief_baseline.png}
+  \includegraphics[width=\linewidth]{fig02_belief_baseline.png}
   \caption{Reliability, deterministic scenario, filtered to the eighteen sinks: the belief
   at each, with the summary tiles above. Conditioning width 12; minimum belief 0.806 at
   node 76.}
@@ -188,7 +188,7 @@ a real one.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig03_belief_interval.png}
+  \includegraphics[width=\linewidth]{fig03_belief_interval.png}
   \caption{Reliability, interval scenario, the same eighteen sinks: each belief as a range.
   Mean band 0.363, maximum band 0.636 at node 76.}
   \label{fig:e2e-belief-interval}
@@ -204,7 +204,7 @@ reconvergence is anchored on the point where the two supplies first meet.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig04_diamonds.png}
+  \includegraphics[width=\linewidth]{fig04_diamonds.png}
   \caption{The Diamonds tab: 21 maximal diamonds, 307 unique, width 12. Each entry gives
   the conditioning set, size and local sources, and the number of nested sub-diamonds.}
   \label{fig:e2e-diamonds}
@@ -212,7 +212,7 @@ reconvergence is anchored on the point where the two supplies first meet.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.5\linewidth]{figures/fig05_diamond_77.png}
+  \includegraphics[width=0.5\linewidth]{fig05_diamond_77.png}
   \caption{The detail view of the diamond at join 77: 46 nodes, 56 edges, conditioning
   set $\{95\}$, eleven sub-diamonds, and the controls to run it in isolation or promote it.}
   \label{fig:e2e-diamond77}
@@ -233,7 +233,7 @@ node is a single point of failure.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig06_flow_baseline.png}
+  \includegraphics[width=\linewidth]{fig06_flow_baseline.png}
   \caption{Flow summary, baseline: throughput 1,837.9 litres per second, unique minimum
   cut of four edges, no single point of failure, and the allocation per sink.}
   \label{fig:e2e-flow}
@@ -241,7 +241,7 @@ node is a single point of failure.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig08_flow_bottlenecks.png}
+  \includegraphics[width=\linewidth]{fig08_flow_bottlenecks.png}
   \caption{Flow bottlenecks, baseline: the four edges of the minimum cut with their flows,
   the lattice's empty free zone, and the per-edge redundancy scores.}
   \label{fig:e2e-bottlenecks}
@@ -261,7 +261,7 @@ binds before transmission.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig07_flow_sensitivity.png}
+  \includegraphics[width=\linewidth]{fig07_flow_sensitivity.png}
   \caption{Flow sensitivity and failure impact, baseline. The marginal range of edge 95 to
   96 is unbounded. The $k$-edge table gives the combined loss of each pair of cut edges;
   the degradation table gives the capacity each edge can lose before a target of 1,654
@@ -271,7 +271,7 @@ binds before transmission.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig09_flow_degraded.png}
+  \includegraphics[width=\linewidth]{fig09_flow_degraded.png}
   \caption{Flow summary, degraded scenario: 954.6 litres per second, a 48 per cent drop,
   with the same four-edge cut and five saturated edges.}
   \label{fig:e2e-degraded}
@@ -295,7 +295,7 @@ returns to this.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig10_schedule_baseline.png}
+  \includegraphics[width=\linewidth]{fig10_schedule_baseline.png}
   \caption{Schedule, baseline, LongestPath: project value 1,773.3 hours, 28 critical and 27
   near-critical activities, with the critical chain and the per-activity schedule
   quantities.}
@@ -304,7 +304,7 @@ returns to this.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig11_schedule_interval.png}
+  \includegraphics[width=\linewidth]{fig11_schedule_interval.png}
   \caption{Schedule, interval scenario: project value $[1{,}418.7, 2{,}128.0]$ hours. The
   method tag reads conservative enclosure and the banner states why the exact split was
   declined; 0 activities necessarily critical, 61 possibly critical.}
@@ -324,7 +324,7 @@ by side, with the interval row carrying its two criticality counts in separate c
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig12_schedule_maxscaling.png}
+  \includegraphics[width=\linewidth]{fig12_schedule_maxscaling.png}
   \caption{Schedule, MaxScaling mode with the reliability probabilities as factors, showing
   the table rows around node 76: the best route in the network compounds to 0.9928 and the
   weakest best route reaches node 76 at 0.7515.}
@@ -333,7 +333,7 @@ by side, with the interval row carrying its two criticality counts in separate c
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig13_schedule_compare.png}
+  \includegraphics[width=\linewidth]{fig13_schedule_compare.png}
   \caption{The schedule Compare tab across the four scenarios, with the baseline selected
   for differences. The interval row reports necessarily and possibly critical counts
   separately.}
@@ -356,7 +356,7 @@ nodes, and it too can be drawn.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig14_profile_overlay.png}
+  \includegraphics[width=\linewidth]{fig14_profile_overlay.png}
   \caption{The profile page: the edges of the minimum cut (baseline flow) overlaid with the
   critical path (baseline schedule) on the network drawn by layer. Zero nodes in both.}
   \label{fig:e2e-profile}
