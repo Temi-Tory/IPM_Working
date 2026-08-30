@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  30 AUG 2026 02:07
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  30 AUG 2026 02:42
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -664,17 +664,17 @@ pdfTeX warning: pdflatex (file ./figures//fig01_framework_overview/fig01_framewo
 <figures//fig01_framework_overview/fig01_framework_overview.pdf, id=45, 437.635pt x 503.8825pt>
 File: figures//fig01_framework_overview/fig01_framework_overview.pdf Graphic file (type pdf)
 <use figures//fig01_framework_overview/fig01_framework_overview.pdf>
-Package pdftex.def Info: figures//fig01_framework_overview/fig01_framework_overview.pdf  used on input line 118.
+Package pdftex.def Info: figures//fig01_framework_overview/fig01_framework_overview.pdf  used on input line 117.
 (pdftex.def)             Requested size: 271.7835pt x 312.92674pt.
-LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 132.
+LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 131.
 (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/base\t1cmtt.fd
 File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 ) [2] [3 <./figures//fig01_framework_overview/fig01_framework_overview.pdf>] [4] [5] [6] [7]
-LaTeX Font Info:    Trying to load font information for U+msa on input line 303.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 302.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 303.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 302.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [8
@@ -686,7 +686,7 @@ Package logreq Info: Writing requests to 'Introduction_Chapter.run.xml'.
 \openout1 = `Introduction_Chapter.run.xml'.
 
  )
-(\end occurred when \ifdefined on line 300 was incomplete) 
+(\end occurred when \ifdefined on line 299 was incomplete) 
 Here is how much of TeX's memory you used:
  19294 strings out of 478547
  341010 string characters out of 2841835
@@ -696,7 +696,7 @@ Here is how much of TeX's memory you used:
  1141 hyphenation exceptions out of 8191
  60i,6n,68p,896b,2380s stack positions out of 10000i,1000n,20000p,200000b,80000s
  <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\eccc1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx2488.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ectt1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1728.pk>
-Output written on Introduction_Chapter.pdf (9 pages, 147740 bytes).
+Output written on Introduction_Chapter.pdf (9 pages, 147739 bytes).
 PDF statistics:
  418 PDF objects out of 1000 (max. 8388607)
  41 named destinations out of 1000 (max. 500000)

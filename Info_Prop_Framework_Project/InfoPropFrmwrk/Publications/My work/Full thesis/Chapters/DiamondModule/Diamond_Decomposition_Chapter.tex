@@ -58,7 +58,7 @@ the framework reads that object as it is. This chapter presents the Network Deco
 Module, a second pre-processing step which, when invoked, extends the graph object with the
 network's decomposition structure. Its objective is to identify every instance of a specified
 subgraph pattern in the input DAG. The default pattern is the diamond, the fork-and-join
-structure that Chapter~\ref{ch:system-model} identified as the designed redundancy of
+structure that Chapter~\ref{ch:system-model} identified as the redundancy of
 engineered systems. In the present work the module is consumed by the Probability Propagation
 Toolkit of Chapter~\ref{ch:probability-toolkit}, which conditions on diamonds to compute
 exact reachability. The Critical Path Toolkit of Chapter~\ref{ch:critical-path} does not use
@@ -79,13 +79,11 @@ networks.
 
 Real infrastructure networks are rarely trees. Their components connect to
 and depend on many others at once, and the interactions between them
-overlap instead of branching cleanly \cite{ouyang2014interdependent,buldyrev2010cascade}. Redundancy strategies are the obvious
-case. A robust network supplies more than one route to the
-same goal by design, so paths diverge and reconverge. Process networks and
+overlap instead of branching cleanly \cite{ouyang2014interdependent,buldyrev2010cascade}. Redundancy is one cause. A robust network supplies more than one route to the
+same goal, so paths diverge and reconverge. Process networks and
 hierarchical flows behave the same way, with a component feeding several
 downstream dependencies while itself depending on shared upstream outputs.
-As the system grows, overlapping paths accumulate and the connectivity web
-thickens.
+As the system grows, overlapping paths accumulate.
 
 Graph-based analysis methods almost always do some form of decomposition,
 and for large networks with complicated connectivity it is a practical
@@ -135,7 +133,7 @@ The identification algorithm does the same work whatever the discriminators say.
 
 A discriminator can be defined on any property of the graph object, or on any network characteristic mapped to a property of it during input processing, and each discriminator can be overridden or modified to fit the required definition. For example, the membership threshold can be raised from two paths to three, or the anchoring structure can be changed from fan-out-then-fan-in to fan-in-then-fan-out. A discriminator can also be defined on a characteristic that is not already a graph object property, provided it is mapped onto one during input processing. A component type supplied with the raw network, for instance, can be mapped to a node property so that only one class of component can anchor a pattern.
 
-In the Julia implementation of the framework,  the eligibility discriminator is exposed directly as a runtime override, and the other two are compact internal functions a replacement definition would swap.
+In the Julia implementation of the framework, the eligibility discriminator is exposed as a runtime override, and the other two are small internal functions that a replacement definition would replace.
 
 While the module stands as a generic subgraph decomposition tool, the discussion in the rest of this chapter mainly focuses on the framework's default target, the \textit{diamond} subgraph.
 
@@ -206,7 +204,7 @@ Each parent arriving at a diamond join carries its \emph{influencing set}, its a
 The \emph{non-influencing set} of a diamond join is the set of its parents whose influencing sets meet no other parent's. Their edges enter the join from outside every reconvergent pattern there and are carried alongside the join's diamonds as independent contributions.
 \end{definition}
 
-Given this, the diamond subgraph is defined formally as follows.
+Given this, the diamond subgraph is defined formally.
 
 \begin{definition}[Diamond]
 \label{def:diamond}
@@ -219,7 +217,7 @@ The framework exposes two views of the network's decomposed subgraphs.
 
 \textbf{The maximal diamond} is the network-level view of a diamond join. It is the full subgraph the join's reconvergence forms, made up of the diamond of every group of the join's parents that forms one, spanning the join, the groups, and everything upstream of them, together with the edges of the join's non-influencing set. Therefore every diamond join has at most one maximal diamond, while a fork can participate in several. Every diamond found at a deeper level inside a maximal diamond is a \textbf{sub-diamond}, and its edge list is contained in the enclosing diamond's.
 
-Two consequences follow from these definitions: A unique diamond with no inner sub-diamond has one fork and one diamond join, so it is an induced diamond, the smallest a diamond can be. Furthermore, since every diamond is either maximal at its join or a sub-diamond of a maximal one, the set of unique diamonds is the set of distinct maximal diamonds together with their inner sub-diamonds.
+Two consequences follow from these definitions. A unique diamond with no inner sub-diamond has one fork and one diamond join, so it is an induced diamond, the smallest a diamond can be. Furthermore, since every diamond is either maximal at its join or a sub-diamond of a maximal one, the set of unique diamonds is the set of distinct maximal diamonds together with their inner sub-diamonds.
 
 \section{The Identification Algorithm}
 \label{sec:dd-algorithm}
@@ -321,7 +319,7 @@ Let $D$ be constructed for group $G$ at join $v$ under boundary $B$ as above. Th
 The membership characterisation restates the filter defining $\ED$. For the path properties, induct on path length. A length-one path into $v$ is a single edge $(u,v) \in \ED$, which the fourth clause forces to have $u \in G$. Any longer path has a final edge satisfying the same property, and each preceding edge $(u,w)$ has $w \notin B$ and both endpoints in $R$ by the first three clauses, so no node after the first lies in $B$ and no edge of the path enters from outside $R$.
 \end{proof}
 
-Consider a nested level at which an enclosing diamond has already fixed a fork $r$, so $r \in E$, and suppose $r$ is both an ancestor of some group member $p$ and a direct parent of the join $v$. Partitioning handles $r$ correctly, since fixing removed $r$ from every influencing set, and in the minimal case of $r$ a source with no free ancestry its influencing set is empty, landing it in a singleton group whose contribution to $v$ enters separately.
+Consider a nested level at which an enclosing diamond has already fixed a fork $r$, so $r \in E$, and suppose $r$ is both an ancestor of some group member $p$ and a direct parent of the join $v$. Partitioning places $r$ correctly, since fixing removed $r$ from every influencing set, and in the minimal case of $r$ a source with no free ancestry its influencing set is empty, landing it in a singleton group whose contribution to $v$ enters separately.
 
 However, the span $R$ is built from the raw closure $\Anc(p)$ and contains $r$ whatever the context says, so the partition and the span disagree wherever $E \neq \varnothing$. The edge $(r,v)$ then has both endpoints in $R$ and a head outside $B$, so the first three clauses admit it, and a diamond meant to capture $v$ as reached through $G$ alone gains a second, unrelated entry into its own join. The fourth clause blocks this edge. Figure~\ref{fig:isolation} shows the minimal instance.
 

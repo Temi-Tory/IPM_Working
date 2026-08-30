@@ -1,0 +1,439 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{ford1956}{article}{}
+      \name{author}{2}{}{%
+        {{hash=9f4acd11117be157f30fc6def2993c08}{%
+           family={Ford},
+           familyi={F\bibinitperiod},
+           given={Lester\bibnamedelima R.},
+           giveni={L\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=999229085fe7ecb44a189d0162657de4}{%
+           family={Fulkerson},
+           familyi={F\bibinitperiod},
+           given={Delbert\bibnamedelima R.},
+           giveni={D\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \strng{namehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{fullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{bibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorbibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authornamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorfullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \field{extraname}{1}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Canadian Journal of Mathematics}
+      \field{title}{Maximal Flow Through a Network}
+      \field{volume}{8}
+      \field{year}{1956}
+      \field{pages}{399\bibrangedash 404}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.4153/CJM-1956-045-5
+      \endverb
+    \endentry
+    \entry{ford1962}{book}{}
+      \name{author}{2}{}{%
+        {{hash=9f4acd11117be157f30fc6def2993c08}{%
+           family={Ford},
+           familyi={F\bibinitperiod},
+           given={Lester\bibnamedelima R.},
+           giveni={L\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=999229085fe7ecb44a189d0162657de4}{%
+           family={Fulkerson},
+           familyi={F\bibinitperiod},
+           given={Delbert\bibnamedelima R.},
+           giveni={D\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Princeton, NJ}%
+      }
+      \list{publisher}{1}{%
+        {Princeton University Press}%
+      }
+      \strng{namehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{fullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{bibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorbibnamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authornamehash}{aef9aa34642f1deb9371ebd223999e6b}
+      \strng{authorfullhash}{aef9aa34642f1deb9371ebd223999e6b}
+      \field{extraname}{2}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Flows in Networks}
+      \field{year}{1962}
+    \endentry
+    \entry{birnbaum1969}{incollection}{}
+      \name{author}{1}{}{%
+        {{hash=56044311142a61f7bc94555fed6fce73}{%
+           family={Birnbaum},
+           familyi={B\bibinitperiod},
+           given={Zygmunt\bibnamedelima W.},
+           giveni={Z\bibinitperiod\bibinitdelim W\bibinitperiod}}}%
+      }
+      \name{editor}{1}{}{%
+        {{hash=2f92ed1f263d41d2e3c40a42fe277ba1}{%
+           family={Krishnaiah},
+           familyi={K\bibinitperiod},
+           given={Paruchuri\bibnamedelima R.},
+           giveni={P\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York}%
+      }
+      \list{publisher}{1}{%
+        {Academic Press}%
+      }
+      \strng{namehash}{56044311142a61f7bc94555fed6fce73}
+      \strng{fullhash}{56044311142a61f7bc94555fed6fce73}
+      \strng{bibnamehash}{56044311142a61f7bc94555fed6fce73}
+      \strng{authorbibnamehash}{56044311142a61f7bc94555fed6fce73}
+      \strng{authornamehash}{56044311142a61f7bc94555fed6fce73}
+      \strng{authorfullhash}{56044311142a61f7bc94555fed6fce73}
+      \strng{editorbibnamehash}{2f92ed1f263d41d2e3c40a42fe277ba1}
+      \strng{editornamehash}{2f92ed1f263d41d2e3c40a42fe277ba1}
+      \strng{editorfullhash}{2f92ed1f263d41d2e3c40a42fe277ba1}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Multivariate Analysis {II}}
+      \field{title}{On the Importance of Different Components in a Multicomponent System}
+      \field{year}{1969}
+      \field{pages}{581\bibrangedash 592}
+      \range{pages}{12}
+    \endentry
+    \entry{bertsimas2013robust}{article}{}
+      \name{author}{3}{}{%
+        {{hash=5b57425178d5ae2d2835ef44cb330e42}{%
+           family={Bertsimas},
+           familyi={B\bibinitperiod},
+           given={Dimitris},
+           giveni={D\bibinitperiod}}}%
+        {{hash=c94424c3f0fa8532e0723bcafd6360ad}{%
+           family={Nasrabadi},
+           familyi={N\bibinitperiod},
+           given={Ebrahim},
+           giveni={E\bibinitperiod}}}%
+        {{hash=85acf8578e6731b7a351a59ee8dcaefd}{%
+           family={Stiller},
+           familyi={S\bibinitperiod},
+           given={Sebastian},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{1e8ba443b38e5dcfdd80f083de4447ca}
+      \strng{fullhash}{830cd4752643b969e1bd29cbba567172}
+      \strng{bibnamehash}{830cd4752643b969e1bd29cbba567172}
+      \strng{authorbibnamehash}{830cd4752643b969e1bd29cbba567172}
+      \strng{authornamehash}{1e8ba443b38e5dcfdd80f083de4447ca}
+      \strng{authorfullhash}{830cd4752643b969e1bd29cbba567172}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Operations Research}
+      \field{number}{5}
+      \field{title}{Robust and Adaptive Network Flows}
+      \field{volume}{61}
+      \field{year}{2013}
+      \field{pages}{1218\bibrangedash 1242}
+      \range{pages}{25}
+      \verb{doi}
+      \verb 10.1287/opre.2013.1200
+      \endverb
+    \endentry
+    \entry{doulliez1972transportation}{article}{}
+      \name{author}{2}{}{%
+        {{hash=397a0ac89ec2b8dc835889a564289261}{%
+           family={Doulliez},
+           familyi={D\bibinitperiod},
+           given={Pierre},
+           giveni={P\bibinitperiod}}}%
+        {{hash=6dd2359a2634e89fb8e018add7f71c91}{%
+           family={Jamoulle},
+           familyi={J\bibinitperiod},
+           given={Emmanuel},
+           giveni={E\bibinitperiod}}}%
+      }
+      \strng{namehash}{ccc58bec6e410a952fc44167eb1c0083}
+      \strng{fullhash}{ccc58bec6e410a952fc44167eb1c0083}
+      \strng{bibnamehash}{ccc58bec6e410a952fc44167eb1c0083}
+      \strng{authorbibnamehash}{ccc58bec6e410a952fc44167eb1c0083}
+      \strng{authornamehash}{ccc58bec6e410a952fc44167eb1c0083}
+      \strng{authorfullhash}{ccc58bec6e410a952fc44167eb1c0083}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Revue française d'automatique, informatique, recherche opérationnelle. Recherche opérationnelle}
+      \field{number}{V3}
+      \field{title}{Transportation Networks with Random Arc Capacities}
+      \field{volume}{6}
+      \field{year}{1972}
+      \field{pages}{45\bibrangedash 59}
+      \range{pages}{15}
+      \verb{urlraw}
+      \verb https://www.numdam.org/item/RO_1972__6_3_45_0/
+      \endverb
+      \verb{url}
+      \verb https://www.numdam.org/item/RO_1972__6_3_45_0/
+      \endverb
+    \endentry
+    \entry{graphsflows}{misc}{}
+      \name{author}{1}{}{%
+        {{hash=e6404911cb6e15cc94792721faefb242}{%
+           family={{JuliaGraphs contributors}},
+           familyi={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{e6404911cb6e15cc94792721faefb242}
+      \strng{fullhash}{e6404911cb6e15cc94792721faefb242}
+      \strng{bibnamehash}{e6404911cb6e15cc94792721faefb242}
+      \strng{authorbibnamehash}{e6404911cb6e15cc94792721faefb242}
+      \strng{authornamehash}{e6404911cb6e15cc94792721faefb242}
+      \strng{authorfullhash}{e6404911cb6e15cc94792721faefb242}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{note}{\url{https://github.com/JuliaGraphs/GraphsFlows.jl}}
+      \field{title}{{GraphsFlows.jl}: flow algorithms on top of {Graphs.jl}}
+      \field{year}{2024}
+    \endentry
+    \entry{ieee1979rts}{article}{}
+      \name{author}{1}{}{%
+        {{hash=dd91d48e329038fdc31d23dcd84d08fc}{%
+           family={{Reliability Test System Task Force of the Application of Probability Methods Subcommittee}},
+           familyi={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \strng{fullhash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \strng{bibnamehash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \strng{authorbibnamehash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \strng{authornamehash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \strng{authorfullhash}{dd91d48e329038fdc31d23dcd84d08fc}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Power Apparatus and Systems}
+      \field{number}{6}
+      \field{title}{{IEEE} Reliability Test System}
+      \field{volume}{PAS-98}
+      \field{year}{1979}
+      \field{pages}{2047\bibrangedash 2054}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1109/TPAS.1979.319398
+      \endverb
+    \endentry
+    \entry{grigg1999rts}{article}{}
+      \name{author}{18}{}{%
+        {{hash=0078e734e345fc1dde8718792566ce8e}{%
+           family={Grigg},
+           familyi={G\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=761a8a4d9da22135b22099f1b74025a1}{%
+           family={Wong},
+           familyi={W\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=fc9938b7024953c1e6d00eee3e9bb002}{%
+           family={Albrecht},
+           familyi={A\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=88e01da726564b3ab43e8e24d75ab245}{%
+           family={Allan},
+           familyi={A\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=96ed22e69243ce350e8bd9a042611d4d}{%
+           family={Bhavaraju},
+           familyi={B\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=25e121f499e631b1de0e65044e20d40c}{%
+           family={Billinton},
+           familyi={B\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=6dbedad2342e7fdc31f6a6905f472c6d}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Q.},
+           giveni={Q\bibinitperiod}}}%
+        {{hash=937dddd3676b9999d968b3115367011d}{%
+           family={Fong},
+           familyi={F\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=199a0e441f3f06c97c1c855a9b1931f2}{%
+           family={Haddad},
+           familyi={H\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=19f754142aa05f5166743ca5eedeb8ed}{%
+           family={Kuruganty},
+           familyi={K\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=6e5b0e6cca2615e3baa1c9fd08a1f208}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=3ddf0bf95706244697deb8c200acce78}{%
+           family={Mukerji},
+           familyi={M\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=64bdb7648f6a645e88cd5eedf3a9650f}{%
+           family={Patton},
+           familyi={P\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=508f3e28cdd10bd8b32f3b41b060ee53}{%
+           family={Rau},
+           familyi={R\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+        {{hash=306c2992c6fa4bd47fbe4cde690d7997}{%
+           family={Reppen},
+           familyi={R\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=22cd3de071422f088f32d93516fd181d}{%
+           family={Schneider},
+           familyi={S\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=cc851f4b7f98500bb7a208b6e8bd24f6}{%
+           family={Shahidehpour},
+           familyi={S\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=ab2da7e76a62ed677060c0ea63a5b77b}{%
+           family={Singh},
+           familyi={S\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+      }
+      \strng{namehash}{616f94394d0aedbb73d7e81f7febc4f0}
+      \strng{fullhash}{b0eb9a2d2bb9298187f5beb95886baac}
+      \strng{bibnamehash}{616f94394d0aedbb73d7e81f7febc4f0}
+      \strng{authorbibnamehash}{616f94394d0aedbb73d7e81f7febc4f0}
+      \strng{authornamehash}{616f94394d0aedbb73d7e81f7febc4f0}
+      \strng{authorfullhash}{b0eb9a2d2bb9298187f5beb95886baac}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Power Systems}
+      \field{number}{3}
+      \field{title}{The {IEEE} Reliability Test System-1996. A report prepared by the Reliability Test System Task Force of the Application of Probability Methods Subcommittee}
+      \field{volume}{14}
+      \field{year}{1999}
+      \field{pages}{1010\bibrangedash 1020}
+      \range{pages}{11}
+      \verb{doi}
+      \verb 10.1109/59.780914
+      \endverb
+    \endentry
+    \entry{zimmerman2011matpower}{article}{}
+      \name{author}{3}{}{%
+        {{hash=7b370dc6294fd28d0a5516c6301d953d}{%
+           family={Zimmerman},
+           familyi={Z\bibinitperiod},
+           given={Ray\bibnamedelima D.},
+           giveni={R\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=1d4e4d67921def1af15ddc2f00d205ac}{%
+           family={Murillo-Sánchez},
+           familyi={M\bibinithyphendelim S\bibinitperiod},
+           given={Carlos\bibnamedelima E.},
+           giveni={C\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=f971589b66afde047131ac7d24d8f859}{%
+           family={Thomas},
+           familyi={T\bibinitperiod},
+           given={Robert\bibnamedelima J.},
+           giveni={R\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \strng{namehash}{c74ecafee46843b9c186673ac6c1a902}
+      \strng{fullhash}{18e55027bae0477959e6594f53b87c74}
+      \strng{bibnamehash}{18e55027bae0477959e6594f53b87c74}
+      \strng{authorbibnamehash}{18e55027bae0477959e6594f53b87c74}
+      \strng{authornamehash}{c74ecafee46843b9c186673ac6c1a902}
+      \strng{authorfullhash}{18e55027bae0477959e6594f53b87c74}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Power Systems}
+      \field{number}{1}
+      \field{title}{{MATPOWER}: Steady-State Operations, Planning, and Analysis Tools for Power Systems Research and Education}
+      \field{volume}{26}
+      \field{year}{2011}
+      \field{pages}{12\bibrangedash 19}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1109/TPWRS.2010.2051168
+      \endverb
+    \endentry
+    \entry{johnson1993dimacs}{book}{}
+      \name{editor}{2}{}{%
+        {{hash=8f805225d8e433c29a18a566d1f6acc6}{%
+           family={Johnson},
+           familyi={J\bibinitperiod},
+           given={David\bibnamedelima S.},
+           giveni={D\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=ee133419feae3b251d207f65236f409b}{%
+           family={McGeoch},
+           familyi={M\bibinitperiod},
+           given={Catherine\bibnamedelima C.},
+           giveni={C\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {American Mathematical Society}%
+      }
+      \strng{namehash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \strng{fullhash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \strng{bibnamehash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \strng{editorbibnamehash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \strng{editornamehash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \strng{editorfullhash}{0372f1223cec3d73f8cace572fa1aaa2}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{editor}
+      \field{labeltitlesource}{title}
+      \field{series}{DIMACS Series in Discrete Mathematics and Theoretical Computer Science}
+      \field{title}{Network Flows and Matching: First {DIMACS} Implementation Challenge}
+      \field{volume}{12}
+      \field{year}{1993}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

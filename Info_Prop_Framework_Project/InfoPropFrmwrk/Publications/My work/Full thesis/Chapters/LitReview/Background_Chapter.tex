@@ -73,7 +73,7 @@ series, parallel and $k$-out-of-$n$ groups, each of which has a closed-form syst
 as a tree of logic gates \cite{xing2008fault}. Both are efficient as far as the failure logic
 reduces to a tree or a series-parallel structure. However, both stop being efficient at the
 same point, which is where routes in the network diverge and reconverge with shared components
-upstream. This structure is not an accident of a badly drawn diagram. A robust network provides
+upstream. This structure follows from the design of the system. A robust network provides
 more than one route to the same destination, and two routes to one destination begin at a
 common component. Hence the redundancy that makes a system worth analysing is also the
 structure these formalisms cannot hold \cite{ouyang2014interdependent,buldyrev2010cascade}.
@@ -92,11 +92,11 @@ Polygon-to-chain reductions widen what can be collapsed in one step beyond a pla
 parallel pair \cite{wood1985polygon}. Tree decomposition generalises the idea to graphs that no
 sequence of such reductions can collapse. The network is arranged into small overlapping bags
 connected as a tree \cite{robertson1986graphminors}, and the cost of exact computation is then
-bounded by the width of that decomposition rather than the size of the graph. This is what makes
+bounded by the width of that decomposition, whatever the size of the graph. This is what makes
 exact reliability feasible on networks as large as metropolitan transit systems
-\cite{goharshady2020treewidth}. Monte Carlo simulation avoids structure altogether and handles
-any network in exchange for exactness, with a sample count that grows demanding when failures
-are rare or the required precision is high \cite{fishman1986comparison}.
+\cite{goharshady2020treewidth}. Monte Carlo simulation does not depend on structure and handles any network, but it is
+not exact, and the sample count it needs grows large when failures are rare or the required
+precision is high \cite{fishman1986comparison}.
 
 Binary decision diagrams (BDDs) compile the Boolean structure function of the network into a
 canonical decision graph on which reliability is a single traversal
@@ -245,8 +245,7 @@ limited precision.
 
 Williamson and Downs established the arithmetic of p-boxes \cite{williamson1990probabilistic}.
 For two random variables with p-boxes $A$ and $B$ and a binary operation, the p-box of the
-result is computed in one of two ways according to what is known about their dependence.
-Under independence the result is a convolution of the bounding functions, evaluated on a
+result depends on what is known about their dependence. Under independence the result is a convolution of the bounding functions, evaluated on a
 discretisation of each into a fixed number of levels, so that the cost of every operation
 grows with the discretisation. Under no assumption about dependence the result is obtained
 from the Fr\'{e}chet--Hoeffding inequalities, which bound the joint distribution of any pair of
@@ -269,7 +268,7 @@ combines evidence from independent sources without assigning a probability to in
 outcomes \cite{shafer1976mathematical}; its belief and plausibility functions bound the
 probability of an event from below and above. Both theories can be placed within the wider
 field of imprecise probability, and a Dempster--Shafer structure on the real line can be
-converted to a p-box and back. Neither theory is used in this thesis, for two reasons. The
+converted to a p-box and back. Neither theory is used in this thesis. The
 quantities propagated here are probabilities, capacities and durations, and the information
 available on them in practice, such as a range from a datasheet or a distribution estimated from
 sparse samples, is stated directly as an interval or a p-box without translation into
@@ -324,8 +323,8 @@ public documentation describes a project-scheduling or critical-path module, and
 represent component life and failure with classical distributions, fitted from data or
 specified by the analyst.
 
-Open-source infrastructure simulation platforms have, from the opposite direction, paired flow
-with something schedule-shaped. InfraRisk integrates power-flow, water-hydraulic and traffic-flow simulators for
+Open-source infrastructure simulation platforms have paired flow with a form of
+scheduling. InfraRisk integrates power-flow, water-hydraulic and traffic-flow simulators for
 interdependent power, water and road networks under a resilience framing
 \cite{balakrishnan2022infrarisk}. Its recovery module sequences repair-crew actions with start
 and end times computed from travel time and repair duration, by heuristic prioritisation or by
@@ -384,9 +383,10 @@ scientific analysis does not appear among them.
 Within engineering analysis, browser-delivered simulation as a service is one established
 pattern. SimScale, launched in 2013, runs computational fluid dynamics, finite element, thermal
 and electromagnetic analysis in the browser with no local installation \cite{simscale}, with the
-computation running in the vendor's cloud. The licensed desktop suite is a second and older
-pattern: the commercial reliability software named in Section~\ref{sec:bg-frameworks} requires
-no programming and runs as a local installation, the reverse trade-off from SimScale's. Web-based
+computation running in the vendor's cloud. The licensed desktop suite is a second and older pattern. The commercial reliability
+software named in Section~\ref{sec:bg-frameworks} requires no programming and runs as a
+local installation, so it has the local computation that SimScale lacks and lacks the
+browser delivery that SimScale has. Web-based
 geographic information systems are a third. A PRISMA-based systematic review of web GIS for hazard and infrastructure risk assessment
 screened 1{,}775 articles and admitted 65. It organises the field around themes including
 visualisation, user-interface design and decision support \cite{daud2024webgis}. The platform of Repetto et al.\ is a representative member: it
@@ -425,8 +425,7 @@ and its satellite packages for weighted and property graphs, occupies the same p
 structural reliability, computing system and survival signatures over a network's topology
 \cite{aslett_reliabilitytheory}. No single Python package built for network reliability in the
 block diagram, path-set or decision-diagram sense was found; the closest candidate,
-\texttt{pgmpy}, is a general Bayesian-network toolkit. This is a gap in packaged tooling and not
-in research, since network reliability is an actively reviewed field with applications across
+\texttt{pgmpy}, is a general Bayesian-network toolkit. This is a gap in packaged tooling only, since network reliability is an actively reviewed field with applications across
 communications, transportation and energy distribution \cite{gaur2021literature}. Furthermore, none of the packages named above, in any of the five languages, carries a native
 notion of an interval- or p-box-valued edge or node, because none is built for propagating
 uncertain quantities across a network. The reasons for choosing Julia, and the language features the implementation depends
@@ -440,8 +439,8 @@ its own exact methods and its own treatment of uncertain inputs. The
 exact reliability methods are all exponential in some width of the network and all consume a
 point-valued component probability. Interval and p-box representations of epistemic
 uncertainty exist, with an established arithmetic, but are not propagated natively by any of
-the exact methods reviewed. Running several analyses on one network object is an established
-practice in engineering software, but no tool, method or thesis found in this search combines
+the exact methods reviewed. Several engineering software tools run more than one analysis on one network object, but
+no tool, method or thesis found in this search combines
 source-to-node reliability, capacitated flow and activity scheduling on one network
 representation, and none of the closest candidates propagates imprecision. No engineering
 analysis tool found combines browser delivery, no programming and local computation. The

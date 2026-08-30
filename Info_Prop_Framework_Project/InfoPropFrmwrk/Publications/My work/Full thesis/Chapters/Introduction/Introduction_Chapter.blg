@@ -1,15 +1,15 @@
 [0] Config.pm:307> INFO - This is Biber 2.17
-[0] Config.pm:310> INFO - Logfile is 'Introduction_Chapter.blg'
-[373] biber-MSWIN64:340> INFO - === 
-[530] Biber.pm:418> INFO - Reading 'Introduction_Chapter.bcf'
-[798] Biber.pm:972> INFO - Found 12 citekeys in bib section 0
-[833] Biber.pm:4383> INFO - Processing section 0
-[876] Biber.pm:4574> INFO - Looking for bibtex file '../../references.bib' for section 0
-[993] bibtex.pm:1713> INFO - LaTeX decoding ...
-[1164] bibtex.pm:1518> INFO - Found BibTeX data source '../../references.bib'
-[1404] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'variable = shifted' with 'variable = non-ignorable'
-[1405] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'normalization = NFD' with 'normalization = prenormalized'
-[1405] Biber.pm:4203> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-GB'
-[1405] Biber.pm:4209> INFO - No sort tailoring available for locale 'en-GB'
-[1415] bbl.pm:654> INFO - Writing 'Introduction_Chapter.bbl' with encoding 'UTF-8'
-[1424] bbl.pm:757> INFO - Output to Introduction_Chapter.bbl
+[1] Config.pm:310> INFO - Logfile is 'Introduction_Chapter.blg'
+[267] biber-MSWIN64:340> INFO - === 
+[346] Biber.pm:418> INFO - Reading 'Introduction_Chapter.bcf'
+[588] Biber.pm:972> INFO - Found 12 citekeys in bib section 0
+[624] Biber.pm:4383> INFO - Processing section 0
+[647] Biber.pm:4574> INFO - Looking for bibtex file '../../references.bib' for section 0
+[748] bibtex.pm:1713> INFO - LaTeX decoding ...
+[1013] bibtex.pm:1518> INFO - Found BibTeX data source '../../references.bib'
+[1191] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'variable = shifted' with 'variable = non-ignorable'
+[1191] UCollate.pm:68> INFO - Overriding locale 'en-GB' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[1191] Biber.pm:4203> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-GB'
+[1191] Biber.pm:4209> INFO - No sort tailoring available for locale 'en-GB'
+[1205] bbl.pm:654> INFO - Writing 'Introduction_Chapter.bbl' with encoding 'UTF-8'
+[1213] bbl.pm:757> INFO - Output to Introduction_Chapter.bbl

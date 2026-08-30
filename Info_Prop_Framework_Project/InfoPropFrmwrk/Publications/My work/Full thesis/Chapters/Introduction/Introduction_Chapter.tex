@@ -68,7 +68,7 @@ this thesis. The first is a question of reliability: with what probability does 
 given point when components can fail? The second is a question of capacity: how much can the
 system deliver, and which components limit it? The third is a question of schedule: when does
 a dependent sequence of operations complete, and which operations can be delayed without
-delaying the whole? Each question has a mature method behind it. Network reliability analysis
+delaying the whole? Each question has a method of its own. Network reliability analysis
 answers the first \cite{billinton1992network}, the maximum-flow and minimum-cut theory of the
 1950s answers the second \cite{ford1956}, and the critical path method of the same decade
 answers the third \cite{kelley1959critical}. The three methods have separate literatures and
@@ -78,8 +78,7 @@ value attached to a component: a failure probability, a throughput limit or a du
 framework developed here the three analyses are therefore independent readings of one network
 model, each with its own inputs and its own algorithm, and the model is entered once.
 
-The values attached to the components are rarely known precisely. Two kinds of uncertainty
-are usually distinguished. Aleatory uncertainty is the inherent variability of a quantity, such as
+The values attached to the components are rarely known precisely. Aleatory uncertainty is the inherent variability of a quantity, such as
 the time to failure of a pump across a population of identical pumps, and is well described by a
 probability distribution. Epistemic uncertainty is a lack of knowledge about the quantity, and
 can in principle be reduced by collecting more data. For example, a failure probability estimated from three recorded failures, a capacity quoted
@@ -93,9 +92,9 @@ distribution function, and so carries partial statistical knowledge without fixi
 distribution \cite{ferson2003constructing,williamson1990probabilistic}. However, all three methods named above consume a single value for each input. In practice an
 analyst therefore chooses a point value and treats the remaining uncertainty in a separate
 sensitivity study, if at all.
-Propagating intervals and p-boxes through the network computation itself, so that the result
-carries the same kind of bound as the inputs, is the alternative this thesis pursues. For the
-reliability question in particular it has rarely been done, because exact network reliability
+This thesis instead propagates intervals and p-boxes through the network computation
+itself, so that the result carries the same kind of bound as the inputs. For the reliability
+question in particular this has rarely been done, because exact network reliability
 is \#P-hard \cite{valiant1979complexity,ball1986computational} and every exact method in
 common use, from reliability block diagrams to binary decision diagrams, is built on
 point-valued component probabilities.

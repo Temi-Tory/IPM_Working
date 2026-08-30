@@ -144,65 +144,84 @@ function _validate_node_capacities(
 end
 
 """
-Return overflow-safe split IDs `(v_in, v_out)` for a node `v` under the
-convention `v_in = 2*v`, `v_out = 2*v+1`.
+Assign overflow-safe, collision-free split IDs `(v_in, v_out)` to every node
+in `split_nodes`, given the full node set `all_nodes` the split graph has to
+coexist with.
 
-Throws ArgumentError if either operation would overflow Int64.
+Offset-based, not the old `v_in=2*v`/`v_out=2*v+1` convention: every synthetic
+ID is placed strictly above `M = maximum(all_nodes)`, so it can never collide
+with an UNSPLIT node's own (unchanged) ID regardless of how small or dense
+the original ID range is — the old multiplicative scheme could and did
+collide whenever only a SUBSET of a small, sequential ID range (1..N) was
+split, which is the normal case for an optional per-node capacity list (see
+the Network Model chapter: capacity is attached only where a node genuinely
+has one; every other node is unconstrained, not omitted by mistake). Each
+split node gets its own consecutive pair in a canonical (sorted) order, so
+split-vs-split collisions are impossible too. The synthetic IDs are never
+part of this function's public contract — callers translate through
+`NodeSplitGraph`'s own `node_to_in`/`node_to_out`/`split_to_original` maps,
+never by re-deriving the formula — so this is a behavior-preserving change
+for every case that already worked, and a fix for the case that didn't.
+
+Throws ArgumentError if the offset arithmetic would overflow Int64 (the same
+failure mode the old scheme guarded against, now only reachable at genuinely
+astronomical node-ID magnitudes, not at ordinary small-ID density).
 """
-function _split_ids_checked(v::Int64)::Tuple{Int64,Int64}
-    v_in = try
-        Base.checked_mul(v, 2)
-    catch err
-        if err isa OverflowError
+function _split_id_map(all_nodes::Set{Int64}, split_nodes::Set{Int64})::Dict{Int64,Tuple{Int64,Int64}}
+    isempty(split_nodes) && return Dict{Int64,Tuple{Int64,Int64}}()
+    m = maximum(all_nodes)
+    mapping = Dict{Int64,Tuple{Int64,Int64}}()
+    for (i, v) in enumerate(sort!(collect(split_nodes)))
+        v_in = try
+            Base.checked_add(m, Base.checked_sub(Base.checked_mul(i, 2), 1))
+        catch err
+            err isa OverflowError || rethrow(err)
             throw(ArgumentError(
-                "Node ID $v is too large in magnitude for the 2*v split convention; " *
-                "2*$v overflows Int64. Please remap node IDs to a smaller range."
+                "Node ID range is too large in magnitude for the offset split scheme " *
+                "(max original ID $m, $(length(split_nodes)) split nodes); the synthetic " *
+                "ID for node $v overflows Int64."
             ))
         end
-        rethrow(err)
-    end
-
-    v_out = try
-        Base.checked_add(v_in, 1)
-    catch err
-        if err isa OverflowError
+        v_out = try
+            Base.checked_add(v_in, 1)
+        catch err
+            err isa OverflowError || rethrow(err)
             throw(ArgumentError(
-                "Node ID $v is too large in magnitude for the 2*v+1 split convention; " *
-                "(2*$v)+1 overflows Int64. Please remap node IDs to a smaller range."
+                "Node ID range is too large in magnitude for the offset split scheme " *
+                "(max original ID $m, $(length(split_nodes)) split nodes); the synthetic " *
+                "ID for node $v overflows Int64."
             ))
         end
-        rethrow(err)
+        mapping[v] = (v_in, v_out)
     end
-
-    return v_in, v_out
+    mapping
 end
 
 """
-Detect collisions in the proposed split-node ID space. The split transformation
-assigns v_in = 2*v and v_out = 2*v+1 for each split node v. If any split ID
-equals the original ID of an unsplit node, or if split IDs from two different
-split nodes collide, a collision is detected.
+Defense-in-depth sanity check that the proposed split-node ID space (from
+`_split_id_map`) does not collide with any unsplit node's own ID, or with
+itself. Mathematically unreachable given `_split_id_map`'s offset
+construction (every synthetic ID exceeds every original ID by construction),
+kept as an explicit assertion rather than removed silently — a correctness
+check earning its keep by staying cheap, not by being load-bearing.
 
-Throws ArgumentError with a clear description if a collision is detected,
-suggesting remapping node IDs to a smaller range.
+Throws ArgumentError with a clear description if a collision is detected.
 """
 function _detect_collisions(
     all_nodes::Set{Int64},
-    split_nodes::Set{Int64}
+    split_nodes::Set{Int64},
+    split_id_map::Dict{Int64,Tuple{Int64,Int64}}=_split_id_map(all_nodes, split_nodes)
 )::Nothing
     proposed = Dict{Int64,String}()  # ID → description of who claims it
 
     for v in all_nodes
         if v in split_nodes
-            v_in, v_out = _split_ids_checked(v)
+            v_in, v_out = split_id_map[v]
             for (id, desc) in ((v_in, "v_in(node $v)"), (v_out, "v_out(node $v)"))
                 if haskey(proposed, id)
                     throw(ArgumentError(
                         "Node ID collision in split graph: split ID $id is claimed by " *
-                        "both $desc and $(proposed[id]). " *
-                        "This happens when the 2*v and 2*v+1 IDs for split nodes overlap with " *
-                        "other node IDs. Please remap your original node IDs to a smaller " *
-                        "contiguous range (e.g., 1..N) before calling this function."
+                        "both $desc and $(proposed[id])."
                     ))
                 end
                 proposed[id] = desc
@@ -212,8 +231,7 @@ function _detect_collisions(
             if haskey(proposed, v)
                 throw(ArgumentError(
                     "Node ID collision in split graph: original (unsplit) node $v has ID $v, " *
-                    "which collides with split ID claimed by $(proposed[v]). " *
-                    "Please remap your original node IDs to a smaller contiguous range."
+                    "which collides with split ID claimed by $(proposed[v])."
                 ))
             end
             proposed[v] = "unsplit(node $v)"
@@ -440,7 +458,8 @@ function build_node_split_graph(
 
     # Validate inputs
     _validate_node_capacities(node_capacities, all_nodes)
-    _detect_collisions(all_nodes, split_nodes)
+    split_id_map = _split_id_map(all_nodes, split_nodes)
+    _detect_collisions(all_nodes, split_nodes, split_id_map)
 
     # Build ID mappings
     node_to_in  = Dict{Int64,Int64}()
@@ -449,7 +468,7 @@ function build_node_split_graph(
     node_internal_edges = Dict{Int64,Tuple{Int64,Int64}}()
 
     for v in split_nodes
-        v_in, v_out = _split_ids_checked(v)
+        v_in, v_out = split_id_map[v]
         node_to_in[v]  = v_in
         node_to_out[v] = v_out
         split_to_original[v_in]  = v

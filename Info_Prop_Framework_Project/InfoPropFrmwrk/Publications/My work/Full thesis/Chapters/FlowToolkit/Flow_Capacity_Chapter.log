@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  30 AUG 2026 02:40
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.3) (preloaded format=pdflatex 2022.4.29)  30 AUG 2026 03:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**"c:/Development/Info_Prop_Framework_Project/Info_Prop_Framework_Project/InfoPropFrmwrk/Publications/My work/Full thesis/Chapters/NetworkModel/Complex_Processes_Chapter.tex"
-(c:/Development/Info_Prop_Framework_Project/Info_Prop_Framework_Project/InfoPropFrmwrk/Publications/My work/Full thesis/Chapters/NetworkModel/Complex_Processes_Chapter.tex
+**"c:/Development/Info_Prop_Framework_Project/Info_Prop_Framework_Project/InfoPropFrmwrk/Publications/My work/Full thesis/Chapters/FlowToolkit/Flow_Capacity_Chapter.tex"
+(c:/Development/Info_Prop_Framework_Project/Info_Prop_Framework_Project/InfoPropFrmwrk/Publications/My work/Full thesis/Chapters/FlowToolkit/Flow_Capacity_Chapter.tex
 LaTeX2e <2021-11-15> patch level 1
 L3 programming layer <2022-04-20> (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/base\report.cls
 Document Class: report 2021/10/04 v1.4n Standard LaTeX document class
@@ -185,16 +185,60 @@ File: pdftex.def 2020/10/05 v1.2a Graphics/color driver for pdftex
 ))
 \Gin@req@height=\dimen170
 \Gin@req@width=\dimen171
+) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/caption\subcaption.sty
+Package: subcaption 2023/07/28 v1.6b Sub-captions (AR)
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/caption\caption.sty
+Package: caption 2023/08/05 v3.6o Customizing captions (AR)
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/caption\caption3.sty
+Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)
+\caption@tempdima=\dimen172
+\captionmargin=\dimen173
+\caption@leftmargin=\dimen174
+\caption@rightmargin=\dimen175
+\caption@width=\dimen176
+\caption@indent=\dimen177
+\caption@parindent=\dimen178
+\caption@hangindent=\dimen179
+Package caption Info: Standard document class detected.
+)
+\c@caption@flags=\count281
+\c@continuedfloat=\count282
+)
+Package caption Info: New subtype `subfigure' on input line 238.
+\c@subfigure=\count283
+Package caption Info: New subtype `subtable' on input line 238.
+\c@subtable=\count284
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/enumitem\enumitem.sty
 Package: enumitem 2025/02/06 v3.11 Customized lists
 \labelindent=\skip55
-\enit@outerparindent=\dimen172
+\enit@outerparindent=\dimen180
 \enit@toks=\toks31
 \enit@inbox=\box52
-\enit@count@id=\count281
-\enitdp@description=\count282
+\enit@count@id=\count285
+\enitdp@description=\count286
+) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/threeparttable\threeparttable.sty
+Package: threeparttable 2003/06/13  v 3.0
+\@tempboxb=\box53
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/placeins\placeins.sty
 Package: placeins 2005/04/18  v 2.2
+) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/tools\longtable.sty
+Package: longtable 2021-09-01 v4.17 Multi-page Table package (DPC)
+\LTleft=\skip56
+\LTright=\skip57
+\LTpre=\skip58
+\LTpost=\skip59
+\LTchunksize=\count287
+\LTcapwidth=\dimen181
+\LT@head=\box54
+\LT@firsthead=\box55
+\LT@foot=\box56
+\LT@lastfoot=\box57
+\LT@gbox=\box58
+\LT@cols=\count288
+\LT@rows=\count289
+\c@LT@tables=\count290
+\c@LT@chunks=\count291
+\LT@p@ftn=\toks32
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.sty
 Package: hyperref 2022-02-21 v7.00n Hypertext links for LaTeX
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty
@@ -222,9 +266,9 @@ Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty
 Package: kvoptions 2020-10-07 v3.14 Key value format for package options (HO)
 )
-\@linkdim=\dimen173
-\Hy@linkcounter=\count283
-\Hy@pagecounter=\count284
+\@linkdim=\dimen182
+\Hy@linkcounter=\count292
+\Hy@pagecounter=\count293
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def
 File: pd1enc.def 2022-02-21 v7.00n Hyperref: PDFDocEncoding definition (HO)
 Now handling font encoding PD1 ...
@@ -234,7 +278,7 @@ Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/etexcmds\etexcmds.sty
 Package: etexcmds 2019/12/15 v1.7 Avoid name clashes with e-TeX commands (HO)
 )
-\Hy@SavedSpaceFactor=\count285
+\Hy@SavedSpaceFactor=\count294
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def
 File: puenc.def 2022-02-21 v7.00n Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
@@ -247,21 +291,21 @@ Package hyperref Info: Plain pages OFF on input line 4152.
 Package hyperref Info: Backreferencing OFF on input line 4157.
 Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
 Package hyperref Info: Bookmarks ON on input line 4390.
-\c@Hy@tempcnt=\count286
+\c@Hy@tempcnt=\count295
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty
 \Urlmuskip=\muskip17
 Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
 )
 LaTeX Info: Redefining \url on input line 4749.
-\XeTeXLinkMargin=\dimen174
+\XeTeXLinkMargin=\dimen183
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
 Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintcalc.sty
 Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO)
 ))
-\Fld@menulength=\count287
-\Field@Width=\dimen175
-\Fld@charsize=\dimen176
+\Fld@menulength=\count296
+\Field@Width=\dimen184
+\Fld@charsize=\dimen185
 Package hyperref Info: Hyper figures OFF on input line 6027.
 Package hyperref Info: Link nesting OFF on input line 6032.
 Package hyperref Info: Hyper index ON on input line 6035.
@@ -275,9 +319,9 @@ LaTeX Info: Redefining \pageref on input line 6101.
 Package: atbegshi-ltx 2021/01/10 v1.0c Emulation of the original atbegshi
 package with kernel methods
 )
-\Hy@abspage=\count288
-\c@Item=\count289
-\c@Hfootnote=\count290
+\Hy@abspage=\count297
+\c@Item=\count298
+\c@Hfootnote=\count299
 )
 Package hyperref Info: Driver (autodetected): hpdftex.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hpdftex.def
@@ -286,8 +330,8 @@ File: hpdftex.def 2022-02-21 v7.00n Hyperref driver for pdfTeX
 Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atveryend package
 with kernel methods
 )
-\Fld@listcount=\count291
-\c@bookmark@seq@number=\count292
+\Fld@listcount=\count300
+\c@bookmark@seq@number=\count301
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerunfilecheck.sty
 Package: rerunfilecheck 2019/12/05 v1.9 Rerun checks for auxiliary files (HO)
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniquecounter.sty
@@ -295,115 +339,128 @@ Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
 )
 Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 286.
 )
-\Hy@SectionHShift=\skip56
+\Hy@SectionHShift=\skip60
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty
 Package: array 2021/10/04 v2.5f Tabular extension package (FMi)
-\col@sep=\dimen177
-\ar@mcellbox=\box53
-\extrarowheight=\dimen178
-\NC@list=\toks32
-\extratabsurround=\skip57
-\backup@length=\skip58
-\ar@cellbox=\box54
+\col@sep=\dimen186
+\ar@mcellbox=\box59
+\extrarowheight=\dimen187
+\NC@list=\toks33
+\extratabsurround=\skip61
+\backup@length=\skip62
+\ar@cellbox=\box60
+) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/pdflscape\pdflscape.sty
+Package: pdflscape 2022-10-27 v0.13 Display of landscape pages in PDF
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/pdflscape\pdflscape-nometadata.sty
+Package: pdflscape-nometadata 2022-10-28 v0.13 Display of landscape pages in PDF (HO)
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/graphics\lscape.sty
+Package: lscape 2020/05/28 v3.02 Landscape Pages (DPC)
+)
+Package pdflscape Info: Auto-detected driver: pdftex on input line 81.
+)) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/makecell\makecell.sty
+Package: makecell 2009/08/03 V0.1e Managing of Tab Column Heads and Cells
+\rotheadsize=\dimen188
+\c@nlinenum=\count302
+\TeXr@lab=\toks34
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/algorithms\algorithm.sty
 Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating environment
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/float\float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
-\c@float@type=\count293
-\float@exts=\toks33
-\float@box=\box55
-\@float@everytoks=\toks34
-\@floatcapt=\box56
+\c@float@type=\count303
+\float@exts=\toks35
+\float@box=\box61
+\@float@everytoks=\toks36
+\@floatcapt=\box62
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/base\ifthen.sty
 Package: ifthen 2020/11/24 v1.1c Standard LaTeX ifthen package (DPC)
 )
-\@float@every@algorithm=\toks35
-\c@algorithm=\count294
+\@float@every@algorithm=\toks37
+\c@algorithm=\count304
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/algorithmicx\algpseudocode.sty
 Package: algpseudocode 
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/algorithmicx\algorithmicx.sty
 Package: algorithmicx 2005/04/27 v1.2 Algorithmicx
 
 Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style
-\c@ALG@line=\count295
-\c@ALG@rem=\count296
-\c@ALG@nested=\count297
-\ALG@tlm=\skip59
-\ALG@thistlm=\skip60
-\c@ALG@Lnr=\count298
-\c@ALG@blocknr=\count299
-\c@ALG@storecount=\count300
-\c@ALG@tmpcounter=\count301
-\ALG@tmplength=\skip61
+\c@ALG@line=\count305
+\c@ALG@rem=\count306
+\c@ALG@nested=\count307
+\ALG@tlm=\skip63
+\ALG@thistlm=\skip64
+\c@ALG@Lnr=\count308
+\c@ALG@blocknr=\count309
+\c@ALG@storecount=\count310
+\c@ALG@tmpcounter=\count311
+\ALG@tmplength=\skip65
 )
 Document Style - pseudocode environments for use with the `algorithmicx' style
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\biblatex.sty
 Package: biblatex 2022/02/02 v3.17 programmable bibliographies (PK/MW)
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.sty
 Package: etoolbox 2020/10/05 v2.5k e-TeX tools for LaTeX (JAW)
-\etb@tempcnta=\count302
+\etb@tempcnta=\count312
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/logreq\logreq.sty
 Package: logreq 2010/08/04 v1.0 xml request logger
-\lrq@indent=\count303
+\lrq@indent=\count313
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/logreq\logreq.def
 File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
 ))
-\c@tabx@nest=\count304
-\c@listtotal=\count305
-\c@listcount=\count306
-\c@liststart=\count307
-\c@liststop=\count308
-\c@citecount=\count309
-\c@citetotal=\count310
-\c@multicitecount=\count311
-\c@multicitetotal=\count312
-\c@instcount=\count313
-\c@maxnames=\count314
-\c@minnames=\count315
-\c@maxitems=\count316
-\c@minitems=\count317
-\c@citecounter=\count318
-\c@maxcitecounter=\count319
-\c@savedcitecounter=\count320
-\c@uniquelist=\count321
-\c@uniquename=\count322
-\c@refsection=\count323
-\c@refsegment=\count324
-\c@maxextratitle=\count325
-\c@maxextratitleyear=\count326
-\c@maxextraname=\count327
-\c@maxextradate=\count328
-\c@maxextraalpha=\count329
-\c@abbrvpenalty=\count330
-\c@highnamepenalty=\count331
-\c@lownamepenalty=\count332
-\c@maxparens=\count333
-\c@parenlevel=\count334
-\blx@tempcnta=\count335
-\blx@tempcntb=\count336
-\blx@tempcntc=\count337
-\c@blx@maxsection=\count338
-\c@blx@maxsegment@0=\count339
-\blx@notetype=\count340
-\blx@parenlevel@text=\count341
-\blx@parenlevel@foot=\count342
-\c@blx@sectionciteorder@0=\count343
-\blx@entrysetcounter=\count344
-\blx@biblioinstance=\count345
-\labelnumberwidth=\skip62
-\labelalphawidth=\skip63
-\biblabelsep=\skip64
-\bibitemsep=\skip65
-\bibnamesep=\skip66
-\bibinitsep=\skip67
-\bibparsep=\skip68
-\bibhang=\skip69
+\c@tabx@nest=\count314
+\c@listtotal=\count315
+\c@listcount=\count316
+\c@liststart=\count317
+\c@liststop=\count318
+\c@citecount=\count319
+\c@citetotal=\count320
+\c@multicitecount=\count321
+\c@multicitetotal=\count322
+\c@instcount=\count323
+\c@maxnames=\count324
+\c@minnames=\count325
+\c@maxitems=\count326
+\c@minitems=\count327
+\c@citecounter=\count328
+\c@maxcitecounter=\count329
+\c@savedcitecounter=\count330
+\c@uniquelist=\count331
+\c@uniquename=\count332
+\c@refsection=\count333
+\c@refsegment=\count334
+\c@maxextratitle=\count335
+\c@maxextratitleyear=\count336
+\c@maxextraname=\count337
+\c@maxextradate=\count338
+\c@maxextraalpha=\count339
+\c@abbrvpenalty=\count340
+\c@highnamepenalty=\count341
+\c@lownamepenalty=\count342
+\c@maxparens=\count343
+\c@parenlevel=\count344
+\blx@tempcnta=\count345
+\blx@tempcntb=\count346
+\blx@tempcntc=\count347
+\c@blx@maxsection=\count348
+\c@blx@maxsegment@0=\count349
+\blx@notetype=\count350
+\blx@parenlevel@text=\count351
+\blx@parenlevel@foot=\count352
+\c@blx@sectionciteorder@0=\count353
+\blx@entrysetcounter=\count354
+\blx@biblioinstance=\count355
+\labelnumberwidth=\skip66
+\labelalphawidth=\skip67
+\biblabelsep=\skip68
+\bibitemsep=\skip69
+\bibnamesep=\skip70
+\bibinitsep=\skip71
+\bibparsep=\skip72
+\bibhang=\skip73
 \blx@bcfin=\read3
 \blx@bcfout=\write3
 \blx@langwohyphens=\language80
-\c@mincomprange=\count346
-\c@maxcomprange=\count347
-\c@mincompwidth=\count348
+\c@mincomprange=\count356
+\c@maxcomprange=\count357
+\c@mincompwidth=\count358
 Package biblatex Info: Trying to load biblatex default data model...
 Package biblatex Info: ... file 'blx-dm.def' found.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\blx-dm.def
@@ -413,88 +470,88 @@ Package biblatex Info: Trying to load biblatex style data model...
 Package biblatex Info: ... file 'ieee.dbx' not found.
 Package biblatex Info: Trying to load biblatex custom data model...
 Package biblatex Info: ... file 'biblatex-dm.cfg' not found.
-\c@afterword=\count349
-\c@savedafterword=\count350
-\c@annotator=\count351
-\c@savedannotator=\count352
-\c@author=\count353
-\c@savedauthor=\count354
-\c@bookauthor=\count355
-\c@savedbookauthor=\count356
-\c@commentator=\count357
-\c@savedcommentator=\count358
-\c@editor=\count359
-\c@savededitor=\count360
-\c@editora=\count361
-\c@savededitora=\count362
-\c@editorb=\count363
-\c@savededitorb=\count364
-\c@editorc=\count365
-\c@savededitorc=\count366
-\c@foreword=\count367
-\c@savedforeword=\count368
-\c@holder=\count369
-\c@savedholder=\count370
-\c@introduction=\count371
-\c@savedintroduction=\count372
-\c@namea=\count373
-\c@savednamea=\count374
-\c@nameb=\count375
-\c@savednameb=\count376
-\c@namec=\count377
-\c@savednamec=\count378
-\c@translator=\count379
-\c@savedtranslator=\count380
-\c@shortauthor=\count381
-\c@savedshortauthor=\count382
-\c@shorteditor=\count383
-\c@savedshorteditor=\count384
-\c@labelname=\count385
-\c@savedlabelname=\count386
-\c@institution=\count387
-\c@savedinstitution=\count388
-\c@lista=\count389
-\c@savedlista=\count390
-\c@listb=\count391
-\c@savedlistb=\count392
-\c@listc=\count393
-\c@savedlistc=\count394
-\c@listd=\count395
-\c@savedlistd=\count396
-\c@liste=\count397
-\c@savedliste=\count398
-\c@listf=\count399
-\c@savedlistf=\count400
-\c@location=\count401
-\c@savedlocation=\count402
-\c@organization=\count403
-\c@savedorganization=\count404
-\c@origlocation=\count405
-\c@savedoriglocation=\count406
-\c@origpublisher=\count407
-\c@savedorigpublisher=\count408
-\c@publisher=\count409
-\c@savedpublisher=\count410
-\c@language=\count411
-\c@savedlanguage=\count412
-\c@origlanguage=\count413
-\c@savedoriglanguage=\count414
-\c@pageref=\count415
-\c@savedpageref=\count416
-\shorthandwidth=\skip70
-\shortjournalwidth=\skip71
-\shortserieswidth=\skip72
-\shorttitlewidth=\skip73
-\shortauthorwidth=\skip74
-\shorteditorwidth=\skip75
-\locallabelnumberwidth=\skip76
-\locallabelalphawidth=\skip77
-\localshorthandwidth=\skip78
-\localshortjournalwidth=\skip79
-\localshortserieswidth=\skip80
-\localshorttitlewidth=\skip81
-\localshortauthorwidth=\skip82
-\localshorteditorwidth=\skip83
+\c@afterword=\count359
+\c@savedafterword=\count360
+\c@annotator=\count361
+\c@savedannotator=\count362
+\c@author=\count363
+\c@savedauthor=\count364
+\c@bookauthor=\count365
+\c@savedbookauthor=\count366
+\c@commentator=\count367
+\c@savedcommentator=\count368
+\c@editor=\count369
+\c@savededitor=\count370
+\c@editora=\count371
+\c@savededitora=\count372
+\c@editorb=\count373
+\c@savededitorb=\count374
+\c@editorc=\count375
+\c@savededitorc=\count376
+\c@foreword=\count377
+\c@savedforeword=\count378
+\c@holder=\count379
+\c@savedholder=\count380
+\c@introduction=\count381
+\c@savedintroduction=\count382
+\c@namea=\count383
+\c@savednamea=\count384
+\c@nameb=\count385
+\c@savednameb=\count386
+\c@namec=\count387
+\c@savednamec=\count388
+\c@translator=\count389
+\c@savedtranslator=\count390
+\c@shortauthor=\count391
+\c@savedshortauthor=\count392
+\c@shorteditor=\count393
+\c@savedshorteditor=\count394
+\c@labelname=\count395
+\c@savedlabelname=\count396
+\c@institution=\count397
+\c@savedinstitution=\count398
+\c@lista=\count399
+\c@savedlista=\count400
+\c@listb=\count401
+\c@savedlistb=\count402
+\c@listc=\count403
+\c@savedlistc=\count404
+\c@listd=\count405
+\c@savedlistd=\count406
+\c@liste=\count407
+\c@savedliste=\count408
+\c@listf=\count409
+\c@savedlistf=\count410
+\c@location=\count411
+\c@savedlocation=\count412
+\c@organization=\count413
+\c@savedorganization=\count414
+\c@origlocation=\count415
+\c@savedoriglocation=\count416
+\c@origpublisher=\count417
+\c@savedorigpublisher=\count418
+\c@publisher=\count419
+\c@savedpublisher=\count420
+\c@language=\count421
+\c@savedlanguage=\count422
+\c@origlanguage=\count423
+\c@savedoriglanguage=\count424
+\c@pageref=\count425
+\c@savedpageref=\count426
+\shorthandwidth=\skip74
+\shortjournalwidth=\skip75
+\shortserieswidth=\skip76
+\shorttitlewidth=\skip77
+\shortauthorwidth=\skip78
+\shorteditorwidth=\skip79
+\locallabelnumberwidth=\skip80
+\locallabelalphawidth=\skip81
+\localshorthandwidth=\skip82
+\localshortjournalwidth=\skip83
+\localshortserieswidth=\skip84
+\localshorttitlewidth=\skip85
+\localshortauthorwidth=\skip86
+\localshorteditorwidth=\skip87
 Package biblatex Info: Trying to load compatibility code...
 Package biblatex Info: ... file 'blx-compat.def' found.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\blx-compat.def
@@ -504,19 +561,19 @@ Package biblatex Info: Trying to load generic definitions...
 Package biblatex Info: ... file 'biblatex.def' found.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex\biblatex.def
 File: biblatex.def 2022/02/02 v3.17 biblatex compatibility (PK/MW)
-\c@textcitecount=\count417
-\c@textcitetotal=\count418
-\c@textcitemaxnames=\count419
-\c@biburlbigbreakpenalty=\count420
-\c@biburlbreakpenalty=\count421
-\c@biburlnumpenalty=\count422
-\c@biburlucpenalty=\count423
-\c@biburllcpenalty=\count424
+\c@textcitecount=\count427
+\c@textcitetotal=\count428
+\c@textcitemaxnames=\count429
+\c@biburlbigbreakpenalty=\count430
+\c@biburlbreakpenalty=\count431
+\c@biburlnumpenalty=\count432
+\c@biburlucpenalty=\count433
+\c@biburllcpenalty=\count434
 \biburlbigskip=\muskip18
 \biburlnumskip=\muskip19
 \biburlucskip=\muskip20
 \biburllcskip=\muskip21
-\c@smartand=\count425
+\c@smartand=\count435
 )
 Package biblatex Info: Trying to load bibliography style 'ieee'...
 Package biblatex Info: ... file 'ieee.bbx' found.
@@ -534,17 +591,17 @@ Package biblatex Info: Trying to load bibliography style 'standard'...
 Package biblatex Info: ... file 'standard.bbx' found.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex/bbx\standard.bbx
 File: standard.bbx 2022/02/02 v3.17 biblatex bibliography style (PK/MW)
-\c@bbx:relatedcount=\count426
-\c@bbx:relatedtotal=\count427
+\c@bbx:relatedcount=\count436
+\c@bbx:relatedtotal=\count437
 ))))
 Package biblatex Info: Trying to load citation style 'numeric-comp'...
 Package biblatex Info: ... file 'numeric-comp.cbx' found.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/biblatex/cbx\numeric-comp.cbx
 File: numeric-comp.cbx 2022/02/02 v3.17 biblatex citation style (PK/MW)
-\c@cbx@tempcnta=\count428
-\c@cbx@tempcntb=\count429
-\c@cbx@tempcntc=\count430
-\c@cbx@tempcntd=\count431
+\c@cbx@tempcnta=\count438
+\c@cbx@tempcntb=\count439
+\c@cbx@tempcntc=\count440
+\c@cbx@tempcntd=\count441
 Package biblatex Info: Redefining '\cite'.
 Package biblatex Info: Redefining '\parencite'.
 Package biblatex Info: Redefining '\footcite'.
@@ -568,8 +625,8 @@ Package biblatex Info: Document encoding is UTF8 ....
 Package: expl3 2022-04-20 L3 programming layer (loader) 
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-pdftex.def
 File: l3backend-pdftex.def 2022-04-20 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count432
-\l__pdf_internal_box=\box57
+\l__color_backend_stack_int=\count442
+\l__pdf_internal_box=\box63
 ))
 Package biblatex Info: ... and expl3
 (biblatex)             2022-04-20 L3 programming layer (loader) 
@@ -580,35 +637,36 @@ Package: xparse 2022-01-12 L3 Experimental document command parser
 )
 Package: blx-case-expl3 2022/02/02 v3.17 expl3 case changing code for biblatex
 ))
-\c@theorem=\count433
+\c@proposition=\count443
+\c@definition=\count444
 
 
 Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 (biblatex)                Loading 'csquotes' recommended.
 
-\@quotelevel=\count434
-\@quotereset=\count435
-(Complex_Processes_Chapter.aux)
-\openout1 = `Complex_Processes_Chapter.aux'.
+\@quotelevel=\count445
+\@quotereset=\count446
+(Flow_Capacity_Chapter.aux)
+\openout1 = `Flow_Capacity_Chapter.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -646,24 +704,33 @@ LaTeX Font Info:    ... okay on input line 44.
 
 (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count436
-\scratchdimen=\dimen179
-\scratchbox=\box58
-\nofMPsegments=\count437
-\nofMParguments=\count438
-\everyMPshowfont=\toks36
-\MPscratchCnt=\count439
-\MPscratchDim=\dimen180
-\MPnumerator=\count440
-\makeMPintoPDFobject=\count441
-\everyMPtoPDFconversion=\toks37
+\scratchcounter=\count447
+\scratchdimen=\dimen189
+\scratchbox=\box64
+\nofMPsegments=\count448
+\nofMParguments=\count449
+\everyMPshowfont=\toks38
+\MPscratchCnt=\count450
+\MPscratchDim=\dimen190
+\MPnumerator=\count451
+\makeMPintoPDFobject=\count452
+\everyMPtoPDFconversion=\toks39
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 44.
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: float package is loaded.
+Package caption Info: hyperref package is loaded.
+Package caption Info: longtable package is loaded.
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/caption\ltcaption.sty
+Package: ltcaption 2021/01/08 v1.4c longtable captions (AR)
+)
+Package caption Info: threeparttable package is loaded.
+Package caption Info: End \AtBeginDocument code.
+Package hyperref Info: Link coloring OFF on input line 56.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
 Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.sty
@@ -671,14 +738,14 @@ Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
 ) (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\gettitlestring.sty
 Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
-\c@section@level=\count442
+\c@section@level=\count453
 )
-LaTeX Info: Redefining \ref on input line 44.
-LaTeX Info: Redefining \pageref on input line 44.
-LaTeX Info: Redefining \nameref on input line 44.
- (Complex_Processes_Chapter.out) (Complex_Processes_Chapter.out)
+LaTeX Info: Redefining \ref on input line 56.
+LaTeX Info: Redefining \pageref on input line 56.
+LaTeX Info: Redefining \nameref on input line 56.
+ (Flow_Capacity_Chapter.out) (Flow_Capacity_Chapter.out)
 \@outlinefile=\write4
-\openout4 = `Complex_Processes_Chapter.out'.
+\openout4 = `Flow_Capacity_Chapter.out'.
 
 Package biblatex Info: Trying to load language 'british'...
 Package biblatex Info: ... file 'british.lbx' found.
@@ -692,166 +759,199 @@ File: english.lbx 2022/02/02 v3.17 biblatex localization (PK/MW)
 Package biblatex Info: Input encoding 'utf8' detected.
 Package biblatex Info: Automatic encoding selection.
 (biblatex)             Assuming data encoding 'utf8'.
-\openout3 = `Complex_Processes_Chapter.bcf'.
+\openout3 = `Flow_Capacity_Chapter.bcf'.
 
 Package biblatex Info: Trying to load bibliographic data...
-Package biblatex Info: ... file 'Complex_Processes_Chapter.bbl' found.
- (Complex_Processes_Chapter.bbl)
-Package biblatex Info: Reference section=0 on input line 44.
-Package biblatex Info: Reference segment=0 on input line 44.
-
-
-pdfTeX warning: pdflatex (file ./figures//fig01_mapping/fig01_mapping.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<figures//fig01_mapping/fig01_mapping.pdf, id=61, 516.93124pt x 502.87875pt>
-File: figures//fig01_mapping/fig01_mapping.pdf Graphic file (type pdf)
-<use figures//fig01_mapping/fig01_mapping.pdf>
-Package pdftex.def Info: figures//fig01_mapping/fig01_mapping.pdf  used on input line 92.
-(pdftex.def)             Requested size: 353.31439pt x 343.71788pt.
-[1
-
-{C:/Users/ohian/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}] [2
-pdfTeX warning (ext4): destination with the same identifier (name{figure.0.1}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.111 
-       <./figures//fig01_mapping/fig01_mapping.pdf>]
-
-pdfTeX warning: pdflatex (file ./figures//fig02_roles/fig02_roles.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<figures//fig02_roles/fig02_roles.pdf, id=85, 308.15125pt x 506.89375pt>
-File: figures//fig02_roles/fig02_roles.pdf Graphic file (type pdf)
-<use figures//fig02_roles/fig02_roles.pdf>
-Package pdftex.def Info: figures//fig02_roles/fig02_roles.pdf  used on input line 124.
-(pdftex.def)             Requested size: 226.48395pt x 372.5663pt.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 136.
-(C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
+Package biblatex Info: ... file 'Flow_Capacity_Chapter.bbl' found.
+ (Flow_Capacity_Chapter.bbl)
+Package biblatex Info: Reference section=0 on input line 56.
+Package biblatex Info: Reference segment=0 on input line 56.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 100.
+ (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 136.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 100.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [3] [4
-pdfTeX warning (ext4): destination with the same identifier (name{figure.0.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.188 
-      
-pdfTeX warning (ext4): destination with the same identifier (name{table.0.1}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.188 
-       <./figures//fig02_roles/fig02_roles.pdf>] [5]
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 233.
- [6]
-LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 308.
+) [1
+
+{C:/Users/ohian/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}] [2]
+
+pdfTeX warning: pdflatex (file ./figures//toy_siso_symbolic.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//toy_siso_symbolic.pdf, id=144, 373.395pt x 162.6075pt>
+File: figures//toy_siso_symbolic.pdf Graphic file (type pdf)
+<use figures//toy_siso_symbolic.pdf>
+Package pdftex.def Info: figures//toy_siso_symbolic.pdf  used on input line 167.
+(pdftex.def)             Requested size: 317.07614pt x 138.088pt.
+[3 <./figures//toy_siso_symbolic.pdf>]
+
+pdfTeX warning: pdflatex (file ./figures//msss_original.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//msss_original.pdf, id=167, 364.36125pt x 178.6675pt>
+File: figures//msss_original.pdf Graphic file (type pdf)
+<use figures//msss_original.pdf>
+Package pdftex.def Info: figures//msss_original.pdf  used on input line 212.
+(pdftex.def)             Requested size: 212.89546pt x 104.39328pt.
+
+
+pdfTeX warning: pdflatex (file ./figures//msss_super_reduction.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//msss_super_reduction.pdf, id=168, 516.93124pt x 162.6075pt>
+File: figures//msss_super_reduction.pdf Graphic file (type pdf)
+<use figures//msss_super_reduction.pdf>
+Package pdftex.def Info: figures//msss_super_reduction.pdf  used on input line 218.
+(pdftex.def)             Requested size: 212.89546pt x 66.96973pt.
+[4 <./figures//msss_original.pdf> <./figures//msss_super_reduction.pdf
+
+pdfTeX warning: pdflatex (file ./figures//msss_super_reduction.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+
+pdfTeX warning: pdflatex (file ./figures//nodecap_original.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//nodecap_original.pdf, id=202, 403.5075pt x 179.67125pt>
+File: figures//nodecap_original.pdf Graphic file (type pdf)
+<use figures//nodecap_original.pdf>
+Package pdftex.def Info: figures//nodecap_original.pdf  used on input line 273.
+(pdftex.def)             Requested size: 212.89546pt x 94.7976pt.
+
+
+pdfTeX warning: pdflatex (file ./figures//nodecap_split_equivalent.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//nodecap_split_equivalent.pdf, id=203, 566.115pt x 160.6pt>
+File: figures//nodecap_split_equivalent.pdf Graphic file (type pdf)
+<use figures//nodecap_split_equivalent.pdf>
+Package pdftex.def Info: figures//nodecap_split_equivalent.pdf  used on input line 279.
+(pdftex.def)             Requested size: 212.89546pt x 60.39392pt.
+[5] [6 <./figures//nodecap_original.pdf> <./figures//nodecap_split_equivalent.pdf
+
+pdfTeX warning: pdflatex (file ./figures//nodecap_split_equivalent.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>]
+LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 324.
  (C:\Users\ohian\AppData\Local\Programs\MiKTeX\tex/latex/base\t1cmtt.fd
 File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
-) [7] [8]
-Underfull \hbox (badness 3930) in paragraph at lines 401--401
-[]|\T1/cmr/m/n/10.95 Network struc-
- []
+)
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 364.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 402--403
-[]|\T1/cmr/m/n/10.95 Format de-tec-ted in
- []
+LaTeX Warning: `h' float specifier changed to `ht'.
 
+[7
 
-Underfull \hbox (badness 10000) in paragraph at lines 402--403
-\T1/cmr/m/n/10.95 stages; self-loops and
- []
+] [8]
 
+pdfTeX warning: pdflatex (file ./figures//flow_toolkit_workflow.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//flow_toolkit_workflow.pdf, id=270, 915.42pt x 723.70375pt>
+File: figures//flow_toolkit_workflow.pdf Graphic file (type pdf)
+<use figures//flow_toolkit_workflow.pdf>
+Package pdftex.def Info: figures//flow_toolkit_workflow.pdf  used on input line 441.
+(pdftex.def)             Requested size: 531.65636pt x 420.3084pt.
 
-Underfull \hbox (badness 2409) in paragraph at lines 403--403
-[]|\T1/cmr/m/n/10.95 Node prior file and edge
- []
-
-
-Underfull \hbox (badness 3746) in paragraph at lines 403--403
-\T1/cmr/m/n/10.95 prob-ab-il-ity file, keyed to
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 404--404
-[]|\T1/cmtt/m/n/10.95 Float64\T1/cmr/m/n/10.95 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 404--404
-\T1/cmtt/m/n/10.95 Interval\T1/cmr/m/n/10.95 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 404--406
-[]|\T1/cmr/m/n/10.95 Values in $\OT1/cmr/m/n/10.95 [0\OML/cmm/m/it/10.95 ; \OT1/cmr/m/n/10.95 1]$\T1/cmr/m/n/10.95 ;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 404--406
-\T1/cmtt/m/n/10.95 data_type \T1/cmr/m/n/10.95 se-lects the
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 407--408
-[]|\T1/cmr/m/n/10.95 Non-negative and not
- []
-
-
-Underfull \hbox (badness 1303) in paragraph at lines 407--408
-\T1/cmr/m/n/10.95 NaN; in-fin-ity token ac-
- []
-
-
-Underfull \hbox (badness 2158) in paragraph at lines 408--409
-[]|\T1/cmr/m/n/10.95 Time sec-tion (node dur-a-
- []
-
-
-Underfull \hbox (badness 2197) in paragraph at lines 408--409
-\T1/cmr/m/n/10.95 tions, edge delays, ini-tial
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 409--409
-[]|\T1/cmtt/m/n/10.95 Float64\T1/cmr/m/n/10.95 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 409--411
-[]|\T1/cmr/m/n/10.95 Unit-agnostic; mode
- []
-
-
-Overfull \hbox (2.70732pt too wide) in paragraph at lines 397--413
+Overfull \hbox (78.68846pt too wide) in paragraph at lines 441--442
  [][] 
  []
 
-[9] [10
-pdfTeX warning (ext4): destination with the same identifier (name{table.0.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.467 
-      ] [11] [12
+[9] [10 <./figures//flow_toolkit_workflow.pdf>] [11] [12] [13] [14] [15] [16]
+Overfull \hbox (5.97977pt too wide) in paragraph at lines 695--700
+[]\T1/cmr/m/n/12 The maximum-flow value was com-puted by all three solv-ers and by the \T1/cmtt/m/n/12 GraphsFlows.jl
+ []
 
-] (Complex_Processes_Chapter.aux)
-Package rerunfilecheck Info: File `Complex_Processes_Chapter.out' has not changed.
-(rerunfilecheck)             Checksum: DA37DED9DDD68B5553F8C92C82316338;1750.
-Package logreq Info: Writing requests to 'Complex_Processes_Chapter.run.xml'.
-\openout1 = `Complex_Processes_Chapter.run.xml'.
+[17] [18] [19] [20] [21]
+Overfull \hbox (4.11919pt too wide) in paragraph at lines 825--846
+ [][] 
+ []
+
+
+
+pdfTeX warning: pdflatex (file ./figures//critical_overlay_config_a.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//critical_overlay_config_a.pdf, id=381, 1204.5pt x 611.28375pt>
+File: figures//critical_overlay_config_a.pdf Graphic file (type pdf)
+<use figures//critical_overlay_config_a.pdf>
+Package pdftex.def Info: figures//critical_overlay_config_a.pdf  used on input line 853.
+(pdftex.def)             Requested size: 452.9679pt x 229.88376pt.
+<figures//critical_bars_config_ab.pdf, id=382, 563.70598pt x 419.166pt>
+File: figures//critical_bars_config_ab.pdf Graphic file (type pdf)
+<use figures//critical_bars_config_ab.pdf>
+Package pdftex.def Info: figures//critical_bars_config_ab.pdf  used on input line 862.
+(pdftex.def)             Requested size: 452.9679pt x 336.82991pt.
+
+Overfull \hbox (4.11919pt too wide) in paragraph at lines 877--886
+ [][] 
+ []
+
+[22] [23 <./figures//critical_overlay_config_a.pdf> <./figures//critical_bars_config_ab.pdf>]
+Overfull \hbox (58.571pt too wide) in paragraph at lines 905--906
+\T1/cmr/m/n/12 is upgrade-effective in both con-fig-ur-a-tions with \T1/cmtt/m/n/12 required_increase\T1/cmr/m/n/12 =1.0 (\T1/cmtt/m/n/12 required_capacity\T1/cmr/m/n/12 =4.0).
+ []
+
+
+
+pdfTeX warning: pdflatex (file ./figures//flagship_network_a.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//flagship_network_a.pdf, id=447, 1211.52625pt x 606.265pt>
+File: figures//flagship_network_a.pdf Graphic file (type pdf)
+<use figures//flagship_network_a.pdf>
+Package pdftex.def Info: figures//flagship_network_a.pdf  used on input line 930.
+(pdftex.def)             Requested size: 452.9679pt x 226.67351pt.
+
+
+pdfTeX warning: pdflatex (file ./figures//flagship_network_b.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
+<figures//flagship_network_b.pdf, id=448, 1211.52625pt x 606.265pt>
+File: figures//flagship_network_b.pdf Graphic file (type pdf)
+<use figures//flagship_network_b.pdf>
+Package pdftex.def Info: figures//flagship_network_b.pdf  used on input line 941.
+(pdftex.def)             Requested size: 452.9679pt x 226.67351pt.
+<figures//sensitivity_ranking_ab.pdf, id=449, 975.645pt x 404.712pt>
+File: figures//sensitivity_ranking_ab.pdf Graphic file (type pdf)
+<use figures//sensitivity_ranking_ab.pdf>
+Package pdftex.def Info: figures//sensitivity_ranking_ab.pdf  used on input line 960.
+(pdftex.def)             Requested size: 504.3609pt x 209.21637pt.
+
+Overfull \hbox (51.393pt too wide) in paragraph at lines 956--961
+ [][] 
+ []
+
+<figures//degradation_trajectory.pdf, id=450, 578.16pt x 332.44202pt>
+File: figures//degradation_trajectory.pdf Graphic file (type pdf)
+<use figures//degradation_trajectory.pdf>
+Package pdftex.def Info: figures//degradation_trajectory.pdf  used on input line 971.
+(pdftex.def)             Requested size: 504.36255pt x 290.00847pt.
+
+Overfull \hbox (51.39465pt too wide) in paragraph at lines 967--972
+ [][] 
+ []
+
+<figures//sink_flow_heatmap.pdf, id=451, 520.34402pt x 361.35pt>
+File: figures//sink_flow_heatmap.pdf Graphic file (type pdf)
+<use figures//sink_flow_heatmap.pdf>
+Package pdftex.def Info: figures//sink_flow_heatmap.pdf  used on input line 982.
+(pdftex.def)             Requested size: 504.39168pt x 350.27199pt.
+
+Overfull \hbox (51.42378pt too wide) in paragraph at lines 978--983
+ [][] 
+ []
+
+[24] [25] [26 <./figures//flagship_network_a.pdf> <./figures//flagship_network_b.pdf
+
+pdfTeX warning: pdflatex (file ./figures//flagship_network_b.pdf): PDF inclusion: multiple pdfs with page group included in a single page
+>] [27 <./figures//sensitivity_ranking_ab.pdf> <./figures//degradation_trajectory.pdf>] [28 <./figures//sink_flow_heatmap.pdf>] [29
+
+] [30] [31] [32] [33
+
+] [34] (Flow_Capacity_Chapter.aux)
+Package rerunfilecheck Info: File `Flow_Capacity_Chapter.out' has not changed.
+(rerunfilecheck)             Checksum: 8A7E147455C651259F8BE84875AAA43B;3979.
+Package logreq Info: Writing requests to 'Flow_Capacity_Chapter.run.xml'.
+\openout1 = `Flow_Capacity_Chapter.run.xml'.
 
  )
-(\end occurred when \ifdefined on line 468 was incomplete) 
+(\end occurred when \ifdefined on line 1178 was incomplete) 
 Here is how much of TeX's memory you used:
- 20027 strings out of 478547
- 351928 string characters out of 2841835
- 1083461 words of memory out of 3000000
- 37941 multiletter control sequences out of 15000+600000
- 486674 words of font info for 68 fonts, out of 8000000 for 9000
+ 22262 strings out of 478547
+ 396931 string characters out of 2841835
+ 1119687 words of memory out of 3000000
+ 40030 multiletter control sequences out of 15000+600000
+ 495425 words of font info for 92 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 60i,11n,68p,901b,2380s stack positions out of 10000i,1000n,20000p,200000b,80000s
- <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\eccc1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx2488.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ectt1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ectt1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0800.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1000.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1728.pk><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on Complex_Processes_Chapter.pdf (12 pages, 297901 bytes).
+ 67i,17n,77p,1150b,2380s stack positions out of 10000i,1000n,20000p,200000b,80000s
+ <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\eccc1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx2488.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ectt1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0600.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1000.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0700.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm0800.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ectt1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1095.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\ohian\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1728.pk><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi6.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy6.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/ohian/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on Flow_Capacity_Chapter.pdf (34 pages, 727258 bytes).
 PDF statistics:
- 623 PDF objects out of 1000 (max. 8388607)
- 40 named destinations out of 1000 (max. 500000)
- 107 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1317 PDF objects out of 1440 (max. 8388607)
+ 137 named destinations out of 1000 (max. 500000)
+ 242 words of extra memory for PDF output out of 10000 (max. 10000000)
 

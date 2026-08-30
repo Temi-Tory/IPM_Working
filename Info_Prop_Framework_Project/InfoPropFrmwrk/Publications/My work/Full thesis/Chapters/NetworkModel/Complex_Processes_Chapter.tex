@@ -72,16 +72,15 @@ towards a delivery point, the relation between
 two connected components is already directed. For example, water leaves the intake and arrives
 at the pump, and the pump does not supply the intake. Hence the direction of an edge is read off the system.
 
-The model further requires that the directed edges form no cycle. For a large class of the
-systems of interest this is simply true. For example, treatment trains, supply chains, assembly
+The model further requires that the directed edges form no cycle. For many of the systems of interest this
+holds without further assumption. For example, treatment trains, supply chains, assembly
 processes and project schedules move material or work strictly forward, and a dependency cycle
-in a schedule would be a planning error. For other systems, however, acyclicity is an
-orientation of a richer reality.
+in a schedule would be a planning error. For other systems, however, acyclicity is
+imposed by orienting the network.
 A distribution pipe can in principle carry water in either direction, but a network operating
 around its design flows has a dominant direction on every pipe, and orienting each edge by that
-dominant flow gives a directed acyclic snapshot of the operating regime. What the orientation
-gives up is the analysis of regimes far from the snapshot, such as flow reversal under unusual
-demand, recirculation loops and feedback control. The model excludes these by design, and
+dominant flow gives a directed acyclic snapshot of the operating regime. The orientation excludes regimes far from the snapshot, such as flow reversal under unusual
+demand, recirculation loops and feedback control, and
 Section~\ref{sec:model-assumptions} returns to what that exclusion means for the results.
 Figure~\ref{fig:model-mapping} shows the mapping on a small treatment process. The process
 duplicates its treatment stage, and the duplication appears in the graph as a pair of parallel
@@ -110,15 +109,14 @@ routes to the same destination begins with one component supplying two. Finally,
 two or more components is a join. This is where distributed flows gather, where assembled parts
 meet, and where redundant routes come back together.
 
-The last of these readings is a fact about engineered systems as well as about graphs. A
-robust system duplicates its critical routes by design, and duplicated routes must
-reconverge at the destination they protect. A well-designed network therefore contains many
+A robust system duplicates its critical routes, and duplicated routes must reconverge at
+the destination they protect. A well-designed network therefore contains many
 pairs of paths that separate at a fork and meet again at a join while sharing the components
 upstream of the fork. Whether that sharing matters depends on the question being asked.
 Chapter~\ref{ch:diamond-module} makes the pattern precise, and
 Chapter~\ref{ch:probability-toolkit} shows that for the probabilistic reading of the model,
-ignoring it gives wrong answers. For the present chapter it is enough to note that
-reconvergence is a designed feature of the systems being modelled. Figure~\ref{fig:model-roles}
+ignoring it gives wrong answers. For the present chapter it is enough to note that reconvergence is common in the systems
+being modelled. Figure~\ref{fig:model-roles}
 shows it on a small network.
 
 \begin{figure}[htbp]
@@ -210,11 +208,11 @@ every parent of every node in $L_i$ lies in a layer already processed, so each n
 once with its parents resolved, and there are $k$ layers.
 \end{proof}
 
-The theorem matters for the framework in two ways. First, every analysis in the following
-chapters is an exact method with no iterative convergence loop. Hence a fixed processing order
-declared once serves all of them, and the number of steps is known from the structure before
-any analysis runs. Second, nodes within a layer share no dependency, so a layer is a natural
-boundary for parallel processing by any algorithm that supports it. The layers are computed by a
+Every analysis in the following chapters is an exact method with no iterative convergence
+loop. Hence a fixed processing order declared once serves all of them, and the number of
+steps is known from the structure before any analysis runs. Nodes within a layer also share
+no dependency, so a layer is a natural boundary for parallel processing by any algorithm
+that supports it. The layers are computed by a
 depth-partitioned form of Kahn's algorithm, shown as Algorithm~\ref{alg:find-iteration-sets},
 which takes the sources as the first layer, removes them, and takes the nodes that become
 sources as the next. In the implementation the layers are called iteration sets.
@@ -262,7 +260,7 @@ by the number of such queries the decomposition and propagation algorithms make.
 \section{Information on the Network}
 \label{sec:model-information}
 
-The model separates what the network is from what is asked of it. The topology of
+The topology of the network and the values attached to it are held separately. The topology of
 Definition~\ref{def:model-network} is fixed once per system, and an analysis attaches values to
 its nodes and edges whose meaning depends on the question. Under the probabilistic reading a
 node's value is the probability that the component operates and an edge's value the
@@ -312,8 +310,7 @@ schemas, and the framework asks the user to perform that reduction, supplying th
 one of the two forms described in Section~\ref{sec:model-input-structure}. Values describing the behaviour of the system, such as a capacity or a failure
 probability, are a separate layer of information over that structure, and a source dataset may
 combine the two. The input module treats structure and analysis inputs as two layers of one
-model, parses each from its own file, and produces the graph object every analysis reads. It is
-the single mandatory entry point of the framework: no analysis can be invoked without it.
+model, parses each from its own file, and produces the graph object every analysis reads. It is the entry point of the framework, and no analysis can be invoked without it.
 
 \subsection{Network structure files}
 \label{sec:model-input-structure}

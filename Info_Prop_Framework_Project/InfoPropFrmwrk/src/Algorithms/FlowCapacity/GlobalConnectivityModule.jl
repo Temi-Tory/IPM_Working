@@ -157,15 +157,29 @@ function _remap_for_node_connectivity(
 )::NamedTuple
     nodes = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
 
-    source_mapped = Int64(-1)
-    sink_mapped   = Int64(-3)
-
-    # Guard: -1 and -3 are reserved mapped IDs; collision would silently corrupt the split graph.
-    orig_nodes_set = Set(nodes)
-    (source_mapped in orig_nodes_set || sink_mapped in orig_nodes_set) && throw(ArgumentError(
-        "Node IDs -1 or -3 are reserved for internal remapping in node_connectivity. " *
-        "Remap your node IDs to positive integers before calling this function."
+    # Reserved mapped IDs are derived from this call's own node range (min(nodes)-1,
+    # min(nodes)-2) rather than fixed constants (formerly -1/-3), so they can never
+    # collide with a real node ID no matter how the caller's graph is numbered.
+    # Fixed sentinels broke on a 0-indexed graph: `edge_connectivity`/`node_connectivity`
+    # already inject their own synthetic super-sink at min(nodes)-1 one layer up
+    # (`_super_sink_id`), which lands on exactly -1 when the caller's minimum node ID
+    # is 0 -- colliding with the old hardcoded `source_mapped = -1` here.
+    min_node = nodes[1]
+    min_node == typemin(Int64) && throw(ArgumentError(
+        "Cannot construct internal remap IDs via minimum(nodes)-1/-2: minimum node ID is typemin(Int64)."
     ))
+    source_mapped = try
+        Base.checked_sub(min_node, Int64(1))
+    catch err
+        err isa OverflowError || rethrow(err)
+        throw(ArgumentError("Node ID range too large in magnitude for internal remapping (min node $min_node)."))
+    end
+    sink_mapped = try
+        Base.checked_sub(min_node, Int64(2))
+    catch err
+        err isa OverflowError || rethrow(err)
+        throw(ArgumentError("Node ID range too large in magnitude for internal remapping (min node $min_node)."))
+    end
 
     orig_to_mapped = Dict{Int64,Int64}()
     mapped_to_orig = Dict{Int64,Int64}()
