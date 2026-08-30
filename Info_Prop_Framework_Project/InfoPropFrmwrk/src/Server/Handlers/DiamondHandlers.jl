@@ -124,6 +124,25 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
 
                 prior_type = typeof(first(values(node_priors)))
                 cache = Dict{CacheKey, DiamondCacheEntry{prior_type}}()
+
+                # Re-identify diamonds SCOPED TO THIS SUBGRAPH. `diamond_data.sub_diamond_structures`
+                # and the global `unique_diamonds` carry nested diamonds whose `relevant_nodes` were
+                # computed against the full graph — they can reference nodes upstream of this
+                # subgraph's sources (not in `node_priors`), which makes `update_beliefs_iterative`
+                # throw a KeyError when it recurses. Running `new_identify` on the isolated edge list
+                # gives a self-consistent structure + lookup for the subgraph.
+                sub_structures, sub_lookup = new_identify(
+                    diamond_data.diamond.edgelist,
+                    node_priors,
+                    edge_probabilities,
+                    diamond_data.sub_sources,
+                    diamond_data.sub_fork_nodes,
+                    diamond_data.sub_join_nodes,
+                    diamond_data.sub_ancestors,
+                    diamond_data.sub_descendants,
+                    diamond_data.sub_iteration_sets,
+                )
+
                 beliefs = update_beliefs_iterative(
                     diamond_data.diamond.edgelist,
                     diamond_data.sub_iteration_sets,
@@ -134,10 +153,10 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
                     edge_probabilities,
                     diamond_data.sub_descendants,
                     diamond_data.sub_ancestors,
-                    diamond_data.sub_diamond_structures,
+                    sub_structures,
                     diamond_data.sub_join_nodes,
                     diamond_data.sub_fork_nodes,
-                    unique_diamonds,
+                    sub_lookup,
                     cache,
                 )
 
