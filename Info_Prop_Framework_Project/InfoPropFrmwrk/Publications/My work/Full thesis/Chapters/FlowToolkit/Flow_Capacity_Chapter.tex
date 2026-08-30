@@ -62,21 +62,19 @@
 \section{Introduction}
 \label{sec:flow-intro}
 
-This chapter presents the Capacity Flow Toolkit, which implements the capacity reading of
-the network model. In this reading the value attached to an edge is the most that can pass
-along it, and the value attached to a node is the most that can pass through it. The
-question is how much the network can deliver from its sources to its sinks, and what limits
-that amount. The toolkit reads the graph object of Chapter~\ref{ch:system-model} directly,
-uses neither the layered iteration sets nor the Network Decomposition Module of
-Chapter~\ref{ch:diamond-module}, and is point-valued: every capacity is a single number, and
-no interval or probability-box propagation is claimed for this reading.
-
-The probabilistic reading of Chapter~\ref{ch:probability-toolkit} asks whether supply reaches
-a node. For a network that carries a resource this is not enough, because a connected
-network in a degraded state can deliver far less than the demand at its sinks. The capacity
-reading asks how much is delivered, and the toolkit is a set of modules built on the
-maximum-flow minimum-cut theory reviewed in Chapter~\ref{ch:lit-review}. Given a capacitated
-DAG, it answers six questions:
+A network that is connected can still fail to deliver. When a pipe is throttled, a feeder is
+derated or a treatment stage is running below its design rate, supply reaches every demand
+point and the amount that arrives is short of what is needed. The probabilistic
+interpretation of Chapter~\ref{ch:probability-toolkit} asks whether supply reaches a node;
+the capacity interpretation asks how much, and what limits it. Under this interpretation the
+value attached to an edge is the most that can pass along it and the value attached to a
+node is the most that can pass through it. The Capacity Flow Toolkit is the set of modules
+that answers the second question. It reads the graph object of Chapter~\ref{ch:system-model}
+directly, uses neither the layered iteration sets nor the Network Decomposition Module of
+Chapter~\ref{ch:diamond-module}, and is point-valued: every capacity is a single number,
+and no interval or probability-box propagation is claimed for this interpretation. Built on
+the maximum-flow minimum-cut theory reviewed in Chapter~\ref{ch:lit-review}, the toolkit
+answers six questions about a capacitated DAG:
 
 \begin{enumerate}[label=\textbf{Q\arabic*.}]
     \item What maximum throughput can the network deliver under its current capacities?
@@ -89,27 +87,20 @@ DAG, it answers six questions:
     \item Which components are single points of failure?
 \end{enumerate}
 
-The contributions of this chapter are the following. The flow model is stated with its
-reductions for several sources and sinks and for node capacities, each proved exact. Three
-maximum-flow solvers are provided on one graph object, with post-solve checks on every
-result. The six questions are answered by modules that share one baseline solve. These include an
-enumeration of every minimum cut through the residual lattice, failure analyses over
-brute-force and candidate-restricted sets, and a parametric threshold method that uses the
-piecewise-linear dependence of the maximum flow on a single capacity. Every module is
-validated against an independent computation on a corpus of twelve networks and on
-generated instances of up to $10^5$ edges, and the toolkit is applied to the IEEE
-Reliability Test System.
-
-The rest of the chapter is structured as follows. Section~\ref{sec:flow-background} recalls
-the results from Chapter~\ref{ch:lit-review} on which the toolkit builds.
-Section~\ref{sec:flow-model} states the flow model and its two reductions.
-Section~\ref{sec:flow-solvers} describes the three solvers. Section~\ref{sec:flow-questions}
-takes the six questions in turn and describes the module that answers each.
-Section~\ref{sec:flow-cost} gives the cost of every module in terms of solver calls.
-Section~\ref{sec:flow-validation} describes the validation, and Section~\ref{sec:flow-cases}
-gives a worked example, the IEEE RTS-24 case study and the scaling results.
-Section~\ref{sec:flow-discussion} discusses limitations and extensions, and
-Section~\ref{sec:flow-summary} concludes the chapter.
+What is new in this chapter is the collection of these answers on one graph object, with
+every one of them checked. The flow model is stated with its reductions for several sources
+and sinks and for node capacities, each proved exact (Section~\ref{sec:flow-model}). Three
+maximum-flow solvers are provided, with post-solve checks on every result
+(Section~\ref{sec:flow-solvers}). The six questions are answered by modules that share one
+baseline solve, among them an enumeration of every minimum cut through the residual lattice,
+failure analyses over brute-force and candidate-restricted sets, and a parametric threshold
+method that uses the piecewise-linear dependence of the maximum flow on a single capacity
+(Sections~\ref{sec:flow-questions} and~\ref{sec:flow-cost}). Every module is validated
+against an independent computation on a corpus of twelve networks and on generated
+instances of up to $10^5$ edges (Section~\ref{sec:flow-validation}), and the toolkit is
+applied to the IEEE Reliability Test System (Section~\ref{sec:flow-cases}). The chapter
+closes with the limitations of a point-valued flow model and the extensions that follow from
+it. Section~\ref{sec:flow-background} first recalls what the chapter builds on.
 
 \section{Background}
 \label{sec:flow-background}
@@ -312,7 +303,7 @@ subject to
 
 \section{Maximum-Flow Solvers}
 \label{sec:flow-solvers}
-The toolkit provides three solvers for $F^\star$, summarised in Table~\ref{tab:solver_comparison}. All three read the graph object of Chapter~\ref{ch:system-model} directly, apply the super-terminal reduction of Section~\ref{sec:flow-model} when the network has more than one source or sink, and return the flow, the min-cut partition and the flow value. When node capacities are supplied the node-splitting transformation is applied before the solve and the results are mapped back to the original nodes and edges, so that edge flows, sink allocations and cut-side node sets are reported on the network as given.
+The toolkit provides three solvers for $F^\star$, summarised in Table~\ref{tab:solver_comparison}; the algorithms are standard and are described in Ahuja, Magnanti and Orlin \cite{ahuja_network_2014}. All three read the graph object of Chapter~\ref{ch:system-model} directly, apply the super-terminal reduction of Section~\ref{sec:flow-model} when the network has more than one source or sink, and return the flow, the min-cut partition and the flow value. When node capacities are supplied the node-splitting transformation is applied before the solve and the results are mapped back to the original nodes and edges, so that edge flows, sink allocations and cut-side node sets are reported on the network as given.
 
 \begin{table}[ht]
 \centering
@@ -397,7 +388,7 @@ recomputed on every call. Both Ford-Fulkerson-based solvers use this lookup stru
 but differ at step 2 in how the augmenting path is found.
 
 \paragraph{Edmonds-Karp.} 
-The Edmonds-Karp solver uses a repeated breadth-first search (BFS) to find the shortest augmenting path in the residual graph. However, since each iteration requires an explicit path reconstruction via a stored parent map, the per-iteration overhead is higher than the Dinic variant, and the $O(VE^2)$ bound makes it poorly suited for larger and denser networks. It is therefore best reserved for smaller networks where simplicity and interpretability are preferred over performance.
+The Edmonds-Karp solver \cite{edmonds_theoretical_1972} uses a repeated breadth-first search (BFS) to find the shortest augmenting path in the residual graph. However, since each iteration requires an explicit path reconstruction via a stored parent map, the per-iteration overhead is higher than the Dinic variant, and the $O(VE^2)$ bound makes it poorly suited for larger and denser networks. It is therefore best reserved for smaller networks where simplicity and interpretability are preferred over performance.
 
 \paragraph{Dinic.} 
 To avoid the one-path-at-a-time limitation of the Edmonds-Karp method, the Dinic solver alternates between level graph construction via BFS and a blocking-flow depth-first search. The level graph restricts traversal to edges $u \to v$ where $\text{level}[v] = \text{level}[u] + 1$, reducing the search space to a layered subgraph per phase. Furthermore, to avoid the $O(E)$ per-path rescanning cost of naive DFS, this variant uses a pointer cursor \texttt{ptr[u]} to track each node's position in its adjacency list, permanently skipping exhausted edges. 
@@ -449,7 +440,7 @@ The flow module solvers all compute the max flow $F^\star$ by constructing a rep
 
 The distinction matters for engineering decisions. Infrastructure systems are designed with redundancy, and in such networks several structurally distinct partitions of $V$ commonly have the same cut capacity $F^\star$.
 
-While the baseline max flow value directly addresses the first analysis objective, the utility module exploits the already-generated min-cut and residual graph to build the extended partition $S^{\star\star}$ and compute the full space of valid min-cuts. 
+While the baseline max flow value directly addresses the first analysis objective, the utility module uses the already-computed min-cut and residual graph to build the extended partition $S^{\star\star}$ and compute the full space of valid min-cuts. 
 
 Let $R_T \subseteq V$ be the set of nodes reachable via backward traversal from 
 $t^\star$ in $G_f$.
@@ -474,11 +465,11 @@ affecting its capacity. Every minimum cut of $G$ under $f^\star$ takes the form
 $S = S^\star \cup R$ for some $R \subseteq \mathcal{F}$.
 \end{definition}
 
-The free zone size $|\mathcal{F}|$ itself determines the degeneracy of the bottleneck structure. Specifically, when $|\mathcal{F}| = 0$ the minimum cut computed from the flow solver is unique and $S^\star$ is the only valid partition. For $|\mathcal{F}| > 0$ there are exactly 
+The free zone size $|\mathcal{F}|$ itself determines the degeneracy of the bottleneck structure. When $|\mathcal{F}| = 0$ the minimum cut computed from the flow solver is unique and $S^\star$ is the only valid partition. For $|\mathcal{F}| > 0$ there are exactly 
 $2^{|\mathcal{F}|}$ equivalent minimum cuts, meaning the cut boundary is not pinned 
 to a single partition. 
 
-Both the extended partition $S^{\star\star}$ and free zone $\mathcal{F}$ allow for a more complete picture of the bottleneck edge structure beyond what the representative cut alone provides. It then follows that two distinct edge sets can be derived directly from from the lattice.
+Both the extended partition $S^{\star\star}$ and free zone $\mathcal{F}$ allow for a more complete picture of the bottleneck edge structure beyond what the representative cut alone provides. It then follows that two distinct edge sets can be derived directly from the lattice.
 
  The set of edges appearing in at least one minimum cut is \[ E_{\text{some}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^{\star\star},\; v \notin S^\star\}, \] and the set appearing in every minimum cut is \[ E_{\text{every}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^\star,\; v \in T^{\star\star}\}, \] where $T^{\star\star} = V \setminus S^{\star\star}$, and $E_{\text{every}} \subseteq E_{\text{some}}$ holds by construction. 
 
@@ -491,7 +482,7 @@ Given the residual lattice, the enumerator function in this utility module itera
 \label{sec:flow-structure}
 The structural module identifies components whose importance follows from their position in $G$ alone, whatever the capacities. 
 
-Understanding the route-level structure of $G$ is a prerequisite for any path-level fragility or flow-distribution analysis. The module exposes a base path enumerator function that performs a depth-first search on the topologically sorted iteration set derived from the \texttt{InputProcessingModule}. Since $G$ is a DAG, exact enumeration is always finite; however, highly redundant networks can admit exponentially many routes, so a \texttt{path\_limit} parameter bounds the number of enumerated paths and returns a sample and not the complete set $\mathcal{P}$.
+Understanding the route-level structure of $G$ is a prerequisite for any path-level fragility or flow-distribution analysis. The module exposes a base path enumerator function that performs a depth-first search on the topologically sorted iteration set of the graph object of Chapter~\ref{ch:system-model}. Since $G$ is a DAG, exact enumeration is always finite; however, highly redundant networks can admit exponentially many routes, so a \texttt{path\_limit} parameter bounds the number of enumerated paths and returns a sample and not the complete set $\mathcal{P}$.
 
 
 \paragraph{Flow Decomposition.}
@@ -517,7 +508,7 @@ The candidate set is restricted to nodes lying on at least one $s$-$t$ path,
 \]
 where $\operatorname{fwd}(S)$ and $\operatorname{bwd}(T)$ are the sets of nodes forward-reachable from $S$ and backward-reachable from $T$ in $G$ respectively. Nodes outside $\mathcal{C}$ lie on no $s$-$t$ path and cannot be SPOF nodes. For each $v \in \mathcal{C}$, a BFS is run on $G[V \setminus \{v\}]$; if no sink in $T$ is reachable from any source in $S$, $v$ is recorded as a SPOF node. The function requires one BFS per candidate and runs in $O(|\mathcal{C}| \cdot (|V| + |E|))$ time. 
 
-Noted that in a node-capacitated network, a node appearing in the min-cut is not necessarily a SPOF node in this structural sense. A capacity-constrained node enters the cut-space by way of its split edges $(v_{\text{in}}, v_{\text{out}})$ with capacity $b_v$ and is not necessarily a structural choke-point in $G$. In these networks, a node 
+In a node-capacitated network, a node appearing in the min-cut is not necessarily a SPOF node in this structural sense. A capacity-constrained node enters the cut-space by way of its split edges $(v_{\text{in}}, v_{\text{out}})$ with capacity $b_v$ and is not necessarily a structural choke-point in $G$. In these networks, a node 
 can simultaneously be a flow-limiting bottleneck and a SPOF node.
 
 
@@ -604,7 +595,7 @@ c'_{uv} = \alpha \cdot c_{uv}, \qquad \forall (u,v) \in E.
 
 The previous modules treat edge capacities as fixed and analyse the network's response to perturbations around them. The threshold module inverts this perspective. Given a required demand level $D_t \leq F^\star$ to be met, it determines what capacity each edge must have for the network to meet that  target delivery level. It is therefore a planning tool. 
 
-This module exploits a specific structural property of $F^\star$: it is piecewise linear in any single edge capacity $c_e$ with all others fixed. Logically, each linear segment maps to a fixed min-cut partition $S^\star$, over which the threshold satisfying $F^\star(c_e) = D_t$ can be recovered analytically. Therefore, breakpoints must occur exactly where the min-cut partition shifts, i.e.\ where a change in $c_e$ causes a different set of edges to become the binding bottleneck.
+This module uses a structural property of $F^\star$: it is piecewise linear in any single edge capacity $c_e$ with all others fixed. Each linear segment maps to a fixed min-cut partition $S^\star$, over which the threshold satisfying $F^\star(c_e) = D_t$ can be recovered analytically. Therefore, breakpoints must occur exactly where the min-cut partition shifts, i.e.\ where a change in $c_e$ causes a different set of edges to become the binding bottleneck.
 
 \paragraph{Degradation Threshold.}
 For a target edge $(u,v)$ and a required flow level $D_t$, the degradation threshold $c^\dagger_{uv}$ is the minimum capacity the edge must retain for $F^\star$ to remain at least $D_t$:
@@ -702,7 +693,13 @@ The structural outputs were checked by brute force. Every enumerated minimum cut
 to have capacity equal to the maximum flow and to disconnect the sources from the sinks, and
 on networks with at most twenty candidate edges every edge subset that disconnects was
 enumerated and the reported cuts were confirmed to be exactly the minimal ones of minimum
-capacity. Every reported saturated edge was checked to carry flow equal to its capacity.
+capacity. The two derived edge sets of Section~\ref{sec:flow-mincut} were checked against
+the same enumeration: the edges reported in every minimum cut must equal the intersection of
+the enumerated cuts and the edges reported in some minimum cut their union. This check was
+added after the interface of Chapter~\ref{ch:front-end} showed, on a 23-node network, a set
+of edges in every cut that lay entirely on the source side of the unique cut; the function
+had taken the complement of the sink-reachable set, and the earlier checks had tested the
+enumerated cuts without testing the two sets derived from them. Every reported saturated edge was checked to carry flow equal to its capacity.
 Single points of failure and the single-edge failure ranking were checked by removing each
 node and each edge in turn and recomputing the maximum flow with the oracle, exhaustively on
 the small networks and on a sample of between fifteen and forty removals on the large ones.
@@ -731,7 +728,7 @@ Appendix~\ref{app:full-results}.
 
 \subsection{A worked example on a synthetic network}
 \label{sec:flow-worked}
-The modules are first shown together on a synthetic network built so that each of them has something to report. It is a worked example; the case study follows in Section~\ref{sec:flow-rts24}. The network is a multi-source, multi-sink capacitated DAG with 43 nodes, 107 directed edges. The benchmark simulates a distribution system that propagates resources across geographically dispersed locations. As shown in Figure~\ref{fig:flow_bm_networks}, it is structured as an 8-layer hierarchy:
+The modules are first shown together on a synthetic network built so that each of them has something to report. It is a worked example; the case study follows in Section~\ref{sec:flow-rts24}. The network is a multi-source, multi-sink capacitated DAG with 43 nodes, 107 directed edges. The network represents a distribution system that moves a resource between dispersed locations. As shown in Figure~\ref{fig:flow_bm_networks}, it is structured as an 8-layer hierarchy:
 
 \begin{itemize}
     \item \textbf{Origin nodes} (blue): five source nodes, over-provisioned so the supply zone does not form the binding bottleneck.
@@ -744,10 +741,10 @@ The modules are first shown together on a synthetic network built so that each o
 \end{itemize}
 Based on this layered structure, edge and node capacity assignments are chosen so that binding bottlenecks emerge at specific layers under the different analysis methods. Edge capacities in Layers~1--5 are scaled by a factor of 2 relative to the gateway layer. In this way, the gateway layer governs $F^\star$ under the edge-only solution. Similarly, to compute a measurable reduction in $F^\star$, the processing node capacities are set to bind to the node-capacitated solve.
 
-To explore competing design alternatives under controlled conditions, two configurations of the same system are presented to evaluate the effect of feeder reinforcement (Figures~\ref{fig:network_a} and~\ref{fig:network_b}). 
+Two configurations of the same system are compared to show the effect of feeder reinforcement (Figures~\ref{fig:network_a} and~\ref{fig:network_b}). 
 Both configurations keep the same topology and differ in their feeder capacities. The comparison tests whether the bottleneck structure changes when the throughput does not. 
 
-Config A proposes a symmetry-preserving design with balanced feeder-edge capacities and a limited direct bypass to sink 4. The capacity is set below the sink's 6-unit limit so that the bypass delivers partial service. Config B's asymmetric gateway structure is designed to produce non-trivial parametric upgrade thresholds and non-zero marginal-range values. This version has larger feeder capacities from secondary nodes into both gateways.
+Configuration A is a symmetric design with balanced feeder-edge capacities and a limited direct bypass to sink 4. The capacity is set below the sink's 6-unit limit so that the bypass delivers partial service. Configuration B's asymmetric gateway structure produces non-trivial parametric upgrade thresholds and non-zero marginal-range values. This version has larger feeder capacities from secondary nodes into both gateways.
  
 Table~\ref{tab:config_comparison} summarises the key structural differences between the two. The expectation is that two designs may yield the same max-flow value while differing in saturation pattern and in the set of minimum cuts, because their feeder capacities differ.
 
@@ -755,7 +752,7 @@ Table~\ref{tab:config_comparison} summarises the key structural differences betw
 
 \subsubsection{Two configurations compared}
 
-The base flow solver run returns $F^\star = 37.0$, with $\texttt{mincut\_capacity} = 37.0$ for both networks, consistent with the expected maximum feasible flow for the benchmarked system. However, when optimising for a demand target or comparing two network design approaches, $F^\star$ alone is not always enough to inform decisions. As shown in Table~\ref{tab:config_comparison}, the two networks still differ in structure: Configuration A has 41 saturated edges versus 35 in Configuration B, and 4 valid minimum cuts versus 1. This is also reflected in free-zone size (2 in A, 0 in B). The same throughput under structurally different constraints motivates the use of the extended analysis modules in the toolkit.
+The base flow solver run returns $F^\star = 37.0$, with $\texttt{mincut\_capacity} = 37.0$ for both networks, which is the maximum feasible flow for the system as built. However, $F^\star$ alone does not distinguish the two designs. As shown in Table~\ref{tab:config_comparison}, the two networks still differ in structure: Configuration A has 41 saturated edges versus 35 in Configuration B, and 4 valid minimum cuts versus 1. This is also reflected in free-zone size (2 in A, 0 in B). The two designs have the same throughput under different constraints, which is what the remaining modules distinguish.
 
 \begin{table}[htbp]
 \centering
@@ -763,7 +760,7 @@ The base flow solver run returns $F^\star = 37.0$, with $\texttt{mincut\_capacit
 \label{tab:config_comparison}
 \begin{tabular}{lcc}
 \toprule
-Metric & Config A & Config B \\
+Metric & Configuration A & Configuration B \\
 \midrule
 $F^*$                                        & 37.0           & 37.0           \\
 \texttt{saturated\_edges}                    & 41             & 35             \\
@@ -775,7 +772,7 @@ $F^*$                                        & 37.0           & 37.0           \
 \end{tabular}
 \end{table}
 
-From a design perspective, this reflects a trade-off between structural flexibility and tighter bottleneck localisation. In Configuration A, the free-zone nodes are $\{134,135\}$, producing a wider cut lattice where $E_{\text{every}}$ and $E_{\text{some}}$ differ. The gateway edges $134 \to 136$ and $135 \to 136$ appear in $E_{\text{some}}$ but not in $E_{\text{every}}$, so neither is a universal failure mode on its own. Cut 4 has only 3 crossing edges while Cut 1 has 13, both at capacity 37 (Table~\ref{tab:mincut_enumeration_config_a}). In Configuration B, feeder-capacity reinforcement pins the cut to a unique partition: free-zone size collapses to 0 and the gateway edges move into $E_{\text{every}}$. The choice between configurations depends on the optimisation target: Configuration A offers more structural redundancy and cut diversity, while Configuration B offers tighter bottleneck localisation and actionable upgrade thresholds.
+The difference is one of structural flexibility against bottleneck localisation. In Configuration A the free-zone nodes are $\{134,135\}$. The cut lattice is therefore wider, and $E_{\text{every}}$ and $E_{\text{some}}$ differ. The gateway edges $134 \to 136$ and $135 \to 136$ appear in $E_{\text{some}}$ but not in $E_{\text{every}}$, so neither is a universal failure mode on its own. Cut 4 has only 3 crossing edges while Cut 1 has 13, both at capacity 37 (Table~\ref{tab:mincut_enumeration_config_a}). In Configuration B, feeder-capacity reinforcement pins the cut to a unique partition: free-zone size collapses to 0 and the gateway edges move into $E_{\text{every}}$. The choice between configurations depends on the optimisation target: Configuration A offers more structural redundancy and cut diversity, while Configuration B offers tighter bottleneck localisation and actionable upgrade thresholds.
 
 \paragraph{Bypass edge and single points of failure.}
 
@@ -784,9 +781,9 @@ The direct bypass edge $132 \to 140$ improves $\texttt{sink\_4}$ service with ca
 Without this edge, node 136 is the only SPOF node: every source-to-sink path passes through it and $F^\star(G \setminus \{136\}) = 0$. Adding $132 \to 140$ gives $F^\star(G \setminus \{136\}) = 3 > 0$, removing node 136 from the SPOF set, and both configurations report $\texttt{spof\_nodes} = \emptyset$. However, only $\texttt{sink\_4}$ has an alternative path, so all other flow still passes through the combiner. Running the capacity degradation module with node 136 removed confirms this: $F^\star$ drops to 3, exposing the network's continued vulnerability to combiner failure despite the absence of a formal SPOF classification.
 
 \paragraph{Node-capacitated analysis.}
-When node capacities are enabled, both configurations still return the same result: a 7-unit loss down to $\texttt{node\_cap\_max\_flow}=30.0$. The same six Layer~3 nodes $\{114,115,116,117,118,119\}$ saturate in both cases. This matters because it tells the system designer where to act: once these node limits are active, changing gateway-edge capacities does not change the outcome.
+When node capacities are enabled, both configurations still return the same result: a 7-unit loss down to $\texttt{node\_cap\_max\_flow}=30.0$. The same six Layer~3 nodes $\{114,115,116,117,118,119\}$ saturate in both cases. This tells the designer where to act: once these node limits are active, changing gateway-edge capacities does not change the outcome.
 
-The flow loss is not shared evenly across demand nodes (Figure~\ref{fig:sink_flow_heatmap}). \texttt{sink\_1} (137) falls from 4.0 to 0.0, so it loses service completely. \texttt{sink\_2} (138) falls from 6.0 to 3.0, while sinks 139--143 stay at their previous levels. Reporting total flow alone misses the main service issue.
+The flow loss is not shared evenly across demand nodes (Figure~\ref{fig:sink_flow_heatmap}). \texttt{sink\_1} (137) falls from 4.0 to 0.0, so it loses service completely. \texttt{sink\_2} (138) falls from 6.0 to 3.0, while sinks 139--143 stay at their previous levels. Total flow alone does not show this.
 
 To test a direct fix, a single-node upgrade sweep was run on nodes 114--119 (Table~\ref{tab:node_upgrade_sweep}). Any one of these nodes can restore \texttt{sink\_1} to its edge-only service level with $\Delta b_v=7.0$, and this also returns total flow to $F^\star=37.0$ in both configurations. The increment is the same for all six nodes, but the final capacity targets are not: nodes 114/115 go to $b_v=12.0$, nodes 116/117 go to $b_v=14.0$, and nodes 118/119 go to $b_v=10.0$. In practice, that means the choice should be made by delivery constraints such as cost, installation effort, and access, not by throughput effect.
 
@@ -812,11 +809,11 @@ Node & Current $b_v$ & Required $\Delta b_v$ & New $b_v$ \\
 
 Flow decomposition shows that both configurations achieve the same total throughput ($F^\star=37.0$) with very similar route-level allocation. Configuration A decomposes into 27 components and Configuration B into 25, so the difference is small and does not change the main delivery pattern. In both cases, the largest single component carries 3.0 units on a path bottlenecked at $(114\to120)$, and most remaining components are paths carrying 2.0 or 1.0 units distributed across the processing and bypass corridors.
 
-This supports the earlier structural findings. The A/B edge-capacity changes alter which secondary-to-gateway edges appear as local path bottlenecks, but they do not create a different high-level flow-allocation picture. The dominant route family still passes through the same Layer 3 processing/bypass region and then through the combiner to sinks, with the direct bypass to sink 4 contributing only partial service. At decomposition level, the two designs differ in local edge pressure more than in overall route usage.
+This agrees with the structural results above. The A/B edge-capacity changes alter which secondary-to-gateway edges appear as local path bottlenecks, but they do not create a different high-level flow-allocation picture. The dominant route family still passes through the same Layer 3 processing/bypass region and then through the combiner to sinks, with the direct bypass to sink 4 contributing only partial service. At decomposition level, the two designs differ in local edge pressure more than in overall route usage.
 
 \paragraph{Sensitivity analysis.}
 
-Sensitivity ranking shows a clear tiered pattern in Config A (Table~\ref{tab:critical_edges_config_a}). The two gateway-to-combiner edges $(134\to136)$ and $(135\to136)$ rank first and second with $\Delta^\star=17.0$ each, reducing flow from $F^\star=37.0$ to 20.0 when removed (about 46\%). The next tier contains four feeder edges with $\Delta^\star=4.0$ and perturbed flow 33.0: $(128\to134)$, $(130\to135)$, $(131\to134)$, and $(133\to135)$. A third tier of five edges has $\Delta^\star=3.0$ and perturbed flow 34.0, including the direct bypass edge $(132\to140)$; this places the bypass in the same sensitivity tier as several secondary-to-gateway feeders. The remaining non-zero edges have $\Delta^\star\in\{1.0,2.0\}$ with perturbed flow 35.0 or 36.0. In total, 15 edges have non-zero single-edge impact in Configuration A.
+Sensitivity ranking shows a tiered pattern in Configuration A (Table~\ref{tab:critical_edges_config_a}). The two gateway-to-combiner edges $(134\to136)$ and $(135\to136)$ rank first and second with $\Delta^\star=17.0$ each, reducing flow from $F^\star=37.0$ to 20.0 when removed (about 46\%). The next tier contains four feeder edges with $\Delta^\star=4.0$ and perturbed flow 33.0: $(128\to134)$, $(130\to135)$, $(131\to134)$, and $(133\to135)$. A third tier of five edges has $\Delta^\star=3.0$ and perturbed flow 34.0, including the direct bypass edge $(132\to140)$; this places the bypass in the same sensitivity tier as several secondary-to-gateway feeders. The remaining non-zero edges have $\Delta^\star\in\{1.0,2.0\}$ with perturbed flow 35.0 or 36.0. In total, 15 edges have non-zero single-edge impact in Configuration A.
 
 \begin{table}[htbp]
 \centering
@@ -864,11 +861,11 @@ Rank & Label & $\Delta F^\star$ & \texttt{perturbed\_flow} \\
     \label{fig:critical_bars_ab}
 \end{subfigure}
 
-\caption{Single-edge sensitivity in Config A and cross-configuration rank comparison (A vs B).}
+\caption{Single-edge sensitivity in Configuration A and cross-configuration rank comparison (A vs B).}
 \label{fig:sensitivity_two_panel}
 \end{figure}
 
-Configuration B is much more concentrated: only three edges have non-zero impact, $(134\to136)$, $(135\to136)$, and $(132\to140)$, while all other evaluated edges give $\Delta^\star=0$ (Table~\ref{tab:critical_edges_config_b}). This means the feeder-capacity reinforcement in B absorbs any single feeder-edge loss through rerouting, so feeder removals no longer reduce $F^\star$ individually. The non-zero set therefore collapses from 15 edges in A to 3 in B.
+Configuration B is more concentrated: only three edges have non-zero impact, $(134\to136)$, $(135\to136)$, and $(132\to140)$, while all other evaluated edges give $\Delta^\star=0$ (Table~\ref{tab:critical_edges_config_b}). This means the feeder-capacity reinforcement in B absorbs any single feeder-edge loss through rerouting, so feeder removals no longer reduce $F^\star$ individually. The non-zero set therefore collapses from 15 edges in A to 3 in B.
 
 \begin{table}[htbp]
 \centering
@@ -886,7 +883,7 @@ Rank & Label & $\Delta F^\star$ & \texttt{perturbed\_flow} \\
 \end{table}
 
 \paragraph{Failure impact.}
-The two-edge failure ranking confirms that the dominant pair is simultaneous loss of $(134\to136)$ and $(135\to136)$, with drop 34.0 and perturbed flow 3.0. This is much larger than the next group (drop 21.0), and makes sense given the single-edge pattern shown in Figure~\ref{fig:sensitivity_two_panel}. In Configuration B, the same gateway-pair dominance remains, while the non-zero failure set is more concentrated because feeder reinforcement absorbs most single-edge feeder losses through rerouting.
+The two-edge failure ranking confirms that the dominant pair is simultaneous loss of $(134\to136)$ and $(135\to136)$, with drop 34.0 and perturbed flow 3.0. This is much larger than the next group (drop 21.0), and follows from the single-edge pattern shown in Figure~\ref{fig:sensitivity_two_panel}. In Configuration B, the same gateway-pair dominance remains, while the non-zero failure set is more concentrated because feeder reinforcement absorbs most single-edge feeder losses through rerouting.
 
 \paragraph{Degradation trajectory.}
 The degradation trajectories are identical for Configurations A and B at all tested scale factors. The solved values are: $\alpha=1.0 \rightarrow 37.0$, $\alpha=0.9 \rightarrow 33.3$, $\alpha=0.8 \rightarrow 29.6$, $\alpha=0.7 \rightarrow 25.9$, $\alpha=0.6 \rightarrow 22.2$, and $\alpha=0.5 \rightarrow 18.5$. These points follow the linear relation
@@ -898,7 +895,7 @@ over the tested interval.
 The A/B curves that coincide point-for-point (Figure~\ref{fig:degradation_trajectory}) indicate that the feeder-capacity differences that separate A and B under single-edge sensitivity do not produce a different global response under a uniformly scaled network-wide degradation.
 
 \paragraph{Parametric thresholds.}
-Parametric thresholds separate edge criticality from edge upgradeability. In Configuration A, the gateway edges $(134\to136)$ and $(135\to136)$ are upgrade-ineffective (\texttt{required\_capacity} $=\infty$, \texttt{ineffective}=\texttt{true}) even though they are high-impact in sensitivity ranking. In Configuration B, the same gateway edges become upgrade-effective with \texttt{required\_capacity}=18.0 and \texttt{required\_increase}=1.0. Degradation thresholds remain at 17.0 with zero margin in both configurations, so any capacity loss below current levels immediately reduces $F^\star$.
+Parametric thresholds separate an edge's criticality from its upgradeability. In Configuration A, the gateway edges $(134\to136)$ and $(135\to136)$ are upgrade-ineffective (\texttt{required\_capacity} $=\infty$, \texttt{ineffective}=\texttt{true}) even though they are high-impact in sensitivity ranking. In Configuration B, the same gateway edges become upgrade-effective with \texttt{required\_capacity}=18.0 and \texttt{required\_increase}=1.0. Degradation thresholds remain at 17.0 with zero margin in both configurations, so any capacity loss below current levels immediately reduces $F^\star$.
 
 This difference is explained by upstream supply. In Configuration A, supply into each gateway is already capped at the current gateway-edge capacity, so increasing gateway-edge capacity alone cannot raise throughput. In Configuration B, feeder reinforcement creates upstream headroom, so gateway-edge upgrades can increase $F^\star$.
 
@@ -911,7 +908,7 @@ for key edges.}
 \label{tab:parametric_comparison}
 \begin{tabular}{lcccc}
 \toprule
-Edge & \multicolumn{2}{c}{Config A} & \multicolumn{2}{c}{Config B} \\
+Edge & \multicolumn{2}{c}{Configuration A} & \multicolumn{2}{c}{Configuration B} \\
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
  & Upgrade & $\mathcal{B}_{uv}$ & Upgrade & $\mathcal{B}_{uv}$ \\
 \midrule
@@ -987,7 +984,7 @@ pink = combiner, grey = sinks.}
 
 \begin{table}[htbp]
 \centering
-\caption{Min-cut enumeration for Config A.}
+\caption{Min-cut enumeration for Configuration A.}
 \label{tab:mincut_enumeration_config_a}
 \begin{tabular}{lp{10cm}}
 \toprule
@@ -1019,50 +1016,77 @@ Cut & Crossing edges \\
 \subsection{The IEEE Reliability Test System}
 \label{sec:flow-rts24}
 
-\PH{Numbers below are from the first run, on the structural source and sink subset. They are
-to be replaced by the run on the net-injection model described in the second paragraph.}
-
 The case study is the 24-bus IEEE Reliability Test System \cite{ieee1979rts,grigg1999rts},
 taken from the MATPOWER case file \texttt{case24\_ieee\_rts} \cite{zimmerman2011matpower}. The
-system has 24 buses, 33 generating units at ten buses, 38 transmission lines of which four are
-double-circuit pairs, and a peak demand of 2850~MW. Line ratings in MVA are the edge
-capacities, and generator nameplate capacities in MW are the node capacities at the ten
-generator buses. The physical network is meshed, and the graph object of
-Chapter~\ref{ch:system-model} requires a DAG, so each line was oriented by the direction of
-its real-power flow in a DC power flow at peak load, with generation dispatched at a uniform
-participation factor so that total generation equals total demand and bus 13 as the slack
-bus. Twenty-one of the 34 lines carry flow against the order in which the file lists their
-end buses. The four double-circuit pairs, which carry equal flow because their parameters are
-identical, become one edge each with the summed rating. No directed cycle remained after
-orientation, so no line was dropped. The result is a 24-node, 34-edge DAG whose
-zero-in-degree nodes (buses 7, 22 and 23) are exactly the generator-only buses and whose
-zero-out-degree nodes (buses 4, 5, 6, 8 and 19) are exactly the load-only buses, which is
-consistent with the orientation being physical. The orientation log and the input files are
-in Appendix~\ref{app:network-specs}.
+system has 24 buses, 33 generating units at eleven buses with a total nameplate capacity of
+3405~MW, 38 transmission lines of which four are double-circuit pairs, and a peak demand of
+2850~MW at seventeen buses. Line ratings in MVA are the edge capacities and generator
+nameplate capacities are the node capacities. The physical network is meshed, and the graph
+object of Chapter~\ref{ch:system-model} requires a DAG, so each line was oriented by the
+direction of its real-power flow in a DC power flow at peak load, with generation dispatched
+at a uniform participation factor so that total generation equals total demand and bus 13 as
+the slack bus. Twenty-one of the 34 lines carry flow against the order in which the file lists
+their end buses. The four double-circuit pairs, which carry equal flow because their
+parameters are identical, become one edge each with the summed rating. No directed cycle
+remained after orientation, so no line was dropped. The result is a 24-node, 34-edge DAG
+(Figure~\ref{fig:flow-rts24}) whose zero-in-degree nodes (buses 7, 21, 22 and 23) are exactly
+the buses with generation and no load, and whose zero-out-degree nodes (buses 4, 5, 6, 8 and
+19) are exactly the buses with load and no generation, which is consistent with the
+orientation being physical. The orientation log and the input files are in
+Appendix~\ref{app:network-specs}.
 
-Seven buses (1, 2, 13, 15, 16, 18 and 21) carry both generation and load and are therefore
-neither a source nor a sink of the DAG. To measure deliverable throughput against the whole
-system demand, a super-source is connected to every bus whose net injection (generation minus
-load) is positive, with capacity equal to that net injection, and every bus whose net
-injection is negative is connected to a super-sink with capacity equal to its net load. Under
-this model the sinks' demands sum to \PH{$D$}~MW and the questions below are answered
-against that figure.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{rts24_dag/rts24_dag.pdf}
+  \caption{IEEE RTS-24 oriented by DC power flow at peak load. Edge labels are line ratings
+  in MVA; double-circuit pairs are one edge with the summed rating. Bold outlines mark the
+  eleven generator buses, and filled nodes mark the four generators (buses 1, 2, 13 and 16)
+  that are at their nameplate limit in the maximum flow found under the net-injection
+  model. The
+  bold line 7--8 has 4~MVA of headroom, the least of any line. Dashed lines form the
+  nine-line binding cut of the structural-subset model, which is a transmission bottleneck
+  only when the mixed buses are excluded from supply and demand.}
+  \label{fig:flow-rts24}
+\end{figure}
 
-Under edge capacities alone the network can deliver \PH{2725}~MVA. With the generator
-capacities applied it can deliver \PH{1135}~MVA, so the generators are the binding constraint at peak load, which is the expected condition for a test system designed
-with transmission margin. The binding cut under edge capacities has \PH{nine} edges,
-\PH{seven of them 175~MVA lines into the load buses, one 500~MVA line and the 1000~MVA
-double circuit into bus 20} (Table~\ref{tab:flow-rts24}). No bus is a single point of
-failure. The five most damaging single-line failures are \PH{the two double circuits into and
-out of bus 20 at 1000~MVA each, line 16--19 at 500~MVA, and lines 3--1 and 7--8 at 175~MVA
-each}, and \PH{the most damaging generator failures are ...}. To raise deliverable throughput
-by ten per cent, \PH{line 7--8 alone would need 447.5~MVA, and line 3--1 alone cannot reach the
-target at any capacity, because it is one of nine parallel edges in the binding cut}.
+Seven buses carry both generation and load and are therefore neither a source nor a sink of
+the DAG. To measure deliverable throughput against the whole system demand, a super-source is
+connected to every bus whose net injection (generator capacity minus local load) is
+positive, with capacity equal to that net injection, and every bus whose net injection is
+negative is connected to a super-sink with capacity equal to its net load. A bus with both
+generation and load appears once, under its net sign; bus 15, for instance, has 215~MW of
+generation and 317~MW of load and is a net importer of 102~MW. The nine net-export buses
+offer 2162~MW to the network, the eleven net-import buses require 1607~MW from it, and the
+remaining 1243~MW of demand is served locally at export buses without entering the network.
+
+Under this model the network delivers the full 1607~MW to the import buses, so that all
+2850~MW of peak demand is met. The result is the same with generator capacities applied and
+with generation unconstrained, so at peak load neither the lines nor the generators bind:
+the maximum flow is limited by the demand itself, and the binding cut is the set of eleven
+edges into the super-sink. No bus is a single point of failure. The single-line and
+single-generator failure rankings are both empty, because every line and every generator has
+slack in the flow that delivers 1607~MW, so no single failure reduces the aggregate
+deliverable throughput. This is a statement about aggregate throughput under a flow model and
+not about operational security, since a remaining path could overload under a real
+redispatch, which the model does not represent. The minimum cut is unique: the lattice of Section~\ref{sec:flow-mincut} has an empty free
+zone and the enumeration is complete, and no generator edge lies in it. The nearest
+constraints are the four generators at buses 1, 2, 13 and 16, which are at their nameplate
+limit in the maximum flow found, and line 7--8, which carries 171 of its 175~MVA. These are the assets at which the system would bind first
+if demand grew (Table~\ref{tab:flow-rts24}).
+
+For contrast, the first analysis of the same DAG took only the four generation-only buses as
+sources and the five load-only buses as sinks, ignoring the mixed buses. Under that model the
+network delivers 2725~MVA with edge capacities alone and 1135~MVA with generator capacities,
+the binding cut is the nine dashed lines of Figure~\ref{fig:flow-rts24}, and the most damaging
+single-line failures are the two double circuits at bus 20 (1000~MVA each), line 16--19
+(500~MVA) and lines 3--1 and 7--8 (175~MVA each). The two models answer different questions,
+and the difference between them is the reason the net-injection model is the one reported:
+the structural-subset model measures a transmission bottleneck between buses that do not
+exist as pure sources and sinks in the real system.
 
 \begin{table}[htbp]
 \centering
-\caption{IEEE RTS-24 under the net-injection model: throughput, binding cut, most damaging
-failures and upgrade thresholds. \PH{To be completed from the rerun.}}
+\caption{IEEE RTS-24 under the net-injection model at peak load.}
 \label{tab:flow-rts24}
 \small
 \renewcommand{\arraystretch}{1.15}
@@ -1070,14 +1094,17 @@ failures and upgrade thresholds. \PH{To be completed from the rerun.}}
 \toprule
 Quantity & Value \\
 \midrule
-System demand & \PH{--}~MW \\
-Deliverable throughput, edge capacities only & \PH{--}~MVA \\
-Deliverable throughput, with generator capacities & \PH{--}~MVA \\
-Binding cut (edges, capacity) & \PH{--} \\
-Single points of failure & \PH{--} \\
-Most damaging line failures (drop in MVA) & \PH{--} \\
-Most damaging generator failures (drop in MVA) & \PH{--} \\
-Upgrade to $+10$ per cent: required capacity on each binding line & \PH{--} \\
+System peak demand & 2850~MW \\
+Demand served locally at export buses & 1243~MW \\
+Net import demand & 1607~MW \\
+Deliverable throughput, generator capacities applied & 1607~MW (100 per cent) \\
+Deliverable throughput, generation unconstrained & 1607~MW \\
+Binding cut & the eleven import-bus edges, 1607~MW \\
+Single points of failure & none \\
+Single-line failures reducing throughput & none \\
+Single-generator failures reducing throughput & none \\
+Generators at nameplate limit in the flow found & buses 1, 2, 13, 16 \\
+Line with least headroom & 7--8, 171 of 175~MVA \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1149,9 +1176,11 @@ The global edge and node connectivity of a DAG, defined as the minimum over all 
 pairs of the unit-capacity maximum flow, is zero, because a sink has no outgoing edge and
 every DAG has a sink. The implementation computed exactly that definition and therefore
 returned zero on every network, which the validation confirmed independently. The
-definition that answers the redundancy question is the minimum over declared source and
-sink pairs, and it is listed as a change in Chapter~\ref{ch:conclusions}; the disjoint-path
-counts of Section~\ref{sec:flow-structure}, which are per pair, are unaffected.
+whole-graph definition is the one the module documents and computes, and it is left as it
+is. The quantity that answers the redundancy question on a DAG is the minimum over declared
+source and sink pairs, which the per-pair disjoint-path counts of
+Section~\ref{sec:flow-structure} already give; a named metric for that minimum is listed in
+Chapter~\ref{ch:conclusions}.
 
 Two further extensions follow from the model. Minimum-cost flow, in which each edge carries a
 cost per unit as well as a capacity, would answer how a given demand is met most cheaply, and
@@ -1161,8 +1190,8 @@ in Chapter~\ref{ch:conclusions}.
 \section{Summary}
 \label{sec:flow-summary}
 
-In this chapter the Capacity Flow Toolkit has been presented. The flow model has been stated
-for a capacitated DAG, with the reductions for several sources and sinks and for node
+The Capacity Flow Toolkit answers six questions about a capacitated DAG. The flow model has
+been stated, with the reductions for several sources and sinks and for node
 capacities proved exact, and three maximum-flow solvers have been provided on the graph
 object of Chapter~\ref{ch:system-model}, each result checked for feasibility, conservation
 and agreement between flow and cut. Six questions have been answered by modules that share
@@ -1171,8 +1200,8 @@ equivalent cut, the most damaging failures and degradations, the marginal value 
 each edge, degradation and upgrade thresholds by a partition-change search, and redundancy
 and single points of failure. The toolkit has been validated against an external oracle and
 brute-force enumeration on twelve networks, timed on generated instances of up to $10^5$
-edges, and applied to the IEEE Reliability Test System, on which the generator capacities and
-not the lines bind at peak load. The toolkit is point-valued, and its extension to interval
+edges, and applied to the IEEE Reliability Test System, on which neither lines nor generators
+bind at peak load and the nearest constraints are four generators and one line. The toolkit is point-valued, and its extension to interval
 capacities and to probability-weighted measures is left to future work.
 
 \ifdefined\maindoc

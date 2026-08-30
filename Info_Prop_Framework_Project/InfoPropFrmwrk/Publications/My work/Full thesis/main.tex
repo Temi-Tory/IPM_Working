@@ -18,6 +18,7 @@
 \usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{multirow} 
+\usepackage{forest}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{algorithm}
@@ -124,7 +125,7 @@
 % METADATA
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
+\newcommand{\thesistitle}{A Unified Propagation Framework for Reliability, Scheduling and Flow Analysis in Directed Acyclic Process Networks}
 
 \newcommand{\authorname}{[Temitope Ohiani]}
 
@@ -303,6 +304,9 @@ Date: \rule{5cm}{0.4pt}
 \label{ch:lit-review}
 \include{Chapters/LitReview/Background_Chapter}
 
+% The former Input Processing Module chapter is folded into this one: the layered order,
+% closures and theorem become sections of the model chapter, the parsers and JSON contracts
+% become its closing section, and the Julia type material moves to the package chapter.
 \chapter{Complex Processes as Directed Acyclic Graphs}
 \label{ch:system-model}
 \include{Chapters/NetworkModel/Complex_Processes_Chapter}

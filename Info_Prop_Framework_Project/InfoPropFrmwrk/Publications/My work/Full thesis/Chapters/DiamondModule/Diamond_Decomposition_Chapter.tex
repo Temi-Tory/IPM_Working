@@ -85,9 +85,8 @@ hierarchical flows behave the same way, with a component feeding several
 downstream dependencies while itself depending on shared upstream outputs.
 As the system grows, overlapping paths accumulate.
 
-Graph-based analysis methods almost always do some form of decomposition,
-and for large networks with complicated connectivity it is a practical
-necessity \cite{perez2018sixty}. Broadly, decomposition breaks a network into substructures that
+Most graph-based analysis methods decompose. For large networks with complicated
+connectivity they must \cite{perez2018sixty}. Broadly, decomposition breaks a network into substructures that
 are easier to handle than the whole, and methods differ in what they do
 with those substructures. Some strategies aim to reduce: a substructure is replaced by a
 single equivalent element, so the network shrinks while the analysis stays
@@ -100,9 +99,7 @@ defined, they can also support localised investigation, such as confining
 a sensitivity study to one part of the system without needing to run
 analysis against the full network.
 
-There is no universal correct unit of decomposition. A decomposition
-method defines its own target substructure and partitions the network in
-those terms. In the series--parallel reduction reviewed in
+There is no universal unit of decomposition. Each method defines its own. In the series--parallel reduction reviewed in
 Chapter~\ref{ch:lit-review} the units are the series and parallel pairs
 themselves \cite{satyanarayana1985linear}. In factoring the unit is a single
 component, on which the method conditions to split the problem into the
@@ -129,7 +126,7 @@ The network decomposition module identifies and returns every instance of a subg
 \item an \emph{anchoring} discriminator, which decides what structure a pattern forms around;
 \item a \emph{membership} discriminator, which decides when two paths into a node belong to the same pattern.
 \end{itemize}
-The identification algorithm does the same work whatever the discriminators say.
+The identification algorithm is the same whatever the discriminators say.
 
 A discriminator can be defined on any property of the graph object, or on any network characteristic mapped to a property of it during input processing, and each discriminator can be overridden or modified to fit the required definition. For example, the membership threshold can be raised from two paths to three, or the anchoring structure can be changed from fan-out-then-fan-in to fan-in-then-fan-out. A discriminator can also be defined on a characteristic that is not already a graph object property, provided it is mapped onto one during input processing. A component type supplied with the raw network, for instance, can be mapped to a node property so that only one class of component can anchor a pattern.
 
@@ -190,7 +187,7 @@ The diamond in the framework is thus defined by the three discriminators.
 \end{itemize}
 
 \label{sec:dd-isdet}
-The eligibility criterion is the one discriminator not drawn from the diamond's definition, and \texttt{is\_det} in the implementation is the only place identification reads declared values. Since the module was built with probabilistic propagation in mind, the default eligibility criterion excludes nodes whose prior probability is deterministic. This covers two cases: any inactive node (i.e.\ unreachable with prior = $0$) or a perfect source node (i.e.\ always active with prior = $1$). The reason for the conjunction in the second case is that a non-source node with prior = $1$ may still be probabilistically uncertain, depending on its incoming edges. Therefore excluding every node valued $0$ or $1$ would incorrectly disable every diamond in a probabilistic DAG where all node priors happen to be $1$. For interval-valued and p-box-valued networks the two cases apply only to degenerate values, an interval or p-box collapsed exactly onto $0$ or $1$.
+The eligibility criterion is the one discriminator not drawn from the diamond's definition. In the implementation, \texttt{is\_det} is the only place where identification reads declared values. Since the module was built with probabilistic propagation in mind, the default criterion excludes nodes whose prior probability is deterministic. There are two such cases: an inactive node, with prior $0$, and a perfect source, with prior $1$. The second case requires both conditions. A non-source node with prior $1$ may still be uncertain, because its incoming edges may fail, so excluding every node valued $0$ or $1$ would wrongly disable every diamond in a network where all priors happen to be $1$. For interval-valued and p-box-valued networks the two cases apply only to degenerate values, an interval or p-box collapsed exactly onto $0$ or $1$.
 
 \begin{definition}[Diamond join]
 \label{def:djoin}
@@ -228,7 +225,7 @@ Under a context each parent's influencing set shrinks to
 \[
 \infl(p,E) \;=\; \Anc(p)\setminus E ,
 \]
-with $\Anc(p)$ self-inclusive so that $p \in \infl(p,E)$ whenever $p \notin E$. Two parents $p, q$ of a join are \emph{structurally correlated under $E$} when $\infl(p,E) \cap \infl(q,E) \neq \varnothing$, that is, when some node upstream of both is not held fixed. Similar to factoring based decomposition, extending the context with a node removes it from every influencing set.
+with $\Anc(p)$ self-inclusive so that $p \in \infl(p,E)$ whenever $p \notin E$. Two parents $p, q$ of a join are \emph{structurally correlated under $E$} when $\infl(p,E) \cap \infl(q,E) \neq \varnothing$, that is, when some node upstream of both is not held fixed. Extending the context with a node removes it from every influencing set, as fixing a component does in factoring.
 
 \begin{algorithm}[htbp]
 \caption{Recursive diamond identification (skeleton)}
@@ -279,7 +276,7 @@ If $G_i \neq G_j$ are distinct groups returned by \texttt{components}$(P,E)$, th
 Let $p \in G_i$ and $q \in G_j$. By Theorem~\ref{thm:grouping} they lie in different components of $H$, and since every pair was evaluated, $\infl(p,E) \cap \infl(q,E) = \varnothing$. The intersection of the two unions expands to the union of these pairwise intersections, each of which is empty.
 \end{proof}
 
-Disjointness here is a statement about the influencing sets of the diamond groups, namely that each group decomposes separately. Whether separately computed values recombine correctly at the join is a different claim, which Chapter~\ref{ch:probability-toolkit} makes and proves for the probabilistic reading. Parents in singleton groups fall into the join's non-influencing set.
+Disjointness here is a statement about the influencing sets of the diamond groups, namely that each group decomposes separately. Whether separately computed values recombine correctly at the join is a different claim, which Chapter~\ref{ch:probability-toolkit} makes and proves for the probabilistic interpretation. Parents in singleton groups fall into the join's non-influencing set.
 
 Each group of two or more is then searched for its eligible covering forks, those lying in the shared ancestry of at least two members and not already in the fixed context, with a member that is an ancestor of another counting as its own cover. The diamond anchors on the earliest of them, the covering fork of minimum topological index, which leaves the largest part of the group's shared structure intact downstream for reuse, and the strict total order makes the choice unique. A group whose shared ancestry offers no eligible covering fork forms no diamond, and its members join the non-influencing set.
 
@@ -333,7 +330,7 @@ However, the span $R$ is built from the raw closure $\Anc(p)$ and contains $r$ w
 \subsection{Context-aware identity}
 \label{sec:dd-identity}
 
-A diamond's edge list alone cannot place it in the nesting hierarchy.
+An edge list alone cannot place a diamond in the nesting hierarchy.
 
 \begin{proposition}
 \label{prop:identity}
@@ -343,7 +340,7 @@ A diamond's edge list alone cannot place it in the nesting hierarchy.
 \begin{proof}
 For (i), take a join $v$ whose group $G$ anchors on fork $f$, and a source fork $g$ that is an ancestor of exactly one member of $G$ and keeps one edge whose head lies outside both boundaries. Coverage of one excludes $g$ from the covering-fork search, so the search offers the same forks in both cases and $f$ is anchored in both, and removing $g$ from a single influencing set cannot split the group, since the correlation runs through $f$. The cut into $g$ removes nothing, as a source has no incoming edges, and $g$'s retained edge passes the filter in both cases, so $g \in V(\ED)$. The group, the fork, the span, and the edge list therefore coincide, while the diamond is maximal under $E_A$ and a sub-diamond of the one that fixed $g$ under $E_B$. The keys differ, since $E_A \cap V(\ED) = \varnothing$ and $g \in E_B \cap V(\ED)$.
 
-For (ii), equal keys give equal $\ED$ and equal $C$, since both are hashed. The diamond join is recoverable as the unique endpoint of $\ED$ that every other endpoint precedes in the closure, which acyclicity makes unique, and the group as the in-neighbourhood of the join in $\ED$, which the fourth clause admits from the group alone. Every stored field is computed from $\ED$, $V(\ED)$, $C$, and the global closures, so equal inputs give equal fields, and $B\cap V(\ED) = (\{f\}\cap V(\ED)) \cup (E\cap V(\ED)) = C \cap V(\ED)$ in both constructions. The two fixed contexts can still disagree away from the diamond, but only narrowly. A node outside the span is never consulted, since every membership test in the recursion concerns a parent of a join within the diamond or one of its ancestors, all inside the span by transitivity. A span node $x$ in one fixed context and not the other has no incoming edge, since such an edge would have its tail in the span and would pass the filter where $x$ is free, forcing $x \in V(\ED)$, and each outgoing edge of $x$ inside the span is absent from the shared $\ED$, so its head lies in each construction's boundary or it is a direct edge into the join excluded by the fourth clause. Every path from such a node towards the diamond therefore begins at a node in both fixed contexts or at an excluded edge.
+For (ii), equal keys give equal $\ED$ and equal $C$, since both are hashed. The diamond join is recoverable as the unique endpoint of $\ED$ that every other endpoint precedes in the closure; acyclicity makes it unique. The group is the in-neighbourhood of the join in $\ED$, which the fourth clause admits from the group alone. Every stored field is computed from $\ED$, $V(\ED)$, $C$, and the global closures, so equal inputs give equal fields, and $B\cap V(\ED) = (\{f\}\cap V(\ED)) \cup (E\cap V(\ED)) = C \cap V(\ED)$ in both constructions. The two fixed contexts can still disagree away from the diamond, but only narrowly. A node outside the span is never consulted, since every membership test in the recursion concerns a parent of a join within the diamond or one of its ancestors, all inside the span by transitivity. A span node $x$ in one fixed context and not the other has no incoming edge, since such an edge would have its tail in the span and would pass the filter where $x$ is free, forcing $x \in V(\ED)$, and each outgoing edge of $x$ inside the span is absent from the shared $\ED$, so its head lies in each construction's boundary or it is a direct edge into the join excluded by the fourth clause. Every path from such a node towards the diamond therefore begins at a node in both fixed contexts or at an excluded edge.
 \end{proof}
 
 Since a diamond cannot be unique by its edge list and fork alone, every unique diamond is keyed by

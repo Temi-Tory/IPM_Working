@@ -51,12 +51,12 @@
 The framework rests on a single model of the systems it analyses. This chapter defines that
 model and the object built from it, which every later chapter reads. Section~\ref{sec:model-mapping}
 describes how a process system is mapped to a directed acyclic graph and discusses the
-acyclicity assumption. Section~\ref{sec:model-roles} gives the physical reading of the node
-roles, and Section~\ref{sec:model-formal} states the definitions and notation used throughout
-the thesis. Section~\ref{sec:model-layers} establishes the layered processing order and the
+acyclicity assumption. Section~\ref{sec:model-roles} gives the physical meaning of the node roles.
+Section~\ref{sec:model-formal} states the definitions and notation used throughout the
+thesis. Section~\ref{sec:model-layers} establishes the layered processing order and the
 ancestry closures on which every algorithm in the framework depends.
 Section~\ref{sec:model-information} describes the values that an analysis attaches to the
-network, the three readings of those values, and the three forms in which a value can be
+network, the three interpretations of those values, and the three forms in which a value can be
 known. Section~\ref{sec:model-input} describes how a model is built from the files in which
 real systems are described, and Section~\ref{sec:model-assumptions} states the assumptions
 that all later results are conditional on.
@@ -99,7 +99,7 @@ names.
 \section{Node Roles}
 \label{sec:model-roles}
 
-The position of a node in the network gives it a role, and each role has a physical reading. A
+The position of a node in the network gives it a role, and each role has a physical meaning. A
 node with no incoming edge is a source, the point where supply, material or work enters the
 system (e.g.\ an intake, a generator or the start of a project). Similarly, a node with no
 outgoing edge is a sink, where the system delivers (e.g.\ a demand point, an outlet or a
@@ -114,7 +114,7 @@ the destination they protect. A well-designed network therefore contains many
 pairs of paths that separate at a fork and meet again at a join while sharing the components
 upstream of the fork. Whether that sharing matters depends on the question being asked.
 Chapter~\ref{ch:diamond-module} makes the pattern precise, and
-Chapter~\ref{ch:probability-toolkit} shows that for the probabilistic reading of the model,
+Chapter~\ref{ch:probability-toolkit} shows that for the probabilistic interpretation of the model,
 ignoring it gives wrong answers. For the present chapter it is enough to note that reconvergence is common in the systems
 being modelled. Figure~\ref{fig:model-roles}
 shows it on a small network.
@@ -181,8 +181,7 @@ $L = \{L_1, \dots, L_k\}$ & layered order (Section~\ref{sec:model-layers}) \\
 \label{sec:model-layers}
 
 Every analysis in the framework visits the nodes of the network in an order in which each
-node is processed after all of its parents. For a DAG such an order always exists. A
-topological sort of $G$ is a linear ordering of $V$ in which $u$ precedes $v$ for every edge
+node is processed after all of its parents. For a DAG such an order always exists. A topological sort of $G$ is a linear ordering of $V$ in which $u$ precedes $v$ for every edge
 $(u,v) \in E$. The framework uses a coarser form of the same order, in which nodes at the same
 depth from the sources are grouped into a layer.
 
@@ -225,9 +224,9 @@ the same pass. As each node is dequeued, its ancestor set is passed to its child
 recorded as an ancestor of each of them, and the descendant sets are populated in the same step.
 Computing the layers alone costs $O(|V|+|E|)$. Carrying the closures adds a set-union cost
 that depends on the transitive density of the graph, and in the worst case each node's closure
-contains every other node, giving $O(|V|^2)$ space. In return, any reachability query reduces
-to a single set membership test in constant time. This is a trade of space for time, justified
-by the number of such queries the decomposition and propagation algorithms make.
+contains every other node, giving $O(|V|^2)$ space. In return, any reachability query is one set membership test. The trade of space for time
+is justified by the number of such queries the decomposition and propagation algorithms
+make.
 
 \begin{algorithm}[htbp]
 \caption{Layered order with ancestor and descendant closure}
@@ -262,18 +261,18 @@ by the number of such queries the decomposition and propagation algorithms make.
 
 The topology of the network and the values attached to it are held separately. The topology of
 Definition~\ref{def:model-network} is fixed once per system, and an analysis attaches values to
-its nodes and edges whose meaning depends on the question. Under the probabilistic reading a
+its nodes and edges whose meaning depends on the question. Under the probabilistic interpretation a
 node's value is the probability that the component operates and an edge's value the
 probability that the handover between its endpoints succeeds, and the question is with what
 probability each node is reached from the sources despite component failures. This question is
 answered by the Probability Propagation Toolkit of Chapter~\ref{ch:probability-toolkit}. Under
-the capacity reading the values are throughput limits, and the question is how much the network
+the capacity interpretation the values are throughput limits, and the question is how much the network
 can deliver, where the limits bind and what relieving them would gain. This question is answered
 by the Capacity Flow Toolkit of Chapter~\ref{ch:capacity-toolkit}. Under the schedule and cost
-reading the values are durations or costs, of the component's own processing and of the
+interpretation the values are durations or costs, of the component's own processing and of the
 transfer along each dependency, and the question is when the network completes, which
 dependencies set that outcome and which have room to move. This question is answered by the
-Critical Path Toolkit of Chapter~\ref{ch:critical-path}. The three readings are three
+Critical Path Toolkit of Chapter~\ref{ch:critical-path}. The three interpretations are three
 different analyses of one topology. Because the topology is common to them, a single system
 model answers questions that are usually asked of three separate models
 \cite{ouyang2014interdependent}.
@@ -290,7 +289,7 @@ the choice among them can be made on the state of knowledge about the system.
 
 Before any of the three questions can be asked, the model must be built from the descriptions
 in which real systems arrive, which is the subject of the next section, and for the
-probabilistic reading the reconvergent structure of Section~\ref{sec:model-roles} must be
+probabilistic interpretation the reconvergent structure of Section~\ref{sec:model-roles} must be
 identified, which is the subject of Chapter~\ref{ch:diamond-module}. Both are preprocessing
 steps performed once per system.
 
@@ -333,9 +332,8 @@ As edges are read, self-loops are rejected at once and cycle-forming edges are d
 ingestion, since both violate the acyclicity of Definition~\ref{def:model-network}. For every
 valid edge both nodes and both directions of the relationship are recorded in the same pass, so
 that the incoming and outgoing indices are built together and no second pass over the edges
-is needed to construct the reverse adjacency. Ingestion is therefore linear in the number of
-edges, and the parser returns the minimal graph: the edge list, the two indices and the
-sources.
+is needed to construct the reverse adjacency. Ingestion is therefore linear in the number of edges. The parser returns the minimal
+graph, which is the edge list, the two indices and the sources.
 
 \subsection{Analysis input files}
 \label{sec:model-input-analysis}
@@ -343,16 +341,16 @@ sources.
 The values that drive an analysis are usually observed and managed separately from the network
 structure, in manufacturer specifications, historic records or planning estimates, and the
 framework keeps them in separate files. Embedding them in the structure file would produce a file that is large and hard to maintain.
-It would also force a user who wants to evaluate the same network under several readings, or
-under several scenarios of one reading, to keep a duplicate topology file for each.
+It would also force a user who wants to evaluate the same network under several interpretations, or
+under several scenarios of one interpretation, to keep a duplicate topology file for each.
 
-All analysis inputs are given as JSON files. JSON is human-readable, platform-independent, and
-maps naturally onto the key-value form in which component attributes are described. Where a
-flat format such as CSV suits the rigid tabular shape of an edge list, JSON's nesting suits the
-values themselves. An interval or a p-box can be written directly as a nested object without
-inventing column conventions or flattening a structured value into several cells. No specialist
-tool is needed to write or edit such a file, and a data owner who understands the node and edge
-identifiers can contribute values without knowledge of graph theory.
+All analysis inputs are given as JSON files. JSON is human-readable and platform-independent,
+and it maps directly onto the key-value form in which component attributes are described.
+A flat format such as CSV suits the rigid tabular shape of an edge list; JSON's nesting suits
+the values. An interval or a p-box is written as a nested object, without column conventions
+and without flattening a structured value into several cells. No specialist tool is needed. A
+data owner who knows the node and edge identifiers can contribute values without knowledge of
+graph theory.
 
 Every analysis input file declares a \texttt{data\_type}, which is \texttt{Float64},
 \texttt{Interval} or a probability-box construction, and the framework selects the
@@ -376,7 +374,8 @@ library: a scalar or an interval as a degenerate box, a parametric distribution 
 interval parameters, an envelope of distributions, or a distribution-free box from bounds on
 the moments. Flow capacity inputs are given in one file
 as a list of edge records, each carrying a source, a destination and a capacity, with an
-optional list of node capacities. Since capacity is point-valued in the present framework,
+optional list of node capacities; an older nested form keyed by edge string is also accepted,
+and the parser selects the reader from the file's top-level key. Since capacity is point-valued in the present framework,
 only the \texttt{Float64} data type is accepted. Unconstrained capacity is written with an
 infinity token, and every capacity is checked to be non-negative and not NaN at parse time.
 Critical path inputs are given in one file with a time section carrying a duration for each
@@ -422,7 +421,7 @@ fork and join sets, the layers, and the ancestor and descendant closures. These 
 built once and shared by every analysis. The analysis inputs, node priors and edge
 probabilities, edge and node capacities, and node and edge values, are attached to the same
 object per invocation, so that one instance of a network can be evaluated under different
-readings and under different scenarios of one reading without rebuilding the structure. Every
+interpretations and under different scenarios of one interpretation without rebuilding the structure. Every
 argument that any analysis in the framework requires can be taken from this object, and it is
 the point of handover from preprocessing to analysis. The concrete types chosen for its fields,
 and the reasons for building a purpose-specific object instead of using the language's
@@ -437,7 +436,7 @@ The model rests on four assumptions, and each is a limit on what the results mea
   \item Component behaviours are independent. A common cause that fails several components
     together is not represented, and where it matters it must be modelled explicitly as a
     shared upstream node.
-  \item Under the probabilistic reading a component is binary, operational or failed, and
+  \item Under the probabilistic interpretation a component is binary, operational or failed, and
     degraded intermediate states are outside the model.
   \item The topology is static over the analysis horizon, so reconfiguration during operation
     is treated as a sequence of separate analyses.
@@ -448,22 +447,22 @@ The model rests on four assumptions, and each is a limit on what the results mea
 
 Every analysis in the following chapters assumes this list, and none of the algorithms
 introduces an assumption beyond it. Where a later chapter relaxes or adds to the list for a
-particular reading, it says so.
+particular interpretation, it says so.
 
 \section{Summary}
 \label{sec:model-summary}
 
 A process system is modelled as a finite directed acyclic graph in which components are nodes,
 dependencies are directed edges, and the roles of source, sink, fork and join have physical
-readings. The graph object built from the model carries the topology, a layered processing
+meanings. The graph object built from the model carries the topology, a layered processing
 order whose existence Theorem~\ref{thm:model-layers} guarantees, and the ancestor and
 descendant closure of every node, all computed in one pass. An analysis attaches values to the
-object under one of three readings, probabilistic, capacity, or schedule and cost, in one of
+object under one of three interpretations, probabilistic, capacity, or schedule and cost, in one of
 three forms, deterministic, interval or probability box. The input module builds the object
 from edge-list or adjacency-matrix structure files and JSON analysis files whose contracts were
 given in Section~\ref{sec:model-input}, validating acyclicity, identifier mapping and value
-domains at parse time. The four assumptions of Section~\ref{sec:model-assumptions} apply to
-every later result.
+domains at parse time. Four assumptions, listed in Section~\ref{sec:model-assumptions}, apply to every later
+result.
 
 \ifdefined\maindoc
 % do nothing

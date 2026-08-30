@@ -75,7 +75,7 @@ answers the third \cite{kelley1959critical}. The three methods have separate lit
 separate software, and each is normally applied to its own model of the system. However, the
 topology is the same in all three. What changes with the analysis goal is the meaning of the
 value attached to a component: a failure probability, a throughput limit or a duration. In the
-framework developed here the three analyses are therefore independent readings of one network
+framework developed here the three analyses are therefore independent interpretations of one network
 model, each with its own inputs and its own algorithm, and the model is entered once.
 
 The values attached to the components are rarely known precisely. Aleatory uncertainty is the inherent variability of a quantity, such as
@@ -169,10 +169,10 @@ The limits of the tool should not force that choice. The objectives are:
 
 \begin{itemize}
   \item To define a network model general enough that reliability, capacity and schedule
-    analysis are each a reading of the same object, and to build that object from the file
+    analysis are each an interpretation of the same object, and to build that object from the file
     formats in which infrastructure data commonly arrives.
-  \item To develop exact analysis methods for each of the three readings, and to extend each to
-    interval and p-box inputs as far as the mathematics of that reading allows.
+  \item To develop exact analysis methods for each of the three interpretations, and to extend each to
+    interval and p-box inputs as far as the mathematics of that interpretation allows.
   \item To validate every exact result against an independent computation, and to measure
     where each method stops being practical.
   \item To provide the framework as a documented Julia package and as a no-code user interface
@@ -235,7 +235,7 @@ engineering analysis software is delivered to its users.
 
 In Chapter~\ref{ch:system-model} the network model is defined. Components become nodes and
 dependencies become directed edges, the acyclicity assumption is discussed, and the roles of
-sources, sinks, forks and joins are given their physical reading. The chapter then establishes
+sources, sinks, forks and joins are given their physical meaning. The chapter then establishes
 the layered order and the closures that every later algorithm depends on, describes how a model
 is built from the heterogeneous files in which real systems are described, and states the
 assumptions that all later results are conditional on.
@@ -261,7 +261,7 @@ configurations.
 Chapter~\ref{ch:critical-path} presents the Critical Path Toolkit. Analysis modes are defined
 by operator pairs, the forward and backward kernels are given, and the interval scheme and the
 domination split are proved. The toolkit is applied to a benchmark project network from the PSPLIB library under
-three readings of one set of inputs, and the exact interval floats are compared with the
+three interpretations of one set of inputs, and the exact interval floats are compared with the
 conservative enclosure on the same instance.
 
 Chapter~\ref{ch:julia-package} describes the implementation of the framework in Julia: the

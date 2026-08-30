@@ -1,13 +1,5 @@
-// Fig — the simple diamond of the failure demonstration: source 1, fork 2, parents 3/4, join 5.
-digraph simple_diamond {
-  rankdir=TB; nodesep=0.7; ranksep=0.55;
-  node [shape=circle, fontname="Helvetica", fontsize=18, width=0.62, fixedsize=true, penwidth=1.4];
-  edge [penwidth=1.4, arrowsize=0.9];
-  1;
-  2 [penwidth=3];
-  3; 4;
-  5 [style=filled, fillcolor=gray85];
-  1 -> 2;
-  2 -> 3; 2 -> 4;
-  3 -> 5; 4 -> 5;
-}
+digraph G { rankdir=TB; nodesep=0.5; ranksep=0.45;
+ node [shape=circle, fontsize=11, width=0.36, fixedsize=true, fontname="Helvetica"];
+ edge [arrowsize=0.6];
+ 1 [peripheries=2]; 2 [penwidth=2.2]; 5 [style=filled, fillcolor="#cccccc"];
+ 1->2; 2->3; 2->4; 3->5; 4->5; }

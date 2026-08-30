@@ -1,12 +1,10 @@
-
-
 \ifdefined\maindoc
-% Do nothing (we are inside main.tex)
 \else
 \documentclass[12pt]{report}
-\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[a4paper,left=40mm,right=25mm,top=25mm,bottom=25mm]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage[british]{babel}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{setspace}
@@ -14,118 +12,378 @@
 \usepackage{enumitem}
 \usepackage{placeins}
 \usepackage{hyperref}
-\usepackage{array}
 \usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
 \addbibresource{../../references.bib}
-% Let long repository URLs in the bibliography break at letters (standalone-only cosmetic).
-\setcounter{biburllcpenalty}{7000}
-\setcounter{biburlucpenalty}{8000}
-\setcounter{biburlnumpenalty}{9000}
 \onehalfspacing
 \graphicspath{{figures/}}
-% Standalone-only fallbacks so Chapter~\ref{...} renders as the right number outside the
-% main thesis. Under \maindoc these are skipped and the real labels in main.tex resolve.
+% Standalone-only fallbacks. Numbering: 1 Introduction, 2 Background, 3 Network Model,
+% 4 Network Decomposition, 5 Probability, 6 Capacity Flow, 7 Critical Path, 8 Julia package,
+% 9 this chapter, 10 Integrated Case Study, 11 Conclusions.
 \makeatletter
-\newlabel{ch:input-module}{{4}{1}{}{Doc-Start}{}}
-\newlabel{ch:diamond-module}{{5}{1}{}{Doc-Start}{}}
-\newlabel{ch:probability-toolkit}{{6}{1}{}{Doc-Start}{}}
-\newlabel{ch:capacity-toolkit}{{7}{1}{}{Doc-Start}{}}
-\newlabel{ch:critical-path}{{8}{1}{}{Doc-Start}{}}
-\newlabel{ch:julia-package}{{9}{1}{}{Doc-Start}{}}
-\newlabel{ch:integrated-case-study}{{11}{1}{}{Doc-Start}{}}
+\newlabel{ch:main-intro}{{1}{1}{}{Doc-Start}{}}
+\newlabel{ch:lit-review}{{2}{1}{}{Doc-Start}{}}
+\newlabel{ch:system-model}{{3}{1}{}{Doc-Start}{}}
+\newlabel{ch:diamond-module}{{4}{1}{}{Doc-Start}{}}
+\newlabel{ch:probability-toolkit}{{5}{1}{}{Doc-Start}{}}
+\newlabel{ch:capacity-toolkit}{{6}{1}{}{Doc-Start}{}}
+\newlabel{ch:critical-path}{{7}{1}{}{Doc-Start}{}}
+\newlabel{ch:julia-package}{{8}{1}{}{Doc-Start}{}}
+\newlabel{ch:integrated-case-study}{{10}{1}{}{Doc-Start}{}}
+\newlabel{ch:conclusions}{{11}{1}{}{Doc-Start}{}}
 \makeatother
 \begin{document}
-\title{Analysis Without Code: The Front End}
+\title{The No-Code Web Interface}
 \fi
-
-% Placeholder for final interface captures. Swap each for the screenshot named in its caption.
-\newcommand{\screenshotplaceholder}[2]{%
-  \fbox{\parbox[c][#1][c]{0.94\linewidth}{\centering\itshape final interface capture:\\ #2}}}
-
-
 
 \section{Introduction}
 \label{sec:fe-intro}
 
-Everything the framework can do, up to this point, it does in code. The analyses of Chapters~\ref{ch:input-module} to~\ref{ch:critical-path} are invoked from a Julia session that loads a network, attaches inputs, and calls the modules, and Chapter~\ref{ch:julia-package} packages exactly that experience for a programmer. The people whose decisions these analyses serve are mostly not programmers. An asset engineer or a safety analyst understands the system, the failure modes, and what a reliability bound means for an intervention, without wanting to write a line of Julia to obtain one, and the gap between algorithmic availability and practical adoption is documented well enough to have a name, the last mile problem \cite{hannay2009scientists,prabhu2011survey}.
+Chapter~\ref{ch:lit-review} closed on a gap that has nothing to do with algorithms. The
+analyses of Chapters~\ref{ch:probability-toolkit} to~\ref{ch:critical-path} exist as a Julia
+package, and a package is used by writing code. The engineer who holds the system model, a planner at a water utility or a decommissioning
+programme, does not write code. The tools that do reach such a person are either cloud
+services, which are not acceptable for a proprietary system model, or licensed desktop
+suites that carry none of these analyses.
+This chapter presents the interface that closes that gap. It is a browser application that
+runs on the engineer's own machine, takes the same files the package reads, runs the three
+toolkits against them through the local server of Chapter~\ref{ch:julia-package}, and
+returns every result in the form the package computed it.
 
-Existing tools close parts of the gap and leave the whole open. Network visualisation environments such as Gephi \cite{bastian2009gephi} and Cytoscape \cite{shannon2003cytoscape} make graphs visual and explorable, and carry no quantitative reliability analysis, so they end where the questions of this thesis begin. The analytical capability lives in libraries, in Matlab \cite{opencossan2018}, R \cite{ferson2019pbar}, Julia \cite{gray2021pbajulia}, and Python \cite{gray2022pba}, and a library is exactly the delivery form the excluded users cannot consume, because using one means writing code against it. A complete assessment of one system therefore tends to mean several tools, each with its own data format, stitched together by hand, and the stitching is itself a technical barrier.
+Each decision in the interface is described with the reason behind it.
+Section~\ref{sec:fe-user} states who the interface is for and what follows from that.
+Section~\ref{sec:fe-workflow} walks through the workflow in the order a user meets it, with
+the screens of the power distribution network of Chapter~\ref{ch:probability-toolkit}
+shown as illustrations of the controls. Section~\ref{sec:fe-rules} lists the rules the
+interface enforces on how results are shown, and one rule it does not yet enforce.
+Section~\ref{sec:fe-architecture} gives the architecture and Section~\ref{sec:fe-contract}
+the contract between the interface and the package. Section~\ref{sec:fe-evaluation} states
+what evidence the chapter can offer for usability and what it cannot, and
+Section~\ref{sec:fe-limitations} the limits of the interface. The full application of the
+interface to a real network, with results, is the subject of
+Chapter~\ref{ch:integrated-case-study}; nothing in this chapter reports a number from a
+screen.
 
-Delivery architecture raises a separate obstacle. The accessible form of modern software is the web application, and the usual web application is a cloud service, which is precisely what industries with proprietary system data cannot accept. Sending a safety-critical network model to an external service raises custody and security questions \cite{hashizume2013analysis} that in domains such as nuclear decommissioning are simply disqualifying. The local-first movement argues that software can keep the conveniences of the web while the user's data never leaves the user's machine \cite{kleppmann2019local}, and that argument fits this framework's audience exactly.
+\section{Who the Interface Is For}
+\label{sec:fe-user}
 
-The front end is the framework's answer to both obstacles at once, a no-code web interface that runs entirely on the user's machine. It puts visual network modelling and every analysis of the preceding chapters, with their native uncertainty forms, behind a browser interface that asks the user for files and clicks rather than code, while the computation and the data stay local. This chapter owns the architecture, the contract between the interface and the framework, the data-sovereignty commitment, and the design of the user experience. Chapter~\ref{ch:integrated-case-study} then exercises the finished interface end to end on one network.
+An engineer with a system model and a question is the user. The model may be an edge list exported from an asset register or drawn up by hand. The
+question is one of the three of Chapter~\ref{ch:main-intro}: with what probability does
+supply reach this point, how much can the system deliver, or when does this sequence
+complete. The user is assumed to know
+the system and its data, to be comfortable with a spreadsheet and a browser, and not to
+program.
 
-\section{A Local Client and a Local Server}
-\label{sec:fe-architecture}
+Four requirements follow. The user must not have to write code, so every analysis is
+reached by uploading files and pressing a button. The user must not have to learn a second
+data format, so the files the interface accepts are the files the package reads, byte for
+byte. The user's system model must not leave the user's machine, since the models in
+question describe critical infrastructure and in some sectors cannot be sent to a third
+party at all, so the interface runs against a local server and nothing is transmitted
+elsewhere. And the user must be able to trust what is on the screen, so the interface shows
+what the package computed and adds no interpretation of its own. The last requirement is
+the one that shapes the interface most, and Section~\ref{sec:fe-rules} returns to it.
 
-The front end is built as a client and a server that happen to share a machine (Figure~\ref{fig:fe-architecture}). The server side is an analysis service, a Julia process that hosts the framework of Chapter~\ref{ch:julia-package} and exposes its analyses as HTTP endpoints bound to the local machine. The client side is a browser application, written in Angular with the network drawing done in d3, that drives those endpoints and renders their results. The two communicate over HTTP on localhost, so from the user's seat the whole system is one tool opened in a browser tab, and no traffic leaves the machine.
+\section{The Workflow}
+\label{sec:fe-workflow}
+
+A session begins with an upload (Figure~\ref{fig:fe-upload}). The user selects a folder
+that holds the network's structure file at its root and one sub-folder per scenario, each
+scenario carrying any subset of the four input files of Chapter~\ref{ch:system-model}. The
+upload page reads the folder before anything is sent and lists what it found: the network
+name, the structure file, the scenarios, and for each scenario which toolkits its files
+support and in which value form. A scenario folder may be named for its value form
+(\texttt{float}, \texttt{interval}, \texttt{pbox}) or for an operating case
+(\texttt{Baseline}, \texttt{Degraded}); in the second case the value form is read from
+each file's own \texttt{data\_type} field. The expected layout is printed beside the
+chooser, so that a user with a folder in the wrong shape sees the difference before
+uploading.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.86\linewidth]{fig01_architecture/fig01_architecture.pdf}
-  \caption{The local-first architecture. The browser front end drives the analysis service over HTTP on the local machine, and the service invokes the framework's modules, keeping sessions and the decomposition store as files beside the user's own.}
-  \label{fig:fe-architecture}
+  \includegraphics[width=0.85\linewidth]{fig01_upload/fig01_upload.png}
+  \caption{The upload page. Left, the folder chosen, with the scenarios it holds and the
+  analyses each supports listed before upload. Right, the expected folder layout.}
+  \label{fig:fe-upload}
 \end{figure}
 
-Splitting a single-machine tool into a client and a server is a deliberate trade. The browser brings mature rendering, interaction, and accessibility machinery that no numerical language ecosystem matches, while Julia keeps the computation next to the package that implements it, so each side lives where it is strongest. The two sides can be developed, tested, and replaced independently, and because the boundary between them is ordinary HTTP, the same endpoints that serve the visual interface serve any scripted client, which keeps the service useful to programmers without a second code path. The boundary itself is written down as a machine-readable interface contract specifying every endpoint, request, and response shape, and both sides are built against that document rather than against each other's internals, which is what allows the interface and the framework to evolve at their own pace without silent drift.
-
-\section{The Contract}
-\label{sec:fe-contract}
-
-The service exposes one endpoint per analysis class, mirroring the module boundaries of the framework: network structure, diamond decomposition, probability propagation, flow, and critical path, alongside the housekeeping endpoints that manage uploads and sessions. An analysis request does not carry the network embedded in it. It names the user's files, and the service reads them through the input processing of Chapter~\ref{ch:input-module}, so the wire format for every input is the file format that chapter already defined, the edge list or adjacency file for structure and the JSON contracts for analysis inputs. The interface invents no second format, the files a user uploads are byte for byte the files the package reads, and the value-form dispatch is the same too, with the service detecting deterministic, interval, or probability-box inputs from the declared data type exactly as input processing does. One convenience softens the file requirements rather than the contract. When analysis inputs arrive without a structure file, the service reconstructs the edge list from the edge keys the inputs themselves carry, so a self-consistent set of analysis files is enough to work with.
-
-Results travel back as JSON keyed by node and edge, and a value never loses its form in transit. A deterministic belief crosses the boundary as a number, an interval as its pair of bounds, and a probability box as a typed summary carrying its bounding curves and moments at the stated discretisation level, so the client always knows what kind of quantity it is rendering and cannot silently collapse an uncertain result into a point. Each analysis endpoint accepts the options its module defines and nothing else. The flow endpoint takes the solver choice among the three of Chapter~\ref{ch:capacity-toolkit}, the failure-combination size, the enumeration limits, the target service level, and degradation scenarios, and its inputs are deterministic capacities because that is the capacity contract of Chapter~\ref{ch:input-module}. The critical path endpoint takes the value maps and runs the analyses of Chapter~\ref{ch:critical-path}, and the propagation endpoint accepts any of the three value forms and can return the decomposition detail alongside the beliefs when the user wants to see the structure behind a number.
-
-Work the user has already paid for is kept. A session is nothing more than a folder holding the uploaded files and a plain JSON record of what has been computed, so analyses persist across visits, a session can be reopened, and deleting one is deleting a folder. The decomposition structure of Chapter~\ref{ch:diamond-module} gets the same treatment at a finer grain, because identification is the expensive preprocessing step that every propagation reuses. The service computes the diamond store once, holds it in memory, and persists it beside the session, keyed by the content of the network and prior files so that editing an input invalidates exactly the store it affects. A propagation request that follows a decomposition request, or a second propagation under a different scenario, finds the structure already in place. The store that Chapter~\ref{ch:diamond-module} built to keep the algorithms from repeating themselves here keeps the user's sessions from repeating themselves.
-
-\section{Data Sovereignty}
-\label{sec:fe-sovereignty}
-
-Nothing described above leaves the user's machine, and that is a design commitment rather than a deployment accident. There is no account to create, no telemetry, and no remote service in the path. The browser talks to a process on the same computer, and every artefact of a session, the uploaded network, the analysis inputs, the computed results, and the cached decomposition, exists as ordinary files in one folder that the user can inspect, archive to controlled storage, or destroy, with nothing held anywhere else. The web technologies are used for what they are good at, rendering and interaction, without importing the custody model that usually comes with them.
-
-For the industries this framework grew out of, the commitment is not a nicety. A decommissioning plan's dependency network, a defence logistics topology, or a utility's failure data are exactly the models an organisation cannot place in external custody, whatever the convenience \cite{hashizume2013analysis}, and tools that require it simply do not get adopted there. Local-first software keeps the usability argument and drops the custody problem \cite{kleppmann2019local}. For this framework's audience the practical consequence is plain enough to state in one line. Adopting the interface requires no security review of a third party, because there is no third party.
-
-\section{The Interface}
-\label{sec:fe-interface}
-
-The interface arranges the framework's capabilities as a guided pipeline (Figure~\ref{fig:fe-pipeline}), and each step unlocks when the data it needs exists. A user cannot reach a propagation view before a network is loaded, or a comparison view before there are results to compare, so the interface never presents a dead control, and a first-time user is steered through the same order this thesis follows, structure first, then analysis, then comparison. Familiar users are not forced through ceremony, since any unlocked step is reachable directly, and the interface preserves each view's state, its filters, selections, and open tabs, across navigation, so moving between views to cross-reference results costs nothing.
+On upload the server creates a session, a folder holding the files as uploaded and a
+metadata record, and returns the network's structure. Figure~\ref{fig:fe-pipeline} gives the
+shape of the whole workflow before the screenshots that follow walk through it step by
+step. The network page (Figure~\ref{fig:fe-network}) shows the graph object of
+Chapter~\ref{ch:system-model} as the package built it: node and edge counts, sources and
+sinks, forks and joins, the layered order, and the network drawn by layer. This page is
+where a user first sees whether the structure file was read as intended, since a
+mis-oriented edge or a missing node shows here as a wrong source or an unexpected layer.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.98\linewidth]{fig02_pipeline/fig02_pipeline.pdf}
-  \caption{The guided pipeline. Each step unlocks when its prerequisite data exists, and any unlocked step is reachable directly.}
+  \includegraphics[width=\linewidth]{fig00_pipeline/fig00_pipeline.pdf}
+  \caption{The workflow a session follows: load the network, then read its structure,
+  explore its reconvergence, and apply the three toolkits, before comparing scenarios.}
   \label{fig:fe-pipeline}
 \end{figure}
 
-A network enters as files, either picked individually or as a whole folder that the interface sorts by naming convention into the structure file and the analysis inputs. The same convention carries scenarios, since a network folder may hold several input sets, one per value form or operating case, and the interface treats each as a scenario of the same network, so one upload supports the whole comparative workflow. What the user then sees first is the network itself (Figure~\ref{fig:fe-network-view}). The drawing is built from the unified graph object, laid out layer by layer along the iteration sets of Chapter~\ref{ch:input-module} so that information visibly flows down the page in the order the algorithms process it, with the node roles of the model chapter, sources, sinks, forks, and joins, distinguished at a glance, and a force-directed alternative available when the layered view is not the natural reading. A structure dashboard beside it reports what input processing derived, the roles, the layers, and the connectivity, which is frequently where a modelling error in the input files announces itself, before any analysis has been run.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\linewidth]{fig02_network/fig02_network.png}
+  \caption{The network page after upload: structural summary of the graph object and the
+  network drawn by layer.}
+  \label{fig:fe-network}
+\end{figure}
+
+Each toolkit has a page of its own, reached from the navigation rail, and the three pages
+share one layout. A row of scenario chips at the top selects the scenario, each chip showing
+the scenario's value form, and a value-form filter above the chips narrows the row to
+deterministic, interval or probability-box scenarios. Below the chips are the toolkit's
+tabs. For the reliability toolkit (Figure~\ref{fig:fe-reliability}) these are Belief, the
+per-node table with summary tiles; Diamonds, the reconvergence structure the decomposition
+identified; Visualisation, the network drawn with the conditioning set highlighted; and
+Compare. The Belief table can be filtered by node role and restricted to diamond joins, and
+every summary tile names what it summarises. The flow and schedule pages have the same
+shape, with their own tabs: configuration, summary, bottlenecks and visualisation for flow
+(Figure~\ref{fig:fe-flow}); time, cost, visualisation and compare for schedule
+(Figure~\ref{fig:fe-schedule}).
 
 \begin{figure}[htbp]
   \centering
-  \screenshotplaceholder{62mm}{the network view and structure dashboard on the loaded network (layered layout, node roles coloured)}
-  \caption{The network as the interface presents it, the interactive layered drawing and the structure dashboard derived by input processing.}
-  \label{fig:fe-network-view}
+  \includegraphics[width=\linewidth]{fig03_reliability_belief/fig03_reliability_belief.png}
+  \caption{The reliability page, Belief tab. Top, the value-form filter and the scenario
+  chips, each chip labelled with its value form. Below the tabs, summary tiles and the
+  per-node belief table with its role filters.}
+  \label{fig:fe-reliability}
 \end{figure}
 
-The decomposition of Chapter~\ref{ch:diamond-module} is not hidden inside the propagation. The diamonds view lists the identified structures, and each diamond opens into a detail view that exploits the self-similarity that chapter established. A stored diamond is a graph object of the same form as the network, so the interface can present one as a network in its own right and run any analysis on it in isolation, with its local sources overridable, which turns the decomposition from an internal accelerator into an instrument for localised investigation. A reconvergence that dominates the network's uncertainty can be studied on its own, at its own scale, without leaving the tool.
-
-The analysis views deliver the toolkits of Chapters~\ref{ch:probability-toolkit} to~\ref{ch:critical-path}, and their common design rule is honesty about the form of a value. A propagated belief under a deterministic scenario is shown as a number, under an interval scenario as a range, and under a probability-box scenario as a band, with width statistics summarising where the network's uncertainty concentrates, and at no point does the interface average, midpoint, or otherwise flatten an uncertain result into a false precision (Figure~\ref{fig:fe-results-view}). The flow views report the throughput, bottleneck, sensitivity, and threshold results of Chapter~\ref{ch:capacity-toolkit}, the scheduling views the time and cost analyses of Chapter~\ref{ch:critical-path}, and a cross-scenario profile view sets the scenarios of one network side by side, which is where the comparative questions, what the interval inputs do to the answer, which design carries the risk, get answered without exporting anything to a spreadsheet. In-app documentation explains each view and the input formats in the user's terms, so the interface carries its own manual.
+A diamond in the Diamonds tab opens a detail view (Figure~\ref{fig:fe-diamond}) that draws
+the diamond as a graph of its own, lists its conditioning set, local sources and size, and
+offers two actions. The first runs the reliability analysis on the diamond alone, as a
+standalone network, with the local sources' priors overridable, which lets a user study a
+reconvergence that dominates the network's uncertainty without the rest of the network in
+view. The second promotes the diamond: it is uploaded as a new, independent network and
+becomes a session of its own. Both actions are possible because Chapter~\ref{ch:diamond-module}
+returns every diamond as a graph object of the same form as the network.
 
 \begin{figure}[htbp]
   \centering
-  \screenshotplaceholder{62mm}{propagated beliefs under an interval scenario beside the deterministic scenario, with the cross-scenario comparison view}
-  \caption{Propagation results as the interface presents them, ranges shown as ranges, with scenarios of the same network compared side by side.}
-  \label{fig:fe-results-view}
+  \includegraphics[width=0.55\linewidth]{fig04_diamond_detail/fig04_diamond_detail.png}
+  \caption{A diamond's detail view: the subgraph, its conditioning set and local sources,
+  the override fields for the local sources, and the two actions, run in isolation and
+  analyse as a new network.}
+  \label{fig:fe-diamond}
 \end{figure}
 
-The boundaries of the design are as deliberate as its features. The interface is a single-user local tool, with no collaboration layer, because its custody commitment is the point. It exposes the framework's analyses and does not author new ones, since extending the framework is a programmer's task and belongs to the package of Chapter~\ref{ch:julia-package}. And it adds no analytical capability of its own, because everything it shows is produced by the modules the preceding chapters validated, which is precisely what makes its results trustworthy: the interface is a window, not a second implementation.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig06_flow_config/fig06_flow_config.png}
+  \caption{The flow page, configuration tab: scenario, solver, tolerance, the failure
+  combination size, enumeration limits, and the optional target throughput and degradation
+  multipliers.}
+  \label{fig:fe-flow}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig05_schedule_interval/fig05_schedule_interval.png}
+  \caption{The schedule page under an interval scenario. The value-form selector shows the
+  form the file declares and marks the probability-box form unavailable for this toolkit;
+  the advanced control exposes the pass modes; the result tiles carry the method tag.}
+  \label{fig:fe-schedule}
+\end{figure}
+
+The Compare tab (Figure~\ref{fig:fe-compare}) selects any subset of the network's scenarios
+for the toolkit, runs those not yet run, one at a time, and places the results side by side
+in one table with an optional baseline for differences. The system-profile page
+(Figure~\ref{fig:fe-profile}) is the one view that crosses toolkits: every result set that
+any analysis has produced on the network, a critical path, a set of edges in every minimum
+cut, a conditioning set, is listed, and any one of them can be drawn on the network with a
+second overlaid, so that a schedule's critical path and a flow's binding cut can be seen on
+the same nodes. The page computes nothing; it draws what the analyses already found.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig07_compare/fig07_compare.png}
+  \caption{The Compare tab: scenario selection, the run control for scenarios not yet
+  run, and the side-by-side table with a baseline selector.}
+  \label{fig:fe-compare}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{fig08_profile/fig08_profile.png}
+  \caption{The system-profile page: the result sets available on the network, one
+  selected and drawn by layer, with a second selectable for overlay.}
+  \label{fig:fe-profile}
+\end{figure}
+
+\FloatBarrier
+\section{What the Interface Enforces}
+\label{sec:fe-rules}
+
+The fourth requirement of Section~\ref{sec:fe-user}, that the screen shows what the package
+computed and nothing else, is met by four rules that the interface applies everywhere, and
+they are stated here with the reason for each.
+
+A value keeps its form. A belief under an interval scenario is shown as a range wherever it
+appears, and a belief under a probability-box scenario as its bounding summary, never as a
+midpoint. One component, \texttt{ValueDisplay}, renders every value of every form in every
+table and detail view, so that no view can invent its own rendering. The one exception is
+stated on the screen: a few summary tiles, such as the mean belief, use a midpoint so that a
+single summary number is possible, and each such tile says so in its label. A per-node value
+is never flattened. The reason is Chapter~\ref{ch:probability-toolkit}: the range is the
+result, and its midpoint is a number the toolkit never computed.
+
+A result set is what the toolkit returned. The bottleneck table reports the edges in every
+minimum cut as the flow toolkit computed them; the profile page draws a critical path as
+the schedule toolkit reported it; no score, ranking or threshold is computed in the
+interface. Where a table is sorted, the sort key is a field the toolkit returned. The
+reason is that a number computed in the interface would be a number the thesis has not
+validated.
+
+Every result carries its method. The schedule toolkit returns interval margins from one of
+three methods, and the reliability toolkit returns beliefs from an exact or a
+decomposition-only call; in each case the response names the method, and the interface
+shows the tag beside the result. A conservative enclosure and an exact range are therefore
+never displayed the same way. The reason is Chapter~\ref{ch:critical-path}: the two differ
+in what they guarantee, and a reader who cannot tell them apart cannot use either.
+
+One analysis runs at a time. The Compare tab runs unrun scenarios in sequence, and no view
+issues two requests to the server together. The reason is Chapter~\ref{ch:julia-package}:
+the propagation is single-threaded and its cache is not locked, so a second concurrent
+request would either wait or, at worst, corrupt a shared store.
+
+One rule the interface does not yet enforce is recorded here because it was found in use.
+Probability-box propagation has a cost that grows steeply with the discretisation level of
+the bounding functions, and Chapter~\ref{ch:probability-toolkit} recommends levels between
+25 and 100 for networks of the scale the method suits. The server does not set the level,
+so the library's own default of 200 applies to every request, which is the expensive end of
+the range. A run on the 26-node KarlNetwork at that default ran for seventeen minutes and
+blocked the single-threaded server, while the same run at level 50 completes in nine.
+The interface exposes no control over the level, applies no default of its own, and gives
+no estimate or warning before a run that may take minutes. What a user meets as
+intractability is therefore a setting the theory chapter already documents, and the fix
+is a control and a default in the interface, not a change to the method. It is listed in
+Chapter~\ref{ch:conclusions}.
+
+\section{Architecture}
+\label{sec:fe-architecture}
+
+The interface is an Angular application in an Nx workspace, built on Microsoft's Fluent
+web components for its controls and on d3 for the network drawing. The workspace holds
+eight projects: the application shell, which owns routing, the navigation rail and the
+pages that are not toolkit-specific; five feature libraries, one per toolkit page
+(reliability, which also carries the standalone Diamonds page, flow, schedule), one for
+the system profile and one for the session-inputs editor; and three shared libraries, an
+API client generated against the server's published contract, a data-access library
+holding the scenario cache and the folder convention, and a presentational library of
+cards, tables and the network graph.
+
+Two dependency rules are enforced by the build, not by convention. A layer rule allows the
+shell to depend on features, features on the shared libraries, and presentational
+components only on other presentational components and the API client, never on data
+access; a component in the presentational library that needs a scenario's shape therefore
+declares a small structural type of its own. A scope rule allows a feature to depend on its
+own scope and the shared scope only, so that no feature imports another feature; a view
+that needs another toolkit's components, such as the standalone Diamonds page, lives inside
+that toolkit's library. Both rules are checked by the linter on every build, which is how
+the claim of Chapter~\ref{ch:main-intro} that the three analyses are independent is made
+to hold in the interface as well as in the package.
+
+The Fluent component set has no card, table or data-grid component, so the interface's
+cards are its own and its tables are native HTML tables styled with the Fluent design
+tokens. About forty components are registered once at start-up, and about fifty icons are
+drawn from the Fluent system icon set.
+
+Client and server share one machine. The server binds the loopback address and
+accepts requests only from the interface's own origin, as Chapter~\ref{ch:julia-package}
+describes, and the interface has no other network access. Every request names files by
+their path in the session; no request carries the network in its body, and no file is
+re-encoded on the way. Figure~\ref{fig:fe-deployment} shows the whole deployment inside the
+boundary of the user's machine: the browser talks to the analysis service over HTTP on
+localhost, and the service alone reaches the framework's modules and the session's files
+and decomposition store. A local-first application in this sense keeps the usability of
+the web without the custody question of Chapter~\ref{ch:lit-review}, since there is no
+remote party to hold the data \cite{kleppmann2019local}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\linewidth]{fig09_architecture/fig09_architecture.pdf}
+  \caption{The deployment, contained entirely within the user's machine. The front end
+  reaches the analysis service over HTTP on localhost; the service alone calls the
+  framework's modules and reads and writes the session's files and decomposition store.}
+  \label{fig:fe-deployment}
+\end{figure}
+
+\section{The Contract as the Boundary}
+\label{sec:fe-contract}
+
+The boundary between interface and package is a written contract: an OpenAPI document,
+version 2.0.0, describing fourteen endpoints, from which the interface's API client is
+generated. Each analysis has one endpoint and one handler, and each endpoint takes a JSON
+body naming the session and the files and returns a JSON response whose values keep their
+form on the wire: a deterministic value is a number, an interval is an object with a lower
+and an upper field, and a probability box is a fuller typed object. Because the same files
+that the interface uploads are the files the package reads, anything the interface does can
+be repeated from the command line against the same folder, and the case study of
+Chapter~\ref{ch:integrated-case-study} records every server request and response beside its
+screenshots for that reason.
+
+The contract has changed once during the work, when three endpoints were renamed to match
+the toolkit names of this thesis. The old names were kept as aliases, so the interface built
+against the earlier contract continued to work while the client was regenerated. That is
+the ordinary benefit of a published boundary, and it is recorded because it was tested.
+
+\section{Evaluation}
+\label{sec:fe-evaluation}
+
+This interface has been used by its author and demonstrated to others, and it has not yet
+been used independently by an engineer who does not program. The evaluation that can be
+offered is therefore a task-based walkthrough, and it is labelled as such: it shows that
+the tasks a user would set are reachable without code, and it does not show how a user
+found them.
+
+The tasks are the ones a planner with a system model would set. Load a model that exists as
+an edge list and three input files. See whether the structure was read as intended. Find
+the belief at each demand point under the current component data, and under a stated range
+on that data. Find which reconvergence in the network carries the uncertainty, and study it
+alone. Find the deliverable throughput and the binding cut, and what fails first. Find the
+completion time of a dependent sequence and which activities are certainly critical under
+duration uncertainty. Compare two operating cases. See where the schedule's critical path
+and the flow's binding cut coincide.
+
+Every one of these is a click sequence in Section~\ref{sec:fe-workflow}, and every result
+it produces is a result of Chapters~\ref{ch:probability-toolkit}
+to~\ref{ch:critical-path} in the form those chapters state. The demonstration of the
+sequence on a real network, with every request and response recorded, is
+Chapter~\ref{ch:integrated-case-study}. What the walkthrough cannot show is the time a new
+user takes, where the labels are unclear, and which of the four rules of
+Section~\ref{sec:fe-rules} a user notices; that is the study that remains to be done, and
+it is listed in Chapter~\ref{ch:conclusions}.
+
+\section{Limitations}
+\label{sec:fe-limitations}
+
+The interface has no control over the probability-box discretisation level and no warning
+before a long run, as Section~\ref{sec:fe-rules} records. It has no user study behind it.
+It accepts the two structure formats of Chapter~\ref{ch:system-model} and no domain format,
+so a user with an EPANET or MATPOWER file converts it first. It runs one analysis at a
+time. The session is a folder on disk and there is no export beyond the response JSON,
+which the user can save from the browser. And the interface is a client of the package, so
+every limit of the package, single-threaded propagation, no probability-box schedule, no
+interval flow, is a limit of the interface as well.
 
 \section{Summary}
 \label{sec:fe-summary}
 
-The front end closes the framework's last mile. A local analysis service exposes the modules of Chapters~\ref{ch:input-module} to~\ref{ch:critical-path} behind a documented contract in which the user's files are the currency, inputs keep the formats input processing defined, results keep their value forms, and paid-for work persists in sessions and a content-keyed decomposition store. A browser front end turns that contract into a guided, no-code workflow, from upload through structure, decomposition, and the three toolkits to cross-scenario comparison, rendering uncertain results as the ranges and bands they are. Everything runs on the user's machine and every artefact is an ordinary file the user owns, which is what makes the tool adoptable in the proprietary-data industries the framework serves. Chapter~\ref{ch:integrated-case-study} puts the whole interface to work on a single network, end to end.
+An engineer who does not program can run the three toolkits on a system model by uploading
+the files the package reads and pressing a button, on a machine the model never leaves. The
+interface shows what the package computed and enforces that in four rules: a value keeps
+its form, a result set is what the toolkit returned, every result carries its method, and
+one analysis runs at a time. It is built as an Angular workspace whose module boundaries
+are checked by the build, against a published contract from which its client is generated,
+so that anything done in the interface can be repeated at the command line. One cost
+control is missing and has been located. The interface has been demonstrated and not yet
+studied in use, and its application to a real network follows in the next chapter.
 
 \ifdefined\maindoc
-% do nothing
 \else
 \printbibliography
 \end{document}

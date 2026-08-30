@@ -1,13 +1,13 @@
-
-
 \ifdefined\maindoc
-% Under the thesis build, main.tex owns the preamble and the \chapter/\label lines.
+% Under the thesis build, main.tex owns the full \graphicspath list. \graphicspath REPLACES
+% rather than appends, so this branch deliberately does nothing.
 \else
 \documentclass[12pt]{report}
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath,amssymb,amsthm}
+\usepackage[british]{babel}
+\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{setspace}
 \usepackage{graphicx}
@@ -15,18 +15,500 @@
 \usepackage{placeins}
 \usepackage{hyperref}
 \usepackage{array}
+\usepackage{listings}
+\usepackage{forest}
+\usepackage{multirow}
+\usepackage{xcolor}
 \usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
 \addbibresource{../../references.bib}
 \onehalfspacing
 \graphicspath{{figures/}}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single}
+% Standalone-only fallbacks. Numbering: 1 Introduction, 2 Background, 3 Network Model,
+% 4 Network Decomposition, 5 Probability, 6 Capacity Flow, 7 Critical Path, 8 this chapter,
+% 9 Interface, 10 Integrated Case Study, 11 Conclusions.
+\makeatletter
+\newlabel{ch:main-intro}{{1}{1}{}{Doc-Start}{}}
+\newlabel{ch:lit-review}{{2}{1}{}{Doc-Start}{}}
+\newlabel{ch:system-model}{{3}{1}{}{Doc-Start}{}}
+\newlabel{ch:diamond-module}{{4}{1}{}{Doc-Start}{}}
+\newlabel{ch:probability-toolkit}{{5}{1}{}{Doc-Start}{}}
+\newlabel{ch:capacity-toolkit}{{6}{1}{}{Doc-Start}{}}
+\newlabel{ch:critical-path}{{7}{1}{}{Doc-Start}{}}
+\newlabel{ch:front-end}{{9}{1}{}{Doc-Start}{}}
+\newlabel{ch:integrated-case-study}{{10}{1}{}{Doc-Start}{}}
+\newlabel{ch:conclusions}{{11}{1}{}{Doc-Start}{}}
+\newlabel{app:network-specs}{{A}{1}{}{Doc-Start}{}}
+\newlabel{app:full-results}{{B}{1}{}{Doc-Start}{}}
+\makeatother
 \begin{document}
 \title{Package Implementation in Julia}
 \fi
 
-\emph{Chapter in preparation.} This chapter packages the modules of
-Chapters~\ref{ch:input-module} to~\ref{ch:critical-path} as an installable Julia package:
-the public API, the type design that carries point, interval and probability-box values
-through one propagation, the test and validation harness, and the reproducibility story.
+\providecommand{\PH}[1]{\textbf{[#1]}}
+
+\section{Introduction}
+\label{sec:pkg-intro}
+
+Every method in Chapters~\ref{ch:system-model} to~\ref{ch:critical-path} is implemented once,
+in one Julia package, and no analysis logic exists anywhere else in the framework. The
+interface of Chapter~\ref{ch:front-end} calls the package through a local server and adds
+nothing to the computation. This chapter describes the package as a piece of engineering. It covers the choice of
+language and what it did and did not deliver; the types that realise the definitions of
+Chapter~\ref{ch:system-model}; the module structure and how an analysis is added to it; the
+three value forms in code; the caches that make the probability toolkit tractable; the
+validation scripts that stand in for a test suite, and what they found; the server; and how
+the package is distributed and its results reproduced.
+
+The reader this chapter is written for is an engineer who would extend or embed the package,
+and an examiner who wants to know whether the software is a faithful and verifiable
+realisation of the methods. Code is quoted only where a design decision is clear in no
+other way.
+
+\section{The Language}
+\label{sec:pkg-language}
+
+The package is written in Julia \cite{bezanson2017julia}, version 1.12. Three properties of the language were the reasons for choosing it. Multiple dispatch allows
+one function name to carry a different method for each value form, so that
+\texttt{multiply\_values} on two \texttt{Float64} values, two intervals or two probability
+boxes is written once at each call site and resolved by the argument types
+(Section~\ref{sec:pkg-values}). Compiled performance without a second language means that
+the propagation loops, which run millions of times on the larger networks of
+Chapter~\ref{ch:probability-toolkit}, are the same code that is read and edited, with no
+C or Fortran layer beneath them. And the probability-box arithmetic of
+Chapter~\ref{ch:lit-review} exists as a maintained Julia library,
+\texttt{ProbabilityBoundsAnalysis.jl} \cite{gray2021pbajulia}, so the framework did not have
+to implement p-box convolution itself.
+
+Two expectations did not hold. Julia's threading was expected to parallelise the
+propagation, and it did not: recursive task spawning over nested diamonds overflowed the
+task stack on deep networks, and the shared diamond cache would have needed locking that
+removed the gain. Propagation is therefore single-threaded, and the iteration sets of
+Chapter~\ref{ch:system-model}, which are a natural boundary for parallel work, are used for
+ordering only. And just-in-time compilation, which makes the second call of a method fast,
+makes the first call slow, so that a fresh server process answers its first request in
+seconds, where the second takes milliseconds. This is why every timing in the thesis is a second-call
+timing, and why Appendix~\ref{app:full-results} states the convention.
+
+\section{Package Structure}
+\label{sec:pkg-structure}
+
+The package is organised as a facade over five toolkit-facing modules plus two internal
+support modules, shown in Figure~\ref{fig:pkg-structure} and summarised in
+Table~\ref{tab:pkg-modules}. The facade, \texttt{InformationPropagationAnalysis}, includes
+every module and re-exports twelve names: the five module names themselves
+(\texttt{Input}, \texttt{Diamonds}, \texttt{Probability}, \texttt{CriticalPath},
+\texttt{Flow}), the two value types (\texttt{Interval}, \texttt{pbox}), and the four
+top-level entry points (\texttt{new\_identify}, \texttt{update\_beliefs\_iterative},
+\texttt{critical\_path}, \texttt{analyze\_all}), so that a user writes
+\texttt{using InformationPropagationAnalysis} and nothing else. The two support modules,
+\texttt{GraphValidation} and \texttt{GraphTraversal}, are included in the facade but not
+re-exported, since nothing outside the package calls them directly; they realise
+Chapter~\ref{ch:system-model} together with \texttt{Input}, which reads structure and
+value files into the graph object. \texttt{Diamonds} realises
+Chapter~\ref{ch:diamond-module}, and \texttt{Probability}, \texttt{CriticalPath} and
+\texttt{Flow} realise Chapters~\ref{ch:probability-toolkit} to~\ref{ch:critical-path} in
+turn.
+
+The module names above are the registered package's own, and they differ from the names
+used during development, from which the chapters of this thesis were written. The
+retired critical path implementation of Chapter~\ref{ch:critical-path}, called
+\texttt{CriticalPath} during development to distinguish it from the mode-based
+\texttt{CriticalPathV2}, was never carried into the registered package: only the
+mode-based toolkit exists there, and it now carries the plain name \texttt{CriticalPath}
+with no clash, since nothing of the retired version remains to clash with. The same
+renaming, mapped in Table~\ref{tab:pkg-modules}, applies to every other module.
+
+\begin{table}[htbp]
+\centering
+\caption{Modules of the registered package, the development name each carried, the chapter
+each realises, and their size.}
+\label{tab:pkg-modules}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llllr}
+\toprule
+Registered name & Development name & Realises & Files & Lines \\
+\midrule
+Input & Shared (part) & Ch.~\ref{ch:system-model} & \multirow{3}{*}{3} & \multirow{3}{*}{1,440} \\
+GraphValidation & Shared (part) & Ch.~\ref{ch:system-model} & & \\
+GraphTraversal & Shared (part) & Ch.~\ref{ch:system-model} & & \\
+Diamonds & DiamondDecomposition & Ch.~\ref{ch:diamond-module} & 6 & 3,355 \\
+Probability & ProbabilityPropagation & Ch.~\ref{ch:probability-toolkit} & 6 & 747 \\
+Flow & FlowCapacity & Ch.~\ref{ch:capacity-toolkit} & 12 & 6,101 \\
+CriticalPath & CriticalPathV2 & Ch.~\ref{ch:critical-path} & 6 & 626 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{forest}
+    for tree={font=\ttfamily\scriptsize, grow'=0, edge={draw, thick},
+              l sep=4mm, s sep=1mm, inner sep=1pt}
+    [InformationPropagationAnalysis.jl
+      [Project.toml]
+      [src/
+        [InformationPropagationAnalysis.jl \textrm{\scriptsize(top module)}]
+        [Input/]
+        [Shared/
+          [GraphValidation.jl]
+          [GraphTraversal.jl]]
+        [Diamonds/
+          [Diamonds.jl]
+          [Internal/]]
+        [Probability/
+          [Probability.jl]
+          [Internal/]]
+        [CriticalPath/
+          [CriticalPath.jl \textrm{\scriptsize(V2; V1 dropped)}]
+          [Internal/]]
+        [Flow/
+          [Flow.jl \textrm{\scriptsize(umbrella)}]
+          [{\_CapacityShared.jl, CapacityTypes.jl, FlowModule.jl}]
+          [Internal/ \textrm{\scriptsize(eight concern modules)}]]]
+      [test/]
+      [docs/]
+      [.github/workflows/]]
+  \end{forest}}
+  \caption{Structure of the registered package. Input builds the graph object;
+  GraphValidation and GraphTraversal support it internally; Diamonds, Probability,
+  CriticalPath and Flow are the four analysis-facing modules described in
+  Section~\ref{sec:pkg-structure}.}
+  \label{fig:pkg-structure}
+\end{figure}
+
+The sizes in Table~\ref{tab:pkg-modules} show where the work went. The
+decomposition module is four times the size of the propagation module it serves, because the
+identification, the context-aware identity and the store of Chapter~\ref{ch:diamond-module}
+carry most of the difficulty, and the propagation itself is a short recurrence once the
+diamonds are known. The flow toolkit is the largest module because it answers six questions
+with nine sub-modules and three solvers: \texttt{Sensitivity}, \texttt{FailureImpact},
+\texttt{Structural}, \texttt{FlowDecomposition}, \texttt{ParametricThreshold},
+\texttt{NodeCapacitatedFlow}, \texttt{MinCutUtilities} and \texttt{GlobalConnectivity} are
+the eight concern modules named in Figure~\ref{fig:pkg-structure}'s \texttt{Internal/}
+folder, alongside the base solver module itself.
+
+A fourth analysis is added by writing a module that reads the graph object and, if it needs
+the reconvergent structure, the \texttt{unique\_subgraphs} field the decomposition module
+adds. No module has to be modified for the new one to run. The three toolkits are
+independent of one another and share only the graph object, which is what
+Chapter~\ref{ch:main-intro} claimed for the framework and what the code enforces by having
+no imports between toolkits.
+
+\section{The Graph Object}
+\label{sec:pkg-graph}
+
+The graph object of Chapter~\ref{ch:system-model} is a Julia named tuple whose fields are
+listed in Table~\ref{tab:pkg-graph-fields}. It is built once by
+\texttt{read\_complete\_network}, and every analysis takes it as its first argument. Two
+representation choices determine the performance of everything above it.
+
+\begin{table}[htbp]
+\centering
+\caption{Fields of the graph object and their types.}
+\label{tab:pkg-graph-fields}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lll}
+\toprule
+Field & Type & Content \\
+\midrule
+\texttt{edgelist} & \texttt{Vector\{Tuple\{Int64,Int64\}\}} & directed edges \\
+\texttt{outgoing\_index} & \texttt{Dict\{Int64,Set\{Int64\}\}} & children of each node \\
+\texttt{incoming\_index} & \texttt{Dict\{Int64,Set\{Int64\}\}} & parents of each node \\
+\texttt{source\_nodes}, \texttt{sink\_nodes} & \texttt{Set\{Int64\}} & nodes with no parent, no child \\
+\texttt{fork\_nodes}, \texttt{join\_nodes} & \texttt{Set\{Int64\}} & fan-out and fan-in $\ge 2$ \\
+\texttt{iteration\_sets} & \texttt{Vector\{Set\{Int64\}\}} & the layers of Chapter~\ref{ch:system-model} \\
+\texttt{ancestors}, \texttt{descendants} & \texttt{Dict\{Int64,Set\{Int64\}\}} & self-inclusive closures \\
+\texttt{unique\_subgraphs} & \texttt{Dict\{key, Diamond\}} & added by decomposition \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+First, adjacency is held as dictionaries from a node identifier to a set of identifiers, and
+edges are keyed by a tuple of two identifiers. Sets make membership tests and the union
+operations of the closure algorithm constant-time on average, and tuple keys let the value
+maps of every analysis (a probability, a capacity, a duration per edge) use the same key as
+the structure without conversion. Second, the ancestor and descendant closures are stored in
+full. This is the space-for-time trade stated in Chapter~\ref{ch:system-model}: the
+decomposition algorithm asks whether one node is an ancestor of another many thousands of
+times on a large network, and each answer is one set lookup. On the densest networks of the
+corpus the closures are the largest structure in memory, and Section~\ref{sec:pkg-caches}
+returns to what that costs.
+
+Julia has a mature general graph library, \texttt{Graphs.jl}, with weighted and
+property-graph companions, and it was not used, for four reasons. Its vertex identifiers
+must be the contiguous integers 1 to $n$, while infrastructure data arrives with arbitrary
+integer identifiers and gaps, so every input would need a renumbering layer and every output
+a reverse one. Its topological sort returns a flat order, not the layers that every
+algorithm in the framework iterates over. It has no directed-acyclic-graph type, so
+acyclicity would be checked after construction. Chapter~\ref{ch:system-model} requires it
+to be enforced during ingestion. And attaching per-edge values of a user-defined type
+through the property-graph companion is not type-stable, which in Julia means the inner
+loops would allocate. A purpose-built object with the fields of
+Table~\ref{tab:pkg-graph-fields} avoids all four and adds no dependency.
+
+\section{The Three Value Forms in Code}
+\label{sec:pkg-values}
+
+A deterministic value is a \texttt{Float64}, and its helpers are plain Base arithmetic. An
+interval is a two-field immutable struct, \texttt{Interval(lower, upper)}, defined in the
+input module. A probability box is the \texttt{pbox} type of
+\texttt{ProbabilityBoundsAnalysis.jl} \cite{gray2021pbajulia}, re-exported so that a user
+sees one set of names; its own binary operators, \texttt{convIndep}, \texttt{convFrechet}
+and \texttt{convPerfect}, and its own constructors, \texttt{interval}, \texttt{makepbox} and
+the parametric family (\texttt{normal}, \texttt{uniform}, \texttt{beta}, \texttt{exponential}
+and others), are what the interval and p-box branches of every helper call. The package
+itself depends directly on \texttt{ProbabilityBoundsAnalysis}, \texttt{JSON},
+\texttt{DataStructures} and \texttt{DelimitedFiles} and nothing else; an earlier
+implementation also depended on \texttt{Combinatorics}, \texttt{DataFrames} and
+\texttt{Distributions} directly, none of which is called anywhere in the current source, and
+all three were removed in the restructure that produced the module layout of
+Table~\ref{tab:pkg-modules}. Where the parametric p-box constructors reach a named
+distribution, they reach it through \texttt{ProbabilityBoundsAnalysis}'s own use of
+\texttt{Distributions.jl}, one layer below the package's own dependency graph, not through a
+call the package makes itself.
+
+The propagation of Chapter~\ref{ch:probability-toolkit} is written
+against a small set of helper functions, listed in Table~\ref{tab:pkg-helpers}, each with a
+method per form. The recurrence calls \texttt{multiply\_values}, \texttt{complement\_value},
+\texttt{prod\_values} and \texttt{pbox\_conditional\_combine} and never names a type, so
+the same source computes exact beliefs, exact interval bounds and sound p-box bounds
+according to what it is given. This is the one place where multiple dispatch carries the
+design, and it is the reason the framework can claim one propagation for three forms.
+
+\begin{table}[htbp]
+\centering
+\caption{Value helpers over which the probability propagation is generic.}
+\label{tab:pkg-helpers}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{0.19\linewidth}p{0.13\linewidth}p{0.24\linewidth}p{0.30\linewidth}@{}}
+\toprule
+Helper & \texttt{Float64} & \texttt{Interval} & \texttt{pbox} \\
+\midrule
+\texttt{multiply\_\allowbreak values} & product & corner product & independent convolution \\
+\texttt{complement\_\allowbreak value} & $1-a$ & $[1-\overline{a},\,1-\underline{a}]$ & $1 \ominus a$ \\
+\texttt{sum\_\allowbreak values}, \texttt{prod\_\allowbreak values} & fold & fold of the above & fold of the above \\
+\texttt{pbox\_\allowbreak conditional\_\allowbreak combine} & $wA+(1-w)B$ & corner enumeration & mixture over $w$, positive-dependence blend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The last row is the operator behind the finding recorded in
+Chapter~\ref{ch:probability-toolkit}. The total-probability step at a diamond join,
+$wA + (1-w)B$ for a conditioning belief $w$, is a convex combination. The first p-box
+implementation treated it as a
+convolution, which gave bounds wider than the truth with
+mass above one. The present operator integrates over the discretisation levels of $w$,
+combines the two branches under a positive-dependence bound, since both branches are
+monotone in their inputs, and envelopes over the imprecision of $w$. It then intersects
+the result with the unit box, and refuses, with an error naming the cause, if the excursion outside
+$[0,1]$ before that intersection exceeds floating-point noise. That refusal is deliberate.
+A silent clamp would have hidden the original error.
+
+The critical path toolkit does not use dispatch for its interval form, for the reason recorded in Chapter~\ref{ch:critical-path}: running the scalar kernels
+on an interval type gives wrong minima and over-wide margins. Its interval results are
+therefore computed by scheme, from scalar runs at chosen corners, and its own
+\texttt{ValueInterval} type exists only to carry a result. That type checks
+\texttt{lower <= upper} on construction with no tolerance, and the check is kept strict
+because a constructor that silently reorders bounds hides errors. The consequence,
+found on the PSPLIB instance of Chapter~\ref{ch:critical-path}, is that two independent
+sweeps that both compute an exactly zero float can differ by a few units in the last place
+and trip the check. The fix is in the caller: a float within the tolerance of zero is set
+to zero before the interval is built, and the constructor stays strict.
+
+\section{Caches and Memory}
+\label{sec:pkg-caches}
+
+The decomposition of a network is computed once and stored, keyed by the content of the
+structure file and the prior file, so that a second scenario on the same network reuses it
+and an edit to either file invalidates only what depends on it. Within a propagation, every
+solved diamond is memoised under a compact key of hashes, the diamond's edge list and the
+priors it was solved under, so that a diamond posed again by a different enclosing
+recursion is looked up. It is not recomputed. Chapter~\ref{ch:probability-toolkit} reports
+that this deduplication reduces the work to between one and five per cent of the a priori
+bound on the larger networks.
+
+The store's memory, not its time, is what limits the probability toolkit. Under
+interval inputs the number of distinct contexts a diamond is posed under grows with the
+width of the intervals, and on one benchmark network the store reached two million entries
+and 24 gigabytes, where the same network under point values needed three thousand. A lean
+mode of the store, off by default, holds for each entry only the belief at its own join
+in place of the full per-subgraph dictionaries. An entry is about one hundred times
+smaller. The compute path reads a cached entry only at the join, so the results are unchanged,
+and the rare collision of two diamonds with the same key but different joins is caught by a
+lookup miss that recomputes. The mode was gated on identical results across the
+eleven-network regression set before it was kept.
+
+Identification, as distinct from propagation, is bounded by memory in the same way, and
+its failures on the largest networks of Chapter~\ref{ch:probability-toolkit} are out-of-memory
+errors at identification and not time-outs. The single-threaded propagation of
+Section~\ref{sec:pkg-language} is therefore not the binding constraint on scale.
+
+\section{Validation Infrastructure}
+\label{sec:pkg-validation}
+
+The registered package carries a formal test suite (214 assertions, run through
+\texttt{Pkg.test}) and continuous integration on GitHub Actions, matrixed across Julia 1.12
+on Ubuntu and Windows. Neither, however, is where the exactness claims of the analysis
+chapters come from. The test suite exercises the package's own correctness on small synthetic instances,
+chiefly a brute-force exact-reliability oracle over diamonds with up to seventeen state
+bits. Running it is slow, for a reason that is recorded here: on Julia 1.12,
+\texttt{ProbabilityBoundsAnalysis.jl} cannot be precompiled, because an upstream method
+overwrites a Fr\'{e}chet-bound function in a way the compiler cannot cache, so the whole
+dependency chain loads interpreted on every fresh process. A warm depot completes the suite in under a minute, and almost all of that is the load; the
+assertions themselves run in under ten seconds. A cold depot, which is what a
+continuous-integration runner starts from, spends several minutes precompiling roughly a
+hundred transitive packages before the same assertions run, and the workflow sets \texttt{JULIA\_PKG\_PRECOMPILE\_AUTO=0} to skip
+attempting to precompile the one package that cannot be. This is a property of an upstream dependency, and it affects only how long a contributor
+waits.
+
+What the test suite and continuous integration certify is narrower than what the chapters
+of this thesis claim. The evidence for those claims, the exactness of the propagation on
+real and adversarial networks up to the scale reported, the validity of the interval and
+p-box bounds, and the correctness of the flow and critical path toolkits on their case
+studies, is a set of validation scripts, one family per toolkit, each of which runs the
+toolkit and an independent computation on the same inputs and compares them. They are
+listed with their oracles in Appendix~\ref{app:full-results}. For the probability toolkit
+the oracles are a binary decision diagram library, exhaustive path enumeration and Monte
+Carlo sampling (Chapter~\ref{ch:probability-toolkit}); for the critical path toolkit a
+brute-force path oracle, exhaustive corner enumeration and Monte Carlo
+(Chapter~\ref{ch:critical-path}); for
+the flow toolkit three solvers against one another, an external flow library and brute-force
+removal, bisection and subset enumeration (Chapter~\ref{ch:capacity-toolkit}). The scripts
+are run on a fixed corpus of networks with recorded seeds, and their logs are kept with the
+results they certify. Converting them into a test suite that runs on every change is listed
+in Chapter~\ref{ch:conclusions}; the difference between the two is when they run, not what
+they check.
+
+These scripts found six errors that the methods' proofs did not prevent. Two were in identification: a collision between the context and the
+key of a diamond on reconvergent grids under non-unit priors, and an eligibility test that
+excluded every node with prior one and so found no diamonds in a network whose priors were
+all one (Chapter~\ref{ch:diamond-module} proves the identity that replaced the first). One
+was the floating-point residual of Section~\ref{sec:pkg-values}, found on a published
+scheduling benchmark and not on any synthetic network, because only the benchmark had a
+degenerate node whose float two sweeps reached by different arithmetic. One was in the
+node-splitting transformation of the flow toolkit, which assigned the entry and exit nodes
+of a split node the identifiers $2v$ and $2v+1$; these collide with unsplit nodes when only
+some nodes carry a capacity and the identifiers are small, which no corpus network
+exercised because each gave every node or no node a capacity, and which the IEEE test system
+of Chapter~\ref{ch:capacity-toolkit} exercised at once. One was in the minimum-cut lattice,
+whose set of edges present in every minimum cut was computed against the wrong side of the
+residual reachability and so returned saturated edges inside the source side; the error
+was visible on the smallest network in the interface of Chapter~\ref{ch:front-end}, and
+the validation check that should have caught it, comparing the set against the enumerated
+cuts, is now part of the flow scripts. And one was in the validation of a probability-box
+input, where the library's minimum and maximum of an imprecise box return a box where a number was expected, so a valid input failed with a type error; the bounds are now read from the box's
+own discretised curves.
+
+Each of the six is a boundary the synthetic corpus did not reach and a real or benchmark instance did, which is the argument for benchmark instances in a validation set. Each was fixed at its cause, and each fix was gated on unchanged results everywhere the code had passed before.
+
+\section{The Server}
+\label{sec:pkg-server}
+
+The interface of Chapter~\ref{ch:front-end} reaches the package through a small HTTP server,
+\texttt{InfoPropServer}, built on \texttt{HTTP.jl} and \texttt{JSON}. These are the only two
+dependencies of the package that the analysis modules do not use, and they are confined to
+the server directory, so that the package can be split from the server without change.
+
+The server binds the loopback interface and accepts cross-origin requests only from the
+local interface's origin, which is the mechanism behind the data-sovereignty claim of
+Chapter~\ref{ch:front-end}: the client and the server share a machine, and no request can
+arrive from elsewhere. An upload creates a session, which is a folder holding the network's
+files as uploaded, byte for byte, plus a metadata record and, once computed, the persisted
+decomposition. Every analysis is a route with a handler of its own (structure, capacity and
+flow, diamond identification and subgraph analysis, probability propagation, critical
+path), so that adding an analysis means adding a handler and a route and touching nothing
+else. Each response carries a request identifier and, on failure, the exception message
+and a bounded stack trace, which is how the errors of Section~\ref{sec:pkg-validation} were
+diagnosed from the interface. The contract between server and client is written as an
+OpenAPI document, version 2.0.0, from which the interface's client library is
+generated (Chapter~\ref{ch:front-end}).
+
+One handler decision follows from Chapter~\ref{ch:critical-path}. The exact interval floats
+by the domination split can decline an instance whose run count exceeds the limit, and the
+handler must then fall back to the conservative enclosure. Declining and failing were at
+first caught by the same clause, so that the floating-point error of
+Section~\ref{sec:pkg-values} was reported to the user as intractability. The split now
+declines with an exception type of its own that carries the run counts, the handler catches
+only that type and reports the counts, and every other exception propagates.
+
+\section{Distribution and Reproducibility}
+\label{sec:pkg-distribution}
+
+The package is published in the Julia General registry as
+\texttt{InformationPropagationAnalysis.jl} \cite{juliageneral}, version 0.2.1, registered by
+pull request \#166556 at version 0.2.0 and updated to 0.2.1 shortly after, and the results
+in this thesis were produced under Julia 1.12.6. Its direct dependencies, as stated in
+Section~\ref{sec:pkg-values}, are \texttt{ProbabilityBoundsAnalysis}, \texttt{JSON},
+\texttt{DataStructures} and \texttt{DelimitedFiles}, all with version bounds, and a
+manifest fixes every transitive version. Version 0.2.1 supersedes the five-file,
+reliability-only package registered as the same name's first release: it carries the full
+module structure of Table~\ref{tab:pkg-modules}, including the flow and critical path
+toolkits, and every fix described in this chapter (the p-box validation fix of
+Section~\ref{sec:pkg-values}, the minimum-cut lattice fix and the domination-split
+exception of Section~\ref{sec:pkg-server}) is in the tagged version, not a later,
+unregistered patch. The retired critical path implementation of
+Section~\ref{sec:pkg-structure} was not carried into either registered release. The second
+release renamed the modules to the names of Table~\ref{tab:pkg-modules} and added the test
+suite and continuous integration of Section~\ref{sec:pkg-validation}. Three code changes were made between 0.2.0 and 0.2.1. Two are not observable to a caller:
+a rename from deprecated queue methods to their replacements, and a type check widened from
+a concrete dictionary type to the abstract dictionary interface, which was already satisfied
+in every case the package exercises. The third removed four duplicated helper functions
+from the flow toolkit's sensitivity module, with the effect that the edges reported in some
+or every minimum cut are now returned in sorted order; the set of edges is unchanged. The same 214 assertions pass
+identically on both versions, including the exact belief, the power-network golden vector,
+maximum flow against minimum cut, and the PSPLIB makespan of Chapter~\ref{ch:critical-path}.
+The package was confirmed by installing it
+from the registry into a clean depot, separate from the development checkout, and running
+one case from each toolkit against it: exact belief propagation, maximum flow agreeing with
+the minimum cut, and a critical path makespan with its critical activities, all matching the
+development checkout. This check was run against the registry install available at the
+time, version 0.2.0. A repeat of the same check, stamped explicitly at 0.2.1, gave
+belief$(5) = 0.5832878525190001$ on the power network, a maximum flow of 10.0 agreeing with
+a minimum cut of 10.0, and a critical path longest-path value of 10.0, each identical to the
+corresponding 0.2.0 result. The two releases are confirmed equivalent for every purpose
+this thesis makes of the package.
+
+The server and interface of Chapter~\ref{ch:front-end} are developed in their own public
+repository, \texttt{information-propagation-no-code} \cite{ipfnocode}. The corpus, the validation scripts and their logs, the
+case-study inputs and every figure's generating script are kept separately, in
+\PH{validation repo name}, a repository shared with the journal paper of
+Chapter~\ref{ch:probability-toolkit}. Its README maps every chapter, figure and table of
+this thesis to the script and data that produced it. This repository is what is archived and
+cited: a tagged release at \PH{DOI} fixes the version of every script and dataset the
+thesis's results depend on. Reproducing a chapter's numbers is a matter of installing the
+package at the version stated in Section~\ref{sec:pkg-distribution}, checking out the
+archived repository at the cited tag, and running the scripts named for that chapter; the
+timing convention of Appendix~\ref{app:full-results} applies.
+
+\section{Limitations}
+\label{sec:pkg-limitations}
+
+Propagation is single-threaded, for the reasons in Section~\ref{sec:pkg-language}; a
+lock-free store or a work-stealing scheme over the iteration sets would be the route to
+parallelism and is not built. The package's own test suite certifies correctness on small
+synthetic instances and does not cover the scale or the real networks this thesis reports.
+The package reads only the two structure formats of Chapter~\ref{ch:system-model} and performs
+no conversion from domain formats. The critical path toolkit carries no probability-box
+form and the flow toolkit no interval or probability-box form.
+
+\section{Summary}
+\label{sec:pkg-summary}
+
+The package realises the methods of Chapters~\ref{ch:system-model}
+to~\ref{ch:critical-path} in seven Julia modules behind one facade, on one graph object whose
+types were chosen for the lookups the algorithms make and for identifiers as infrastructure
+data supplies them. Multiple dispatch carries the probability toolkit across three value forms through a small set of helpers, and the critical path toolkit does not use it. Two caches, one of decompositions keyed by file content and one of solved diamonds
+keyed by hashes, make the probability toolkit tractable, and memory is what limits it, not
+time. Its test suite certifies correctness on small instances; a set of oracle-backed
+validation scripts on a fixed corpus certifies every result reported in this thesis, and
+the six errors those scripts found and fixed are
+recorded here. A loopback-only server exposes the package to the interface of the next
+chapter through a handler per analysis and a published contract.
 
 \ifdefined\maindoc
 % do nothing

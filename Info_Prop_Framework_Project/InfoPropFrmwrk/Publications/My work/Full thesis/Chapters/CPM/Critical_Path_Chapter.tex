@@ -52,9 +52,9 @@
 \section{Introduction}
 \label{sec:cpm-intro}
 
-This chapter presents the Critical Path Toolkit, which implements the schedule and cost
-reading of the network model. In this reading the value attached to a node is a quantity
-that accumulates along dependency paths, such as a duration or a cost, and the value attached to an edge is the amount added or applied in the transfer
+The Critical Path Toolkit implements the schedule and cost interpretation of the network
+model. Under this interpretation the value attached to a node is a quantity that accumulates
+along dependency paths, such as a duration or a cost, and the value attached to an edge is the amount added or applied in the transfer
 between two components. The toolkit reads the graph object of
 Chapter~\ref{ch:system-model} directly. Every analysis in it is a linear-time pass over the
 layered iteration sets, and the Network Decomposition Module of
@@ -116,8 +116,8 @@ and $\prop = +$. Other pairs give other analyses: $\min$ and $+$ give the fastes
 $\max$ and $\times$ give the best multiplicative chain, and $+$ and $+$ give a roll-up in
 which every route contributes. Whether a margin is defined is a property of the pair.
 
-When $\comb$ is an order ($\max$ or $\min$) and $\prop$ is monotone with a residual, it
-is. A bound on the combined value then binds every argument, and the bound inverts
+When $\comb$ is an order ($\max$ or $\min$) and $\prop$ is monotone with a residual, a
+margin is defined. A bound on the combined value then binds every argument, and the bound inverts
 across each edge, so a constraint of the form ``finish by $K$'' travels backwards through
 the network in the same way that values travel forwards. This is residuation in an
 idempotent semiring \cite{baccelli1992sync}, and it is what the classical backward pass
@@ -320,14 +320,14 @@ the method that produced it, so that an exact range and an enclosure cannot be c
   \label{eq:cpm-enclosure}
   \bigl[\, \max\bigl(0,\; \underline{P} - \overline{t}_v\bigr),\;\; \overline{P} - \underline{t}_v \,\bigr] ,
   \end{equation}
-  and correspondingly for the other modes. The enclosure is sound and costs no more than
-  the two corner runs. It is not exact, because the lower corner of $P$ and the upper
+  and correspondingly for the other modes. The enclosure is sound. It costs no more than
+  the two corner runs, and it is not exact, because the lower corner of $P$ and the upper
   corner of $t_v$ are not in general attained by the same configuration of durations.
 \item \emph{Exhaustive corner enumeration.} The margin extremes are attained at corner
   configurations (Proposition~\ref{prop:cpm-corner} below), so enumerating every corner of
   the non-degenerate node and edge intervals and running the kernel at each gives the
-  exact margin range. The cost is $2^k$ runs for $k$ interval inputs, and the toolkit
-  refuses beyond a stated cap unless the cap is raised.
+  exact margin range. The cost is $2^k$ runs for $k$ interval inputs. Beyond a stated cap
+  the toolkit refuses unless the cap is raised.
 \item \emph{Domination split.} For the LongestPath mode with point-valued edge values, the exact
   margin range is obtained from a much smaller enumeration, described in
   Section~\ref{sec:cpm-split}.
@@ -339,8 +339,8 @@ upper bound of its margin is zero, that is, it is critical in every configuratio
 box. A node is \emph{possibly critical} when the lower bound of its margin is zero, that
 is, it is critical in at least one configuration. Under the conservative enclosure the
 necessarily critical set is certain and the possibly critical set is a superset that the
-exact methods tighten. Degenerate intervals, whose two endpoints coincide, are held fixed
-by every method and do not enter the enumeration.
+exact methods tighten. Degenerate intervals, whose two endpoints coincide, are held fixed by every method. They do
+not enter the enumeration.
 
 An earlier implementation of the toolkit ran the scalar kernels on an interval type with
 overloaded arithmetic, so that $\max$, $+$ and $-$ were applied to intervals directly. It
@@ -459,8 +459,8 @@ Algorithm~\ref{alg:cpm-split} gives the procedure. Its cost is
 2 \sum_{v} 2^{|H_v|}
 \end{equation}
 scalar propagations, one maximising and one minimising sweep per node, against $2^k$ for
-exhaustive enumeration of all $k$ interval durations. The exponent has moved from the size
-of the problem to the reconvergent width around each node. One exhaustive sweep serves
+exhaustive enumeration of all $k$ interval durations. The exponent now depends on the reconvergent width around each node, and no longer on the
+size of the problem. One exhaustive sweep serves
 every node at once, so the implementation computes both counts before running anything
 and uses whichever is cheaper. It is therefore never worse than exhaustive enumeration,
 and it refuses when both counts exceed a stated limit. Some instances must remain hard,
@@ -494,12 +494,11 @@ where the hardness sits, in networks whose bypass sets are large.
 \end{algorithmic}
 \end{algorithm}
 
-The bypass set is a measure of reconvergence, and this is where the toolkit meets the
-structural theme of Chapter~\ref{ch:diamond-module} without using its module. Both
-analyses pay for routes that divide and meet again, the decomposition module per join
-through the nodes it must fix, and the split per node through $H_v$. The two sets index
-reconvergence at different granularities, neither contains the other in general, and
-neither computation uses the other.
+The bypass set is a measure of reconvergence, as the conditioning set of
+Chapter~\ref{ch:diamond-module} is, though the toolkit does not use that module. Both
+analyses pay for routes that divide and meet again: the decomposition module per join,
+through the nodes it must fix, and the split per node, through $H_v$. The two sets index reconvergence at different granularities. Neither contains the other
+in general, and neither computation uses the other.
 
 \section{Validation}
 \label{sec:cpm-validation}
@@ -557,7 +556,7 @@ $1 \to 3 \to 8 \to 12 \to 14 \to 17 \to 22 \to 23 \to 24 \to 30 \to 32$
 (Figure~\ref{fig:cpm-psplib}). Eleven nodes are critical, nine of them real activities,
 and three further activities (4, 10 and 16) carry a slack of one unit
 (Table~\ref{tab:cpm-psplib-longest}). Under ShortestPath the fastest complete chain takes
-18 units, through activities 2, 4, 6, 10, 25 and 30. The two readings share activity 30 and
+18 units, through activities 2, 4, 6, 10, 25 and 30. The two modes share activity 30 and
 nothing else, so the chain that bounds the project from above and the chain that bounds it
 from below run through different parts of the network. Each of the three deterministic
 passes completes in under 0.2 milliseconds.
@@ -727,8 +726,7 @@ would admit interval edge values. These are listed in Chapter~\ref{ch:conclusion
 \section{Summary}
 \label{sec:cpm-summary}
 
-In this chapter the Critical Path Toolkit has been presented. The classical critical path
-method has been generalised to a family of analysis modes, each an operator pair with the
+The classical critical path method has been generalised to a family of analysis modes, each an operator pair with the
 backward semantics its algebra supports, and four modes have been provided: LongestPath,
 ShortestPath and MaxScaling on one order-based kernel, and Accumulation on a linear kernel
 whose backward object is the adjoint. Under interval durations the forward quantities have
