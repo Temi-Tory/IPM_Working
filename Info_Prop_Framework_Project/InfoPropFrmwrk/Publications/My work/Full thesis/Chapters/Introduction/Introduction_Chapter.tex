@@ -100,9 +100,9 @@ common use, from reliability block diagrams to binary decision diagrams, is buil
 point-valued component probabilities.
 
 This thesis develops the Information Propagation Framework (IPF). The framework provides one
-DAG model of a system on which reliability, capacity and schedule analysis are computed,
+DAG model of a system on which reliability, capacity and schedule analysis are computed, and it
 propagates interval and p-box inputs through each analysis as far as the mathematics of that
-analysis allows, and is provided as a Julia package together with a no-code user interface for
+analysis allows. It is provided as a Julia package together with a no-code user interface for
 non-technical users. Figure~\ref{fig:intro-framework-overview} shows the framework as a set of
 layers. The network model, the input processing that builds it and the decomposition module
 that identifies its reconvergent structure are built once per system. The three analysis
@@ -115,24 +115,18 @@ the same graph object.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.6\textwidth]{fig01_framework_overview/fig01_framework_overview.pdf}
-  \caption{The framework as a set of layers. The network model and its decomposition are built
-    once per system. The three analysis toolkits read the same graph object, and each carries
-    the uncertainty support shown: deterministic values, intervals and probability boxes in the
-    probability toolkit; deterministic values and intervals in the critical path toolkit;
-    deterministic values only in the capacity toolkit. The package and the interface deliver the
-    framework.}
+  \caption{The layers of the Information Propagation Framework, with the value forms each
+    analysis toolkit supports.}
   \label{fig:intro-framework-overview}
 \end{figure}
 
 \section{Problem Statement and Research Questions}
 \label{sec:intro-problem}
 
-Several engineering software tools run more than one kind of analysis against one shared
-network object. \texttt{pandapower}, for instance, runs power flow, optimal power flow,
-state estimation, topological search and short-circuit calculation against one graph of buses
-and lines \cite{thurner2018pandapower}. However, no tool or method found in the review of
-Chapter~\ref{ch:lit-review} combines source-to-node reliability, capacitated flow and activity
-scheduling on one network representation. The closest work pairs two of the three. Huang, Huang
+Several engineering software tools already run more than one kind of analysis against one
+shared network object, as reviewed in Chapter~\ref{ch:lit-review}. No tool or method found in
+that review combines source-to-node reliability, capacitated flow and activity scheduling on
+one network representation. The closest work pairs two of the three. Huang, Huang
 and Lin compute the exact probability that a project completes within a time and a budget
 constraint, which pairs reliability with schedule, from discrete point-valued activity states
 \cite{huang2020exact}. Tong's dissertation investigates infrastructure flow networks in terms
@@ -152,7 +146,7 @@ following:
     be identified once, independently of any particular analysis, and reused?
   \item Can exact source-to-node reliability be computed when component probabilities are
     given as intervals or as p-boxes, what is guaranteed of the result in each case, and what
-    does the computation cost relative to the established exact methods?
+    does the computation cost relative to decision-diagram methods?
   \item Which of the quantities of critical path analysis remain exactly computable when
     durations are intervals, and at what cost, given that the general problem is NP-hard
     \cite{chanas2002complexity}?
@@ -216,7 +210,7 @@ The main contributions of this thesis are the following.
     classical critical path method is one instance of a family of analyses defined by a pair
     of operators. A backward pass exists only for pairs whose algebra supports one. For
     interval durations the forward quantities are computed exactly by two runs at the corners
-    of the input box, and the floats are computed exactly by a domination split that reduces
+    of the input box. The floats are computed exactly by a domination split that reduces
     the enumeration from every uncertain duration to the durations that can bypass the node in
     question.
   \item \textbf{Delivery as a package and an interface.} The framework is a Julia package, and
@@ -229,9 +223,9 @@ The main contributions of this thesis are the following.
 \label{sec:intro-structure}
 
 Chapter~\ref{ch:lit-review} reviews the representations of uncertainty used in engineering
-analysis, the exact methods for network reliability, flow and scheduling, the tools and methods
-that combine more than one of these analyses on one network, and the patterns in which
-engineering analysis software is delivered to its users.
+analysis and the exact methods for network reliability, flow and scheduling. It then examines
+the tools and methods that combine more than one of these analyses on one network, and the
+patterns in which engineering analysis software is delivered to its users.
 
 In Chapter~\ref{ch:system-model} the network model is defined. Components become nodes and
 dependencies become directed edges, the acyclicity assumption is discussed, and the roles of
@@ -255,8 +249,9 @@ diagrams, and it is applied to a conceptual medical drone delivery network for S
 Chapter~\ref{ch:capacity-toolkit} presents the Capacity Flow Toolkit, organised around the
 questions it answers: throughput, binding cuts, the most damaging failures, degradation and
 upgrade thresholds, redundancy and single points of failure. The chapter states the point-valued
-scope of the toolkit and demonstrates it on a benchmark network under two capacity
-configurations.
+scope of the toolkit, demonstrates it on a synthetic worked example under two capacity
+configurations, and applies it to the 24-bus IEEE Reliability Test System as a real-network case
+study. Timings on generated instances of a DIMACS mesh family are also reported.
 
 Chapter~\ref{ch:critical-path} presents the Critical Path Toolkit. Analysis modes are defined
 by operator pairs, the forward and backward kernels are given, and the interval scheme and the
@@ -265,9 +260,9 @@ three interpretations of one set of inputs, and the exact interval floats are co
 conservative enclosure on the same instance.
 
 Chapter~\ref{ch:julia-package} describes the implementation of the framework in Julia: the
-types of the graph object and why a purpose-built object was preferred to the language's
-general graph library, the value helpers over which the propagation is generic, the server, and
-the delivery of the package through the Julia General registry.
+types of the graph object, the value helpers over which the propagation is generic, and the
+server. It also records why a purpose-built graph object was preferred to the language's
+general graph library, and how the package is delivered through the Julia General registry.
 
 Chapter~\ref{ch:front-end} presents the no-code interface, its local client and server
 architecture, the contract between the interface and the package, and the commitment that no

@@ -44,7 +44,7 @@ package, and a package is used by writing code. The engineer who holds the syste
 programme, does not write code. The tools that do reach such a person are either cloud
 services, which are not acceptable for a proprietary system model, or licensed desktop
 suites that carry none of these analyses.
-This chapter presents the interface that closes that gap. It is a browser application that
+That gap is closed by the interface described here. It is a browser application that
 runs on the engineer's own machine, takes the same files the package reads, runs the three
 toolkits against them through the local server of Chapter~\ref{ch:julia-package}, and
 returns every result in the form the package computed it.
@@ -135,12 +135,12 @@ Each toolkit has a page of its own, reached from the navigation rail, and the th
 share one layout. A row of scenario chips at the top selects the scenario, each chip showing
 the scenario's value form, and a value-form filter above the chips narrows the row to
 deterministic, interval or probability-box scenarios. Below the chips are the toolkit's
-tabs. For the reliability toolkit (Figure~\ref{fig:fe-reliability}) these are Belief, the
+tabs. For the probability toolkit (Figure~\ref{fig:fe-reliability}) these are Belief, the
 per-node table with summary tiles; Diamonds, the reconvergence structure the decomposition
 identified; Visualisation, the network drawn with the conditioning set highlighted; and
 Compare. The Belief table can be filtered by node role and restricted to diamond joins, and
-every summary tile names what it summarises. The flow and schedule pages have the same
-shape, with their own tabs: configuration, summary, bottlenecks and visualisation for flow
+every summary tile names what it summarises. Similarly, the flow and schedule pages have
+their own tabs: configuration, summary, bottlenecks and visualisation for flow
 (Figure~\ref{fig:fe-flow}); time, cost, visualisation and compare for schedule
 (Figure~\ref{fig:fe-schedule}).
 
@@ -234,23 +234,23 @@ result, and its midpoint is a number the toolkit never computed.
 A result set is what the toolkit returned. The bottleneck table reports the edges in every
 minimum cut as the flow toolkit computed them; the profile page draws a critical path as
 the schedule toolkit reported it; no score, ranking or threshold is computed in the
-interface. Where a table is sorted, the sort key is a field the toolkit returned. The
-reason is that a number computed in the interface would be a number the thesis has not
-validated.
+interface. Where a table is sorted, the sort key is a field the toolkit returned. A number
+computed in the interface would be a number the thesis has not validated.
 
-Every result carries its method. The schedule toolkit returns interval margins from one of
-three methods, and the reliability toolkit returns beliefs from an exact or a
+Every result carries its method, since what a result guarantees depends on the method that
+produced it (Chapter~\ref{ch:critical-path}). The schedule toolkit returns interval margins
+from one of three methods, and the probability toolkit returns beliefs from an exact or a
 decomposition-only call; in each case the response names the method, and the interface
-shows the tag beside the result. A conservative enclosure and an exact range are therefore
-never displayed the same way. The reason is Chapter~\ref{ch:critical-path}: the two differ
-in what they guarantee, and a reader who cannot tell them apart cannot use either.
+shows the tag beside the result. A conservative enclosure and an exact range are never
+displayed the same way, because a reader who cannot tell them apart cannot use either.
 
-One analysis runs at a time. The Compare tab runs unrun scenarios in sequence, and no view
-issues two requests to the server together. The reason is Chapter~\ref{ch:julia-package}:
-the propagation is single-threaded and its cache is not locked, so a second concurrent
-request would either wait or, at worst, corrupt a shared store.
+One analysis runs at a time. Because the propagation is single-threaded and its cache is
+not locked (Chapter~\ref{ch:julia-package}), a second concurrent request would either wait
+or, at worst, corrupt a shared store. The Compare tab therefore runs unrun scenarios in
+sequence, and no view issues two requests to the server together.
 
-One rule the interface does not yet enforce is recorded here because it was found in use.
+However, one rule the interface does not yet enforce is recorded here because it was found
+in use.
 Probability-box propagation has a cost that grows steeply with the discretisation level of
 the bounding functions, and Chapter~\ref{ch:probability-toolkit} recommends levels between
 25 and 100 for networks of the scale the method suits. The server does not set the level,
@@ -279,7 +279,7 @@ cards, tables and the network graph.
 Two dependency rules are enforced by the build, not by convention. A layer rule allows the
 shell to depend on features, features on the shared libraries, and presentational
 components only on other presentational components and the API client, never on data
-access; a component in the presentational library that needs a scenario's shape therefore
+access. Thus a component in the presentational library that needs a scenario's shape
 declares a small structural type of its own. A scope rule allows a feature to depend on its
 own scope and the shared scope only, so that no feature imports another feature; a view
 that needs another toolkit's components, such as the standalone Diamonds page, lives inside
@@ -335,10 +335,9 @@ the ordinary benefit of a published boundary, and it is recorded because it was 
 \label{sec:fe-evaluation}
 
 This interface has been used by its author and demonstrated to others, and it has not yet
-been used independently by an engineer who does not program. The evaluation that can be
-offered is therefore a task-based walkthrough, and it is labelled as such: it shows that
-the tasks a user would set are reachable without code, and it does not show how a user
-found them.
+been used independently by an engineer who does not program. Hence the evaluation that can
+be offered is a task-based walkthrough, and it is labelled as such: it shows that the tasks
+a user would set are reachable without code, and it does not show how a user found them.
 
 The tasks are the ones a planner with a system model would set. Load a model that exists as
 an edge list and three input files. See whether the structure was read as intended. Find
@@ -353,8 +352,8 @@ Every one of these is a click sequence in Section~\ref{sec:fe-workflow}, and eve
 it produces is a result of Chapters~\ref{ch:probability-toolkit}
 to~\ref{ch:critical-path} in the form those chapters state. The demonstration of the
 sequence on a real network, with every request and response recorded, is
-Chapter~\ref{ch:integrated-case-study}. What the walkthrough cannot show is the time a new
-user takes, where the labels are unclear, and which of the four rules of
+Chapter~\ref{ch:integrated-case-study}. However, the walkthrough cannot show the time a new
+user takes, where the labels are unclear, or which of the four rules of
 Section~\ref{sec:fe-rules} a user notices; that is the study that remains to be done, and
 it is listed in Chapter~\ref{ch:conclusions}.
 
@@ -366,9 +365,9 @@ before a long run, as Section~\ref{sec:fe-rules} records. It has no user study b
 It accepts the two structure formats of Chapter~\ref{ch:system-model} and no domain format,
 so a user with an EPANET or MATPOWER file converts it first. It runs one analysis at a
 time. The session is a folder on disk and there is no export beyond the response JSON,
-which the user can save from the browser. And the interface is a client of the package, so
-every limit of the package, single-threaded propagation, no probability-box schedule, no
-interval flow, is a limit of the interface as well.
+which the user can save from the browser. Finally, the interface is a client of the
+package, so every limit of the package, single-threaded propagation, no probability-box
+schedule, no interval flow, is a limit of the interface as well.
 
 \section{Summary}
 \label{sec:fe-summary}

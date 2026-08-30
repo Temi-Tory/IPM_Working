@@ -128,7 +128,7 @@ shows it on a small network.
   \label{fig:model-roles}
 \end{figure}
 
-\section{The Formal Object}
+\section{Definitions and Notation}
 \label{sec:model-formal}
 
 \begin{definition}[Network model]
@@ -180,7 +180,7 @@ $L = \{L_1, \dots, L_k\}$ & layered order (Section~\ref{sec:model-layers}) \\
 \section{Layered Order and Closures}
 \label{sec:model-layers}
 
-Every analysis in the framework visits the nodes of the network in an order in which each
+All of the framework's analyses visit the nodes of the network in an order in which each
 node is processed after all of its parents. For a DAG such an order always exists. A topological sort of $G$ is a linear ordering of $V$ in which $u$ precedes $v$ for every edge
 $(u,v) \in E$. The framework uses a coarser form of the same order, in which nodes at the same
 depth from the sources are grouped into a layer.
@@ -207,7 +207,7 @@ every parent of every node in $L_i$ lies in a layer already processed, so each n
 once with its parents resolved, and there are $k$ layers.
 \end{proof}
 
-Every analysis in the following chapters is an exact method with no iterative convergence
+In the following chapters, every analysis is an exact method with no iterative convergence
 loop. Hence a fixed processing order declared once serves all of them, and the number of
 steps is known from the structure before any analysis runs. Nodes within a layer also share
 no dependency, so a layer is a natural boundary for parallel processing by any algorithm
@@ -288,10 +288,10 @@ form through the analyses that support it, as set out in Chapter~\ref{ch:main-in
 the choice among them can be made on the state of knowledge about the system.
 
 Before any of the three questions can be asked, the model must be built from the descriptions
-in which real systems arrive, which is the subject of the next section, and for the
-probabilistic interpretation the reconvergent structure of Section~\ref{sec:model-roles} must be
-identified, which is the subject of Chapter~\ref{ch:diamond-module}. Both are preprocessing
-steps performed once per system.
+in which real systems arrive, which is the subject of the next section. For the
+probabilistic interpretation the reconvergent structure of Section~\ref{sec:model-roles} must
+also be identified, which is the subject of Chapter~\ref{ch:diamond-module}. Both are
+preprocessing steps performed once per system.
 
 \section{From File to Model}
 \label{sec:model-input}
@@ -322,9 +322,10 @@ responsible for mapping domain identifiers to unique integers before parsing.
 The network parser accepts an edge list or an adjacency matrix, in a \texttt{.edges} or a
 \texttt{.csv} file, and detects which it has been given in stages. A \texttt{.edges} extension
 selects the edge-list reader directly. A \texttt{.csv} file is ambiguous, so the parser first
-scans the header for source and destination keywords that indicate an edge list; failing that,
-it scans the content for the integer, delimiter, integer pattern of an edge record; failing
-that, it treats a two-column table as an edge list and anything else as an adjacency matrix.
+scans the header for source and destination keywords that indicate an edge list. Failing that,
+it scans the content for the integer, delimiter, integer pattern of an edge record. If neither
+test succeeds, the parser treats a two-column table as an edge list and anything else as an
+adjacency matrix.
 An adjacency matrix is streamed row by row into an edge list. Header rows and comment lines
 are skipped in either case.
 
@@ -374,7 +375,7 @@ library: a scalar or an interval as a degenerate box, a parametric distribution 
 interval parameters, an envelope of distributions, or a distribution-free box from bounds on
 the moments. Flow capacity inputs are given in one file
 as a list of edge records, each carrying a source, a destination and a capacity, with an
-optional list of node capacities; an older nested form keyed by edge string is also accepted,
+optional list of node capacities. An older nested form keyed by edge string is also accepted,
 and the parser selects the reader from the file's top-level key. Since capacity is point-valued in the present framework,
 only the \texttt{Float64} data type is accepted. Unconstrained capacity is written with an
 infinity token, and every capacity is checked to be non-negative and not NaN at parse time.
@@ -420,9 +421,10 @@ edge list, the outgoing and incoming indices, the sources, the sinks, the sorted
 fork and join sets, the layers, and the ancestor and descendant closures. These fields are
 built once and shared by every analysis. The analysis inputs, node priors and edge
 probabilities, edge and node capacities, and node and edge values, are attached to the same
-object per invocation, so that one instance of a network can be evaluated under different
-interpretations and under different scenarios of one interpretation without rebuilding the structure. Every
-argument that any analysis in the framework requires can be taken from this object, and it is
+object per invocation. One instance of a network can therefore be evaluated under different
+interpretations and under different scenarios of one interpretation without rebuilding the
+structure. Every argument that any analysis in the framework requires can be taken from this
+object, and it is
 the point of handover from preprocessing to analysis. The concrete types chosen for its fields,
 and the reasons for building a purpose-specific object instead of using the language's
 general graph library, are discussed in Chapter~\ref{ch:julia-package}.
@@ -445,7 +447,7 @@ The model rests on four assumptions, and each is a limit on what the results mea
     may carry flow in either direction.
 \end{enumerate}
 
-Every analysis in the following chapters assumes this list, and none of the algorithms
+This list applies to every analysis in the following chapters, and none of the algorithms
 introduces an assumption beyond it. Where a later chapter relaxes or adds to the list for a
 particular interpretation, it says so.
 

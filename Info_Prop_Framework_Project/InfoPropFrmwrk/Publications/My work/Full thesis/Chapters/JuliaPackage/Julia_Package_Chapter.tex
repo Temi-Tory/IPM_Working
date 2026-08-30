@@ -75,7 +75,7 @@ boxes is written once at each call site and resolved by the argument types
 (Section~\ref{sec:pkg-values}). Compiled performance without a second language means that
 the propagation loops, which run millions of times on the larger networks of
 Chapter~\ref{ch:probability-toolkit}, are the same code that is read and edited, with no
-C or Fortran layer beneath them. And the probability-box arithmetic of
+C or Fortran layer beneath them. Furthermore, the probability-box arithmetic of
 Chapter~\ref{ch:lit-review} exists as a maintained Julia library,
 \texttt{ProbabilityBoundsAnalysis.jl} \cite{gray2021pbajulia}, so the framework did not have
 to implement p-box convolution itself.
@@ -85,7 +85,7 @@ propagation, and it did not: recursive task spawning over nested diamonds overfl
 task stack on deep networks, and the shared diamond cache would have needed locking that
 removed the gain. Propagation is therefore single-threaded, and the iteration sets of
 Chapter~\ref{ch:system-model}, which are a natural boundary for parallel work, are used for
-ordering only. And just-in-time compilation, which makes the second call of a method fast,
+ordering only. Similarly, just-in-time compilation, which makes the second call of a method fast,
 makes the first call slow, so that a fresh server process answers its first request in
 seconds, where the second takes milliseconds. This is why every timing in the thesis is a second-call
 timing, and why Appendix~\ref{app:full-results} states the convention.
@@ -309,7 +309,7 @@ the result with the unit box, and refuses, with an error naming the cause, if th
 $[0,1]$ before that intersection exceeds floating-point noise. That refusal is deliberate.
 A silent clamp would have hidden the original error.
 
-The critical path toolkit does not use dispatch for its interval form, for the reason recorded in Chapter~\ref{ch:critical-path}: running the scalar kernels
+However, the critical path toolkit does not use dispatch for its interval form, for the reason recorded in Chapter~\ref{ch:critical-path}: running the scalar kernels
 on an interval type gives wrong minima and over-wide margins. Its interval results are
 therefore computed by scheme, from scalar runs at chosen corners, and its own
 \texttt{ValueInterval} type exists only to carry a result. That type checks
@@ -332,7 +332,7 @@ recursion is looked up. It is not recomputed. Chapter~\ref{ch:probability-toolki
 that this deduplication reduces the work to between one and five per cent of the a priori
 bound on the larger networks.
 
-The store's memory, not its time, is what limits the probability toolkit. Under
+However, the store's memory, not its time, is what limits the probability toolkit. Under
 interval inputs the number of distinct contexts a diamond is posed under grows with the
 width of the intervals, and on one benchmark network the store reached two million entries
 and 24 gigabytes, where the same network under point values needed three thousand. A lean

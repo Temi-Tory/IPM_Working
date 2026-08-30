@@ -136,11 +136,41 @@ duration. Conversion: \filepath{converters/psplib\_to\_ipf.py}, which consumes
 Activity & Duration & Immediate successors \\
 \midrule
 \endhead
-\multicolumn{3}{@{}p{12cm}@{}}{\emph{See
-\filepath{validation/critical-path/thesis\_writing\_pack/appendix\_a\_durations\_successors.csv}
---- 30 rows, parsed directly from \filepath{j301_1.sm}.}} \\
+2 & 8 & 6, 11, 15 \\
+3 & 4 & 7, 8, 13 \\
+4 & 6 & 5, 9, 10 \\
+5 & 3 & 20 \\
+6 & 8 & 30 \\
+7 & 5 & 27 \\
+8 & 9 & 12, 19, 27 \\
+9 & 2 & 14 \\
+10 & 7 & 16, 25 \\
+11 & 9 & 20, 26 \\
+12 & 2 & 14 \\
+13 & 6 & 17, 18 \\
+14 & 3 & 17 \\
+15 & 9 & 25 \\
+16 & 10 & 21, 22 \\
+17 & 6 & 22 \\
+18 & 5 & 20, 22 \\
+19 & 3 & 24, 29 \\
+20 & 7 & 23, 25 \\
+21 & 2 & 28 \\
+22 & 7 & 23 \\
+23 & 2 & 24 \\
+24 & 3 & 30 \\
+25 & 3 & 30 \\
+26 & 7 & 31 \\
+27 & 8 & 28 \\
+28 & 3 & 31 \\
+29 & 7 & 32 \\
+30 & 2 & 32 \\
+31 & 2 & 32 \\
 \bottomrule
-\caption{PSPLIB \filepath{j301_1} activity durations and precedence successors.}
+\caption{PSPLIB \filepath{j301_1} activity durations and precedence successors. Dummy
+start (node 1) and end (node 32) carry duration 0 and are omitted. Source:
+\filepath{validation/critical-path/thesis\_writing\_pack/appendix\_a\_durations\_successors.csv},
+parsed directly from \filepath{j301_1.sm}.}
 \label{tab:appA-psplib}
 \end{longtable}}
 
@@ -167,9 +197,9 @@ super-sink (node 25), each edge capacity equal to the bus's net injection or net
 bus with both local generation and local load appears once, under its net sign. This adds
 two nodes and gives 26 nodes, 54 edges.
 
-Files: \filepath{case-studies/rts24/} --- both \filepath{.EDGES} variants, the three capacity
-files, \filepath{orient_rts24.py}, the orientation and net-injection logs, and the recorded
-server request and response.
+Files, in \filepath{case-studies/rts24/}: both \filepath{.EDGES} variants, the three
+capacity files, \filepath{orient_rts24.py}, the orientation and net-injection logs, and
+the recorded server request and response.
 
 \section{Medical drone delivery designs (217/263, 242/1753, 230/1648)}
 \label{sec:appA-drone}
@@ -201,11 +231,11 @@ Ch.~\ref{ch:probability-toolkit}. File:
 \label{sec:appA-bnlearn}
 
 Seventeen Bayesian-network structure benchmarks from the bnlearn repository
-\cite{scutari2010bnlearn} --- \texttt{asia}, \texttt{alarm}, \texttt{andes},
+\cite{scutari2010bnlearn}: \texttt{asia}, \texttt{alarm}, \texttt{andes},
 \texttt{barley}, \texttt{cancer}, \texttt{child}, \texttt{diabetes}, \texttt{earthquake},
 \texttt{hailfinder}, \texttt{hepar2}, \texttt{insurance}, \texttt{link}, \texttt{mildew},
-\texttt{pathfinder}, \texttt{pigs}, \texttt{sachs}, \texttt{survey}, \texttt{win95pts}
---- plus \texttt{munin} and \texttt{water}, converted from their BIF topology by a
+\texttt{pathfinder}, \texttt{pigs}, \texttt{sachs}, \texttt{survey} and \texttt{win95pts},
+plus \texttt{munin} and \texttt{water}, converted from their BIF topology by a
 structure-only parser. These are directed acyclic by construction. Every reliability value
 is synthetic and is \emph{not} a decision-relevant claim about the domain each network
 models; the benchmarks are used only to test the decomposition and propagation on a range
@@ -223,13 +253,13 @@ one.
 
 \paragraph{Orientation.} Each link is oriented by the sign of its flow at the final
 timestep of the \filepath{.inp} file's own seven-day simulation (604{,}800~s). No link was
-dropped for acyclicity --- the flow-direction orientation is naturally a directed acyclic
-graph. Three links carried exactly zero flow at that timestep and keep the model's own
+dropped for acyclicity, because the flow-direction orientation is naturally a directed
+acyclic graph. Three links carried exactly zero flow at that timestep and keep the model's own
 declared direction, which is the orientation rule's stated tie-break. Full log:
 \filepath{case-studies/net3/net3\_orientation\_log.txt}.
 
-\paragraph{Structure.} 97 nodes --- 2 reservoirs, 3 tanks, 92 junctions --- and 119 edges
---- 117 pipes and 2 pumps. The EPANET-id to integer-id to node-type mapping is in
+\paragraph{Structure.} 97 nodes (2 reservoirs, 3 tanks, 92 junctions) and 119 edges (117
+pipes and 2 pumps). The EPANET-id to integer-id to node-type mapping is in
 \filepath{case-studies/net3/net3-node-mapping.txt}.
 
 \paragraph{Inputs.} The reliability input classification (which edges are pumps, dummy

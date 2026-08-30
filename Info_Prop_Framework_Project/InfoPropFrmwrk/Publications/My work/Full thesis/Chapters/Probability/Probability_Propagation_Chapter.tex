@@ -27,7 +27,6 @@
 % main thesis. Under \maindoc these are skipped and the real labels in main.tex resolve.
 \makeatletter
 \newlabel{ch:system-model}{{3}{1}{}{Doc-Start}{}}
-\newlabel{ch:input-module}{{4}{1}{}{Doc-Start}{}}
 \newlabel{ch:diamond-module}{{5}{1}{}{Doc-Start}{}}
 \newlabel{ch:lit-review}{{2}{1}{}{Doc-Start}{}}
 \newlabel{ch:capacity-toolkit}{{6}{1}{}{Doc-Start}{}}
@@ -250,7 +249,7 @@ Let $D$ be a diamond at join $j$ with conditioning set $C$, solved in its contex
 Fix a state $c$. Conditional on $R_C = c$, the event that $D$ delivers a signal to $j$ is a function of the indicators internal to $D$, which are independent of every indicator outside $D$. The enclosing computation only ever conditions on the nodes of its own conditioning sets, each of which enters the sub-network containing $D$ as a local source, upstream of $D$ or beside it, so each such conditioning event is a function of indicators outside $D$ and leaves $P(\text{signal at } j \mid R_C = c) = \psi_D(c)$ unchanged. A downstream belief depends on $D$ only through the signal event at $j$, entering by Lemma~\ref{lem:pp-invariance} as the pair of the weights $P(R_C = c)$ and the conditionals $\psi_D(c)$, and the supernode preserves both.
 \end{proof}
 
-The proof's independence step needs the enclosing computation to fix no node internal to $D$, and the decomposition guarantees this. When an outer conditioning does reach inside a subgraph, the context-aware identity of Chapter~\ref{ch:diamond-module} makes the inner structure a different diamond with its own stored entry, so the sub-problem solved is always the one whose context holds.
+The proof's independence step needs the enclosing computation to fix no node internal to $D$, and the decomposition guarantees this. However, when an outer conditioning does reach inside a subgraph, the context-aware identity of Chapter~\ref{ch:diamond-module} makes the inner structure a different diamond with its own stored entry, so the sub-problem solved is always the one whose context holds.
 
 Nesting makes the reduction progressive. Within a state's sub-run, an inner join with unresolved shared ancestry carries its own diamond, recorded by the decomposition in the enclosing diamond's substructure table, and the sub-run resolves it by the same conditioning, from the inside out. Termination is inherited from Chapter~\ref{ch:diamond-module}, whose recursion bounds the nesting by strictly growing the fixed context, and exactness follows by induction on nesting depth, each level applying Lemmas~\ref{lem:pp-invariance} to~\ref{lem:pp-supernode} within its own sub-network, which satisfies the same model assumptions as the whole.
 
@@ -316,14 +315,14 @@ seeds and can be rebuilt byte for byte.
 \begin{table}[htbp]
 \centering
 \caption{Exactness and structure on four named networks against the sifted decision-diagram
-oracle. Root and unique are the counts of root and unique diamonds; max $|C|$ is the largest
+oracle. Maximal and unique are the counts of maximal and unique diamonds; max $|C|$ is the largest
 conditioning set; the last column is the worst per-node deviation from the oracle.}
 \label{tab:pp-structured}
 \footnotesize
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
-Network & $|V|$ & $|E|$ & Src & Root & Uniq & Max $|C|$ & Deviation \\
+Network & $|V|$ & $|E|$ & Src & Maximal & Uniq & Max $|C|$ & Deviation \\
 \midrule
 power-network & 23 & 27 & 3 & 5 & 9 & 3 & $8.3\times10^{-17}$ \\
 grid-graph & 16 & 24 & 3 & 8 & 41 & 7 & $1.1\times10^{-16}$ \\
@@ -445,7 +444,7 @@ for exact point-valued computation.
   \includegraphics[width=0.72\linewidth]{fig04_width_correlation/width_correlation.pdf}
   \caption{Maximum conditioning-set size against the logarithm of the sifted decision
   diagram's node count across the complexity-validation networks. Both quantities measure
-  the same structural width, and neither method dominates.}
+  the same structural width.}
   \label{fig:pp-width}
 \end{figure}
 
@@ -457,7 +456,7 @@ correlated block and no independent partition, the propagation's conditioning ne
 operation count grows far faster than the diagram's node count, which stays compact under
 sifting; at $w = 8$ the propagation resolves $3.9 \times 10^{6}$ sub-problems against a
 diagram of 2,621 nodes. On square meshes both grow exponentially with the diagram's exponent
-the smaller. The propagation is therefore never structurally better than a well-ordered
+the smaller. Hence the propagation is never structurally better than a well-ordered
 diagram for exact point-valued reliability: the two tie on independent structure and the
 diagram wins on dense correlated structure. The toolkit's case rests on the two capabilities
 that follow, which a decision diagram does not offer.
@@ -489,9 +488,9 @@ mesh-$w$ & 8 & 3{,}895{,}252 & 11 & 2{,}621 & diagram \\
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.9\linewidth]{fig07_crossover/fig07_crossover.pdf}
-  \caption{Cost on the two adversarial families, log scale. Left, fan-in-$k$: factorisation
-  makes the propagation linear in $k$, matching the diagram. Right, mesh-$w$: the
-  propagation's conditioning cost grows steeply while the sifted diagram stays compact.}
+  \caption{Cost on the two adversarial families: the propagation's deduplicated sub-problem
+  count and the sifted decision diagram's node count against the family parameter, on a
+  logarithmic vertical axis. Left, fan-in-$k$; right, mesh-$w$.}
   \label{fig:pp-crossover}
 \end{figure}
 
@@ -507,7 +506,7 @@ width, and the toolkit's applicability extends to probabilistic graphical models
 \section{Propagating Uncertain Probabilities}
 \label{sec:pp-imprecise}
 
-The inputs of a reliability analysis are rarely known exactly. Failure probabilities come from sparse operational records, manufacturer tolerances, and expert judgement, and Chapter~\ref{ch:system-model} gave the framework three value forms to carry those states of knowledge: a deterministic value asserting full knowledge, an interval asserting only bounds, and a probability box bounding a distribution. In practice these forms are usually collapsed before the analysis begins: a point estimate is chosen and the uncertainty is deferred to a sensitivity study afterwards. The toolkit propagates the stated form itself, because everything the propagation does to a value is one of three operations, complement against one, product, and the weighted combinations of Eq.~\eqref{eq:pp-enumeration}, and none of the machinery of Sections~\ref{sec:pp-conditioning} and~\ref{sec:pp-supernodes} requires the values to be numbers. The framework realises the propagation once over all three forms. What is guaranteed of the output differs by form: the exact range for intervals (Section~\ref{sec:pp-interval}) and sound distributional bounds for probability boxes (Section~\ref{sec:pp-pbox}).
+The inputs of a reliability analysis are rarely known exactly. Failure probabilities come from sparse operational records, manufacturer tolerances, and expert judgement, and Chapter~\ref{ch:system-model} gave the framework three value forms to carry those states of knowledge: a deterministic value asserting full knowledge, an interval asserting only bounds, and a probability box bounding a distribution. However, in practice these forms are usually collapsed before the analysis begins: a point estimate is chosen and the uncertainty is deferred to a sensitivity study afterwards. The toolkit propagates the stated form itself, because everything the propagation does to a value is one of three operations, complement against one, product, and the weighted combinations of Eq.~\eqref{eq:pp-enumeration}, and none of the machinery of Sections~\ref{sec:pp-conditioning} and~\ref{sec:pp-supernodes} requires the values to be numbers. The framework realises the propagation once over all three forms. What is guaranteed of the output differs by form: the exact range for intervals (Section~\ref{sec:pp-interval}) and sound distributional bounds for probability boxes (Section~\ref{sec:pp-pbox}).
 
 \subsection{Interval inputs are propagated exactly}
 \label{sec:pp-interval}
@@ -528,9 +527,9 @@ By Proposition~\ref{prop:pp-monotone}, $b(v)$ is non-decreasing in every input c
 
 No dependency problem arises and no corner search is needed. Neither is typical of interval computations. A general function over an input box takes its extremes at unknown corners among the $2^n$ available, and naive interval arithmetic on it over-approximates whenever a variable occurs more than once. Here monotonicity identifies the two extreme corners, and the propagation is arranged so that the arithmetic between them stays exact. Its complement and product are exact interval operations, and the product form of Eq.~\eqref{eq:pp-independent} presents each signal to the arithmetic exactly once. The conditioning combination is evaluated at the endpoint values of each conditioning belief, which suffices because Eq.~\eqref{eq:pp-enumeration} is multilinear in each of them and a multilinear function attains its extremes over a box at its corners. Every step returns an enclosure of the true range, and across the full validation corpus the propagated interval coincides with the two corner propagations to machine precision, at worst $2.8 \times 10^{-16}$ in either bound over all 129 graphs. On the worked network with every non-source prior and every edge widened to $[0.85, 0.95]$, the propagated belief at the target is $[0.634002, 0.931254]$ and agrees with the two corner runs to the last floating-point digit. Structural certainties are kept degenerate in such a widening, a perfect source stays $[1,1]$, because widening a certainty into an uncertainty changes which nodes can carry conditioning and poses a different and harder problem.
 
-The conditioning machinery matters as much here as for point values. For example, an interval propagation that ignores reconvergent dependence stays sound but over-widens, by up to $0.45$ of the unit range on the corpus, wide enough to turn an informative bound into a vacuous one. Exactness of the range comes from the conditioning; interval arithmetic alone does not give it.
+The conditioning machinery matters as much here as for point values. For example, an interval propagation that ignores reconvergent dependence stays sound but over-widens, by up to $0.45$ of the unit range on the corpus, wide enough to turn an informative bound into a vacuous one. Exactness of the range comes from the conditioning, and interval arithmetic alone does not give it.
 
-Carrying intervals costs little. The propagation costs a factor of about $1.2$ over point propagation, a few extra floating-point operations per step. For a one-shot query, producing a network's belief range from scratch, it completed faster than the decision-diagram route to the same range, which builds the diagram once and evaluates its two corners, on every one of eight corpus families tested, by factors between $3.9$ and $99.9$. The claim is scoped to the one-shot cost, where the diagram's construction counts against it, and a workload that amortises one diagram across many repeated queries on a fixed network is a different and untested scenario.
+Carrying intervals costs little. The propagation costs a factor of about $1.2$ over point propagation, a few extra floating-point operations per step. For a one-shot query, producing a network's belief range from scratch, it completed faster than the decision-diagram route to the same range, which builds the diagram once and evaluates its two corners, on every one of eight corpus families tested, by factors between $3.9$ and $99.9$. However, the claim is scoped to the one-shot cost, where the diagram's construction counts against it, and a workload that amortises one diagram across many repeated queries on a fixed network is a different and untested scenario.
 
 \section{Probability-Box Propagation}
 \label{sec:pp-pbox}
@@ -574,7 +573,7 @@ Soundness never varies across the validation sweep, and tightness does, so the o
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.78\linewidth]{fig05_envelope/envelope.pdf}
-  \caption{Tightness envelope of the propagated probability-box bound on the benchmark grid: band width against component uncertainty width, across input-distribution shapes and reconvergence regimes. Soundness holds in every configuration, and only tightness varies, driven by regime and width instead of input shape.}
+  \caption{Tightness envelope of the propagated probability-box bound on the benchmark grid: band width against component uncertainty width, across input-distribution shapes and reconvergence regimes.}
   \label{fig:pp-envelope}
 \end{figure}
 
@@ -688,7 +687,7 @@ concentrated minimal & 230 & 1648 & 16 & 0.093 & 0.161 & $[0.562,\, 0.722]$ \\
   \label{fig:pp-dronemap}
 \end{figure}
 
-The case study also gives the design process a measured trade-off. More provisioned redundancy improves resilience and simultaneously raises the cost of verifying it exactly, and on this network that trade-off is a measured curve: the width saturates at sixteen routes per location, exact verification is practical there, and the point at which the alternative exact method stops being practical sits measurably earlier. A designer choosing between these configurations can see, in the same analysis, which facilities are uncertain, why they are uncertain, and what verifying a more redundant design will cost.
+The case study also gives the design process a measured trade-off. More provisioned redundancy improves resilience and simultaneously raises the cost of verifying it exactly, and on this network that trade-off is a measured curve: the width saturates at sixteen routes per location, exact verification is practical there, and the point at which the alternative exact method stops being practical sits measurably earlier. Hence a designer choosing between these configurations can see, in the same analysis, which facilities are uncertain, why they are uncertain, and what verifying a more redundant design will cost.
 
 \section{Discussion}
 \label{sec:pp-discussion}

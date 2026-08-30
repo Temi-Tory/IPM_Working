@@ -36,6 +36,7 @@
 \newlabel{ch:probability-toolkit}{{5}{1}{}{Doc-Start}{}}
 \newlabel{ch:critical-path}{{7}{1}{}{Doc-Start}{}}
 \newlabel{ch:julia-package}{{8}{1}{}{Doc-Start}{}}
+\newlabel{ch:conclusions}{{11}{1}{}{Doc-Start}{}}
 \makeatother
 \begin{document}
 \title{Network Decomposition}
@@ -72,9 +73,10 @@ Section~\ref{sec:dd-algorithm} presents the identification algorithm and proves 
 termination, edge-isolation and identity properties. Section~\ref{sec:dd-correctness} proves
 global completeness and determinism. Section~\ref{sec:dd-representation} describes the unique
 diamond object, and Section~\ref{sec:dd-examples} traces the algorithm on three small
-networks.
+networks. Section~\ref{sec:dd-discussion} gives the module's limitations and the extension
+that follows from them.
 
-\subsection{Decomposition in Complex Networks}
+\section{Background}
 \label{sec:dd-family}
 
 Real infrastructure networks are rarely trees. Their components connect to
@@ -186,7 +188,6 @@ The diamond in the framework is thus defined by the three discriminators.
 \item Membership criterion: two parents belong to the same pattern when they share ancestry.
 \end{itemize}
 
-\label{sec:dd-isdet}
 The eligibility criterion is the one discriminator not drawn from the diamond's definition. In the implementation, \texttt{is\_det} is the only place where identification reads declared values. Since the module was built with probabilistic propagation in mind, the default criterion excludes nodes whose prior probability is deterministic. There are two such cases: an inactive node, with prior $0$, and a perfect source, with prior $1$. The second case requires both conditions. A non-source node with prior $1$ may still be uncertain, because its incoming edges may fail, so excluding every node valued $0$ or $1$ would wrongly disable every diamond in a network where all priors happen to be $1$. For interval-valued and p-box-valued networks the two cases apply only to degenerate values, an interval or p-box collapsed exactly onto $0$ or $1$.
 
 \begin{definition}[Diamond join]
@@ -316,7 +317,7 @@ Let $D$ be constructed for group $G$ at join $v$ under boundary $B$ as above. Th
 The membership characterisation restates the filter defining $\ED$. For the path properties, induct on path length. A length-one path into $v$ is a single edge $(u,v) \in \ED$, which the fourth clause forces to have $u \in G$. Any longer path has a final edge satisfying the same property, and each preceding edge $(u,w)$ has $w \notin B$ and both endpoints in $R$ by the first three clauses, so no node after the first lies in $B$ and no edge of the path enters from outside $R$.
 \end{proof}
 
-Consider a nested level at which an enclosing diamond has already fixed a fork $r$, so $r \in E$, and suppose $r$ is both an ancestor of some group member $p$ and a direct parent of the join $v$. Partitioning places $r$ correctly, since fixing removed $r$ from every influencing set, and in the minimal case of $r$ a source with no free ancestry its influencing set is empty, landing it in a singleton group whose contribution to $v$ enters separately.
+Consider a nested level at which an enclosing diamond has already fixed a fork $r$, so $r \in E$, and suppose $r$ is both an ancestor of some group member $p$ and a direct parent of the join $v$. Partitioning places $r$ by its remaining free ancestry, since fixing removed $r$ from every influencing set. In the minimal case of $r$ a source with no free ancestry its influencing set is empty, and $r$ lands in a singleton group whose contribution to $v$ enters separately.
 
 However, the span $R$ is built from the raw closure $\Anc(p)$ and contains $r$ whatever the context says, so the partition and the span disagree wherever $E \neq \varnothing$. The edge $(r,v)$ then has both endpoints in $R$ and a head outside $B$, so the first three clauses admit it, and a diamond meant to capture $v$ as reached through $G$ alone gains a second, unrelated entry into its own join. The fourth clause blocks this edge. Figure~\ref{fig:isolation} shows the minimal instance.
 
@@ -349,7 +350,6 @@ Since a diamond cannot be unique by its edge list and fork alone, every unique d
 \]
 where $\ED$ is the diamond's edge list, $f$ its covering fork, and $E \cap V(\ED)$ the fixed context restricted to the diamond's endpoints.
 
-\label{sec:dd-hashconsing}
 Before a new entry is built, the key is looked up in \texttt{unique\_subgraphs}, and a structurally identical diamond already resolved anywhere in the recursion is referenced instead of rebuilt. This is hash-consing \cite{ershov1958programming,filliatre2006hashconsing}, a table keyed by structural identity so that equal structures are stored once and identity comparison becomes a key comparison, sometimes used in BDD algorithms. Without the store the recursion is a tree and every call site is distinct. With it, structurally identical call sites collapse into shared entries and the representation becomes a DAG. Diamonds with the same identity share one stored entry regardless of the outer context, since Proposition~\ref{prop:identity} bounds whatever influence a node outside the identity carries towards the diamond, and the shared entry meets the same fixed context within.
 
 \section{Structural Correctness}
@@ -476,6 +476,29 @@ The eight-node network of Figure~\ref{fig:nested-full} has forks 1 and 3 and joi
 
 The trace also confirms the edge-isolation case of Section~\ref{sec:dd-edges} end to end. In the network of Figure~\ref{fig:isolation}, the nested diamond at join 5 under $E=\{1\}$ is emitted with $C = \{2\}\cup(\{1\}\cap V(\ED)) = \{1,2\}$, node 1 staying among the edge list's endpoints through its surviving edge $(1,3)$, which is the context-aware identity of Section~\ref{sec:dd-identity} visible in the output. Node 1 is recorded in the nested diamond's non-influencing set, and the edge $(1,5)$ appears nowhere in its edge list. At the top level node 1 is a member of the group itself, so the maximal diamond at join 5 carries $(1,5)$ legitimately.
 
+
+\section{Discussion}
+\label{sec:dd-discussion}
+
+Decomposition runs on a directed acyclic input. A network carrying cycles is decomposed only
+after the orientation of Chapter~\ref{ch:system-model} has broken them, and the general
+cyclic case is outside the module's scope.
+
+Of the three discriminators, only eligibility is configurable at run time. An analysis that
+needs a different account of which nodes may take part supplies its own test through the
+override of Section~\ref{sec:dd-genericity}. The anchoring and membership discriminators are
+internal functions of the implementation. Changing either is a change to the source, and
+neither has a configuration route.
+
+The diamond is the only pattern for which a set of discriminators has been defined. The
+module's genericity over patterns rests on the separation between the identification
+algorithm and the three discriminators, stated in Section~\ref{sec:dd-genericity}. No second
+pattern has been defined here to exercise it.
+
+A further analysis could define its own three discriminators and obtain every instance of a
+different subgraph pattern from the same algorithm, each instance returned as a graph object
+of the form given in Section~\ref{sec:dd-representation}. Chapter~\ref{ch:conclusions} lists
+this with the framework's other extensions.
 
 \section{Summary}
 \label{sec:dd-summary}

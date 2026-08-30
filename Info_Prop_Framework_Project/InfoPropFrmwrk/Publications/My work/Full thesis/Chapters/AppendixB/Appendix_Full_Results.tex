@@ -37,7 +37,7 @@ JSON, and the scripts themselves are archived in the thesis data repository
 \label{sec:appB-timing}
 
 Every runtime reported in this thesis is wall-clock, measured on a single core, on the
-\emph{second} call within a warm process --- a discarded warm-up run precedes every
+\emph{second} call within a warm process. A discarded warm-up run precedes every
 measurement, so no figure includes just-in-time compilation. Where a comparison is made
 against another method, the ratio of run counts is reported rather than raw seconds
 wherever the comparison would otherwise depend on the machine. This convention is stated
@@ -185,7 +185,7 @@ Network & Check & Result (all 4 modes) \\
 \texttt{grid-graph-5x5}                  & oracle     & PASS \\
 \filepath{metro_directed_dag_for_ipm}  & oracle     & PASS \\
 \texttt{ergo-proxy-dag-network}          & invariants & PASS \\
-\multicolumn{3}{@{}p{12cm}@{}}{\emph{\ldots\ and five more --- full table:
+\multicolumn{3}{@{}p{12cm}@{}}{\emph{\ldots\ and five more. Full table:
 \filepath{validation/critical-path/float\_validation\_summary.csv}.}} \\
 \bottomrule
 \caption{Critical-path float validation. Script:
@@ -214,12 +214,12 @@ Toolkit and scenario & Headline result & Timing (warm, s) \\
 \midrule
 \endhead
 Reliability, Baseline           & source-to-sink reachability, all 18 sinks & 4.61 \\
-Reliability, Interval ($\pm5\%$) & certified requirement range $[0.35, 0.99]$ & --- \\
+Reliability, Interval ($\pm5\%$) & certified requirement range $[0.35, 0.99]$ & N/A \\
 Flow, Baseline                  & throughput $1{,}838$ litres/s & 2.33 \\
-Flow, Degraded                  & throughput $955$ litres/s (48\% drop) & --- \\
+Flow, Degraded                  & throughput $955$ litres/s (48\% drop) & N/A \\
 Schedule, Baseline LongestPath  & project value $1{,}773.3$ hours ($\approx 74$ days), 28 of 97 critical & 2.08 \\
-Schedule, Interval LongestPath  & conservative enclosure $[1{,}418.66, 2{,}127.99]$ hours & --- \\
-Schedule, MaxScaling            & least-reliable supply route $0.7515$ (node 76) & --- \\
+Schedule, Interval LongestPath  & conservative enclosure $[1{,}418.66, 2{,}127.99]$ hours & N/A \\
+Schedule, MaxScaling            & least-reliable supply route $0.7515$ (node 76) & N/A \\
 \bottomrule
 \caption{Net3 headline numbers. The interval schedule is the \emph{conservative
 enclosure}: the exact domination split is screened out before any cost is computed because
@@ -242,8 +242,8 @@ Results in this thesis were produced with \texttt{InformationPropagationAnalysis
 v0.2.1 (Julia General registry, git-tree-sha1
 \texttt{adcdacd7cc306d8ffe15e440ff0c7b72ce6f024a}) and the
 \texttt{information-propagation-no-code} application v1.0
-(DOI \texttt{10.5281/zenodo.22180253}) \cite{ipfnocode}. The complete data set --- every
-script, seed, input file and recorded server response --- is archived at
+(DOI \texttt{10.5281/zenodo.22180253}) \cite{ipfnocode}. The complete data set (every
+script, seed, input file and recorded server response) is archived at
 \textbf{DOI \texttt{10.5281/zenodo.22180227}} \cite{thesisdata}; the paths below are
 relative to that archive. This section is the full version of the mapping; the
 repository \filepath{README.md} carries the same table with per-row package and
@@ -260,9 +260,9 @@ Fig.\ (p-box tightness envelope) & \filepath{grid_envelope.jl} (+ Fr\'echet) & \
 Fig.\ (fan-in / mesh crossover) & \filepath{adversarial_scaling.jl} & \filepath{adversarial_factored.csv} \\
 Fig.\ (hero CDF) & \filepath{hero_figure.jl} & \filepath{hero_figure.csv} \\
 Fig.\ (drone reliability map) & \filepath{drone_beliefs_check.jl} & Tab.~\ref{tab:appB-prob-repro} data \\
-Tab.\ (worked-network trace) & \filepath{prob_chapter_example_trace.jl} & --- \\
+Tab.\ (worked-network trace) & \filepath{prob_chapter_example_trace.jl} & N/A \\
 Tab.\ (4 nets vs BDD) & \filepath{bdd_oracle.jl}, \filepath{oracles.jl} & \filepath{validation/probability/} \\
-Tab.~\ref{tab:appB-prob-repro} (published reproductions) & \filepath{asce_grid_reproduction.jl}, \filepath{asce_power_reproduction.jl} & --- \\
+Tab.~\ref{tab:appB-prob-repro} (published reproductions) & \filepath{asce_grid_reproduction.jl}, \filepath{asce_power_reproduction.jl} & N/A \\
 Tab.\ (adversarial complexity) & \filepath{adversarial_scaling.jl}, \filepath{graph_families.jl} & \filepath{data/adversarial*.csv} \\
 Tab.\ (certified bound vs MC) & \filepath{certified_bound_vignette.jl} & \filepath{data/certified\_bound\_vignette.csv} \\
 Tab.\ (p-box time vs discretisation) & p-box timing scripts & \filepath{data/timing\_imprecise.csv} \\
@@ -276,7 +276,7 @@ Tabs (j301\_1 LongestPath, Accumulation) & server runs per \filepath{psplib_j301
 Tab.~\ref{tab:appB-cpm} (10-network CPM) & \filepath{run_float_validation.jl}, \filepath{oracle.jl} & \filepath{float_validation_summary.csv} \\
 Tab.\ (j301\_1 per-node bounds) & \filepath{run_mc_check_psplib_j301_1.jl} & \filepath{psplib_j301_1_float_bounds.csv} \\
 Tab.~\ref{tab:appB-net3} (Net3 headline) & \filepath{run_net3_scenarios.py} & \filepath{case-studies/net3/net3-scenarios/} \\
-Ch.~\ref{ch:front-end} interface figures & --- (screenshots of the deployed application) & --- \\
+Ch.~\ref{ch:front-end} interface figures & N/A (screenshots of the deployed application) & N/A \\
 \bottomrule
 \caption{Every data-driven figure and validation table in the thesis, its generating
 script, and its source data, all relative to the archived data repository. Diagrams and

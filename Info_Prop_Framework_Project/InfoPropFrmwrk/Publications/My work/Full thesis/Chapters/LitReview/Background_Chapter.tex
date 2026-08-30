@@ -120,7 +120,7 @@ width of the graph, the cutset size for the one and the treewidth for the other.
 passing makes the same inference local and scalable when exactness is relaxed. The directed
 probability propagation method of Tong and Tien is a reliability-specific variant that tracks
 marginal and pairwise probabilities to approximate the dependence between paths
-\cite{tong2019directed}, gaining scale at the cost of approximation error and of pairwise
+\cite{tong2019directed}. It gains scale at the cost of approximation error and of pairwise
 bookkeeping that grows with the number of dependent interactions. Its sixteen-node benchmark
 grid is used again in Chapter~\ref{ch:probability-toolkit}.
 
@@ -139,7 +139,7 @@ itself, and the augmenting-path, blocking-flow and push-relabel families of algo
 followed all compute both. Two further results
 from the same theory are used in Chapter~\ref{ch:capacity-toolkit}. A node with its own
 capacity is handled by splitting it into an entry node and an exit node joined by an edge of
-that capacity, which preserves the correspondence between flows in the two networks, and any
+that capacity, which preserves the correspondence between flows in the two networks. Any
 feasible flow decomposes into a set of source-to-sink path flows that sum to the total. The
 minimum cuts of a network are not in general unique, and their structure is characterised by
 the sets of nodes reachable from the source in the residual graph and reachable to the sink in
@@ -237,8 +237,8 @@ moments and on the family of the distribution. A distribution $F$ belongs to the
 $\underline{F}(x) \le F(x) \le \overline{F}(x)$ for all $x$, its mean and variance lie in the
 stated intervals, and it belongs to the stated family if one is given. When the two bounding
 functions coincide the p-box is a single distribution and represents aleatory uncertainty
-alone; when they are the step functions at the two ends of an interval the p-box is that
-interval and represents epistemic uncertainty alone; between these two cases the p-box carries
+alone. When they are the step functions at the two ends of an interval the p-box is that
+interval and represents epistemic uncertainty alone. Between these two cases the p-box carries
 both. A p-box therefore covers the situation of a distribution whose family is known but whose
 parameters are not, and the situation of a distribution estimated from samples measured with
 limited precision.
@@ -269,7 +269,7 @@ outcomes \cite{shafer1976mathematical}; its belief and plausibility functions bo
 probability of an event from below and above. Both theories can be placed within the wider
 field of imprecise probability, and a Dempster--Shafer structure on the real line can be
 converted to a p-box and back. Neither theory is used in this thesis. The
-quantities propagated here are probabilities, capacities and durations, and the information
+quantities propagated here are probabilities, capacities and durations. The information
 available on them in practice, such as a range from a datasheet or a distribution estimated from
 sparse samples, is stated directly as an interval or a p-box without translation into
 membership functions or belief masses. In addition, the operations the framework performs on
@@ -296,9 +296,9 @@ three. Each analysis developed its own treatment of uncertainty independently of
 \section{Multi-Analysis Tools for Complex Infrastructure}
 \label{sec:bg-frameworks}
 
-As discussed in Chapter~\ref{ch:main-intro}, the same network is often analysed for several
-different behaviours, and several engineering software tools run more than one kind of
-analysis against a single network representation. \texttt{pandapower}, an open-source power-system tool, runs power flow,
+The same network is often analysed for several different behaviours, and several engineering
+software tools run more than one kind of analysis against a single network representation.
+\texttt{pandapower}, an open-source power-system tool, runs power flow,
 optimal power flow, state estimation, topological graph search and short-circuit calculation
 against one explicit graph of buses, lines and transformers, a range of analyses matched by
 commercial suites such as DIgSILENT PowerFactory and PSS/E \cite{thurner2018pandapower}. The
@@ -316,9 +316,10 @@ meets the description fully.
 Commercial reliability software has, in practice, paired reliability with flow. Several of the
 block diagram and fault tree suites in active use, ReliaSoft's BlockSim, Isograph's
 Availability Workbench and ITEM Software's ITEM ToolKit among them, bundle a throughput or
-process-flow module alongside their reliability engine, modelling multi-flow-type capacity,
-bottlenecks and resource allocation on the same diagrams the reliability analyses use
-\cite{reliasoft2024blocksim,isograph2024availability,itemsoftware2024toolkit}. None of their
+process-flow module alongside their reliability engine
+\cite{reliasoft2024blocksim,isograph2024availability,itemsoftware2024toolkit}. These modules
+model multi-flow-type capacity, bottlenecks and resource allocation on the same diagrams the
+reliability analyses use. None of their
 public documentation describes a project-scheduling or critical-path module, and all three
 represent component life and failure with classical distributions, fitted from data or
 specified by the analyst.
@@ -353,12 +354,12 @@ reviewed in Section~\ref{sec:bg-reliability} \cite{tong2021infrastructure}.
 Schedule and critical-path analysis are absent from it, and the probability treatment
 throughout is point-valued.
 
-In summary, no candidate combines all three analyses on one network. Reliability and flow
-are paired in commercial software with no schedule dimension. Flow and a form of scheduling
-are paired in open-source simulation platforms with no formal reliability computation.
-Reliability and schedule are paired in project-network theory with no flow network.
-Reliability and flow are paired again, this time exactly, in Tong's thesis, without schedule.
-Every one of the four represents its uncertain inputs precisely or adversarially.
+No candidate reviewed above combines all three analyses on one network. Commercial software
+pairs reliability and flow, with no schedule dimension. Open-source simulation platforms
+combine flow and a form of scheduling without formal reliability computation. Project-network
+theory brings together reliability and schedule; it has no flow network. Tong's thesis
+reaches reliability and flow again, this time exactly, and omits schedule entirely. Every
+one of the four represents its uncertain inputs precisely or adversarially.
 
 \section{Delivery of Engineering Analysis Software}
 \label{sec:bg-delivery}
@@ -389,10 +390,11 @@ local installation, so it has the local computation that SimScale lacks and lack
 browser delivery that SimScale has. Web-based
 geographic information systems are a third. A PRISMA-based systematic review of web GIS for hazard and infrastructure risk assessment
 screened 1{,}775 articles and admitted 65. It organises the field around themes including
-visualisation, user-interface design and decision support \cite{daud2024webgis}. The platform of Repetto et al.\ is a representative member: it
-delivers wind monitoring, forecasting and statistical risk mapping for ports, motorways, rail
-lines and industrial plants, through a web GIS built on open geospatial software, operated by
-port authorities who never touch the underlying numerical models \cite{repetto2018windgis}.
+visualisation, user-interface design and decision support \cite{daud2024webgis}. The platform of
+Repetto et al.\ is a representative member \cite{repetto2018windgis}. It delivers wind
+monitoring, forecasting and statistical risk mapping for ports, motorways, rail lines and
+industrial plants through a web GIS built on open geospatial software, and it is operated by
+port authorities who never touch the underlying numerical models.
 Most platforms in this category address monitoring and forecasting. They do not perform a
 structural reliability or component-failure computation. Similarly, network visualisation environments
 such as Gephi \cite{bastian2009gephi} and Cytoscape \cite{shannon2003cytoscape} make graphs

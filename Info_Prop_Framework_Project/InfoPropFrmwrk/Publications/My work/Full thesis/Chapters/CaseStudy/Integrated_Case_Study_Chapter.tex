@@ -226,7 +226,7 @@ the simulation step (Figure~\ref{fig:e2e-flow}). The minimum cut is unique: the 
 is empty and the enumeration is complete. Its four edges are the two pump discharges, 95 to
 96 and 95 to 97 from the river pump's junction and 7 to 8 from the lake's, and the outlet
 of the source tank, 94 to 81, carrying 684.1, 883.3, 194.6 and 76.0 litres per second
-(Figure~\ref{fig:e2e-bottlenecks}). The binding constraint of the network at this demand is
+(Figure~\ref{fig:e2e-bottlenecks}). Hence the binding constraint of the network at this demand is
 its supply: the pumps and the tank are at their limits, and every pipe
 downstream has headroom. Seven edges are saturated, 158 source-to-sink paths exist, and no
 node is a single point of failure.
@@ -347,7 +347,7 @@ The profile page draws any result set on the network and overlays a second. The 
 of the minimum cut and the 28 nodes of the critical path have no node in common
 (Figure~\ref{fig:e2e-profile}). The flow bottleneck sits at the supply end, at the pump
 discharges and the tank outlet, and the restoration critical chain runs through the trunk
-main and the distant loop. A planner who reinforced the network at its flow bottleneck
+main and the distant loop. Therefore a planner who reinforced the network at its flow bottleneck
 would shorten no part of its restoration, and one who shortened the critical chain would
 add no throughput. The two analyses are answering different questions about the same
 components, and it takes both to see that the components are different. The conditioning
@@ -372,8 +372,8 @@ required a change to the others' files. The whole sequence, including a second s
 for each toolkit, took under a minute of computation in a warm process: 4.6, 2.3 and 2.1
 seconds for the three baseline runs.
 
-Two boundaries of the framework were reached on this network, and both are the boundaries
-the earlier chapters located. The probability-box form was not run, because the network's
+However, two boundaries of the framework were reached on this network, and both are the
+boundaries the earlier chapters located. The probability-box form was not run, because the network's
 conditioning cost is past the point Chapter~\ref{ch:probability-toolkit} identified as
 practical. The exact interval floats were declined, because 122 interval durations exceed
 the screening threshold of Chapter~\ref{ch:critical-path}; the split was not priced, and
@@ -387,7 +387,7 @@ record of Chapter~\ref{ch:julia-package}. The unbounded reservoir capacities wer
 inputs to produce an infinite value in an analysis result, and the server's serialiser
 refused it; non-finite values are now converted to string tokens at the response boundary.
 The interface then rendered that token as not-a-number in one column, which was a second
-error, since an unbounded marginal range is a finding. And the schedule
+error, since an unbounded marginal range is a finding. In addition, the schedule
 Compare table reported the interval scenario's two criticality counts as a single number,
 zero, which collapsed a value form in the way the rules of Chapter~\ref{ch:front-end}
 forbid. Each was found because a real network exercised a path the corpus had not, which

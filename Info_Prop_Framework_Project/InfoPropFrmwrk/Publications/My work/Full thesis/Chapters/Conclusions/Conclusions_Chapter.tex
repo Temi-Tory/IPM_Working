@@ -52,16 +52,17 @@ chapters stated individually, and sets out the work that follows from them.
 \subsection{One model, three analyses}
 
 Chapter~\ref{ch:system-model} defined the network model as a finite directed acyclic graph
-with sources, sinks, forks and joins, and built from it a graph object that carries the
-topology, a layered processing order whose existence Theorem~\ref{thm:model-layers} guarantees, and the
-self-inclusive ancestor and descendant closure of every node. Every analysis in the thesis
+with sources, sinks, forks and joins. From that definition the chapter built a graph object
+that carries the topology, a layered processing order whose existence
+Theorem~\ref{thm:model-layers} guarantees, and the self-inclusive ancestor and descendant
+closure of every node. Every analysis in the thesis
 reads that object as its first argument, and Chapter~\ref{ch:julia-package} showed that the
 code enforces the claim: the three toolkits have no imports between them and share only the
 graph object. The three interpretations of the values attached to the model, probabilistic,
 capacity, and schedule and cost, were each given a toolkit that answers its question exactly
 on the same topology, and Chapter~\ref{ch:integrated-case-study} ran all three on
-\CaseStudyNetwork{} from one upload. The answer to the first question is yes, on the model's
-four assumptions: independent component behaviour, binary component states under the
+\CaseStudyNetwork{} from one upload. Hence the answer to the first question is yes, on the
+model's four assumptions: independent component behaviour, binary component states under the
 probabilistic interpretation, a static topology over the analysis horizon, and acyclicity as
 a property of the operating snapshot.
 
@@ -71,11 +72,11 @@ Chapter~\ref{ch:diamond-module} defined the diamond, a fork whose paths reconver
 downstream join, as the default pattern of a generic decomposition module, and proved the
 identification complete, deterministic and terminating. Each unique diamond is stored once,
 as a graph object of the same form as the network, under an identity that includes the
-conditioning context, so that a diamond posed under two different contexts is kept apart
+conditioning context. A diamond posed under two different contexts is therefore kept apart,
 and a diamond posed twice under one context is stored once. The Probability Propagation
 Toolkit consumes the module, and Chapter~\ref{ch:front-end} showed a diamond being isolated
-and promoted to a network of its own through the interface. The Critical Path Toolkit
-computes its own bypass sets and does not use the module; the two structures index
+and promoted to a network of its own through the interface. However, the Critical Path
+Toolkit computes its own bypass sets and does not use the module; the two structures index
 reconvergence at different granularities and neither contains the other. The answer to the
 second question is yes for the probabilistic interpretation, and the module is available to
 any further analysis that a user adds.
@@ -86,10 +87,10 @@ Chapter~\ref{ch:probability-toolkit} computed the belief of every node, the prob
 it operates and is reached from a source, by conditioning on the diamonds and recombining by
 total probability, and proved the recursion exact. Against a sifted decision-diagram oracle
 the beliefs agree to $1.1 \times 10^{-16}$ on 129 graphs and on named and adversarial
-families, and the toolkit reproduces the published exact values of a sixteen-node grid at
-every sink and of a 23-node power distribution network at one of three regimes, with a
-residual of order $10^{-3}$ at the other two that is not a computation error and is left
-open. For interval inputs the toolkit returns the exact range, because belief is monotone in
+families. The toolkit reproduces the published exact values of a sixteen-node grid at
+every sink and of a 23-node power distribution network at one of three regimes. At the other
+two regimes a residual of order $10^{-3}$ remains, which is not a computation error and is
+left open. For interval inputs the toolkit returns the exact range, because belief is monotone in
 every input, at lower one-shot cost than the decision-diagram route. For probability-box
 inputs it returns sound bounds on the distribution of every belief, tight for
 high-reliability or weakly reconvergent networks and conservative for deeply reconvergent
@@ -98,9 +99,9 @@ with the discretisation level.
 
 The cost question has a plain answer. The toolkit is exponential in the largest conditioning
 set the network forces, which is the same structural width that governs a well-ordered
-decision diagram, and across the corpus neither method dominates; on independent structure
-the two tie and on dense correlated structure the diagram is smaller. The toolkit's case
-rests on the two capabilities the diagram does not offer, native interval and
+decision diagram. Across the corpus neither method dominates. On independent structure the
+two tie, and on dense correlated structure the diagram is smaller. Therefore the toolkit's
+case rests on the two capabilities the diagram does not offer, native interval and
 probability-box propagation.
 
 \subsection{Schedule quantities under interval durations}
@@ -109,10 +110,10 @@ Chapter~\ref{ch:critical-path} generalised the critical path method to a family 
 each an operator pair with the backward semantics its algebra supports, and provided four.
 Under interval durations the forward quantities are monotone and their exact bounds follow
 from two scalar runs at the corners of the input box. The floats are not monotone, and the
-general problem is NP-hard, but the domination split proved that the exact float of a node
-is attained with the incomparable durations at one bound, the dominated durations at the
-other, and only the bypass durations enumerated, so that the cost is $2\sum_v 2^{|H_v|}$
-against $2^k$. On the PSPLIB benchmark instance the split needed 50,524 propagations against
+general problem is NP-hard. Nevertheless, the domination split proved that the exact float
+of a node is attained with the incomparable durations at one bound, the dominated durations
+at the other, and only the bypass durations enumerated, so that the cost is
+$2\sum_v 2^{|H_v|}$ against $2^k$. On the PSPLIB benchmark instance the split needed 50,524 propagations against
 $2^{30}$, and it found three necessarily critical activities that the conservative enclosure
 does not identify and removed seven from its possibly critical set. On a dense mesh the
 bypass sets approach the whole network and the toolkit falls back to exhaustive
@@ -125,14 +126,14 @@ width, with a boundary that the toolkit locates and refuses beyond.
 Chapter~\ref{ch:julia-package} described the package that realises every method, registered
 in the Julia General registry at version 0.2.1 and verified end to end from a clean install,
 and the loopback-only server through which the interface reaches it.
-Chapter~\ref{ch:front-end} described the interface: an engineer uploads the files the
-package reads, byte for byte, and runs the three toolkits by pressing a button, and the
+Chapter~\ref{ch:front-end} described the interface, in which an engineer uploads the files
+the package reads, byte for byte, and runs the three toolkits by pressing a button. The
 interface enforces that a value keeps its form, that a result set is what the toolkit
 returned, that every result carries its method, and that one analysis runs at a time.
 Client and server share one machine and no request leaves it.
 Chapter~\ref{ch:integrated-case-study} demonstrated the whole sequence on
-\CaseStudyNetwork. The answer to the fifth question is yes, with the qualification that the
-interface has been demonstrated and not yet studied in use.
+\CaseStudyNetwork. The answer to the fifth question is yes. The interface has been
+demonstrated and not yet studied in use.
 
 \section{Contributions}
 \label{sec:concl-contributions}
@@ -151,13 +152,13 @@ over its operator pair and exact for interval floats by the domination split.
 Chapters~\ref{ch:julia-package} and~\ref{ch:front-end} delivered all of it as a registered
 package and a local no-code interface.
 
-Beyond the list, the thesis contributes a way of working that its chapters practise. Every
-result reported is produced by the toolkit and checked against a computation that shares
-none of its machinery; every timing is a second-call measurement under a stated
-convention; every network carries its provenance and every assigned input is named as
-assigned; and the six errors that the validation scripts found, each at a boundary the
-synthetic corpus did not reach and a real or benchmark instance did, are recorded with
-their fixes. The registered package, the application repository and the validation
+In addition to the list, the thesis contributes a way of working that its chapters practise.
+Every result reported is produced by the toolkit and checked against a computation that
+shares none of its machinery. Every timing is a second-call measurement under a stated
+convention, every network carries its provenance, and every assigned input is named as
+assigned. The six errors that the validation scripts found are recorded with their fixes,
+each at a boundary the synthetic corpus did not reach and a real or benchmark instance did.
+The registered package, the application repository and the validation
 repository together let a reader reproduce any chapter's numbers from the cited versions.
 
 \section{Limitations}
@@ -165,18 +166,18 @@ repository together let a reader reproduce any chapter's numbers from the cited 
 
 The model excludes common-cause failure, degraded component states, reconfiguration during
 the analysis horizon, and feedback; a cyclic network is analysed only after orientation.
-These are the assumptions of Chapter~\ref{ch:system-model}, and every result is conditional
-on them.
+These are the assumptions of Chapter~\ref{ch:system-model}. Every result is conditional on
+them.
 
 The Probability Propagation Toolkit offers no asymptotic advantage over a well-ordered
 decision diagram for exact point-valued reliability, and it is practical to about fifty
 nodes of moderate reconvergence, with dense or deeply reconvergent structure the limiting
 case that every exact method shares. Its probability-box form is practical only for small
-networks. Its tighter recombination operator is validated sound on every configuration
-tested but not proved, and the power-network reproduction carries an unexplained residual
-at two of three regimes.
+networks. Moreover, its tighter recombination operator is validated sound on every
+configuration tested but not proved, and the power-network reproduction carries an
+unexplained residual at two of three regimes.
 
-The Capacity Flow Toolkit is point-valued; a best-case and worst-case pair of capacities is
+The Capacity Flow Toolkit is point-valued. A best-case and worst-case pair of capacities is
 two solves, not an interval result. Its exactness is on the evaluated candidates where
 pruning applies, it computes no probability, and its whole-graph connectivity measures are
 zero on any DAG and are left as defined.
@@ -187,8 +188,8 @@ form. Whether a proposed new mode has a backward pass is a mathematical question
 implementation does not check.
 
 The package is single-threaded in propagation, performs no conversion from domain formats,
-and has a test suite that covers small instances and not the scale or the real networks the
-thesis reports. The interface exposes no control over the probability-box discretisation
+and has a test suite that covers small instances only. It does not cover the scale or the
+real networks the thesis reports. The interface exposes no control over the probability-box discretisation
 level and gives no warning before a long run, and it has not been used independently by an
 engineer who does not program.
 
@@ -213,9 +214,9 @@ motivates it.
     evaluations across overlapping bypass sets (Chapter~\ref{ch:critical-path}).
   \item Replacing the fixed interval-input threshold that gates the domination split with
     the split's own bypass-set cost, computed before deciding, so that a network with many
-    interval inputs but small bypass sets reaches the exact method instead of the
-    enclosure, as the water network of Chapter~\ref{ch:integrated-case-study} did not
-    (Chapter~\ref{ch:critical-path}).
+    interval inputs but small bypass sets reaches the exact method. The fixed threshold sent
+    the water network of Chapter~\ref{ch:integrated-case-study} to the conservative
+    enclosure (Chapter~\ref{ch:critical-path}).
   \item A probability-box form for the critical path toolkit and interval and
     probability-box forms for the flow toolkit, the latter direct for the flow value by
     monotonicity and open for the cut structure and thresholds
@@ -224,6 +225,9 @@ motivates it.
     time-expanded flow model (Chapter~\ref{ch:capacity-toolkit}).
   \item Cyclic networks, by unrolling or by strongly connected components
     (Chapter~\ref{ch:system-model}).
+  \item A second decomposition pattern, obtained by supplying the module with its own
+    three discriminators in place of the diamond's, with no change to the module itself
+    (Chapter~\ref{ch:diamond-module}).
   \item Parallel propagation over the iteration sets with a lock-free diamond store, and a
     test suite that runs the validation corpus on every change
     (Chapter~\ref{ch:julia-package}).
@@ -237,13 +241,16 @@ motivates it.
 
 The framework began from a practical observation about infrastructure data: the topology
 of a system is entered three times for three analyses and kept consistent by hand, and the
-uncertainty in every input is collapsed to a number before any of them runs. It ends with
+uncertainty in every input is collapsed to a number before any analysis runs. It ends with
 one model, three exact analyses that carry that uncertainty through, and an interface that
 puts them in the hands of the engineer who holds the data. The case study of
 Chapter~\ref{ch:integrated-case-study} showed, on a public water network analysed from one
 upload, that the components which bound its throughput and the components which set its
-restoration time were different ones, which no single analysis could have said. What the thesis has not done is stated as plainly as what it has, and
-the boundaries it maps, of width, of tightness and of scale, are part of its result.
+restoration time were different ones, which no single analysis could have said. Each
+chapter records the limitations of its own method, and this chapter collects them. The
+boundaries they mark, of conditioning width, of bound tightness and of network scale, are
+among the results of this thesis, because they state the networks on which each of the
+three analyses is exact.
 
 \ifdefined\maindoc
 \else
