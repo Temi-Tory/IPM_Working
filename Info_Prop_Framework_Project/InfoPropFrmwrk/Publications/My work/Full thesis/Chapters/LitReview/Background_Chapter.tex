@@ -192,8 +192,8 @@ the forward quantities does not apply.
 Furthermore, none of the machinery is specific to time. The forward recursion combines
 incoming values and compounds them along edges, and any quantity with those two operations
 propagates the same way. With combination as maximum and compounding as addition the recursion
-is the critical path method. With other pairs it is cost roll-up, risk scaling or route
-selection. Max-plus linear
+is the critical path method. With other pairs it is cost roll-up or route selection.
+Max-plus linear
 systems theory treats the classical forward and
 backward passes as linear algebra over an idempotent semiring, with the backward pass arising
 as residuation \cite{baccelli1992sync}. A forward recursion exists for any pair of operations,
@@ -219,9 +219,8 @@ computational model without modifying it.
 \label{sec:bg-pbox}
 
 An interval $[\underline{x}, \overline{x}]$ states that a quantity lies between two bounds and
-states nothing else. It is the appropriate form when a datasheet gives a tolerance, when an
-expert will commit to a range but not to a number, or when a value is known only to a
-measurement precision. Interval arithmetic returns an enclosure of the true range of a function over the interval
+states nothing else. It is the appropriate form when a datasheet gives a tolerance or when a
+value is known only to a measurement precision. Interval arithmetic returns an enclosure of the true range of a function over the interval
 inputs. The enclosure is exact only when each input variable appears once in the expression.
 Otherwise the arithmetic treats repeated occurrences as if they were independent, and the
 enclosure is wider than the true range. This is known as the dependency problem. For a function that is monotone in each of its inputs the exact range
@@ -270,9 +269,8 @@ probability of an event from below and above. Both theories can be placed within
 field of imprecise probability, and a Dempster--Shafer structure on the real line can be
 converted to a p-box and back. Neither theory is used in this thesis. The
 quantities propagated here are probabilities, capacities and durations. The information
-available on them in practice, such as a range from a datasheet or a distribution estimated from
-sparse samples, is stated directly as an interval or a p-box without translation into
-membership functions or belief masses. In addition, the operations the framework performs on
+available on them in practice is stated directly as an interval or a p-box without
+translation into membership functions or belief masses. In addition, the operations the framework performs on
 its values are products, complements and weighted combinations, for which the p-box arithmetic
 above gives results that are again p-boxes, so the same representation is carried from input to
 output without conversion.
@@ -375,10 +373,9 @@ The no-code and low-code software category defines itself around business applic
 development. A systematic review of 383 definitions across 306 publications from 2014 to 2025
 characterises no-code platforms as visual, drag-and-drop environments that let a non-programmer
 build software without writing code, and low-code platforms as the same idea with a
-professional-developer audience layered on top \cite{abendroth2026democratization}. The same review maps the identified platforms onto ten functional classes, including
-enterprise resource planning extensions, customer relationship platforms, business process
-automation suites, robotic process automation, document management and integration hubs, with
-commercial examples such as Mendix, Salesforce, UiPath, Bizagi and Zapier. Engineering or
+professional-developer audience layered on top \cite{abendroth2026democratization}. The same review maps the identified platforms onto ten functional classes, such as
+enterprise resource planning, customer relationship management and business process
+automation, with commercial examples including Salesforce and UiPath. Engineering or
 scientific analysis does not appear among them.
 
 Within engineering analysis, browser-delivered simulation as a service is one established
@@ -392,9 +389,9 @@ geographic information systems are a third. A PRISMA-based systematic review of 
 screened 1{,}775 articles and admitted 65. It organises the field around themes including
 visualisation, user-interface design and decision support \cite{daud2024webgis}. The platform of
 Repetto et al.\ is a representative member \cite{repetto2018windgis}. It delivers wind
-monitoring, forecasting and statistical risk mapping for ports, motorways, rail lines and
-industrial plants through a web GIS built on open geospatial software, and it is operated by
-port authorities who never touch the underlying numerical models.
+monitoring, forecasting and statistical risk mapping through a web GIS built on open
+geospatial software, and it is operated by port authorities who never touch the underlying
+numerical models.
 Most platforms in this category address monitoring and forecasting. They do not perform a
 structural reliability or component-failure computation. Similarly, network visualisation environments
 such as Gephi \cite{bastian2009gephi} and Cytoscape \cite{shannon2003cytoscape} make graphs

@@ -73,9 +73,9 @@ two connected components is already directed. For example, water leaves the inta
 at the pump, and the pump does not supply the intake. Hence the direction of an edge is read off the system.
 
 The model further requires that the directed edges form no cycle. For many of the systems of interest this
-holds without further assumption. For example, treatment trains, supply chains, assembly
-processes and project schedules move material or work strictly forward, and a dependency cycle
-in a schedule would be a planning error. For other systems, however, acyclicity is
+holds without further assumption. For example, treatment trains and project schedules move
+material or work strictly forward, and a dependency cycle in a schedule would be a planning
+error. For other systems, however, acyclicity is
 imposed by orienting the network.
 A distribution pipe can in principle carry water in either direction, but a network operating
 around its design flows has a dominant direction on every pipe, and orienting each edge by that
@@ -101,13 +101,13 @@ names.
 
 The position of a node in the network gives it a role, and each role has a physical meaning. A
 node with no incoming edge is a source, the point where supply, material or work enters the
-system (e.g.\ an intake, a generator or the start of a project). Similarly, a node with no
-outgoing edge is a sink, where the system delivers (e.g.\ a demand point, an outlet or a
-completed handover). A node that feeds two or more downstream components is a fork. Forks are
+system (e.g.\ an intake or the start of a project). Similarly, a node with no
+outgoing edge is a sink, where the system delivers (e.g.\ a demand point or a completed
+handover). A node that feeds two or more downstream components is a fork. Forks are
 how a system distributes and, in particular, how it builds in redundancy, because providing two
 routes to the same destination begins with one component supplying two. Finally, a node fed by
-two or more components is a join. This is where distributed flows gather, where assembled parts
-meet, and where redundant routes come back together.
+two or more components is a join. This is where distributed flows gather and where redundant
+routes come back together.
 
 A robust system duplicates its critical routes, and duplicated routes must reconverge at
 the destination they protect. A well-designed network therefore contains many
@@ -297,12 +297,11 @@ preprocessing steps performed once per system.
 \label{sec:model-input}
 
 The data describing an infrastructure system is rarely held in one place or in one format.
-Different objectives are pursued on the same system, a fault-detection workflow tracks health
-signals while a planning workflow tracks costs, and each maintains the parameters relevant to
-its own purpose. Furthermore, the tools used across these workflows implement different schemas and export
+Different objectives are pursued on the same system, and each workflow maintains the parameters
+relevant to its own purpose. Furthermore, the tools used across these workflows implement different schemas and export
 conventions, and a dataset is often shaped to fit a particular tool. Beneath these
 differences, however, any DAG description of a system reduces to a node list and an edge list, in which
-nodes are point features such as sources, junctions, assets or demand points and edges are the
+nodes are point features such as junctions or demand points and edges are the
 relationships between them. Infrastructure formats such as GraphML, EPANET
 \texttt{.inp} and MATPOWER \texttt{.m} all reduce to node and edge records beneath their
 schemas, and the framework asks the user to perform that reduction, supplying the structure in
@@ -340,7 +339,7 @@ graph, which is the edge list, the two indices and the sources.
 \label{sec:model-input-analysis}
 
 The values that drive an analysis are usually observed and managed separately from the network
-structure, in manufacturer specifications, historic records or planning estimates, and the
+structure, in manufacturer specifications or planning estimates, and the
 framework keeps them in separate files. Embedding them in the structure file would produce a file that is large and hard to maintain.
 It would also force a user who wants to evaluate the same network under several interpretations, or
 under several scenarios of one interpretation, to keep a duplicate topology file for each.

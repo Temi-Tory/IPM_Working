@@ -63,10 +63,10 @@
 \section{Introduction}
 \label{sec:flow-intro}
 
-A network that is connected can still fail to deliver. When a pipe is throttled, a feeder is
-derated or a treatment stage is running below its design rate, supply reaches every demand
-point and the amount that arrives is short of what is needed. The probabilistic
-interpretation of Chapter~\ref{ch:probability-toolkit} asks whether supply reaches a node;
+A network that is connected can still fail to deliver. When a pipe is throttled or a feeder
+is derated, supply reaches every demand point and the amount that arrives is short of what
+is needed. The probabilistic interpretation of Chapter~\ref{ch:probability-toolkit} asks
+whether supply reaches a node;
 the capacity interpretation asks how much, and what limits it. Under this interpretation the
 value attached to an edge is the most that can pass along it and the value attached to a
 node is the most that can pass through it. The Capacity Flow Toolkit is the set of modules
@@ -568,7 +568,7 @@ c^{(uv)}_0\right),
 \]
 where $c^{(uv)}_0$ sets $c_{uv} = 0$ with all other capacities unchanged and candidate edges are restricted to $E_{\text{some}}$.
 
-Real failure events are not always isolated to a single component. A storm or substation fault in a power network can take down multiple edges simultaneously. Since the interaction between affected edges may open or close re-routing options, the combined impact of $k$ simultaneous failures is not in general the sum of their individual $\Delta_{uv}$ impacts.
+Real failure events are not always isolated to a single component. A storm in a power network can take down multiple edges simultaneously. Since the interaction between affected edges may open or close re-routing options, the combined impact of $k$ simultaneous failures is not in general the sum of their individual $\Delta_{uv}$ impacts.
 
 The $k$-edge failure function generalises the single failure case to any set of $k$ edges removed simultaneously. For a combination $\mathcal{K} \subseteq E_{\text{some}}$ with $|\mathcal{K}| = k$, the combined impact is:
 \[
@@ -786,7 +786,7 @@ When node capacities are enabled, both configurations still return the same resu
 
 The flow loss is not shared evenly across demand nodes (Figure~\ref{fig:sink_flow_heatmap}). \texttt{sink\_1} (137) falls from 4.0 to 0.0, so it loses service completely. \texttt{sink\_2} (138) falls from 6.0 to 3.0, while sinks 139--143 stay at their previous levels. Total flow alone does not show this.
 
-To test a direct fix, a single-node upgrade sweep was run on nodes 114--119 (Table~\ref{tab:node_upgrade_sweep}). Upgrading any one of these nodes restores \texttt{sink\_1} to its edge-only service level and returns total flow to $F^\star=37.0$ in both configurations. The required increment is identical for all six nodes, while the three node pairs reach different absolute targets because they start from different capacities. The six upgrades therefore have the same effect on throughput, and the choice between them is settled by delivery constraints such as cost, installation effort and access.
+To test a direct fix, a single-node upgrade sweep was run on nodes 114--119 (Table~\ref{tab:node_upgrade_sweep}). Upgrading any one of these nodes restores \texttt{sink\_1} to its edge-only service level and returns total flow to $F^\star=37.0$ in both configurations. The required increment is identical for all six nodes, while the three node pairs reach different absolute targets because they start from different capacities. The six upgrades therefore have the same effect on throughput, and the choice between them is settled by delivery constraints such as cost and installation effort.
 
 \begin{table}[htbp]
 \centering

@@ -259,9 +259,9 @@ input module. A probability box is the \texttt{pbox} type of
 \texttt{ProbabilityBoundsAnalysis.jl} \cite{gray2021pbajulia}, re-exported so that a user
 sees one set of names; its own binary operators, \texttt{convIndep}, \texttt{convFrechet}
 and \texttt{convPerfect}, and its own constructors, \texttt{interval}, \texttt{makepbox} and
-the parametric family (\texttt{normal}, \texttt{uniform}, \texttt{beta}, \texttt{exponential}
-and others), are what the interval and p-box branches of every helper call. The package
-itself depends directly on \texttt{ProbabilityBoundsAnalysis}, \texttt{JSON},
+the parametric family (\texttt{normal}, \texttt{uniform} and others), are what the interval
+and p-box branches of every helper call. The package itself depends directly on
+\texttt{ProbabilityBoundsAnalysis}, \texttt{JSON},
 \texttt{DataStructures} and \texttt{DelimitedFiles} and nothing else; an earlier
 implementation also depended on \texttt{Combinatorics}, \texttt{DataFrames} and
 \texttt{Distributions} directly, none of which is called anywhere in the current source, and

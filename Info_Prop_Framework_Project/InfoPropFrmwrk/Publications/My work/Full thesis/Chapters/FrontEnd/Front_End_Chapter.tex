@@ -40,8 +40,8 @@
 
 Chapter~\ref{ch:lit-review} closed on a gap that has nothing to do with algorithms. The
 analyses of Chapters~\ref{ch:probability-toolkit} to~\ref{ch:critical-path} exist as a Julia
-package, and a package is used by writing code. The engineer who holds the system model, a planner at a water utility or a decommissioning
-programme, does not write code. The tools that do reach such a person are either cloud
+package, and a package is used by writing code. The engineer who holds the system model
+does not write code. The tools that do reach such a person are either cloud
 services, which are not acceptable for a proprietary system model, or licensed desktop
 suites that carry none of these analyses.
 That gap is closed by the interface described here. It is a browser application that
@@ -193,10 +193,10 @@ The Compare tab (Figure~\ref{fig:fe-compare}) selects any subset of the network'
 for the toolkit, runs those not yet run, one at a time, and places the results side by side
 in one table with an optional baseline for differences. The system-profile page
 (Figure~\ref{fig:fe-profile}) is the one view that crosses toolkits: every result set that
-any analysis has produced on the network, a critical path, a set of edges in every minimum
-cut, a conditioning set, is listed, and any one of them can be drawn on the network with a
-second overlaid, so that a schedule's critical path and a flow's binding cut can be seen on
-the same nodes. The page computes nothing; it draws what the analyses already found.
+any analysis has produced on the network is listed, and any one of them can be drawn on the
+network with a second overlaid, so that a schedule's critical path and a flow's binding cut
+can be seen on the same nodes. The page computes nothing; it draws what the analyses
+already found.
 
 \begin{figure}[htbp]
   \centering
