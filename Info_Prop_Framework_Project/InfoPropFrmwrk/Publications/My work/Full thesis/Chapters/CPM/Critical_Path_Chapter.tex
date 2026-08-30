@@ -461,9 +461,14 @@ Algorithm~\ref{alg:cpm-split} gives the procedure. Its cost is
 scalar propagations, one maximising and one minimising sweep per node, against $2^k$ for
 exhaustive enumeration of all $k$ interval durations. The exponent now depends on the reconvergent width around each node, and no longer on the
 size of the problem. One exhaustive sweep serves
-every node at once, so the implementation computes both counts before running anything
-and uses whichever is cheaper. It is therefore never worse than exhaustive enumeration,
-and it refuses when both counts exceed a stated limit. Some instances must remain hard,
+every node at once. The implementation first screens on the number of non-degenerate
+interval inputs: below a fixed threshold it computes both counts before running anything
+and uses whichever is cheaper, so that within that regime it is never worse than exhaustive
+enumeration and refuses only when both counts exceed a stated limit; above the threshold it
+declines without pricing the split at all and returns the conservative enclosure. The
+screen is a fixed constant and not a function of the network's bypass sets, so a network
+with many interval inputs and small bypass sets is declined although the split would have
+been cheap. Chapter~\ref{ch:integrated-case-study} meets this case on a real network. Some instances must remain hard,
 because the general problem is NP-hard \cite{chanas2002complexity}, and the split shows
 where the hardness sits, in networks whose bypass sets are large.
 
@@ -711,7 +716,11 @@ dependence problem as the intervals, and no corner argument applies to them. The
 method for them is claimed.
 
 The cost of the split grows with the bypass sets, and on dense meshes the sets approach the
-whole network. The never-worse rule keeps the cost at or below that of exhaustive enumeration, and no lower.
+whole network. The never-worse rule keeps the cost at or below that of exhaustive
+enumeration, and no lower. Separately, the screening threshold that decides whether the
+split is attempted is a fixed count of interval inputs, chosen for safety and not derived
+from the network's bypass-set cost; computing that cost first, which is cheap, would let
+more networks reach the exact method.
 
 The boundary of the toolkit is set by the algebra. A new
 quantity is added by giving its operator pair, and the pair obtains a backward pass in the

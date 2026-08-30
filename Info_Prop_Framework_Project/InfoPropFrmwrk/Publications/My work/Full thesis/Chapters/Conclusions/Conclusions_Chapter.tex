@@ -211,6 +211,11 @@ motivates it.
   \item The shortest-path dual of the domination split, the reduction of interval edge
     values to interval durations by edge subdivision, and the sharing of corner
     evaluations across overlapping bypass sets (Chapter~\ref{ch:critical-path}).
+  \item Replacing the fixed interval-input threshold that gates the domination split with
+    the split's own bypass-set cost, computed before deciding, so that a network with many
+    interval inputs but small bypass sets reaches the exact method instead of the
+    enclosure, as the water network of Chapter~\ref{ch:integrated-case-study} did not
+    (Chapter~\ref{ch:critical-path}).
   \item A probability-box form for the critical path toolkit and interval and
     probability-box forms for the flow toolkit, the latter direct for the flow value by
     monotonicity and open for the cut structure and thresholds
@@ -235,8 +240,9 @@ of a system is entered three times for three analyses and kept consistent by han
 uncertainty in every input is collapsed to a number before any of them runs. It ends with
 one model, three exact analyses that carry that uncertainty through, and an interface that
 puts them in the hands of the engineer who holds the data. The case study of
-Chapter~\ref{ch:integrated-case-study} \PH{one sentence on what the Net3 run showed, once
-the chapter exists}. What the thesis has not done is stated as plainly as what it has, and
+Chapter~\ref{ch:integrated-case-study} showed, on a public water network analysed from one
+upload, that the components which bound its throughput and the components which set its
+restoration time were different ones, which no single analysis could have said. What the thesis has not done is stated as plainly as what it has, and
 the boundaries it maps, of width, of tightness and of scale, are part of its result.
 
 \ifdefined\maindoc
