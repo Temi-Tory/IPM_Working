@@ -4,7 +4,7 @@
     {
       "source": 1,
       "destination": 2,
-      "capacity": 100.0
+      "capacity": 60.0
     },
     {
       "source": 2,
@@ -44,7 +44,7 @@
     {
       "source": 7,
       "destination": 8,
-      "capacity": 100.0
+      "capacity": 60.0
     },
     {
       "source": 8,
@@ -109,7 +109,7 @@
     {
       "source": 18,
       "destination": 16,
-      "capacity": 100.0
+      "capacity": 60.0
     },
     {
       "source": 19,
@@ -134,7 +134,7 @@
     {
       "source": 22,
       "destination": 23,
-      "capacity": 60.0
+      "capacity": "Inf"
     }
   ]
 }

@@ -7,88 +7,88 @@
         "upper": 0.0
       },
       "2": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.4,
+        "upper": 0.6
       },
       "3": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "4": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "5": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "6": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "7": {
         "lower": 0.0,
         "upper": 0.0
       },
       "8": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.4,
+        "upper": 0.6
       },
       "9": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "10": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "11": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "12": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "13": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "14": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "15": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "16": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.4,
+        "upper": 0.6
       },
       "17": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "18": {
         "lower": 0.0,
         "upper": 0.0
       },
       "19": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.4,
+        "upper": 0.6
       },
       "20": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 0.8,
+        "upper": 1.2
       },
       "21": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "22": {
-        "lower": 1.0,
-        "upper": 2.0
+        "lower": 1.6,
+        "upper": 2.4
       },
       "23": {
         "lower": 0.0,

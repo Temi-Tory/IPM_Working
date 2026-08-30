@@ -215,7 +215,7 @@ version = "0.1.0"
 
 [[deps.InformationPropagationAnalysis]]
 deps = ["DataStructures", "DelimitedFiles", "JSON", "ProbabilityBoundsAnalysis"]
-git-tree-sha1 = "adcdacd7cc306d8ffe15e440ff0c7b72ce6f024a"
+path = "C:\\Development\\InformationPropagationAnalysis.jl"
 uuid = "a5102360-ae28-4698-95dd-b3596d53d633"
 version = "0.2.1"
 
