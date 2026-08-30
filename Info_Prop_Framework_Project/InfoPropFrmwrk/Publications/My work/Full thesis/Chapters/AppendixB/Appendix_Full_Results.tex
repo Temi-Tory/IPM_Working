@@ -17,32 +17,276 @@
 \usepackage{enumitem}
 \usepackage{placeins}
 \usepackage{hyperref}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
 \usepackage[toc,page]{appendix}
 \onehalfspacing
+\providecommand{\filepath}[1]{\nolinkurl{#1}}
 \begin{document}
 \title{Appendix: Full Numerical Results}
 \fi
 
-% ---------------------------------------------------------------------------
-% CONTENT NOTE (delete once populated)
-%
-% This appendix holds the complete result tables that back up claims made in
-% the toolkit chapters but are too long to sit in the narrative. Each chapter
-% shows the synthesis (top-N rankings, comparison tables, summary figures) in
-% its body and points here for the full listing.
-%
-% Expected content, grouped by owning chapter:
-%   - Probability: per-node belief tables for the worked networks, the
-%     oracle-vs-IPA agreement table across the verification corpus, the
-%     p-box / interval bound tables, timing tables
-%   - Flow: full single-edge and multi-edge sensitivity rankings, complete
-%     min-cut enumerations, node-upgrade sweeps, degradation trajectories
-%   - Critical Path: full float / slack tables, interval-bound tables, the
-%     domination-split corner-count tables, oracle comparison tables
-%
-% Every table names the validation artifact and script it was generated from
-% (the wall-time rule applies: run-count ratios in print, not raw timings).
-% ---------------------------------------------------------------------------
+This appendix holds the complete validation tables that the toolkit chapters summarise but
+do not reproduce in full, and a map from every figure and table in the thesis to the
+script and data file that produced it. Every network named here is specified in
+Appendix~\ref{app:network-specs}. The raw logs, per-graph results, request and response
+JSON, and the scripts themselves are archived in the thesis data repository
+(\S\ref{sec:appB-map} gives the DOI and the path of each artefact).
 
-\emph{Appendix in preparation.} See the content note in the source file for the intended
-structure. Cross-reference target: \texttt{app:full-results}.
+\section{Timing convention}
+\label{sec:appB-timing}
+
+Every runtime reported in this thesis is wall-clock, measured on a single core, on the
+\emph{second} call within a warm process --- a discarded warm-up run precedes every
+measurement, so no figure includes just-in-time compilation. Where a comparison is made
+against another method, the ratio of run counts is reported rather than raw seconds
+wherever the comparison would otherwise depend on the machine. This convention is stated
+once here and referenced, not restated, by each chapter.
+
+\section{Probability propagation}
+\label{sec:appB-prob}
+
+\subsection{Exactness on the 129-graph corpus}
+
+The probability toolkit was checked against an independently built reduced ordered
+binary decision diagram oracle on the full corpus of 129 synthetic graphs
+(Appendix~\ref{sec:appA-corpus}). \textbf{All 129 agree exactly}, worst absolute deviation
+below $10^{-6}$, and none changed against the pre-existing recorded results (tolerance
+$10^{-9}$). The corpus is reconstructed exactly from recorded seeds; its node priors lie
+in a range that never places a non-source node at exactly 0 or 1, so it does not exercise
+the degenerate-prior path. Script:
+\filepath{corpus/random-and-mutated/rerun\_129\_corpus.jl}; per-graph results:
+\filepath{rerun_129_corpus_results.csv}.
+
+\subsection{Named-network reproductions}
+
+{\footnotesize
+\begin{longtable}{@{}p{3.0cm} p{3.6cm} l l@{}}
+\toprule
+Network & Published source & Result & Worst $|$diff$|$ \\
+\midrule
+\endhead
+\texttt{grid-graph}, $R_l = 0.9$   & Tong and Tien \cite{tong2019directed}, Table~2 & reproduced & $4.75\times10^{-6}$ (node 12) \\
+\texttt{grid-graph}, $R_l = 0.1$   & Tong and Tien \cite{tong2019directed}, Table~3 & reproduced & $4.29\times10^{-6}$ (node 16) \\
+\texttt{power-network}, $R_l = 0.99$ & Tong and Tien \cite{tong2019directed}, Table~5 & reproduced & $0.00000$ \\
+\texttt{power-network}, $R_l = 0.9$  & Tong and Tien \cite{tong2019directed}, Table~5 & small residual & $1.76\times10^{-3}$ \\
+\texttt{power-network}, $R_l = 0.3$  & Tong and Tien \cite{tong2019directed}, Table~5 & small residual & $5.1\times10^{-4}$ \\
+\bottomrule
+\caption{Reproduction of published exact reliabilities. The grid residuals are within the
+paper's own five-decimal print precision. The two power-network residuals at $R_l = 0.9$
+and $0.3$ are order $10^{-3}$, larger than print rounding; the toolkit and the decision
+diagram agree with each other to machine precision at all three points, so the gap is a
+modelling difference from the paper, flagged and not resolved. Scripts:
+\filepath{validation/probability/asce\_grid\_reproduction.jl},
+\filepath{asce_power_reproduction.jl}.}
+\label{tab:appB-prob-repro}
+\end{longtable}}
+
+\subsection{Adversarial families}
+
+On the fan-in-$k$ family the deduplicated operation count stays linear in $k$; on the
+mesh-$w$ family it grows with the treewidth, matching the decision diagram's own node
+count. Full sweep: \filepath{validation/probability/data/adversarial\_factored.csv}; script:
+\filepath{corpus/adversarial/adversarial\_scaling.jl}.
+
+\subsection{Interval and probability-box bounds}
+
+Per-node interval and probability-box belief tables for the drone designs, the certified
+requirement-violation bound against the Monte Carlo sample count it replaces, and the
+probability-box propagation time by discretisation level are in
+\filepath{validation/probability/data/} (\filepath{certified_bound_vignette.csv},
+\filepath{timing_imprecise.csv}, \filepath{drone_ksweep_remeasure_results.csv}).
+
+\section{Capacity flow}
+\label{sec:appB-flow}
+
+\subsection{Twelve-network validation summary}
+
+Every network was solved by all three built-in max-flow solvers (Dinic, Edmonds--Karp,
+push--relabel) and checked against the external \texttt{GraphsFlows} library; the extended
+suite additionally checks min-cut structure, saturated edges, single-point-of-failure
+nodes, single-edge failure impact, the degradation threshold, and Menger edge
+connectivity against brute-force or bisection oracles.
+
+{\footnotesize
+\begin{longtable}{@{}l r l@{}}
+\toprule
+Network & Max flow $F^\star$ & All checks \\
+\midrule
+\endhead
+\texttt{grid-graph-5x5}                  & 35   & PASS \\
+\filepath{metro_directed_dag_for_ipm}  & 29   & PASS \\
+\texttt{KarlNetwork}                     & 39   & PASS \\
+\texttt{water}                           & 154  & PASS \\
+PSPLIB \filepath{j301_1}                  & 14   & PASS \\
+\filepath{continental_medical_network}   & 501  & PASS \\
+\texttt{ergo-proxy-dag-network}          & 479  & PASS \\
+\filepath{glasgow_to_shetland_extreme}  & 762  & PASS \\
+\filepath{highland_to_lowland_full_network} & 3326 & PASS \\
+Drone: FW-reliant centralised            & 755  & PASS \\
+Drone: concentrated minimal              & 5939 & PASS \\
+Drone: VTOL dense decentralised          & 6044 & PASS \\
+\bottomrule
+\caption{Flow toolkit validation. $F^\star$ is the maximum flow; every solver and every
+extended check agrees. Full per-check results:
+\filepath{validation/flow/flow\_validation\_summary.csv} and
+\filepath{flow_validation_extended_summary.csv}; script:
+\filepath{validation/flow/run\_flow\_validation.jl}.}
+\label{tab:appB-flow}
+\end{longtable}}
+
+\subsection{DIMACS-scale timing}
+
+{\footnotesize
+\begin{longtable}{@{}l r r r r@{}}
+\toprule
+Instance & Nodes & Edges & Dinic (warm s) & Oracle (warm s) \\
+\midrule
+\endhead
+\filepath{genrmf_dag_small}  & 360    & 924     & 0.002 & 1.181 \\
+\filepath{genrmf_dag_medium} & 3{,}332  & 9{,}324   & 0.017 & 0.085 \\
+\filepath{genrmf_dag_large}  & 27{,}040 & 78{,}364  & 0.961 & 9.891 \\
+\filepath{genrmf_dag_xlarge} & 36{,}992 & 107{,}644 & 0.657 & 28.906 \\
+\bottomrule
+\caption{Generated GENRMF directed-acyclic max-flow instances \cite{johnson1993dimacs}.
+Warm second-call times, Dinic solver. Full table (all three solvers):
+\filepath{validation/flow/dimacs/timings.csv}; generator:
+\filepath{validation/flow/dimacs/generate\_genrmf\_dag.py} (seeded).}
+\label{tab:appB-dimacs}
+\end{longtable}}
+
+\subsection{Configuration comparison, sensitivity and min-cut enumeration}
+
+The full single-edge sensitivity rankings for Configurations~A and~B of the flagship
+benchmark, the node-upgrade sweep, the parametric threshold comparison, and the complete
+min-cut enumeration are in \filepath{case-studies/flow-configs-ab/}; the driver is
+\filepath{check_flagship_benchmark.jl}. The IEEE RTS-24 line-model and net-injection
+results are in \filepath{case-studies/rts24/} with \filepath{run_rts24_analysis.jl} and
+\filepath{run_rts24_netinjection_analysis.jl}.
+
+\section{Critical path}
+\label{sec:appB-cpm}
+
+\subsection{Ten-network float validation}
+
+Ten networks were checked in all four modes (LongestPath, ShortestPath, MaxScaling,
+Accumulation) against a path oracle where tractable and against the mode's structural
+invariants otherwise.
+
+{\footnotesize
+\begin{longtable}{@{}l l l@{}}
+\toprule
+Network & Check & Result (all 4 modes) \\
+\midrule
+\endhead
+\texttt{water}                          & oracle     & PASS \\
+\texttt{KarlNetwork}                     & oracle     & PASS \\
+\texttt{grid-graph-5x5}                  & oracle     & PASS \\
+\filepath{metro_directed_dag_for_ipm}  & oracle     & PASS \\
+\texttt{ergo-proxy-dag-network}          & invariants & PASS \\
+\multicolumn{3}{@{}p{12cm}@{}}{\emph{\ldots\ and five more --- full table:
+\filepath{validation/critical-path/float\_validation\_summary.csv}.}} \\
+\bottomrule
+\caption{Critical-path float validation. Script:
+\filepath{validation/critical-path/run\_float\_validation.jl} with
+\filepath{oracle.jl}. The interval-split engine is checked separately by
+\filepath{run_interval_validation.jl} and, on PSPLIB \filepath{j301_1}, by a
+50{,}000-sample Monte Carlo soundness and attainment check
+(\filepath{run_mc_check_psplib_j301_1.jl}, 0 bound violations).}
+\label{tab:appB-cpm}
+\end{longtable}}
+
+\subsection{PSPLIB j301\_1 per-node float bounds}
+
+The per-node necessarily-critical and possibly-critical float bounds under
+$\pm 10\%$ duration uncertainty are in
+\filepath{validation/critical-path/thesis\_writing\_pack/psplib\_j301\_1\_float\_bounds.csv},
+with the earlier \texttt{water} $k = 32$ precedent in \filepath{water_k32_float_bounds.csv}.
+
+\section{Net3 integrated case study}
+\label{sec:appB-net3}
+
+{\footnotesize
+\begin{longtable}{@{}p{4.0cm} p{6.2cm} l@{}}
+\toprule
+Toolkit and scenario & Headline result & Timing (warm, s) \\
+\midrule
+\endhead
+Reliability, Baseline           & source-to-sink reachability, all 18 sinks & 4.61 \\
+Reliability, Interval ($\pm5\%$) & certified requirement range $[0.35, 0.99]$ & --- \\
+Flow, Baseline                  & throughput $1{,}838$ litres/s & 2.33 \\
+Flow, Degraded                  & throughput $955$ litres/s (48\% drop) & --- \\
+Schedule, Baseline LongestPath  & project value $1{,}773.3$ hours ($\approx 74$ days), 28 of 97 critical & 2.08 \\
+Schedule, Interval LongestPath  & conservative enclosure $[1{,}418.66, 2{,}127.99]$ hours & --- \\
+Schedule, MaxScaling            & least-reliable supply route $0.7515$ (node 76) & --- \\
+\bottomrule
+\caption{Net3 headline numbers. The interval schedule is the \emph{conservative
+enclosure}: the exact domination split is screened out before any cost is computed because
+Net3's 122 non-degenerate interval durations exceed the fixed threshold at which the split
+is attempted (a stated limitation, Ch.~\ref{ch:critical-path} and~\ref{ch:conclusions}).
+Every request and response JSON, the run summary, and the full write-up with provenance
+are in \filepath{case-studies/net3/}; driver:
+\filepath{net3-scenarios/run\_net3\_scenarios.py}.}
+\label{tab:appB-net3}
+\end{longtable}}
+
+The flow toolkit's non-finite-value serialisation path was first exercised by this case
+study's unbounded reservoir and tank-connector capacities; the fix is recorded in
+\filepath{case-studies/net3/thesis\_writing\_pack/INDEX.md}.
+
+\section{Figure and table to script and data map}
+\label{sec:appB-map}
+
+Results in this thesis were produced with \texttt{InformationPropagationAnalysis.jl}
+v0.2.1 (Julia General registry, git-tree-sha1
+\texttt{adcdacd7cc306d8ffe15e440ff0c7b72ce6f024a}) and the
+\texttt{information-propagation-no-code} application v1.0
+(DOI \texttt{10.5281/zenodo.22180253}) \cite{ipfnocode}. The complete data set --- every
+script, seed, input file and recorded server response --- is archived at
+\textbf{DOI \texttt{10.5281/zenodo.22180227}} \cite{thesisdata}; the paths below are
+relative to that archive. This section is the full version of the mapping; the
+repository \filepath{README.md} carries the same table with per-row package and
+application versions.
+
+{\footnotesize
+\begin{longtable}{@{}p{4.2cm} p{4.7cm} p{4.2cm}@{}}
+\toprule
+Figure / table & Script & Data \\
+\midrule
+\endhead
+Fig.\ (width vs diagram size), Ch.~\ref{ch:probability-toolkit} & \filepath{complexity_validate.jl}, \filepath{rerun_129_corpus.jl} & \filepath{figures/ch05\_probability/*.csv} \\
+Fig.\ (p-box tightness envelope) & \filepath{grid_envelope.jl} (+ Fr\'echet) & \texttt{grid\_envelope\{,\_frechet\}.csv} \\
+Fig.\ (fan-in / mesh crossover) & \filepath{adversarial_scaling.jl} & \filepath{adversarial_factored.csv} \\
+Fig.\ (hero CDF) & \filepath{hero_figure.jl} & \filepath{hero_figure.csv} \\
+Fig.\ (drone reliability map) & \filepath{drone_beliefs_check.jl} & Tab.~\ref{tab:appB-prob-repro} data \\
+Tab.\ (worked-network trace) & \filepath{prob_chapter_example_trace.jl} & --- \\
+Tab.\ (4 nets vs BDD) & \filepath{bdd_oracle.jl}, \filepath{oracles.jl} & \filepath{validation/probability/} \\
+Tab.~\ref{tab:appB-prob-repro} (published reproductions) & \filepath{asce_grid_reproduction.jl}, \filepath{asce_power_reproduction.jl} & --- \\
+Tab.\ (adversarial complexity) & \filepath{adversarial_scaling.jl}, \filepath{graph_families.jl} & \filepath{data/adversarial*.csv} \\
+Tab.\ (certified bound vs MC) & \filepath{certified_bound_vignette.jl} & \filepath{data/certified\_bound\_vignette.csv} \\
+Tab.\ (p-box time vs discretisation) & p-box timing scripts & \filepath{data/timing\_imprecise.csv} \\
+Tab.\ (3 drone designs) & \filepath{drone_ksweep_remeasure.jl} & \filepath{drone_ksweep_remeasure_results.csv} \\
+Tab.~\ref{tab:appB-flow} (12-network flow) & \filepath{run_flow_validation.jl} & \filepath{flow_validation_summary.csv} (+ extended) \\
+Tab.~\ref{tab:appB-dimacs} (DIMACS timing) & \filepath{run_dimacs_validation.jl}, \filepath{generate_genrmf_dag.py} & \filepath{dimacs/timings.csv} \\
+Figs / tabs (flagship A/B: overlay, bars, sweep, mincut) & \filepath{check_flagship_benchmark.jl}, \filepath{generate_case_study_artifacts.py} & \filepath{case-studies/flow-configs-ab/} \\
+Fig.\ / tab (IEEE RTS-24) & \filepath{run_rts24_netinjection_analysis.jl} & \filepath{case-studies/rts24/} \\
+Fig.\ (exact float bounds), Ch.~\ref{ch:critical-path} & \filepath{figures/ch07\_cpm/make\_fig04\_floats.py} & \filepath{psplib_j301_1_float_bounds.csv} \\
+Tabs (j301\_1 LongestPath, Accumulation) & server runs per \filepath{psplib_j301_1_RESULTS.md} & \filepath{case-studies/psplib-j301\_1/\_analysis-results/} \\
+Tab.~\ref{tab:appB-cpm} (10-network CPM) & \filepath{run_float_validation.jl}, \filepath{oracle.jl} & \filepath{float_validation_summary.csv} \\
+Tab.\ (j301\_1 per-node bounds) & \filepath{run_mc_check_psplib_j301_1.jl} & \filepath{psplib_j301_1_float_bounds.csv} \\
+Tab.~\ref{tab:appB-net3} (Net3 headline) & \filepath{run_net3_scenarios.py} & \filepath{case-studies/net3/net3-scenarios/} \\
+Ch.~\ref{ch:front-end} interface figures & --- (screenshots of the deployed application) & --- \\
+\bottomrule
+\caption{Every data-driven figure and validation table in the thesis, its generating
+script, and its source data, all relative to the archived data repository. Diagrams and
+diamond renders are regenerated from the network data, not archived; interface figures are
+screenshots and are not reproducible artefacts. Full logs and scripts are archived at the
+DOI above.}
+\label{tab:appB-map}
+\end{longtable}}
+
+\ifdefined\maindoc
+\else
+\printbibliography
+\end{document}
+\fi

@@ -17,34 +17,257 @@
 \usepackage{enumitem}
 \usepackage{placeins}
 \usepackage{hyperref}
+\usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
+\addbibresource{../../references.bib}
 \usepackage[toc,page]{appendix}
 \onehalfspacing
+\providecommand{\filepath}[1]{\nolinkurl{#1}}
 \begin{document}
 \title{Appendix: Case-Study Network Specifications}
 \fi
 
-% ---------------------------------------------------------------------------
-% CONTENT NOTE (delete once populated)
-%
-% This appendix holds the canonical, machine-checkable definition of every
-% network used as a case study anywhere in the thesis, so each chapter can
-% cite one authoritative source instead of re-describing a network in prose.
-%
-% Expected content, one section per network:
-%   - a short identifier and which chapter(s) use it
-%     (e.g. the flagship 43-node/107-edge flow benchmark, the 8-node nested
-%      diamond network, the water accumulation schedule, the medical drone
-%      network, the RESS multi-level reliability network, the grid 5x5 mesh)
-%   - node list: id, human-readable label, role (source / sink / junction / ...)
-%   - edge list: (u, v) pairs
-%   - the analysis inputs actually used: edge/node capacities for the flow
-%     runs, activity durations for the CPM runs, component and handover
-%     probabilities (point / interval / p-box) for the reliability runs
-%   - provenance: the .EDGES / .json file the numbers come from, and the
-%     validation script that regenerates any derived figures
-%
-% Keep this to data and provenance. Interpretation stays in the chapters.
-% ---------------------------------------------------------------------------
+This appendix is the single authoritative description of every network used anywhere in
+the thesis. Each chapter cites one entry here rather than re-describing a network in
+prose. For each network it gives the source and citation, the node and edge counts, the
+rule by which an undirected or domain-specific network was oriented into a directed
+acyclic graph, and --- for the networks used as named case studies --- which input values
+are taken from a source and which are assigned for demonstration. Full edge lists, the
+per-node input tables, the converters, and the recorded server responses are archived in
+the thesis data repository (Appendix~\ref{app:full-results}); the file named at the end of
+each entry is its location there.
 
-\emph{Appendix in preparation.} See the content note in the source file for the intended
-structure. Cross-reference target: \texttt{app:network-specs}.
+\section{Networks at a glance}
+\label{sec:appA-glance}
+
+{\footnotesize
+\begin{longtable}{@{}p{3.1cm} l p{3.3cm} l@{}}
+\toprule
+Network & Nodes / edges & Source & Used in \\
+\midrule
+\endhead
+\texttt{power-network}        & 23 / 27   & Tong and Tien \cite{tong2019directed}      & Ch.~\ref{ch:probability-toolkit} \\
+\texttt{grid-graph}           & 16 / 24   & Tong and Tien \cite{tong2019directed}      & Ch.~\ref{ch:probability-toolkit} \\
+\texttt{KarlNetwork}          & 26 / 74   & Synthetic (colleague-generated)            & Ch.~\ref{ch:diamond-module}, \ref{ch:probability-toolkit} \\
+\texttt{counterexample-n15}   & 15 / 23   & This project's adversarial instance       & Ch.~\ref{ch:diamond-module} \\
+\filepath{metro_directed_dag} & 306 / 350 & Berlin U/S-Bahn \cite{behrensdorf2021numerically} & Ch.~\ref{ch:probability-toolkit} \\
+PSPLIB \filepath{j301_1}       & 32 / 48   & Kolisch and Sprecher \cite{kolisch1997psplib} & Ch.~\ref{ch:critical-path} \\
+IEEE RTS-24                   & 24 / 34   & MATPOWER \cite{zimmerman2011matpower}, IEEE RTS \cite{ieee1979rts} & Ch.~\ref{ch:capacity-toolkit} \\
+Drone: FW-reliant centralised & 217 / 263 & Jones \emph{et al.} \cite{jones2025conceptual} & Ch.~\ref{ch:probability-toolkit} \\
+Drone: VTOL dense decentralised & 242 / 1753 & Jones \emph{et al.} \cite{jones2025conceptual} & Ch.~\ref{ch:probability-toolkit} \\
+Drone: concentrated minimal   & 230 / 1648 & Jones \emph{et al.} \cite{jones2025conceptual} & Ch.~\ref{ch:probability-toolkit} \\
+\texttt{munin}, \texttt{water}, 17 bnlearn benchmarks & 8/8 to 1041/1397 & bnlearn repository \cite{scutari2010bnlearn} & Ch.~\ref{ch:probability-toolkit} \\
+\texttt{Net3}                 & 97 / 119  & EPANET Example Network 3 \cite{rossman2000epanet2} & Ch.~\ref{ch:integrated-case-study} \\
+Random and mutated corpus     & 10--28 nodes, 129 graphs & This project's harness & Ch.~\ref{ch:probability-toolkit} \\
+Adversarial families          & fan-in-$k$, mesh-$w$ & This project's harness & Ch.~\ref{ch:probability-toolkit} \\
+\bottomrule
+\caption{Every network used in the thesis. Counts are of the directed acyclic graph after
+orientation. The drone designs use non-contiguous node identifiers; the count is of nodes
+actually present.}
+\label{tab:appA-glance}
+\end{longtable}}
+
+\section{power-network (23 nodes, 27 edges)}
+\label{sec:appA-power}
+
+Four-substation power distribution network from Tong and Tien \cite{tong2019directed},
+Figure~11. Already directed in the source. Sources are nodes $\{1, 7, 18\}$ (the three
+solid black circles in the figure); the single sink is node 23. Component reliabilities
+for the reproduction study (Ch.~\ref{ch:probability-toolkit}) are the paper's own values,
+applied under its uniform-link-reliability scheme ($R_l \in \{0.9, 0.99, 0.3\}$, node
+priors 1.0). The interval, probability-box, capacity and schedule scenarios use values
+assigned for demonstration in this thesis; the five published-reliability scenario folders
+(\filepath{Published_R030}, \filepath{Published_R090}, \filepath{Published_R099}) hold the
+inputs for the reproduction. File: \filepath{corpus/named-networks/power-network/}.
+
+\section{grid-graph (16 nodes, 24 edges)}
+\label{sec:appA-grid}
+
+The $4\times4$ grid benchmark from Tong and Tien \cite{tong2019directed}, Figure~10.
+Directed in the source. Sources are nodes $\{1, 3, 13\}$. Used for the exactness
+reproduction against the paper's Tables~2 and~3 ($R_l = 0.9$ and $R_l = 0.1$); the
+reproduction reaches the published values to within the paper's own five-decimal print
+precision. File: \filepath{corpus/named-networks/grid-graph/}.
+
+\section{KarlNetwork (26 nodes, 74 edges)}
+\label{sec:appA-karl}
+
+A synthetic network built by a colleague as an 18-diamond stress test for the
+decomposition module: dense reconvergence in a small graph. Not a model of any physical
+system; all reliability, capacity and schedule values are assigned for demonstration. Used
+for the diamond-count and conditioning-width figures in
+Ch.~\ref{ch:diamond-module}--\ref{ch:probability-toolkit} and for the probability-box
+discretisation timing study. File: \filepath{corpus/named-networks/KarlNetwork/}.
+
+\section{counterexample-n15 (15 nodes, 23 edges)}
+\label{sec:appA-cex}
+
+A hand-constructed adversarial instance from this project's own validation corpus, built
+to exercise a specific failure mode of an earlier diamond-identification routine (a
+non-induced diamond whose conditioning set is undercounted if nested diamonds are not
+unioned in). Synthetic by design. File:
+\filepath{corpus/named-networks/counterexample-n15/}.
+
+\section{PSPLIB j301\_1 (32 activities, 48 precedences)}
+\label{sec:appA-psplib}
+
+Instance \filepath{j301_1} of the single-mode resource-constrained project-scheduling set
+\texttt{j30} from PSPLIB \cite{kolisch1997psplib}. 30 real activities plus a dummy start
+and end (durations 0). The activity-on-node precedence graph is already a directed acyclic
+graph. Durations and the successor list are in
+\filepath{validation/critical-path/thesis\_writing\_pack/appendix\_a\_durations\_successors.csv}
+(30 rows, dummy nodes omitted); the file's recorded MPM-Time is 38, which the LongestPath
+pass reproduces. The interval scenario applies a $\pm 10\%$ relative half-width to every
+duration. Conversion: \filepath{converters/psplib\_to\_ipf.py}, which consumes
+\filepath{j30/j301\_1.sm} from the PSPLIB distribution. Files:
+\filepath{case-studies/psplib-j301\_1/}.
+
+\subsection{Durations and successors}
+
+{\footnotesize
+\begin{longtable}{@{}r r p{7cm}@{}}
+\toprule
+Activity & Duration & Immediate successors \\
+\midrule
+\endhead
+\multicolumn{3}{@{}p{12cm}@{}}{\emph{See
+\filepath{validation/critical-path/thesis\_writing\_pack/appendix\_a\_durations\_successors.csv}
+--- 30 rows, parsed directly from \filepath{j301_1.sm}.}} \\
+\bottomrule
+\caption{PSPLIB \filepath{j301_1} activity durations and precedence successors.}
+\label{tab:appA-psplib}
+\end{longtable}}
+
+\section{IEEE RTS-24 (24 buses, 34 edges as oriented)}
+\label{sec:appA-rts24}
+
+The 24-bus IEEE Reliability Test System, taken from the MATPOWER case file
+\filepath{case24_ieee_rts.m} \cite{zimmerman2011matpower}, which traces to the 1979
+original \cite{ieee1979rts}. 24 buses, 38 transmission lines (four double-circuit pairs),
+33 generating units at 11 generator buses, 17 load buses, slack bus 13, total peak demand
+2850~MW.
+
+\paragraph{Orientation.} The mesh is oriented into a directed acyclic graph by the sign of
+the DC power flow at peak load under uniform-participation-factor dispatch. Each
+double-circuit line pair is merged into one edge carrying the summed rating. The result is
+24 nodes and 34 edges with no directed cycles; nothing was dropped for acyclicity. Line
+ratings in MVA are the edge capacities. The orientation log records every line's flow sign
+and resulting direction.
+
+\paragraph{Net-injection formulation.} The primary flow answer uses a net-injection model:
+each bus's net injection is its generator nameplate capacity minus its local peak load; a
+super-source (node 0) feeds every net-export bus and every net-import bus feeds a
+super-sink (node 25), each edge capacity equal to the bus's net injection or net load. A
+bus with both local generation and local load appears once, under its net sign. This adds
+two nodes and gives 26 nodes, 54 edges.
+
+Files: \filepath{case-studies/rts24/} --- both \filepath{.EDGES} variants, the three capacity
+files, \filepath{orient_rts24.py}, the orientation and net-injection logs, and the recorded
+server request and response.
+
+\section{Medical drone delivery designs (217/263, 242/1753, 230/1648)}
+\label{sec:appA-drone}
+
+Three candidate network designs for a Scotland-wide medical drone logistics system, with
+structure derived from the conceptual study of Jones \emph{et al.}
+\cite{jones2025conceptual}: a fixed-wing-reliant centralised design, a VTOL-dense
+decentralised design, and a concentrated-minimal design. Node identifiers are
+non-contiguous (facilities, hubs and waypoints share a numbering space); the counts above
+are of nodes actually present. Node reliabilities are demonstration values assigned in
+this thesis; hubs are treated as always available. The designs are used for the
+conditioning-width and interval-reliability comparison in
+Ch.~\ref{ch:probability-toolkit} (Islay Hospital is the worst-served facility in both
+dense designs, bounded at $[0.56, 0.72]$). Generators:
+\filepath{converters/drone\_network\_to\_dag*.jl}, from the source facility data in
+\filepath{case-studies/drone-networks/}.
+
+\section{metro\_directed\_dag (306 nodes, 350 edges)}
+\label{sec:appA-metro}
+
+The Berlin U-Bahn and S-Bahn network from Behrensdorf \emph{et al.}
+\cite{behrensdorf2021numerically}, oriented into a directed acyclic graph by breadth-first
+search from node 18. Structure only; node and edge reliabilities are assigned. Used as a
+larger structural test for the decomposition and propagation pipeline in
+Ch.~\ref{ch:probability-toolkit}. File:
+\filepath{corpus/named-networks/metro\_directed\_dag\_for\_ipm/}.
+
+\section{bnlearn structural benchmarks}
+\label{sec:appA-bnlearn}
+
+Seventeen Bayesian-network structure benchmarks from the bnlearn repository
+\cite{scutari2010bnlearn} --- \texttt{asia}, \texttt{alarm}, \texttt{andes},
+\texttt{barley}, \texttt{cancer}, \texttt{child}, \texttt{diabetes}, \texttt{earthquake},
+\texttt{hailfinder}, \texttt{hepar2}, \texttt{insurance}, \texttt{link}, \texttt{mildew},
+\texttt{pathfinder}, \texttt{pigs}, \texttt{sachs}, \texttt{survey}, \texttt{win95pts}
+--- plus \texttt{munin} and \texttt{water}, converted from their BIF topology by a
+structure-only parser. These are directed acyclic by construction. Every reliability value
+is synthetic and is \emph{not} a decision-relevant claim about the domain each network
+models; the benchmarks are used only to test the decomposition and propagation on a range
+of sizes (8 to over 1000 nodes) and reconvergence structures. Files:
+\filepath{corpus/bnlearn/}, with \filepath{corpus/bnlearn/CORPUS\_PROVENANCE.md} recording the
+per-network provenance.
+
+\section{Net3 (97 nodes, 119 edges)}
+\label{sec:appA-net3}
+
+EPANET Example Network~3 \cite{rossman2000epanet2}, the integrated case study of
+Ch.~\ref{ch:integrated-case-study}. The \filepath{Net3.inp} file is the copy bundled with
+WNTR~1.5.0 (sha256 recorded in \filepath{case-studies/net3/RESULTS.md}), not a hand-edited
+one.
+
+\paragraph{Orientation.} Each link is oriented by the sign of its flow at the final
+timestep of the \filepath{.inp} file's own seven-day simulation (604{,}800~s). No link was
+dropped for acyclicity --- the flow-direction orientation is naturally a directed acyclic
+graph. Three links carried exactly zero flow at that timestep and keep the model's own
+declared direction, which is the orientation rule's stated tie-break. Full log:
+\filepath{case-studies/net3/net3\_orientation\_log.txt}.
+
+\paragraph{Structure.} 97 nodes --- 2 reservoirs, 3 tanks, 92 junctions --- and 119 edges
+--- 117 pipes and 2 pumps. The EPANET-id to integer-id to node-type mapping is in
+\filepath{case-studies/net3/net3-node-mapping.txt}.
+
+\paragraph{Inputs.} The reliability input classification (which edges are pumps, dummy
+connectors or real pipes, each one's \filepath{.inp} length and diameter, and the derived
+Baseline probability) is in
+\filepath{case-studies/net3/net3-scenarios/reliability\_input\_classification.csv}. Schedule
+durations follow the restoration-procedure gloss recorded in \filepath{RESULTS.md}~\S3
+(pipe, pump and tank node durations, with each value marked as sourced or assumed).
+Capacities are the pipe and pump ratings; reservoir and tank-connector capacities are
+unbounded and exercise the non-finite-value serialisation path.
+
+A separate, older breadth-first-oriented conversion of the same \filepath{.inp} file
+(\texttt{net3-water}) exists in the corpus and is \emph{not} used in the case study; it is
+kept in \filepath{case-studies/net3/superseded-bfs-conversion/} with a pointer to
+\filepath{RESULTS.md}~\S1, which explains the difference.
+
+\section{The random and adversarial corpus}
+\label{sec:appA-corpus}
+
+The bulk of the probability toolkit's exactness validation
+(Ch.~\ref{ch:probability-toolkit}) runs on a corpus of 129 synthetic graphs, not stored as
+files but reconstructed exactly from their names and recorded seeds:
+
+\begin{itemize}[nosep]
+  \item \textbf{120 \filepath{random_n$X$_p$Y$_s$Z$} graphs}: 10 to 28 nodes, generated
+        by a seeded \texttt{MersenneTwister} through \filepath{graph_gen.jl}'s
+        \filepath{scaling_random}. Node and edge probabilities uniform at 0.9 (never
+        exactly 0 or 1 on any node).
+  \item \textbf{8 \filepath{mutant_rand28_s$N$} graphs}: mutations of a 28-node,
+        $p = 0.12$ base graph (\texttt{MersenneTwister(7)},
+        \filepath{scaling_mutants($\ldots$; seeds=1:8, adds=5, dels=2)}).
+  \item \textbf{\texttt{counterexample-n15}}: the one real persisted file
+        (\S\ref{sec:appA-cex}).
+\end{itemize}
+
+Two adversarial families are used for the complexity study: \textbf{fan-in-$k$}, in which
+factorisation keeps the cost linear, and \textbf{mesh-$w$}, in which the cost grows with
+the treewidth. Both are generated from recorded seeds in
+\filepath{corpus/adversarial/adversarial\_scaling.jl}. Generators, seeds, the reconstruction
+script, and the per-graph results are in \filepath{corpus/random-and-mutated/} and
+\filepath{corpus/adversarial/}; \filepath{corpus/random-and-mutated/README.md} gives the exact
+reconstruction parameters.
+
+\ifdefined\maindoc
+\else
+\printbibliography
+\end{document}
+\fi

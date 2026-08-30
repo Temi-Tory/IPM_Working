@@ -1,4 +1,21 @@
-\documentclass[12pt,a4paper,twoside]{report}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PhD thesis -- University of Strathclyde
+% Layout follows the Strathclyde PhD thesis template (J. Browell) and the
+% "General and Course Regulations for Graduate and Postgraduate Awards and
+% Degrees", section 20.6 (regs 262-270).
+%
+%   - book class, one-sided (reg 269: text on the recto side only)
+%   - margins left 40mm / fore 25mm / head 20mm / tail 40mm (reg 269)
+%   - lines one-and-a-half spaced (reg 269)
+%   - abstract at the front, <= 300 words (reg 262)
+%   - declaration of authenticity immediately after the title page (reg 264)
+%   - previously-published-material statement (reg 265)
+%   - front matter in roman, main text in continuous arabic (reg 270)
+%
+% Bibliography is biblatex + biber (not the template's bibtex).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[a4paper,oneside,11pt]{book}
 
 % Package imports
 \usepackage[utf8]{inputenc}
@@ -6,18 +23,19 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{amsbsy}
+\usepackage{amsfonts}
 \usepackage{amsthm}
+\usepackage{mathrsfs}
 \usepackage[british]{babel}
 \usepackage{csquotes}
 \usepackage[backend=biber,style=ieee,citestyle=numeric-comp,sorting=none]{biblatex}
-\usepackage{hyperref}
-\usepackage{geometry}
 \usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{booktabs}
-\usepackage{multirow} 
+\usepackage{multirow}
 \usepackage{forest}
 \usepackage{listings}
 \usepackage{xcolor}
@@ -41,11 +59,16 @@
 \usepackage{array}
 \usepackage{pdflscape}
 \usepackage{makecell}
+\usepackage[strict]{changepage}
 \usepackage[toc,page]{appendix}
+\usepackage[hidelinks]{hyperref}
+\newcommand{\filepath}[1]{\nolinkurl{#1}}  % breakable typewriter file path
 
-% One central list (\graphicspath replaces, it does not append). Each chapter references its
-% figures as fig0N_name/fig0N_name.pdf; the subfolder names are unique across chapters.
+% One central list. The leading {} keeps the main directory (logo.pdf) searchable;
+% each chapter references its figures as fig0N_name/fig0N_name.pdf, and the subfolder
+% names are unique across chapters.
 \graphicspath{%
+  {}%
   {Chapters/Introduction/figures/}%
   {Chapters/LitReview/figures/}%
   {Chapters/NetworkModel/figures/}%
@@ -61,43 +84,29 @@
   {Chapters/AppendixB/figures/}%
 }
 
-% TikZ for diagrams (ADDED)
+% TikZ for diagrams
 \usepackage{tikz}
 \usetikzlibrary{positioning, shapes, arrows.meta, calc, backgrounds, fit}
 
-% Page geometry
-\geometry{
-    a4paper,
-    left=40mm,
-    right=25mm,
-    top=25mm,
-    bottom=25mm
-}
+% Page geometry -- Strathclyde requirement (reg 269): binding edge 40mm, fore edge
+% 25mm, head 20mm, tail 40mm.
+\usepackage[a4paper,left=4cm,right=2.5cm,top=2cm,bottom=4cm,%
+            includehead,includefoot,headheight=15pt]{geometry}
 
-% Line spacing
-\onehalfspacing
+% Line spacing -- one and a half (reg 269)
+\setstretch{1.5}
 
-% Headers and footers
+% Headers and footers (one-sided: running chapter name at head left, page number at foot)
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[LE]{\leftmark}
-\fancyhead[RO]{\rightmark}
-\fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\setlength{\headheight}{15pt}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\cfoot{\thepage}
+% keep the plain style (chapter openings, front matter) consistent
+\fancypagestyle{plain}{\fancyhf{}\cfoot{\thepage}\renewcommand{\headrulewidth}{0pt}}
 
 % Bibliography resource
 \addbibresource{references.bib}
-
-% Hyperref setup
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    citecolor=blue,
-    urlcolor=blue,
-    bookmarksnumbered=true,
-    pdfstartview=FitH
-}
 
 % Listings setup for code
 \lstset{
@@ -130,7 +139,7 @@
 
 \newcommand{\degree}{Doctor of Philosophy}
 
-\newcommand{\department}{Department of Civil Engineering}
+\newcommand{\department}{Department of Civil and Environmental Engineering}
 
 \newcommand{\university}{University of Strathclyde}
 
@@ -151,130 +160,129 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \def\maindoc{}
 \begin{document}
-\pagenumbering{roman}
+
+\frontmatter
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TITLE PAGE
+% TITLE PAGE (reg 263)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{titlepage}
+    \begin{flushright}
+        \vspace*{-1.5cm}
+        \IfFileExists{logo.pdf}{\includegraphics[width=5cm]{logo}}{}
+    \end{flushright}
+
+    \vspace{2cm}
     \begin{center}
-        
-        \vspace*{1cm}
-        
-        \Huge
-        \textbf{\thesistitle}
-        
-        \vspace{1.5cm}
-        
-        \Large
-        by
-        
-        \vspace{0.5cm}
-        
-        \textbf{\authorname}
-        
+        {\LARGE\bfseries \thesistitle \par}
+
         \vspace{2cm}
-        
-        \large
-        A thesis presented in partial fulfilment of the requirements for the degree of
-        
-        \vspace{0.5cm}
-        
-        \textbf{\degree}
-        
+        {\large \authorname \par}
+
+        \vspace{0.4cm}
+        {\normalsize \department \\ \university, Glasgow \par}
+
+        \vspace{3cm}
+        {\large A thesis submitted in fulfilment of the requirements\\
+                for the degree of \degree \par}
+
         \vspace{1.5cm}
-        
-        \department \\
-        \university
-        
-        \vspace{1cm}
-        
-        \submissiondate
-        
+        {\large \submissiondate \par}
+
         \vfill
-        
-        \normalsize
-        Supervised by: \supervisor \\
-        \ifx\cosupervisor\empty
-        \else
-        Co-supervised by: \cosupervisor
-        \fi
-        
+        {\normalsize Supervised by \supervisor{} and \cosupervisor \par}
     \end{center}
 \end{titlepage}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% DECLARATION OF AUTHENTICITY
+% DECLARATION OF AUTHENTICITY AND AUTHOR'S RIGHTS (reg 264)
+% -- on the page immediately subsequent to the title page.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter*{Declaration of Authenticity and Author's Rights}
 \addcontentsline{toc}{chapter}{Declaration of Authenticity and Author's Rights}
 
-This thesis is the result of the author's original research. It has been composed by the author and has not been previously submitted for examination which has led to the award of a degree.
-
-The copyright of this thesis belongs to the author under the terms of the United Kingdom Copyright Acts as qualified by University of Strathclyde Regulation 3.50. Due acknowledgement must always be made of the use of any material contained in, or derived from, this thesis.
-
-\vspace{2cm}
-
-\noindent
-Signed: \rule{5cm}{0.4pt}
-
-\vspace{0.5cm}
-
-\noindent
-Date: \rule{5cm}{0.4pt}
-
+\vspace*{\fill}
+\begin{quote}
+\centering
+This thesis is the result of the author's original research. It has been composed by
+the author and has not been previously submitted for examination which has led to the
+award of a degree.\\[10pt]
+The copyright of this thesis belongs to the author under the terms of the United
+Kingdom Copyright Acts as qualified by University of Strathclyde Regulation 3.50. Due
+acknowledgement must always be made of the use of any material contained in, or derived
+from, this thesis.
+\end{quote}
+\vspace{1.5cm}
+\noindent Signed:\enspace\rule{6cm}{0.4pt}\hfill Date:\enspace\rule{4cm}{0.4pt}
+\vspace*{\fill}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ABSTRACT
+% PREVIOUSLY PUBLISHED MATERIAL (reg 265)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter*{Previously Published Material}
+\addcontentsline{toc}{chapter}{Previously Published Material}
+
+Parts of this thesis draw on the following work by the author, submitted in accordance
+with Regulation 265:
+
+\begin{itemize}
+  \item T.~Ohiani and E.~Patelli, ``The Information Propagation Method for Efficient
+        Network Reliability Analysis,'' in \emph{2023 7th International Conference on
+        System Reliability and Safety (ICSRS)}, Bologna, Italy: IEEE, 2023,
+        pp.~580--584, doi:~10.1109/ICSRS59833.2023.10381157. The information
+        propagation method introduced there is developed further in
+        Chapters~\ref{ch:diamond-module} and~\ref{ch:probability-toolkit}.
+  \item T.~Ohiani and E.~Patelli, ``[RESS paper title],'' submitted to
+        \emph{Reliability Engineering \& System Safety}, 2026 (under revision). Its
+        material on exact reliability under interval and probability-box inputs is
+        developed in Chapter~\ref{ch:probability-toolkit} and its validation.
+\end{itemize}
+
+\noindent For each of these publications the author conceived and developed the
+methods, implemented all software, designed and carried out all experiments and
+validation, and prepared the manuscripts; the co-author provided supervision, guidance
+on framing, and revision of the text.
+
+\vspace{1.5cm}
+\noindent Signed:\enspace\rule{6cm}{0.4pt}\hfill Date:\enspace\rule{4cm}{0.4pt}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ABSTRACT (reg 262: not exceeding 300 words)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-Many civil infrastructure systems are goal-oriented process systems: a resource enters at
-one end, passes through a sequence of connected stages, and is delivered at the other. Where the direction of flow is fixed and there is no feedback in normal operation, such a
-system can be modelled as a directed acyclic graph. Three of the questions an engineer asks
-of it, with what probability supply reaches a point, how much the system can deliver, and
-when a dependent sequence completes, each have a method of their own. The methods were developed
-separately, each is applied to its own model of the system, and each consumes a single
-value for every input, although the failure probabilities, capacities and durations of real
-systems are rarely known that well.
+Many civil infrastructure systems are process systems: a resource enters at one end,
+passes through connected stages, and leaves at the other. Where the direction of flow is
+fixed, it is a directed acyclic graph. An engineer asks three questions of it --- with
+what probability supply reaches a point, how much it can deliver, and when a dependent
+sequence completes --- and each has its own method, its own model, and an assumption of
+exact inputs that real failure probabilities, capacities and durations rarely meet.
 
-This thesis develops the Information Propagation Framework (IPF), in which one directed
-acyclic graph model of a system supports reliability, capacity and schedule analysis, the
-uncertain inputs are propagated in the form they are stated in wherever the mathematics of
-the analysis permits it, and the analyses are provided as a Julia package together with a
-no-code interface that runs entirely on the user's machine. The framework rests on a graph
-object that carries the topology, a layered processing order and ancestry closures, and on
-a decomposition module that identifies every reconvergent subgraph of the network once.
+This thesis develops the Information Propagation Framework: one directed acyclic graph
+model supports reliability, capacity and schedule analysis; uncertain inputs are
+carried in the form they are stated in wherever the mathematics permits; and the analyses
+are delivered as a registered Julia package with a no-code interface that runs on the
+user's own machine. The three toolkits share one decomposition that identifies every
+reconvergent subgraph once.
 
-Three toolkits are built on that object. The Probability Propagation Toolkit computes the
-exact probability that each node operates and is reached from a source, by conditioning on
-the reconvergent structure; applied to interval inputs it returns the exact range, and to
-probability-box inputs it returns sound bounds on the distribution of every belief. Its
-exactness is validated against a decision-diagram oracle on a corpus of 129 graphs and on
-named and adversarial families, and it reproduces the published exact values of two
-benchmark networks. The Capacity Flow Toolkit answers six questions about deliverable
-throughput, from the binding cut to the most damaging failures and the thresholds at which
-service degrades, exact for point-valued capacities and validated against an external flow
-library and brute-force enumeration on twelve networks and on generated instances of a
-hundred thousand edges. The Critical Path Toolkit generalises the critical path method to a family of operator
-pairs and computes exact interval floats by a domination split that reduces the
-enumeration to the durations that can bypass each node. It is validated against a path
-oracle and exhaustive enumeration, and applied to a published project-scheduling
-benchmark. The
-framework is registered in the Julia General registry, and its interface is applied end to
-end to \CaseStudyNetwork, a real water distribution network, in the closing case study.
+The probability toolkit computes exact reachability reliability, returning the exact range
+for interval inputs and sound distributional bounds for probability boxes, validated
+against a decision-diagram oracle and two published benchmarks. The flow toolkit answers
+six questions about deliverable throughput, exact for point-valued capacities and
+validated against an external solver and exhaustive enumeration. The critical-path toolkit
+generalises the critical path method to a family of operator pairs and computes exact
+interval floats, validated against a path oracle and a scheduling benchmark. The framework
+is then applied end to end to \CaseStudyNetwork, a real water distribution network.
 
-The thesis shows that a single network model can serve three analyses without loss to any
-of them, that exact reliability with interval and probability-box inputs is practical on
-networks of moderate reconvergence, that the cost of exactness is set by the same structural
-width that governs the established exact methods, and that these analyses can be delivered
-to an engineer who does not program without the system model leaving the engineer's machine.
-
-
+The thesis shows that one model can serve the three analyses without loss, that exact
+reliability under interval and probability-box inputs is practical at moderate
+reconvergence, that exactness costs the same structural width as the established exact
+methods, and that the analyses reach a non-programming engineer without the system model
+leaving that engineer's machine.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ACKNOWLEDGEMENTS
@@ -282,9 +290,6 @@ to an engineer who does not program without the system model leaving the enginee
 
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
-% Paste into main.tex under \chapter*{Acknowledgements} and its \addcontentsline line,
-% in the same place the existing \chapter*{Acknowledgements} heading already sits.
-
 
 This work was supported by the Nuclear Decommissioning Authority (NDA) in conjunction
 with the National Nuclear Laboratory (NNL) through the NDA Bursary Scheme (project number
@@ -317,25 +322,26 @@ wonderfully supportive of me pursuing this degree; my sister, for being the prou
 sister I could have asked for on this journey; and the rest of my family, for your
 support throughout.
 
-Finally, to my fiancé Kameron: I would never have considered moving to Scotland, let alone
+Finally, to my fianc\'e Kameron: I would never have considered moving to Scotland, let alone
 undertaking this PhD, were it not for you. Thank you for being my partner in everything,
 through the many sleepless and stressful nights, for the celebrations and the gifts to
 cheer me up along the way, and for being willing to put life plans on hold so that I
 could have the time I needed to finish this work.
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TABLE OF CONTENTS
+% CONTENTS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \tableofcontents
+\addcontentsline{toc}{chapter}{List of Figures}
 \listoffigures
+\addcontentsline{toc}{chapter}{List of Tables}
 \listoftables
+\addcontentsline{toc}{chapter}{List of Algorithms}
 \listofalgorithms
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% NOMENCLATURE (Optional)
+% NOMENCLATURE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter*{Nomenclature}
@@ -378,9 +384,8 @@ could have the time I needed to finish this work.
     MVA     & megavolt-ampere \\
 \end{tabular}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CHAPTERS
+% MAIN TEXT (reg 270: continuous arabic pagination)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Each chapter body lives in Chapters/<dir>/<file>.tex and begins at \section; the
 % \chapter line and its \label live here. The bodies carry an \ifdefined\maindoc guard
@@ -388,8 +393,8 @@ could have the time I needed to finish this work.
 % Fast single-chapter builds: uncomment \includeonly (numbering and cross-refs are kept).
 % \includeonly{Chapters/DiamondModule/Diamond_Decomposition_Chapter}
 
-\clearpage
-\pagenumbering{arabic}
+\mainmatter
+
 \chapter{Introduction}
 \label{ch:main-intro}
 \include{Chapters/Introduction/Introduction_Chapter}
@@ -437,7 +442,6 @@ could have the time I needed to finish this work.
 \label{ch:conclusions}
 \include{Chapters/Conclusions/Conclusions_Chapter}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % APPENDICES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -457,11 +461,9 @@ could have the time I needed to finish this work.
 
 \end{appendices}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % BIBLIOGRAPHY
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \printbibliography[heading=bibintoc]
-
 
 \end{document}
