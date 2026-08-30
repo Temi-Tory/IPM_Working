@@ -358,6 +358,36 @@ export function criticalStructureLabel(
   }
 }
 
+export interface CriticalFilterOption {
+  value: Exclude<CriticalKind, 'none'>;
+  label: string;
+  /** same number the stat tiles above the table already show for this tag
+   *  (necessaryCount/possibleCount or criticalCount/nearCriticalCount) — read
+   *  from there, not recomputed, so the two can never drift apart. */
+  count: number;
+}
+
+/**
+ * Activity-table filter options, dynamic per value type and carrying live
+ * counts: a Float64 pass's Critical column can only ever say Critical /
+ * Near-critical (never Necessarily/Possibly); an Interval pass's can only
+ * ever say Necessarily / Possibly (never Critical/Near-critical). The filter
+ * offers exactly the tags the column can actually show, each labelled with
+ * the same count already on the stat tiles above.
+ */
+export function criticalFilterOptions(summary: PassSummary): CriticalFilterOption[] {
+  if (summary.valueType === 'Interval') {
+    return [
+      { value: 'necessary', label: 'Necessarily critical', count: summary.necessaryCount ?? 0 },
+      { value: 'possible', label: 'Possibly critical', count: summary.possibleCount ?? 0 },
+    ];
+  }
+  return [
+    { value: 'critical', label: 'Critical', count: summary.criticalCount },
+    { value: 'near-critical', label: 'Near-critical', count: summary.nearCriticalCount },
+  ];
+}
+
 /**
  * The chapter's noun for the forward value F_v — "the best value a chain of
  * dependencies can deliver into each node".
@@ -411,11 +441,40 @@ export function scenarioMetrics(
       value: timeResult.project_value,
       direction: 'lower-better',
     });
-    out.push({
-      label: 'Critical activities',
-      value: criticalNodeIds(timeResult).length,
-      direction: 'neutral',
-    });
+    // Two separate metrics, not one collapsed count: an Interval pass's
+    // necessarily-critical and possibly-critical sets are genuinely
+    // different claims (certain vs. superset) and `criticalNodeIds` alone
+    // only ever returns the necessarily-critical set — showing just its
+    // length here silently dropped the possibly-critical count entirely
+    // (e.g. "0" for a pass with 0 necessarily but 61 possibly critical).
+    // Same counts the stat tiles above the activity table already show,
+    // read from the same `passSummary`, never recomputed separately.
+    const s = passSummary(timeResult);
+    if (s.valueType === 'Interval') {
+      out.push({
+        label: 'Necessarily critical',
+        value: s.necessaryCount ?? 0,
+        direction: 'neutral',
+      });
+      out.push({
+        label: 'Possibly critical',
+        value: s.possibleCount ?? 0,
+        direction: 'neutral',
+      });
+    } else {
+      out.push({
+        label: 'Critical activities',
+        value: s.criticalCount,
+        direction: 'neutral',
+      });
+      if (s.scheduleAvailable) {
+        out.push({
+          label: 'Near-critical activities',
+          value: s.nearCriticalCount,
+          direction: 'neutral',
+        });
+      }
+    }
   }
 
   if (costResult) {

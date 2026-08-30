@@ -13,7 +13,7 @@ export function edgeKey(edge: Edge): string {
 }
 
 /** A number for display, honest about infinity (unbounded flow). */
-export function num(value: number, maxFractionDigits = 2): string {
+export function num(value: number | string, maxFractionDigits = 2): string {
   return formatNumber(value, { maxFractionDigits });
 }
 

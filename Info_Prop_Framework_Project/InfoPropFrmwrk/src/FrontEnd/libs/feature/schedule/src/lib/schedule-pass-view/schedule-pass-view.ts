@@ -3,7 +3,9 @@ import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
   computed,
+  effect,
   input,
+  signal,
 } from '@angular/core';
 import {
   NetworkStructure,
@@ -19,8 +21,10 @@ import {
 } from '@inf-prop/shared/ui';
 import {
   ActivityRow,
+  CriticalFilterOption,
   accumulationRows,
   activityRows,
+  criticalFilterOptions,
   criticalNodeIds,
   criticalStructureLabel,
   forwardLabel,
@@ -178,6 +182,29 @@ import {
         }
       }
 
+      @if (s.kind !== 'accumulation') {
+        <div class="filter" role="group" aria-label="Filter activities by critical status">
+          @for (opt of filterOptions(); track opt.value) {
+            <label class="filter-check">
+              <input
+                type="checkbox"
+                [checked]="filterSelection().has(opt.value)"
+                (change)="onFilterToggle(opt.value, $event)"
+              />
+              {{ opt.label }} ({{ opt.count }})
+            </label>
+          }
+          @if (filterSelection().size) {
+            <button type="button" class="clear-filter" (click)="clearFilter()">
+              Clear
+            </button>
+          }
+          <span class="shown-count">
+            Showing {{ filteredRows().length }} of {{ rows().length }} activities
+          </span>
+        </div>
+      }
+
       <div class="table-wrap">
         @if (s.kind === 'accumulation') {
           <table>
@@ -219,6 +246,10 @@ import {
             Where a budget is set the backward reading is an allowance — headroom
             against the budget, divided by multiplicity.
           </p>
+        } @else if (filterSelection().size && !filteredRows().length) {
+          <p class="empty-filter">
+            No activities are {{ filterLabel() }} under this pass.
+          </p>
         } @else {
           <table>
             <thead>
@@ -237,7 +268,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              @for (row of rows(); track row.nodeId) {
+              @for (row of filteredRows(); track row.nodeId) {
                 <tr [class]="rowClass(row)">
                   <td class="id">{{ row.nodeId }}</td>
                   <td>{{ roleText(row.role) }}</td>
@@ -443,6 +474,46 @@ import {
         font-size: var(--fontSizeBase200, 12px);
         color: var(--colorNeutralForeground3);
       }
+      .filter {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacingHorizontalM, 12px);
+        margin: 0 0 var(--spacingVerticalM, 12px);
+        font-size: var(--fontSizeBase300, 14px);
+        color: var(--colorNeutralForeground1);
+      }
+      .filter-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .filter-check input {
+        width: 16px;
+        height: 16px;
+        padding: 0;
+      }
+      .clear-filter {
+        font: inherit;
+        font-size: var(--fontSizeBase200, 12px);
+        color: var(--colorBrandForeground1);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .shown-count {
+        margin-left: auto;
+        font-size: var(--fontSizeBase200, 12px);
+        color: var(--colorNeutralForeground3);
+      }
+      .empty-filter {
+        margin: 0 0 var(--spacingVerticalM, 12px);
+        font-size: var(--fontSizeBase300, 14px);
+        color: var(--colorNeutralForeground3);
+      }
     `,
   ],
 })
@@ -460,6 +531,47 @@ export class SchedulePassView {
   protected readonly rows = computed<ActivityRow[]>(() =>
     activityRows(this.pass(), this.roles()),
   );
+  /** The activity-table filter: any combination of tags, shown as its own
+   *  checkbox — ticking both Critical and Near-critical (or both Necessarily
+   *  and Possibly) shows their union. Empty selection = no filter, show all.
+   *  The option list is dynamic — a Float64 pass's Critical column can only
+   *  ever say Critical/Near-critical, an Interval pass's only ever Necessarily/
+   *  Possibly — and each option's count is the same number already on the
+   *  stat tiles above (read from `summary()`, never recomputed separately, so
+   *  the tiles and the filter can never show different counts for the same
+   *  tag). */
+  protected readonly filterSelection = signal<Set<CriticalFilterOption['value']>>(
+    new Set(),
+  );
+  protected readonly filterOptions = computed<CriticalFilterOption[]>(() =>
+    criticalFilterOptions(this.summary()),
+  );
+  protected readonly filterLabel = computed<string>(() => {
+    const selected = this.filterOptions().filter((o) =>
+      this.filterSelection().has(o.value),
+    );
+    return selected.length
+      ? selected.map((o) => o.label.toLowerCase()).join(' or ')
+      : 'filtered';
+  });
+  protected readonly filteredRows = computed<ActivityRow[]>(() => {
+    const rows = this.rows();
+    const sel = this.filterSelection();
+    return sel.size === 0 ? rows : rows.filter((r) => sel.has(r.critical as CriticalFilterOption['value']));
+  });
+
+  constructor() {
+    // A pass switch (e.g. Float64 <-> Interval, or one scenario to another)
+    // can make part of the current selection meaningless (a ticked tag no
+    // longer occurs in this pass's own option list) -- drop just that tag
+    // rather than leave a checkbox ticked for a state that can't occur here.
+    effect(() => {
+      const valid = new Set(this.filterOptions().map((o) => o.value));
+      const current = this.filterSelection();
+      const kept = new Set([...current].filter((v) => valid.has(v)));
+      if (kept.size !== current.size) this.filterSelection.set(kept);
+    });
+  }
   protected readonly accRows = computed(() => {
     const p = this.pass();
     return isAccumulation(p) ? accumulationRows(p, this.roles()) : [];
@@ -503,6 +615,19 @@ export class SchedulePassView {
       return 'critical';
     if (row.critical === 'near-critical') return 'near';
     return '';
+  }
+  protected onFilterToggle(value: CriticalFilterOption['value'], event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const next = new Set(this.filterSelection());
+    if (checked) {
+      next.add(value);
+    } else {
+      next.delete(value);
+    }
+    this.filterSelection.set(next);
+  }
+  protected clearFilter(): void {
+    this.filterSelection.set(new Set());
   }
   protected numOrDash(n: number | null): string {
     return n === null ? '—' : this.fmt(n);

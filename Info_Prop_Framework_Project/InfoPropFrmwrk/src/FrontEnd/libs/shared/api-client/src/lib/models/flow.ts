@@ -47,8 +47,12 @@ export interface SensitivityResult {
     baseline_flow: number;
     perturbed_flow: number;
   }>;
-  marginal_capacity: Array<{ edge: Edge; value: number }>;
-  birnbaum: Array<{ edge: Edge; value: number }>;
+  /** value can be the string "Inf" for an edge with no true binding
+   *  constraint (e.g. directly downstream of an unbounded capacity) — JSON
+   *  has no literal for a non-finite float; format with `formatNumber`,
+   *  which accepts this token, not a raw arithmetic read. */
+  marginal_capacity: Array<{ edge: Edge; value: number | string }>;
+  birnbaum: Array<{ edge: Edge; value: number | string }>;
 }
 
 export interface FailureImpactResult {

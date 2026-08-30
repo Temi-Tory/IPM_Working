@@ -1,7 +1,29 @@
 import { IntervalData, PboxData, ValueForm } from '@inf-prop/shared/api-client';
 
-/** Format a plain number for display. Keeps small probabilities readable. */
-export function formatNumber(n: number, opts: { maxFractionDigits?: number } = {}): string {
+/**
+ * Format a plain number for display. Keeps small probabilities readable.
+ *
+ * Accepts `number | string` because a server result can carry the same
+ * "Inf"/"-Inf"/"NaN" string tokens the capacity/analysis JSON contract uses
+ * on the way in (InputProcessingModule.jl) and, since `sanitize_for_json`,
+ * on the way out too — JSON has no literal for a non-finite float. Without
+ * this, `Number.isFinite("Inf")` is `false` (no coercion) but `"Inf" > 0`
+ * coerces via `Number("Inf")`, which is `NaN` (JS only recognises the
+ * spelling "Infinity") — both branches fail and it silently prints "NaN"
+ * for what is actually an unbounded, correctly-computed result. Confirmed
+ * against a live server value (Birnbaum importance on a Net3 edge directly
+ * downstream of an unbounded reservoir capacity), 2026-08-30.
+ */
+export function formatNumber(
+  n: number | string,
+  opts: { maxFractionDigits?: number } = {},
+): string {
+  if (typeof n === 'string') {
+    if (n === 'Inf') return '∞';
+    if (n === '-Inf') return '-∞';
+    if (n === 'NaN') return 'NaN';
+    n = Number(n);
+  }
   if (!Number.isFinite(n)) return n > 0 ? '∞' : n < 0 ? '-∞' : 'NaN';
   const max = opts.maxFractionDigits ?? 4;
   const abs = Math.abs(n);

@@ -537,11 +537,11 @@ export class FlowBottlenecksPage {
     };
   });
 
-  protected fmt(value: number): string {
+  protected fmt(value: number | string): string {
     return num(value);
   }
 
-  protected fmt4(value: number): string {
+  protected fmt4(value: number | string): string {
     return num(value, 4);
   }
 
