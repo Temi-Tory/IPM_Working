@@ -804,9 +804,9 @@ module InputProcessingModule
                 mean_param = params[1]
                 std_param = length(params) >= 2 ? params[2] : 1.0
                 
-                if isa(mean_param, Dict) && mean_param["type"] == "interval"
+                if isa(mean_param, AbstractDict) && mean_param["type"] == "interval"
                     mean_interval = PBA.interval(mean_param["lower"], mean_param["upper"])
-                    if isa(std_param, Dict) && std_param["type"] == "interval"
+                    if isa(std_param, AbstractDict) && std_param["type"] == "interval"
                         std_interval = PBA.interval(std_param["lower"], std_param["upper"])
                         return PBA.normal(mean_interval, std_interval)
                     else
@@ -820,9 +820,9 @@ module InputProcessingModule
                 a_param = params[1]
                 b_param = length(params) >= 2 ? params[2] : 1.0
                 
-                if isa(a_param, Dict) && a_param["type"] == "interval"
+                if isa(a_param, AbstractDict) && a_param["type"] == "interval"
                     a_interval = PBA.interval(a_param["lower"], a_param["upper"])
-                    if isa(b_param, Dict) && b_param["type"] == "interval"
+                    if isa(b_param, AbstractDict) && b_param["type"] == "interval"
                         b_interval = PBA.interval(b_param["lower"], b_param["upper"])
                         return PBA.uniform(a_interval, b_interval)
                     else

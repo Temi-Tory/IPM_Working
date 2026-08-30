@@ -3,7 +3,7 @@ module InfoPropServer
 using HTTP
 using JSON
 
-include(joinpath(@__DIR__, "..", "Algorithms", "InfoPropFramework.jl"))
+include(joinpath(@__DIR__, "Core", "Framework.jl"))
 using .InfoPropFramework
 
 include(joinpath(@__DIR__, "Core", "Common.jl"))

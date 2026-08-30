@@ -97,7 +97,7 @@ interface FlowTab {
     `
       :host {
         display: block;
-        max-width: 1180px;
+        width: 100%;
       }
       .run-controls {
         display: flex;

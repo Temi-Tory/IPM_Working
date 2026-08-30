@@ -181,7 +181,7 @@ interface ToolkitPointer {
     `
       :host {
         display: block;
-        max-width: 1180px;
+        width: 100%;
       }
       .pointers {
         display: flex;
