@@ -74,13 +74,27 @@ module InputProcessingModule
     end
 
     function is_valid_probability(value::pbox)
-        min_value = PBA.minimum(value)
-        max_value = PBA.maximum(value)
-        
-        # Handle the case where min/max might return intervals
-        min_bound = isa(min_value, PBA.Interval) ? min_value.lo : min_value
-        max_bound = isa(max_value, PBA.Interval) ? max_value.hi : max_value
-        
+        # PBA.minimum(value)/PBA.maximum(value) do NOT reliably return a scalar or an
+        # IntervalArithmetic.Interval to bound against -- for an IMPRECISE pbox (built from
+        # interval-valued parameters, e.g. a parametric_interval construction), both return
+        # ANOTHER pbox object. The old isa(..., PBA.Interval) check then fails silently (it's
+        # a pbox, not a PBA.Interval), min_bound/max_bound fall through as the raw pbox, and
+        # `pbox >= 0.0` returns an IntervalArithmetic.Interval{Float64} (an interval-valued
+        # truth value), not a Bool -- which throws downstream wherever the caller does `!` or
+        # `if` on this function's result (confirmed: MethodError: no method matching
+        # !(::IntervalArithmetic.Interval{Float64}), from Validation.jl's edge/node prior
+        # checks, on any non-degenerate pbox link probability). A precise pbox (built from a
+        # plain scalar or interval, not a parametric_interval) never hit this, which is why it
+        # went unnoticed until a genuinely imprecise pbox was propagated.
+        #
+        # Fixed: read the true support bounds directly off the pbox's own discretized bounding
+        # CDFs (`.u` upper bound, `.d` lower bound, both plain Float64 arrays regardless of
+        # whether the pbox is precise or imprecise) -- minimum(value.u) is the leftmost point
+        # the support can reach, maximum(value.d) the rightmost, matching the bounds the pbox's
+        # own `range=[...]` summary reports. No PBA.minimum/maximum call needed at all.
+        min_bound = minimum(value.u)
+        max_bound = maximum(value.d)
+
         return min_bound >= 0.0 && max_bound <= 1.0
     end
 
