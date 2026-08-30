@@ -100,7 +100,7 @@ keeps more of the network's real loop structure, and the deeper nesting follows 
 One structure file and four scenario folders were uploaded. Every value below is either
 taken from a source, computed from the input file, or assumed and named as such.
 
-\subsection{Reliability}
+\subsection{Reliability inputs}
 
 Every node prior is exactly one. A junction is a demand point, and the reservoirs and tanks have no failure mode in this
 model, so reliability lives on the edges.
@@ -122,7 +122,7 @@ $5.5 \times 10^{4}$, beyond the point at which a comparably costed drone design 
 Chapter~\ref{ch:probability-toolkit} did not complete within its budget, and the
 tractability boundary of the probability-box form is characterised in that chapter.
 
-\subsection{Capacity}
+\subsection{Capacity inputs}
 
 Capacities are in litres per second throughout. Each pipe's capacity is the flow at a
 velocity of 1.5 metres per second through its stated diameter, the conservative end of the
@@ -136,7 +136,7 @@ dominant transmission main, an 8.6-mile 30-inch pipe that is by a wide margin th
 large-diameter link, to half its capacity, and takes the river pump, the larger of the two,
 out of service.
 
-\subsection{Schedule}
+\subsection{Schedule inputs}
 
 The schedule interpretation is a restoration programme: the recommissioning of every pipe,
 pump and tank after a shutdown, in the order the network's dependencies impose. Durations

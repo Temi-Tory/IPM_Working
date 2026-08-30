@@ -396,7 +396,7 @@ To avoid the one-path-at-a-time limitation of the Edmonds-Karp method, the Dinic
 
 The Dinic solver is the best fit for most hierarchical DAG networks and is the framework's default when no user-specified option is selected. However, on very dense graphs with $O(V^2)$ edges and high structural redundancy, the per-phase BFS reconstruction becomes costly, and the blocking flow DFS must still handle a larger fraction of edges despite the pointer optimisation. In these cases, the Push-Relabel solver is recommended, as it operates locally without global path searches.
 
-\subsection{Push-Relabel Solver}
+\subsection{Push-relabel solver}
 Unlike the two path-based solvers, the Push-Relabel (PR) variant does not search for augmenting paths at all. This solver works by resolving excess flow locally from an initialised pre-flow.
 Here, instead of a residual graph per phase, a merged neighbourhood list is built once over the augmented network and shared across all push and relabel operations. The algorithm proceeds as follows:
 
@@ -486,7 +486,7 @@ The structural module identifies components whose importance follows from their 
 Understanding the route-level structure of $G$ is a prerequisite for any path-level fragility or flow-distribution analysis. The module exposes a base path enumerator function that performs a depth-first search on the topologically sorted iteration set of the graph object of Chapter~\ref{ch:system-model}. Since $G$ is a DAG, exact enumeration is always finite; however, highly redundant networks can admit exponentially many routes, so a \texttt{path\_limit} parameter bounds the number of enumerated paths and returns a sample and not the complete set $\mathcal{P}$.
 
 
-\paragraph{Flow Decomposition.}
+\paragraph{Flow decomposition.}
 Two networks can share identical topology and the same $F^\star$ while concentrating flow through entirely different routes. During design decisions where multiple configurations are evaluated and per-route visibility is needed, this decomposition exposes how $f^\star$ is distributed across $\mathcal{P}$.
 
 Given an optimal flow $f^\star$ and a set of flow-agnostic paths $\mathcal{P}$, for each path $P = (v_0, v_1, \ldots, v_k) \in 
@@ -496,7 +496,7 @@ Given an optimal flow $f^\star$ and a set of flow-agnostic paths $\mathcal{P}$, 
 \]
  Thus, the edge meeting this minimum must be the path's local bottleneck. Paths are sorted in descending order of $\phi(P)$ as a ranked decomposition of $f^\star$ into per-route contributions. Where the min-cut module's ranking informs global capacity upgrade decisions, this ranking informs targeted interventions at the route level. In a network supplying two distinct demand nodes via separate routes, the min-cut module points to the tightest cut edge across the whole network, whereas the decomposition identifies independently which component is constraining delivery to each demand node.
 
-\paragraph{Structural Single Point of Failure Nodes.} 
+\paragraph{Structural single points of failure.}
 
 \begin{definition}[Structural Single Point of Failure] 
 A node $v \in V \setminus (S \cup T)$ is a SPOF node if $F^\star(G \setminus \{v\}) = 0$, where removing $v$ also removes all incident edges. A SPOF node is one through which every source-to-sink path must pass; its removal alone disconnects the network regardless of any capacity assignment. 
@@ -527,7 +527,7 @@ f^\star_{uv} = c_{uv}.
 \]
 The latter are referred to as \emph{saturated edges} in this work. By the max-flow min-cut theorem, every minimum cut set is made up only of saturated edges; therefore, any augmenting path from $S$ to $T$ must cross at least one saturated edge. Since the binding constraint lies elsewhere, \emph{unsaturated edges} carry slack and are transparent to perturbation; increasing or decreasing their capacity by a small enough amount has little to no effect on $F^\star$. The Flow Sensitivity module focuses only on saturated edges, since they collectively form the capacity-critical boundary of the network. This module exposes the following three functions.
 
-\paragraph{Critical Edge Ranking.}
+\paragraph{Critical edge ranking.}
 A direct measure of an edge's failure impact is how much the max flow drops when that edge is disconnected from the network, referred to as edge criticality in this module. The function re-runs the flow solver on a modified network for each candidate. For each saturated edge $(u,v)$, the critical impact is:
 \[
 \Delta^\star_{uv} = F^\star(G,\, c) - 
@@ -536,7 +536,7 @@ F^\star\!\left(G,\, c^{(uv)}_0\right),
 where $c^{(uv)}_0$ denotes the capacity function with $c_{uv}$ set to zero and all other capacities unchanged. The function returns the edges in descending order of $\Delta^\star_{uv}$. 
 
 
-\paragraph{Marginal Capacity Values.}
+\paragraph{Marginal capacity values.}
  Similar to the critical edge ranker, the function is scoped to saturated edges. For each saturated edge $(u,v)$, it quantifies the incremental gain in $F^\star$ per unit of additional capacity,
 \[
 \mu_{uv} = \frac{F^\star(G,\, c^{(uv)}_\delta) - 
@@ -546,7 +546,7 @@ where $c^{(uv)}_\delta$ increases $c_{uv}$ by $\delta$ with all other capacities
 
 In highly redundant networks, bypass routes often exist that can absorb rerouted flow and upgrade priorities are not always clear. In these systems, an edge can rank high for failure impact but have a lower marginal value. The critical edge function identifies which edges are most damaging to lose while the marginal capacity function complements this by identifying which ones are most worth upgrading.
 
-\paragraph{Marginal Range.}
+\paragraph{Marginal range.}
 Both $\Delta^\star$ and $\mu$ are snapshot evaluations relative to the current capacity assignment $c$. Depending on the network structure, an edge with a low $\mu$ under the current inputs may become highly influential under different capacity values. This Marginal Range function evaluates the total range of influence a single edge $(u,v)$ can exert on $F^\star$:
 \[
 \mathcal{B}_{uv} = F^\star\!\left(G,\, c^{(uv)}_\infty\right) 
@@ -560,7 +560,7 @@ $I_B(i) = \partial h(\mathbf{p})/\partial p_i$ (see~\cite{birnbaum1969}). Howeve
 \label{sec:flow-failure}
 The failure impact module models outright component failures and degraded operating states. 
 
-\paragraph{Single and Combined Edge Failures.}
+\paragraph{Single and combined edge failures.}
 For a single failed edge $(u,v)$, the throughput impact is:
 \[
 \Delta_{uv} = F^\star(G,\, c) - F^\star\!\left(G,\, 
@@ -578,7 +578,7 @@ F^\star\!\left(G,\, c^{(\mathcal{K})}_0\right),
 where $c^{(\mathcal{K})}_0$ sets $c_{uv} = 0$ for all $(u,v) \in \mathcal{K}$. 
 All $\binom{|E_{\text{some}}|}{k}$ combinations require one re-solve each. In practice, because $\binom{|E_{\text{some}}|}{k}$ grows rapidly with $k$, this function is most tractable for $k = 2$ or $k = 3$ depending on the size and density of the network. The function returns a complete ranking of $k$-edge failure scenarios by throughput impact.
 
-\paragraph{Capacity Degradation Scenarios.}
+\paragraph{Capacity degradation scenarios.}
 Infrastructure components do not always fail completely. Partial blockage or degraded components are more likely to present as a 
 reduction in $c_{uv}$ without complete loss. Additionally, a domain expert working across multiple network states may want to compare the effect of varying input capacities and operating conditions. This function is intended to be used to efficiently compute the full $F^\star$ picture across all scenarios without needing to re-run the input processing or baseline solve steps for each.
 The degradation function accepts either an explicit override dictionary specifying new capacities for individual edges, or a uniform scale factor 
@@ -598,7 +598,7 @@ The previous modules treat edge capacities as fixed and analyse the network's re
 
 This module uses a structural property of $F^\star$: it is piecewise linear in any single edge capacity $c_e$ with all others fixed. Each linear segment maps to a fixed min-cut partition $S^\star$, over which the threshold satisfying $F^\star(c_e) = D_t$ can be recovered analytically. Therefore, breakpoints must occur exactly where the min-cut partition shifts, i.e.\ where a change in $c_e$ causes a different set of edges to become the binding bottleneck.
 
-\paragraph{Degradation Threshold.}
+\paragraph{Degradation threshold.}
 For a target edge $(u,v)$ and a required flow level $D_t$, the degradation threshold $c^\dagger_{uv}$ is the minimum capacity the edge must retain for $F^\star$ to remain at least $D_t$:
 \[
 c^\dagger_{uv} = \inf\bigl\{c \in [0, c_{uv}] : 
@@ -610,7 +610,7 @@ The threshold is located by a partition-change recursion. Starting from the know
 
 Two degenerate cases are handled explicitly. If $F^\star(c_e = 0) \geq D_t$, the edge can degrade to zero without breaching the target. If $F^\star(c_e = c_{uv}) < D_t$, the target is unachievable even at the current capacity, meaning the bottleneck lies entirely elsewhere and this edge cannot help.
 
-\paragraph{Upgrade Threshold.}
+\paragraph{Upgrade threshold.}
 If $F^\star < D_t$ under the current capacity assignment, the upgrade threshold is the minimum capacity $(u,v)$ must have for $F^\star$ to first reach $D_t$. Since the required capacity may exceed $c_{uv}$, the upper search bound is not known in advance. The algorithm uses a doubling search to bracket the threshold interval, repeatedly doubling the trial capacity until $F^\star \geq D_t$, then applies the same partition-change recursion to locate it exactly.
 
 An edge case arises when the edge is not on any minimum cut: expanding its capacity cannot raise $F^\star$ regardless of how large $c_{uv}$ becomes. The doubling search detects this when $F^\star$ stops increasing before reaching $D_t$ and returns \texttt{upgrade\_ineffective} $=$ \texttt{true}, indicating that reaching $D_t$ requires addressing a different bottleneck. 
