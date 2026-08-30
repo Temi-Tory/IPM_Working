@@ -1,4 +1,8 @@
-project_root = dirname(dirname(dirname(dirname(@__FILE__))))
+# Was 4 dirnames, landing on __outside_of_scope/ instead of InfoPropFrmwrk/ (this script
+# lives 5 directories below InfoPropFrmwrk/, not 4: __outside_of_scope/examples nets/capacity/
+# flagship/check_flagship_benchmark.jl). Fixed 2026-08-30 -- confirmed by the include() below
+# now resolving; previously threw "No such file" on InputProcessingModule.jl.
+project_root = dirname(dirname(dirname(dirname(dirname(@__FILE__)))))
 
 include(joinpath(project_root, "src", "Algorithms", "Shared", "InputProcessingModule.jl"))
 using .InputProcessingModule
@@ -7,7 +11,10 @@ using JSON
 include(joinpath(project_root, "src", "Algorithms", "FlowCapacity", "CapacityAnalysisKit.jl"))
 using .CapacityAnalysisKit
 
-network_dir = joinpath(project_root, "example-networks", "capacity")
+# Also stale: "example-networks/capacity" doesn't exist under InfoPropFrmwrk/ -- the actual
+# files (network_flagship.edges, flagship/edge_capacities_flagship.json, etc.) live under
+# __outside_of_scope/examples nets/capacity/. Fixed 2026-08-30, same pass as project_root above.
+network_dir = joinpath(project_root, "__outside_of_scope", "examples nets", "capacity")
 
 config_mode = uppercase(get(ENV, "FLAGSHIP_CONFIG", "BASE"))
 

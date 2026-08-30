@@ -3,8 +3,20 @@
   "links": {
     "(1,2)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(2,3)": {
       "type": "pbox",
@@ -93,8 +105,20 @@
     },
     "(5,13)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(6,5)": {
       "type": "pbox",
@@ -115,8 +139,20 @@
     },
     "(7,8)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(8,9)": {
       "type": "pbox",
@@ -188,8 +224,20 @@
     },
     "(11,19)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(12,11)": {
       "type": "pbox",
@@ -227,8 +275,20 @@
     },
     "(14,21)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(15,13)": {
       "type": "pbox",
@@ -300,8 +360,20 @@
     },
     "(18,16)": {
       "type": "pbox",
-      "construction_type": "scalar",
-      "value": 1.0
+      "construction_type": "parametric_interval",
+      "shape": "uniform",
+      "params": [
+        {
+          "type": "interval",
+          "lower": 0.88,
+          "upper": 0.92
+        },
+        {
+          "type": "interval",
+          "lower": 0.95,
+          "upper": 0.98
+        }
+      ]
     },
     "(19,20)": {
       "type": "pbox",

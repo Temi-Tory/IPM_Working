@@ -1,4 +1,4 @@
-﻿=== NETWORK SUMMARY ===
+=== NETWORK SUMMARY ===
 config_mode=A
 nodes=43
 edges=107
@@ -25,9 +25,9 @@ spof_nodes=Int64[]
 mincuts_total=4
 mincuts_complete=true
 free_zone_size=2
-edges_in_every_cut_count=33
-edges_in_some_cut_count=36
-edges_in_some_not_every=[(132, 140), (134, 136), (135, 136)]
+edges_in_every_cut_count=1
+edges_in_some_cut_count=15
+edges_in_some_not_every=[(128, 134), (128, 135), (129, 134), (129, 135), (130, 134), (130, 135), (131, 134), (131, 135), (132, 134), (132, 135), (133, 134), (133, 135), (134, 136), (135, 136)]
 mincut_1_S=[101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133]
 mincut_1_T=[134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
 mincut_1_crossing_edges=[(128, 134), (128, 135), (129, 134), (129, 135), (130, 134), (130, 135), (131, 134), (131, 135), (132, 134), (132, 135), (132, 140), (133, 134), (133, 135)]
@@ -45,6 +45,17 @@ node_cap_max_flow=30.0
 node_cap_flow_drop=7.0
 saturated_nodes=[114, 115, 116, 117, 118, 119]
 node_cap_sink_flow=[137 => 0.0, 138 => 3.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+=== NODE-UPGRADE SWEEP (SINK RESTORATION) ===
+node_upgrade_target_sink=137
+node_upgrade_target_sink_restore_to=4.0
+node_upgrade_node_cap_baseline_sink_flow=0.0
+node_upgrade_candidate=114,restored=true,delta=7.0,new_capacity=12.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_candidate=115,restored=true,delta=7.0,new_capacity=12.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_candidate=116,restored=true,delta=7.0,new_capacity=14.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_candidate=117,restored=true,delta=7.0,new_capacity=14.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_candidate=118,restored=true,delta=7.0,new_capacity=10.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_candidate=119,restored=true,delta=7.0,new_capacity=10.0,restored_sink_flow=4.0,restored_total_flow=37.0,sink_flow_profile=[137 => 4.0, 138 => 6.0, 139 => 6.0, 140 => 3.0, 141 => 6.0, 142 => 6.0, 143 => 6.0]
+node_upgrade_best_single=node:114,delta:7.0,new_capacity:12.0,restored_sink_flow:4.0,restored_total_flow:37.0
 === SENSITIVITY ===
 critical_edge=(134->136) dispatch_gateway_west->distribution_combiner,drop=17.0,perturbed_flow=20.0
 critical_edge=(135->136) dispatch_gateway_east->distribution_combiner,drop=17.0,perturbed_flow=20.0
@@ -375,6 +386,7 @@ upgrade_threshold=edge=(136->140) distribution_combiner->sink_4,required_capacit
 upgrade_threshold=edge=(136->141) distribution_combiner->sink_5,required_capacity=Inf,required_increase=Inf,ineffective=true
 upgrade_threshold=edge=(136->142) distribution_combiner->sink_6,required_capacity=Inf,required_increase=Inf,ineffective=true
 upgrade_threshold=edge=(136->143) distribution_combiner->sink_7,required_capacity=Inf,required_increase=Inf,ineffective=true
+upgrade_threshold=edge=(132->140) secondary_e->sink_4,required_capacity=4.0,required_increase=1.0,ineffective=false
 === REDUNDANCY FOCUS (EDGES INTO 134/135/136) ===
 edge_redundancy=(128->134) secondary_a->dispatch_gateway_west,score=3
 edge_redundancy=(128->135) secondary_a->dispatch_gateway_east,score=3

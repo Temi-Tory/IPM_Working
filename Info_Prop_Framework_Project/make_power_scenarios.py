@@ -7,16 +7,20 @@ Usage:
 
 Produces, under outdir:
     power-network.EDGES                     copy of the structure file
-    Published_pf005/                        reliability only: the Tong and Tien 2019 case at pf = 0.05
-    Published_pf001/ ... Published_pf020/   the other four published cases (0.01, 0.10, 0.15, 0.20)
+    Published_R090/ Published_R099/ Published_R030/
+                                            reliability only: the three published cases of Tong and
+                                            Tien (2019, ASCE), every link at R_l, node priors 1
     Baseline/                               all three toolkits, deterministic
     Degraded/                               all three toolkits, deterministic, one feeder derated
     Interval/                               reliability and schedule as intervals, flow deterministic
     Pbox/                                   reliability as parametric p-boxes
 
-Reliability inputs follow Tong and Tien (2019), RESS 189:21-30, Section 4.2:
-node priors 1.0; the seven listed links perfectly reliable (1.0); every other
-link 1 - pf. These are published values. Flow capacities and schedule durations
+Reliability inputs follow Tong and Tien (2019), ASCE-ASME J. Risk Uncertainty Eng.
+Syst. A 5(3):04019011, Fig. 11 and Table 5: node priors 1.0 and every link at the
+same reliability R_l, with published exact sink-23 reliabilities 0.85741 (R_l 0.9),
+0.98969 (0.99) and 0.00221 (0.3). There are NO perfectly reliable links in this
+directed version; the seven such links belong to the undirected network of the
+authors' RESS paper and are not used here. --reliable is kept for that variant only. Flow capacities and schedule durations
 are ASSIGNED for the demonstration and must be described as such in the thesis:
     capacities: links out of a source 100, listed equipment-free links unbounded,
                 all other links 60; no node capacities.
@@ -109,8 +113,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("edges_file")
     ap.add_argument("--outdir", required=True)
-    ap.add_argument("--reliable", default="1-2,3-10,5-13,7-8,11-19,14-21,16-18",
-                    help="perfectly reliable links as u-v pairs in the corpus node numbering")
+    ap.add_argument("--reliable", default="",
+                    help="optional perfectly reliable links as u-v pairs (RESS undirected variant only; default none)")
     args = ap.parse_args()
 
     edges = read_edges(args.edges_file)
@@ -118,7 +122,7 @@ def main():
     sources = {n for n in nodes if not any(v == n for _, v in edges)}
     sinks = {n for n in nodes if not any(u == n for u, _ in edges)}
     reliable = set()
-    for tok in args.reliable.split(","):
+    for tok in [t for t in args.reliable.split(",") if t]:
         a, b = tok.split("-")
         a, b = int(a), int(b)
         if (a, b) in edges:
@@ -133,9 +137,9 @@ def main():
     print(f"{len(nodes)} nodes, {len(edges)} edges, sources {sorted(sources)}, sinks {sorted(sinks)}, "
           f"{len(reliable)} reliable links")
 
-    # Published reproduction cases
-    for pf, tag in [(0.01, "001"), (0.05, "005"), (0.10, "010"), (0.15, "015"), (0.20, "020")]:
-        reliability_files(args.outdir, f"Published_pf{tag}", edges, nodes, reliable, 1.0 - pf)
+    # Published reproduction cases (ASCE 2019, Table 5): all links at R_l, no reliable links
+    for rl, tag in [(0.9, "090"), (0.99, "099"), (0.3, "030")]:
+        reliability_files(args.outdir, f"Published_R{tag}", edges, nodes, set(), rl)
 
     # Baseline: all three toolkits at pf = 0.05
     reliability_files(args.outdir, "Baseline", edges, nodes, reliable, 0.95)
@@ -151,10 +155,9 @@ def main():
     # Reliability (nodepriors/linkprobabilities) interval values need an explicit "type":
     # "interval" tag -- InputProcessingModule.jl's deserialize_probability_value reads
     # data["type"] unconditionally before branching on it, so a bare {"lower","upper"} throws
-    # KeyError: key "type" not found. (The CPM/schedule contract is different and genuinely
-    # takes a bare {"lower","upper"} with no "type" -- confirmed against a live call; only the
-    # reliability contract needs this wrapper. The module docstring above, written before this
-    # was checked against a live call, doesn't distinguish the two -- corrected here.)
+    # KeyError: key "type" not found. (Confirmed against a live server call, 2026-08-30. The
+    # CPM/schedule contract below is different and genuinely takes a bare {"lower","upper"}
+    # with no "type" -- only the reliability contract needs this wrapper.)
     priors = {str(n): {"type": "interval", "lower": 1.0, "upper": 1.0} for n in nodes}
     links = {f"({u},{v})": ({"type": "interval", "lower": 1.0, "upper": 1.0} if (u, v) in reliable
                             else {"type": "interval", "lower": 0.90, "upper": 0.97}) for u, v in edges}
@@ -172,19 +175,14 @@ def main():
         if (u, v) in reliable:
             links[f"({u},{v})"] = {"type": "pbox", "construction_type": "scalar", "value": 1.0}
         else:
-            # Real contract (InputProcessingModule.jl create_parametric_interval_pbox):
-            # "shape" (not "distribution"), "params" as a positional array (not "parameters"
-            # dict), each interval-valued param wrapped as {"type":"interval","lower","upper"}.
-            # The script's original {"distribution":..., "parameters": {"mean":...}} shape does
-            # not match and would throw a KeyError on "shape" -- corrected before running.
-            #
+            # Real contract (InputProcessingModule.jl create_parametric_interval_pbox): "shape"
+            # (not "distribution"), "params" as a positional array (not a "parameters" dict),
+            # each interval-valued param wrapped as {"type":"interval","lower","upper"}.
             # shape="normal" was tried first and rejected: a normal distribution has unbounded
-            # tails, so its discretized p-box range (e.g. mean=[0.92,0.96], std=[0.01,0.02] ->
-            # range [0.8582, 1.0218]) runs past 1.0 and is_valid_probability correctly refuses
-            # it (a real validation catching a real modeling error, not a bug -- see FINDINGS.md
-            # for the separate is_valid_probability(pbox) crash-vs-reject bug this surfaced).
-            # shape="uniform" is naturally bounded by its own [a,b] params, so a probability
-            # value with fuzzy-but-bounded edges never runs outside [0,1].
+            # tails, so its discretized p-box range runs past 1.0 and is_valid_probability
+            # correctly refuses it -- a real modeling error, not a bug. shape="uniform" is
+            # naturally bounded by its own [a,b] params. Confirmed against a live server call,
+            # 2026-08-30.
             links[f"({u},{v})"] = {"type": "pbox", "construction_type": "parametric_interval",
                                    "shape": "uniform",
                                    "params": [
