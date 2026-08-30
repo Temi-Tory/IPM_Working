@@ -1281,7 +1281,7 @@ module InputProcessingModule
         queue = Queue{Int64}()
         for node in all_nodes
             if !haskey(incoming_index, node) || isempty(incoming_index[node])
-                enqueue!(queue, node)
+                push!(queue, node)
             end
         end
         
@@ -1293,7 +1293,7 @@ module InputProcessingModule
             # Process all nodes in the current level
             level_size = length(queue)
             for _ in 1:level_size
-                node = dequeue!(queue)
+                node = popfirst!(queue)
                 push!(current_set, node)
                 
                 # Process outgoing edges
@@ -1325,7 +1325,7 @@ module InputProcessingModule
                     
                     in_degree[target] -= 1
                     if in_degree[target] == 0
-                        enqueue!(queue, target)
+                        push!(queue, target)
                     end
                 end
             end
