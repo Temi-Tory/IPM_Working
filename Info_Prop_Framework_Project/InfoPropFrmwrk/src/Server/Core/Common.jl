@@ -25,8 +25,34 @@ function cors_headers_json(; methods::String="GET, POST, PUT, DELETE, OPTIONS")
     ]
 end
 
+"""
+    sanitize_for_json(x)
+
+Recursively replaces non-finite Float64 values (Inf, -Inf, NaN) with their string tokens
+("Inf", "-Inf", "NaN"), matching the INPUT-side convention already used for unbounded capacities
+(InputProcessingModule.jl accepts "Inf" as a capacity value). JSON has no representation for
+Inf/NaN; JSON.json throws ArgumentError on them by default (correctly -- `allownan=true` would
+produce non-standard JSON that a browser's JSON.parse cannot read, which would just move this
+failure to the front end). Any analysis result that legitimately produces an unbounded or
+undefined number (e.g. sensitivity/marginal-value output for an edge with unbounded capacity,
+first exercised by an unbounded reservoir edge in the Net3 case study, 2026-08-30) needs this
+applied before serialization, not a per-field fix at each call site.
+"""
+function sanitize_for_json(x::AbstractDict)
+    return Dict(k => sanitize_for_json(v) for (k, v) in x)
+end
+function sanitize_for_json(x::AbstractVector)
+    return [sanitize_for_json(v) for v in x]
+end
+function sanitize_for_json(x::AbstractFloat)
+    isnan(x) && return "NaN"
+    isinf(x) && return x > 0 ? "Inf" : "-Inf"
+    return x
+end
+sanitize_for_json(x) = x
+
 function json_response(status::Int, body)
-    return HTTP.Response(status, cors_headers_json(), JSON.json(body))
+    return HTTP.Response(status, cors_headers_json(), JSON.json(sanitize_for_json(body)))
 end
 
 function request_id(req::HTTP.Request)

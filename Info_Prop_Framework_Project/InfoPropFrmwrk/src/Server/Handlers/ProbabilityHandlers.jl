@@ -138,7 +138,7 @@ function handle_probability_like(req::HTTP.Request; endpoint_name::String)
         request_data = JSON.parse(String(req.body))
         payload = probability_payload(request_data)
 
-        return HTTP.Response(200, headers, JSON.json(Dict(
+        return HTTP.Response(200, headers, JSON.json(ServerCommon.sanitize_for_json(Dict(
             "success" => true,
             "message" => "Probability propagation analysis completed",
             "endpoint" => endpoint_name,
@@ -154,7 +154,7 @@ function handle_probability_like(req::HTTP.Request; endpoint_name::String)
             "diamond_cache_status" => payload["diamond_cache_status"],
             "diamond_cache_source" => payload["diamond_cache_source"],
             "probability_result" => payload["result"],
-        )))
+        ))))
     catch e
         return ServerCommon.error_response(req, e, "Probability propagation analysis failed"; headers=headers)
     end

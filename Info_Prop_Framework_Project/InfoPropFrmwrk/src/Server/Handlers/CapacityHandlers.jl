@@ -371,7 +371,7 @@ function handle_capacity_analysis(req::HTTP.Request)
             "capacity_result" => serialize_capacity_result(analysis_result),
         )
 
-        return HTTP.Response(200, headers, JSON.json(response))
+        return HTTP.Response(200, headers, JSON.json(ServerCommon.sanitize_for_json(response)))
     catch e
         return ServerCommon.error_response(req, e, "Capacity analysis failed"; headers=headers)
     end

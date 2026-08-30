@@ -229,3 +229,5 @@ Info_Prop_Framework_Project/temp_uploads/7a686484-7fba-470b-a6ac-8fd0ff344485/wa
 
 # Validation harness (large: logs, CSVs, oracle data) - kept local only
 Info_Prop_Framework_Project/validation/
+Info_Prop_Framework_Project/.venv_net3/
+Info_Prop_Framework_Project/dag_ntwrk_files/net3/net3-scenarios/responses/

@@ -99,7 +99,7 @@ function handle_critical_path_analysis(req::HTTP.Request)
             "input_files" => Dict("cpm_path" => cpm_path),
         )
 
-        return HTTP.Response(200, headers, JSON.json(Dict(
+        return HTTP.Response(200, headers, JSON.json(ServerCommon.sanitize_for_json(Dict(
             "success" => true,
             "message" => "Critical path analysis completed",
             "endpoint" => "critical-path-analysis",
@@ -107,7 +107,7 @@ function handle_critical_path_analysis(req::HTTP.Request)
             "cpm_path" => cpm_path,
             "timestamp" => Dates.now(),
             "critical_path_result" => payload,
-        )))
+        ))))
     catch e
         return ServerCommon.error_response(req, e, "Critical path analysis failed"; headers=headers)
     end
