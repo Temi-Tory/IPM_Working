@@ -112,7 +112,17 @@ function _edges_in_every_mincut_from_reach(
 )::Vector{Tuple{Int64,Int64}}
     original_nodes = _graph_nodes_set(edgelist)
     s_star = flow_result.mincut_S
-    t_double_star = setdiff(original_nodes, can_reach_sink)
+    # T** = nodes backward-reachable from the sink in the residual graph (restricted
+    # to original nodes) -- the dual of s_double_star's "nodes that CANNOT reach the
+    # sink" (S**). Was setdiff(original_nodes, can_reach_sink), i.e. the SAME set as
+    # S** (a copy-paste of the s_double_star formula) -- that made t_double_star
+    # equal the source-side candidate set instead of its complement, so the
+    # saturated+u∈S*+v∈T** test could never correctly identify the always-cut
+    # edges near the sink and instead matched saturated edges deep on the source
+    # side. Confirmed on the power-network Baseline scenario: the true unique min
+    # cut is {(22,23)}, but this returned {(8,12),(12,11),(19,22)} -- edges among
+    # nodes that cannot reach the sink, exactly the (wrong) S**-side set.
+    t_double_star = intersect(can_reach_sink, original_nodes)
 
     every = Tuple{Int64,Int64}[]
     for e in edgelist
@@ -306,7 +316,7 @@ Return all edges that appear in every minimum cut.
 Exact characterization:
 - edge is saturated,
 - `u ∈ S^*` where `S^* = flow_result.mincut_S`, and
-- `v ∈ T^{**}`, where `T^{**}` is the complement of nodes backward-reachable
+- `v ∈ T^{**}`, where `T^{**}` is the set of nodes backward-reachable
   from the sink in the residual graph, restricted to original graph nodes.
 
 Zero solver calls; one backward BFS.
