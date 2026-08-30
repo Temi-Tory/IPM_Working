@@ -26,12 +26,19 @@
 \title{Appendix: Case-Study Network Specifications}
 \fi
 
-This appendix is the single authoritative description of every network used anywhere in
-the thesis. Each chapter cites one entry here rather than re-describing a network in
-prose. For each network it gives the source and citation, the node and edge counts, the
-rule by which an undirected or domain-specific network was oriented into a directed
-acyclic graph, and --- for the networks used as named case studies --- which input values
-are taken from a source and which are assigned for demonstration. Full edge lists, the
+This appendix describes every network presented in a chapter as a case study, a named
+reproduction target, or a distinct benchmark family. Each chapter cites one entry here
+rather than re-describing a network in prose. For each network it gives the source and
+citation, the node and edge counts, the rule by which an undirected or domain-specific
+network was oriented into a directed acyclic graph, and, for the networks used as named
+case studies, which input values are taken from a source and which are assigned for
+demonstration. The flow and critical-path validation summaries of
+Appendix~\ref{app:full-results} additionally exercise a set of synthetic networks
+generated purely for structural diversity and scale, among them
+\filepath{grid-graph-5x5}, \filepath{continental\_medical\_network},
+\texttt{ergo-proxy-dag-network}, \filepath{glasgow\_to\_shetland\_extreme} and
+\filepath{highland\_to\_lowland\_full\_network}; these carry no independent provenance,
+are not case studies, and are not catalogued individually here. Full edge lists, the
 per-node input tables, the converters, and the recorded server responses are archived in
 the thesis data repository (Appendix~\ref{app:full-results}); the file named at the end of
 each entry is its location there.
@@ -60,9 +67,9 @@ Drone: concentrated minimal   & 230 / 1648 & Jones \emph{et al.} \cite{jones2025
 Random and mutated corpus     & 10--28 nodes, 129 graphs & This project's harness & Ch.~\ref{ch:probability-toolkit} \\
 Adversarial families          & fan-in-$k$, mesh-$w$ & This project's harness & Ch.~\ref{ch:probability-toolkit} \\
 \bottomrule
-\caption{Every network used in the thesis. Counts are of the directed acyclic graph after
-orientation. The drone designs use non-contiguous node identifiers; the count is of nodes
-actually present.}
+\caption{Every named case-study network, reproduction target and benchmark family in the
+thesis. Counts are of the directed acyclic graph after orientation. The drone designs use
+non-contiguous node identifiers; the count is of nodes actually present.}
 \label{tab:appA-glance}
 \end{longtable}}
 

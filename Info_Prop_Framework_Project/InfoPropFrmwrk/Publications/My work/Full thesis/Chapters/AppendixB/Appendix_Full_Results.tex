@@ -51,8 +51,9 @@ once here and referenced, not restated, by each chapter.
 The probability toolkit was checked against an independently built reduced ordered
 binary decision diagram oracle on the full corpus of 129 synthetic graphs
 (Appendix~\ref{sec:appA-corpus}). \textbf{All 129 agree exactly}, worst absolute deviation
-below $10^{-6}$, and none changed against the pre-existing recorded results (tolerance
-$10^{-9}$). The corpus is reconstructed exactly from recorded seeds; its node priors lie
+$1.1 \times 10^{-16}$ for point beliefs and $2.78 \times 10^{-16}$ for interval bounds,
+both at machine precision, and none changed against the pre-existing recorded results
+(tolerance $10^{-9}$). The corpus is reconstructed exactly from recorded seeds; its node priors lie
 in a range that never places a non-source node at exactly 0 or 1, so it does not exercise
 the degenerate-prior path. Script:
 \filepath{corpus/random-and-mutated/rerun\_129\_corpus.jl}; per-graph results:
