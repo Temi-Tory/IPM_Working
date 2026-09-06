@@ -50,23 +50,26 @@
 
   \cortext[mycorrespondingauthor]{Corresponding author}
 
-
+  
 %% Abstract
 \begin{abstract}
 Reliability analysis in directed acyclic process networks requires computing, for each node, the probability that at least one viable path exists from any source node to that node. Standard analytical reliability formulations become inaccurate or inefficient in the presence of reconvergent path structures, where multiple paths diverge from shared upstream ancestors and reconverge downstream, thereby creating statistical dependencies that violate path independence assumptions.
 
 This paper presents the Information Propagation Algorithm (IPA), an exact message-passing method that resolves these dependencies through conditional enumeration on shared fork ancestors. IPA processes the network in topological order, applying closed-form updates for independent parent signals and progressive diamond decomposition for dependent reconvergent structures. Diamond subgraphs are systematically identified, solved through conditional probability enumeration, and replaced with statistically equivalent supernodes, thereby avoiding repeated conditioning over previously resolved structures.
 
-Two case studies are used to evaluate the proposed method. On a 16-node grid network, IPA reproduces exact reliability values and achieves a 134-fold reduction in runtime relative to a published message-passing alternative. Analysis of six Pareto-optimal drone logistics network configurations shows that computation time depends primarily on diamond nesting depth rather than network size: shallow-nested networks (depth $\leq 12$) are solved in under one second, whereas deeply nested structures exhibit the exponential growth inherent to exact inference in high-treewidth graphs. The results demonstrate that IPA provides an exact and computationally efficient reliability analysis tool for a broad class of multi-source directed acyclic process systems, while also identifying the structural conditions under which exact inference becomes impractical.
+The IPA method propagates interval‑valued and probability‑box component reliabilities. The propagated interval range is exact, and the probability‑box bounds are guaranteed. 
+Compared against an independent binary decision diagram on benchmark infrastructure networks as well as a corpus of 129 random and structured directed acyclic graphs, IPA reproduces the exact node reliabilities in every case. 
+
+IPA is then applied to a derived medical drone logistics network for Scotland. The analysis identifies the delivery points with the least certain reachability, and the level of network redundancy beyond which exact analysis is no longer practical. The results demonstrate that IPA provides exact reliability analysis for a broad class of multi‑source acyclic process systems, and identifies the structural conditions under which exact analysis becomes impractical.
 \end{abstract}
 
 %%Research highlights
 \begin{highlights}
-\item Exact reliability computation for directed acyclic process networks with reconvergent dependencies
-\item Resolves dependent fork--join structures through conditional decomposition on shared upstream nodes
-\item Uses progressive diamond decomposition and supernode replacement to avoid repeated dependency evaluation
-\item Reproduces exact benchmark results and is substantially faster than a published message-passing alternative
-\item Demonstrates that practical tractability is governed primarily by diamond nesting depth rather than network size
+\item Exact source-to-node reliability for DAGs with reconvergent (diamond) dependence
+\item Diamond decomposition with supernode reuse avoids repeated conditioning
+\item Cost is fixed in advance and dominated by the diamond conditioning sets, not by network size
+\item Validated against an exact decision-diagram method on 129 graphs and benchmarks
+\item Propagates interval and probability-box component reliabilities natively
 \end{highlights}
 
 
