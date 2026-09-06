@@ -165,7 +165,7 @@ The forward pass runs cleanly until the join. The fork's belief is the chain $b(
 \[
 b(5) \;=\; 0.9\,\bigl(1 - (1 - 0.59049)^2\bigr) \;=\; 0.749071 ,
 \]
-while exhaustive enumeration over all component states gives $b(5) = 0.675462$. The local update overestimates the join's belief by eleven per cent of its true value, and it does so because both signal events contain the fork's reachability. The two events are positively dependent, their intersection is larger than the product of their probabilities, and a union rule that understates the intersection overstates the union. On a network built out of redundancy the error is the norm, and it always overstates the reliability of the system.
+while exhaustive enumeration over all component states gives $b(5) = 0.675462$. The local update overestimates the join's belief by eleven percent of its true value, and it does so because both signal events contain the fork's reachability. The two events are positively dependent, their intersection is larger than the product of their probabilities, and a union rule that understates the intersection overstates the union. On a network built out of redundancy the error is the norm, and it always overstates the reliability of the system.
 
 However, conditioning on the shared fork repairs the calculation. Given $R_2 = 1$ the two paths share nothing further, so each transmits independently with probability $0.9 \times 0.9 \times 0.9 = 0.729$ and the join receives a signal with probability $1 - (1 - 0.729)^2 = 0.926559$. Given $R_2 = 0$ nothing arrives, since every path into the join runs through the fork. Weighting the two cases by $P(R_2 = 1) = b(2) = 0.81$,
 \[
