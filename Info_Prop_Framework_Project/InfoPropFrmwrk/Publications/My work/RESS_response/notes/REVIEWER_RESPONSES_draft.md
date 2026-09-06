@@ -59,7 +59,8 @@ reordering), with dPrPm retained only as the published, explicitly caveated poin
 > map-style figure locates where uncertainty concentrates. The redundancy/tractability trade-off is itself
 > presented as a decision-relevant finding: provisioned redundancy improves resilience but raises the cost
 > of verifying it exactly, and the practical boundary was measured on the real network. Runtime statistics
-> now support, rather than substitute for, the engineering interpretation.
+> now support, rather than substitute for, the engineering interpretation. (**my in thoughts brain dump .. could the
+reviewr cliam or think that we just created another generated network that fits a 'story'?)
 
 ### 6. Scalability limitations deserve deeper discussion
 > The revised §5.5 discusses the practical range explicitly and anchors it to a measured, real-network
@@ -83,7 +84,7 @@ reordering), with dPrPm retained only as the published, explicitly caveated poin
 ### 8. Minor editorial issues
 > A language pass has been completed; the specific issues identified (duplicated punctuation,
 > typographical errors, and overlong sentences in Sections 1, 4, and 5) have been corrected, and the
-> sections rewritten in this revision were drafted to the same standard.
+> sections rewritten in this revision were drafted to the same standard. (mind braind dump .. need to go over and over an dover to make sure)
 
 ================================================================================
 ## Reviewer #2 (second reviewer table)
@@ -110,7 +111,8 @@ reordering), with dPrPm retained only as the published, explicitly caveated poin
 > interval queries (approximately 14× and 6× on the sparse and low-redundancy configurations), and, at
 > the higher-redundancy configuration, the diagram not completing within a practical budget under either
 > of two ordering strategies while the proposed method completes in under 25 seconds. The claim is scoped
-> precisely: a wider measured practical range on this network, not a structural superiority.
+> precisely: a wider measured practical range on this network, not a structural superiority.(is this true? for what network ? we need to be clear 
+abt the exact condtions/enviromeet the sifted bdd runs in so they dont claim not comparable again?)
 
 ### 3. DAG transformation of the bidirectional multiplex network
 > The case study has been rebuilt, and its directionality is now grounded in the system rather than in a
@@ -200,6 +202,6 @@ reordering), with dPrPm retained only as the published, explicitly caveated poin
 > inference, so the machinery transfers to source-to-node reachability queries on other directed acyclic
 > probabilistic models. The capability that does not transfer back is imprecise propagation: standard
 > exact engines (junction tree, decision diagrams) operate on point-valued parameters, whereas the
-> proposed propagation extends natively to interval and p-box inputs (§5.3). Limitations are consolidated
-> and stated explicitly in §5.5 (no structural advantage for exact point values; width-exponential
+> proposed propagation extends natively to interval and p-box inputs (§5.3). (**brain dump****we need to be VERY VERY certian abt thsi claim ).
+> Limitations are consolidated and stated explicitly in §5.5 (no structural advantage for exact point values; width-exponential
 > practical range; p-box tightness structure-dependence and cost; DAG scope).

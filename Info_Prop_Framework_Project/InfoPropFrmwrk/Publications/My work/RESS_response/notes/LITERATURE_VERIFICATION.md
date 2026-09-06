@@ -214,4 +214,5 @@ Flag before use.
 
 4. **Still open**: Kozine, Krymsky & Gurov not yet checked (no PDF supplied, lower priority).
    Jacob et al. 2011's exact venue (SUM 2011 vs. another Springer proceedings) worth a quick DBLP
-   check before the bibliography locks it in.
+   check before the bibliography locks it in. .. gimme list of psdfs to download myself .. no claim or ref must cliam what doenst exeist 
+   
