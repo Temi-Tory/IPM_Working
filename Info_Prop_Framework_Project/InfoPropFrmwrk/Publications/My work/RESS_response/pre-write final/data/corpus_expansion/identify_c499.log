@@ -1,0 +1,6 @@
+[2026-09-06T16:40:31.097] === ISCAS85 identify-only: c499 ===
+[2026-09-06T16:40:31.138] load time=0.0401s nodes=243 edges=408 sources=41 sinks=32
+[2026-09-06T16:40:31.178] forks=59 joins=162 layers=12 (fj_time=0.0000s iter_time=0.0025s)
+[2026-09-06T16:41:06.689] IDENTIFY-ONLY done in 35.4752s
+[2026-09-06T16:41:06.735] structural: V=243 E=408 n_diamonds(unique,incl.nested)=50571 maximal_diamonds=82 maxcond=41 sum_2^C=7.3551e+13
+[2026-09-06T16:41:06.737] wrote/appended C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\iscas85\iscas85_identify_only.csv

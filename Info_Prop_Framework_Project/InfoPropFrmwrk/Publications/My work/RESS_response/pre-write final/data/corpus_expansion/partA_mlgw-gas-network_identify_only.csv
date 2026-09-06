@@ -1,0 +1,2 @@
+name,V,E,sources,sinks,forks,joins,layers,n_diamonds,maximal_diamonds,maxcond,sum_2powC,identify_time_s
+mlgw-gas-network,37,40,2,6,6,5,10,7,4,4,3.600000e+01,1.0338

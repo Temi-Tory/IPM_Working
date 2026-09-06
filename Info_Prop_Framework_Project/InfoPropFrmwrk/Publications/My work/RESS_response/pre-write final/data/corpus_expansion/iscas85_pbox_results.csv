@@ -1,0 +1,2 @@
+name,V,E,n_diamonds,maxcond,sum_2^C,steps,pbox_propagate_seconds,warmup_seconds_trivial,status
+c17,11,12,3,1,6,50,1.4104,5.9861,ok

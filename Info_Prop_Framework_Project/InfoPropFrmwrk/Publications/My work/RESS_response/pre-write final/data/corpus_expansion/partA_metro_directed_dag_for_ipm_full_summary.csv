@@ -1,0 +1,2 @@
+name,V,E,n_diamonds,maximal_diamonds,maxcond,sum_2powC,identify_time_s,warmup_float_s,float64_propagate_s,worst_delta_float64_vs_oracle,warmup_interval_s,interval_identify_s,interval_propagate_s,corner_diff_lo,corner_diff_hi,worst_delta_lo_vs_oracle,worst_delta_hi_vs_oracle,worst_delta_interval_vs_oracle_corners
+metro_directed_dag_for_ipm,306,350,147,45,6,1.166000e+03,1.1970,0.0001,0.0189,2.776e-16,0.6265,0.0077,0.0186,0.000e+00,0.000e+00,1.110e-16,3.331e-16,3.331e-16

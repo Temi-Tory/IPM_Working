@@ -1,0 +1,24 @@
+[2026-09-06T16:50:39.560] === Part A fresh confirmation: metro_directed_dag_for_ipm ===
+[2026-09-06T16:50:39.598] edges_file=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\metro_directed_dag_for_ipm\metro_directed_dag_for_ipm.EDGES
+[2026-09-06T16:50:39.633] nodepriors=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\metro_directed_dag_for_ipm\float\metro-directed-dag-for-ipm-nodepriors.json
+[2026-09-06T16:50:39.633] linkprobs=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\metro_directed_dag_for_ipm\float\metro-directed-dag-for-ipm-linkprobabilities.json
+[2026-09-06T16:50:39.749] nodes=306 edges=350 sources=1 sinks=61
+[2026-09-06T16:50:39.792] forks=60 joins=45 layers=23
+[2026-09-06T16:50:41.032] IDENTIFY-ONLY done in 1.1970s
+[2026-09-06T16:50:41.081] structural: V=306 E=350 n_diamonds(unique,incl.nested)=147 maximal_diamonds=45 maxcond=6 sum_2^C=1.1660e+03
+[2026-09-06T16:50:41.090] wrote C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\corpus_expansion\partA_metro_directed_dag_for_ipm_identify_only.csv
+[2026-09-06T16:50:41.090] JIT warm-up (trivial 5-node, Float64) done: 0.0001s (discarded, NOT metro_directed_dag_for_ipm)
+[2026-09-06T16:50:41.090] Float64 exact propagation: SINGLE timed call starting...
+[2026-09-06T16:50:41.109] Float64 exact propagation done in 0.0189s
+[2026-09-06T16:50:41.109] widening +/-0.05 (degeneracy-preserving): degenerate node priors=0 degenerate link probs=0 (0 expected for both these networks)
+[2026-09-06T16:50:41.784] JIT warm-up (trivial 5-node, Interval) done: 0.6265s (discarded, NOT metro_directed_dag_for_ipm)
+[2026-09-06T16:50:41.784] Interval propagation: identify (interval-typed) + SINGLE timed call starting...
+[2026-09-06T16:50:41.811] Interval propagation done: identify=0.0077s propagate=0.0186s
+[2026-09-06T16:50:41.962] interval corner-check: max|lower-lo|=0.000e+00 max|upper-hi|=0.000e+00
+[2026-09-06T16:50:41.997] building BDDjl oracle...
+[2026-09-06T16:50:42.056] oracle build done in 0.0597s
+[2026-09-06T16:50:42.512] worst_delta Float64(real) vs oracle = 2.776e-16
+[2026-09-06T16:50:42.512] worst_delta Float64(lo-corner) vs oracle = 1.110e-16
+[2026-09-06T16:50:42.512] worst_delta Float64(hi-corner) vs oracle = 3.331e-16
+[2026-09-06T16:50:42.512] worst_delta Interval bounds vs oracle(corners) = 3.331e-16
+[2026-09-06T16:50:43.527] wrote C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\corpus_expansion\partA_metro_directed_dag_for_ipm_full_summary.csv

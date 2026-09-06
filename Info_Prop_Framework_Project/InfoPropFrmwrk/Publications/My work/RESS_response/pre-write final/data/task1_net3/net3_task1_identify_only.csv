@@ -1,0 +1,2 @@
+nodes,edges,sources,sinks,forks,joins,layers,unique_diamonds,maximal_diamonds,maxcond,sum_2powC,identify_time_s,load_time_s
+97,119,3,18,35,23,28,307,21,12,5.473400e+04,1.3479,0.8841

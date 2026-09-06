@@ -1,0 +1,2 @@
+name,V,E,n_diamonds,maximal_diamonds,maxcond,sum_2powC,identify_time_s,warmup_float_s,float64_propagate_s,worst_delta_float64_vs_oracle,warmup_interval_s,interval_identify_s,interval_propagate_s,corner_diff_lo,corner_diff_hi,worst_delta_lo_vs_oracle,worst_delta_hi_vs_oracle,worst_delta_interval_vs_oracle_corners
+mlgw-gas-network,37,40,7,4,4,3.600000e+01,1.0338,0.0001,0.0004,1.110e-16,0.4416,0.0004,0.0008,0.000e+00,0.000e+00,1.110e-16,2.220e-16,2.220e-16

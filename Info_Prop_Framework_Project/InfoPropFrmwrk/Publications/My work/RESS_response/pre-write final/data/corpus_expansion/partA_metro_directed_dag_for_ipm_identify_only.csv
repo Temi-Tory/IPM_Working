@@ -1,0 +1,2 @@
+name,V,E,sources,sinks,forks,joins,layers,n_diamonds,maximal_diamonds,maxcond,sum_2powC,identify_time_s
+metro_directed_dag_for_ipm,306,350,1,61,60,45,23,147,45,6,1.166000e+03,1.1970

@@ -1,0 +1,6 @@
+[2026-09-06T16:49:34.338] === ISCAS85 p-box: c17 steps=50 ===
+[2026-09-06T16:49:35.303] structural: V=11 E=12 n_diamonds=3 maxcond=1 sum_2C=6.0
+[2026-09-06T16:49:41.756] warm-up done: 5.9861s (discarded, trivial network -- NOT c17)
+[2026-09-06T16:49:41.822] SINGLE timed call starting on c17...
+[2026-09-06T16:49:43.233] timed call done: 1.4104s
+[2026-09-06T16:49:43.234] wrote row for c17 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\iscas85\iscas85_pbox_results.csv

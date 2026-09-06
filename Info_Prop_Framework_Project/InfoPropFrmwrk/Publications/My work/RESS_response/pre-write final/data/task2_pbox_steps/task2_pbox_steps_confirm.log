@@ -1,0 +1,13 @@
+[2026-09-06T12:43:31.727] === Task 2: p-box steps-scaling curve, fresh reconfirm, counterexample-n15 ===
+[2026-09-06T12:43:33.210] network: counterexample-n15, nodes=15 edges=23
+[2026-09-06T12:43:35.025] warmup steps=20 (JIT, discarded)
+[2026-09-06T12:43:50.684] steps=25 starting...
+[2026-09-06T12:43:53.835] steps=25: 1.75s / 1.36s (min 1.36s; prior faithful ref: 1.23s)
+[2026-09-06T12:43:53.835] steps=50 starting...
+[2026-09-06T12:44:08.137] steps=50: 6.97s / 7.31s (min 6.97s; prior faithful ref: 5.98s)
+[2026-09-06T12:44:08.137] steps=100 starting...
+[2026-09-06T12:45:41.362] steps=100: 45.75s / 47.40s (min 45.75s; prior faithful ref: 39.20s)
+[2026-09-06T12:45:41.363] steps=200 starting...
+[2026-09-06T12:56:02.926] steps=200: 320.58s / 300.75s (min 300.75s; prior faithful ref: 275.70s)
+[2026-09-06T12:56:02.927] wrote C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\task2_pbox_steps_confirm_results.csv
+[2026-09-06T12:56:02.969] === Task 2 done (steps=800 deliberately NOT attempted, per instructions: documented ~4h extrapolated / impractical) ===

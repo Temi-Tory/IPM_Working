@@ -1,0 +1,11 @@
+[2026-09-06T13:29:40.055] === Task 3 FINISH: pbox@200 w=0.10 leg only (no time budget this run) ===
+[2026-09-06T13:29:40.073] PBOX_COND_BLEND default = positive
+[2026-09-06T13:29:42.181] grid: V=16 E=24 sources=[1, 3, 13] target=16
+[2026-09-06T13:29:43.260] Starting propagate(pbox, w=0.1) IPA (sound cvxP) ... this is the long pole, expect several minutes
+[2026-09-06T13:39:47.777]   IPA propagate(pbox,0.10) done in 604.34s
+[2026-09-06T13:39:48.717]   naive propagate(pbox,0.10) done in 0.92s
+[2026-09-06T13:39:48.859] Starting MC (N=50000) via reused BDDjl oracle ...
+[2026-09-06T13:40:34.146]   MC_N=50000 samples via BDDjl in 45.132s
+[2026-09-06T13:40:34.861] ACC pbox@200 w=0.10  IPA_unsound=0.000e+00 (sound) | naive_unsound=1.724e-02 (node 16, MC_N=50000)
+[2026-09-06T13:40:35.237] appended 2 rows to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\grid_case_study\data\grid_accuracy.csv
+[2026-09-06T13:40:35.275] === Task 3 FINISH done ===

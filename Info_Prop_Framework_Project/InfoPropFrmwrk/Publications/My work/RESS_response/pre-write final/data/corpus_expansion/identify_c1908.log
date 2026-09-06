@@ -1,0 +1,3 @@
+[2026-09-06T16:46:37.419] === ISCAS85 identify-only: c1908 ===
+[2026-09-06T16:46:37.468] load time=0.0485s nodes=913 edges=1497 sources=33 sinks=25
+[2026-09-06T16:46:37.524] forks=384 joins=441 layers=41 (fj_time=0.0001s iter_time=0.0180s)

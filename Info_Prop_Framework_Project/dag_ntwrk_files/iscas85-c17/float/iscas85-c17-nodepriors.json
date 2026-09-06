@@ -1,0 +1,17 @@
+{
+  "nodes": {
+    "1": 0.9,
+    "2": 0.9,
+    "3": 0.9,
+    "6": 0.9,
+    "7": 0.9,
+    "10": 0.9,
+    "11": 0.9,
+    "16": 0.9,
+    "19": 0.9,
+    "22": 0.9,
+    "23": 0.9
+  },
+  "data_type": "Float64",
+  "description": "Illustrative uniform 0.9 node priors for ISCAS85 c17 (no citable per-gate failure-rate figure found in a time-boxed search that maps onto this framework's structural up/down reliability semantics; falls back to the same convention used for KarlNetwork/bnlearn/the synthetic corpus)"
+}

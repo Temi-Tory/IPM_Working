@@ -1,0 +1,7 @@
+[2026-09-06T14:35:05.485] === Task 2 v2: steps=25 -- ONE clean process, warm-up on a TRIVIAL SEPARATE network ===
+[2026-09-06T14:35:09.613] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:35:20.303] warm-up done: 10.5110s (discarded, trivial network -- NOT the real target)
+[2026-09-06T14:35:21.489] target network: counterexample-n15, nodes=15 edges=23
+[2026-09-06T14:35:21.526] SINGLE timed call starting (steps=25)...
+[2026-09-06T14:35:23.123] timed call done: 1.5424s
+[2026-09-06T14:35:23.359] wrote row to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\task2_pbox_steps_v2_results.csv

@@ -1,0 +1,98 @@
+[2026-09-06T14:36:31.247] === network=random_n12_s1 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:36:32.327] structural: V=12 E=18 n_diamonds=8 maxcond=3 sum_2C=26.0
+[2026-09-06T14:36:32.891] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:36:38.059] warm-up done: 5.1670s (discarded, trivial network -- NOT random_n12_s1)
+[2026-09-06T14:36:38.065] SINGLE timed call starting on random_n12_s1...
+[2026-09-06T14:36:41.051] timed call done: 2.9851s
+[2026-09-06T14:36:41.051] wrote row for random_n12_s1 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:51:21.448] === network=random_n12_s2 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:51:22.492] structural: V=12 E=18 n_diamonds=9 maxcond=3 sum_2C=32.0
+[2026-09-06T14:51:23.021] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:51:28.920] warm-up done: 5.8954s (discarded, trivial network -- NOT random_n12_s2)
+[2026-09-06T14:51:28.931] SINGLE timed call starting on random_n12_s2...
+[2026-09-06T14:51:33.576] timed call done: 4.6418s
+[2026-09-06T14:51:33.580] wrote row for random_n12_s2 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:51:59.561] === network=random_n15_s1 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:52:00.531] structural: V=15 E=25 n_diamonds=17 maxcond=5 sum_2C=160.0
+[2026-09-06T14:52:01.017] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:52:06.308] warm-up done: 5.2873s (discarded, trivial network -- NOT random_n15_s1)
+[2026-09-06T14:52:06.320] SINGLE timed call starting on random_n15_s1...
+[2026-09-06T14:52:21.817] timed call done: 15.4937s
+[2026-09-06T14:52:21.821] wrote row for random_n15_s1 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:52:46.788] === network=complete_8 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:52:47.788] structural: V=8 E=28 n_diamonds=21 maxcond=6 sum_2C=240.0
+[2026-09-06T14:52:48.278] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:52:53.421] warm-up done: 5.1394s (discarded, trivial network -- NOT complete_8)
+[2026-09-06T14:52:53.432] SINGLE timed call starting on complete_8...
+[2026-09-06T14:53:23.125] timed call done: 29.6888s
+[2026-09-06T14:53:23.129] wrote row for complete_8 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:55:08.661] === network=random_n15_s2 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:55:09.657] structural: V=15 E=27 n_diamonds=29 maxcond=7 sum_2C=568.0
+[2026-09-06T14:55:10.164] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:55:15.331] warm-up done: 5.1639s (discarded, trivial network -- NOT random_n15_s2)
+[2026-09-06T14:55:15.343] SINGLE timed call starting on random_n15_s2...
+[2026-09-06T14:55:55.023] timed call done: 39.6774s
+[2026-09-06T14:55:55.024] wrote row for random_n15_s2 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:56:20.605] === network=grid_4x4 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:56:21.580] structural: V=16 E=24 n_diamonds=39 maxcond=7 sum_2C=634.0
+[2026-09-06T14:56:22.127] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:56:27.348] warm-up done: 5.2183s (discarded, trivial network -- NOT grid_4x4)
+[2026-09-06T14:56:27.375] SINGLE timed call starting on grid_4x4...
+[2026-09-06T14:58:13.982] timed call done: 106.6036s
+[2026-09-06T14:58:13.986] wrote row for grid_4x4 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T14:58:38.685] === network=grid_5x5 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T14:58:39.663] structural: V=25 E=36 n_diamonds=50 maxcond=5 sum_2C=396.0
+[2026-09-06T14:58:40.165] warm-up (trivial 5-node network) starting...
+[2026-09-06T14:58:45.166] warm-up done: 4.9980s (discarded, trivial network -- NOT grid_5x5)
+[2026-09-06T14:58:45.192] SINGLE timed call starting on grid_5x5...
+[2026-09-06T15:00:10.745] timed call done: 85.5499s
+[2026-09-06T15:00:10.749] wrote row for grid_5x5 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:00:41.446] === network=counterexample steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:00:42.411] structural: V=15 E=23 n_diamonds=13 maxcond=4 sum_2C=56.0
+[2026-09-06T15:00:42.905] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:00:48.061] warm-up done: 5.1526s (discarded, trivial network -- NOT counterexample)
+[2026-09-06T15:00:48.073] SINGLE timed call starting on counterexample...
+[2026-09-06T15:00:54.987] timed call done: 6.9117s
+[2026-09-06T15:00:54.991] wrote row for counterexample to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:01:24.022] === network=random_n20_s2 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:01:24.982] structural: V=20 E=41 n_diamonds=38 maxcond=9 sum_2C=1254.0
+[2026-09-06T15:01:25.517] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:01:30.554] warm-up done: 5.0333s (discarded, trivial network -- NOT random_n20_s2)
+[2026-09-06T15:01:30.571] SINGLE timed call starting on random_n20_s2...
+[2026-09-06T15:02:56.321] timed call done: 85.7466s
+[2026-09-06T15:02:56.322] wrote row for random_n20_s2 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:03:28.465] === network=layered_5x4 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:03:29.410] structural: V=20 E=34 n_diamonds=48 maxcond=6 sum_2C=702.0
+[2026-09-06T15:03:29.894] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:03:35.059] warm-up done: 5.1622s (discarded, trivial network -- NOT layered_5x4)
+[2026-09-06T15:03:35.075] SINGLE timed call starting on layered_5x4...
+[2026-09-06T15:09:34.389] timed call done: 359.3102s
+[2026-09-06T15:09:34.394] wrote row for layered_5x4 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:10:03.744] === network=random_n20_s1 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:10:04.759] structural: V=20 E=42 n_diamonds=52 maxcond=8 sum_2C=1410.0
+[2026-09-06T15:10:05.202] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:10:10.262] warm-up done: 5.0562s (discarded, trivial network -- NOT random_n20_s1)
+[2026-09-06T15:10:10.278] SINGLE timed call starting on random_n20_s1...
+[2026-09-06T15:15:52.647] timed call done: 342.3654s
+[2026-09-06T15:15:52.651] wrote row for random_n20_s1 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:16:25.141] === network=bridge_5 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:16:26.129] structural: V=16 E=25 n_diamonds=55 maxcond=10 sum_2C=4072.0
+[2026-09-06T15:16:26.616] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:16:31.901] warm-up done: 5.2821s (discarded, trivial network -- NOT bridge_5)
+[2026-09-06T15:16:31.919] SINGLE timed call starting on bridge_5...
+[2026-09-06T15:19:00.504] timed call done: 148.5832s
+[2026-09-06T15:19:00.508] wrote row for bridge_5 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:19:35.520] === network=random_n25_s2 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:19:36.607] structural: V=25 E=56 n_diamonds=98 maxcond=9 sum_2C=5212.0
+[2026-09-06T15:19:37.071] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:19:42.325] warm-up done: 5.2522s (discarded, trivial network -- NOT random_n25_s2)
+[2026-09-06T15:19:42.351] SINGLE timed call starting on random_n25_s2...
+[2026-09-06T15:26:27.798] timed call done: 405.4452s
+[2026-09-06T15:26:27.802] wrote row for random_n25_s2 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv
+[2026-09-06T15:27:02.891] === network=random_n25_s1 steps=50 (v2: clean, trivial-network warm-up) ===
+[2026-09-06T15:27:03.915] structural: V=25 E=58 n_diamonds=82 maxcond=13 sum_2C=17370.0
+[2026-09-06T15:27:04.396] warm-up (trivial 5-node network) starting...
+[2026-09-06T15:27:09.718] warm-up done: 5.3191s (discarded, trivial network -- NOT random_n25_s1)
+[2026-09-06T15:27:09.762] SINGLE timed call starting on random_n25_s1...
+[2026-09-06T15:40:37.913] timed call done: 808.1473s
+[2026-09-06T15:40:37.917] wrote row for random_n25_s1 to C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\pbox_cost_vs_diamonds_v2.csv

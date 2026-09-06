@@ -169,3 +169,72 @@ notes/profile_breakdown.md, this file, data/*.csv.
 - (Optional) soundness PROOF for cvxP, or feature cvxF as provable + cvxP as tight.
 - Drone Pareto case-study reliability discussion (separate chat; needs the source paper).
 - Broader/real-network p-box (tractability permitting).
+
+## 12. Pre-submission confirmation pass (2026-09-06) — HANDOVER
+
+Full audit of all prior RESS revision work before the actual rewrite/resubmission session. Found
+the revision was already far more complete than expected: a full, compiling 44pp manuscript
+already exists (`validation/probability/newress.zip` -> `main.tex`), answering every reviewer
+comment. This session's job was confirmation, not authorship. Everything below and its artifacts
+live in `pre-write final/` (this folder) unless noted; `C:\Development\RESSdata` is a separate,
+freshly-assembled Zenodo-staging copy (not yet a git repo, not yet minted — see its own README).
+
+**Corrections applied to the manuscript** (full detail + artifact citations:
+`pre-write final/manuscript/CORRECTIONS_APPLIED.md`): dropped an unmeasured "27-28" drone
+conditioning figure (replaced with the honest measured-memory statement); filled in the dPrPm
+bound columns in the grid-accuracy table by reading them directly off the actual Tong & Tien
+(2019) PDF; corrected a drone conditioning-set figure 17->16 (a real post-fix change); refreshed
+interval-timing table values and two "cosmetic drift" diamond counts; strengthened the §4.3
+cost-formula wording (upper bound, not definite cost); added a shared BDD/IPA measurement-
+environment statement and a synthetic-widening methods sentence; split the Data/Software
+Availability statement into code (package) + data (new Zenodo deposit) halves; and — after a
+retraction-and-redo mid-session (see below) — corrected the p-box steps-scaling claim to a
+verified-clean exponent of ~2.6 (1.5/8.7/51.0/339.0s at steps 25/50/100/200).
+
+**A real measurement-pollution bug was found and fixed, not just the manuscript symptom.**
+`task2_pbox_steps_confirm.jl` (this session's own first-pass re-verification script) ran a warm-up
+plus eight timed propagations, of increasing size, all in one Julia process — the exact
+process-hygiene anti-pattern this project's own `MASTER_FINDINGS.md` already names and warns
+against twice ("one timing measurement per fresh process"). The user caught the smoking gun
+(a warm-up call finishing faster than the timed call that should have benefited from it) before
+the flawed number could ship. Fixed by rewriting both timing scripts
+(`task2_pbox_steps_v2_one.jl`, `pbox_cost_vs_diamonds_v2_one.jl`) to do exactly one timed
+propagation per process, JIT-warmed on a throwaway trivial network instead of the real target;
+both validated on a single run before trusting a full batch. Bonus finding from the clean re-run:
+p-box propagation time at fixed discretisation tracks `measured_ops` (the realised,
+memoisation-adjusted work count already used for the exact/interval cost story), not the raw
+`sum_2^C` conditioning-set-width bound — clean to within ~2x scatter across an 89x range, with the
+single highest-`sum_2^C` network in the batch (`bridge_5`) finishing faster than two
+lower-`sum_2^C`-but-higher-`measured_ops` networks. Full mechanism (traced to the actual source —
+`DiamondPropagation.jl`'s `_combine` recursion and `pbox_conditional_combine`) plus the proposed
+manuscript paragraph: `pre-write final/manuscript/PBOX_COST_MECHANISM_DRAFT.md` — recommended as a
+headline part of §4.4, not a footnote; not yet applied, awaiting sign-off.
+
+**Fresh re-runs this session** (`pre-write final/data/`, each with a written summary): Net3
+(EPANET) identify+Float64 feasibility — 307 unique diamonds, maxcond=12, tractable, reconfirms a
+prior result; the p-box steps-scaling curve (see above); the grid case-study p-box table at both
+tested uncertainty widths, re-run against the current shipped operator — **sound at both w=0.05
+and w=0.10** (worst_unsound=0.000e+00 at both, versus the stale table's flagged 0.34/0.39
+violations); the p-box-cost-vs-diamond-count experiment (14 networks, see above). Task 4 (a K=8
+drone p-box "silent exit" diagnostic) was explicitly skipped — confirmed by grepping `main.tex`
+directly that no "K=" notation appears anywhere in the manuscript, so this internal debugging
+curiosity has no bearing on any paper claim.
+
+**Literature**: closed two previously-open citations (Jacob et al. 2011's exact venue confirmed as
+SUM 2011; "Kozine, Krymsky & Gurov" does not appear to exist as a single paper — found and read
+Kozine & Krymsky 2017 instead, two authors, single-component scope). Found a batch of literature
+(credal networks / Mauá & Cozman 2020, Fagiuoli & Zaffalon 1998, Feng et al. 2016, Behrensdorf et
+al. 2019, Jacob/Dubois/Cardoso 2011) that was fully verified in a prior session but never actually
+integrated into the manuscript — recommended additions in
+`pre-write final/literature/CITATION_STATUS.md`, especially for the R3.8 "broader applicability to
+Bayesian networks" response (the credal-network complexity result makes that answer sharper and
+more defensible, not just longer).
+
+**Genuinely open, needing the author**: sign-off on 3 flagged judgment-call framings
+(`pre-write final/reviewer_response/JUDGMENT_CALLS.md`: drone case-study "story" risk, BDD-fairness
+disclosure, PGM-applicability claim); sign-off on the p-box cost mechanism paragraph; whether to
+add the fully-validated-but-unintegrated adversarial (fanin-k/mesh-w) data as a new subsection;
+confirm/correct the Zenodo package include-list (`MANIFEST_DECISIONS.md` in `RESSdata/`, copied
+from `pre-write final/zenodo_package/MANIFEST.md`); when to mint the Zenodo DOI; the original
+submitted manuscript + official decision letter (not in the repo, user supplying separately); a
+final editorial/proofreading pass (flagged by prior sessions as still owed, not attempted here).

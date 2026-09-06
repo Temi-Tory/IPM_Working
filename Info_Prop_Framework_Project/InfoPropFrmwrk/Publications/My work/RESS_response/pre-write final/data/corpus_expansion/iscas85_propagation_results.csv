@@ -1,0 +1,2 @@
+name,V,E,n_diamonds,maxcond,sum_2powC,identify_time_s,float64_propagate_s,measured_ops,worst_delta_float64_vs_oracle,interval_identify_s,interval_propagate_s,corner_diff_lo,corner_diff_hi
+c17,11,12,3,1,6.000000e+00,0.9811,0.0001,9,1.110e-16,0.0001,0.0001,0.000e+00,0.000e+00

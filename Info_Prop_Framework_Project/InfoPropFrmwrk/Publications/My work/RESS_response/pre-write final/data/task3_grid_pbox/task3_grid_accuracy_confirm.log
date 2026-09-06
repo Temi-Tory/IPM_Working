@@ -1,0 +1,9 @@
+[2026-09-06T13:06:00.540] === Task 3: grid p-box accuracy table, fresh reconfirm against current pbox operator ===
+[2026-09-06T13:06:00.557] PBOX_COND_BLEND default = positive (:positive=cvxP tight-sound, :frechet=cvxF guaranteed-sound; NOT the old unsound convIndep)
+[2026-09-06T13:06:02.512] grid: V=16 E=24 sources=[1, 3, 13] target=16
+[2026-09-06T13:06:11.401] ACC Float64  worst|IPA-BDD| = 1.110e-16 (BDDjl, not CUDD -- see header note)
+[2026-09-06T13:06:13.460] ACC Interval w=0.05  IPA over=3.331e-16 unsound=1.110e-16 | naive over=2.247e-04
+[2026-09-06T13:15:05.962]   propagate(pbox,0.05) IPA=531.24s naive=1.26s
+[2026-09-06T13:15:59.076]   MC_N=50000 samples via BDDjl in 53.114s
+[2026-09-06T13:15:59.782] ACC pbox@200 w=0.05  IPA_unsound=0.000e+00 | naive_unsound=2.138e-02 (node 16, MC_N=50000)
+[2026-09-06T13:15:59.786] ACC Interval w=0.10  IPA over=2.220e-16 unsound=1.110e-16 | naive over=1.110e-16

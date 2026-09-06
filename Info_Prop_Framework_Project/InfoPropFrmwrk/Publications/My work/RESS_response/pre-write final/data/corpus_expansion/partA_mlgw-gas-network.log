@@ -1,0 +1,24 @@
+[2026-09-06T16:50:10.201] === Part A fresh confirmation: mlgw-gas-network ===
+[2026-09-06T16:50:10.228] edges_file=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\mlgw-gas-network\mlgw-gas-network.EDGES
+[2026-09-06T16:50:10.261] nodepriors=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\mlgw-gas-network\float\mlgw-gas-network-nodepriors.json
+[2026-09-06T16:50:10.261] linkprobs=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\dag_ntwrk_files\mlgw-gas-network\float\mlgw-gas-network-linkprobabilities.json
+[2026-09-06T16:50:10.360] nodes=37 edges=40 sources=2 sinks=6
+[2026-09-06T16:50:10.391] forks=6 joins=5 layers=10
+[2026-09-06T16:50:11.464] IDENTIFY-ONLY done in 1.0338s
+[2026-09-06T16:50:11.498] structural: V=37 E=40 n_diamonds(unique,incl.nested)=7 maximal_diamonds=4 maxcond=4 sum_2^C=3.6000e+01
+[2026-09-06T16:50:11.507] wrote C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\corpus_expansion\partA_mlgw-gas-network_identify_only.csv
+[2026-09-06T16:50:11.507] JIT warm-up (trivial 5-node, Float64) done: 0.0001s (discarded, NOT mlgw-gas-network)
+[2026-09-06T16:50:11.507] Float64 exact propagation: SINGLE timed call starting...
+[2026-09-06T16:50:11.507] Float64 exact propagation done in 0.0004s
+[2026-09-06T16:50:11.507] widening +/-0.05 (degeneracy-preserving): degenerate node priors=0 degenerate link probs=0 (0 expected for both these networks)
+[2026-09-06T16:50:11.987] JIT warm-up (trivial 5-node, Interval) done: 0.4416s (discarded, NOT mlgw-gas-network)
+[2026-09-06T16:50:11.988] Interval propagation: identify (interval-typed) + SINGLE timed call starting...
+[2026-09-06T16:50:11.989] Interval propagation done: identify=0.0004s propagate=0.0008s
+[2026-09-06T16:50:12.021] interval corner-check: max|lower-lo|=0.000e+00 max|upper-hi|=0.000e+00
+[2026-09-06T16:50:12.050] building BDDjl oracle...
+[2026-09-06T16:50:12.056] oracle build done in 0.0066s
+[2026-09-06T16:50:12.372] worst_delta Float64(real) vs oracle = 1.110e-16
+[2026-09-06T16:50:12.372] worst_delta Float64(lo-corner) vs oracle = 1.110e-16
+[2026-09-06T16:50:12.372] worst_delta Float64(hi-corner) vs oracle = 2.220e-16
+[2026-09-06T16:50:12.372] worst_delta Interval bounds vs oracle(corners) = 2.220e-16
+[2026-09-06T16:50:13.063] wrote C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\probability\data\corpus_expansion\partA_mlgw-gas-network_full_summary.csv

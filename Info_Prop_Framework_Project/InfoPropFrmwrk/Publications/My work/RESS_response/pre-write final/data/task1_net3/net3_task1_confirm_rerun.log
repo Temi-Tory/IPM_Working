@@ -1,0 +1,20 @@
+[2026-09-06T12:39:13.401] === Task 1: Net3 identify-only feasibility check (fresh rerun) ===
+[2026-09-06T12:39:13.417] REPO=C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project
+[2026-09-06T12:39:14.649] load time=0.8841s
+[2026-09-06T12:39:14.694] nodes=97 edges=119
+[2026-09-06T12:39:14.731] sources (indegree 0) = [1, 2, 4] (n=3)
+[2026-09-06T12:39:14.769] sinks (outdegree 0) = [3, 5, 8, 10, 23, 30, 38, 39, 58, 69, 70, 72, 76, 77, 79, 80, 92, 96] (n=18)
+[2026-09-06T12:39:15.347] forks=35 joins=23 layers=28 (fork/join time=0.0501s, iterset time=0.4736s)
+[2026-09-06T12:39:15.621] mem_before identify (gc_live_bytes) = 32399931 bytes (32.4 MB)
+[2026-09-06T12:39:17.156] IDENTIFY DONE in 1.3479s
+[2026-09-06T12:39:17.156] unique diamonds (incl. nested) = 307
+[2026-09-06T12:39:17.192] maximal/root diamonds = 21
+[2026-09-06T12:39:17.192] maxcond (max |conditioning_nodes|) = 12
+[2026-09-06T12:39:17.192] mem_after identify (gc_live_bytes) = 50466383 bytes (50.5 MB); delta = 18.1 MB
+[2026-09-06T12:39:17.532] sum(2^|C|) over unique diamonds = 5.4734e+04 (tractability proxy used elsewhere in this campaign for p-box cost)
+[2026-09-06T12:39:18.226] wrote identify-only summary CSV -> C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\net3\thesis_writing_pack\net3_task1_identify_only.csv
+[2026-09-06T12:39:18.233] identify_time < 120s ? true -- attempting Float64 propagation with 5-min hard timeout
+[2026-09-06T12:39:21.170] PROPAGATE DONE in 2.8860s (Float64 exact)
+[2026-09-06T12:39:21.285] wrote propagation beliefs -> C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\net3\thesis_writing_pack\net3_task1_propagation_beliefs.csv
+[2026-09-06T12:39:21.960] wrote full summary CSV -> C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project\validation\net3\thesis_writing_pack\net3_task1_full_summary.csv
+[2026-09-06T12:39:21.969] === Task 1 done ===
