@@ -126,7 +126,7 @@ A component failure probability is often known only within bounds, from sparse o
 
 Hence, existing methods face a trade-off between generality, computational efficiency, and exactness. Classical analytical methods struggle with complex dependency structures, exact path-based approaches suffer from combinatorial explosion, and simulation or approximate message-passing methods sacrifice exactness for scalability. This work addresses this gap by proposing an exact message-passing framework for DAG reliability analysis that explicitly resolves reconvergent dependencies through conditional decomposition of fork--join substructures. By identifying and reducing these structures during computation, the proposed method avoids repeated enumeration over shared dependencies and preserves exact probabilistic results.
 
-\section{Network Model}
+\section{Network Model}\label{sec:model}
 A process system is modelled as a directed acyclic graph $G = (V, E)$ where $V$ denotes the set of nodes (components) and $E \subseteq V \times V$ represents the set of directed edges (dependencies). Let $S \subseteq V$ denote the set of source nodes and $T \subseteq V$ the set of sink nodes. Throughout the paper we use $\text{Pa}(v)$ and $\text{Ch}(v)$ to represent the set of parent nodes and child nodes of $v$, respectively.
 
 \subsection{Component States and Probabilistic Model}
@@ -376,7 +376,7 @@ P(s)=\prod_{i=1}^{m}[b(c_i)]^{s_i}[1-b(c_i)]^{1-s_i}.
 
 For each conditioning state $s$, the remaining incoming paths to the join node become conditionally independent, so the local update can again be evaluated using the independent-signal formula.
 
-\subsection{Simple Example}
+\subsection{Simple Example}\label{sec:simple_example}
 
 To illustrate the effect of reconvergent dependencies and the correctness of the conditioning approach, consider the simple diamond in Figure~\ref{fig:numerical-diamond}. The subgraph consists of a single fork--join pair connected by two intermediate paths. All non-source nodes have intrinsic reliability $0.9$, and all edges have transmission probability $0.9$.
 
@@ -438,8 +438,8 @@ S_1 = S_2 = b(p_i)\,P(p_i,j) = 0.6561 \times 0.9 = 0.59049.
 \]
 Treating the two incoming signals as independent gives
 \begin{align*}
-P(\text{signal}) &= 1-(1-0.59049)^2 = 0.83227, \\
-b(j) &= 0.9 \times 0.83227 = 0.749043,
+P(\text{signal}) &= 1-(1-0.59049)^2 = 0.83230, \\
+b(j) &= 0.9 \times 0.83230 = 0.749071,
 \end{align*}
 which overestimates the correct value.
 
@@ -485,7 +485,7 @@ The Information Propagation Algorithm computes node reliability in a single forw
 
 This formulation localises exact dependency handling to the subgraphs that require it. Elsewhere, it retains the simple closed-form updates.
 
-Algorithm~\ref{alg:ipa} summarises the overall IPA procedure.
+Algorithm~\ref{alg:ipa} summarises the overall computation.
 
 \begin{algorithm}[h]
 \caption{Information Propagation Algorithm (IPA)}
@@ -519,32 +519,24 @@ For nodes involved in reconvergent structures, additional cost arises from condi
 The next section introduces a progressive decomposition strategy that reduces repeated conditioning by replacing resolved diamond subgraphs with statistically equivalent supernodes.
 
 
-\section{Progressive Decomposition of Diamond Structures}
-Progressive decomposition is the mechanism that makes IPA practical on many non-trivial DAGs with reconvergent structure. It preserves exactness by replacing resolved diamonds with conditionally equivalent supernodes, and it improves efficiency by preventing the same dependencies from being conditioned on repeatedly.
+\section{Progressive Decomposition of Diamond Structures}\label{sec:decomp}
+Progressive decomposition aims to make IPA practical on non-trivial DAGs with reconvergent structure. By replacing resolved diamonds with conditionally equivalent supernodes, it preserves exactness and improves efficiency: the same dependencies are never conditioned on repeatedly.
 
-While conditional decomposition resolves dependencies locally, real process networks rarely contain only isolated diamonds. In practical directed acyclic graphs, reconvergent structures often overlap or nest within one another, so that the output of one diamond becomes part of a larger downstream reconvergent structure. In such cases, repeatedly conditioning on the same upstream variables can lead to severe computational redundancy.
-
-IPA addresses this issue through \emph{progressive diamond decomposition}. Once a diamond subgraph has been solved, it is replaced by a statistically equivalent \emph{supernode} that preserves its exact conditional behaviour while simplifying the remaining graph. This reduces repeated conditioning over already-resolved substructures and allows nested reconvergent patterns to be handled incrementally.
-
-Consider a nested reconvergent network in which an inner diamond appears as part of a path in a larger outer diamond. Without decomposition, the inner structure would need to be re-evaluated each time the outer diamond is conditioned on a new upstream state. If the outer and inner diamonds contain multiple conditioning variables, the resulting enumeration cost grows multiplicatively.
-
-More generally, for a network with $L$ nested dependency levels, a direct conditional evaluation may require
+Real process networks rarely contain only isolated diamonds. Reconvergent structures often overlap or nest within one another, so that the output of one diamond becomes part of a larger downstream reconvergent structure. Repeatedly conditioning on the same upstream variables here causes computational redundancy: for a network with $L$ nested dependency levels, a direct conditional evaluation may require
 \begin{align}
 b(j) = & R(j) \cdot
 \sum_{s_1 \in \{0,1\}^{m_1}}
 \sum_{s_2 \in \{0,1\}^{m_2}}
-\cdots \nonumber \\ 
+\cdots \nonumber \\
 &
 \sum_{s_L \in \{0,1\}^{m_L}}
 P(s_1)P(s_2\mid s_1)\cdots P(s_L\mid s_1,\ldots,s_{L-1})
 \,\phi(s_1,\ldots,s_L),
 \label{eq:nested_direct_enum}
 \end{align}
-where $m_\ell$ is the number of conditioning nodes introduced at nesting level $\ell$, and $\phi(\cdot)$ is the resulting signal probability at the join node. This cost grows exponentially with both the number of conditioning variables and the depth of nesting.
+where $m_\ell$ is the number of conditioning nodes introduced at nesting level $\ell$, and $\phi(\cdot)$ is the resulting signal probability at the join node. The cost of this direct evaluation grows exponentially with both the number of conditioning variables and the depth of nesting. Progressive decomposition avoids the repeated re-evaluation behind \eqref{eq:nested_direct_enum} by solving each diamond once, storing its exact conditional behaviour in a \emph{supernode}, and reusing that behaviour whenever the reduced network is evaluated further downstream.
 
-The purpose of progressive decomposition is to avoid this repeated re-evaluation by solving inner diamonds once, storing their exact conditional behaviour, and reusing that information whenever the reduced network is evaluated further downstream.
-
-\subsection{Supernode Representation}
+\subsection{Supernode Representation and Exactness Guarantees}\label{sec:supernode}
 
 Let $D$ be a diamond subgraph with fork-side conditioning set
 \[
@@ -556,52 +548,58 @@ and join node $j_D$. Solving the diamond yields the exact conditional signal pro
 \qquad s \in \{0,1\}^{m},
 \label{eq:supernode_conditional_map}
 \end{equation}
-where $J_D$ denotes the event that a signal reaches the join node of the diamond and $s$ is a binary state assignment to $\mathcal{C}_D$.
+where $J_D$ denotes the event that a signal reaches the join node of the diamond and $s$ is a binary state assignment to $\mathcal{C}_D$. The resolved diamond is then replaced by a supernode that stores the map $s \mapsto \psi_D(s)$: whenever the conditioning state $s$ is encountered in a larger downstream computation, the contribution of the original diamond is recovered exactly through \eqref{eq:supernode_conditional_map}, without re-solving the full subgraph. The following four results make this exact, in order: that a resolved diamond's conditional map does not depend on the outer context it sits in; that conditioning on a shared fork is what makes the map well defined; that independent reconvergent structures at the same join can each be resolved on its own separating set, without joint conditioning over the combined ancestry; and that the supernode replacement is therefore lossless downstream.
 
-The resolved diamond is then replaced by a supernode that stores the map
-\[
-s \mapsto \psi_D(s).
-\]
-This supernode acts as a statistically equivalent component in the reduced graph: whenever the conditioning state $s$ is encountered in a larger downstream computation, the contribution of the original diamond is recovered exactly through \eqref{eq:supernode_conditional_map}, without re-solving the full subgraph.
+\begin{lemma}[Conditional Invariance]\label{lem:invariance}
+Let $D$ be a diamond subgraph with join $j_D$ and conditioning set $C \subseteq \mathcal{C}_D$, and let $\psi_D(s) = P(\mathcal{R}_{j_D}=1 \mid \mathcal{R}_C = s)$, $s \in \{0,1\}^{|C|}$, be its conditional signal map. If an enclosing computation conditions on further variables $A$ disjoint from the nodes and edges internal to $D$, then $\psi_D(s)$ is unchanged by that outer conditioning.
+\end{lemma}
 
-%The key observation enabling decomposition is that once a diamond has been conditioned on the variables responsible for its internal dependencies, its downstream behaviour is fully characterised by its conditional signal map. This gives rise to the following invariance property.
+\begin{proof}
+Fix $s$. Conditional on $\mathcal{R}_C=s$, the event $\{\mathcal{R}_{j_D}=1\}$ is a deterministic function, by \eqref{eq:reach_indicator}, of the node and edge indicators internal to $D$. By Assumption~\ref{as:indep} these indicators are independent of every indicator outside $D$, in particular of the variables in $A$. Hence $P(\mathcal{R}_{j_D}=1\mid \mathcal{R}_C=s,\mathcal{R}_A=a)=\psi_D(s)$ for every outer state $a$: the outer conditioning changes only the probability with which a state $s$ occurs, never the value $\psi_D(s)$ itself.
+\end{proof}
 
-\begin{lemma}[Conditional Invariance of a Resolved Diamond]
-Let $D_{\mathrm{in}}$ be a diamond subgraph embedded within a larger DAG, and let $\mathcal{C}_{\mathrm{in}}$ be the conditioning variables required to resolve all dependencies internal to $D_{\mathrm{in}}$. Then the conditional signal probability
+The disjointness required by Lemma~\ref{lem:invariance} is what identification enforces (Section~\ref{sec:identification}): whenever an outer state does fix a variable internal to a previously resolved diamond, the sub-problem it defines is a different one and is resolved, and stored, separately.
+
+\begin{lemma}[Separator Sufficiency]\label{lem:separator}
+Let $v$ be a join node and let $C \subseteq F \cap \mathrm{anc}(v)$ be a set of forks such that $\mathrm{infl}(u;C)\cap\mathrm{infl}(u';C)=\emptyset$ for every pair of distinct parents $u,u'\in\mathrm{Pa}(v)$, where $\mathrm{infl}$ is defined in \eqref{eq:infl}. Then, conditional on $\mathcal{R}_C$, the parent reachability events $\{\mathcal{R}_u\}_{u\in\mathrm{Pa}(v)}$ are mutually independent, and
 \begin{equation}
-    \psi_{D_{\mathrm{in}}}(s) = P(J_{\mathrm{in}} \mid s),
-\qquad s \in \{0,1\}^{|\mathcal{C}_{\mathrm{in}}|},
+b(v\mid \mathcal{R}_C=s) = R(v)\left(1-\prod_{u\in\mathrm{Pa}(v)}\bigl(1-P(\mathcal{R}_u=1\mid \mathcal{R}_C=s)\,P(u,v)\bigr)\right).
 \end{equation}
-depends only on the internal structure of $D_{\mathrm{in}}$ and the state assignment $s$, and is invariant to any outer conditioning context that does not alter the internal topology or component probabilities of $D_{\mathrm{in}}$.
 \end{lemma}
 
 \begin{proof}
-By construction, all statistical dependencies internal to $D_{\mathrm{in}}$ are removed once the variables in $\mathcal{C}_{\mathrm{in}}$ are fixed. For any fixed state $s$, the remaining signal probability at the join node is determined solely by the nodes, edges, and path structure contained within $D_{\mathrm{in}}$. Any outer conditioning context may affect the probability with which a state $s$ occurs, but it does not change the value of $P(J_{\mathrm{in}} \mid s)$ itself, provided the internal structure and local probabilities of $D_{\mathrm{in}}$ remain unchanged.
+With $\mathcal{R}_C$ fixed, each $\mathcal{R}_u$ is, by \eqref{eq:reach_indicator}, a function of the indicators in $\mathrm{infl}(u;C)$ alone. These sets are disjoint across parents by hypothesis, and functions of disjoint sets of mutually independent indicators (Assumption~\ref{as:indep}) are themselves independent. The stated update is then \eqref{eq:independent_update} applied conditionally on $\mathcal{R}_C=s$.
 \end{proof}
 
-This immediately justifies replacement by a supernode.
+Lemma~\ref{lem:separator} is what the unresolved-influence test of \eqref{eq:infl} is for: identification returns, for each reconvergent structure, a conditioning set with this separating property, so the resulting cost is $2^{|C|}$.
 
-\begin{lemma}[Supernode Equivalence]
-Let $D$ be a resolved diamond with conditional signal map $\psi_D(s)$. Replacing $D$ by a supernode storing $\psi_D(s)$ preserves the exact source-to-node reliability of every downstream node in the reduced graph.
+\begin{lemma}[Independent-Substructure Factorisation]\label{lem:factorisation}
+Fix a conditioning context $E$ and write $u\sim u'$ for parents $u,u'$ of a join $v$ whenever $\mathrm{infl}(u;E)\cap\mathrm{infl}(u';E)\neq\emptyset$. Let $G_1,\ldots,G_m$ be the equivalence classes of $\mathrm{Pa}(v)$ under the transitive closure of $\sim$. The events $\{v\text{ is reached through some parent in }G_k\}$, $k=1,\ldots,m$, are mutually independent, and
+\begin{equation}
+b(v) = R(v)\left(1-\prod_{k=1}^{m}\bigl(1-P(v\text{ reached via }G_k)\bigr)\right),
+\end{equation}
+so each group $G_k$ can be resolved on its own separating set $C_k$ (Lemma~\ref{lem:separator}) independently of the others.
 \end{lemma}
 
 \begin{proof}
-For any downstream computation, the contribution of $D$ enters only through the probability that its join node receives a signal under a given conditioning state. By Lemma 1, this contribution is exactly $\psi_D(s)$ for each state $s$. Replacing the original diamond by a supernode that returns the same value $\psi_D(s)$ under the same conditioning state therefore leaves all downstream reliability calculations unchanged.
+Distinct classes have disjoint unresolved influence by construction, so the class events are functions of disjoint sets of mutually independent indicators, hence independent by Assumption~\ref{as:indep}; the product form is \eqref{eq:independent_update} applied to the $m$ group events.
 \end{proof}
 
-\subsection{Progressive Decomposition Procedure}
+At a join whose parents form $m$ independent groups with conditioning sets $C_1,\ldots,C_m$, joint conditioning over the combined shared ancestry would enumerate $2^{|C_1|+\cdots+|C_m|}$ states. Lemma~\ref{lem:factorisation} enumerates $\sum_{k=1}^m 2^{|C_k|}$ states instead. For $k$ parents each depending on its own independent fork, this reduces the cost from $2^k$ to $2k$, from exponential to linear in the fan-in.
 
-IPA applies diamond decomposition progressively during topological evaluation. When the algorithm reaches a join node involved in a reconvergent structure, it:
-\begin{enumerate}
-    \item identifies the associated diamond subgraph,
-    \item determines the conditioning variables required to resolve its internal dependencies,
-    \item computes the conditional signal map of the join node,
-    \item replaces the entire resolved diamond by a supernode in the reduced graph.
-\end{enumerate}
+\begin{lemma}[Supernode Equivalence]\label{lem:supernode}
+Let $D$ be a resolved diamond, or a resolved independent group $G_k$ of Lemma~\ref{lem:factorisation}, with conditional signal map $\psi_D(s)$. Replacing $D$ by a supernode storing $\psi_D(s)$ preserves the exact source-to-node reliability of every downstream node in the reduced graph.
+\end{lemma}
 
-This procedure transforms the original DAG into a progressively simpler equivalent DAG. Inner diamonds are resolved first, so that larger outer diamonds can treat them as supernodes rather than re-evaluating their internal paths.
+\begin{proof}
+The contribution of $D$ to any downstream computation enters only through the probability that its join receives a signal under a given conditioning state. By Lemma~\ref{lem:invariance} the stored map equals $\psi_D(s)$ in every outer context that fixes no variable internal to $D$, and by Lemmas~\ref{lem:separator} and~\ref{lem:factorisation} the downstream update combines this map with the remaining parent signals through the same independent-union rule used elsewhere in IPA. Both are preserved by the replacement, so every downstream belief is unchanged.
+\end{proof}
 
-Figure~\ref{fig:progressive_decomposition} illustrates the decomposition of a nested reconvergent network.
+\subsection{Progressive Decomposition Procedure}\label{sec:procedure}
+
+IPA applies diamond decomposition progressively as it processes the network in topological order. When it reaches a join node whose parent signals are dependent, it partitions the parents into independent groups by testing pairwise intersection of their unresolved influence, \eqref{eq:infl} (Lemma~\ref{lem:factorisation}). For each group it finds the earliest fork common to its members and the subgraph this induces, computes the group's conditional signal map by conditioning on that fork (Lemma~\ref{lem:separator}), and replaces the resolved group by a supernode in the reduced graph (Lemma~\ref{lem:supernode}). Independent groups then combine by the factorised union rule; a single correlated group with no independent partition reduces exactly to the non-factorised case of Section~\ref{sec:supernode}.
+
+Unlike the single-fork diamond of Section~\ref{sec:simple_example}, a diamond resolved this way can itself sit inside a larger diamond, so that the graph must be simplified from the inside out: inner diamonds are resolved first, and outer diamonds then treat them as supernodes and do not re-evaluate their internal paths. Figure~\ref{fig:progressive_decomposition} shows this on a network with four such diamonds, some nested inside others.
 
 \begin{figure}[p]
 \centering
@@ -662,88 +660,132 @@ Figure~\ref{fig:progressive_decomposition} illustrates the decomposition of a ne
 \label{fig:progressive_decomposition}
 \end{figure}
 
-The topological order ensures that the inner diamond $D_1$ is detected and resolved before downstream join nodes are processed. Once replaced by a supernode, the reduced graph contains fewer explicit dependency-inducing paths. The same procedure is then applied to $D_2$ and $D_3$, after which the final outer diamond $D_4$ can be evaluated using the already-resolved supernodes. In this way, dependencies are handled locally and only once.
+\subsubsection{Tracing the example of Figure~\ref{fig:progressive_decomposition}}\label{sec:worked}
 
-\subsection{Computational Effect of Decomposition and complexity comparison}
+The network of Figure~\ref{fig:progressive_decomposition} has three sources and thirteen further nodes; every non-source node has intrinsic reliability $0.9$ and every edge has transmission probability $0.9$, as in Section~\ref{sec:simple_example}. Node 6 has three parents, 3, 5, and 13, but only 3 and 5 trace back to the shared fork 1; the third, 13, traces back through node 14 to a different source and carries no dependency on the other two. IPA therefore does not condition node 6 on a joint state of three variables: it resolves $\{3,5\}$ as diamond $D_1$ (fork 1), then combines the result with node 13's independent signal by the ordinary union rule of Section~\ref{sec:IPA} (Lemma~\ref{lem:factorisation}). Node 4, by contrast, is a join with no diamond at all: its parents 1 and 8 share no common ancestor, so IPA applies the closed-form independent update directly (Section~\ref{sec:IPA}) and never conditions on anything there.
 
-The benefit of decomposition is not that it removes the exponential nature of exact inference in all cases, but that it prevents repeated enumeration over the same resolved substructures. Without decomposition, nested diamonds may require repeated multi-level conditioning as in \eqref{eq:nested_direct_enum}. With decomposition, the effective cost is reduced to the accumulation of local conditioning costs over the diamonds that must be resolved.
-
-At a high level, if a nested network contains diamonds $D_1,\ldots,D_M$ with conditioning-set sizes $c_1,\ldots,c_M$, then progressive decomposition avoids repeated multiplicative re-enumeration and replaces it with a sum of local conditional evaluations of order
-\begin{equation}
-O\!\left(\sum_{i=1}^{M} 2^{c_i}\right),
-\label{eq:decomp_complexity}
-\end{equation}
-provided that previously resolved diamonds can be reused through their stored conditional maps.
-
-This should be interpreted as an \emph{effective} complexity reduction relative to repeated nested conditioning, not as a universal worst-case bound for all graph topologies. In highly entangled reconvergent networks with many contextual entry points, reuse may be limited and the practical cost may still grow rapidly.
-
-% ADD HERE SOME DETAILS ABOUT THE ALGORITHM TO DETECT AND STORE DIAMONDS
-
-Table~\ref{tab:complexity_comparison} summarises the qualitative effect of progressive decomposition on different update types.
+$D_1$ is resolved first, since node 6 is reached before nodes 11, 12, and 16 in topological order. Fork 1 has $b(1)=0.81$; conditional on 1 being reachable, the union of paths through 3 and 5 has probability $\psi_{D_1}(1)=0.8890228$, and conditional on 1 being unreachable no signal can reach 6 through either path, so $\psi_{D_1}(0)=0$. Combining this with node 13's independent signal gives $b(6)=0.7968435$. Diamonds $D_2$ (fork 7, join 11) and $D_3$ (fork 14, join 12) do not depend on $D_1$ or on each other and are resolved the same way, each conditioning on its own fork. The reduced graph then has a single outer diamond, $D_4$: fork 1 again, but now covering join 16 through the two already-resolved supernodes at 11 and 12. Fork 1 is conditioned on a second time here, in a different context from $D_1$, and the two resolutions are kept as distinct stored sub-problems (Section~\ref{sec:identification}) because they cover different edges. Table~\ref{tab:worked} lists all four resolutions; the final belief is $b(16)=0.8061491$, and each step was checked independently by exhaustive path enumeration of its own sub-network.
 
 \begin{table}[ht]
-\small
-\caption{Qualitative complexity comparison for node updates with and without progressive decomposition}
-\label{tab:complexity_comparison}
-\centering
-\begin{tabular}{p{4.5cm}p{4cm}p{4cm}}
+\centering\small
+\caption{Trace of the four diamond resolutions in Figure~\ref{fig:progressive_decomposition}. $w=P(\mathcal{R}_f{=}1)$; $\psi(1),\psi(0)$ are the conditional signal probabilities at the join given the fork reachable or unreachable, before the join's own reliability is applied.}
+\label{tab:worked}
+\begin{tabular}{lcccccc}
 \toprule
-Update Type & Without Decomposition & With Decomposition \\
+Diamond & Join & Fork & Group & $w$ & $\psi(1)$, $\psi(0)$ & $b(\text{join})$\\
 \midrule
-Single parent update & $O(1)$ & $O(1)$ \\
-Independent multi-parent update & $O(|\mathrm{Pa}(v)|)$ & $O(|\mathrm{Pa}(v)|)$ \\
-Single diamond with $c$ conditioning nodes & $O(2^c \cdot d)$ & $O(2^c)$ \\
-Nested diamonds & repeated nested conditioning & accumulated local conditioning \\
+$D_1$ & 6  & 1 & \{3,5\} + 13 (indep.) & 0.81 & 0.8890228,\ 0 & 0.7968435\\
+$D_2$ & 11 & 7 & \{10,9\}              & 0.81 & 0.8937451,\ 0.4782969 & 0.7333289\\
+$D_3$ & 12 & 14 & \{6,15\}             & 0.81 & 0.9318600,\ 0.5832879 & 0.7790682\\
+$D_4$ & 16 & 1 & \{12,11\}             & 0.81 & 0.9139431,\ 0.8180383 & 0.8061491\\
 \bottomrule
 \end{tabular}
-\begin{minipage}{\textwidth}
-\footnotesize
-Here $d$ denotes the size of the diamond subgraph, and $c$ denotes the number of conditioning variables required to resolve its internal dependencies.
-\end{minipage}
 \end{table}
 
-The remaining computational bottleneck of the approach is governed not simply by network size, but by the number, size, and nesting depth of dependency-inducing diamond structures as explored empirically in the case studies that follow.
+\subsubsection{Identification of stored sub-problems}\label{sec:identification}
 
+Algorithm~\ref{alg:identify} gives the identification procedure itself, run at each join whose parent signals are dependent. It partitions the join's parents into independent ancestry-groups (Lemma~\ref{lem:factorisation}), finds each group's covering fork, and recurses into nested diamonds under an extended context — this is the recursive partition-and-recurse step that Algorithm~\ref{alg:ipa}'s propagation loop invokes in a single line (``identify reconvergent structures affecting $v$''). A node is excluded from a conditioning set only when it is provably degenerate: fixed at prior exactly $0$, or fixed at exactly $1$ \emph{and} a graph source. Excluding any other prior-$1$ node is unsound here — it would silently drop a real diamond whenever every prior in the network happens to equal $1$, which is exactly the input convention of the benchmark grid network of Section~\ref{sec:grid}.
 
-\subsection{Implementation in Julia}
+\begin{algorithm}[h]
+\caption{Diamond identification at a join node (recursive, factorised)}
+\label{alg:identify}
+\begin{algorithmic}[1]
+\REQUIRE join node $v$, outer conditioning context $E$ (initially $\emptyset$)
+\ENSURE independent conditioning groups for $v$, each with its diamond subgraph and conditioning set
+\FOR{each parent $p \in \text{Pa}(v)$}
+    \STATE compute $\text{infl}(p;E) = (\{p\}\cup\text{anc}(p))\setminus E$ \COMMENT{Eq.~\eqref{eq:infl}}
+\ENDFOR
+\STATE partition $\text{Pa}(v)$ into groups $G_1,\ldots,G_m$ by union--find: $p,p'$ share a group iff $\text{infl}(p;E)\cap\text{infl}(p';E)\neq\emptyset$ \COMMENT{Lemma~\ref{lem:factorisation}}
+\FOR{each group $G_k$}
+    \STATE $f_k \gets$ the topologically-highest fork covering $\geq2$ members of $G_k$ (or the case where one member is an ancestor of another)
+    \IF{no such fork exists}
+        \STATE members of $G_k$ contribute as ordinary non-diamond parents (Section~\ref{sec:IPA})
+    \ELSE
+        \STATE relevant nodes $\gets \{v\}\cup G_k\cup\text{anc}(G_k)$; induced edges $\mathcal{E}_{D_k} \gets$ edges among relevant nodes not crossing into $E$'s already-fixed context
+        \STATE conditioning set $C_k \gets \{f_k\}\cup(E\cap V(\mathcal{E}_{D_k}))$; key $\gets \mathrm{hkey}(D_k)=(\mathcal{E}_{D_k},C_k)$ \COMMENT{Eq.~\eqref{eq:hkey}}
+        \IF{a diamond with this key is already resolved}
+            \STATE reuse its stored conditional map $\psi_{D_k}$
+        \ELSE
+            \STATE recurse into $D_k$'s own join nodes with context $E\cup\{f_k\}$, then resolve and store $\psi_{D_k}$
+        \ENDIF
+    \ENDIF
+\ENDFOR
+\RETURN groups $G_1,\ldots,G_m$, each with its conditioning set and conditional map
+\end{algorithmic}
+\end{algorithm}
 
-IPA is implemented in Julia as both part of the \texttt{InfoPropFramework.jl} package and the standalone library \texttt{InformationPropagationAnalysis.jl}. In both cases, the algorithm’s functions are exposed in \texttt{ProbabilityPropagationModule}. The module validates network input contracts, then propagates node beliefs from source-to-sink  in topological order, following Section~\ref{sec:IPA} and Algorithm~\ref{alg:ipa}.
-The propagation flow is type-parametric:
+A resolved diamond is identified for reuse by its edge list together with the conditioning context it was resolved under, not by its edge list alone. The same edge list can arise from a fork that is free or already fixed by an outer context $E$, because cutting the incoming edges of an already-fixed node changes nothing in the induced subgraph; the two occurrences are nonetheless different sub-problems, since Lemma~\ref{lem:invariance} requires the outer context to fix no variable internal to the diamond. IPA keys each stored diamond $D$, with edge list $\mathcal{E}_D$ and covering fork $f$, on
+\begin{equation}
+\mathrm{hkey}(D) = \bigl(\mathcal{E}_D,\ \{f\}\cup(E\cap V(\mathcal{E}_D))\bigr),
+\label{eq:hkey}
+\end{equation}
+the edge list together with the new fork and whichever already-fixed forks from the outer context appear among the diamond's own endpoints $V(\mathcal{E}_D)$. Two occurrences of the same edge list under different outer contexts receive different keys and are resolved, and cached, separately; identical sub-problems are resolved once. A conditioning node already fixed by an outer context contributes only one term to the state enumeration of Section~\ref{sec:numerical}, not two, so nesting further levels of context does not double the enumeration already performed at each level.
+
+\subsection{Complexity and Relation to Established Exact Methods}\label{sec:complexity}
+
+IPA's cost admits an exact per-instance expression. Let the recursion of Section~\ref{sec:procedure} resolve diamonds $d=1,\ldots,M$, counting nested resolutions, with conditioning sets $C_d$ and internal edge sets $E_d$. The work performed is
+\begin{equation}
+W=\sum_{d=1}^{M}2^{|C_d|}\cdot O(|E_d|),
+\label{eq:work}
+\end{equation}
+since each diamond is resolved by enumerating the $2^{|C_d|}$ states of its conditioning set, and each state requires a propagation over the diamond's internal structure. Every term of \eqref{eq:work} is available before enumeration begins, because identification produces the conditioning sets before any state is enumerated; $W$ is a sound a-priori \emph{upper bound} on the cost of an analysis, computable in advance for a given network. This bound is not the realised cost: memoisation under \eqref{eq:hkey} reduces the work performed to the number of distinct conditional sub-problems encountered. The factorisation of Lemma~\ref{lem:factorisation} reduces the exponents themselves in favourable cases: at a fan-in of $k$ independent branches, from $2^k$ states to a number linear in $k$, without changing the worst-case class.
+
+\paragraph{Relation to cutset conditioning and junction trees} Section~\ref{subsec:relatedworks} positions IPA as a specialisation of cutset conditioning~\cite{pearl_probabilistic_1988}. Classical cutset conditioning selects a single global cutset whose state enumeration renders the whole network singly connected, at cost exponential in the cutset size. IPA identifies, at each reconvergence it visits, a local separating set of the parents' shared ancestry (Lemma~\ref{lem:separator}), conditions on it, and recurses, so the realised cost is a sum of local exponentials, not one global exponential. Tree-structured regions of the network are traversed by the closed-form updates of Section~\ref{sec:IPA} at linear cost, and Lemma~\ref{lem:factorisation} prevents joint conditioning over forks that are independent given the current context. The maximum conditioning-set size on a network is bounded by the size of the largest set of mutually entangled shared ancestors, itself bounded by the treewidth of the network. IPA sits in the same parametric complexity class as the junction-tree algorithm~\cite{lauritzen_local_1988} and a well-ordered binary decision diagram: all are exact and fixed-parameter tractable in the relevant width, and none escapes the \#P-hardness of the underlying problem. Section~\ref{sec:comparison} reports a measured comparison of conditioning-set size against decision-diagram size across the validation corpus.
+
+\paragraph{Adversarial structure} Two constructed families probe the two ends of this cost. The family $\mathrm{fanin}\text{-}k$ consists of $k$ structurally independent forks that each reconverge, on their own branch, at a single shared join; since no two forks share ancestry, Lemma~\ref{lem:factorisation} conditions each one separately, and identification resolves exactly $2k{+}1$ sub-problems for every $k$ tested. The family $\mathrm{mesh}\text{-}w$ is the opposite extreme: a width-$w$ reconvergent lattice with no independent partition, a single fully correlated block on which factorisation does not apply, so the conditioning-set size and the realised work both grow with $w$. Table~\ref{tab:adversarial} reports both families against an independent decision-diagram method built under dynamic variable reordering: independent structure is resolved at a cost linear in the fan-in, while correlated structure pays the full width-exponential cost of \eqref{eq:work}. A real published benchmark circuit family, assigned the same worst-case input convention, is examined in Section~\ref{sec:adversarial}.
+
+\begin{table}[ht]
+\centering\small
+\caption{Complexity on the two adversarial families: realised sub-problems for IPA (with factorisation) against a sifted reduced-ordered binary decision diagram, in operation-count and wall-clock terms.}
+\label{tab:adversarial}
+\begin{tabular}{lrrrrr}
+\toprule
+Family & param & IPA sub-problems & diagram nodes & IPA time & diagram time\\
+\midrule
+fan-in-$k$ & 8  & 17 & 474 & $<$1\,ms & $\sim$1--2\,s\\
+fan-in-$k$ & 16 & 33 & 802 & $<$1\,ms & $\sim$1--2\,s\\
+mesh-$w$   & 4  & 20{,}603 & 700 & 0.37\,s & 1.19\,s\\
+mesh-$w$   & 5  & 170{,}001 & 805 & 3.9\,s & 1.2\,s\\
+mesh-$w$   & 8  & 3{,}895{,}252 & 2{,}621 & 159.5\,s & 2.9\,s\\
+mesh-$w$   & 9  & 5{,}426{,}417 & 3{,}335 & 5925\,s & 3.8\,s\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At $w{=}9$ the sub-problem count grows by only $1.39\times$ over $w{=}8$ (3{,}895{,}252 to 5{,}426{,}417) while IPA's wall-clock time grows by $37\times$ (159.5\,s to 5925\,s); $w{=}10$ exceeded a 180-second-per-step time budget during identification and was not completed. The sub-problem count of \eqref{eq:work} tracks realised work only up to a point: at the largest conditioning-set sizes reached in this family, memory pressure within individual sub-problems begins to dominate wall-clock cost before it is reflected in the sub-problem count itself, and the decision diagram's wall-clock cost — already lower at every mesh-$w$ point tested — pulls further ahead than the sub-problem-count comparison alone would suggest.
+
+\paragraph{Applicability beyond source-to-node reachability} Cutset conditioning already applies to general Bayesian-network inference: IPA specialises that method to source-to-node reachability, and this specialisation does not generalise back to arbitrary probabilistic graphical models. Its closed-form update rules, the independent-union combination of parent signals and the context-keyed supernode cache, are derived for the monotone reachability structure of \eqref{eq:reach_indicator} and do not carry over directly to a Bayesian network with arbitrary conditional probability tables. What transfers is the width-governed complexity class established above. This distinction also bears on the imprecise propagation of Section~\ref{subsec:impreciseinputs}: for classical, precise Bayesian networks, bounded treewidth guarantees polynomial exact inference, but this guarantee does not survive the move to imprecise, credal parameters, where bounded-treewidth inference remains NP-hard in general~\cite{maua_thirty_2020}, and the only known tractable relaxation is an approximation scheme; no known exact one exists for that case~\cite{fagiuoli_2u_1998}. IPA's width-governed \emph{exact} imprecise result (Section~\ref{sec:imprecise}) is specific to the monotone arithmetic structure of the reachability problem and the explicit diamond-conditioning construction; it does not imply that general credal-network inference could be made exact at the same cost.
+
+\subsection{Numerical Realisation}\label{sec:numerical}
+
+IPA is implemented in Julia as part of the \texttt{InfoPropFramework.jl} package and the standalone library \texttt{InformationPropagationAnalysis.jl}, with diamond identification exposed in \texttt{DiamondDecompositionModule} and belief propagation in \texttt{ProbabilityPropagationModule}, following Section~\ref{sec:IPA} and Algorithm~\ref{alg:ipa}. The propagation flow is type-parametric,
 \[
-T <: \mathrm{Union}\{\texttt{Float64}, \texttt{Interval}, \texttt{pbox}\}.
+T <: \mathrm{Union}\{\texttt{Float64}, \texttt{Interval}, \texttt{pbox}\},
 \]
+with one core engine shared across all three representations and type-specific dispatch through common arithmetic helpers (addition, multiplication, complement).
 
+Multi-parent updates are evaluated in the product form $1-\prod_i(1-p_i)$. This is equivalent under independence to the alternating inclusion--exclusion sum, but the product form is numerically stable and avoids the spurious widening the alternating sum introduces for interval-valued inputs. At a resolved diamond, beliefs are computed by enumerating the states of its \emph{active} conditioning set: a conditioning node whose contextual belief is already pinned to $0$ or $1$ by an outer conditioning contributes only one term, not two, matching \eqref{eq:hkey}'s treatment of already-fixed forks, and never changes the result, since the dropped state carries zero weight. Two caches support this: one keyed on $\mathrm{hkey}(D)$ (Section~\ref{sec:identification}) avoids re-identifying the same diamond, and a second, keyed on a diamond's edge list together with the node priors of a given conditioning state, avoids recomputing a state's belief when the identical sub-problem recurs under a different diamond or context.
 
-One core engine is shared across all three probability representations, with type-specific arithmetic dispatch through common helpers (addition, multiplication, complement, subtraction, and product/sum operations).
+For interval inputs, each conditioning state is evaluated at the corner states of the conditioning bounds, and the result is enclosed in an interval envelope; Section~\ref{sec:imprecise} shows this yields the exact range, by the monotonicity of \eqref{eq:reach_indicator}. For probability-box inputs, recombining a diamond's two conditional branches is a convex combination of two dependent random quantities, not an independent sum: a flat weighted sum of the branch distributions, exact for the point-valued and interval cases, is unsound for probability boxes, since it double-counts the shared dependence on the conditioning weight and can return a bound outside $[0,1]$. IPA combines the two branches through the operator of Williamson and Downs~\cite{williamson_probabilistic_1990}, nesting one such combination per conditioning node so that $m$ nested two-way combinations reproduce the $2^m$-state mixture exactly.
 
-For multi-parent updates, inclusion--exclusion is evaluated in product form,
-\[
-1 - \prod_i (1 - p_i),
-\]
-which is equivalent to the alternating-sum form under independence but is numerically more stable, especially for interval-valued inputs.
-
-At diamond join nodes, beliefs are computed by enumerating states of the identified diamond-conditioning set. Each state defines a conditioned subproblem on the corresponding diamond subgraph, and the join belief is recovered by weighted state aggregation. For interval inputs, aggregation uses corner-state evaluation of conditioning bounds, then encloses the result in an interval envelope.
-
-Resolved diamonds (supernodes) are cached as conditional state-to-belief maps and reused as drop-in equivalents in downstream updates. The cache key includes both the diamond subgraph structure and the current prior-state context inside that subgraph. Supernode reuse is therefore structure-aware and state-aware: when the same diamond subgraph is evaluated under different contextual priors, it is treated as a different cache state. This is most important in nested diamonds, where outer-context beliefs can change the local conditional map even when the internal edge set is unchanged.
-
-To keep \texttt{pbox} propagation logic aligned with the deterministic and interval cases, the module inherits arithmetic helpers from the Julia library \texttt{ProbabilityBoundsAnalysis.jl}~\cite{gray_probabilityboundsanalysis}, which provides independent convolution operators to compute pbox envelope propagation under path dependencies.
+This recursive structure is shared across all three input types: the number of conditioning states enumerated per diamond, after the memoisation of Section~\ref{sec:identification}, is the same realised-work quantity reported in Section~\ref{sec:complexity}. What differs is the price paid per resolved state. For point-valued and interval inputs this price is $O(1)$; for probability-box inputs, the conditioning weight is represented at a chosen discretisation level, and each combination integrates over that discretisation via the convolution of Williamson and Downs~\cite{williamson_probabilistic_1990}, at a cost that increases with the discretisation level. Probability-box cost is therefore governed by the same realised sub-problem count as the exact and interval cases, multiplied by a per-state price set by the discretisation level, and Section~\ref{sec:imprecise} reports this cost in those terms, not against network size alone.
 
 
 
 \clearpage  % Forces all pending floats to be placed
-\section{Case Studies}
-This section evaluates IPA in two complementary settings. The first case study uses a benchmark directed grid network to assess numerical accuracy and computational performance against published results for the directed Probability Propagation Method (dPrPm)~\cite{tong_probability_2019}. The second applies IPA to a set of directed acyclic graphs derived from Pareto-optimal drone logistics networks in order to examine how reconvergent structure and diamond nesting affect the practical tractability of exact reliability analysis in realistic infrastructure systems.
+\section{Case Studies}\label{sec:cases}
 
-\subsection{Benchmark Validation on a Grid Network}
+This section evaluates IPA in four steps: a benchmark validation on a grid network (Section~\ref{sec:grid}); a corpus-wide validation and cost comparison against an independent exact decision-diagram method (Section~\ref{sec:comparison}); the imprecise-propagation capability (Section~\ref{sec:imprecise}); and an applied case study of a medical drone logistics network for Scotland (Section~\ref{sec:drone}). Section~\ref{sec:adversarial} then examines a real published benchmark family under an adversarial input convention.
+
+Two methodological points hold throughout the section. Every runtime is measured after a warm-up run of the same computation is executed and discarded, so one-off program-initialisation cost is excluded, and the reported time is the minimum of repeated measurements on otherwise idle hardware. All decision-diagram comparisons use CUDD~\cite{somenzi_cudd}, called from the same process and machine as IPA, with dynamic variable reordering enabled unless stated otherwise. Where component reliabilities are widened into intervals or probability boxes for illustration, only components that are not structurally certain are widened: a component fixed at reliability exactly 0 or 1 by the network's own structure is left at that value, since degrading a structural certainty into a synthetic uncertainty would change the problem being analysed.
+
+\subsection{Benchmark Validation on a Grid Network}\label{sec:grid}
 
 \subsubsection{Benchmark setup}
-Both the proposed Information Propagation Algorithm (IPA) and Tong and Tien's directed Probability Propagation Method (dPrPm)~\cite{tong_probability_2019} acompute node reliability in directed acyclic networks by propagating local probability information from upstream to downstream nodes.. Both methods exploit the acyclic structure of the graph to ensure that upstream dependencies are processed before downstream updates.
 
-The two methods differ in how dependencies are represented and resolved. dPrPm propagates both marginal and pairwise probabilities and uses local approximations to account for dependent interactions. Specifically, when multiple predecessors influence a node, the update rules explicitly rely on approximating a three-node joint distribution for every new edge introduced. These rules are fundamental when the incoming messages are combined in an intermediate structure, where the new link addition affects nodes that have already received some information, requiring a more nuanced treatment of shared dependencies. Although effective, this approach requires storing both marginal and pairwise probabilities throughout the network, which can become memory-intensive in large or dense networks.
+The proposed method and Tong and Tien's directed Probability Propagation Method (dPrPm)~\cite{tong_probability_2019} both compute node reliability in directed acyclic networks by propagating local probability information from upstream to downstream nodes, exploiting the acyclic structure so that upstream dependencies are processed before downstream updates. The two methods differ in how dependencies are represented. dPrPm propagates both marginal and pairwise probabilities and approximates a three-node joint distribution for every edge that introduces a new dependency; this requires storing pairwise probabilities throughout the network, which becomes memory-intensive in large or dense networks. IPA instead identifies reconvergent dependency patterns as diamond structures and resolves them through conditional decomposition (Section~\ref{sec:IPA}). It does not track pairwise relationships: each diamond is decomposed once into a statistically equivalent supernode, and the relevant dependency structure is captured once in that decomposition, not maintained node by node.
 
-IPA takes a fundamentally different view of network dependencies by identifies reconvergent dependency patterns as diamond structures and resolves them through conditional decomposition.. Rather than tracking pairwise relationships, it identifies and decomposes these structures into statistically equivalent supernodes.  As a result, IPA avoids maintaining or updating pairwise dependencies at complex intersection points, since the relevant structure is captured inherently in the decomposition.
-
-To provide a direct benchmark, IPA is applied to the same 16-node directed grid network studied in~\cite{tong_probability_2019}, shown in Figure~\ref{fig:grid_network}. This benchmark is useful because it contains multiple reconvergent structures while remaining small enough for exact verification by explicit path-based computation. Following~\cite{tong_probability_2019}, all source nodes are assigned prior reliability 1.0 and all directed edges are assigned transmission probability $R_l = 0.9$.
+To provide a direct benchmark, IPA is applied to the same 16-node directed grid network studied in~\cite{tong_probability_2019}, shown in Figure~\ref{fig:grid_network}. This benchmark contains multiple reconvergent structures while remaining small enough for exact verification by explicit path enumeration. Following~\cite{tong_probability_2019}, all source nodes are assigned prior reliability $1.0$ and all directed edges are assigned transmission probability $0.9$.
 
 \begin{figure}[htbp]
 \centering
@@ -754,270 +796,269 @@ To provide a direct benchmark, IPA is applied to the same 16-node directed grid 
 
 \subsubsection{Accuracy results}
 
-Table~\ref{tab:resultcomparison_grid} compares the node reliabilities obtained using IPA with exact values and with the lower and upper bounds reported for dPrPm in~\cite{tong_probability_2019}. IPA reproduces the exact values up to floating-point precision. By contrast, dPrPm provides tight lower and upper bounds that coincide with the exact values for many nodes in this benchmark.
+Table~\ref{tab:resultcomparison_grid} brings together three independent quantities at every node: the value IPA computes, the value a reduced-ordered binary decision diagram (ROBDD) computes for the same network, and the lower and upper bounds published for dPrPm in~\cite{tong_probability_2019}. IPA and the ROBDD agree to floating-point precision at every node, with a worst disagreement of $1.1\times10^{-16}$; the column reported as exact is therefore not IPA's own output taken on trust, but a value two independent exact methods reach separately. Against that value, the dPrPm bounds coincide everywhere except node 16, where a gap of $0.00048$ remains: the same node the source study itself identifies as the lowest-probability, hardest-to-bound event in the benchmark.
 
 \begin{table}[!ht]
-\centering
-\caption{Comparison of node reliability computed for the grid network ($R_l = 0.9$).}
+\centering\small
+\caption{Node reliabilities on the benchmark grid network ($R_l=0.9$). The exact column is where IPA and an independent ROBDD agree (worst disagreement $1.1\times10^{-16}$); dPrPm lower/upper bounds and gap are as reported in~\cite{tong_probability_2019}, Table 2. Source nodes (1, 3, 13) are fixed at reliability 1 and are not reported as dPrPm bounds in the source study.}
 \label{tab:resultcomparison_grid}
-\adjustbox{width=\textwidth,center}{
-\small
-\begin{tabular}{c c c c c c c c c}
+\begin{tabular}{ccccc}
 \toprule
-\textbf{Node} & \textbf{Exact} & \textbf{IPA} & \textbf{Abs. Error} & \textbf{Error (\%)} & \textbf{dPrPm (Lower)$^\dagger$} & \textbf{dPrPm (Upper)$^\dagger$} & \textbf{Gap$^\dagger$} & \textbf{dPrPm Error (\%)$^\dagger$} \\
+Node & Exact = IPA & dPrPm lower & dPrPm upper & Gap \\
 \midrule
-1  & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
-2  & 0.99000 & 0.99000 & 0.00000 & 0.00000 & 0.99000 & 0.99000 & 0.00000 & 0.00000 \\
-3  & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
-4  & 0.98015 & 0.98015 & \num{8.88e-16} & \num{9.06e-14} & 0.98015 & 0.98015 & 0.00000 & 0.00000 \\
-5  & 0.90000 & 0.90000 & 0.00000 & 0.00000 & 0.90000 & 0.90000 & 0.00000 & 0.00000 \\
-6  & 0.99510 & 0.99510 & \num{9.99e-16} & \num{1.00e-13} & 0.99510 & 0.99510 & 0.00000 & 0.00000 \\
-7  & 0.98956 & 0.98956 & \num{4.44e-16} & \num{4.49e-14} & 0.98956 & 0.98956 & 0.00000 & 0.00000 \\
-8  & 0.89060 & 0.89060 & \num{5.55e-16} & \num{6.23e-14} & 0.89060 & 0.89060 & 0.00000 & 0.00000 \\
-9  & 0.98100 & 0.98100 & 0.00000 & 0.00000 & 0.98100 & 0.98100 & 0.00000 & 0.00000 \\
-10 & 0.88290 & 0.88290 & \num{1.11e-16} & \num{1.26e-14} & 0.88290 & 0.88290 & 0.00000 & 0.00000 \\
-11 & 0.97734 & 0.97734 & \num{2.44e-15} & \num{2.50e-13} & 0.97734 & 0.97734 & 0.00000 & 0.00000 \\
-12 & 0.97457 & 0.97457 & \num{2.66e-15} & \num{2.73e-13} & 0.97457 & 0.97457 & 0.00000 & 0.00000 \\
-13 & 1.00000 & 1.00000 & 0.00000 & 0.00000 & 1.00000 & 1.00000 & 0.00000 & 0.00000 \\
-14 & 0.97946 & 0.97946 & \num{2.22e-16} & \num{2.27e-14} & 0.97946 & 0.97946 & 0.00000 & 0.00000 \\
-15 & 0.98498 & 0.98498 & \num{1.22e-15} & \num{1.24e-13} & 0.98498 & 0.98498 & 0.00000 & 0.00000 \\
-16 & 0.98539 & 0.98539 & \num{1.49e-11} & \num{1.51e-9} & 0.98506 & 0.98558 & 0.00052 & $-0.00532$ \\
+1  & 1.00000000 & -- & -- & -- \\
+2  & 0.99000000 & 0.99000 & 0.99000 & 0.00000 \\
+3  & 1.00000000 & -- & -- & -- \\
+4  & 0.98015430 & 0.98015 & 0.98015 & 0.00000 \\
+5  & 0.90000000 & 0.90000 & 0.90000 & 0.00000 \\
+6  & 0.99510274 & 0.99510 & 0.99510 & 0.00000 \\
+7  & 0.98955925 & 0.98956 & 0.98956 & 0.00000 \\
+8  & 0.89060332 & 0.89060 & 0.89060 & 0.00000 \\
+9  & 0.98100000 & 0.98100 & 0.98100 & 0.00000 \\
+10 & 0.88290000 & 0.88290 & 0.88290 & 0.00000 \\
+11 & 0.97734390 & 0.97734 & 0.97734 & 0.00000 \\
+12 & 0.97456525 & 0.97457 & 0.97457 & 0.00000 \\
+13 & 1.00000000 & -- & -- & -- \\
+14 & 0.97946100 & 0.97946 & 0.97946 & 0.00000 \\
+15 & 0.98497989 & 0.98498 & 0.98498 & 0.00000 \\
+16 & 0.98538853 & 0.98506 & 0.98558 & 0.00048 \\
 \bottomrule
 \end{tabular}
-}
-\vspace{1mm}
-\raggedright
-\footnotesize{$^\dagger$Values reported from~\cite{tong_probability_2019}.}
 \end{table}
 
-Table~\ref{tab:computation_comparison_grid} compares the runtime of IPA with the runtime reported for dPrPm in~\cite{tong_probability_2019}. IPA completes the analysis of the benchmark grid network in \SI{2.378}{\milli\second}. Tong and Tien~\cite{tong_probability_2019} reported a runtime of \SI{0.32}{\second} for dPrPm on the same benchmark. Although this is not a controlled implementation-level comparison, it suggests that IPA can provide substantial computational savings while retaining exactness. Only IPA memory usage was profiled in the present implementation; comparable memory data for dPrPm were not available from the source study.
-
-
-The benchmark study therefore supports two conclusions. First, IPA reproduces the exact node reliabilities for a nontrivial reconvergent DAG. Second, it does so with a very low runtime on this class of network, consistent with the intended use of the method for repeated reliability evaluation in acyclic process systems.
-
+Table~\ref{tab:computation_comparison_grid} reports the runtime of IPA on this benchmark against the runtime reported for dPrPm. Two caveats attend the comparison. The dPrPm figure is quoted from the source study, obtained in a different implementation environment, so the comparison is indicative only. The dPrPm reference implementation is not publicly available and its authors could not be reached, so the comparison cannot be reproduced independently. The table therefore carries no ROBDD row: a build-time figure for this one network, on its own, would invite exactly the kind of uncontrolled comparison already rejected for dPrPm. The controlled, same-environment cost comparison against the ROBDD, built for every network in the corpus including this one, is reported instead in Section~\ref{sec:comparison} (this network's ROBDD has 290 nodes; Table~\ref{tab:structured}); dPrPm is retained here only as the published point of reference that motivated the benchmark.
 
 \begin{table}[ht]
-\caption{Computational performance on the benchmark grid network.}
+\centering\small
+\caption{Computational performance on the benchmark grid network. IPA figures are machine-specific (measured on the authors' current hardware after a discarded warm-up run) and are reported to characterise order of magnitude, not for cross-machine comparison. The dPrPm runtime is quoted from~\cite{tong_probability_2019} and is indicative only.}
 \label{tab:computation_comparison_grid}
-\centering
 \begin{tabular}{lcc}
 \toprule
-\textbf{Method} & \textbf{Runtime} & \textbf{Memory} \\
+Method & Runtime & Memory \\
 \midrule
-IPA & \SI{2.378}{\milli\second} & \SI{4.94}{\mega\byte} \\
-dPrPm \textsuperscript{a} & \SI{0.32}{\second} & N/A\textsuperscript{a} \\
+IPA & 0.910\,ms & 1.74\,MB \\
+dPrPm (reported) & 0.32\,s & n/a \\
 \bottomrule
 \end{tabular}
-\begin{minipage}{\textwidth}
-\footnotesize
-\textsuperscript{a}Results from~\cite{tong_probability_2019} - Comparable memory profiling data not available
-\end{minipage}
 \end{table}
 
+This benchmark's ROBDD confirmation was also used to stress-test identification beyond the benchmark's own parameterisation, with non-unit node priors and the boundary case in which every node prior equals one; two edge-case identification errors were found this way and corrected, and the corrected version is the one validated across the full corpus of Section~\ref{sec:comparison}. Neither error affects the benchmark table above, which stands as originally computed.
 
-\clearpage  % Forces all pending floats to be placed
+\subsection{Validation and Cost Comparison Against an Exact Decision-Diagram Method}\label{sec:comparison}
 
-\subsection{Application to Drone Medical Delivery Networks}
+% TODO (parity check): this sentence stacks the 129-graph corpus (Table~\ref{tab:corpus}) with the
+% six-family timing corpus (Table~\ref{tab:interval_timing}) and the named structured/real networks
+% (Table~\ref{tab:structured} + Memphis/Berlin/Net3) without stating whether these are disjoint,
+% overlapping, or a combined total -- "counterexample" and "random n=25" appear in more than one of
+% these groups. "larger random networks up to 50 nodes" has no traced source in this session's audit
+% (tab:corpus tops out at n=25). Needs attribution/re-scoping once traced -- see
+% NUMERIC_PARITY_AUDIT_HANDOVER.md.
+To address the breadth of validation, IPA was compared against an independent exact method, a reduced-ordered binary decision diagram (ROBDD) with dynamic variable reordering, across a corpus of 129 random and mutated DAGs (10 to 28 nodes, densities 0.14--0.42), six topological families (multi-source, grid/lattice, layered, bridge, series--parallel, complete), larger random networks up to 50 nodes, and several structured and real-world networks: a gas distribution network (Memphis Light, Gas and Water), a metropolitan transit network (Berlin), and a water distribution benchmark (EPANET Net3), in addition to the power distribution and drone logistics networks studied in detail in Sections~\ref{sec:grid} and~\ref{sec:drone}. Table~\ref{tab:structured} reports representative structured and real networks in detail, and Table~\ref{tab:corpus} summarises the random corpus by family.
 
-\subsubsection{DAG construction from the multiplex logistics network}
-
-
-To evaluate IPA on a realistic infrastructure network, the algorithm is applied to drone logistics network designs from Jones et al.~\cite{jones_drone_2025}, who developed a multi-objective optimisation framework for NHS Scotland medical delivery networks. Their work generates Pareto-optimal network configurations by trading off delivery time, capital cost, and network resilience under random node failures.
-
-The original logistics network is represented as a multiplex graph with two transportation layers corresponding to two drone types:
-\begin{itemize}
-    \item \textbf{VTOL layer:} short-range vertical take-off and landing drones with an operational range of 70\,km, capable of serving any feasible location pair within range;
-    \item \textbf{fixed-wing layer:} long-range drones with an operational range of 700\,km, restricted to airport-to-airport routes because they require runway infrastructure.
-\end{itemize}
-Each layer is modelled as a symmetric distance matrix indicating the feasible travel distance between node pairs. 
-
-To apply IPA, each Pareto-optimal configuration is transformed into a directed acyclic dependency graph. This DAG is not intended to reproduce the full bidirectional routing behaviour of the original logistics network. Instead, it represents the supply-chain dependency structure through which medical supplies propagate from origin hubs to downstream facilities. 
-Nodes are assigned to four functional levels:
-\begin{itemize}
-    \item Level 0 (Sources): Major hub hospitals that originate supply distribution
-    \item Level 1 (Relays): Airports and minor hubs providing intermediate connectivity
-    \item Level 2 (Bridges): Charging stations enabling extended-range delivery
-    \item Level 3 (Sinks): Receiver hospitals consuming delivered supplies
-\end{itemize}
-
-Edges are directed from lower levels to higher levels. For nodes within the same level, edges are directed from lower to higher node identifiers in order to preserve connectivity while avoiding cycles. Although the original network matrix encodes bidirectional flight feasibility, the derived DAG representation captures the dependency logic relevant for source-to-node reliability analysis, i.e., downstream nodes depend on upstream nodes for supply access.
-
-The two transportation layers are merged by taking the maximum transmission probability where both drone types can serve the same edge. Edge transmission probabilities are derived from distance using an exponential decay law, so that shorter flights have higher success probabilities. Node prior probabilities represent the operational availability of physical facilities and are assigned according to infrastructure type. Major hub hospitals are assigned prior reliability 1.0 as fully reliable supply origins.
-
-From a planning perspective, this DAG transformation enables the exact computation of downstream access reliability while also revealing the structural conditions under which exact inference remains computationally feasible across alternative network designs.
-
-Six Pareto-optimal configurations are analysed. These span a wide range of graph sizes and reconvergent dependency structures. Table~\ref{tab:pareto_structure} summarises the basic structural characteristics of the resulting DAGs.
+Every network in the corpus was evaluated by both methods; the worst per-node disagreement observed anywhere is $1.1\times10^{-16}$, for both perfect and imperfect component reliabilities. Structural exactness was additionally verified against 17 published Bayesian-network benchmark topologies (bnlearn.com/bnrepository), ranging from 8 to 1{,}041 nodes. Component reliabilities on these 17 networks are illustrative, not decision-relevant: the check demonstrates breadth of topology and scale, not a claim about the systems the benchmarks originally model.
 
 \begin{table}[ht]
-\caption{Structural characteristics of Pareto-optimal drone network DAGs}
-\label{tab:pareto_structure}
-\centering
-\adjustbox{max width=\textwidth}{
+\centering\small
+\caption{Exactness and complexity of IPA on named structured networks, against the exact ROBDD oracle. Root D.\ and uniq.\ D.\ are the numbers of root and unique diamond structures identified; $|C|_{\max}$ is the largest conditioning set; ROBDD is the node count under dynamic reordering; $|\Delta|_{\max}$ is the worst per-node deviation of IPA from the exact ROBDD reliability.}
+\label{tab:structured}
+\begin{tabular}{lrrrrrrrl}
+\toprule
+Network & $|V|$ & $|E|$ & src & root D. & uniq.\ D. & $|C|_{\max}$ & ROBDD & $|\Delta|_{\max}$ \\
+\midrule
+power network      & 23 & 27 & 3 &  5 &   9 &  3 &  384 & $8.3\times10^{-17}$ \\
+grid (benchmark)   & 16 & 24 & 3 &  8 &  39 &  7 &  290 & $1.1\times10^{-16}$ \\
+Karl network       & 26 & 74 & 1 & 18 & 145 & 11 & 1921 & $5.6\times10^{-17}$ \\
+counterexample-n15 & 15 & 23 & 1 &  4 &  13 &  4 &  323 & $5.6\times10^{-17}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering\small
+\caption{Random and mutated DAG corpus (129 graphs), summarised by family. Random DAGs are generated per family at edge probability $p\in\{0.10,0.15,0.20\}$ and eight seeds; mutant-n28 is a base $n=28$ DAG under $+5/-2$ edge mutations. Every graph in every family is exact against the ROBDD oracle ($|\Delta|_{\max}\le1.1\times10^{-16}$ across the whole corpus). Naive blow-ups are builds exceeding $2.5\times10^{6}$ ROBDD nodes under a naive (topological) variable order, all resolved by dynamic reordering.}
+\label{tab:corpus}
 \begin{tabular}{lrrrrrr}
 \toprule
-\textbf{Network} & \textbf{Nodes} & \textbf{Edges} & \textbf{Sources} & \textbf{Sinks} & \textbf{Joins} & \textbf{DiamJoins} \\
+Family & \#graphs & $|V|$ & $|E|$ & density & med.\ ROBDD & naive blow-ups \\
 \midrule
-PP1-HighRes-FW    & 145 & 327 & 23 &  99 & 50 & 24 \\
-PP2-HighRes-VTOL  & 171 & 280 & 12 & 131 & 70 & 52 \\
-PP3-MedRes-Sparse &  98 & 223 & 23 &  58 & 25 & 19 \\
-PP4-LowRes-Min    &  39 &  28 &  8 &  24 &  0 &  0 \\
-PP5-MedRes-FW     &  89 & 214 & 23 &  49 & 25 & 21 \\
-PP6-Balanced      &  98 & 261 &  6 &  59 & 34 & 32 \\
+random-n10  & 24 & 10 & 12--18 & 0.27--0.40 &   80 & 0 \\
+random-n12  & 24 & 12 & 15--28 & 0.23--0.42 &  197 & 0 \\
+random-n15  & 24 & 15 & 21--35 & 0.20--0.33 &  450 & 0 \\
+random-n20  & 24 & 20 & 31--50 & 0.16--0.26 & 1164 & 0 \\
+random-n25  & 24 & 25 & 42--73 & 0.14--0.24 & 3119 & 9 \\
+mutant-n28  &  8 & 28 & 62     & 0.16       & 2562 & 6 \\
+counterexample &  1 & 15 & 23  & 0.22       &  323 & 0 \\
 \bottomrule
-\end{tabular}}
-\begin{minipage}{\textwidth}
-\footnotesize
-Joins = nodes with multiple parents. DiamJoins = join nodes that are diamond join points (reconvergent paths from shared ancestors).
-\end{minipage}
+\end{tabular}
 \end{table}
 
-To characterise the reconvergent complexity more directly, Table~\ref{tab:diamond_complexity} reports the number of identified diamonds, the number of diamond join nodes, the ratio of diamonds to diamond joins (D/DJ), and the maximum observed nesting depth.
+The comparison also quantifies cost. For each network we report the maximum conditioning-set size $|C|_{\max}$ encountered by IPA, its realised number of distinct conditional sub-problems, and the ROBDD node count under dynamic reordering. As anticipated in Section~\ref{sec:complexity}, $|C|_{\max}$ tracks the logarithm of the ROBDD size across the corpus (Figure~\ref{fig:width}), confirming that the two methods are governed by the same structural width. The realised work of the two methods is of the same order, and neither dominates: on some networks IPA resolves fewer sub-problems than the diagram has nodes (42 against 323 on the counterexample network; 142 against 759 on the complete 8-node network), on others more (1961 against 1043 on a layered network). No family in the corpus favours IPA for exact point-valued computation: its value rests on the imprecise-propagation capability of Section~\ref{sec:imprecise}, not on a smaller exact state space.
 
-The main computation cost of the algorithmic flow comes form the complexity of diamond decomposition and super-node creation and reuse rate.  
-Table~\ref{tab:diamond_complexity} compares the diamond structure characteristics between all six networks. 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\linewidth]{images/width_correlation.pdf}
+\caption{IPA's maximum conditioning-set size against the logarithm of the sifted ROBDD node count, across the complexity-validation networks. Both quantities measure the same structural width; neither method dominates.}
+\label{fig:width}
+\end{figure}
+
+\subsection{Imprecise Reliability Propagation}\label{sec:imprecise}
+
+The results so far establish that IPA matches a well-ordered decision diagram on exact point-valued reliability at comparable cost. This section presents the capability that separates the two: the propagation scheme accepts interval- and p-box-valued component reliabilities directly (Section~\ref{subsec:impreciseinputs}).
+
+\subsubsection{Interval-valued reliabilities: exact and fast}\label{sec:interval}
+
+Because $b(v)$ is non-decreasing in every component reliability (Section~\ref{sec:model}), its exact range over interval inputs is attained at the two extreme corners of the input box: the lower bound when every component takes its lower reliability, the upper bound when every component takes its upper reliability. This was verified across the full corpus of Section~\ref{sec:comparison} by comparing the propagated interval against the decision-diagram evaluation at both corner inputs: the worst discrepancy in either bound is of order $10^{-16}$. Interval propagation that ignores reconvergent dependence, by contrast, over-widens the range by up to $0.45$ across the corpus, showing that the conditioning machinery of Section~\ref{sec:decomp} is as necessary for sound imprecise propagation as it is for exact point values.
+
+The interval computation is also fast. For a one-shot query (given a network, produce the interval reliability), IPA completed faster than the decision-diagram route to the same answer (build the diagram once, evaluate at both corner inputs) on every one of eight corpus families tested, by factors ranging from $3.9$ to $99.9$ (Table~\ref{tab:interval_timing}). This claim is scoped to the one-shot cost, in which the diagram's construction cost counts against it; a workload that amortises a single construction across many repeated queries on a fixed network is a different scenario, not tested here, and could favour the diagram route instead.
 
 \begin{table}[ht]
-\caption{Diamond-structure complexity metrics for the derived drone network DAGs.}
-\label{tab:diamond_complexity}
-\centering
-\adjustbox{max width=\textwidth}{
-\begin{tabular}{lrrrr}
+\centering\small
+\caption{One-shot interval reliability: IPA against the decision-diagram route (build once, evaluate at both corner inputs), warm-measured. IPA is faster on every family tested; the comparison is scoped to one-shot queries.}
+\label{tab:interval_timing}
+\begin{tabular}{lrrrrrr}
 \toprule
-\textbf{Network} & \textbf{Diamonds} & \textbf{DiamJoins} & \textbf{D/DJ} & \textbf{MaxDepth} \\
+Network & $|V|$ & $|E|$ & ROBDD & IPA (ms) & ROBDD route (ms) & ratio \\
 \midrule
-PP4-LowRes-Min    &   0 &  0 &  ---  &  0 \\
-PP2-HighRes-VTOL  & 219 & 52 &  4.2  &  9 \\
-PP6-Balanced      & 203 & 32 &  6.3  & 12 \\
-PP3-MedRes-Sparse & 165 & 19 &  8.7  & 16 \\
-PP5-MedRes-FW     & 177 & 21 &  8.4  & 16 \\
-PP1-HighRes-FW    & 277 & 24 & 11.5  & 18 \\
+counterexample       & 15 & 23 &  323 &  0.819 &  44.603 & 54.5 \\
+multi-source         & 25 & 57 & 5622 & 22.422 & 175.497 &  7.8 \\
+grid $4\times4$      & 16 & 21 &  248 &  0.517 &  51.654 & 99.9 \\
+layered $4\times6$   & 23 & 35 &  484 &  4.619 &  52.075 & 11.3 \\
+bridge               & 16 & 25 &  529 & 11.571 &  48.515 &  4.2 \\
+series--parallel     & 23 & 32 &  215 &  2.429 &  57.304 & 23.6 \\
+complete-8           &  8 & 28 &  685 &  1.537 &  49.466 & 32.2 \\
+random $n{=}25$      & 25 & 53 & 4146 & 27.844 & 107.875 &  3.9 \\
 \bottomrule
-\end{tabular}}
-\begin{minipage}{\textwidth}
-\footnotesize
-D/DJ = diamonds per diamond join, indicating the average concentration of nested diamonds around each reconvergent join node. MaxDepth = maximum observed nesting depth of diamond structures.
-\end{minipage}
+\end{tabular}
 \end{table}
 
+\subsubsection{Probability-box reliabilities: guaranteed distributional bounds}\label{sec:pbox}
 
-The diamonds-per-diamond-join ratio (D/DJ) indicates how many diamonds are concentrated at each diamond join point on average. A higher D/DJ suggests that individual join nodes participate in more nested diamond structures. PP1 has the highest D/DJ (11.5), consistent with its deep nesting structure. PP2 has the lowest D/DJ (4.2) among networks with diamonds, reflecting its wide, shallow topology with many diamond joins but less nesting per join.
+At a join resolved by conditioning with p-box inputs, the belief is a convex combination $W\cdot A+(1-W)\cdot B$, where $W$ is the uncertain probability of the conditioning state and $A,B$ are the uncertain conditional beliefs of the two branches. $A$ and $B$ are functions of shared upstream reliabilities and are therefore dependent; treating the combination as an independent sum is unsound and can assign probability mass outside $[0,1]$. IPA instead integrates over the distribution of $W$, combining the branch distributions at each weight level, with the branch dependence bounded by the Fr\'echet--Hoeffding inequalities~\cite{williamson_probabilistic_1990}. Soundness of the resulting bounds is inherited from that classical result: the computed pair of distribution functions encloses the true distribution of the node reliability under any dependence between the branches. A tighter variant restricts the dependence bound to non-negative dependence, motivated by both branches being non-decreasing functions of the shared upstream reliabilities and so unable to be negatively dependent; this variant produced no soundness violation in any validation configuration tested (dozens of topology, input-shape, and uncertainty-width combinations, each checked against Monte Carlo ground truth), but a general proof of its soundness under partial dependence information of this kind is not available and is future work. Every headline claim in this paper uses only the provable Fr\'echet-based bound.
 
-The D/DJ ratio correlates with nesting depth across these configurations: higher D/DJ networks tend to have deeper nesting. However, the relationship is nondeterministic: PP3 and PP5 have similar D/DJ ratios (8.7 and 8.4) and identical maximum depth (16) but different computation times (281s vs 256s), showing that other structural factors also affect performance.
+Bound tightness, as distinct from soundness, depends on the network's structure. Across a sweep of input-distribution shapes, uncertainty widths, and reconvergence regimes on the benchmark grid network of Section~\ref{sec:grid}, the certified band ranged from approximately $0.18$ of the unit range under high-reliability, weakly reconvergent conditions to approximately $0.70$ under strongly reconvergent, fully uncertain conditions, with zero soundness violations across the sweep (Figure~\ref{fig:envelope}). Reconvergence depth combined with input uncertainty drives tightness; the shape of the input distribution is secondary.
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\linewidth]{images/envelope.pdf}
+\caption{Tightness envelope of the certified p-box bound on the benchmark network: band width against component-reliability uncertainty width, for three input-distribution shapes and two reconvergence regimes. Soundness holds in every configuration; only tightness varies, and it is driven by the regime, not the input shape.}
+\label{fig:envelope}
+\end{figure}
 
+Computational cost is a controllable dial. Interval propagation costs a small constant factor over point-valued propagation (about $1.8$ in our measurements: $0.465$\,ms against $0.819$\,ms on the counterexample-n15 network of Table~\ref{tab:structured}), while p-box propagation grows with the discretisation level of the distribution bounds: $1.54$\,s, $8.68$\,s, $51.02$\,s, and $339.02$\,s at $25$, $50$, $100$, and $200$ levels respectively on that same counterexample network, each measured as a single propagation in its own fresh process (a shared warm process inflates later, larger measurements, so one clean process per measurement is used throughout this paper). The resulting exponent is approximately $2.6$ over this range and increases toward its upper end; propagation beyond $200$ levels is impractical on this network and is not used. We therefore state bound tightness always at the discretisation level used, and make no claim that distributional propagation is cheap: it is controllable, with rigorous bounds at every setting.
 
-\subsubsection{Effect of diamond structure on runtime}
+The same realised-work quantity that governs Float64 and interval cost (Section~\ref{sec:complexity}) also governs p-box cost, at a fixed discretisation level. Figure~\ref{fig:pbox_cost} plots p-box propagation time at steps$=50$ against the realised sub-problem count already reported for the exact and interval comparison, across 14 networks spanning a $141\times$ range in that count. The relationship is close to linear on log-log axes, with time per sub-problem clustered within roughly $0.14$--$0.26$\,s throughout; the raw conditioning-set-width bound $2^{|C|}$, by contrast, does not correlate this cleanly, since two networks with similar bounds can differ substantially in realised sub-problems after memoisation.
 
-The dominant computational cost in IPA arises from the decomposition of reconvergent structures, the construction of supernodes, and the extent to which resolved supernodes can be reused across downstream conditioning contexts. In the absence of progressive decomposition, the cost of evaluating nested diamonds grows exponentially with the number of conditioning variables and increases further with the size of the nested subgraphs.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\linewidth]{images/pbox_cost.pdf}
+\caption{p-box propagation time at a fixed discretisation level (steps$=50$) against the realised sub-problem count (measured\_ops) already reported for the exact/interval cost comparison (Section~\ref{sec:complexity}), across 14 networks spanning a $141\times$ range. Each point is a single clean measurement, one propagation per fresh process. The near-linear relationship shows that the same realised-work quantity governing Float64/interval cost also governs p-box cost, at a roughly constant price per resolved sub-problem for a given discretisation level.}
+\label{fig:pbox_cost}
+\end{figure}
 
-Three structural factors were observed to strongly influence runtime in the six derived networks:
-\begin{enumerate}
-    \item \textbf{Diamond nesting depth.} Deeply nested diamonds require repeated layers of conditional evaluation and are the strongest driver of computational growth.
-    \item \textbf{Conditioning-set size.} Diamonds with many shared upstream nodes require more conditioning states.
-    \item \textbf{Contextual entry points.} When a resolved diamond receives additional context-dependent inputs from outer conditioning states, reuse of its supernode representation becomes less effective.
-\end{enumerate}
+\subsubsection{A certified decision bound from a single propagation}\label{sec:certified}
 
-
-Table~\ref{tab:complexity_spectrum} summarises the observed relationship between nesting depth and practical applicability given the structure of the drone network.
+The propagated distribution bounds certify decision-relevant probabilities directly. For a stated reliability requirement $x^\ast$ at a given node, the propagated p-box yields guaranteed lower and upper bounds on $P(b(v)\le x^\ast)$, the probability that the node fails its requirement, from one propagation. On the benchmark network at a representative requirement $x^\ast=0.95$, the certified band on this probability had width between $0.02$ and $0.12$ across the regimes tested (Table~\ref{tab:certified}). Matching that precision by simulation, planned conservatively without foreknowledge of the answer, would require between $267$ and $9{,}604$ samples of the network's uncertain inputs, and the result would remain a statistical estimate, not a guarantee. A decision-diagram method has no analytic route to this bound and would itself fall back on simulation; this certified-bound capability, not raw speed, is the concrete engineering value of imprecise propagation.
 
 \begin{table}[ht]
-\caption{Empirical tractability spectrum for exact reliability analysis with IPA on the derived drone network DAGs.}
-\label{tab:complexity_spectrum}
-\centering
-\adjustbox{max width=\textwidth}{
-\begin{tabular}{lll}
+\centering\small
+\caption{Certified bound on the requirement-violation probability $P(b(v)\le0.95)$ at the benchmark network's target node, from a single propagation, against the Monte Carlo sample count required to match the certified precision under worst-case a-priori planning.}
+\label{tab:certified}
+\begin{tabular}{llccc}
 \toprule
-\textbf{Nesting Depth} & \textbf{Computation Time} & \textbf{Practical Use} \\
+Regime & Uncertainty width & Certified band & Band width & MC samples \\
 \midrule
-0 (tree)   & $<$0.1s   & Real-time analysis \\
-9--12      & $<$1s     & Interactive analysis \\
-16         & $\sim$5 min & Batch processing \\
-18+        & Intractable & Beyond practical exact analysis  \\
+perfect components   & 0.05      & [0.000, 0.020] & 0.02 & 9{,}604 \\
+perfect components   & 0.10      & [0.000, 0.100] & 0.10 & 385 \\
+perfect components   & 0.15      & [0.000, 0.120] & 0.12 & 267 \\
+uncertain components & 0.05--0.15 & [0.980, 1.000] & 0.02 & 9{,}604 \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}
 
-This table should be interpreted as an empirical summary of the present dataset rather than as a universal complexity law. Nevertheless, it provides a useful practical guideline: in these networks, the transition from interactive to impractical runtime is relatively sharp once nesting depth exceeds approximately 12--16 levels.
+\subsection{Applied Case Study: A Medical Drone Logistics Network for Scotland}\label{sec:drone}
 
+With the methodology validated in Sections~\ref{sec:grid}--\ref{sec:imprecise}, this section applies IPA to a real infrastructure planning problem: the conceptual medical drone delivery network for Scotland designed by Jones et al.~\cite{jones_drone_2025}. Jones et al. optimised station placement and network structure over real hospital, airport, and candidate-station locations, using two drone types (short-range vertical take-off and landing, nominal range 70\,km; long-range fixed-wing, nominal range 700\,km) and stated infrastructure specifications. Their optimisation trades off delivery time, capital cost, and resilience. The reliability question IPA can answer, and their point-probability framework cannot, is: given the acknowledged uncertainty in the component availability assumptions, how confidently can each location in a candidate design be said to be reachable from the supply hubs?
 
-\subsubsection{Pareto Network Results}
+\subsubsection{Building the reliability model from the source study}\label{sec:provenance}
 
-Table~\ref{tab:pareto_timing} compares IPA runtime for each network configuration, ordered by computation time.
+The source study's own resilience analysis already treats non-hub locations as failing independently with probability $0.2$, while hub locations are always available; the reliability model here keeps that same structure but represents non-hub availability as the interval $[0.75,0.85]$ centred on it. The change is deliberate: the $0.2$ figure is an assumption in the source study, not a value derived from data, so widening it into an interval turns the analysis into a built-in sensitivity check on that one assumption; it does not add uncertainty the source study did not already carry. Hub locations keep availability $1$.
+
+Connections are inherited just as directly. A connection between two locations exists, for a given drone type, exactly when the inter-location distance is within that type's stated nominal range; this is the source study's own network-construction rule. Where both drone types can serve a connection, the link is available if either succeeds, since the two transmissions are independent. Reliability on a connection is where one addition is made, and only one: the source study holds weather constant in its own analysis while noting, without resolving, that weather-driven range variation is in principle an uncertain quantity requiring expert elicitation. A connection well within a drone's nominal range is treated as reliable here as it is there; a connection within an illustrative weather-derating margin of the range limit (the final ten per cent, a bound assumed for the same reason the source study never quantified one) is instead given the vacuous transmission probability $[0,1]$, expressing that adverse weather may or may not close that particular route. No other probability in the model is assumed beyond what the source study already provides.
+
+One more choice is the direction of the dependency graph. The source study's connections are undirected, since a delivery route can be flown either way. The reliability question, however, is about supply reaching facilities from hubs, so the graph used here is directed from the hub tier outward. This choice matches the source study's own hub-and-spoke architecture, and source-to-node reachability is then computed on the resulting acyclic structure.
+
+The source study's own optimised network layouts are not published, so three configurations are built as explicit proxies for the qualitative character of three trade-off points it describes; they are not reproductions of an optimisation output that is unavailable: a fixed-wing-reliant centralised design serving remote locations through a hub backbone (217 locations, 263 connections), a densely interconnected short-range design (242 locations, 1{,}753 connections), and a minimal-investment design retaining only pre-existing, non-optional infrastructure (230 locations, 1{,}648 connections).
+
+\subsubsection{Redundancy and the practical boundary of exact analysis}\label{sec:redundancy}
+
+A network-design parameter controls the reconvergent structure of each configuration: the number of alternate routes provisioned per location, a genuine redundancy choice in network design, not a parameter of the analysis method. Connecting every operationally plausible pair of locations makes exact diamond identification itself impractical: identification alone demanded more than 25\,GB on a 16\,GB workstation within around fifteen minutes and did not complete. Bounding the provision to sixteen alternate routes per location brought the measured conditioning requirement to 16 in both dense configurations, and further increases in provisioned routes changed neither the requirement nor the runtime materially, indicating that the reconvergent structure of this network saturates at that level. The full exact interval propagation of the densest configurations completes in under 25 seconds; the sparse centralised configuration, whose conditioning requirement is 10, completes in well under one second. The practical boundary of exact analysis on this real network is thus a measured quantity, expressed through a controllable design parameter: more provisioned redundancy improves resilience and raises the cost of verifying it exactly.
+
+The comparison of Section~\ref{sec:comparison} was repeated on these networks. On the sparse centralised configuration the two methods agree to floating-point precision, and IPA's one-shot interval computation is approximately fourteen times faster than the decision-diagram route to the same interval ($0.012$\,s against $0.173$\,s; diagram size 2{,}667 nodes). On the minimal-investment topology at low redundancy (six alternate routes per location), both methods are comfortably fast and IPA remains moderately faster, approximately six times ($0.128$\,s against $0.830$\,s; diagram size 4{,}968 nodes; agreement $1.1\times10^{-16}$). At sixteen alternate routes per location on the same topology, the decision-diagram build did not complete within a practical computational budget under either of two variable-ordering strategies, while IPA completed the full exact computation in under 25 seconds. Both methods are governed by the same underlying network property, and both are practical at low redundancy; on this network, IPA's practical range, measured along a real redundancy design parameter, extends further than the decision-diagram alternative's. No claim is made that decision-diagram methods cannot handle this problem class in general, nor that the crossover point has been located precisely.
+
+\subsubsection{Reliability findings}\label{sec:findings}
+
+Table~\ref{tab:drone} summarises the propagated interval reliabilities. In the centralised, low-redundancy configuration the propagated bounds are narrow (mean band width $0.089$, maximum $0.100$): each location's reachability essentially inherits the availability band assumed for the locations themselves, with little additional uncertainty accumulated through the network, but also little protection, since the design is tree-like and a single-route failure directly disconnects service. In the two higher-redundancy configurations the best-connected locations are reachable with near-certainty, while the worst-served locations carry a genuine, decision-relevant spread: the least certain facility, Islay Hospital, an island site, has reachability probability bounded between $0.56$ and $0.72$. No point-probability analysis of the same design could distinguish a facility whose reachability is confidently $0.6$ from one whose reachability is anywhere between $0.56$ and $0.72$, yet the two call for different interventions. Figure~\ref{fig:map} maps the network coloured by the lower reliability bound and by band width, identifying the facilities, concentrated in the islands and the far north, where additional redundancy, or better component-availability data, would most improve either the network or our knowledge of it.
 
 \begin{table}[ht]
-\caption{IPA runtime across Pareto-optimal drone network configurations.}
-\label{tab:pareto_timing}
-\centering
-\adjustbox{max width=\textwidth}{
-\begin{tabular}{lrrrl}
+\centering\small
+\caption{The three proxy configurations: structure, conditioning requirement, and the propagated reliability bounds. Every belief is contained in $[0,1]$ with lower $\le$ upper (soundness); the worst-served facility in both dense configurations is Islay Hospital.}
+\label{tab:drone}
+\begin{tabular}{lrrrccc}
 \toprule
-\textbf{Network} & \textbf{MaxDepth} & \textbf{D/DJ} & \textbf{Time} & \textbf{Category} \\
+Configuration & $|V|$ & $|E|$ & $|C|_{\max}$ & mean band & max band & worst facility \\
 \midrule
-PP4-LowRes-Min    &  0 & --- &    0.02s & Tree structure \\
-PP6-Balanced      & 12 & 6.3 &    0.02s & Shallow nesting \\
-PP2-HighRes-VTOL  &  9 & 4.2 &    0.31s & Shallow nesting \\
-PP5-MedRes-FW     & 16 & 8.4 &     256s & Deep nesting \\
-PP3-MedRes-Sparse & 16 & 8.7 &     281s & Deep nesting \\
-PP1-HighRes-FW    & 18 & 11.5 &  $>$600s & Beyond practical range  \\
+fixed-wing centralised & 217 & 263 & 10 & 0.089 & 0.100 & [0.750, 0.850] \\
+dense decentralised    & 242 & 1753 & 16 & 0.094 & 0.161 & [0.562, 0.722] \\
+concentrated minimal   & 230 & 1648 & 16 & 0.093 & 0.161 & [0.562, 0.722] \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}
 
-The results show that runtime is governed primarily by reconvergent nesting depth rather than by graph size alone.  For example, PP2 has 171 nodes and 219 diamonds but completes in 0.31 seconds as a result of its  shallower nesting (depth 9). Comparing this to PP3 which  has fewer nodes (98) and fewer diamonds (165) but still requires 281 seconds because of deep nesting (depth 16). On the extreme case, PP1 with nesting depth 18  falls beyond the practical range for interactive exact analysis. 
-Comparing compuataional costs, it is clear that the transition between tractable and intractable  occurs sharply. Networks with nesting depth $\leq$12 complete in under one second regardless of diamond count. The two larger networks with depth 16 take a lot more time and by depth 18, the run time starts to exceed practical limits. These results support the central claim of the paper: the principal determinant of tractability in exact DAG reliability analysis is not the raw number of nodes or edges, but the arrangement and nesting depth of dependency-inducing reconvergent structures.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{images/drone_reliability_map.pdf}
+\caption{Reliability map of the dense decentralised configuration: each facility coloured by the lower bound of its propagated reachability reliability (left; darker = less certainly reachable) and by the width of its reliability band (right; darker = more uncertainty). Hubs (diamonds) are assumed always available. Uncertainty concentrates at island and far-northern facilities; the worst-served facility, Islay Hospital, is bounded at $[0.56,0.72]$.}
+\label{fig:map}
+\end{figure}
 
-\subsubsection{Summary of the case-study findings}
+\subsection{Adversarial Structure}\label{sec:adversarial}
 
-The two case studies support three main conclusions. First, IPA reproduces exact node reliabilities on a benchmark reconvergent DAG and compares favourably with the published dPrPm results. Second, IPA remains computationally efficient on realistic infrastructure DAGs when reconvergent structures are shallow or moderately nested. Third, the practical limit of exact analysis is controlled primarily by the depth and reuse characteristics of nested diamond structures rather than by overall network size alone.
+Section~\ref{sec:complexity} used two constructed families, fan-in and mesh, to show where IPA's factorisation helps and where it cannot. This section asks the same question of a real, independently published family, not a hand-built one: the ISCAS85 combinational circuit benchmarks~\cite{brglez_iscas85_1985}, a suite of digital logic circuits represented natively as directed acyclic graphs. Every circuit is assigned the same illustrative, non-degenerate component reliability ($0.9$, uniformly) used throughout this corpus, which is itself a deliberate worst case here: identification excludes a node from a conditioning set only when its reliability is fixed at exactly $0$ or $1$ (Section~\ref{sec:decomp}), so a non-degenerate value everywhere leaves no reconvergent structure excluded from conditioning.
 
-These observations motivate the use of IPA as an exact reliability analysis tool for a broad class of acyclic process systems, while also clarifying the structural regimes in which approximation methods may still be required.
+The smallest circuit, \emph{c17} (11 gates), is trivial (conditioning width 1) and was fully validated across all three input types, including a p-box propagation whose cost matched the prediction of Section~\ref{sec:pbox}'s realised-work relationship (predicted $1.3$--$2.3$\,s at 50 discretisation levels; measured $1.41$\,s). The next three circuits tested, \emph{c432} (196 gates), \emph{c499} (243 gates), and \emph{c880} (443 gates), reach conditioning widths of 67, 41, and 50 respectively, an order of magnitude beyond any other network in this corpus, placing exact propagation on these circuits well outside a practical budget; two further circuits, \emph{c1355} and \emph{c1908} (587 and 913 gates), exceed the memory available on a 16\,GB workstation during identification itself.
 
+This is not a boundary specific to IPA. El Fattah and Dechter~\cite{elfattah_diagnosing_1996}, studying the same circuits with classical tree-clustering and cutset conditioning, the general method IPA specialises (Section~\ref{sec:complexity}), independently report clique and cutset sizes for c432 that they describe as ``clearly not feasible'' for any exact structural method, and comparably extreme figures for the larger circuits in the suite. Decision-diagram size is governed by the same structural width, so a well-ordered decision diagram meets the same wall on these circuits; it does not resolve it.
 
-\subsection{Limitations and Future Work}
-IPA provides exact source-to-node reliability values for directed acyclic graphs by resolving reconvergent dependencies through conditional decomposition. Its main limitation is therefore not approximation error, but computational tractability in the presence of deeply nested dependency structures.
+\subsection{Limitations and Future Work}\label{sec:limitations}
 
-For tree-structured networks and for DAGs with shallow or moderately nested diamonds, the algorithm remains efficient because most node updates are local and independent, and only a limited number of reconvergent subgraphs require conditional evaluation. However, when reconvergent structures become deeply nested, the number of conditioning states grows exponentially. In such cases, progressive decomposition reduces repeated evaluation but cannot eliminate the intrinsic complexity of exact inference.
+\paragraph{Exact point-valued reliability} For point-valued reliability, IPA has no asymptotic advantage over a well-ordered decision diagram: both are exponential in the network's structural width (the conditioning width here, the pathwidth for the diagram), reflecting the \#P-hardness of network reliability, and across the corpus of Section~\ref{sec:comparison} neither dominates. Its distinctive value instead lies in imprecise propagation. Interval results are exact at machine precision, and the speed comparison of Section~\ref{sec:interval} is scoped to one-shot queries. Distributional bounds are sound, but their tightness is structure-dependent, tight for high-reliability or weakly reconvergent systems and conservative for strongly reconvergent systems with broadly uncertain components, and their cost grows with the discretisation level, which confines full distributional propagation to modest networks at present; for larger networks, interval propagation combined with sampling is the practical recourse. The tighter positive-dependence operator is validated empirically but not proven sound in general; every guaranteed claim in this paper uses the proven Fr\'echet operator instead.
 
-The case studies show that three factors are particularly important:
-\begin{enumerate}
-    \item \textbf{Nesting depth.} Deeply nested diamonds generate repeated conditional branching and are the dominant driver of computational cost.
-    \item \textbf{Conditioning-set size.} Diamonds with many shared upstream variables require a larger number of conditional states to be evaluated.
-    \item \textbf{Context-sensitive reuse.} When the effective input state of a resolved diamond varies across outer conditioning contexts, the reuse of stored supernode maps becomes less effective.
-\end{enumerate}
+\paragraph{Practical range} IPA is exponential in width and intended for the sparse-to-moderate regime, a ceiling shared with every exact method: Section~\ref{sec:adversarial} located it on a real published circuit family, and the applied case study locates it on a real infrastructure network, where a conditioning requirement of 16, reached at sixteen provisioned alternate routes per location, remains practical (tens of seconds), while unrestricted connectivity makes exact diamond identification itself exceed a 16\,GB memory budget before propagation can begin. Imprecise propagation does not relax this boundary: interval and p-box propagation use the same conditioning depth as exact point propagation, and only a change to the network design itself alters the cost. For networks beyond the practical range, a depth-limited hybrid suggests itself: condition exactly to a chosen depth and, beyond it, combine reconvergent contributions without conditioning, which for interval inputs gives a rigorous outer bound (wider, but sound) and for p-box inputs would use the Fr\'echet combination for the unconditioned remainder. This hybrid is proposed, not implemented or evaluated here; the method reported in this paper does not degrade exactness anywhere.
 
+\paragraph{Structural scope} The method addresses directed acyclic dependency structures. The applied case study's networks are directed by the hub-and-spoke supply logic of their source design; general cyclic or bidirectional dependency networks, feedback loops and return flows, are outside the present scope, and their principled treatment, for example by unrolling or by strongly-connected-component condensation, is future work.
 
+The decomposition framework identifies the specific subgraphs responsible for computational intractability, so a natural extension is to apply approximation selectively to deeply nested diamonds while retaining exact computation elsewhere, localising approximation error to the structurally difficult parts of the graph and preserving exactness on the rest.
 
-The current decomposition framework naturally identifies the specific subgraphs responsible for computational intractability. Rather than approximating the entire network, future work could apply approximation selectively to deeply nested diamonds while maintaining exact computation elsewhere. This would localise approximation error to the structurally difficult parts of the graph and preserve exactness on the remaining network.
-In the present implementation, diamonds are resolved progressively during evaluation. A useful extension would be to perform a more global preprocessing step to identify the full reconvergent structure of the graph in advance and optimise the order in which diamonds are decomposed. This may reduce repeated work and improve tractability in dense dependency networks.
+\section{Conclusions}\label{sec:conclusions}
 
-\section{Conclusions}
-An exact reliability analysis method for directed acyclic process networks with reconvergent dependency structures named Information Propagation Algorithm (IPA) has been proposed. 
-The method computes source-to-node reliability by propagating local reachability probabilities in topological order and resolves dependent incoming signals through conditional decomposition of fork--join diamond structures. Once resolved, these structures are replaced by statistically equivalent supernodes, allowing the graph to be progressively simplified while preserving exactness. This reduces the complexity from $O(2^{\sum c_i} \times \prod d_i)$ without decomposition to $O(\sum 2^{c_i})$ with decomposition for subsequent belief updates on the same diamond structure.
+This paper has presented the Information Propagation Algorithm (IPA), an exact reliability analysis method for directed acyclic process networks with reconvergent dependency structures. The method computes source-to-node reliability by propagating reachability probabilities in topological order, resolves dependent incoming signals by conditioning on separating sets of shared ancestors, and replaces resolved fork--join substructures with statistically equivalent supernodes. IPA is a specialisation of cutset conditioning to source-to-node reachability: its per-instance cost is bounded by $\sum_d 2^{|C_d|}$ over the diamonds resolved, computable before enumeration begins, and an independent-substructure factorisation reduces fan-in conditioning from exponential to linear where independence permits.
 
-The proposed method is therefore not only an exact message-passing formulation for DAG reliability, but a structured way of resolving reconvergent dependencies without resorting to global path enumeration. IPA provides an exact and efficient tool for a broad class of acyclic process systems, while also identifying the structural regimes in which approximation methods will still be necessary.
+Exactness was verified against an independent exact method, a reduced-ordered binary decision diagram with dynamic variable reordering, across 129 random and mutated networks, six topological families, and several structured and real-world networks, with the worst observed disagreement at floating-point precision. The same comparison shows that IPA's cost is governed by the same structural width parameter as the diagram's size, and neither method dominates: for exact point-valued reliability IPA is competitive with, not superior to, a well-ordered decision diagram. Its distinguishing capability is the native propagation of imprecise component reliabilities. Interval-valued inputs yield the exact reliability range at machine precision, faster for one-shot queries than the decision-diagram route to the same interval on every family tested. Probability-box inputs yield guaranteed distributional bounds through a conditioning operator grounded in the Fr\'echet--Hoeffding inequalities, which certify requirement-violation probabilities from a single propagation, a result no point-valued exact method produces analytically.
 
+An applied case study of a medical drone logistics network for Scotland, with every input traced to the source design study and one explicitly flagged extension, illustrates the engineering use of the method: propagated reliability bounds identify the facilities whose delivery reachability is most uncertain under the stated input uncertainty, and a sweep of a real redundancy design parameter locates the practical boundary of exact analysis on the network. Within that boundary, IPA completes full exact propagation in under 25 seconds at a redundancy level where the decision-diagram alternative did not complete within a practical budget. Exact reliability analysis of large acyclic networks is feasible whenever dependency-inducing substructures remain sufficiently localised, and this boundary can be measured and expressed in design terms.
 
-Two case studies were presented to validate IPA's effectiveness and accuracy. The comparison against the dPrPm, another message passing algorithm for signal propagation in DAGs, shows a speed-up in the calculation larger than two order of magnitude  while computed the same result as exact path enumeration. 
-The second case study applied IPA to six Pareto-optimal drone logistics network configurations spanning a range of diamond complexity with up to 277 diamonds and a nesting depth of 18. The drone-network case study indicates that networks with moderate numbers of nodes and edges may remain highly tractable if reconvergent structures are shallow (depth $\leq$12), whereas significantly smaller networks may already become impractical for exact analysis if reconvergent dependencies are deeply nested (depth $\geq$18).
-
-Overall, the results suggest that exact reliability analysis in large DAGs is feasible whenever dependency-inducing substructures remain sufficiently localised. This makes IPA particularly relevant for infrastructure design, performance assessment, and decision-support problems in systems that can be represented as multi-source acyclic process networks.
-
-Although the IPA is currently formulated for binary node and edge states in directed acyclic graphs the approach can be generalised to handle cases with multi-state components, temporally varying reliabilities, and explicitly modelled common-cause failures beyond structural path sharing.
-Future research directions may include developing optimization algorithms that pre-decompose the full network before belief propagation as well as further parallelization opportunities beyond topological layer processing, particularly during diamond decomposition when nested diamonds are not interconnected. 
+Future work includes a soundness proof for the tighter positive-dependence conditioning operator, the depth-limited hybrid scheme proposed for networks beyond the exact range, extension to multi-state components and explicitly modelled common-cause failures, and a principled treatment of cyclic dependency structures.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{references}
 
 \section*{Acknowledgements}
-This work was supported by the Nuclear Decommissioning Authority (NDA) in conjunction with the National Nuclear Laboratory (NNL) through the NDA Bursary Scheme (project number NNL/UA/118). 
+This work was supported by the Nuclear Decommissioning Authority (NDA) in conjunction with the UK National Nuclear Laboratory (UKNNL) through the NDA Bursary Scheme (project number NNL/UA/118).
 
 
 \section*{Data and Software Availability}
 
-The implementation of the Information Propagation Algorithm (IPA), together with the benchmark datasets and scripts required to reproduce the case studies, is available at:
-
-\url{https://github.com/Temi-Tory/InformationPropagationAnalysis.jl}. 
-% need to change to zenodo doi for ress data
+The implementation of the Information Propagation Algorithm (IPA) is released as the open-source Julia package \texttt{InformationPropagationAnalysis.jl}, registered in the Julia General package registry and available at \url{https://github.com/Temi-Tory/InformationPropagationAnalysis.jl}. The benchmark networks, validation scripts, and result artefacts required to reproduce every table and figure in this manuscript are deposited at [Zenodo DOI to be inserted upon minting] under an MIT licence, together with a README mapping each artefact to the manuscript table or figure it supports.
 
 \end{document}
 

@@ -1,0 +1,139 @@
+  Activating project at `C:\Development\Info_Prop_Framework_Project\Info_Prop_Framework_Project`
+    Updating registry at `C:\Users\ohian\.julia\registries\General.toml`
+   Resolving package versions...
+ERROR: Unsatisfiable requirements detected for package Makie [ee78f7c6]:
+ Makie [ee78f7c6] log:
+ ├─possible versions are: 0.9.0 - 0.24.14 or uninstalled
+ ├─restricted by compatibility requirements with StatsBase [2913bbd2] to versions: [0.9.0 - 0.12.0, 0.19.6 - 0.24.14] or uninstalled
+ │ └─StatsBase [2913bbd2] log:
+ │   ├─possible versions are: 0.24.0 - 0.34.13 or uninstalled
+ │   ├─restricted to versions * by project [05d96da8], leaving only versions: 0.24.0 - 0.34.13
+ │   │ └─project [05d96da8] log:
+ │   │   ├─possible versions are: 0.0.0 or uninstalled
+ │   │   └─project [05d96da8] is fixed to version 0.0.0
+ │   └─restricted by compatibility requirements with DataStructures [864edb3b] to versions: 0.34.6 - 0.34.13 or uninstalled, leaving only versions: 0.34.6 - 0.34.13
+ │     └─DataStructures [864edb3b] log:
+ │       ├─possible versions are: 0.9.0 - 0.19.6 or uninstalled
+ │       ├─restricted to versions * by project [05d96da8], leaving only versions: 0.9.0 - 0.19.6
+ │       │ └─project [05d96da8] log: see above
+ │       └─restricted to versions 0.19.3 by an explicit requirement, leaving only versions: 0.19.3
+ ├─restricted by compatibility requirements with Interpolations [a98d9a8b] to versions: 0.9.0 - 0.21.9 or uninstalled, leaving only versions: [0.9.0 - 0.12.0, 0.19.6 - 0.21.9] or uninstalled
+ │ └─Interpolations [a98d9a8b] log:
+ │   ├─possible versions are: 0.3.6 - 0.16.3 or uninstalled
+ │   └─restricted by compatibility requirements with ProbabilityBoundsAnalysis [cd73f0b2] to versions: 0.12.8 - 0.13.6
+ │     └─ProbabilityBoundsAnalysis [cd73f0b2] log:
+ │       ├─possible versions are: 0.1.0 - 0.2.11 or uninstalled
+ │       ├─restricted to versions * by project [05d96da8], leaving only versions: 0.1.0 - 0.2.11
+ │       │ └─project [05d96da8] log: see above
+ │       ├─restricted by compatibility requirements with Plots [91a5bcdd] to versions: 0.1.1 - 0.2.11 or uninstalled, leaving only versions: 0.1.1 - 0.2.11
+ │       │ └─Plots [91a5bcdd] log:
+ │       │   ├─possible versions are: 0.12.1 - 1.41.7 or uninstalled
+ │       │   ├─restricted to versions * by project [05d96da8], leaving only versions: 0.12.1 - 1.41.7
+ │       │   │ └─project [05d96da8] log: see above
+ │       │   ├─restricted by compatibility requirements with StatsPlots [f3b207a7] to versions: 0.14.0 - 1.41.7
+ │       │   │ └─StatsPlots [f3b207a7] log:
+ │       │   │   ├─possible versions are: 0.10.0 - 0.15.8 or uninstalled
+ │       │   │   ├─restricted to versions * by project [05d96da8], leaving only versions: 0.10.0 - 0.15.8
+ │       │   │   │ └─project [05d96da8] log: see above
+ │       │   │   └─restricted by compatibility requirements with DataStructures [864edb3b] to versions: 0.15.8 or uninstalled, leaving only versions: 0.15.8
+ │       │   │     └─DataStructures [864edb3b] log: see above
+ │       │   └─restricted by compatibility requirements with StatsBase [2913bbd2] to versions: 1.38.13 - 1.41.7 or uninstalled, leaving only versions: 1.38.13 - 1.41.7
+ │       │     └─StatsBase [2913bbd2] log: see above
+ │       └─restricted by compatibility requirements with Distributions [31c24e10] to versions: 0.2.2 - 0.2.11 or uninstalled, leaving only versions: 0.2.2 - 0.2.11
+ │         └─Distributions [31c24e10] log:
+ │           ├─possible versions are: 0.16.0 - 0.25.131 or uninstalled
+ │           ├─restricted to versions * by project [05d96da8], leaving only versions: 0.16.0 - 0.25.131
+ │           │ └─project [05d96da8] log: see above
+ │           ├─restricted by compatibility requirements with ProbabilityBoundsAnalysis [cd73f0b2] to versions: 0.23.1 - 0.25.131
+ │           │ └─ProbabilityBoundsAnalysis [cd73f0b2] log: see above
+ │           └─restricted by compatibility requirements with StatsBase [2913bbd2] to versions: 0.25.88 - 0.25.131 or uninstalled, leaving only versions: 0.25.88 - 0.25.131
+ │             └─StatsBase [2913bbd2] log: see above
+ ├─restricted by compatibility requirements with AbstractPlotting [537997a7] to versions: [0.9.0 - 0.11.1, 0.13.0 - 0.24.14] or uninstalled, leaving only versions: [0.9.0 - 0.11.1, 0.19.6 - 0.21.9] or uninstalled
+ │ └─AbstractPlotting [537997a7] log:
+ │   ├─possible versions are: 0.9.0 - 0.18.3 or uninstalled
+ │   ├─restricted by compatibility requirements with StatsBase [2913bbd2] to versions: 0.9.0 - 0.12.6 or uninstalled
+ │   │ └─StatsBase [2913bbd2] log: see above
+ │   ├─restricted by compatibility requirements with FixedPointNumbers [53c48c17] to versions: [0.9.0, 0.9.8 - 0.18.3] or uninstalled, leaving only versions: [0.9.0, 0.9.8 - 0.12.6] or uninstalled
+ │   │ └─FixedPointNumbers [53c48c17] log:
+ │   │   ├─possible versions are: 0.5.0 - 0.9.1 or uninstalled
+ │   │   ├─restricted by compatibility requirements with Colors [5ae59095] to versions: 0.5.0 - 0.8.6
+ │   │   │ └─Colors [5ae59095] log:
+ │   │   │   ├─possible versions are: 0.9.0 - 0.13.1 or uninstalled
+ │   │   │   └─restricted to versions * by project [05d96da8], leaving only versions: 0.9.0 - 0.13.1
+ │   │   │     └─project [05d96da8] log: see above
+ │   │   └─restricted by compatibility requirements with Plots [91a5bcdd] to versions: 0.6.0 - 0.8.6
+ │   │     └─Plots [91a5bcdd] log: see above
+ │   └─restricted by compatibility requirements with FreeTypeAbstraction [663a7486] to versions: 0.18.1 - 0.18.3 or uninstalled, leaving only versions: uninstalled
+ │     └─FreeTypeAbstraction [663a7486] log:
+ │       ├─possible versions are: 0.4.0 - 0.10.8 or uninstalled
+ │       └─restricted by compatibility requirements with ColorVectorSpace [c3611d14] to versions: 0.9.1 - 0.10.8 or uninstalled
+ │         └─ColorVectorSpace [c3611d14] log:
+ │           ├─possible versions are: 0.6.0 - 0.11.0 or uninstalled
+ │           ├─restricted by compatibility requirements with StatsBase [2913bbd2] to versions: 0.9.0 - 0.11.0 or uninstalled
+ │           │ └─StatsBase [2913bbd2] log: see above
+ │           └─restricted by compatibility requirements with SpecialFunctions [276daf66] to versions: [0.8.7, 0.9.1 - 0.11.0] or uninstalled, leaving only versions: 0.9.1 - 0.11.0 or uninstalled
+ │             └─SpecialFunctions [276daf66] log:
+ │               ├─possible versions are: 0.7.0 - 2.9.0 or uninstalled
+ │               ├─restricted by compatibility requirements with Distributions [31c24e10] to versions: 0.8.0 - 2.9.0
+ │               │ └─Distributions [31c24e10] log: see above
+ │               └─restricted by compatibility requirements with Distributions [31c24e10] to versions: 1.2.0 - 2.9.0
+ │                 └─Distributions [31c24e10] log: see above
+ ├─restricted by compatibility requirements with StableHashTraits [c5dd0088] to versions: [0.9.0 - 0.19.0, 0.19.9 - 0.24.14] or uninstalled, leaving only versions: [0.9.0 - 0.11.1, 0.19.9 - 0.21.9] or uninstalled
+ │ └─StableHashTraits [c5dd0088] log:
+ │   ├─possible versions are: 0.1.1 - 2.0.3 or uninstalled
+ │   └─restricted by julia compatibility requirements to versions: 1.1.5 - 2.0.3 or uninstalled
+ ├─restricted by compatibility requirements with FixedPointNumbers [53c48c17] to versions: 0.9.1 - 0.24.14 or uninstalled, leaving only versions: [0.9.1 - 0.11.1, 0.19.9 - 0.21.9] or uninstalled
+ │ └─FixedPointNumbers [53c48c17] log: see above
+ ├─restricted by compatibility requirements with DelaunayTriangulation [927a84f5] to versions: [0.9.0 - 0.19.6, 0.20.10 - 0.24.14] or uninstalled, leaving only versions: [0.9.1 - 0.11.1, 0.20.10 - 0.21.9] or uninstalled
+ │ └─DelaunayTriangulation [927a84f5] log:
+ │   ├─possible versions are: 0.1.0 - 1.6.7 or uninstalled
+ │   └─restricted by compatibility requirements with DataStructures [864edb3b] to versions: 1.0.0 - 1.6.7 or uninstalled
+ │     └─DataStructures [864edb3b] log: see above
+ └─restricted by compatibility requirements with GraphMakie [1ecd5474] to versions: 0.19.0 - 0.19.12 — no versions left
+   └─GraphMakie [1ecd5474] log:
+     ├─possible versions are: 0.1.0 - 0.6.6 or uninstalled
+     ├─restricted to versions * by project [05d96da8], leaving only versions: 0.1.0 - 0.6.6
+     │ └─project [05d96da8] log: see above
+     ├─restricted by compatibility requirements with DataStructures [864edb3b] to versions: [0.1.0 - 0.5.4, 0.6.2 - 0.6.6] or uninstalled, leaving only versions: [0.1.0 - 0.5.4, 0.6.2 - 0.6.6]
+     │ └─DataStructures [864edb3b] log: see above
+     ├─restricted by compatibility requirements with Makie [ee78f7c6] to versions: [0.1.0, 0.5.0 - 0.5.14] or uninstalled, leaving only versions: [0.1.0, 0.5.0 - 0.5.4]
+     │ └─Makie [ee78f7c6] log: see above
+     └─restricted by compatibility requirements with AbstractPlotting [537997a7] to versions: 0.2.0 - 0.6.6 or uninstalled, leaving only versions: 0.5.0 - 0.5.4
+       └─AbstractPlotting [537997a7] log: see above
+Stacktrace:
+  [1] propagate_constraints!(graph::Pkg.Resolve.Graph, sources::Set{Int64}; log_events::Bool, err_msg_preamble::String)
+    @ Pkg.Resolve C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Resolve\graphtype.jl:1150
+  [2] propagate_constraints! (repeats 2 times)
+    @ C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Resolve\graphtype.jl:1062 [inlined]
+  [3] simplify_graph!(graph::Pkg.Resolve.Graph, sources::Set{Int64}; validate_versions::Bool)
+    @ Pkg.Resolve C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Resolve\graphtype.jl:1651
+  [4] simplify_graph! (repeats 2 times)
+    @ C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Resolve\graphtype.jl:1650 [inlined]
+  [5] resolve_versions!(env::Pkg.Types.EnvCache, registries::Vector{Pkg.Registry.RegistryInstance}, pkgs::Vector{PackageSpec}, julia_version::VersionNumber, installed_only::Bool)
+    @ Pkg.Operations C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:561
+  [6] targeted_resolve
+    @ C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:1754 [inlined]
+  [7] tiered_resolve(env::Pkg.Types.EnvCache, registries::Vector{Pkg.Registry.RegistryInstance}, pkgs::Vector{PackageSpec}, julia_version::VersionNumber, try_all_installed::Bool)
+    @ Pkg.Operations C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:1743
+  [8] _resolve(io::IOContext{IO}, env::Pkg.Types.EnvCache, registries::Vector{Pkg.Registry.RegistryInstance}, pkgs::Vector{PackageSpec}, preserve::PreserveLevel, julia_version::VersionNumber)
+    @ Pkg.Operations C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:1766
+  [9] add(ctx::Pkg.Types.Context, pkgs::Vector{PackageSpec}, new_git::Set{Base.UUID}; allow_autoprecomp::Bool, preserve::PreserveLevel, platform::Base.BinaryPlatforms.Platform, target::Symbol)
+    @ Pkg.Operations C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:1801
+ [10] add
+    @ C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\Operations.jl:1772 [inlined]
+ [11] add(ctx::Pkg.Types.Context, pkgs::Vector{PackageSpec}; preserve::PreserveLevel, platform::Base.BinaryPlatforms.Platform, target::Symbol, allow_autoprecomp::Bool, kwargs::@Kwargs{io::IOContext{IO}})
+    @ Pkg.API C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\API.jl:354
+ [12] add(pkgs::Vector{PackageSpec}; io::IOContext{IO}, kwargs::@Kwargs{})
+    @ Pkg.API C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\API.jl:169
+ [13] add(pkgs::Vector{PackageSpec})
+    @ Pkg.API C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\API.jl:158
+ [14] add(pkg::PackageSpec)
+    @ Pkg.API C:\Users\ohian\.julia\juliaup\julia-1.12.6+0.x64.w64.mingw32\share\julia\stdlib\v1.12\Pkg\src\API.jl:156
+ [15] top-level scope
+    @ none:1
+ [16] eval(m::Module, e::Any)
+    @ Core .\boot.jl:489
+ [17] exec_options(opts::Base.JLOptions)
+    @ Base .\client.jl:283
+ [18] _start()
+    @ Base .\client.jl:550
