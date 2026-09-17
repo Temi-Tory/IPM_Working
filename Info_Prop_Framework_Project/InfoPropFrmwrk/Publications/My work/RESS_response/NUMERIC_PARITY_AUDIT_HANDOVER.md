@@ -140,6 +140,28 @@ recurred in a later log even after that process was confirmed dead. Has not corr
 output (every CSV produced this session traces correctly and consistently) — flagged for awareness, not
 acted on further.
 
+## Priority 4 — SUPERSEDED again 2026-09-18: median-vs-minimum methodology bug found and fixed
+
+Author's own independent REPL run (proper warm-up, `@benchmark`) gave median 1.685ms but a *minimum* of
+0.9222ms — and the manuscript's own stated methodology (§5 preamble) says **"the reported time is the
+minimum of repeated measurements,"** not median. The actual scripts (`grid_full_suite.jl`,
+`grid_cost_float_only.jl` — pre-existing code, not introduced this session) computed `median(...).time`
+throughout, contradicting the paper's own stated convention. **Fixed at the source**: all five
+`median(...).time` call sites in both scripts changed to `minimum(...).time`, and the CSV column header
+renamed `median_ms`→`min_ms` for honesty. Manuscript's IPA row updated to **0.922ms** (the author's own
+REPL-observed minimum) / 1.74MB (unchanged, memory isn't affected by this bug). Propagated to all three
+`grid_cost.csv` canonical copies.
+
+**Known remaining gap, low priority**: `grid_cost.csv`'s Interval row (1.082ms) is still the old
+median-based figure — nobody has re-measured grid Interval cost with the corrected minimum methodology
+yet. Not urgent: this row isn't cited anywhere in the manuscript (`tab:computation_comparison_grid` only
+has an IPA/dPrPm Float64 comparison), it's informational only. Worth a rerun if anyone ever cites it.
+
+**Standing lesson for any future cost/timing work in this project**: always use `minimum(trial).time`,
+never `median`, to match the paper's own stated methodology — and check this project's OTHER
+`@benchmark`-based scripts for the same median-vs-minimum bug before trusting their historical numbers;
+this was not audited beyond the two grid scripts touched this session.
+
 ## Priority 2 — BDD implementation: identity resolved, one wording fix + one citation needed
 
 **Confirmed with high confidence**: `CUDD.jl` v0.3.1 (Julia FFI wrapper) backed by `CUDD_jll` v3.0.0+0
