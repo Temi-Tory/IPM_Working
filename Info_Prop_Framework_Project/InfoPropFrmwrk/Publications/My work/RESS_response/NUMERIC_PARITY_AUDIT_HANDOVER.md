@@ -10,6 +10,20 @@ thesis-data; this document is the synthesis, plus direct follow-up tracing done 
 Scope note: the author explicitly ruled **power-network extension and Net3-table-inclusion out of
 scope** this session — both are real gaps (see below) but deliberately not being pursued now.
 
+## Data repos: pushed, archived, DOI'd (2026-09-18)
+
+Both data repos now exist as clean, fresh-history GitHub repos (no Claude co-authorship in either),
+pushed and Zenodo-archived:
+- `RESSdata` → `github.com/Temi-Tory/RESS-data` → DOI `10.5281/zenodo.22821307` — the RESS paper's own
+  reproduction package (grid/corpus/adversarial validation artefacts).
+- `thesis-data` → `github.com/Temi-Tory/InfoProp-Thesis-data` → DOI `10.5281/zenodo.22821351` — the PhD
+  thesis's companion data (fresh history; the *original* thesis-data repo/DOI, `10.5281/zenodo.22180227`
+  per prior memory, is untouched and remains separately valid/citable — this is a new, unrelated deposit,
+  not a new version of that one, per the author's explicit choice of a clean break over DOI continuity).
+
+Manuscript's Data and Software Availability section (`elsarticle-template-num.tex`, end of file) updated
+with the real RESS-data DOI, replacing the `[Zenodo DOI to be inserted upon minting]` placeholder.
+
 ## Priority 1 — RESOLVED 2026-09-17
 
 Fresh CUDD-based rerun of `grid_full_suite.jl`'s accuracy section (OneDrive path fixed, DataStructures
