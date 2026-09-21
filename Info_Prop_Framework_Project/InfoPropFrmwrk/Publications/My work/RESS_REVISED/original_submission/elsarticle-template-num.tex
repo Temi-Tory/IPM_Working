@@ -127,7 +127,7 @@ A component failure probability is often known only within bounds, from sparse o
 Hence, existing methods face a trade-off between generality, computational efficiency, and exactness. Classical analytical methods struggle with complex dependency structures, exact path-based approaches suffer from combinatorial explosion, and simulation or approximate message-passing methods sacrifice exactness for scalability. This work addresses this gap by proposing an exact message-passing framework for DAG reliability analysis that explicitly resolves reconvergent dependencies through conditional decomposition of fork--join substructures. By identifying and reducing these structures during computation, the proposed method avoids repeated enumeration over shared dependencies and preserves exact probabilistic results.
 
 \section{Network Model}\label{sec:model}
-A process system is modelled as a directed acyclic graph $G = (V, E)$ where $V$ denotes the set of nodes (components) and $E \subseteq V \times V$ represents the set of directed edges (dependencies). Let $S \subseteq V$ denote the set of source nodes and $T \subseteq V$ the set of sink nodes. Throughout the paper we use $\text{Pa}(v)$ and $\text{Ch}(v)$ to represent the set of parent nodes and child nodes of $v$, respectively.
+A process system can be modelled as a directed acyclic graph $G = (V, E)$ where $V$ denotes the set of nodes (components) and $E \subseteq V \times V$ represents the set of directed edges (dependencies). Let $S \subseteq V$ denote the set of source nodes and $T \subseteq V$ the set of sink nodes. Throughout the paper we use $\text{Pa}(v)$ and $\text{Ch}(v)$ to represent the set of parent nodes and child nodes of $v$, respectively.
 
 \subsection{Component States and Probabilistic Model}
 
@@ -157,7 +157,7 @@ A path $\pi(s,v)$ from source $s \in S$ to node $v \in V$ is viable if all nodes
 
 \subsection{Definition of Diamond Structures}
 
-We formalise reconvergent dependency patterns through the notion of a diamond subgraph.
+We formalise reconvergent dependency patterns through the concept of a diamond subgraph.
 
 \begin{definition}[Diamond Structure]
 A diamond structure is a subgraph $D \subseteq G$ characterised by:
