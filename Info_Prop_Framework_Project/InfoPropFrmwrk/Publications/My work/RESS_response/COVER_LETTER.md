@@ -1,0 +1,27 @@
+Manuscript Number: JRESS-D-26-03751
+"Information Propagation Algorithm for Exact Reliability Analysis in Directed Acyclic Process Networks"
+
+Dear Prof. Faes,
+
+Thank you and the three reviewers for the detailed and constructive assessment of our manuscript. We have substantially revised it in response to every comment raised, and a complete point-by-point response is enclosed. The main changes are summarised here.
+
+**Validation breadth (Comments to the Authors #1, #3; Reviewer #2 comment 2).** The single 16-node benchmark network is now supplemented with an independent exact oracle — a reduced-ordered binary decision diagram (ROBDD), built with CUDD under dynamic variable reordering — applied across a corpus of 129 random and mutated directed acyclic graphs, six topological families, larger random networks up to 50 nodes, five named structured and real-infrastructure networks (a power distribution network, a gas distribution network, a metropolitan transit network, and the EPANET Net3 water distribution benchmark, alongside the original grid), and 18 published Bayesian-network benchmark topologies. Every network was evaluated by both methods; the worst observed disagreement anywhere is at floating-point precision (order $10^{-16}$).
+
+**The runtime comparison (Comment #2; Reviewer #2 comment 2).** The previously reported 134-fold speedup, based on runtimes quoted from a published paper obtained in an uncontrolled implementation environment, has been removed entirely. Every quantitative performance claim in the revision now rests on a controlled, same-process, same-machine comparison against the ROBDD oracle above, applied consistently across the grid benchmark, the full corpus, and the applied case study.
+
+**Theoretical positioning and complexity (Comment #4; Reviewer #2 comment 1; Reviewer #3 comments 3 and 5).** Section 4.3 now gives an exact per-instance cost expression, formally positions IPA as a specialisation of cutset conditioning to source-to-node reachability, and relates its cost parameter to the treewidth that governs junction-tree inference and well-ordered decision diagrams. Two new lemmas (separator sufficiency, independent-substructure factorisation) and a new corollary (acyclic reduction) have been added, each with a full proof, alongside strengthened proofs of the two lemmas already present.
+
+**Algorithm reproducibility (Comment #7; Reviewer #3 comments 1 and 2).** A second, fully specified algorithm (Algorithm 2) now gives the diamond-identification procedure explicitly — how conditioning sets are determined, how stored sub-problems are keyed and reused, and how the recursion handles nested and overlapping diamonds — supported by a traced four-diamond worked example (Section 4.2.1).
+
+**The applied case study (Comment #5; Reviewer #2 comment 3; Reviewer #3 comment 6).** The six-Pareto drone case study has been rebuilt from the ground up around a real, cited source design study (a medical drone logistics network for Scotland), with every input traced to that study and exactly one clearly flagged extension. It reports engineering reliability findings — which facilities carry the most uncertainty about delivery reachability, and why — rather than runtime statistics alone, and locates the practical boundary of exact computation on this real network through a controllable redundancy design parameter. The directed-acyclic simplification of the source study's undirected network is justified directly from the reliability question being asked, and the limitation for genuinely cyclic or bidirectional structures is stated explicitly, not left implicit.
+
+**A capability not requested by any reviewer, added because it strengthens the contribution substantially: native propagation of imprecise component reliabilities (Section 5.3).** With interval-valued inputs the method returns the exact reliability range at machine precision, faster than the decision-diagram route on every family tested for one-shot queries. With probability-box inputs it returns guaranteed distributional bounds through a conditioning operator grounded in the Fréchet–Hoeffding inequalities, certifying requirement-violation probabilities from a single propagation — a result no point-valued exact method, including the decision-diagram oracle used throughout this revision, produces analytically.
+
+Every remaining comment — supernode storage and cache management, figure quality and captions, the relationship to inference in probabilistic graphical models more broadly, and editorial issues — is addressed in full in the enclosed point-by-point response.
+
+**Data and code availability.** The complete implementation is released as the open-source Julia package `InformationPropagationAnalysis.jl`, registered in the Julia General package registry. All data and scripts needed to reproduce every table and figure in the revised manuscript are deposited at https://doi.org/10.5281/zenodo.22821307 under an MIT licence.
+
+We hope the revision addresses the reviewers' concerns fully and look forward to your decision.
+
+Sincerely,
+Temitope Ohiani, Edoardo Patelli, Caroline Pyke
