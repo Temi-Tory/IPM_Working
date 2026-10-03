@@ -23,6 +23,22 @@ import {
   NetworkSessionService,
 } from '@inf-prop/shared/data-access';
 
+const COLLAPSED_KEY = 'ipf.home.collapsedGroups';
+
+function loadCollapsed(): ReadonlySet<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((x): x is string => typeof x === 'string')
+        : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 @Component({
   selector: 'ipf-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +87,31 @@ export class HomePage {
   protected readonly uploads = computed(() =>
     this.sessions().filter((s) => !s.protected),
   );
+
+  /** Example groups the viewer has folded; remembered per browser. */
+  protected readonly collapsed = signal<ReadonlySet<string>>(loadCollapsed());
+
+  protected toggleGroup(name: string): void {
+    const next = new Set(this.collapsed());
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    this.setCollapsed(next);
+  }
+
+  protected setAllGroups(collapse: boolean): void {
+    this.setCollapsed(
+      collapse ? new Set(this.exampleGroups().map((g) => g.name)) : new Set(),
+    );
+  }
+
+  private setCollapsed(next: Set<string>): void {
+    this.collapsed.set(next);
+    try {
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
+    } catch {
+      /* storage unavailable (private mode etc.) — state just isn't remembered */
+    }
+  }
   protected readonly serverStatus = signal<'checking' | 'up' | 'down'>(
     'checking',
   );

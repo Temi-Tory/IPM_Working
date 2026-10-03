@@ -451,9 +451,9 @@ The extended source-side region is
 \[
 S^{\star\star} = V \setminus R_T,
 \]
-restricted to original graph nodes. Any node outside $R_T$ cannot reach the sink 
-under the current flow state, so absorbing it into the source partition never 
-increases cut capacity. Consequently $S^\star \subseteq S^{\star\star}$.
+restricted to original graph nodes. Any node outside $R_T$ cannot reach the sink
+under the current flow state, so taking the whole of $S^{\star\star}$ as the source
+side also gives a minimum cut. Consequently $S^\star \subseteq S^{\star\star}$.
 \end{definition}
 
 \begin{definition}[Free Zone]
@@ -461,21 +461,24 @@ Given the extended partition, the free zone is
 \[
 \mathcal{F} = S^{\star\star} \setminus S^\star.
 \]
-Nodes in $\mathcal{F}$ can be assigned to either side of a minimum cut without 
-affecting its capacity. Every minimum cut of $G$ under $f^\star$ takes the form 
+Every minimum cut of $G$ under $f^\star$ takes the form
 $S = S^\star \cup R$ for some $R \subseteq \mathcal{F}$.
 \end{definition}
 
-The free zone size $|\mathcal{F}|$ itself determines the degeneracy of the bottleneck structure. When $|\mathcal{F}| = 0$ the minimum cut computed from the flow solver is unique and $S^\star$ is the only valid partition. For $|\mathcal{F}| > 0$ there are exactly 
-$2^{|\mathcal{F}|}$ equivalent minimum cuts, meaning the cut boundary is not pinned 
-to a single partition. 
+The converse does not hold for every subset. A node of $\mathcal{F}$ can reach other nodes of $\mathcal{F}$ in $G_f$, and moving it to the source side without them adds the capacity of the edges it leaves behind. Which subsets do give minimum cuts was settled by \cite{picard1980structure}.
+
+\begin{theorem}[Picard and Queyranne]\label{thm:closed-cuts}
+For $R \subseteq \mathcal{F}$, the partition $S^\star \cup R$ is a minimum cut if and only if $R$ is closed under reachability in $G_f$: whenever $u \in R$ and $G_f$ contains an arc $(u,v)$ with $v \in \mathcal{F}$, then $v \in R$.
+\end{theorem}
+
+The free zone size $|\mathcal{F}|$ bounds the degeneracy of the bottleneck structure. When $|\mathcal{F}| = 0$ the minimum cut computed from the flow solver is unique and $S^\star$ is the only valid partition. For $|\mathcal{F}| > 0$ there are at most $2^{|\mathcal{F}|}$ minimum cuts, one for each closed subset, with equality only when no node of $\mathcal{F}$ reaches another in $G_f$. The power network of Appendix~\ref{sec:appA-power} shows the difference. With every edge capacity set to 60 its free zone is $\{19, 20, 21\}$, the residual graph links them as a chain $19 \to 20 \to 21$, and 4 of the 8 subsets are minimum cuts.
 
 Both the extended partition $S^{\star\star}$ and free zone $\mathcal{F}$ allow for a more complete picture of the bottleneck edge structure beyond what the representative cut alone provides. It then follows that two distinct edge sets can be derived directly from the lattice.
 
- The set of edges appearing in at least one minimum cut is \[ E_{\text{some}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^{\star\star},\; v \notin S^\star\}, \] and the set appearing in every minimum cut is \[ E_{\text{every}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^\star,\; v \in T^{\star\star}\}, \] where $T^{\star\star} = V \setminus S^{\star\star}$, and $E_{\text{every}} \subseteq E_{\text{some}}$ holds by construction. 
+ The set of edges appearing in at least one minimum cut is \[ E_{\text{some}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^{\star\star},\; v \notin S^\star,\; v \notin \operatorname{Reach}_{G_f}(u)\}, \] where $\operatorname{Reach}_{G_f}(u)$ is the set of nodes reachable from $u$ in $G_f$. When $v$ is not reachable from $u$, the set $S^\star \cup \operatorname{Reach}_{G_f}(u)$ is closed and gives a minimum cut that separates them; when it is reachable, every closed set that contains $u$ also contains $v$. The set appearing in every minimum cut is \[ E_{\text{every}} = \{(u,v)\in E : f^\star_{uv} = c_{uv},\; u \in S^\star,\; v \in T^{\star\star}\}, \] where $T^{\star\star} = V \setminus S^{\star\star}$, and $E_{\text{every}} \subseteq E_{\text{some}}$ holds by construction.
 
 \subsubsection{Min-Cut Enumerator}
-Given the residual lattice, the enumerator function in this utility module iterates over subsets $R \subseteq \mathcal{F}$ in binary counting order. Since each subset maps to a distinct minimum cut $S^\star \cup R$, every enumerated cut is guaranteed to be valid by lattice membership. The function exposes a \texttt{cut\_limit} parameter such that: if $2^{|\mathcal{F}|} \leq \texttt{cut\_limit}$ all minimum cuts are returned and \texttt{is\_complete} $=$ \texttt{true}; otherwise, the first \texttt{cut\_limit} cuts are returned with \texttt{is\_complete} $=$ \texttt{false}. This can be necessary in highly symmetric networks, where $|\mathcal{F}|$ can be large, making full enumeration intractable.
+Given the residual lattice, the enumerator function in this utility module iterates over subsets $R \subseteq \mathcal{F}$ in binary counting order and keeps those whose cut capacity equals $F^\star$. By Theorem~\ref{thm:closed-cuts} these are the closed subsets, so every returned cut is a minimum cut and none is missed. The function exposes a \texttt{cut\_limit} parameter such that: if $2^{|\mathcal{F}|} \leq \texttt{cut\_limit}$ every subset is examined, all minimum cuts are returned and \texttt{is\_complete} $=$ \texttt{true}; otherwise, the first \texttt{cut\_limit} subsets are examined, the minimum cuts among them are returned and \texttt{is\_complete} $=$ \texttt{false}. This can be necessary in highly symmetric networks, where $|\mathcal{F}|$ can be large, making full enumeration intractable.
 
 
 
@@ -646,9 +649,9 @@ Node-Cap & Split transformation & Graph transform & $O(V+E)$ \\
 Node-Cap & Solve (split) & Solver on $2V, 2E$ & $O(T_{\text{solver}})$ \\
 \multicolumn{4}{l}{\small\textit{Min-Cut Utility}} \\
 Min-Cut & \texttt{cut\_edges} & Extract partition & $O(E)$ \\
-Min-Cut & \texttt{edges\_some} & BFS + filter & $O(E + T_s)$ \\
+Min-Cut & \texttt{edges\_some} & BFS + residual reach & $O(|E_{\text{sat}}|(V+E))$ \\
 Min-Cut & \texttt{edges\_every} & Reachability & $O(V+E)$ \\
-Min-Cut & \texttt{enumerate} & Lattice ($2^{|\mathcal{F}|}$) & $O(2^{|\mathcal{F}|} \cdot E)$\footnotemark[1] \\[2pt]
+Min-Cut & \texttt{enumerate} & Closed subsets of $\mathcal{F}$ & $O(2^{|\mathcal{F}|} \cdot E)$\footnotemark[1] \\[2pt]
 \multicolumn{4}{l}{\small\textit{Structural}} \\
 Struct & \texttt{spof\_nodes} & BFS per candidate & $O(|\mathcal{C}|(V+E))$ \\
 Struct & \texttt{enumerate\_paths} & DFS on DAG & $O(|\mathcal{P}|)$\footnotemark[2] \\
