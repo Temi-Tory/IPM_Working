@@ -160,10 +160,14 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
                     cache,
                 )
 
-                result_data["reachability_result"] = Dict(
+                reach = Dict{String, Any}(
                     "beliefs" => convert_values(Dict(string(k) => v for (k, v) in beliefs)),
-                    "cache" => cache_payload(cache),
                 )
+                # opt-in: see includeCachePayload in ProbabilityHandlers
+                if Bool(get(request_data, "includeCachePayload", false))
+                    reach["cache"] = cache_payload(cache)
+                end
+                result_data["reachability_result"] = reach
             end
         end
 

@@ -14,6 +14,11 @@ function probability_payload(request_data::AbstractDict)
     linkprobs_path = get(request_data, "linkprobsPath", "")
     include_exact_inference = Bool(get(request_data, "includeExactInference", true))
     include_diamond_analysis = Bool(get(request_data, "includeDiamondAnalysis", false))
+    # The diamond cache dump (every entry's edgelist, priors and per-conditioning-state beliefs)
+    # is debugging output the UI never reads, and it dwarfs the computation itself: on the
+    # 1,486-diamond drone networks, building it took the server past 13 GB while the
+    # propagation peaks at ~3 GB. Off unless asked for.
+    include_cache_payload = Bool(get(request_data, "includeCachePayload", false))
 
     isempty(network_path) && throw(ArgumentError("Network path required"))
     isempty(nodepriors_path) && throw(ArgumentError("nodepriorsPath required"))
@@ -93,7 +98,7 @@ function probability_payload(request_data::AbstractDict)
             end
         end
 
-        result_data["exact_inference"] = Dict(
+        result_data["exact_inference"] = Dict{String, Any}(
             "beliefs" => convert_values(Dict(string(k) => v for (k, v) in beliefs)),
             "node_priors" => convert_values(Dict(string(k) => v for (k, v) in node_priors)),
             "computation_time" => elapsed,
@@ -105,8 +110,10 @@ function probability_payload(request_data::AbstractDict)
                 "numeric_count" => length(numeric_beliefs),
                 "total_count" => length(beliefs),
             ),
-            "cache" => cache_payload(cache),
         )
+        if include_cache_payload
+            result_data["exact_inference"]["cache"] = cache_payload(cache)
+        end
     end
 
     value_type = if isempty(node_priors)

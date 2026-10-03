@@ -285,11 +285,12 @@ paths:
   /probability-propagation:
     post:
       tags: [probability]
-      summary: Run exact probability propagation with diamond cache payload
+      summary: Run exact probability propagation
       description: |
         New canonical endpoint replacing /reachability-analysis.
-        Response includes cache payload under:
-        probability_result.exact_inference.cache
+        With includeCachePayload: true the response also carries the diamond-cache dump under
+        probability_result.exact_inference.cache (off by default; the same flag applies to
+        /diamond-subgraph-analysis reachability_result.cache).
 
         Diamonds are identified with DiamondDecompositionModule.new_identify; when
         includeDiamondAnalysis is true the raw_root_diamonds / raw_unique_diamonds maps use
@@ -614,6 +615,12 @@ components:
         includeDiamondAnalysis:
           type: boolean
           default: false
+        includeCachePayload:
+          type: boolean
+          default: false
+          description: >
+            Include exact_inference.cache (the full diamond-cache dump). Debugging output; it can
+            be far larger than the computation itself on networks with many diamonds.
 
     ProbabilityPropagationResponse:
       type: object
@@ -647,7 +654,7 @@ components:
         probability_result:
           type: object
           additionalProperties: true
-          description: Includes exact_inference.cache payload with cache entries.
+          description: Includes exact_inference.cache only when includeCachePayload was true.
 
     FlowAnalysisRequest:
       type: object
