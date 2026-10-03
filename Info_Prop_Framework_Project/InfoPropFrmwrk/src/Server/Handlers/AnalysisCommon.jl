@@ -16,6 +16,7 @@ export convert_values,
        resolve_edges_path_or_error,
        default_node_priors,
        cache_payload,
+       attach_cache_payload!,
        parse_time_value,
        parse_edge_key,
        parse_node_values,
@@ -161,6 +162,32 @@ function cache_payload(cache)
         "entry_count" => length(entries),
         "entries" => entries,
     )
+end
+
+# Above this many stored values (edges + priors + state beliefs over all entries) the dump is
+# withheld even when asked for: building it on the 1,486-diamond drone networks took the
+# server past 13 GB, and on a public instance anyone can ask. Counted before anything is built.
+const CACHE_PAYLOAD_MAX_VALUES = 200_000
+
+cache_payload_size(cache) =
+    sum((length(v.edgelist) + length(v.current_priors) + length(v.state_beliefs) for v in values(cache)); init=0)
+
+"""
+    attach_cache_payload!(target, cache, requested)
+
+Add `target["cache"] = cache_payload(cache)` when the request asked for it (`includeCachePayload`)
+and the cache is small enough; otherwise, if it was asked for, add `target["cache_omitted"]`
+saying why.
+"""
+function attach_cache_payload!(target::AbstractDict, cache, requested::Bool)
+    requested || return target
+    n = cache_payload_size(cache)
+    if n <= CACHE_PAYLOAD_MAX_VALUES
+        target["cache"] = cache_payload(cache)
+    else
+        target["cache_omitted"] = "cache has $(length(cache)) entries holding $(n) values, over the limit of $(CACHE_PAYLOAD_MAX_VALUES)"
+    end
+    return target
 end
 
 function parse_time_value(raw, ::Type{Float64})

@@ -5,6 +5,7 @@ using JSON
 using Dates
 using ..ServerCommon
 using ..InfoPropFramework
+using ..ResultCache
 
 function _parse_capacity_value(raw)
     if isa(raw, Real)
@@ -378,8 +379,8 @@ function handle_capacity_analysis(req::HTTP.Request)
 end
 
 function register!(router::HTTP.Router)
-    HTTP.register!(router, "POST", "/flow-analysis", handle_capacity_analysis)
-    HTTP.register!(router, "POST", "/capacity-analysis", handle_capacity_analysis)
+    HTTP.register!(router, "POST", "/flow-analysis", cached(handle_capacity_analysis, "flow-analysis"))
+    HTTP.register!(router, "POST", "/capacity-analysis", cached(handle_capacity_analysis, "capacity-analysis"))
 end
 
 end # module CapacityHandlers

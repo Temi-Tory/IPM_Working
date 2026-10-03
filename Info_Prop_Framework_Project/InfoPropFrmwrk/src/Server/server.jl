@@ -9,6 +9,9 @@ using .InfoPropFramework
 include(joinpath(@__DIR__, "Core", "Common.jl"))
 using .ServerCommon
 
+include(joinpath(@__DIR__, "Handlers", "ResultCache.jl"))
+using .ResultCache
+
 include(joinpath(@__DIR__, "Handlers", "UploadHandlers.jl"))
 using .UploadHandlers
 

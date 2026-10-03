@@ -1,4 +1,4 @@
-import { AnalysisEnvelope } from './envelope';
+import { AnalysisEnvelope, ForceRecompute } from './envelope';
 import { IntervalData } from '../value-types';
 
 /**
@@ -29,7 +29,7 @@ export type ScheduleMode =
   | 'max_scaling'
   | 'accumulation';
 
-export interface CriticalPathRequest {
+export interface CriticalPathRequest extends ForceRecompute {
   networkPath: string;
   edgesFilePath?: string;
   cpmPath: string;

@@ -31,6 +31,7 @@ import {
   LoadingStateComponent,
   NetworkGraphComponent,
   PageHeaderComponent,
+  SavedResultNoteComponent,
   ScenarioComparisonTableComponent,
   StatTileComponent,
 } from '@inf-prop/shared/ui';
@@ -90,6 +91,7 @@ export type ReliabilityTab = 'belief' | 'diamonds' | 'visualisation' | 'compare'
     CardComponent,
     StatTileComponent,
     IconComponent,
+    SavedResultNoteComponent,
     NetworkGraphComponent,
     ScenarioComparisonTableComponent,
     BeliefTableComponent,
@@ -463,8 +465,9 @@ export class FeatureReliability {
    *  `runSelected()` (every checked-but-unrun scenario, chained). */
   private executeRun(
     scenario: ReliabilityScenarioRef,
+    forceRecompute = false,
   ): Observable<ProbabilityPropagationResponse> {
-    return this.svc.run(scenario).pipe(
+    return this.svc.run(scenario, forceRecompute).pipe(
       tap((res) => {
         if (!res.success) return;
         this.results.update((map) => {
@@ -477,12 +480,13 @@ export class FeatureReliability {
     );
   }
 
-  protected run(): void {
+  /** `forceRecompute`: skip the server's saved result ("Run fresh"). */
+  protected run(forceRecompute = false): void {
     const scenario = this.selectedScenario();
     if (!scenario) return;
     this.running.set(true);
     this.error.set(null);
-    this.executeRun(scenario).subscribe({
+    this.executeRun(scenario, forceRecompute).subscribe({
       next: (res) => {
         this.running.set(false);
         if (!res.success) this.error.set(res.message || 'Analysis failed.');

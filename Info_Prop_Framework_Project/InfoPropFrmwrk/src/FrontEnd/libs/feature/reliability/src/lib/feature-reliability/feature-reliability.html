@@ -144,6 +144,11 @@
           {{ hasBeliefData() ? 'Re-run analysis' : 'Run analysis' }}
         </button>
       </div>
+      <ipf-saved-result-note
+        [info]="activeResult()?.result_cache"
+        [busy]="running()"
+        (refresh)="run(true)"
+      />
     </ipf-card>
 
     @if (running()) {

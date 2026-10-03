@@ -1,4 +1,4 @@
-import { AnalysisEnvelope } from './envelope';
+import { AnalysisEnvelope, ForceRecompute } from './envelope';
 
 /**
  * `POST /flow-analysis` (canonical) / `/capacity-analysis` (alias).
@@ -10,7 +10,7 @@ import { AnalysisEnvelope } from './envelope';
  *
  * This endpoint is live and current — no server-fixes-track dependency.
  */
-export interface FlowAnalysisRequest {
+export interface FlowAnalysisRequest extends ForceRecompute {
   networkPath: string;
   edgesFilePath?: string;
   capacitiesPath: string;

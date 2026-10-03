@@ -10,6 +10,7 @@ import {
   IconComponent,
   IconName,
   PageHeaderComponent,
+  SavedResultNoteComponent,
 } from '@inf-prop/shared/ui';
 import { FlowWorkbenchStore } from '../data/flow-workbench.store';
 
@@ -37,6 +38,7 @@ interface FlowTab {
     PageHeaderComponent,
     ErrorBannerComponent,
     IconComponent,
+    SavedResultNoteComponent,
   ],
   template: `
     <ipf-page-header
@@ -75,6 +77,12 @@ interface FlowTab {
         (dismiss)="store.clearError()"
       />
     }
+
+    <ipf-saved-result-note
+      [info]="store.result()?.result_cache"
+      [busy]="store.isRunning()"
+      (refresh)="store.run(true)"
+    />
 
     <nav class="tabs" aria-label="Flow analysis views">
       @for (tab of tabs; track tab.path) {

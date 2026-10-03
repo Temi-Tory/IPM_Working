@@ -9,9 +9,26 @@ export interface ApiEnvelope {
   message: string;
 }
 
+/**
+ * Set by the server's saved-result layer on every analysis response for a
+ * network inside a session: `hit` is true when the response was read back from
+ * a saved result instead of being computed for this request.
+ */
+export interface ResultCacheInfo {
+  hit: boolean;
+  /** UTC ISO time the result was computed. */
+  computed_at: string;
+}
+
 export interface AnalysisEnvelope extends ApiEnvelope {
   endpoint: string;
   timestamp: string;
+  result_cache?: ResultCacheInfo;
+}
+
+/** Request flag shared by the analysis endpoints: skip the saved result and recompute. */
+export interface ForceRecompute {
+  forceRecompute?: boolean;
 }
 
 /** Shape of a non-2xx body from `ServerCommon.error_response`. */

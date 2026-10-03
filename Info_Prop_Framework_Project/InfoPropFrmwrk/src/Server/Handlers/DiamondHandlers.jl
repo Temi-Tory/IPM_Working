@@ -164,9 +164,7 @@ function handle_diamond_subgraph_analysis(req::HTTP.Request)
                     "beliefs" => convert_values(Dict(string(k) => v for (k, v) in beliefs)),
                 )
                 # opt-in: see includeCachePayload in ProbabilityHandlers
-                if Bool(get(request_data, "includeCachePayload", false))
-                    reach["cache"] = cache_payload(cache)
-                end
+                attach_cache_payload!(reach, cache, Bool(get(request_data, "includeCachePayload", false)))
                 result_data["reachability_result"] = reach
             end
         end

@@ -140,7 +140,10 @@ export class FlowWorkbenchStore {
    *  cross-scenario cache. Shared by `run()` (the selected scenario, from
    *  Configure) and `runSelected()` (every checked-but-unrun scenario,
    *  chained, from Compare). */
-  private executeRun(scenario: CapacityScenario): Observable<FlowAnalysisResponse> {
+  private executeRun(
+    scenario: CapacityScenario,
+    forceRecompute = false,
+  ): Observable<FlowAnalysisResponse> {
     const context = this.ctx.context();
     if (!context) return throwError(() => new Error('No network is loaded.'));
     const request: FlowAnalysisRequest = {
@@ -148,6 +151,7 @@ export class FlowWorkbenchStore {
       edgesFilePath: context.edgesFilePath,
       capacitiesPath: scenario.capacitiesPath,
       analysisOptions: toAnalysisOptions(this._options()),
+      ...(forceRecompute ? { forceRecompute: true } : {}),
     };
     return this.client.analyze(request).pipe(
       tap((response) => {
@@ -163,8 +167,9 @@ export class FlowWorkbenchStore {
     );
   }
 
-  /** Run `/flow-analysis` for the selected scenario. */
-  run(): void {
+  /** Run `/flow-analysis` for the selected scenario. `forceRecompute` skips the
+   *  server's saved result ("Run fresh"). */
+  run(forceRecompute = false): void {
     const scenario = this.selectedScenario();
     if (!scenario) {
       this._error.set('Pick a capacities scenario first.');
@@ -175,7 +180,7 @@ export class FlowWorkbenchStore {
     this._runState.set('loading');
     this._error.set(null);
 
-    this.executeRun(scenario).subscribe({
+    this.executeRun(scenario, forceRecompute).subscribe({
       next: (response) => {
         if (!response.success) {
           this._error.set(response.message || 'Flow analysis failed.');

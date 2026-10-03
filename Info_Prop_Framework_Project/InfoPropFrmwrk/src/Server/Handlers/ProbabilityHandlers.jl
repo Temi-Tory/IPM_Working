@@ -5,6 +5,7 @@ using JSON
 using Dates
 using ..ServerCommon
 using ..InfoPropFramework
+using ..ResultCache
 using ..AnalysisCommon
 
 function probability_payload(request_data::AbstractDict)
@@ -111,9 +112,7 @@ function probability_payload(request_data::AbstractDict)
                 "total_count" => length(beliefs),
             ),
         )
-        if include_cache_payload
-            result_data["exact_inference"]["cache"] = cache_payload(cache)
-        end
+        attach_cache_payload!(result_data["exact_inference"], cache, include_cache_payload)
     end
 
     value_type = if isempty(node_priors)
@@ -176,8 +175,8 @@ function handle_reachability_analysis(req::HTTP.Request)
 end
 
 function register!(router::HTTP.Router)
-    HTTP.register!(router, "POST", "/probability-propagation", handle_probability_propagation)
-    HTTP.register!(router, "POST", "/reachability-analysis", handle_reachability_analysis)
+    HTTP.register!(router, "POST", "/probability-propagation", cached(handle_probability_propagation, "probability-propagation"))
+    HTTP.register!(router, "POST", "/reachability-analysis", cached(handle_reachability_analysis, "reachability-analysis"))
 end
 
 end # module ProbabilityHandlers

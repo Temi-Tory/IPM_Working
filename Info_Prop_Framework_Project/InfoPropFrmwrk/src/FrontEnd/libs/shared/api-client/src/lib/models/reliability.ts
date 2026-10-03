@@ -1,4 +1,4 @@
-import { AnalysisEnvelope } from './envelope';
+import { AnalysisEnvelope, ForceRecompute } from './envelope';
 import { BeliefValue } from '../value-types';
 
 /**
@@ -14,7 +14,7 @@ import { BeliefValue } from '../value-types';
  * calls retired functions. Build against a mocked response in this shape; swap
  * to the live call once track 05 confirms `new_identify` is wired.
  */
-export interface ProbabilityPropagationRequest {
+export interface ProbabilityPropagationRequest extends ForceRecompute {
   networkPath: string;
   edgesFilePath?: string;
   nodepriorsPath: string;

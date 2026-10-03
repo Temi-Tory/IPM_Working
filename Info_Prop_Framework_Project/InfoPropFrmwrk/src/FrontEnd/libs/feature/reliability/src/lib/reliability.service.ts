@@ -71,8 +71,9 @@ export class ReliabilityService {
   /** Run `/probability-propagation` for one scenario, with diamond identification. */
   run(
     scenario: ReliabilityScenarioRef,
+    forceRecompute = false,
   ): Observable<ProbabilityPropagationResponse> {
-    return this.request(scenario, true);
+    return this.request(scenario, true, forceRecompute);
   }
 
   /**
@@ -90,6 +91,7 @@ export class ReliabilityService {
   private request(
     scenario: ReliabilityScenarioRef,
     includeExactInference: boolean,
+    forceRecompute = false,
   ): Observable<ProbabilityPropagationResponse> {
     const ctx = this.ctx.context();
     if (!ctx) return throwError(() => new Error('No network is loaded.'));
@@ -100,6 +102,7 @@ export class ReliabilityService {
       linkprobsPath: scenario.linkprobsPath,
       includeExactInference,
       includeDiamondAnalysis: true,
+      ...(forceRecompute ? { forceRecompute: true } : {}),
     };
     return this.api.post<ProbabilityPropagationResponse>(
       '/probability-propagation',

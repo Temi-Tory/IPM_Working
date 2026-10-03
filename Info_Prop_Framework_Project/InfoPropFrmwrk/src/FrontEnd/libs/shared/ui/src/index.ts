@@ -18,6 +18,7 @@ export * from './lib/components/empty-state.component';
 export * from './lib/components/loading-state.component';
 export * from './lib/components/error-banner.component';
 export * from './lib/components/stat-tile.component';
+export * from './lib/components/saved-result-note.component';
 
 // Value-form honesty primitives
 export * from './lib/value/value-format';

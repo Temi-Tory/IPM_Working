@@ -5,6 +5,7 @@ using JSON
 using Dates
 using ..ServerCommon
 using ..InfoPropFramework
+using ..ResultCache
 using ..AnalysisCommon
 
 # Schedule / Critical Path toolkit — wired to CriticalPathV2Module (mode-based, oracle-validated).
@@ -125,8 +126,8 @@ function handle_cpm_analysis(req::HTTP.Request)
 end
 
 function register!(router::HTTP.Router)
-    HTTP.register!(router, "POST", "/critical-path-analysis", handle_critical_path_analysis)
-    HTTP.register!(router, "POST", "/cpm-analysis", handle_cpm_analysis)
+    HTTP.register!(router, "POST", "/critical-path-analysis", cached(handle_critical_path_analysis, "critical-path-analysis"))
+    HTTP.register!(router, "POST", "/cpm-analysis", cached(handle_cpm_analysis, "cpm-analysis"))
 end
 
 end # module CriticalPathHandlers

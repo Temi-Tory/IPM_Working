@@ -34,6 +34,7 @@ import {
   LoadingStateComponent,
   NetworkGraphComponent,
   PageHeaderComponent,
+  SavedResultNoteComponent,
   ScenarioComparisonTableComponent,
   ValueTypeSelectorComponent,
 } from '@inf-prop/shared/ui';
@@ -88,6 +89,7 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
     NetworkGraphComponent,
     ScenarioComparisonTableComponent,
     SchedulePassView,
+    SavedResultNoteComponent,
   ],
   template: `
     <ipf-page-header
@@ -216,6 +218,11 @@ const MODE_OPTIONS: { value: ScheduleMode | ''; label: string }[] = [
             </button>
             <span class="ctx-line">{{ ctx.context()?.networkName }}</span>
           </div>
+          <ipf-saved-result-note
+            [info]="response()?.result_cache"
+            [busy]="status() === 'running'"
+            (refresh)="run(true)"
+          />
         </div>
       </ipf-card>
 
@@ -814,6 +821,7 @@ export class FeatureSchedule {
   private executeRun(
     cpmPath: string,
     scenarioName: string,
+    forceRecompute = false,
   ): Observable<CriticalPathResponse> {
     const context = this.ctx.context();
     if (!context) return throwError(() => new Error('No network is loaded.'));
@@ -823,6 +831,7 @@ export class FeatureSchedule {
       cpmPath,
       mode: this.timeMode() || undefined,
       costMode: this.costMode() || undefined,
+      ...(forceRecompute ? { forceRecompute: true } : {}),
     };
     return this.analysis.analyse(request).pipe(
       tap((res) => {
@@ -834,7 +843,8 @@ export class FeatureSchedule {
     );
   }
 
-  protected run(): void {
+  /** `forceRecompute`: skip the server's saved result ("Run fresh"). */
+  protected run(forceRecompute = false): void {
     const context = this.ctx.context();
     const cpmPath = this.effectiveCpmPath();
     if (!context || !cpmPath) {
@@ -848,7 +858,7 @@ export class FeatureSchedule {
     this.status.set('running');
     this.error.set(null);
 
-    this.executeRun(cpmPath, scenarioName).subscribe({
+    this.executeRun(cpmPath, scenarioName, forceRecompute).subscribe({
       next: (res) => {
         if (!res.success) {
           this.status.set('error');
