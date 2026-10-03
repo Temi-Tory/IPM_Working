@@ -108,6 +108,11 @@ function handle_sessions_list(req::HTTP.Request)
                 "network_path" => get(session_meta, "network_path", ""),
                 "timestamp" => get(session_meta, "updated_at", get(session_meta, "created_at", string(Dates.now()))),
                 "has_analysis_results" => get(session_meta, "analysis_results", nothing) !== nothing,
+                # set by the hosted deployment's preload step, not by any endpoint
+                "protected" => get(session_meta, "protected", false) === true,
+                "group" => get(session_meta, "group", nothing),
+                "group_order" => get(session_meta, "group_order", nothing),
+                "description" => get(session_meta, "description", nothing),
             ))
         end
 
@@ -129,7 +134,19 @@ function handle_session_item(req::HTTP.Request)
         end
 
         session_id = parts[3]
+        # ids are server-minted UUIDs; anything else (".", "..", separators) could make
+        # DELETE's rm(...; recursive=true) reach the whole upload dir or beyond
+        if !occursin(r"^[A-Za-z0-9_-]+$", session_id)
+            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" => "Invalid session id")))
+        end
         folder_path = joinpath(ServerCommon.UPLOAD_DIR, session_id)
+
+        if req.method in ("PUT", "DELETE")
+            existing = ServerCommon.read_session_metadata(session_id)
+            if existing !== nothing && get(existing, "protected", false) === true
+                return HTTP.Response(403, headers, JSON.json(Dict("success" => false, "message" => "This is a read-only example network")))
+            end
+        end
 
         if req.method == "GET"
             session_meta = ServerCommon.read_session_metadata(session_id)
@@ -191,6 +208,7 @@ function handle_file_request(req::HTTP.Request)
         network_path = path_parts[3]
         file_path = join(path_parts[4:end], "/")
         full_file_path = ServerCommon.safe_joinpath(network_path, file_path)
+        ServerCommon.check_path_allowed(full_file_path)
 
         if !isfile(full_file_path)
             return HTTP.Response(404, headers, JSON.json(Dict("success" => false, "message" => "File not found: $(full_file_path)")))

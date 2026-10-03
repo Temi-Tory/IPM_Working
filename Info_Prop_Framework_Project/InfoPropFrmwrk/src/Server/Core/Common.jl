@@ -15,6 +15,43 @@ const PORT = 8080
 # rebuilt FE is served from a different origin.
 const CORS_ALLOW_ORIGIN = get(ENV, "INFOPROP_CORS_ORIGIN", "http://localhost:4200")
 
+# Hosted/public deployment (INFOPROP_PUBLIC=1). Off by default so local use is unchanged —
+# including scripted runs that point `networkPath` straight at a corpus folder. When on:
+#   - every file path a request can reach must resolve inside UPLOAD_DIR
+#   - error responses omit the `debug` block (stack frames, server file paths)
+const PUBLIC_MODE = lowercase(get(ENV, "INFOPROP_PUBLIC", "")) in ("1", "true", "yes")
+
+struct PathNotAllowed <: Exception
+    path::String
+end
+Base.showerror(io::IO, ::PathNotAllowed) = print(io, "Path not allowed: requests may only reference files inside uploaded sessions")
+
+"""
+    check_path_allowed(path) -> path
+
+In public mode, throws `PathNotAllowed` unless `path` (after resolving `..` against the working
+directory) is inside UPLOAD_DIR. Every request-supplied path funnels through
+`resolve_network_file_path` / `resolve_edges_file_path` / `handle_file_request`, which call this.
+No-op locally.
+"""
+function check_path_allowed(path::AbstractString)
+    PUBLIC_MODE || return path
+    isempty(path) && return path
+    root = rstrip(replace(normpath(abspath(UPLOAD_DIR)), "\\" => "/"), '/')
+    target = replace(normpath(abspath(String(path))), "\\" => "/")
+    (target == root || startswith(target, root * "/")) || throw(PathNotAllowed(String(path)))
+    return path
+end
+
+# Upload names the server writes itself — an upload must not be able to plant these
+# (diamond_cache/*.bin is read back with Serialization.deserialize).
+const RESERVED_UPLOAD_SEGMENTS = ("diamond_cache", ".inferred", "session.json")
+
+function is_reserved_upload_path(filename::AbstractString)
+    segments = split(lowercase(normalize_path_separators(filename)), '/')
+    return any(seg -> seg in RESERVED_UPLOAD_SEGMENTS, segments)
+end
+
 function cors_headers_json(; methods::String="GET, POST, PUT, DELETE, OPTIONS")
     return [
         "Access-Control-Allow-Origin" => CORS_ALLOW_ORIGIN,
@@ -92,6 +129,14 @@ function stacktrace_frames(bt; max_frames::Int=25)
 end
 
 function error_payload(req::HTTP.Request, err, message::AbstractString; status::Int=500, request_id::AbstractString=request_id(req), bt=catch_backtrace())
+    if PUBLIC_MODE
+        return Dict(
+            "success" => false,
+            "message" => String(message),
+            "error" => exception_message(err),
+            "request_id" => String(request_id),
+        )
+    end
     return Dict(
         "success" => false,
         "message" => String(message),
@@ -111,6 +156,7 @@ function error_payload(req::HTTP.Request, err, message::AbstractString; status::
 end
 
 function error_response(req::HTTP.Request, err, message::AbstractString; status::Int=500, headers=cors_headers_json(), bt=catch_backtrace())
+    err isa PathNotAllowed && (status = 403)
     req_id = request_id(req)
     println(stderr, "[$(req_id)] $(req.method) $(req.target) -> $(status) $(message)")
     showerror(stderr, err, bt)
@@ -160,6 +206,11 @@ function _session_root_for_network_path(network_path::String)
 end
 
 function resolve_network_file_path(network_path::String, file_path::String)
+    check_path_allowed(network_path)
+    return check_path_allowed(_resolve_network_file_path(network_path, file_path))
+end
+
+function _resolve_network_file_path(network_path::String, file_path::String)
     normalized_input = normalize_path_separators(file_path)
     isempty(normalized_input) && return ""
 
@@ -268,6 +319,7 @@ function parse_multipart_data(body_str::AbstractString, boundary::AbstractString
         filename = replace(filename, r"^/+" => "")
         filename = replace(filename, ".." => "")
         isempty(strip(filename)) && continue
+        is_reserved_upload_path(filename) && continue
 
         isempty(strip(content)) && continue
         content = rstrip(content, ['\r', '\n', '-'])
@@ -412,6 +464,23 @@ function _infer_edges_file_path(network_path::String; capacities_path::String=""
 end
 
 function resolve_edges_file_path(
+    network_path::String,
+    edges_file_path::String;
+    capacities_path::String="",
+    linkprobs_path::String="",
+    cpm_path::String="",
+)
+    check_path_allowed(network_path)
+    return check_path_allowed(_resolve_edges_file_path(
+        network_path,
+        edges_file_path;
+        capacities_path=capacities_path,
+        linkprobs_path=linkprobs_path,
+        cpm_path=cpm_path,
+    ))
+end
+
+function _resolve_edges_file_path(
     network_path::String,
     edges_file_path::String;
     capacities_path::String="",

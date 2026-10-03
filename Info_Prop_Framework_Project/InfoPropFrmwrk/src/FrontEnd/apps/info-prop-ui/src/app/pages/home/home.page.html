@@ -1,6 +1,6 @@
 <ipf-page-header
   title="Information Propagation Framework"
-  description="A no-code interface for the analysis package. Upload one network, then read it three ways — reliability, flow, or schedule. Everything stays on this machine."
+  description="A no-code interface for the analysis package. Upload one network, then read it three ways — reliability, flow, or schedule. {{ local ? 'Everything stays on this machine.' : 'Open an example below or upload your own.' }}"
 >
   <a slot="actions" routerLink="/upload">
     <fluent-button appearance="primary">
@@ -41,9 +41,51 @@
   </ipf-card>
 </div>
 
+<ng-template #sessionCard let-s>
+  <li>
+    <ipf-card interactive (click)="open(s)">
+      <div class="session">
+        <div>
+          <div class="name">{{ s.network_name }}</div>
+          <div class="meta">
+            @if (s.protected) {
+              {{ s.description || 'Example network' }}
+            } @else {
+              {{ s.timestamp | date: 'medium' }}
+              @if (s.has_analysis_results) {
+                · has results
+              }
+            }
+          </div>
+        </div>
+        @if (opening() === s.session_id) {
+          <fluent-spinner size="tiny"></fluent-spinner>
+        } @else {
+          <ipf-icon name="chevron-right" [size]="16"></ipf-icon>
+        }
+      </div>
+    </ipf-card>
+  </li>
+</ng-template>
+
+@for (g of exampleGroups(); track g.name) {
+  <section class="recent examples">
+    <div class="recent-head">
+      <h2>{{ g.name }}</h2>
+    </div>
+    <ul class="session-list">
+      @for (s of g.items; track s.session_id) {
+        <ng-container
+          *ngTemplateOutlet="sessionCard; context: { $implicit: s }"
+        ></ng-container>
+      }
+    </ul>
+  </section>
+}
+
 <section class="recent">
   <div class="recent-head">
-    <h2>Recent networks</h2>
+    <h2>{{ exampleGroups().length ? 'Your uploads' : 'Recent networks' }}</h2>
     <span class="server" [class]="serverStatus()">
       <ipf-icon name="circle" [size]="8"></ipf-icon>
       @switch (serverStatus()) {
@@ -54,36 +96,22 @@
     </span>
   </div>
 
-  @if (sessions().length === 0) {
+  @if (uploads().length === 0) {
     <ipf-card>
       <p class="muted">
         No networks uploaded yet. A session is just a folder on disk holding the
         files you upload and a record of what has been computed.
+        @if (!local) {
+          On this hosted instance, uploads are removed after 24 hours.
+        }
       </p>
     </ipf-card>
   } @else {
     <ul class="session-list">
-      @for (s of sessions(); track s.session_id) {
-        <li>
-          <ipf-card interactive (click)="open(s)">
-            <div class="session">
-              <div>
-                <div class="name">{{ s.network_name }}</div>
-                <div class="meta">
-                  {{ s.timestamp | date: 'medium' }}
-                  @if (s.has_analysis_results) {
-                    · has results
-                  }
-                </div>
-              </div>
-              @if (opening() === s.session_id) {
-                <fluent-spinner size="tiny"></fluent-spinner>
-              } @else {
-                <ipf-icon name="chevron-right" [size]="16"></ipf-icon>
-              }
-            </div>
-          </ipf-card>
-        </li>
+      @for (s of uploads(); track s.session_id) {
+        <ng-container
+          *ngTemplateOutlet="sessionCard; context: { $implicit: s }"
+        ></ng-container>
       }
     </ul>
   }

@@ -1,11 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   CUSTOM_ELEMENTS_SCHEMA,
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import {
   CardComponent,
@@ -14,6 +15,7 @@ import {
 } from '@inf-prop/shared/ui';
 import {
   ApiClient,
+  isLocalHost,
   SessionSummary,
 } from '@inf-prop/shared/api-client';
 import {
@@ -28,6 +30,7 @@ import {
   imports: [
     RouterLink,
     DatePipe,
+    NgTemplateOutlet,
     PageHeaderComponent,
     CardComponent,
     IconComponent,
@@ -42,6 +45,32 @@ export class HomePage {
   private readonly router = inject(Router);
 
   protected readonly sessions = this.sessionService.sessions;
+  protected readonly local = isLocalHost();
+
+  /** Preloaded examples grouped by `group` (ordered by `group_order`); uploads stay a flat recent list. */
+  protected readonly exampleGroups = computed(() => {
+    const groups = new Map<string, { order: number; items: SessionSummary[] }>();
+    for (const s of this.sessions()) {
+      if (!s.protected) continue;
+      const name = s.group || 'Examples';
+      const g = groups.get(name) ?? { order: Infinity, items: [] };
+      g.items.push(s);
+      g.order = Math.min(g.order, s.group_order ?? Infinity);
+      groups.set(name, g);
+    }
+    return [...groups]
+      .map(([name, g]) => ({
+        name,
+        order: g.order,
+        items: [...g.items].sort((a, b) =>
+          a.network_name.localeCompare(b.network_name),
+        ),
+      }))
+      .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+  });
+  protected readonly uploads = computed(() =>
+    this.sessions().filter((s) => !s.protected),
+  );
   protected readonly serverStatus = signal<'checking' | 'up' | 'down'>(
     'checking',
   );

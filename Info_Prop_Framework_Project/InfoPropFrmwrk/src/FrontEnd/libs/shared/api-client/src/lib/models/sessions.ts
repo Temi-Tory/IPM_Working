@@ -13,6 +13,14 @@ export interface SessionSummary {
   /** ISO-ish timestamp string from the server (`updated_at` or `created_at`). */
   timestamp: string;
   has_analysis_results: boolean;
+  /** Example networks preloaded on a hosted instance: read-only (no PUT/DELETE). */
+  protected?: boolean;
+  /** Display group for preloaded examples, e.g. "Thesis case studies". */
+  group?: string | null;
+  /** Sort key for groups (lower first); groups without one sort last, by name. */
+  group_order?: number | null;
+  /** One-line note shown under a preloaded example. */
+  description?: string | null;
 }
 
 /** Full `session.json` document. Loosely typed — the server round-trips

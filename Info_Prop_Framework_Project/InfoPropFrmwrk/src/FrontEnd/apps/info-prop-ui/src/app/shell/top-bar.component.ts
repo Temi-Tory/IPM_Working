@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent, ThemeService } from '@inf-prop/shared/ui';
 import { NetworkContextService } from '@inf-prop/shared/data-access';
+import { isLocalHost } from '@inf-prop/shared/api-client';
 
 /** Top bar: product name, the loaded network, and the light/dark toggle. */
 @Component({
@@ -19,10 +20,17 @@ import { NetworkContextService } from '@inf-prop/shared/data-access';
       }
     </div>
     <div class="right">
-      <span class="local" title="Client and server run on this machine. No traffic leaves it.">
-        <ipf-icon name="circle" [size]="8" />
-        local
-      </span>
+      @if (local) {
+        <span class="local" title="Client and server run on this machine. No traffic leaves it.">
+          <ipf-icon name="circle" [size]="8" />
+          local
+        </span>
+      } @else {
+        <span class="local" title="Hosted instance. Files you upload are stored on the server and may be removed after 24 hours.">
+          <ipf-icon name="circle" [size]="8" />
+          hosted
+        </span>
+      }
       <button
         type="button"
         class="icon-btn"
@@ -42,4 +50,5 @@ import { NetworkContextService } from '@inf-prop/shared/data-access';
 export class TopBarComponent {
   protected readonly theme = inject(ThemeService);
   protected readonly ctx = inject(NetworkContextService);
+  protected readonly local = isLocalHost();
 }
