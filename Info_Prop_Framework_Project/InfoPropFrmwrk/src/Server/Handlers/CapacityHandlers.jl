@@ -299,6 +299,19 @@ function handle_capacity_analysis(req::HTTP.Request)
         parsed_capacity = parse_capacity_input_file(full_capacities_path)
 
         edgelist, outgoing_index, incoming_index, source_nodes_set = read_graph_to_dict(resolved_edges_path)
+
+        # A capacity entry for an edge the structure file lacks used to be dropped without a
+        # word: Net3's 58 demand edges to its super-sink were, and the flow came out above the
+        # total demand. Refuse instead, naming the first few, so the inputs get fixed.
+        graph_edges = Set(edgelist)
+        unknown_edges = sort!([e for e in keys(parsed_capacity.edge_capacities) if !(e in graph_edges)])
+        if !isempty(unknown_edges)
+            shown = join(["($(u),$(v))" for (u, v) in first(unknown_edges, 5)], ", ")
+            more = length(unknown_edges) > 5 ? " and $(length(unknown_edges) - 5) more" : ""
+            return HTTP.Response(400, headers, JSON.json(Dict("success" => false, "message" =>
+                "The capacity file lists $(length(unknown_edges)) edge(s) that are not in the network's edge list: $(shown)$(more). Add them to the .EDGES file or remove them from the capacity file.")))
+        end
+
         source_nodes = sort!(collect(source_nodes_set))
         all_nodes = sort!(collect(union(Set(first.(edgelist)), Set(last.(edgelist)))))
         default_sink_nodes = sort!([node for node in all_nodes if !haskey(outgoing_index, node) || isempty(outgoing_index[node])])

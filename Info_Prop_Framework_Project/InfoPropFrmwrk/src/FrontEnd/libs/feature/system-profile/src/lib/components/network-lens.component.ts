@@ -390,13 +390,19 @@ export class NetworkLensComponent {
     return ref.overlay.nodeValues[String(node)] ?? null;
   });
 
-  /** how much the primary and compared result sets agree, by node. */
+  /**
+   * how much the primary and compared result sets agree, by node. An edge set
+   * (a minimum cut, saturated edges) counts by its edges' endpoints — counting
+   * nodeIds alone reported "0 in both" for any edge set, whatever the drawing showed.
+   */
   protected readonly overlap = computed(() => {
     const primary = this.current();
     const cmp = this.compareRef();
     if (!primary || !cmp) return null;
-    const a = new Set(primary.overlay.nodeIds ?? []);
-    const b = new Set(cmp.overlay.nodeIds ?? []);
+    const nodesOf = (o: typeof primary.overlay) =>
+      new Set([...(o.nodeIds ?? []), ...(o.edges ?? []).flat()]);
+    const a = nodesOf(primary.overlay);
+    const b = nodesOf(cmp.overlay);
     let both = 0;
     for (const n of a) if (b.has(n)) both++;
     return { both, onlyPrimary: a.size - both, onlyCompare: b.size - both };
