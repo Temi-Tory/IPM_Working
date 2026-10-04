@@ -61,7 +61,7 @@ code enforces the claim: the three toolkits have no imports between them and sha
 graph object. The three interpretations of the values attached to the model, probabilistic,
 capacity, and schedule and cost, were each given a toolkit that answers its question exactly
 on the same topology, and Chapter~\ref{ch:integrated-case-study} ran all three on
-\CaseStudyNetwork{} from one upload. Hence the answer to the first question is yes, on the
+\CaseStudyNetwork{} from one conversion. Hence the answer to the first question is yes, on the
 model's four assumptions: independent component behaviour, binary component states under the
 probabilistic interpretation, a static topology over the analysis horizon, and acyclicity as
 a property of the operating snapshot.
@@ -243,9 +243,9 @@ of a system is entered three times for three analyses and kept consistent by han
 uncertainty in every input is collapsed to a number before any analysis runs. It ends with
 one model, three exact analyses that carry that uncertainty through, and an interface that
 puts them in the hands of the engineer who holds the data. The case study of
-Chapter~\ref{ch:integrated-case-study} showed, on a public water network analysed from one
-upload, that the components which bound its throughput and the components which set its
-restoration time were different ones, which no single analysis could have said. Each
+Chapter~\ref{ch:integrated-case-study} showed, on a public water network, that the pump
+which bounds its throughput when the network is degraded also lies on the chain that sets its
+restoration time, which no single analysis could have said. Each
 chapter records the limitations of its own method, and this chapter collects them. The
 boundaries they mark, of conditioning width, of bound tightness and of network scale, are
 among the results of this thesis, because they state the networks on which each of the

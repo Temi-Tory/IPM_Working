@@ -44,7 +44,7 @@ Each of Chapters~\ref{ch:probability-toolkit} to~\ref{ch:critical-path} applied 
 to a network of its own. None of them could show the claim of Chapter~\ref{ch:main-intro}
 that one model of a system serves all three analyses without the topology being entered
 again, because each demonstrated one analysis. This chapter shows it. A single water
-distribution network is converted once, uploaded once through the interface of
+distribution network is converted once, uploaded through the interface of
 Chapter~\ref{ch:front-end}, and analysed by all three toolkits under several scenarios,
 and every number reported here is the one the server returned, with the request and
 response recorded beside it.
@@ -97,7 +97,9 @@ keeps more of the network's real loop structure, and the deeper nesting follows 
 \section{Inputs}
 \label{sec:e2e-inputs}
 
-One structure file and four scenario folders were uploaded. Every value below is either
+Four scenario folders were uploaded with the structure file. The capacity analysis reads its
+own copy of the structure file, with a super-sink added, for the reason given under the
+capacity inputs below. Every value below is either
 taken from a source, computed from the input file, or assumed and named as such.
 
 \subsection{Reliability inputs}
@@ -131,7 +133,11 @@ its own curve in the input file, 252.4 for the lake pump and 883.3 for the river
 reservoir edges and the three placeholder connectors are unbounded. To measure throughput
 against demand, the construction of Chapter~\ref{ch:capacity-toolkit}'s IEEE case is used:
 a super-sink with one edge from each of the 58 demand junctions, capacity equal to that
-junction's demand at the simulation step. A degraded scenario derates the network's
+junction's demand at the simulation step, 680.1 litres per second in total. The super-sink
+and its 58 edges are added to the edge list the capacity analysis reads, which then has 98
+nodes and 177 edges, and the capacity file names the super-sink as the only sink. Without
+that declaration the two filling tanks and the one dead-end junction without demand would
+also count as delivery points. A degraded scenario derates the network's
 dominant transmission main, an 8.6-mile 30-inch pipe that is by a wide margin the longest
 large-diameter link, to half its capacity, and takes the river pump, the larger of the two,
 out of service.
@@ -221,59 +227,71 @@ reconvergence is anchored on the point where the two supplies first meet.
 \section{Capacity}
 \label{sec:e2e-flow}
 
-The network delivers 1,837.9 litres per second against the demand of the 58 junctions at
-the simulation step (Figure~\ref{fig:e2e-flow}). The minimum cut is unique: the free zone
-is empty and the enumeration is complete. Its four edges are the two pump discharges, 95 to
-96 and 95 to 97 from the river pump's junction and 7 to 8 from the lake's, and the outlet
-of the source tank, 94 to 81, carrying 684.1, 883.3, 194.6 and 76.0 litres per second
-(Figure~\ref{fig:e2e-bottlenecks}). Hence the binding constraint of the network at this demand is
-its supply: the pumps and the tank are at their limits, and every pipe
-downstream has headroom. Seven edges are saturated, 158 source-to-sink paths exist, and no
-node is a single point of failure.
+The network delivers 680.1 litres per second, the whole demand of the 58 junctions at the
+simulation step (Figure~\ref{fig:e2e-flow}). The minimum cut is unique, since the free zone
+is empty and the enumeration is complete, and it consists of the 58 demand edges into the
+super-sink. Hence the network does not limit delivery at this demand. Two pipes, 18 to 17
+and 86 to 87, run full, but neither lies in a minimum cut, so neither bounds the
+throughput. There are 401 source-to-sink paths, and no node is a structural single point
+of failure. The bottleneck ranking (Figure~\ref{fig:e2e-bottlenecks}) lists the cut edges
+from the tightest, the 0.07 litres per second of junction 64, upwards, all at full
+utilisation.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig06_flow_baseline.png}
-  \caption{Flow summary, baseline: throughput 1,837.9 litres per second, unique minimum
-  cut of four edges, no single point of failure, and the allocation per sink.}
+  \caption{Flow summary, baseline: throughput 680.1 litres per second, equal to the total
+  demand, with a unique minimum cut of the 58 demand edges, 401 source-to-sink paths and no
+  structural single point of failure.}
   \label{fig:e2e-flow}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig08_flow_bottlenecks.png}
-  \caption{Flow bottlenecks, baseline: the four edges of the minimum cut with their flows,
-  the lattice's empty free zone, and the per-edge redundancy scores.}
+  \caption{Flow bottlenecks, baseline: the edges of the minimum cut ranked by capacity, the
+  lattice with its empty free zone and the 58 edges in every minimum cut, and the panel of
+  structural single points of failure, which is empty.}
   \label{fig:e2e-bottlenecks}
 \end{figure}
 
-The sensitivity table (Figure~\ref{fig:e2e-sensitivity}) ranks the same four edges by the
-throughput lost on their removal, 883.3, 684.1, 194.6 and 76.0, and reports each one's
-marginal range, the throughput the edge can influence between zero capacity and unbounded
-capacity. For edge 95 to 96 that range is unbounded, because the edge sits immediately
-downstream of the unbounded reservoir edge and its own capacity is the only limit on that
-route, and the table shows the infinity symbol. Under the degraded scenario the
-throughput falls to 954.6 litres per second, a 48 per cent loss
-(Figure~\ref{fig:e2e-degraded}). The cut is the same four edges, one of them now carrying
-the derated flow, and a fifth edge saturates. No single line failure was reported as
-critical in the degraded network either, for the same reason as in the baseline: supply
-binds before transmission.
+Because the cut is the demand, the sensitivity table (Figure~\ref{fig:e2e-sensitivity})
+ranks the junctions by their demand. Removing the demand edge of junction 58 loses 280.1
+litres per second, and that of junction 92 loses 103.3. Each unit of capacity added to a
+demand edge adds one unit of throughput, and the marginal ranges are finite, 327.3 for
+junction 58. Every demand edge is critical in the single-failure table, since its loss is
+the loss of that junction's demand, and the worst pair is junctions 58 and 92 together, at
+383.3 litres per second.
+
+Under the degraded scenario the throughput falls to 43.3 litres per second, 6.4 per cent of
+demand (Figure~\ref{fig:e2e-degraded}). Unlike the baseline, the cut is no longer unique.
+Enumeration finds 24 minimum cuts over a free
+zone of six nodes, and seven edges lie in every one of them: the river pump, now at zero
+capacity, and the demand edges of junctions 7, 8, 77, 79, 80 and 81. Those six junctions
+are fully served and the other 52 receive less than their demand. In the oriented graph,
+junctions 7 and 8 lie downstream of the lake pump and junctions 77 to 81 downstream of the
+discharging tank, and no other junction can be reached from either source. The derated
+trunk main does not bind, because the river pump is its only feed. It is therefore the
+throughput of the network with every pipe held in its snapshot direction. In the
+physical network the lake pump could drive water through pipes that ran the other way at
+the snapshot, which the oriented model cannot represent. This is a limitation of the
+operating-snapshot assumption of Chapter~\ref{ch:system-model}, and a degraded state needs
+an orientation of its own.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig07_flow_sensitivity.png}
-  \caption{Flow sensitivity and failure impact, baseline. The marginal range of edge 95 to
-  96 is unbounded. The $k$-edge table gives the combined loss of each pair of cut edges;
-  the degradation table gives the capacity each edge can lose before a target of 1,654
-  litres per second is missed.}
+  \caption{Flow sensitivity and failure impact, baseline. The sensitivity and single-edge
+  tables rank the demand edges by the junction's demand; the $k$-edge table gives the
+  combined loss of each pair of cut edges.}
   \label{fig:e2e-sensitivity}
 \end{figure}
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig09_flow_degraded.png}
-  \caption{Flow summary, degraded scenario: 954.6 litres per second, a 48 per cent drop,
-  with the same four-edge cut and five saturated edges.}
+  \caption{Flow summary, degraded scenario: 43.3 litres per second, 6.4 per cent of demand,
+  with seven saturated edges, a free zone of six nodes and 24 minimum cuts.}
   \label{fig:e2e-degraded}
 \end{figure}
 
@@ -343,34 +361,37 @@ by side, with the interval row carrying its two criticality counts in separate c
 \section{Two Result Sets on One Drawing}
 \label{sec:e2e-profile}
 
-The profile page draws any result set on the network and overlays a second. The four edges
-of the minimum cut and the 28 nodes of the critical path have no node in common
-(Figure~\ref{fig:e2e-profile}). The flow bottleneck sits at the supply end, at the pump
-discharges and the tank outlet, and the restoration critical chain runs through the trunk
-main and the distant loop. Therefore a planner who reinforced the network at its flow bottleneck
-would shorten no part of its restoration, and one who shortened the critical chain would
-add no throughput. The two analyses are answering different questions about the same
-components, and it takes both to see that the components are different. The conditioning
-set of the reliability analysis, the union across all 307 diamonds, is a third set of 26
-nodes, and it too can be drawn.
+The profile page draws any result set on the network and overlays a second.
+Figure~\ref{fig:e2e-profile} draws the edges in every minimum cut of the degraded scenario
+against the critical path of the baseline schedule. The baseline cut is not drawn, because
+it is the set of demand edges and marks every demand junction. The two sets share three
+nodes. One is the super-sink, at which every cut edge ends and, in the edge list with the
+super-sink added, the critical path too. Nodes 95 and 97, the ends of the river pump, are
+the other two. The pump whose loss leaves 6.4 per cent of the demand served also lies on the chain
+that sets the 74 days of restoration, so reinstating it is the step that both analyses
+point to. The conditioning set of the reliability analysis, the union across all 307
+diamonds, is a third set of 26 nodes, and it too can be drawn.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig14_profile_overlay.png}
-  \caption{The profile page: the edges of the minimum cut (baseline flow) overlaid with the
-  critical path (baseline schedule) on the network drawn by layer. Zero nodes in both.}
+  \caption{The profile page: the edges in every minimum cut of the degraded flow overlaid
+  with the critical path of the baseline schedule, on the network drawn by layer. With the
+  super-sink in the edge list the critical path has 29 nodes, the 28 activities and the
+  super-sink. Three nodes are in both: 95, 97 and the super-sink.}
   \label{fig:e2e-profile}
 \end{figure}
 
 \section{What the Run Showed About the Framework}
 \label{sec:e2e-findings}
 
-Three toolkits ran on one upload, and the network file was entered once. The reliability,
-capacity and schedule analyses each read the graph object the structure file produced and
-each added its own input file to it; no topology was re-entered and none of the three
-required a change to the others' files. The whole sequence, including a second scenario
-for each toolkit, took under a minute of computation in a warm process: 4.6, 2.3 and 2.1
-seconds for the three baseline runs.
+Three toolkits ran on one converted network. The reliability and schedule analyses read the
+graph object of the converted edge list, and the capacity analysis read the same edge list
+with the super-sink of Section~\ref{sec:e2e-inputs} added, as the IEEE case of
+Chapter~\ref{ch:capacity-toolkit} does. Each toolkit added its own input file, and none of
+the three required a change to the others' files. The whole sequence, including a second
+scenario for each toolkit, took under a minute of computation in a warm process: 4.6, 4.1
+and 2.1 seconds for the three baseline runs.
 
 However, two boundaries of the framework were reached on this network, and both are the
 boundaries the earlier chapters located. The probability-box form was not run, because the network's
@@ -397,14 +418,15 @@ is the pattern of every error in Chapter~\ref{ch:julia-package}'s list.
 \label{sec:e2e-summary}
 
 A public water distribution network was oriented by its own hydraulics, converted once, and
-analysed under the three interpretations of Chapter~\ref{ch:system-model} from one upload.
+analysed under the three interpretations of Chapter~\ref{ch:system-model}.
 Supply reaches its worst-served junction with probability 0.81 at the stated values and
 with a certified range of $[0.35, 0.99]$ under five per cent input uncertainty; the network
-delivers 1,838 litres per second against demand, bound by its pumps and source tank, and 955 with the trunk main derated and the larger pump out; and its
+delivers its whole demand of 680 litres per second, and 43 with the larger pump out, when
+only the junctions downstream of the lake pump and the source tank can be served; and its
 restoration takes 74 days along a 28-activity chain, between 59 and 89 days under twenty
-per cent duration uncertainty. The flow bottleneck and the restoration critical chain share
-no component. The run reached two boundaries the earlier chapters had located and found
-three implementation errors, each recorded.
+per cent duration uncertainty. The river pump lies on both the degraded minimum cut and the
+restoration critical chain. The run reached two boundaries the earlier chapters had located
+and found three implementation errors, each recorded.
 
 \ifdefined\maindoc
 \else

@@ -1,0 +1,283 @@
+%% Viva opening presentation, 10 minutes. Audience: the examiners, who have read the thesis.
+%% Style follows ../RESS_response/slides/pbox_talk.tex. Figures copied from the thesis into figures/.
+%% Build: pdflatex viva_slides.tex (twice). Timings per slide are in SPEAKER_NOTES.md.
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\definecolor{ipablue}{HTML}{16548E}
+\definecolor{ipared}{HTML}{A23B2E}
+\setbeamercolor{structure}{fg=ipablue}
+\setbeamercolor{title}{fg=white,bg=ipablue}
+\setbeamercolor{frametitle}{fg=white,bg=ipablue}
+\setbeamerfont{frametitle}{series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\graphicspath{{figures/}}
+\newcommand{\good}[1]{\textcolor{ipablue}{#1}}
+\newcommand{\bad}[1]{\textcolor{ipared}{#1}}
+
+\title[Information Propagation Framework]{Information Propagation Methods for Reliability,
+Reachability and Flow Analysis in Directed Acyclic Process Networks}
+\author{Temitope Ohiani}
+\institute[Strathclyde]{Department of Civil and Environmental Engineering\\University of Strathclyde}
+\date{Viva voce, 9 October 2026}
+
+\begin{document}
+
+\begin{frame}\titlepage\end{frame}
+
+%% ------------------------------------------------------------------ 1
+\begin{frame}{The problem}
+\begin{columns}[T]
+\column{0.55\textwidth}
+An engineer asks three questions of one system, such as a water network:
+\begin{itemize}
+  \item Will supply reach each node? \hfill\emph{reliability}
+  \item How much can it deliver? \hfill\emph{capacity}
+  \item How long to restore it? \hfill\emph{schedule}
+\end{itemize}
+\medskip
+Today each is a separate model, so the \textbf{topology is entered three times} and kept
+consistent by hand.
+
+\medskip
+Every input is uncertain, but it is \textbf{collapsed to a number} before any analysis runs.
+\column{0.42\textwidth}
+\textbf{Why it is hard}\\[2pt]
+Redundancy is \emph{reconvergence}: routes split and rejoin, sharing components upstream.
+The independence assumption of simple propagation then fails, and always
+\bad{overstates} reliability.
+
+\medskip
+No reviewed tool combines all three analyses on one network, and none propagates intervals
+or p-boxes natively.
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 2
+\begin{frame}{One model, three interpretations}
+\begin{columns}[c]
+\column{0.42\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{fig01_framework_overview.pdf}
+\column{0.56\textwidth}
+\small
+A system is a \textbf{DAG}. One \textbf{graph object} (layers, ancestor and descendant
+closures, node roles) is read by three toolkits.
+
+\medskip
+\textbf{Research questions}
+\begin{enumerate}
+  \item Can one DAG model serve all three analyses, topology entered once?
+  \item Can reconvergence be identified once and reused?
+  \item Exact reliability under intervals and p-boxes: what is guaranteed, at what cost?
+  \item Which critical-path quantities stay exact under interval durations?
+  \item Can it reach an engineer who does not program, with the model kept on their machine?
+\end{enumerate}
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 3
+\begin{frame}{Reconvergence, identified once and conditioned on}
+\begin{columns}[c]
+\column{0.32\textwidth}
+\centering
+\includegraphics[width=0.8\linewidth,height=0.55\textheight,keepaspectratio]{fig01_simple_diamond.pdf}\\
+\footnotesize every component $0.9$
+\column{0.64\textwidth}
+\small
+Independent update at join 5: \bad{$b(5) = 0.749$}.\quad Exact: \good{$b(5) = 0.675$}.
+
+\medskip
+Condition on the fork's reachability, then recombine by total probability:
+\[
+b(5) = 0.9\,\bigl[\,0.81 \times \underbrace{\bigl(1-(1-0.729)^2\bigr)}_{\text{given fork reached}}
++ 0.19 \times 0\,\bigr] = 0.675462
+\]
+Two sub-problems replace $2^{10}$ component states.
+
+\medskip
+\textbf{Network Decomposition Module}: finds every \emph{diamond} (a fork whose paths reconverge
+at a join), stores each unique diamond once with its \textbf{conditioning set}, and is proved
+complete, deterministic and terminating.
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 4
+\begin{frame}{Probability Propagation Toolkit: exact, and what it costs}
+\begin{columns}[c]
+\column{0.5\textwidth}
+\small
+One pass over the layers, conditioning at each join.
+\begin{itemize}
+  \item \textbf{Point inputs}: exact belief; agrees with a sifted BDD to
+  $1.1\times10^{-16}$ on 129 graphs and named families.
+  \item \textbf{Intervals}: exact range, because belief is monotone in every input.
+  \item \textbf{p-boxes}: sound bounds on the distribution of each belief.
+\end{itemize}
+\medskip
+\textbf{Cost}: exponential in the largest conditioning set, the same width that governs a
+well-ordered decision diagram. Neither method dominates; the case rests on native interval
+and p-box propagation.
+\column{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{fig08_hero_cdf.pdf}\\
+\footnotesize p-box band brackets the Monte Carlo distribution
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 5
+\begin{frame}{Capacity and schedule on the same graph object}
+\begin{columns}[T]
+\column{0.49\textwidth}
+\textbf{Capacity Flow Toolkit} \small (point-valued)
+\begin{itemize}
+  \item Throughput, minimum cuts, saturated edges, single points of failure, degradation and
+  upgrade thresholds, redundancy.
+  \item Every minimum cut from one solve: the closed subsets of the free zone
+  (Picard and Queyranne), at most $2^{|\mathcal{F}|}$.
+  \item Two designs, same $F^\star = 37$: one has 4 minimum cuts, the other 1. Throughput alone
+  does not tell them apart.
+\end{itemize}
+\column{0.49\textwidth}
+\textbf{Critical Path Toolkit}
+\begin{itemize}
+  \small
+  \item CPM generalised to a family of operator pairs.
+  \item Interval durations: forward quantities exact from two corner runs.
+  \item Floats are NP-hard in general. The \textbf{domination split} enumerates only the bypass
+  set $H_v$: cost $2\sum_v 2^{|H_v|}$ against $2^k$.
+  \item PSPLIB: 50,524 propagations against $2^{30}$; three necessarily critical activities the
+  enclosure misses.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 6
+\begin{frame}{End to end: EPANET Net3}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\small
+97 nodes, 119 edges, oriented by its own hydraulic simulation; converted once, three toolkits.
+\begin{itemize}
+  \item \textbf{Reliability}: worst-served junction $0.81$; $[0.35, 0.99]$ under $\pm5\%$.
+  \item \textbf{Capacity}: whole demand met, \good{680.1 L/s}; river pump out,
+  \good{43.3 L/s} (6.4\%).
+  \item \textbf{Schedule}: 74 days along 28 activities; $[59, 89]$ days under intervals.
+\end{itemize}
+\column{0.47\textwidth}
+\small
+The \textbf{river pump} (95--97, \bad{red}) is in every degraded minimum cut \emph{and} on the
+restoration critical chain, a link only the two analyses together show.
+
+\medskip
+\scriptsize\textit{Corrected since submission: the super-sink edges were missing from the flow
+graph. Errata sheet provided.}
+\end{columns}
+\vspace{4pt}
+\centering
+\includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{net3_overlay_crop.png}\\
+\scriptsize Degraded minimum cut (blue) against the baseline critical path (dark): 3 nodes in
+both, 95, 97 and the super-sink.
+\end{frame}
+
+%% ------------------------------------------------------------------ 7
+\begin{frame}{Answers, contributions and limits}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\small
+\textbf{Answers}
+\begin{enumerate}
+  \item Yes, on the model's four assumptions.
+  \item Yes, for the probabilistic interpretation.
+  \item Exact for points and intervals, sound for p-boxes; cost set by conditioning width.
+  \item Forward quantities in two runs; floats exact at a cost set by bypass width.
+  \item Yes: registered Julia package and a local no-code interface.
+\end{enumerate}
+\column{0.45\textwidth}
+\small
+\textbf{Limits, stated in the thesis}
+\begin{itemize}
+  \item Practical to about fifty nodes of moderate reconvergence; p-boxes on small networks.
+  \item Flow toolkit is point-valued.
+  \item Acyclicity is a property of one operating snapshot.
+  \item The interface is demonstrated, not yet studied in use.
+\end{itemize}
+\medskip
+\textbf{Package}: \texttt{InformationPropagationAnalysis.jl}\\
+\textbf{Demo}: \texttt{information-propagation-framework.dev}
+\end{columns}
+\end{frame}
+
+\begin{frame}
+\centering\Large Thank you\\[8pt]
+\normalsize Questions welcome
+\end{frame}
+
+%% ================================================================== backup
+\appendix
+\begin{frame}{Backup: corrections since submission}
+\small
+\textbf{Chapter 6.} ``Exactly $2^{|\mathcal{F}|}$ minimum cuts'' becomes ``at most'':
+$S^\star\cup R$ is a minimum cut iff $R\subseteq\mathcal{F}$ is closed under residual
+reachability (Picard and Queyranne, 1980). Implementation corrected; every Chapter 6 result
+re-run and unchanged (Configuration A: 4 cuts; B: 1).
+
+\medskip
+\textbf{Chapter 10.} The flow run used the edge list without the super-sink and its 58 demand
+edges, and reported 1,837.9 L/s, above the total demand of 680.1.
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+& Submitted & Corrected \\
+\midrule
+Baseline throughput & 1,837.9 L/s & 680.1 L/s (all demand) \\
+Baseline minimum cut & 4 supply edges & the 58 demand edges \\
+Degraded throughput & 954.6 L/s & 43.3 L/s (6.4\%) \\
+Degraded minimum cuts & same 4 & 24; river pump in every one \\
+Overlay with critical path & ``no node in common'' & river pump on both \\
+\bottomrule
+\end{tabular}
+\end{center}
+Checked against an independent Edmonds--Karp computation. Reliability and schedule unchanged.
+\end{frame}
+
+\begin{frame}{Backup: why the degraded flow is so low}
+\small
+\begin{itemize}
+  \item With the river pump out, the sources are the lake pump and one discharging tank.
+  \item In the snapshot orientation they reach only six junctions (7, 8 and 77--81), which are
+  fully served; the other 52 receive less than their demand.
+  \item The derated trunk main does not bind: its only feed is the river pump.
+  \item Physically, the lake pump could push water through pipes that ran the other way at the
+  snapshot. The oriented model cannot represent that. A degraded state needs an orientation of
+  its own.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: the domination split}
+\begin{columns}[c]
+\column{0.45\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.65\textheight,keepaspectratio]{fig02_bypass.pdf}
+\column{0.52\textwidth}
+\small
+Relative to node $v$: \emph{dominated} durations (every route through them passes $v$) are
+fixed at one bound, \emph{incomparable} ones at the other, and only the \emph{bypass set}
+$H_v$, which shares routes with $v$ and can route around it, is enumerated.
+
+\medskip
+The exact floats then cost $2\sum_v 2^{|H_v|}$ propagations in all, against $2^k$ for
+$k$ interval durations.
+\end{columns}
+\end{frame}
+
+\begin{frame}{Backup: cost against decision diagrams}
+\centering
+\includegraphics[width=0.85\linewidth,height=0.7\textheight,keepaspectratio]{fig07_crossover.pdf}\\
+\small Sub-problem count against sifted BDD node count on the two adversarial families
+(fan-in-$k$, mesh-$w$).
+\end{frame}
+
+\end{document}

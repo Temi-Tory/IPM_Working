@@ -1,0 +1,144 @@
+%% Errata to the submitted thesis, for the examiners. Page numbers refer to the submitted PDF
+%% (submitted 30 August 2026; pagination checked against that PDF).
+%% Build: pdflatex errata.tex
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=19mm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[british]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\begin{document}
+
+{\large\bfseries Errata}\\[2pt]
+\emph{Information Propagation Methods for Reliability, Reachability and Flow Analysis in
+Directed Acyclic Process Networks}\\
+Temitope Ohiani, Department of Civil and Environmental Engineering, University of Strathclyde\\
+October 2026
+
+\medskip
+After submission, two corrections were made to the thesis. The first corrects a statement
+about minimum cuts in Chapter~6; no number reported in the thesis changes. The second
+corrects the capacity results of the Net3 case study in Chapter~10, and the statements that
+depend on them in Chapter~11 and Appendix~B. Page numbers refer to the submitted copy, and a
+copy of the corrected thesis with every change marked (deletions struck through in red,
+additions underlined in blue) accompanies this sheet. The
+reliability and schedule results of Chapter~10, and every result in the other chapters, are
+unchanged. Every corrected value below was computed with version 0.2.3 of the registered
+package, \texttt{InformationPropagationAnalysis.jl}, which contains the Chapter~6 correction.
+
+\section*{1. Chapter 6: the structure of the minimum cuts}
+
+Section~6.5.1 (pp.~105--106) stated that every node of the free zone $\mathcal{F}$ can be
+assigned to either side of a minimum cut without changing its capacity, so that there are
+exactly $2^{|\mathcal{F}|}$ minimum cuts. The converse is not true for every subset. By
+Picard and Queyranne (1980), $S^\star \cup R$ with $R \subseteq \mathcal{F}$ is a minimum
+cut if and only if $R$ is closed under reachability in the residual graph $G_f$. There are
+therefore at most $2^{|\mathcal{F}|}$ minimum cuts, with equality only when no node of
+$\mathcal{F}$ reaches another in $G_f$. For example, the power network of Appendix~A with
+every capacity set to 60 has $\mathcal{F} = \{19, 20, 21\}$ linked as a chain in $G_f$, and
+4 of its 8 subsets are minimum cuts.
+
+\begin{tabularx}{\linewidth}{@{}P{3.4cm}L@{}}
+\toprule
+Location & Correction \\
+\midrule
+Def.~6.3 and 6.4, p.~105 & Taking the whole of $S^{\star\star}$ as the source side gives a
+minimum cut; the claim that any free-zone node may be moved alone is removed. A theorem
+stating the Picard--Queyranne characterisation is added. \\
+p.~106, degeneracy & ``exactly $2^{|\mathcal{F}|}$ equivalent minimum cuts'' becomes ``at most
+$2^{|\mathcal{F}|}$, one for each closed subset''. \\
+p.~106, $E_{\text{some}}$ & The condition $v \notin \operatorname{Reach}_{G_f}(u)$ is added: a
+saturated edge lies in some minimum cut only if its head is not reachable from its tail in
+$G_f$. \\
+p.~106, enumerator & The enumerator examines the subsets of $\mathcal{F}$ and keeps those whose
+cut capacity equals $F^\star$; \texttt{is\_complete} refers to the subsets examined. \\
+Table~6.2, p.~114 & Rows \texttt{edges\_some} ($O(|E_{\text{sat}}|(V+E))$, residual reach) and
+\texttt{enumerate} (closed subsets of $\mathcal{F}$) updated. \\
+\bottomrule
+\end{tabularx}
+
+The implementation was corrected to match, and the results of Chapter~6 were re-run. Configuration~A still has a free zone of two nodes and four minimum
+cuts, of 13, 8, 8 and 3 crossing edges, and Configuration~B one. The IEEE RTS-24 free zone is
+empty. No reported value changes.
+
+\section*{2. Chapter 10: capacity results of the Net3 case study}
+
+Section~10.3.2 specifies a super-sink with one edge from each of the 58 demand junctions,
+with capacity equal to that junction's demand, 680.1 litres per second in total. The
+capacity analysis reported in the thesis was run on the edge list without the super-sink and
+its 58 edges. The reported throughput, 1,837.9 litres per second, therefore exceeded the total
+demand. The analysis algorithms of the package were not at fault: they computed the maximum
+flow of the graph they were given. The error lay in the interface layer. The case study's
+edge list omitted the super-sink, and the server through which the interface reaches the
+package (Section~8.8, p.~162) ignored the 58 capacity entries for edges it did not contain,
+without reporting them. The
+analysis was re-run on the edge list with the super-sink added and declared as the only sink,
+and the results were checked against an independent max-flow computation (Edmonds--Karp,
+separate implementation), which agrees to the reported precision. The server now rejects a
+capacity file that names an edge the edge list does not contain.
+
+\begin{tabularx}{\linewidth}{@{}P{3.6cm}LL@{}}
+\toprule
+Quantity & Submitted & Corrected \\
+\midrule
+Baseline throughput & 1,837.9 L/s & 680.1 L/s, the whole demand \\
+Baseline minimum cut & unique; four edges: two discharges at the river pump's junction, one
+at the lake's, and the source tank outlet & unique (free zone empty); the 58 demand edges \\
+Saturated edges; paths & 7; 158 & 60; 401 \\
+Sensitivity, baseline & the four cut edges, 883.3 to 76.0 L/s; edge 95--96 marginal range
+unbounded & the demand edges, ranked by demand: junction 58, 280.1 L/s; junction 92, 103.3
+L/s; every marginal range finite \\
+Degraded throughput & 954.6 L/s, a 48\% drop & 43.3 L/s, 6.4\% of demand \\
+Degraded minimum cuts & the same four edges & 24 cuts, free zone of six nodes; in every cut,
+the river pump (95--97) and the demand edges of junctions 7, 8, 77, 79, 80, 81 \\
+Flow timing, Table~B.5 & 2.33 s & 4.07 s \\
+\bottomrule
+\end{tabularx}
+
+\medskip
+\textbf{Interpretation.} At baseline the network meets its whole demand, so the network does
+not bound delivery; the submitted text attributed the bound to the pumps and the source tank
+(p.~189). In the degraded scenario only the six junctions downstream of the lake pump and the
+discharging tank in the oriented graph can be served, and the derated trunk main does not
+bind, because the river pump is its only feed. This result holds with every pipe in its
+snapshot direction; a degraded state would need an orientation of its own, and this is
+stated as a limitation of the operating-snapshot assumption.
+
+\textbf{Profile overlay.} Section~10.7 (pp.~192--195) stated that the minimum cut and the
+critical path have no node in common. The corrected figure draws the edges in every minimum
+cut of the degraded scenario against the baseline critical path. They share nodes 95 and 97,
+the ends of the river pump, and the super-sink. The pump whose loss leaves 6.4 per cent of
+demand served lies on the restoration critical chain. The submitted overlay also shared nodes
+95 and 97; the interface counted the overlap of an edge set by node only, and this is
+corrected.
+
+\begin{tabularx}{\linewidth}{@{}P{3.6cm}L@{}}
+\toprule
+Location & Change \\
+\midrule
+\S10.1, p.~182 & ``uploaded once'' removed; the capacity analysis reads the edge list with the
+super-sink added. \\
+\S10.3, pp.~183--184 & The super-sink is added to the capacity edge list (98 nodes, 177 edges)
+and named as the only sink. \\
+\S10.5, pp.~189--191; Figs.~10.6--10.9 & Rewritten with the corrected results; figures
+retaken from the corrected run. \\
+\S10.7, pp.~192--195; Fig.~10.14 & Rewritten as above; figure retaken. \\
+\S10.8, p.~194 & Flow timing 4.1 s. \\
+\S10.9, p.~196; \S11.2.1, p.~198 & Corrected numbers; ``from one upload'' becomes ``from one
+conversion''. \\
+\S11.6, p.~204 & The closing remark now states that the pump which bounds throughput in the
+degraded state lies on the restoration critical chain, in place of ``different
+components''. \\
+Table~B.5, p.~220 & Flow rows corrected. \\
+\bottomrule
+\end{tabularx}
+
+\end{document}
