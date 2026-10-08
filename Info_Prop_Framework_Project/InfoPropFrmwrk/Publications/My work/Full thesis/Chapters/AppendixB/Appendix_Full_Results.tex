@@ -76,8 +76,8 @@ Network & Published source & Result & Worst $|$diff$|$ \\
 \caption{Reproduction of published exact reliabilities. The grid residuals are within the
 paper's own five-decimal print precision. The two power-network residuals at $R_l = 0.9$
 and $0.3$ are order $10^{-3}$, larger than print rounding; the toolkit and the decision
-diagram agree with each other to machine precision at all three points, so the gap is a
-modelling difference from the paper, flagged and not resolved. Scripts:
+diagram agree with each other to machine precision at all three points, so the gap lies between the
+topology used here and the published values, flagged and not resolved. Scripts:
 \filepath{validation/probability/asce\_grid\_reproduction.jl},
 \filepath{asce_power_reproduction.jl}.}
 \label{tab:appB-prob-repro}
@@ -200,7 +200,7 @@ Network & Check & Result (all 4 modes) \\
 \subsection{PSPLIB j301\_1 per-node float bounds}
 
 The per-node necessarily-critical and possibly-critical float bounds under
-$\pm 10\%$ duration uncertainty are in
+$\pm 20\%$ duration uncertainty are in
 \filepath{validation/critical-path/thesis\_writing\_pack/psplib\_j301\_1\_float\_bounds.csv},
 with the earlier \texttt{water} $k = 32$ precedent in \filepath{water_k32_float_bounds.csv}.
 
@@ -214,7 +214,7 @@ Toolkit and scenario & Headline result & Timing (warm, s) \\
 \midrule
 \endhead
 Reliability, Baseline           & source-to-sink reachability, all 18 sinks & 4.61 \\
-Reliability, Interval ($\pm5\%$) & certified requirement range $[0.35, 0.99]$ & N/A \\
+Reliability, Interval ($\pm5\%$) & belief range at node 76, $[0.35, 0.99]$ & N/A \\
 Flow, Baseline                  & throughput $680.1$ litres/s, the whole demand & 4.07 \\
 Flow, Degraded                  & throughput $43.3$ litres/s (6.4\% of demand) & N/A \\
 Schedule, Baseline LongestPath  & project value $1{,}773.3$ hours ($\approx 74$ days), 28 of 97 critical & 2.08 \\

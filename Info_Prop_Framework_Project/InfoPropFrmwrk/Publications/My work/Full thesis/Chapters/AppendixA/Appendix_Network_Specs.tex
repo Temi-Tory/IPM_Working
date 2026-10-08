@@ -82,7 +82,7 @@ solid black circles in the figure); the single sink is node 23. Component reliab
 for the reproduction study (Ch.~\ref{ch:probability-toolkit}) are the paper's own values,
 applied under its uniform-link-reliability scheme ($R_l \in \{0.9, 0.99, 0.3\}$, node
 priors 1.0). The interval, probability-box, capacity and schedule scenarios use values
-assigned for demonstration in this thesis; the five published-reliability scenario folders
+assigned for demonstration in this thesis; the three published-reliability scenario folders
 (\filepath{Published_R030}, \filepath{Published_R090}, \filepath{Published_R099}) hold the
 inputs for the reproduction. File: \filepath{corpus/named-networks/power-network/}.
 
@@ -123,7 +123,7 @@ and end (durations 0). The activity-on-node precedence graph is already a direct
 graph. Durations and the successor list are in
 \filepath{validation/critical-path/thesis\_writing\_pack/appendix\_a\_durations\_successors.csv}
 (30 rows, dummy nodes omitted); the file's recorded MPM-Time is 38, which the LongestPath
-pass reproduces. The interval scenario applies a $\pm 10\%$ relative half-width to every
+pass reproduces. The interval scenario applies a $\pm 20\%$ relative half-width to every
 duration. Conversion: \filepath{converters/psplib\_to\_ipf.py}, which consumes
 \filepath{j30/j301\_1.sm} from the PSPLIB distribution. Files:
 \filepath{case-studies/psplib-j301\_1/}.

@@ -127,8 +127,7 @@ tractability boundary of the probability-box form is characterised in that chapt
 \subsection{Capacity inputs}
 
 Capacities are in litres per second throughout. Each pipe's capacity is the flow at a
-velocity of 1.5 metres per second through its stated diameter, the conservative end of the
-range in Section~\ref{sec:e2e-inputs}'s convention; each pump's is the largest flow point of
+velocity of 1.5 metres per second through its stated diameter, an assumed design velocity; each pump's is the largest flow point of
 its own curve in the input file, 252.4 for the lake pump and 883.3 for the river pump; the
 reservoir edges and the three placeholder connectors are unbounded. To measure throughput
 against demand, the construction of Chapter~\ref{ch:capacity-toolkit}'s IEEE case is used:
@@ -205,8 +204,9 @@ conditioning sets and nesting. The largest, at join 77, spans 46 nodes and 56 ed
 holds eleven sub-diamonds (Figure~\ref{fig:e2e-diamond77}); the width-12 conditioning set
 of the summary tile belongs to a diamond nested inside it, which the detail view reaches
 through its sub-diamond list. Every one of the 21 conditions on node 95 alone at its own
-level, which is the junction immediately downstream of the river pump: the whole network's
-reconvergence is anchored on the point where the two supplies first meet.
+level, which is the junction at the inlet of the river pump, where the river reservoir enters
+the network: the whole network's reconvergence is anchored on the entry point of the river
+supply.
 
 \begin{figure}[htbp]
   \centering

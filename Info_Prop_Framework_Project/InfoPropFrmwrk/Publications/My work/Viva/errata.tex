@@ -27,7 +27,8 @@ October 2026
 After submission, two corrections were made to the thesis. The first corrects a statement
 about minimum cuts in Chapter~6; no number reported in the thesis changes. The second
 corrects the capacity results of the Net3 case study in Chapter~10, and the statements that
-depend on them in Chapter~11 and Appendix~B. Page numbers refer to the submitted copy, and a
+depend on them in Chapter~11 and Appendix~B. A third section lists minor corrections of
+description, none of which changes a result. Page numbers refer to the submitted copy, and a
 copy of the corrected thesis with every change marked (deletions struck through in red,
 additions underlined in blue) accompanies this sheet. The
 reliability and schedule results of Chapter~10, and every result in the other chapters, are
@@ -138,6 +139,35 @@ conversion''. \\
 degraded state lies on the restoration critical chain, in place of ``different
 components''. \\
 Table~B.5, p.~220 & Flow rows corrected. \\
+\bottomrule
+\end{tabularx}
+
+\section*{3. Minor corrections of description}
+
+\begin{tabularx}{\linewidth}{@{}P{3.4cm}L@{}}
+\toprule
+Location & Correction \\
+\midrule
+App.~A, \S A.6, p.~209; App.~B, \S B.4, p.~220 & The PSPLIB interval scenario applies a
+$\pm 20\%$ relative half-width to every duration, not $\pm 10\%$. Chapter~7 and every reported
+value (project range $[30.4, 45.6]$) are for $\pm 20\%$. \\
+\S5.4, p.~65 & ``$2^{10}$ component states'' becomes ``$2^{9}$ states of the uncertain
+components'': the diamond has four uncertain nodes and five uncertain edges (the source has
+prior~1). \\
+\S10.4, p.~186 & Node 95 is the junction at the \emph{inlet} of the river pump, where the
+river reservoir enters the network, not the junction downstream of it. \\
+\S10.3, p.~184 & The 1.5 m/s pipe velocity is an assumed design value; the reference to a
+convention in the section is removed. \\
+\S8.3, p.~154 & The facade re-exports eleven names (five modules, two value types, four entry
+points), not twelve. \\
+\S9.5, p.~176 & The workspace holds nine projects (the shell, five feature libraries, three
+shared libraries), not eight. \\
+App.~A, \S A.2, p.~208 & Three published-reliability scenario folders, not five. \\
+Table~B.1, p.~217 & The power-network residual is described as a gap between the topology
+used and the published values, not as a modelling difference; its cause is unresolved. The
+reproduction was additionally checked by exhaustive enumeration of all $2^{27}$ link states,
+which agrees with the reported values. \\
+Table~B.5, p.~220 & ``certified requirement range'' becomes ``belief range at node 76''. \\
 \bottomrule
 \end{tabularx}
 

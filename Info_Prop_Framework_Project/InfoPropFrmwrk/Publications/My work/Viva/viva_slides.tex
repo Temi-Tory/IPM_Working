@@ -1,5 +1,6 @@
 %% Viva opening presentation, 10 minutes. Audience: the examiners, who have read the thesis.
-%% Style follows ../RESS_response/slides/pbox_talk.tex. Figures copied from the thesis into figures/.
+%% Framed around the engineer who holds the data: who it is for, what they do with it, and what
+%% each method answers for them. Figures copied from the thesis into figures/.
 %% Build: pdflatex viva_slides.tex (twice). Timings per slide are in SPEAKER_NOTES.md.
 \documentclass[aspectratio=169,11pt]{beamer}
 \usetheme{Madrid}
@@ -11,60 +12,69 @@
 \setbeamercolor{frametitle}{fg=white,bg=ipablue}
 \setbeamerfont{frametitle}{series=\bfseries}
 \setbeamertemplate{navigation symbols}{}
+% slim footer: slide number only (the theme's three-box footer clipped)
+\setbeamertemplate{footline}{%
+  \hfill{\usebeamerfont{page number in head/foot}\color{gray}\insertframenumber}\hspace{1.2em}%
+  \vspace{6pt}}
 \usepackage{booktabs}
 \usepackage{amsmath,amssymb}
 \graphicspath{{figures/}}
 \newcommand{\good}[1]{\textcolor{ipablue}{#1}}
 \newcommand{\bad}[1]{\textcolor{ipared}{#1}}
 
-\title[Information Propagation Framework]{Information Propagation Methods for Reliability,
-Reachability and Flow Analysis in Directed Acyclic Process Networks}
+\title{Information Propagation Methods for Reliability, Reachability and Flow Analysis in
+Directed Acyclic Process Networks}
 \author{Temitope Ohiani}
-\institute[Strathclyde]{Department of Civil and Environmental Engineering\\University of Strathclyde}
-\date{Viva voce, 9 October 2026}
+\institute{Department of Civil and Environmental Engineering\\University of Strathclyde}
+\date{9 October 2026}
 
 \begin{document}
 
-\begin{frame}\titlepage\end{frame}
+\begin{frame}[plain]\titlepage\end{frame}
 
 %% ------------------------------------------------------------------ 1
-\begin{frame}{The problem}
+\begin{frame}{Who it is for, and the problem}
 \begin{columns}[T]
-\column{0.55\textwidth}
-An engineer asks three questions of one system, such as a water network:
+\column{0.52\textwidth}
+\textbf{The engineer} responsible for a process system, such as a water treatment works and
+its distribution network, asks many questions of it. This thesis addresses three:
 \begin{itemize}
-  \item Will supply reach each node? \hfill\emph{reliability}
-  \item How much can it deliver? \hfill\emph{capacity}
-  \item How long to restore it? \hfill\emph{schedule}
+  \item Will supply reach each point? \emph{(reliability)}
+  \item How much can it deliver, and what limits it? \emph{(capacity)}
+  \item How long to restore it, and what is critical? \emph{(schedule)}
 \end{itemize}
 \medskip
-Today each is a separate model, so the \textbf{topology is entered three times} and kept
-consistent by hand.
+Each has its own method and software, so the \textbf{topology is entered three times} and
+kept consistent by hand.
+\column{0.45\textwidth}
+\textbf{What the engineer actually knows}
+\begin{itemize}
+  \small
+  \item a failure probability from three recorded failures
+  \item a nameplate capacity with a tolerance
+  \item a duration given as a range, not a number
+\end{itemize}
+The exact methods in common use take one number per input, so the uncertainty is
+\bad{collapsed} before the analysis runs.
 
 \medskip
-Every input is uncertain, but it is \textbf{collapsed to a number} before any analysis runs.
-\column{0.42\textwidth}
-\textbf{Why it is hard}\\[2pt]
-Redundancy is \emph{reconvergence}: routes split and rejoin, sharing components upstream.
-The independence assumption of simple propagation then fails, and always
-\bad{overstates} reliability.
-
-\medskip
-No reviewed tool combines all three analyses on one network, and none propagates intervals
-or p-boxes natively.
+\small And the system model is often sensitive: it should \textbf{stay on the engineer's
+machine}.
 \end{columns}
 \end{frame}
 
 %% ------------------------------------------------------------------ 2
 \begin{frame}{One model, three interpretations}
 \begin{columns}[c]
-\column{0.42\textwidth}
+\column{0.40\textwidth}
 \centering
 \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{fig01_framework_overview.pdf}
-\column{0.56\textwidth}
+\column{0.58\textwidth}
 \small
-A system is a \textbf{DAG}. One \textbf{graph object} (layers, ancestor and descendant
-closures, node roles) is read by three toolkits.
+A system is a \textbf{DAG}: components are nodes, dependencies are edges. One \textbf{graph
+object} is read by three toolkits; only the meaning of the value on a component changes, a
+failure probability, a throughput limit or a duration. A further analysis would read the same
+object.
 
 \medskip
 \textbf{Research questions}
@@ -79,87 +89,130 @@ closures, node roles) is read by three toolkits.
 \end{frame}
 
 %% ------------------------------------------------------------------ 3
-\begin{frame}{Reconvergence, identified once and conditioned on}
-\begin{columns}[c]
-\column{0.32\textwidth}
+\begin{frame}{What the engineer does with it}
 \centering
-\includegraphics[width=0.8\linewidth,height=0.55\textheight,keepaspectratio]{fig01_simple_diamond.pdf}\\
-\footnotesize every component $0.9$
-\column{0.64\textwidth}
+\includegraphics[width=0.92\linewidth]{fig00_pipeline.pdf}
+\vspace{2pt}
+\begin{columns}[c]
+\column{0.50\textwidth}
 \small
-Independent update at join 5: \bad{$b(5) = 0.749$}.\quad Exact: \good{$b(5) = 0.675$}.
-
-\medskip
-Condition on the fork's reachability, then recombine by total probability:
-\[
-b(5) = 0.9\,\bigl[\,0.81 \times \underbrace{\bigl(1-(1-0.729)^2\bigr)}_{\text{given fork reached}}
-+ 0.19 \times 0\,\bigr] = 0.675462
-\]
-Two sub-problems replace $2^{10}$ component states.
-
-\medskip
-\textbf{Network Decomposition Module}: finds every \emph{diamond} (a fork whose paths reconverge
-at a join), stores each unique diamond once with its \textbf{conditioning set}, and is proved
-complete, deterministic and terminating.
+\begin{itemize}
+  \item Uploads the files they already have: an edge list and one JSON file per analysis.
+  No code.
+  \item Every result keeps the form its inputs were given in, an interval stays an interval,
+  and names its method: \emph{exact}, \emph{sound} or \emph{conservative enclosure}.
+  \item Runs on their own machine: a browser interface over a loopback server.
+  \item The same methods are a registered Julia package,
+  \texttt{InformationPropagationAnalysis.jl}, for scripted use.
+\end{itemize}
+\column{0.47\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.48\textheight,keepaspectratio]{fe_network.png}\\
+\scriptsize the network page after upload
 \end{columns}
 \end{frame}
 
 %% ------------------------------------------------------------------ 4
-\begin{frame}{Probability Propagation Toolkit: exact, and what it costs}
+\begin{frame}{Will supply reach each point? Redundancy is what makes it hard}
 \begin{columns}[c]
-\column{0.5\textwidth}
-\small
-One pass over the layers, conditioning at each join.
-\begin{itemize}
-  \item \textbf{Point inputs}: exact belief; agrees with a sifted BDD to
-  $1.1\times10^{-16}$ on 129 graphs and named families.
-  \item \textbf{Intervals}: exact range, because belief is monotone in every input.
-  \item \textbf{p-boxes}: sound bounds on the distribution of each belief.
-\end{itemize}
-\medskip
-\textbf{Cost}: exponential in the largest conditioning set, the same width that governs a
-well-ordered decision diagram. Neither method dominates; the case rests on native interval
-and p-box propagation.
-\column{0.48\textwidth}
+\column{0.30\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{fig08_hero_cdf.pdf}\\
-\footnotesize p-box band brackets the Monte Carlo distribution
+\includegraphics[width=0.8\linewidth,height=0.52\textheight,keepaspectratio]{fig01_simple_diamond.pdf}\\
+\footnotesize every component $0.9$
+\column{0.66\textwidth}
+\small
+Redundant routes split and rejoin, sharing what is upstream. Treating them as independent
+\bad{overstates} reliability: $b(5) = 0.749$ against the exact $0.675$.
+
+\medskip
+Conditioning on the fork's reachability repairs it exactly:
+\[
+b(5) = 0.9\,\bigl[\,0.81 \times \bigl(1-(1-0.729)^2\bigr) + 0.19 \times 0\,\bigr] = 0.675462
+\]
+Two sub-problems replace $2^{9}$ states of the uncertain components.
+
+\medskip
+The \textbf{Network Decomposition Module} finds every such \emph{diamond} once, with its
+\textbf{conditioning set}, proved complete, deterministic and terminating.
 \end{columns}
 \end{frame}
 
 %% ------------------------------------------------------------------ 5
-\begin{frame}{Capacity and schedule on the same graph object}
-\begin{columns}[T]
-\column{0.49\textwidth}
-\textbf{Capacity Flow Toolkit} \small (point-valued)
+\begin{frame}{How sure can the engineer be? Reliability with uncertain inputs}
+\begin{columns}[c]
+\column{0.5\textwidth}
+\small
+One pass over the network, conditioning at each join. The answer comes back in the form
+the inputs were given:
 \begin{itemize}
-  \item Throughput, minimum cuts, saturated edges, single points of failure, degradation and
-  upgrade thresholds, redundancy.
-  \item Every minimum cut from one solve: the closed subsets of the free zone
-  (Picard and Queyranne), at most $2^{|\mathcal{F}|}$.
-  \item Two designs, same $F^\star = 37$: one has 4 minimum cuts, the other 1. Throughput alone
-  does not tell them apart.
+  \item \textbf{numbers}: the exact reliability of every node;
+  \item \textbf{intervals}: the exact range, because reliability is monotone in each input;
+  \item \textbf{p-boxes}: sound bounds on its distribution.
 \end{itemize}
-\column{0.49\textwidth}
-\textbf{Critical Path Toolkit}
-\begin{itemize}
-  \small
-  \item CPM generalised to a family of operator pairs.
-  \item Interval durations: forward quantities exact from two corner runs.
-  \item Floats are NP-hard in general. The \textbf{domination split} enumerates only the bypass
-  set $H_v$: cost $2\sum_v 2^{|H_v|}$ against $2^k$.
-  \item PSPLIB: 50,524 propagations against $2^{30}$; three necessarily critical activities the
-  enclosure misses.
-\end{itemize}
+Agrees with a decision-diagram oracle to $1.1\times10^{-16}$ on 129 graphs.
+
+\medskip
+\textbf{Cost}: exponential in the largest conditioning set, the same width a decision diagram
+pays. The gain is the uncertainty carried through, not speed.
+\column{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.6\textheight,keepaspectratio]{fig08_hero_cdf.pdf}\\
+\footnotesize the p-box band brackets the Monte Carlo distribution
 \end{columns}
 \end{frame}
 
 %% ------------------------------------------------------------------ 6
-\begin{frame}{End to end: EPANET Net3}
+\begin{frame}{How much can it deliver, and what limits it?}
+\begin{columns}[c]
+\column{0.46\textwidth}
+\small
+\textbf{Capacity} (point-valued)
+\begin{itemize}
+  \item Throughput, every minimum cut, saturated edges, single points of failure, how far an
+  edge can degrade or must be upgraded.
+  \item All minimum cuts from one solve: the closed subsets of the free zone (Picard and
+  Queyranne), at most $2^{|\mathcal{F}|}$.
+  \item Two designs deliver the same 37 units; one has 4 minimum cuts, the other 1. Where the
+  network binds differs, and so does what to reinforce.
+\end{itemize}
+\column{0.52\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{critical_bars_config_ab.pdf}\\
+\footnotesize loss in throughput when one edge fails: design A (bars) has 15 edges that
+matter, design B (markers) has 3
+\end{columns}
+\end{frame}
+
+\begin{frame}{How long to restore it, and what is critical?}
+\begin{columns}[c]
+\column{0.50\textwidth}
+\small
+\textbf{Schedule}
+\begin{itemize}
+  \item Critical path generalised to a family of operator pairs; with interval durations, the
+  completion time is exact from two runs.
+  \item Which activities are critical \emph{whatever} the durations turn out to be
+  (\emph{necessarily}), or only for some (\emph{possibly})? In general this means trying every
+  duration at its low or high end: $2^k$ runs, and NP-hard. The \textbf{domination split} varies
+  only the durations that can route around each activity.
+  \item 30-activity PSPLIB benchmark: 50,524 runs instead of $2^{30}$ ($\approx$1.1 billion).
+  It found 3 activities critical whatever happens, which the fast conservative method could
+  not confirm, and cleared 7 that it had flagged.
+\end{itemize}
+\column{0.47\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{fig04_floats.pdf}\\
+\footnotesize exact float range of each activity, durations $\pm20\%$: points at zero are
+critical in every case
+\end{columns}
+\end{frame}
+
+%% ------------------------------------------------------------------ 7
+\begin{frame}{One water network, three questions: EPANET Net3}
 \begin{columns}[T]
 \column{0.5\textwidth}
 \small
-97 nodes, 119 edges, oriented by its own hydraulic simulation; converted once, three toolkits.
+97 nodes, 119 edges, oriented by its own hydraulic simulation; converted once.
 \begin{itemize}
   \item \textbf{Reliability}: worst-served junction $0.81$; $[0.35, 0.99]$ under $\pm5\%$.
   \item \textbf{Capacity}: whole demand met, \good{680.1 L/s}; river pump out,
@@ -168,8 +221,9 @@ and p-box propagation.
 \end{itemize}
 \column{0.47\textwidth}
 \small
-The \textbf{river pump} (95--97, \bad{red}) is in every degraded minimum cut \emph{and} on the
-restoration critical chain, a link only the two analyses together show.
+For the engineer: the \textbf{river pump} (95--97, \bad{red}) is in every degraded minimum cut
+\emph{and} on the restoration critical chain. Reinstating it is the step both analyses point
+to, which neither shows alone.
 
 \medskip
 \scriptsize\textit{Corrected since submission: the super-sink edges were missing from the flow
@@ -178,11 +232,11 @@ graph. Errata sheet provided.}
 \vspace{4pt}
 \centering
 \includegraphics[width=\linewidth,height=0.36\textheight,keepaspectratio]{net3_overlay_crop.png}\\
-\scriptsize Degraded minimum cut (blue) against the baseline critical path (dark): 3 nodes in
-both, 95, 97 and the super-sink.
+\scriptsize Degraded minimum cut (blue) against the baseline critical path (dark): 95, 97 and
+the super-sink in both.
 \end{frame}
 
-%% ------------------------------------------------------------------ 7
+%% ------------------------------------------------------------------ 8
 \begin{frame}{Answers, contributions and limits}
 \begin{columns}[T]
 \column{0.52\textwidth}
@@ -191,33 +245,70 @@ both, 95, 97 and the super-sink.
 \begin{enumerate}
   \item Yes, on the model's four assumptions.
   \item Yes, for the probabilistic interpretation.
-  \item Exact for points and intervals, sound for p-boxes; cost set by conditioning width.
-  \item Forward quantities in two runs; floats exact at a cost set by bypass width.
-  \item Yes: registered Julia package and a local no-code interface.
+  \item Exact for numbers and intervals, sound for p-boxes; cost set by conditioning width.
+  \item Completion time in two runs; floats exact at a cost set by bypass width.
+  \item Yes: a registered package and a local no-code interface.
 \end{enumerate}
 \column{0.45\textwidth}
 \small
 \textbf{Limits, stated in the thesis}
 \begin{itemize}
-  \item Practical to about fifty nodes of moderate reconvergence; p-boxes on small networks.
-  \item Flow toolkit is point-valued.
+  \item Practical to conditioning width about 18 (about 50 nodes, moderate reconvergence); p-boxes on small networks.
+  \item Capacity is point-valued.
   \item Acyclicity is a property of one operating snapshot.
-  \item The interface is demonstrated, not yet studied in use.
+  \item The interface is demonstrated, not yet studied with engineers in use.
 \end{itemize}
-\medskip
-\textbf{Package}: \texttt{InformationPropagationAnalysis.jl}\\
+\smallskip
+\footnotesize\textbf{Next}: a depth-limited hybrid for larger networks; interval capacities; cyclic
+networks; a study with engineers in use.\\[2pt]
 \textbf{Demo}: \texttt{information-propagation-framework.dev}
 \end{columns}
 \end{frame}
 
-\begin{frame}
-\centering\Large Thank you\\[8pt]
-\normalsize Questions welcome
+\begin{frame}[plain]
+\centering\vfill\Large Thank you\\[8pt]
+\normalsize Questions welcome\vfill
 \end{frame}
 
 %% ================================================================== backup
+%% Not presented. Kept after the close so a likely question can be answered from a prepared
+%% slide.
 \appendix
-\begin{frame}{Backup: corrections since submission}
+\begin{frame}{Backup: how does an engineer get their network in?}
+\small
+\begin{itemize}
+  \item \textbf{Structure}: an edge list or an adjacency matrix, the form any DAG description
+  reduces to. The parser detects which, validates acyclicity and builds the graph object once.
+  \item \textbf{Inputs}: one JSON file per analysis, which declares its value form (number,
+  interval or p-box), so the same network carries probabilities, capacities and durations side
+  by side.
+  \item \textbf{From a domain model}: Net3 came from its EPANET \texttt{.inp} file by a script
+  that orients each pipe by its simulated flow and derives the three input files from pipe
+  diameters, pump curves and published break rates (in the thesis-data repository).
+  \item \textbf{Limit, stated in the thesis}: the package itself does not read domain formats
+  such as EPANET or a GIS export; that conversion is a script per source.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: what would you do next?}
+\small
+Each item follows from a limitation stated in the thesis (Chapter 11).
+\begin{itemize}
+  \item \textbf{Scale}: a depth-limited hybrid, exact to a stated depth and bounded beyond it,
+  for networks past about fifty nodes of moderate reconvergence.
+  \item \textbf{Theory}: a soundness proof for the tighter p-box recombination operator,
+  validated sound on every configuration tested but not proved.
+  \item \textbf{Schedule}: gate the domination split by its own bypass-set cost in place of a
+  fixed threshold; that threshold sent Net3 to the conservative enclosure.
+  \item \textbf{Capacity}: interval and p-box capacities, direct for the flow value by
+  monotonicity, open for the cut structure.
+  \item \textbf{Model}: cyclic networks by strongly connected components or unrolling, and an
+  orientation per operating state (Net3's degraded case).
+  \item \textbf{Use}: a study of the interface with engineers who do not program.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: what changed since submission?}
 \small
 \textbf{Chapter 6.} ``Exactly $2^{|\mathcal{F}|}$ minimum cuts'' becomes ``at most'':
 $S^\star\cup R$ is a minimum cut iff $R\subseteq\mathcal{F}$ is closed under residual
@@ -226,7 +317,8 @@ re-run and unchanged (Configuration A: 4 cuts; B: 1).
 
 \medskip
 \textbf{Chapter 10.} The flow run used the edge list without the super-sink and its 58 demand
-edges, and reported 1,837.9 L/s, above the total demand of 680.1.
+edges, and reported 1,837.9 L/s, above the total demand of 680.1. The algorithms were correct;
+the server in the interface layer ignored the 58 entries without reporting them.
 \begin{center}
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -243,7 +335,7 @@ Overlay with critical path & ``no node in common'' & river pump on both \\
 Checked against an independent Edmonds--Karp computation. Reliability and schedule unchanged.
 \end{frame}
 
-\begin{frame}{Backup: why the degraded flow is so low}
+\begin{frame}{Backup: why does Net3 deliver so little with the river pump out?}
 \small
 \begin{itemize}
   \item With the river pump out, the sources are the lake pump and one discharging tank.
@@ -256,7 +348,7 @@ Checked against an independent Edmonds--Karp computation. Reliability and schedu
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Backup: the domination split}
+\begin{frame}{Backup: how can interval floats be exact when the problem is NP-hard?}
 \begin{columns}[c]
 \column{0.45\textwidth}
 \centering
@@ -273,7 +365,55 @@ $k$ interval durations.
 \end{columns}
 \end{frame}
 
-\begin{frame}{Backup: cost against decision diagrams}
+\begin{frame}{Backup: how are p-boxes combined at a diamond?}
+\small
+\textbf{Chain and union steps}: the quantities combined are independent for the same
+structural reason the point computation is exact, so p-box arithmetic under independence
+applies (Williamson and Downs).
+
+\medskip
+\textbf{The conditioning step} is the convex combination
+\[ W\cdot A + (1-W)\cdot B \]
+where $A$, $B$ depend on the same upstream reliabilities, and $W$, $1-W$ are one variable.
+Convolving the terms as if independent is \bad{unsound}: probability mass leaves $[0,1]$, by
+up to $0.34$ on the benchmark grid.
+
+\medskip
+\textbf{The operator}: at each discretisation level of $W$, weight the branches by $w$ and
+$1-w$, combine them under a dependence bound, mix across levels, and envelope the results built
+on $W$'s two bounding functions. Taking one conditioning node at a time reproduces the mixture
+over all $2^{|C|}$ states. The output is clipped to $[0,1]$, with a guard that raises an error
+if the excursion is more than round-off.
+\end{frame}
+
+\begin{frame}{Backup: is the p-box result sound?}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\small
+\textbf{Two dependence bounds} for the branches
+\begin{itemize}
+  \item \textbf{Fr\'echet--Hoeffding}: sound for \emph{any} dependence by a classical theorem;
+  can be wide, near vacuous on hard cases.
+  \item \textbf{Positive dependence} (default): $A$ and $B$ both rise with the shared upstream
+  reliabilities. Tighter; no violation in 50 configurations against Monte Carlo.
+  \bad{Not proved}: no theorem covers positive but otherwise unknown dependence, and the
+  ordering-of-dependence route fails (the distributions cross).
+\end{itemize}
+Fr\'echet is used wherever a claim must rest on proof alone.
+\column{0.45\textwidth}
+\small
+\textbf{What it buys}
+\begin{itemize}
+  \item Band width $0.18$ under high reliability and weak reconvergence, $0.70$ under deep
+  reconvergence with broad uncertainty; no violations in the sweep.
+  \item For a requirement $x^\ast = 0.95$: $P(b(v)\le x^\ast)$ certified to a band of
+  $0.02$--$0.12$ from one propagation.
+  \item Simulation would need 267 to 9,604 samples, and gives an estimate, not a bound.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Backup: is it faster than a decision diagram?}
 \centering
 \includegraphics[width=0.85\linewidth,height=0.7\textheight,keepaspectratio]{fig07_crossover.pdf}\\
 \small Sub-problem count against sifted BDD node count on the two adversarial families
